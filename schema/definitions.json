@@ -1,0 +1,885 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "definitions.json",
+  "$defs": {
+    "coreDocumentProperties": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "deletedAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "otherNames": {
+          "$ref": "#/$defs/otherNames"
+        },
+        "score": {
+          "$ref": "#/$defs/score"
+        },
+        "scores": {
+          "$ref": "#/$defs/scores"
+        }
+      },
+      "required": [
+        "_id",
+        "createdAt",
+        "updatedAt",
+        "name",
+        "score"
+      ]
+    },
+    "coreClaimProperties": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "meta": {
+          "description": "Claims about the claim itself.",
+          "type": "object",
+          "allOf": [
+            {
+              "$ref": "#/$defs/simpleClaimTypes"
+            },
+            {
+              "$ref": "#/$defs/timeClaimTypes"
+            }
+          ],
+          "unevaluatedProperties": false
+        }
+      },
+      "required": [
+        "_id",
+        "confidence"
+      ]
+    },
+    "metaClaimTypes": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "$ref": "#/$defs/isClaims"
+        },
+        "id": {
+          "$ref": "#/$defs/identifierClaims"
+        },
+        "ref": {
+          "$ref": "#/$defs/referenceClaims"
+        }
+      }
+    },
+    "simpleClaimTypes": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/textClaims"
+        },
+        "label": {
+          "$ref": "#/$defs/labelClaims"
+        },
+        "amount": {
+          "$ref": "#/$defs/amountClaims"
+        },
+        "amountRange": {
+          "$ref": "#/$defs/amountRangeClaims"
+        },
+        "enum": {
+          "$ref": "#/$defs/enumerationClaims"
+        },
+        "none": {
+          "$ref": "#/$defs/noValueClaims"
+        },
+        "unknown": {
+          "$ref": "#/$defs/unknownValueClaims"
+        }
+      }
+    },
+    "timeClaimTypes": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "$ref": "#/$defs/timeClaims"
+        },
+        "timeRange": {
+          "$ref": "#/$defs/timeRangeClaims"
+        },
+        "duration": {
+          "$ref": "#/$defs/durationClaims"
+        },
+        "durationRange": {
+          "$ref": "#/$defs/durationRangeClaims"
+        }
+      }
+    },
+    "itemClaimTypes": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/metaClaimTypes"
+        },
+        {
+          "$ref": "#/$defs/simpleClaimTypes"
+        },
+        {
+          "$ref": "#/$defs/timeClaimTypes"
+        }
+      ],
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/fileClaims"
+        },
+        "list": {
+          "$ref": "#/$defs/itemListClaims"
+        },
+        "item": {
+          "$ref": "#/$defs/itemClaims"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "propertyClaimTypes": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/metaClaimTypes"
+        },
+        {
+          "$ref": "#/$defs/simpleClaimTypes"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "identifier": {
+      "description": "ID is 22 characters from base-58 alphabet. This corresponds roughly to 128 bits.",
+      "type": "string",
+      "minLength": 22,
+      "maxLength": 22,
+      "pattern": "^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{22}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z$"
+    },
+    "name": {
+      "$ref": "#/$defs/translatablePlainString"
+    },
+    "otherNames": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z]{2}(-[A-Z]{2})?$": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "contentMediaType": "text/plain"
+          }
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "mnemonic": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*[A-Z0-9]$"
+    },
+    "score": {
+      "type": "number",
+      "default": 0.0,
+      "minimum": -1.0,
+      "maximum": 1.0
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/score"
+      }
+    },
+    "confidence": {
+      "description": "When the confidence of a claim is >= 0, it is an active claim, when < 0 it is inactive claim.",
+      "$ref": "#/$defs/score"
+    },
+    "textClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/textClaim"
+      }
+    },
+    "fileClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fileClaim"
+      }
+    },
+    "itemListClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/itemListClaim"
+      }
+    },
+    "itemClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/itemClaim"
+      }
+    },
+    "isClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/isClaim"
+      }
+    },
+    "identifierClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/identifierClaim"
+      }
+    },
+    "referenceClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/referenceClaim"
+      }
+    },
+    "labelClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/labelClaim"
+      }
+    },
+    "noValueClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/noValueClaim"
+      }
+    },
+    "unknownValueClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unknownValueClaim"
+      }
+    },
+    "amountClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/amountClaim"
+      }
+    },
+    "amountRangeClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/amountRangeClaim"
+      }
+    },
+    "enumerationClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/enumerationClaim"
+      }
+    },
+    "timeClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeClaim"
+      }
+    },
+    "timeRangeClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeRangeClaim"
+      }
+    },
+    "durationClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/durationClaim"
+      }
+    },
+    "durationRangeClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/durationRangeClaim"
+      }
+    },
+    "textClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "plain": {
+          "$ref": "#/$defs/translatablePlainString"
+        },
+        "html": {
+          "$ref": "#/$defs/translatableHtmlString"
+        }
+      },
+      "required": [
+        "prop",
+        "plain",
+        "html"
+      ],
+      "unevaluatedProperties": false
+    },
+    "fileClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "type": {
+          "description": "a media type of the file",
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "iri"
+        },
+        "preview": {
+          "description": "a preview of the file as an image, 128 px wide and/or high",
+          "type": "string",
+          "format": "iri"
+        }
+      },
+      "required": [
+        "prop",
+        "type",
+        "url",
+        "preview"
+      ],
+      "unevaluatedProperties": false
+    },
+    "itemListClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "item": {
+          "$ref": "#/$defs/itemReference"
+        },
+        "list": {
+          "description": "A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
+          "$ref": "#/$defs/identifier"
+        },
+        "order": {
+          "description": "Order of an element inside its list. Smaller numbers are closer to the beginning of the list.",
+          "type": "number"
+        },
+        "children": {
+          "description": "List elements might have other lists as children.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "prop": {
+                "$ref": "#/$defs/propertyReference"
+              },
+              "child": {
+                "description": "List ID of the child.",
+                "$ref": "#/$defs/identifier"
+              }
+            },
+            "required": [
+              "prop",
+              "child"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "prop",
+        "item",
+        "list",
+        "order"
+      ],
+      "unevaluatedProperties": false
+    },
+    "itemClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "item": {
+          "$ref": "#/$defs/itemReference"
+        }
+      },
+      "required": [
+        "prop",
+        "item"
+      ],
+      "unevaluatedProperties": false
+    },
+    "isClaim": {
+      "description": "Similar to labels, but restricted only to claims about entity's type.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        }
+      },
+      "required": [
+        "prop"
+      ],
+      "unevaluatedProperties": false
+    },
+    "identifierClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "id": {
+          "description": "ID should be represented as a string we want to show. During indexing we might process it in a special way, e.g., remove trailing zeroes.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prop",
+        "id"
+      ],
+      "unevaluatedProperties": false
+    },
+    "referenceClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "iri": {
+          "type": "string",
+          "format": "iri"
+        }
+      },
+      "required": [
+        "prop",
+        "iri"
+      ],
+      "unevaluatedProperties": false
+    },
+    "labelClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        }
+      },
+      "required": [
+        "prop"
+      ],
+      "unevaluatedProperties": false
+    },
+    "noValueClaim": {
+      "description": "Can be used with any property to mean that we know that the given property has no value, e.g., Elizabeth I of England had no spouse.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        }
+      },
+      "required": [
+        "prop"
+      ],
+      "unevaluatedProperties": false
+    },
+    "unknownValueClaim": {
+      "description": "Can be used with any property to mean that the property has a value, but it is unknown which one, e.g., Pope Linus most certainly had a year of birth, but it is unknown to us.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        }
+      },
+      "required": [
+        "prop"
+      ],
+      "unevaluatedProperties": false
+    },
+    "amountClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/amountUnit"
+        }
+      },
+      "required": [
+        "prop",
+        "amount",
+        "unit"
+      ],
+      "unevaluatedProperties": false
+    },
+    "amountRangeClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "lower": {
+          "description": "The lower bound of the range. Inclusive.",
+          "type": "number"
+        },
+        "upper": {
+          "description": "The upper bound of the range. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/amountUnit"
+        }
+      },
+      "required": [
+        "prop",
+        "lower",
+        "upper",
+        "unit"
+      ],
+      "unevaluatedProperties": false
+    },
+    "enumerationClaim": {
+      "description": "Used with properties which define one or more possible constant values to be used with them.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "prop",
+        "enum"
+      ],
+      "unevaluatedProperties": false
+    },
+    "timeClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the timestamp's uncertainty interval. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the timestamp's uncertainty interval. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "precision": {
+          "$ref": "#/$defs/timePrecision"
+        }
+      },
+      "required": [
+        "prop",
+        "timestamp"
+      ],
+      "unevaluatedProperties": false
+    },
+    "timeRangeClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "lower": {
+          "description": "The lower bound of the range. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "upper": {
+          "description": "The upper bound of the range. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the timestamp's uncertainty interval. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the timestamp's uncertainty interval. Inclusive.",
+          "$ref": "#/$defs/timestamp"
+        },
+        "precision": {
+          "$ref": "#/$defs/timePrecision"
+        }
+      },
+      "required": [
+        "prop",
+        "lower",
+        "upper"
+      ],
+      "unevaluatedProperties": false
+    },
+    "durationClaim": {
+      "description": "All durations are in seconds so that it is easier to compare values during search.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "prop",
+        "amount"
+      ],
+      "unevaluatedProperties": false
+    },
+    "durationRangeClaim": {
+      "description": "All durations are in seconds so that it is easier to compare values during search.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "lower": {
+          "description": "The lower bound of the range. Inclusive.",
+          "type": "number"
+        },
+        "upper": {
+          "description": "The lower bound of the range. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyLower": {
+          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        },
+        "uncertaintyUpper": {
+          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "prop",
+        "lower",
+        "upper"
+      ],
+      "unevaluatedProperties": false
+    },
+    "translatablePlainString": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z]{2}(-[A-Z]{2})?$": {
+          "type": "string",
+          "contentMediaType": "text/plain"
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "translatableHtmlString": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z]{2}(-[A-Z]{2})?$": {
+          "type": "string",
+          "contentMediaType": "text/html"
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "propertyReference": {
+      "$ref": "#/$defs/documentReference"
+    },
+    "itemReference": {
+      "$ref": "#/$defs/documentReference"
+    },
+    "documentReference": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "score": {
+          "$ref": "#/$defs/score"
+        },
+        "scores": {
+          "$ref": "#/$defs/scores"
+        }
+      },
+      "required": [
+        "_id",
+        "name",
+        "score"
+      ],
+      "additionalProperties": false
+    },
+    "amountUnit": {
+      "description": "All amounts for the same quantity should use the same unit so that it is easier to compare values during search.",
+      "enum": [
+        "none",
+        "ratio",
+        "kilogram per kilogram",
+        "kilogram",
+        "kilogram per cubic metre",
+        "metre",
+        "square metre",
+        "metre per second",
+        "volt",
+        "watt",
+        "pascal",
+        "coulomb",
+        "joule",
+        "celsius",
+        "radian",
+        "hertz",
+        "dollar"
+      ]
+    },
+    "timePrecision": {
+      "description": "See precisions used in Wikidata (https://www.wikidata.org/wiki/Help:Dates).",
+      "enum": [
+        "second",
+        "minute",
+        "hour",
+        "day",
+        "month",
+        "year",
+        "decade",
+        "century",
+        "millennium",
+        "100 thousand years",
+        "million years",
+        "billion years"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "item.json",
+  "title": "Item description",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "definitions.json#/$defs/coreDocumentProperties"
+    }
+  ],
+  "properties": {
+    "active": {
+      "$ref": "definitions.json#/$defs/itemClaimTypes"
+    },
+    "inactive": {
+      "$ref": "definitions.json#/$defs/itemClaimTypes"
+    }
+  },
+  "unevaluatedProperties": false
+}
