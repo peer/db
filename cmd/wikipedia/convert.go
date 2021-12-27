@@ -220,7 +220,7 @@ func decodeJSONs(
 			var e Entity
 			err := decoder.Decode(&e)
 			if err != nil {
-				errs <- errors.WithStack(err)
+				errs <- errors.Wrapf(err, "cannot decode json: %s", raw)
 				return
 			}
 			output <- e
