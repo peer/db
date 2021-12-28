@@ -172,6 +172,26 @@ type LabelClaim struct {
 
 type AmountUnit int
 
+const (
+	AmountUnitNone AmountUnit = iota
+	AmountUnitRatio
+	AmountUnitKilogramPerKilogram
+	AmountUnitKilogram
+	AmountUnitKilogramPerCubicMetre
+	AmountUnitMetre
+	AmountUnitSquareMetre
+	AmountUnitMetrePerSecond
+	AmountUnitVolt
+	AmountUnitWatt
+	AmountUnitPascal
+	AmountUnitCoulomb
+	AmountUnitJoule
+	AmountUnitCelsius
+	AmountUnitRadian
+	AmountUnitHertz
+	AmountUnitDollar
+)
+
 type AmountClaim struct {
 	CoreClaim
 
@@ -213,6 +233,24 @@ type UnknownValueClaim struct {
 }
 
 type TimePrecision int
+
+const (
+	TimePrecisionBillionYears TimePrecision = iota
+	TimePrecisionHoundredMillionYears
+	TimePrecisionTenMillionYears
+	TimePrecisionMillionYears
+	TimePrecisionHoundredMillenniums
+	TimePrecisionTenMillenniums
+	TimePrecisionMillennium
+	TimePrecisionCentury
+	TimePrecisionDecade
+	TimePrecisionYear
+	TimePrecisionMonth
+	TimePrecisionDay
+	TimePrecisionHour
+	TimePrecisionMinute
+	TimePrecisionSecond
+)
 
 type TimeClaim struct {
 	CoreClaim

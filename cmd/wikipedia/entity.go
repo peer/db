@@ -331,21 +331,21 @@ func (t *DataType) UnmarshalJSON(b []byte) error {
 type TimePrecision int
 
 const (
-	Gigayear            TimePrecision = iota //nolint:deadcode
-	HoundredMegayears                        //nolint:deadcode
-	TenMegayears                             //nolint:deadcode
-	Megayear                                 //nolint:deadcode
-	HoundredMillenniums                      //nolint:deadcode
-	TenMillenniums                           //nolint:deadcode
-	Millennium                               //nolint:deadcode
-	Century                                  //nolint:deadcode
-	TenYears                                 //nolint:deadcode
-	Year                                     //nolint:deadcode
-	Month                                    //nolint:deadcode
-	Day                                      //nolint:deadcode
-	Hour                                     //nolint:deadcode
-	Minute                                   //nolint:deadcode
-	Second                                   //nolint:deadcode
+	BillionYears         TimePrecision = iota //nolint:deadcode
+	HoundredMillionYears                      //nolint:deadcode
+	TenMillionYears                           //nolint:deadcode
+	MillionYears                              //nolint:deadcode
+	HoundredMillenniums                       //nolint:deadcode
+	TenMillenniums                            //nolint:deadcode
+	Millennium                                //nolint:deadcode
+	Century                                   //nolint:deadcode
+	Decade                                    //nolint:deadcode
+	Year                                      //nolint:deadcode
+	Month                                     //nolint:deadcode
+	Day                                       //nolint:deadcode
+	Hour                                      //nolint:deadcode
+	Minute                                    //nolint:deadcode
+	Second                                    //nolint:deadcode
 )
 
 type CalendarModel int
