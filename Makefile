@@ -13,10 +13,10 @@ endif
 .PHONY: lint lint-ci fmt fmt-ci test test-ci clean lint-docs audit
 
 build:
-	go build -ldflags "-X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb-search/cmd/wikipedia
+	go build -ldflags "-X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 
 build-static:
-	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb-search/cmd/wikipedia
+	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 
 lint:
 	golangci-lint run --timeout 4m --color always
@@ -30,7 +30,7 @@ lint-ci:
 fmt:
 	go mod tidy
 	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 gofumpt -w
-	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 goimports -w -local gitlab.com/peerdb/peerdb-search
+	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 goimports -w -local gitlab.com/peerdb/search
 
 fmt-ci: fmt
 	git diff --exit-code --color=always

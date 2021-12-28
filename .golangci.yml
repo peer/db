@@ -12,7 +12,7 @@ linters-settings:
   gofumpt:
     go: "1.17"
   goimports:
-    local-prefixes: gitlab.com/peerdb/peerdb-search
+    local-prefixes: gitlab.com/peerdb/search
   gosimple:
     go: "1.17"
     checks:

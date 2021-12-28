@@ -1,4 +1,4 @@
-module gitlab.com/peerdb/peerdb-search
+module gitlab.com/peerdb/search
 
 go 1.17
 
