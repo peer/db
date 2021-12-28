@@ -203,6 +203,16 @@ func getWikidataJSONs(
 	}
 }
 
+func unmarshalWithoutUnknownFields(data []byte, v interface{}) errors.E {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(v)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
 func decodeJSONs(
 	ctx context.Context, config *Config, wg *sync.WaitGroup,
 	input <-chan json.RawMessage, output chan<- Entity, errs chan<- errors.E,
@@ -215,10 +225,8 @@ func decodeJSONs(
 			if !ok {
 				return
 			}
-			decoder := json.NewDecoder(bytes.NewReader(raw))
-			decoder.DisallowUnknownFields()
 			var e Entity
-			err := decoder.Decode(&e)
+			err := unmarshalWithoutUnknownFields(raw, &e)
 			if err != nil {
 				errs <- errors.Wrapf(err, "cannot decode json: %s", raw)
 				return

@@ -3,6 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"math/big"
+	"regexp"
+	"strconv"
+	"time"
 
 	"gitlab.com/tozd/go/errors"
 )
@@ -13,6 +17,12 @@ const (
 	Item EntityType = iota
 	Property
 )
+
+var TimeRegex *regexp.Regexp
+
+func init() {
+	TimeRegex = regexp.MustCompile(`^([+-]\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
+}
 
 func (t EntityType) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
@@ -30,7 +40,7 @@ func (t *EntityType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
 	case "item":
@@ -43,16 +53,67 @@ func (t *EntityType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type WikiBaseEntityType int
+
+const (
+	ItemType WikiBaseEntityType = iota
+	PropertyType
+	LexemeType
+	FormType
+	SenseType
+)
+
+func (t WikiBaseEntityType) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	switch t {
+	case ItemType:
+		buffer.WriteString("item")
+	case PropertyType:
+		buffer.WriteString("property")
+	case LexemeType:
+		buffer.WriteString("lexeme")
+	case FormType:
+		buffer.WriteString("form")
+	case SenseType:
+		buffer.WriteString("sense")
+	}
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func (t *WikiBaseEntityType) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	switch s {
+	case "item":
+		*t = ItemType
+	case "property":
+		*t = PropertyType
+	case "lexeme":
+		*t = LexemeType
+	case "form":
+		*t = FormType
+	case "sense":
+		*t = SenseType
+	default:
+		return errors.Errorf("unknown wikibase entity type: %s", s)
+	}
+	return nil
+}
+
 type StatementType int
 
 const (
-	Statement_ StatementType = iota
+	StatementT StatementType = iota
 )
 
 func (t StatementType) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
-	switch t {
-	case Statement_:
+	switch t { //nolint:gocritic
+	case StatementT:
 		buffer.WriteString("statement")
 	}
 	buffer.WriteString(`"`)
@@ -63,11 +124,11 @@ func (t *StatementType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
 	case "statement":
-		*t = Statement_
+		*t = StatementT
 	default:
 		return errors.Errorf("unknown statement type: %s", s)
 	}
@@ -100,7 +161,7 @@ func (r *StatementRank) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
 	case "preferred":
@@ -141,7 +202,7 @@ func (t *SnakType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
 	case "value":
@@ -224,7 +285,7 @@ func (t *DataType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
 	case "wikibase-item":
@@ -267,66 +328,271 @@ func (t *DataType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type DataValueType int
+type TimePrecision int
 
 const (
-	StringValue DataValueType = iota
-	WikiBaseEntityID
-	GlobeCoordinateValue
-	MonolingualTextValue
-	QuantityValue
-	TimeValue
+	Gigayear            TimePrecision = iota //nolint:deadcode
+	HoundredMegayears                        //nolint:deadcode
+	TenMegayears                             //nolint:deadcode
+	Megayear                                 //nolint:deadcode
+	HoundredMillenniums                      //nolint:deadcode
+	TenMillenniums                           //nolint:deadcode
+	Millennium                               //nolint:deadcode
+	Century                                  //nolint:deadcode
+	TenYears                                 //nolint:deadcode
+	Year                                     //nolint:deadcode
+	Month                                    //nolint:deadcode
+	Day                                      //nolint:deadcode
+	Hour                                     //nolint:deadcode
+	Minute                                   //nolint:deadcode
+	Second                                   //nolint:deadcode
 )
 
-func (t DataValueType) MarshalJSON() ([]byte, error) {
+type CalendarModel int
+
+const (
+	Gregorian CalendarModel = iota
+	Julian
+)
+
+func (t CalendarModel) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	switch t {
-	case StringValue:
-		buffer.WriteString("string")
-	case WikiBaseEntityID:
-		buffer.WriteString("wikibase-entityid")
-	case GlobeCoordinateValue:
-		buffer.WriteString("globecoordinate")
-	case MonolingualTextValue:
-		buffer.WriteString("monolingualtext")
-	case QuantityValue:
-		buffer.WriteString("quantity")
-	case TimeValue:
-		buffer.WriteString("time")
+	case Gregorian:
+		buffer.WriteString("https://www.wikidata.org/wiki/Q1985727")
+	case Julian:
+		buffer.WriteString("https://www.wikidata.org/wiki/Q1985786")
 	}
 	buffer.WriteString(`"`)
 	return buffer.Bytes(), nil
 }
 
-func (t *DataValueType) UnmarshalJSON(b []byte) error {
+func (t *CalendarModel) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch s {
-	case "string":
-		*t = StringValue
-	case "wikibase-entityid":
-		*t = WikiBaseEntityID
-	case "globecoordinate":
-		*t = GlobeCoordinateValue
-	case "monolingualtext":
-		*t = MonolingualTextValue
-	case "quantity":
-		*t = QuantityValue
-	case "time":
-		*t = TimeValue
+	case "https://www.wikidata.org/wiki/Q1985727":
+		*t = Gregorian
+	case "http://www.wikidata.org/entity/Q1985727":
+		*t = Gregorian
+	case "https://www.wikidata.org/wiki/Q1985786":
+		*t = Julian
+	case "http://www.wikidata.org/entity/Q1985786":
+		*t = Julian
 	default:
-		return errors.Errorf("unknown data value type: %s", s)
+		return errors.Errorf("unknown calendar model: %s", s)
 	}
 	return nil
 }
 
+type ErrorValue string
+
+type StringValue string
+
+type WikiBaseEntityIDValue struct {
+	Type WikiBaseEntityType
+	ID   string
+}
+
+type GlobeCoordinateValue struct {
+	Latitude  float64
+	Longitude float64
+	Precision float64
+	Globe     string
+}
+
+type MonolingualTextValue struct {
+	Language string
+	Text     string
+}
+
+type QuantityValue struct {
+	Amount     big.Float
+	UpperBound *big.Float `json:"upperBound"`
+	LowerBound *big.Float `json:"lowerBound"`
+	Unit       string
+}
+
+type TimeValue struct {
+	Time      time.Time
+	Precision TimePrecision
+	Calendar  CalendarModel
+}
+
 type DataValue struct {
-	Type  DataValueType
-	Value interface{} // TODO
-	Error string
+	Value interface{}
+}
+
+func (v DataValue) MarshalJSON() ([]byte, error) {
+	return nil, nil
+}
+
+func parseTime(t string) (time.Time, errors.E) {
+	match := TimeRegex.FindStringSubmatch(t)
+	if match == nil {
+		return time.Time{}, errors.Errorf(`unable to parse time "%s"`, t)
+	}
+	year, err := strconv.ParseInt(match[1], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse year "%s"`, t)
+	}
+	if year < 0 {
+		// Wikidata uses historical numbering, in which year 0 is undefined,
+		// but Go uses astronomical numbering, so we add 1 here.
+		year++
+	}
+	month, err := strconv.ParseInt(match[2], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse month "%s"`, t)
+	}
+	if month == 0 {
+		// Wikidata uses 0 when month is unknown or insignificant.
+		// Go does not support this, so we set it to 1 here.
+		month = 1
+	}
+	day, err := strconv.ParseInt(match[3], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse day "%s"`, t)
+	}
+	if day == 0 {
+		// Wikidata uses 0 when day is unknown or insignificant.
+		// Go does not support this, so we set it to 1 here.
+		day = 1
+	}
+	hour, err := strconv.ParseInt(match[4], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse hour "%s"`, t)
+	}
+	minute, err := strconv.ParseInt(match[5], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse minute "%s"`, t)
+	}
+	second, err := strconv.ParseInt(match[6], 10, 0) //nolint:gomnd
+	if err != nil {
+		return time.Time{}, errors.WithMessagef(err, `unable to parse second "%s"`, t)
+	}
+	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC), nil
+}
+
+func (v *DataValue) UnmarshalJSON(b []byte) error {
+	var t struct {
+		Type  string
+		Error string
+	}
+	err := json.Unmarshal(b, &t)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if t.Error != "" {
+		v.Value = ErrorValue(t.Error)
+		return nil
+	}
+	switch t.Type {
+	case "string":
+		var t struct {
+			Type  string
+			Value string
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		v.Value = StringValue(t.Value)
+	case "wikibase-entityid":
+		var t struct {
+			Type  string
+			Value struct {
+				Type WikiBaseEntityType `json:"entity-type"`
+				ID   string
+				// Not available for all entity types. Not recommended to be used. We ignore it.
+				NumericID int `json:"numeric-id"`
+			}
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		v.Value = WikiBaseEntityIDValue{
+			Type: t.Value.Type,
+			ID:   t.Value.ID,
+		}
+	case "globecoordinate":
+		var t struct {
+			Type  string
+			Value struct {
+				Latitude  float64
+				Longitude float64
+				// Altitude is deprecated and no longer used. We ignore it.
+				Altitude  float64
+				Precision float64
+				Globe     string
+			}
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		v.Value = GlobeCoordinateValue{
+			Latitude:  t.Value.Latitude,
+			Longitude: t.Value.Longitude,
+			Precision: t.Value.Precision,
+			Globe:     t.Value.Globe,
+		}
+	case "monolingualtext":
+		var t struct {
+			Type  string
+			Value MonolingualTextValue
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		v.Value = t.Value
+	case "quantity":
+		var t struct {
+			Type  string
+			Value QuantityValue
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		v.Value = t.Value
+	case "time":
+		var t struct {
+			Type  string
+			Value struct {
+				Time      string
+				Precision TimePrecision
+				Calendar  CalendarModel `json:"calendarmodel"`
+				// Defined and declared not used, but sometimes still set. We ignore it.
+				Timezone int64
+				// Defined and declared not used, but sometimes still set. We ignore it.
+				Before int64
+				// Defined and declared not used, but sometimes still set. We ignore it.
+				After int64
+			}
+		}
+		err := unmarshalWithoutUnknownFields(b, &t)
+		if err != nil {
+			return err
+		}
+		parsedTime, err := parseTime(t.Value.Time)
+		if err != nil {
+			return err
+		}
+		v.Value = TimeValue{
+			Time:      parsedTime,
+			Precision: t.Value.Precision,
+			Calendar:  t.Value.Calendar,
+		}
+	default:
+		return errors.Errorf(`unknown data value type "%s": %s`, t.Type, string(b))
+	}
+	return nil
 }
 
 type LanguageValue struct {
@@ -358,7 +624,7 @@ type Reference struct {
 type Statement struct {
 	ID              string
 	Type            StatementType
-	MainSnak        Snak `json:"mainsnak`
+	MainSnak        Snak `json:"mainsnak"`
 	Rank            StatementRank
 	Qualifiers      map[string][]Snak
 	QualifiersOrder []string `json:"qualifiers-order"`
