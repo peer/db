@@ -4,6 +4,8 @@ github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142 h1:8Uy0oSf5co/NZXj
 github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142/go.mod h1:2kn6fqh/zIyPLmm3ugklbEi5hg5wS435eygvNfaDQL8=
 github.com/cosnicolaou/pbzip2 v1.0.1 h1:f5Ix000Rtl9tr0Ne33wNLtljGl2nAyR4ZirJrz9qg+0=
 github.com/cosnicolaou/pbzip2 v1.0.1/go.mod h1:cE04zhBMvwMrCLhsx6aLYh9cGsU9GyFB0oo/GmO+SkY=
+github.com/cosnicolaou/pbzip2 v1.0.2-0.20211229030036-3ed02fdb7541 h1:mxYXzRISkWfnAwtF4JQK0MMJa7xSkFrLGCN0EM1ZD28=
+github.com/cosnicolaou/pbzip2 v1.0.2-0.20211229030036-3ed02fdb7541/go.mod h1:cE04zhBMvwMrCLhsx6aLYh9cGsU9GyFB0oo/GmO+SkY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
