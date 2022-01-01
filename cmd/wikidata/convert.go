@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	userAgent         = "PeerBot/1.0 (mailto:mitar.peerbot@tnode.com)"
 	latestWikidataAll = "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2"
 	staleReadTimeout  = 60 * time.Second
 	progressPrintRate = 30 * time.Second
@@ -33,9 +32,11 @@ var (
 	bzip2DecodeThreads      int
 	jsonDecodeThreads       int
 	entityProcessingThreads int
+	userAgent               string
 )
 
 func init() {
+	userAgent = fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision) //nolint:lll
 	bzip2DecodeThreads = runtime.GOMAXPROCS(0)
 	jsonDecodeThreads = runtime.GOMAXPROCS(0)
 	entityProcessingThreads = runtime.GOMAXPROCS(0)
