@@ -89,6 +89,6 @@ linters:
 
 issues:
   exclude-rules:
-    - path: cmd/wikipedia/config\.go
+    - path: cmd/wikidata/config\.go
       linters:
         - lll
