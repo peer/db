@@ -14,9 +14,11 @@ endif
 
 build:
 	go build -ldflags "-X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikidata gitlab.com/peerdb/search/cmd/wikidata
+	go build -ldflags "-X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 
 build-static:
-	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikidata gitlab.com/peerdb/search/cmd/wikidata
+	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
+	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 
 lint:
 	golangci-lint run --timeout 4m --color always
@@ -44,7 +46,7 @@ test-ci:
 	go tool cover -html=coverage.txt -o coverage.html
 
 clean:
-	rm -f coverage.* codeclimate.json tests.xml
+	rm -f coverage.* codeclimate.json tests.xml wikidata wikipedia
 
 lint-docs:
 	npx --yes --package 'markdownlint-cli@~0.30.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ '**/*.md'

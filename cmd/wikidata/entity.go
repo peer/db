@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/search/internal/mediawiki"
 )
 
 type EntityType int
@@ -496,7 +498,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 			Type  string
 			Value string
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
@@ -511,7 +513,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 				NumericID int `json:"numeric-id"`
 			}
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
@@ -531,7 +533,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 				Globe     string
 			}
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
@@ -546,7 +548,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 			Type  string
 			Value MonolingualTextValue
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
@@ -556,7 +558,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 			Type  string
 			Value QuantityValue
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
@@ -576,7 +578,7 @@ func (v *DataValue) UnmarshalJSON(b []byte) error {
 				After int64
 			}
 		}
-		err := unmarshalWithoutUnknownFields(b, &t)
+		err := mediawiki.UnmarshalWithoutUnknownFields(b, &t)
 		if err != nil {
 			return err
 		}
