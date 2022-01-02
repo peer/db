@@ -5,7 +5,11 @@ import "time"
 type Editor struct {
 	Identifier  int64 `json:",omitempty"`
 	IsAnonymous bool  `json:"is_anonymous,omitempty"`
+	IsBot       bool  `json:"is_bot,omitempty"`
 	Name        string
+	EditCount   int64     `json:"edit_count,omitempty"`
+	DateStarted time.Time `json:"date_started,omitempty"`
+	Groups      []string
 }
 
 type Probability struct {
