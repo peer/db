@@ -37,7 +37,7 @@ func convert(config *Config) errors.E {
 			return processArticle(*(i.(*Article)))
 		},
 		Item:        &Article{}, //nolint:exhaustivestruct
-		DumpType:    mediawiki.JSONL,
+		DumpType:    mediawiki.NDJSON,
 		Compression: mediawiki.GZIP,
 	})
 }

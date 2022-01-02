@@ -32,7 +32,7 @@ type DumpType int
 
 const (
 	JSONArray DumpType = iota
-	JSONL
+	NDJSON
 )
 
 type Compression int
