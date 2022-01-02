@@ -8,6 +8,21 @@ type Editor struct {
 	Name        string
 }
 
+type Probability struct {
+	False float64
+	True  float64
+}
+
+type Score struct {
+	Prediction  bool
+	Probability Probability
+}
+
+type Scores struct {
+	Damaging  Score
+	Goodfaith Score
+}
+
 type Version struct {
 	Identifier      int64
 	Editor          Editor
@@ -15,6 +30,7 @@ type Version struct {
 	Tags            []string `json:",omitempty"`
 	IsMinorEdit     bool     `json:"is_minor_edit,omitempty"`
 	IsFlaggedStable bool     `json:"is_flagged_stable,omitempty"`
+	Scores          Scores   `json:",omitempty"`
 }
 
 // TODO: Should Type and Level be enumerations?
