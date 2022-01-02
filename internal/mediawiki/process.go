@@ -173,49 +173,61 @@ func getDumpJSONs(
 		}
 		defer gzipReader.Close()
 
-		tarReader := tar.NewReader(gzipReader)
-		// There is only one file in the tar.
-		_, err = tarReader.Next()
-		if err != nil {
-			errs <- errors.WithStack(err)
-			return
-		}
-		decompressedReader = tarReader
+		decompressedReader = tar.NewReader(gzipReader)
 	default:
 		panic(errors.Errorf("unknown compression: %d", config.Compression))
 	}
 
-	decoder := json.NewDecoder(decompressedReader)
-
-	if config.DumpType == JSONArray {
-		// Read open bracket.
-		_, err = decoder.Token()
-		if err != nil {
-			errs <- errors.WithStack(err)
-			return
+	for {
+		if config.Compression == GZIP {
+			// Go to the first or next file in gzip/tar.
+			_, err = decompressedReader.(*tar.Reader).Next()
+			if err != nil {
+				// When there are no more files in gzip/tar, Next returns io.EOF.
+				if !errors.Is(err, io.EOF) {
+					errs <- errors.WithStack(err)
+				}
+				return
+			}
 		}
-	}
 
-	for decoder.More() {
-		var raw json.RawMessage
-		err = decoder.Decode(&raw)
-		if err != nil {
-			errs <- errors.WithStack(err)
-			return
-		}
-		if err = ctx.Err(); err != nil {
-			errs <- errors.WithStack(err)
-			return
-		}
-		output <- raw
-	}
+		decoder := json.NewDecoder(decompressedReader)
 
-	if config.DumpType == JSONArray {
-		// Read closing bracket.
-		_, err = decoder.Token()
-		if err != nil {
-			errs <- errors.WithStack(err)
-			return
+		if config.DumpType == JSONArray {
+			// Read open bracket.
+			_, err = decoder.Token()
+			if err != nil {
+				errs <- errors.WithStack(err)
+				return
+			}
+		}
+
+		for decoder.More() {
+			var raw json.RawMessage
+			err = decoder.Decode(&raw)
+			if err != nil {
+				errs <- errors.WithStack(err)
+				return
+			}
+			if err = ctx.Err(); err != nil {
+				errs <- errors.WithStack(err)
+				return
+			}
+			output <- raw
+		}
+
+		if config.DumpType == JSONArray {
+			// Read closing bracket.
+			_, err = decoder.Token()
+			if err != nil {
+				errs <- errors.WithStack(err)
+				return
+			}
+		}
+
+		if config.Compression != GZIP {
+			// Only gzip/tar has multiple files.
+			break
 		}
 	}
 }
