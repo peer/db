@@ -1,43 +1,33 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"path"
+	"os"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-
 	"gitlab.com/tozd/go/errors"
-
-	"gitlab.com/peerdb/search/internal/mediawiki"
-)
-
-const (
-	// TODO: Find the latest one automatically.
-	latestWikipediaEn = "https://dumps.wikimedia.org/other/enterprise_html/runs/20211220/enwiki-NS0-20211220-ENTERPRISE-HTML.json.tar.gz" //nolint:lll
+	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/go/x"
 )
 
 // TODO: Configure logger.
 var client = retryablehttp.NewClient()
 
 func convert(config *Config) errors.E {
-	filename := path.Base(latestWikipediaEn)
-	return mediawiki.Process(&mediawiki.ProcessConfig{
-		URL:                    latestWikipediaEn,
+	ctx := context.Background()
+	return mediawiki.ProcessWikipediaDump(ctx, &mediawiki.ProcessDumpConfig{
+		URL:                    "",
 		CacheDir:               config.CacheDir,
-		CacheGlob:              "enwiki-NS0-*-ENTERPRISE-HTML.json.tar.gz",
-		CacheFilename:          func(_ *http.Response) (string, errors.E) { return filename, nil },
 		Client:                 client,
 		DecompressionThreads:   0,
 		JSONDecodeThreads:      0,
 		ItemsProcessingThreads: 0,
 		// TODO: Make contact e-mail into a CLI argument.
 		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision), //nolint:lll
-		Process: func(i interface{}) errors.E {
-			return processArticle(*(i.(*Article)))
+		Progress: func(ctx context.Context, p x.Progress) {
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s\n", p.Percent(), p.Remaining().Truncate(time.Second))
 		},
-		Item:        &Article{}, //nolint:exhaustivestruct
-		DumpType:    mediawiki.NDJSON,
-		Compression: mediawiki.GZIP,
-	})
+	}, processArticle)
 }

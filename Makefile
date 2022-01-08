@@ -10,7 +10,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: lint lint-ci fmt fmt-ci test test-ci clean lint-docs audit
+.PHONY: build build-static test test-ci lint lint-ci fmt fmt-ci clean lint-docs audit
 
 build:
 	go build -ldflags "-X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikidata gitlab.com/peerdb/search/cmd/wikidata
@@ -19,6 +19,14 @@ build:
 build-static:
 	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 	go build -ldflags "-linkmode external -extldflags '-static' -X main.version=${VERSION} -X main.buildTimestamp=${BUILD_TIMESTAMP} -X main.revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
+
+test:
+	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
+
+test-ci:
+	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
+	gocover-cobertura < coverage.txt > coverage.xml
+	go tool cover -html=coverage.txt -o coverage.html
 
 lint:
 	golangci-lint run --timeout 4m --color always
@@ -36,14 +44,6 @@ fmt:
 
 fmt-ci: fmt
 	git diff --exit-code --color=always
-
-test:
-	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
-
-test-ci:
-	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
-	gocover-cobertura < coverage.txt > coverage.xml
-	go tool cover -html=coverage.txt -o coverage.html
 
 clean:
 	rm -f coverage.* codeclimate.json tests.xml wikidata wikipedia
