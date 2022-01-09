@@ -102,8 +102,8 @@ github.com/xanzy/ssh-agent v0.3.0 h1:wUMzuKtKilRgBAD1sUb8gOwwRr2FGoBVumcjoOACClI
 github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6eAcqrDh0=
 gitlab.com/tozd/go/errors v0.3.0 h1:5CKqYz4EfXLxYFhYtxD1s51Nh50J06flPdBqrdXn2AY=
 gitlab.com/tozd/go/errors v0.3.0/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
-gitlab.com/tozd/go/mediawiki v0.0.0-20220108222450-e894e38a0682 h1:wR2jXwl18aTNhNTeZQlHYOyB7zIbp90f2DdWPteWf6Q=
-gitlab.com/tozd/go/mediawiki v0.0.0-20220108222450-e894e38a0682/go.mod h1:kU/wboKKSTecpFXzj6eMmWy4AfDDKdG2fuaYE5Qr34Y=
+gitlab.com/tozd/go/mediawiki v0.0.0-20220108224605-7251d23ac662 h1:SDLBDffxcEqVxrf6k/LV9WyGrabv8TMbQ5a9W0snQMw=
+gitlab.com/tozd/go/mediawiki v0.0.0-20220108224605-7251d23ac662/go.mod h1:kU/wboKKSTecpFXzj6eMmWy4AfDDKdG2fuaYE5Qr34Y=
 gitlab.com/tozd/go/x v0.0.0-20220108094539-5cfbb5b32eba h1:QrGTQ88BH0QzxfvSzIfyn71vKaRXQrb/x3rVaP2J+0A=
 gitlab.com/tozd/go/x v0.0.0-20220108094539-5cfbb5b32eba/go.mod h1:FovFeRAlfCK4SAP8agkHrx1WqVtjUiyLkJwHCpSMkj4=
 golang.org/x/crypto v0.0.0-20190219172222-a4c6cb3142f2/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=

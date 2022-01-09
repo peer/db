@@ -6,7 +6,7 @@ require github.com/alecthomas/kong v0.2.22
 
 require (
 	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d
-	gitlab.com/tozd/go/mediawiki v0.0.0-20220108222450-e894e38a0682
+	gitlab.com/tozd/go/mediawiki v0.0.0-20220108224605-7251d23ac662
 	gitlab.com/tozd/go/x v0.0.0-20220108094539-5cfbb5b32eba
 )
 
