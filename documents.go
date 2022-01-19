@@ -75,6 +75,7 @@ type MetaClaimTypes struct {
 
 type SimpleClaimTypes struct {
 	Text         TextClaims         `json:"text,omitempty"`
+	String       StringClaims       `json:"string,omitempty"`
 	Label        LabelClaims        `json:"label,omitempty"`
 	Amount       AmountClaims       `json:"amount,omitempty"`
 	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
@@ -95,6 +96,7 @@ type (
 	IdentifierClaims    = []IdentifierClaim
 	ReferenceClaims     = []ReferenceClaim
 	TextClaims          = []TextClaim
+	StringClaims        = []StringClaim
 	LabelClaims         = []LabelClaim
 	AmountClaims        = []AmountClaim
 	AmountRangeClaims   = []AmountRangeClaim
@@ -162,6 +164,13 @@ type TextClaim struct {
 	Prop  PropertyReference       `json:"prop"`
 	Plain TranslatablePlainString `json:"plain"`
 	HTML  TranslatableHTMLString  `json:"html"`
+}
+
+type StringClaim struct {
+	CoreClaim
+
+	Prop   PropertyReference `json:"prop"`
+	String string            `json:"string"`
 }
 
 type LabelClaim struct {

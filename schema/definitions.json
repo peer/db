@@ -86,6 +86,9 @@
         "text": {
           "$ref": "#/$defs/textClaims"
         },
+        "string": {
+          "$ref": "#/$defs/stringClaims"
+        },
         "label": {
           "$ref": "#/$defs/labelClaims"
         },
@@ -216,6 +219,12 @@
         "$ref": "#/$defs/textClaim"
       }
     },
+    "stringClaims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stringClaim"
+      }
+    },
     "fileClaims": {
       "type": "array",
       "items": {
@@ -334,6 +343,28 @@
         "prop",
         "plain",
         "html"
+      ],
+      "unevaluatedProperties": false
+    },
+    "stringClaim": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/coreClaimProperties"
+        }
+      ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyReference"
+        },
+        "string": {
+          "type": "string",
+          "contentMediaType": "text/plain"
+        }
+      },
+      "required": [
+        "prop",
+        "string"
       ],
       "unevaluatedProperties": false
     },
