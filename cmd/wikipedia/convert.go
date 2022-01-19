@@ -25,7 +25,7 @@ func convert(config *Config) errors.E {
 		JSONDecodeThreads:      0,
 		ItemsProcessingThreads: 0,
 		// TODO: Make contact e-mail into a CLI argument.
-		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision), //nolint:lll
+		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision),
 		Progress: func(ctx context.Context, p x.Progress) {
 			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s\n", p.Percent(), p.Remaining().Truncate(time.Second))
 		},
