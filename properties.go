@@ -3,9 +3,11 @@ package search
 import (
 	"fmt"
 	"html"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
+	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
 )
@@ -102,8 +104,22 @@ var (
 
 	NameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
 
+	// TODO: Use sync.Map.
 	KnownProperties = map[string]Property{}
 )
+
+func GetStandardPropertyReference(mnemonic string) PropertyReference {
+	property, ok := KnownProperties[getPropertyID(mnemonic)]
+	if !ok {
+		panic(errors.Errorf(`standard property for mnemonic "%s" cannot be found`, mnemonic))
+	}
+	return PropertyReference{
+		ID:     property.ID,
+		Name:   property.Name,
+		Score:  property.Score,
+		Scores: property.Scores,
+	}
+}
 
 func getMnemonic(data string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(data), " ", "_"), `"`, "")
@@ -113,11 +129,17 @@ func getPropertyID(mnemonic string) string {
 	return identifier.FromUUID(uuid.NewSHA1(NameSpaceStandardProperties, []byte(mnemonic)))
 }
 
-func getPropertyClaimID(propertyMnemonic, claimMnemonic string) string {
+func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int) string {
 	return identifier.FromUUID(
 		uuid.NewSHA1(
-			uuid.NewSHA1(NameSpaceStandardProperties, []byte(propertyMnemonic)),
-			[]byte(claimMnemonic),
+			uuid.NewSHA1(
+				uuid.NewSHA1(
+					NameSpaceStandardProperties,
+					[]byte(propertyMnemonic),
+				),
+				[]byte(claimMnemonic),
+			),
+			[]byte(strconv.Itoa(i)),
 		),
 	)
 }
@@ -140,7 +162,7 @@ func populateStandardProperties() {
 					Text: TextClaims{
 						{
 							CoreClaim: CoreClaim{
-								ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+								ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION", 0)),
 								Confidence: 1.0,
 							},
 							Prop: PropertyReference{
@@ -167,7 +189,7 @@ func populateStandardProperties() {
 			isClaimMnemonic := getMnemonic(isClaim)
 			meta.Is = append(meta.Is, IsClaim{
 				CoreClaim: CoreClaim{
-					ID:         Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic)),
+					ID:         Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic, 0)),
 					Confidence: 1.0,
 				},
 				Prop: PropertyReference{
@@ -199,7 +221,7 @@ func populateStandardProperties() {
 						Is: IsClaims{
 							{
 								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE")),
+									ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0)),
 									Confidence: 1.0,
 								},
 								Prop: PropertyReference{
@@ -216,7 +238,7 @@ func populateStandardProperties() {
 						Text: TextClaims{
 							{
 								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+									ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION", 0)),
 									Confidence: 1.0,
 								},
 								Prop: PropertyReference{

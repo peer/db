@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -16,6 +17,15 @@ import (
 var client = retryablehttp.NewClient()
 
 func convert(config *Config) errors.E {
+	for _, dir := range []string{"properties", "items"} {
+		outputDir := filepath.Join(config.OutputDir, dir)
+
+		err := os.MkdirAll(outputDir, 0o700)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
 	ctx := context.Background()
 	return mediawiki.ProcessWikidataDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
@@ -29,5 +39,7 @@ func convert(config *Config) errors.E {
 		Progress: func(ctx context.Context, p x.Progress) {
 			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s\n", p.Percent(), p.Remaining().Truncate(time.Second))
 		},
-	}, processEntity)
+	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
+		return processEntity(ctx, config, entity)
+	})
 }
