@@ -220,8 +220,9 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 
 	englishDescriptions := getEnglishValues(entity.Descriptions)
 	if len(englishDescriptions) > 0 {
+		simple := &property.Active.SimpleClaimTypes
 		for i, description := range englishDescriptions {
-			property.Active.SimpleClaimTypes.Text = append(property.Active.SimpleClaimTypes.Text, search.TextClaim{
+			simple.Text = append(simple.Text, search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.Identifier(getStandardPropertyClaimID(entity.ID, "DESCRIPTION", i)),
 					Confidence: 1.0,

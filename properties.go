@@ -59,46 +59,34 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
-			"identifier",
-			"identifier",
-			"identifier",
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"reference",
-			"reference",
-			"reference",
-			[]string{`"reference" claim type`},
-		},
-		{
 			"Wikidata property id",
 			"Wikidata property identifier",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
-			[]string{"identifier"},
+			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata item id",
 			"Wikidata item identifier",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
-			[]string{"identifier"},
+			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata property page",
 			"Wikidata property page",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI`,
-			[]string{"reference"},
+			[]string{`"reference" claim type`},
 		},
 		{
 			"Wikidata item page",
 			"Wikidata item page",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI`,
-			[]string{"reference"},
+			[]string{`"reference" claim type`},
 		},
 		{
 			"English Wikipedia article",
 			"reference to English Wikipedia article",
 			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
-			[]string{"reference"},
+			[]string{`"reference" claim type`},
 		},
 	}
 
@@ -184,7 +172,7 @@ func populateStandardProperties() {
 			},
 		}
 
-		meta := KnownProperties[id].Active.MetaClaimTypes
+		meta := &KnownProperties[id].Active.MetaClaimTypes
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
 			meta.Is = append(meta.Is, IsClaim{
