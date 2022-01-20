@@ -21,9 +21,6 @@ type Property struct {
 
 type CoreDocument struct {
 	ID         Identifier `json:"_id"`
-	CreatedAt  Timestamp  `json:"createdAt"`
-	UpdatedAt  Timestamp  `json:"updatedAt"`
-	DeletedAt  *Timestamp `json:"deletedAt,omitempty"`
 	Name       Name       `json:"name"`
 	OtherNames OtherNames `json:"otherNames,omitempty"`
 	Score      Score      `json:"score"`

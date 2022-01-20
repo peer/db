@@ -126,29 +126,29 @@ func populateStandardProperties() {
 	for _, builtinProperty := range builtinProperties {
 		mnemonic := getMnemonic(builtinProperty.Name)
 		id := getPropertyID(mnemonic)
-		// TODO: Set CreatedAt, UpdatedAt, Score.
 		KnownProperties[id] = Property{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
 				Name: Name{
 					"en": builtinProperty.Name,
 				},
+				Score: 0.0,
 			},
 			Mnemonic: Mnemonic(mnemonic),
 			Active: &PropertyClaimTypes{
 				SimpleClaimTypes: SimpleClaimTypes{
 					Text: TextClaims{
 						{
-							// TODO: Set Confidence.
 							CoreClaim: CoreClaim{
-								ID: Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+								ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+								Confidence: 1.0,
 							},
-							// TODO: Set Score.
 							Prop: PropertyReference{
 								ID: Identifier(getPropertyID("DESCRIPTION")),
 								Name: Name{
 									"en": "description",
 								},
+								Score: 0.0,
 							},
 							Plain: TranslatablePlainString{
 								"en": builtinProperty.DescriptionPlain,
@@ -166,16 +166,16 @@ func populateStandardProperties() {
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
 			meta.Is = append(meta.Is, IsClaim{
-				// TODO: Set Confidence.
 				CoreClaim: CoreClaim{
-					ID: Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic)),
+					ID:         Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic)),
+					Confidence: 1.0,
 				},
-				// TODO: Set Score.
 				Prop: PropertyReference{
 					ID: Identifier(getPropertyID(isClaimMnemonic)),
 					Name: Name{
 						"en": isClaim,
 					},
+					Score: 0.0,
 				},
 			})
 		}
@@ -185,29 +185,29 @@ func populateStandardProperties() {
 			mnemonic := getMnemonic(name)
 			id := getPropertyID(mnemonic)
 			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
-			// TODO: Set CreatedAt, UpdatedAt, Score.
 			KnownProperties[id] = Property{
 				CoreDocument: CoreDocument{
 					ID: Identifier(id),
 					Name: Name{
 						"en": name,
 					},
+					Score: 0.0,
 				},
 				Mnemonic: Mnemonic(mnemonic),
 				Active: &PropertyClaimTypes{
 					MetaClaimTypes: MetaClaimTypes{
 						Is: IsClaims{
 							{
-								// TODO: Set Confidence.
 								CoreClaim: CoreClaim{
-									ID: Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE")),
+									ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE")),
+									Confidence: 1.0,
 								},
-								// TODO: Set Score.
 								Prop: PropertyReference{
 									ID: Identifier(getPropertyID("CLAIM_TYPE")),
 									Name: Name{
 										"en": "claim type",
 									},
+									Score: 0.0,
 								},
 							},
 						},
@@ -215,16 +215,16 @@ func populateStandardProperties() {
 					SimpleClaimTypes: SimpleClaimTypes{
 						Text: TextClaims{
 							{
-								// TODO: Set Confidence.
 								CoreClaim: CoreClaim{
-									ID: Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+									ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+									Confidence: 1.0,
 								},
-								// TODO: Set Score.
 								Prop: PropertyReference{
 									ID: Identifier(getPropertyID("DESCRIPTION")),
 									Name: Name{
 										"en": "description",
 									},
+									Score: 0.0,
 								},
 								Plain: TranslatablePlainString{
 									"en": description,

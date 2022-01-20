@@ -8,15 +8,6 @@
         "_id": {
           "$ref": "#/$defs/identifier"
         },
-        "createdAt": {
-          "$ref": "#/$defs/timestamp"
-        },
-        "updatedAt": {
-          "$ref": "#/$defs/timestamp"
-        },
-        "deletedAt": {
-          "$ref": "#/$defs/timestamp"
-        },
         "name": {
           "$ref": "#/$defs/name"
         },
@@ -32,8 +23,6 @@
       },
       "required": [
         "_id",
-        "createdAt",
-        "updatedAt",
         "name",
         "score"
       ]
