@@ -7,16 +7,16 @@ import (
 type Item struct {
 	CoreDocument
 
-	Active   ItemClaimTypes `json:"active"`
-	Inactive ItemClaimTypes `json:"inactive"`
+	Active   *ItemClaimTypes `json:"active,omitempty"`
+	Inactive *ItemClaimTypes `json:"inactive,omitempty"`
 }
 
 type Property struct {
 	CoreDocument
 
-	Mnemonic Mnemonic           `json:"mnemonic,omitempty"`
-	Active   PropertyClaimTypes `json:"active"`
-	Inactive PropertyClaimTypes `json:"inactive"`
+	Mnemonic Mnemonic            `json:"mnemonic,omitempty"`
+	Active   *PropertyClaimTypes `json:"active,omitempty"`
+	Inactive *PropertyClaimTypes `json:"inactive,omitempty"`
 }
 
 type CoreDocument struct {
@@ -113,9 +113,9 @@ type (
 )
 
 type CoreClaim struct {
-	ID         Identifier `json:"_id"`
-	Confidence Confidence `json:"confidence"`
-	Meta       MetaClaims `json:"meta,omitempty"`
+	ID         Identifier  `json:"_id"`
+	Confidence Confidence  `json:"confidence"`
+	Meta       *MetaClaims `json:"meta,omitempty"`
 }
 
 type Confidence = Score

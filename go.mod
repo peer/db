@@ -6,6 +6,7 @@ require github.com/alecthomas/kong v0.2.22
 
 require (
 	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d
+	github.com/stretchr/testify v1.7.0
 	gitlab.com/tozd/go/mediawiki v0.0.0-20220108224605-7251d23ac662
 	gitlab.com/tozd/go/x v0.0.0-20220108094539-5cfbb5b32eba
 )
@@ -17,6 +18,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.1.0 // indirect
 	github.com/cosnicolaou/pbzip2 v1.0.2-0.20211229030036-3ed02fdb7541 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/foolin/pagser v0.1.5 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -29,6 +31,7 @@ require (
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/whilp/git-urls v1.0.0 // indirect
@@ -37,9 +40,12 @@ require (
 	golang.org/x/net v0.0.0-20210326060303-6b1517762897 // indirect
 	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 require (
+	github.com/btcsuite/btcutil v1.0.2
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.1-0.20211018174820-ff6d014e72d9
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

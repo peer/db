@@ -1,0 +1,246 @@
+package search
+
+import (
+	"fmt"
+	"html"
+	"strings"
+
+	"github.com/google/uuid"
+
+	"gitlab.com/peerdb/search/identifier"
+)
+
+var (
+	// TODO: Determine automatically.
+	claimTypes = []string{
+		// Meta claim types.
+		"is",
+		"identifier",
+		"reference",
+
+		// Simple claim types.
+		"text",
+		"string",
+		"label",
+		"amount",
+		"amount range",
+		"enumeration",
+
+		// Time claim types.
+		"time",
+		"time range",
+		"duration",
+		"duration range",
+
+		// Item claim types.
+		"file",
+		"list",
+		"item",
+	}
+
+	builtinProperties = []struct {
+		Name             string
+		DescriptionPlain string
+		DescriptionHTML  string
+		Is               []string
+	}{
+		{
+			"claim type",
+			"the property maps to a supported claim type",
+			"the property maps to a supported claim type",
+			nil,
+		},
+		{
+			"description",
+			"description",
+			"description",
+			[]string{`"text" claim type`},
+		},
+		{
+			"identifier",
+			"identifier",
+			"identifier",
+			[]string{`"identifier" claim type`},
+		},
+		{
+			"reference",
+			"reference",
+			"reference",
+			[]string{`"reference" claim type`},
+		},
+		{
+			"Wikidata property id",
+			"Wikidata property identifier",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			[]string{"identifier"},
+		},
+		{
+			"Wikidata item id",
+			"Wikidata item identifier",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			[]string{"identifier"},
+		},
+		{
+			"Wikidata property page",
+			"Wikidata property page",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI`,
+			[]string{"reference"},
+		},
+		{
+			"Wikidata item page",
+			"Wikidata item page",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI`,
+			[]string{"reference"},
+		},
+		{
+			"English Wikipedia article",
+			"reference to English Wikipedia article",
+			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
+			[]string{"reference"},
+		},
+	}
+
+	NameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
+
+	KnownProperties = map[string]Property{}
+)
+
+func getMnemonic(data string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(data), " ", "_"), `"`, "")
+}
+
+func getPropertyID(mnemonic string) string {
+	return identifier.FromUUID(uuid.NewSHA1(NameSpaceStandardProperties, []byte(mnemonic)))
+}
+
+func getPropertyClaimID(propertyMnemonic, claimMnemonic string) string {
+	return identifier.FromUUID(
+		uuid.NewSHA1(
+			uuid.NewSHA1(NameSpaceStandardProperties, []byte(propertyMnemonic)),
+			[]byte(claimMnemonic),
+		),
+	)
+}
+
+func populateStandardProperties() {
+	for _, builtinProperty := range builtinProperties {
+		mnemonic := getMnemonic(builtinProperty.Name)
+		id := getPropertyID(mnemonic)
+		// TODO: Set CreatedAt, UpdatedAt, Score.
+		KnownProperties[id] = Property{
+			CoreDocument: CoreDocument{
+				ID: Identifier(id),
+				Name: Name{
+					"en": builtinProperty.Name,
+				},
+			},
+			Mnemonic: Mnemonic(mnemonic),
+			Active: &PropertyClaimTypes{
+				SimpleClaimTypes: SimpleClaimTypes{
+					Text: TextClaims{
+						{
+							// TODO: Set Confidence.
+							CoreClaim: CoreClaim{
+								ID: Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+							},
+							// TODO: Set Score.
+							Prop: PropertyReference{
+								ID: Identifier(getPropertyID("DESCRIPTION")),
+								Name: Name{
+									"en": "description",
+								},
+							},
+							Plain: TranslatablePlainString{
+								"en": builtinProperty.DescriptionPlain,
+							},
+							HTML: TranslatableHTMLString{
+								"en": builtinProperty.DescriptionHTML,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		meta := KnownProperties[id].Active.MetaClaimTypes
+		for _, isClaim := range builtinProperty.Is {
+			isClaimMnemonic := getMnemonic(isClaim)
+			meta.Is = append(meta.Is, IsClaim{
+				// TODO: Set Confidence.
+				CoreClaim: CoreClaim{
+					ID: Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic)),
+				},
+				// TODO: Set Score.
+				Prop: PropertyReference{
+					ID: Identifier(getPropertyID(isClaimMnemonic)),
+					Name: Name{
+						"en": isClaim,
+					},
+				},
+			})
+		}
+
+		for _, claimType := range claimTypes {
+			name := fmt.Sprintf(`"%s" claim type`, claimType)
+			mnemonic := getMnemonic(name)
+			id := getPropertyID(mnemonic)
+			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
+			// TODO: Set CreatedAt, UpdatedAt, Score.
+			KnownProperties[id] = Property{
+				CoreDocument: CoreDocument{
+					ID: Identifier(id),
+					Name: Name{
+						"en": name,
+					},
+				},
+				Mnemonic: Mnemonic(mnemonic),
+				Active: &PropertyClaimTypes{
+					MetaClaimTypes: MetaClaimTypes{
+						Is: IsClaims{
+							{
+								// TODO: Set Confidence.
+								CoreClaim: CoreClaim{
+									ID: Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE")),
+								},
+								// TODO: Set Score.
+								Prop: PropertyReference{
+									ID: Identifier(getPropertyID("CLAIM_TYPE")),
+									Name: Name{
+										"en": "claim type",
+									},
+								},
+							},
+						},
+					},
+					SimpleClaimTypes: SimpleClaimTypes{
+						Text: TextClaims{
+							{
+								// TODO: Set Confidence.
+								CoreClaim: CoreClaim{
+									ID: Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION")),
+								},
+								// TODO: Set Score.
+								Prop: PropertyReference{
+									ID: Identifier(getPropertyID("DESCRIPTION")),
+									Name: Name{
+										"en": "description",
+									},
+								},
+								Plain: TranslatablePlainString{
+									"en": description,
+								},
+								HTML: TranslatableHTMLString{
+									"en": html.EscapeString(description),
+								},
+							},
+						},
+					},
+				},
+			}
+		}
+	}
+}
+
+func init() {
+	populateStandardProperties()
+}
