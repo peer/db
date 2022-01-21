@@ -261,7 +261,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
-			return nil, errors.Errorf("%w: TODO", notSupportedError)
+			return nil, errors.New("TODO string+CommonsMedia")
 		case mediawiki.URL:
 			return search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
