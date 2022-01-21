@@ -271,6 +271,8 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 				Prop: getDocumentReference(prop),
 				IRI:  string(value),
 			}, nil
+		case mediawiki.GeoShape:
+			return nil, errors.Errorf("%w: GeoShape", notSupportedDataTypeError)
 		default:
 			return nil, errors.Errorf("unexpected data type for StringValue: %d", snak.DataType)
 		}
