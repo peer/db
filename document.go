@@ -533,6 +533,6 @@ type ListChild struct {
 type RelationClaim struct {
 	CoreClaim
 
-	Prop  DocumentReference `json:"prop"`
-	Other DocumentReference `json:"other"`
+	Prop DocumentReference `json:"prop"`
+	To   DocumentReference `json:"to"`
 }

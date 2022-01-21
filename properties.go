@@ -198,7 +198,7 @@ func populateStandardProperties() {
 								},
 								Score: 0.0,
 							},
-							Other: DocumentReference{
+							To: DocumentReference{
 								ID: Identifier(getPropertyID("PROPERTY")),
 								Name: Name{
 									"en": "property",
@@ -226,7 +226,7 @@ func populateStandardProperties() {
 					},
 					Score: 0.0,
 				},
-				Other: DocumentReference{
+				To: DocumentReference{
 					ID: Identifier(getPropertyID(isClaimMnemonic)),
 					Name: Name{
 						"en": isClaim,
@@ -286,7 +286,7 @@ func populateStandardProperties() {
 									},
 									Score: 0.0,
 								},
-								Other: DocumentReference{
+								To: DocumentReference{
 									ID: Identifier(getPropertyID("PROPERTY")),
 									Name: Name{
 										"en": "property",
@@ -306,7 +306,7 @@ func populateStandardProperties() {
 									},
 									Score: 0.0,
 								},
-								Other: DocumentReference{
+								To: DocumentReference{
 									ID: Identifier(getPropertyID("CLAIM_TYPE")),
 									Name: Name{
 										"en": "claim type",

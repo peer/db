@@ -285,8 +285,8 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:  getDocumentReference(prop),
-				Other: getDocumentReference(value.ID),
+				Prop: getDocumentReference(prop),
+				To:   getDocumentReference(value.ID),
 			}, nil
 		case mediawiki.WikiBaseProperty:
 			if value.Type != mediawiki.PropertyType {
@@ -297,8 +297,8 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:  getDocumentReference(prop),
-				Other: getDocumentReference(value.ID),
+				Prop: getDocumentReference(prop),
+				To:   getDocumentReference(value.ID),
 			}, nil
 		case mediawiki.WikiBaseLexeme:
 			return nil, errors.Errorf("%w: WikiBaseLexeme", notSupportedDataTypeError)
@@ -348,16 +348,14 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 	return nil, errors.Errorf(`unknown data value type: %+v`, snak.DataValue.Value)
 }
 
-func processItem(ctx context.Context, config *Config, entity mediawiki.Entity) errors.E {
-	return nil
-}
-
-func processProperty(ctx context.Context, config *Config, entity mediawiki.Entity) errors.E {
+func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity) errors.E {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
 	if len(englishLabels) == 0 {
-		// But properties should all have English label, so we warn here.
-		fmt.Fprintf(os.Stderr, "property %s is missing a label in English\n", entity.ID)
+		if entity.Type == mediawiki.Property {
+			// But properties should all have English label, so we warn here.
+			fmt.Fprintf(os.Stderr, "property %s is missing a label in English\n", entity.ID)
+		}
 		return nil
 	}
 
@@ -367,9 +365,9 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 	name := englishLabels[0]
 	englishLabels = englishLabels[1:]
 
-	// TODO: Set mnemonic if name is unique (it should be).
+	// TODO: Set mnemonic if a property and the name is unique (it should be).
 	// TODO: Store last item revision and last modification time somewhere.
-	property := search.Document{
+	document := search.Document{
 		CoreDocument: search.CoreDocument{
 			ID: id,
 			Name: search.Name{
@@ -377,7 +375,10 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 			},
 			Score: 0.0,
 		},
-		Active: &search.DocumentClaimTypes{
+	}
+
+	if entity.Type == mediawiki.Property {
+		document.Active = &search.DocumentClaimTypes{
 			RefClaimTypes: search.RefClaimTypes{
 				Identifier: search.IdentifierClaims{
 					{
@@ -407,26 +408,67 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 							ID:         getStandardPropertyClaimID(entity.ID, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
-						Prop:  search.GetStandardPropertyReference("IS"),
-						Other: search.GetStandardPropertyReference("PROPERTY"),
+						Prop: search.GetStandardPropertyReference("IS"),
+						To:   search.GetStandardPropertyReference("PROPERTY"),
 					},
 				},
 			},
-		},
+		}
+	} else if entity.Type == mediawiki.Item {
+		document.Active = &search.DocumentClaimTypes{
+			RefClaimTypes: search.RefClaimTypes{
+				Identifier: search.IdentifierClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_ITEM_ID", 0),
+							Confidence: 1.0,
+						},
+						Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
+						Identifier: entity.ID,
+					},
+				},
+				Reference: search.ReferenceClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_ITEM_PAGE", 0),
+							Confidence: 1.0,
+						},
+						Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
+						IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
+					},
+				},
+			},
+			SimpleClaimTypes: search.SimpleClaimTypes{
+				Relation: search.RelationClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         getStandardPropertyClaimID(entity.ID, "ITEM", 0),
+							Confidence: 1.0,
+						},
+						Prop: search.GetStandardPropertyReference("IS"),
+						To:   search.GetStandardPropertyReference("ITEM"),
+					},
+				},
+			},
+		}
+	} else {
+		return errors.Errorf(`entity %s has invalid type: %d`, entity.ID, entity.Type)
 	}
 
-	claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
-	if claimTypeMnemonic != "" {
-		property.Active.SimpleClaimTypes.Relation = append(property.Active.SimpleClaimTypes.Relation, search.RelationClaim{
-			CoreClaim: search.CoreClaim{
-				ID: getStandardPropertyClaimID(entity.ID, claimTypeMnemonic, 0),
-				// We have low confidence in this claim. Later on we augment it using statistics
-				// on how are properties really used.
-				Confidence: 0.0,
-			},
-			Prop:  search.GetStandardPropertyReference("IS"),
-			Other: search.GetStandardPropertyReference(claimTypeMnemonic),
-		})
+	if entity.DataType != nil {
+		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
+		if claimTypeMnemonic != "" {
+			document.Active.SimpleClaimTypes.Relation = append(document.Active.SimpleClaimTypes.Relation, search.RelationClaim{
+				CoreClaim: search.CoreClaim{
+					ID: getStandardPropertyClaimID(entity.ID, claimTypeMnemonic, 0),
+					// We have low confidence in this claim. Later on we augment it using statistics
+					// on how are properties really used.
+					Confidence: 0.0,
+				},
+				Prop: search.GetStandardPropertyReference("IS"),
+				To:   search.GetStandardPropertyReference(claimTypeMnemonic),
+			})
+		}
 	}
 
 	englishAliases := getEnglishValuesSlice(entity.Aliases)
@@ -436,14 +478,14 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 	}
 
 	if len(englishLabels) > 0 {
-		property.CoreDocument.OtherNames = search.OtherNames{
+		document.CoreDocument.OtherNames = search.OtherNames{
 			"en": englishLabels,
 		}
 	}
 
 	englishDescriptions := getEnglishValues(entity.Descriptions)
 	if len(englishDescriptions) > 0 {
-		simple := &property.Active.SimpleClaimTypes
+		simple := &document.Active.SimpleClaimTypes
 		for i, description := range englishDescriptions {
 			simple.Text = append(simple.Text, search.TextClaim{
 				CoreClaim: search.CoreClaim{
@@ -494,7 +536,7 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 			// if err != nil {
 			// 	return err
 			// }
-			err = property.Add(claim)
+			err = document.Add(claim)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s cannot be added: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
@@ -502,7 +544,7 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 		}
 	}
 
-	return saveDocument(config, property)
+	return saveDocument(config, document)
 }
 
 func saveDocument(config *Config, property search.Document) errors.E {
@@ -520,15 +562,4 @@ func saveDocument(config *Config, property search.Document) errors.E {
 		return errors.WithStack(err)
 	}
 	return nil
-}
-
-func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity) errors.E {
-	switch entity.Type {
-	case mediawiki.Item:
-		return processItem(ctx, config, entity)
-	case mediawiki.Property:
-		return processProperty(ctx, config, entity)
-	default:
-		return errors.Errorf(`entity %s has invalid type: %d`, entity.ID, entity.Type)
-	}
 }

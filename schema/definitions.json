@@ -432,13 +432,13 @@
         "prop": {
           "$ref": "#/$defs/documentReference"
         },
-        "other": {
+        "to": {
           "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
         "prop",
-        "other"
+        "to"
       ],
       "unevaluatedProperties": false
     },
