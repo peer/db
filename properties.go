@@ -47,6 +47,12 @@ var (
 		Is               []string
 	}{
 		{
+			"is",
+			"unspecified relation between two entities",
+			"unspecified relation between two entities",
+			nil,
+		},
+		{
 			"claim type",
 			"the property maps to a supported claim type",
 			"the property maps to a supported claim type",
@@ -172,15 +178,22 @@ func populateStandardProperties() {
 			},
 		}
 
-		meta := &KnownProperties[id].Active.MetaClaimTypes
+		active := KnownProperties[id].Active
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
-			meta.Is = append(meta.Is, IsClaim{
+			active.Property = append(active.Property, PropertyClaim{
 				CoreClaim: CoreClaim{
 					ID:         Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic, 0)),
 					Confidence: 1.0,
 				},
 				Prop: PropertyReference{
+					ID: Identifier(getPropertyID("IS")),
+					Name: Name{
+						"en": "is",
+					},
+					Score: 0.0,
+				},
+				Other: PropertyReference{
 					ID: Identifier(getPropertyID(isClaimMnemonic)),
 					Name: Name{
 						"en": isClaim,
@@ -205,23 +218,6 @@ func populateStandardProperties() {
 				},
 				Mnemonic: Mnemonic(mnemonic),
 				Active: &PropertyClaimTypes{
-					MetaClaimTypes: MetaClaimTypes{
-						Is: IsClaims{
-							{
-								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0)),
-									Confidence: 1.0,
-								},
-								Prop: PropertyReference{
-									ID: Identifier(getPropertyID("CLAIM_TYPE")),
-									Name: Name{
-										"en": "claim type",
-									},
-									Score: 0.0,
-								},
-							},
-						},
-					},
 					SimpleClaimTypes: SimpleClaimTypes{
 						Text: TextClaims{
 							{
@@ -242,6 +238,28 @@ func populateStandardProperties() {
 								HTML: TranslatableHTMLString{
 									"en": html.EscapeString(description),
 								},
+							},
+						},
+					},
+					Property: PropertyClaims{
+						{
+							CoreClaim: CoreClaim{
+								ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0)),
+								Confidence: 1.0,
+							},
+							Prop: PropertyReference{
+								ID: Identifier(getPropertyID("IS")),
+								Name: Name{
+									"en": "is",
+								},
+								Score: 0.0,
+							},
+							Other: PropertyReference{
+								ID: Identifier(getPropertyID("CLAIM_TYPE")),
+								Name: Name{
+									"en": "claim type",
+								},
+								Score: 0.0,
 							},
 						},
 					},

@@ -58,9 +58,6 @@
     "metaClaimTypes": {
       "type": "object",
       "properties": {
-        "is": {
-          "$ref": "#/$defs/isClaims"
-        },
         "id": {
           "$ref": "#/$defs/identifierClaims"
         },
@@ -151,6 +148,11 @@
           "$ref": "#/$defs/simpleClaimTypes"
         }
       ],
+      "properties": {
+        "prop": {
+          "$ref": "#/$defs/propertyClaims"
+        }
+      },
       "unevaluatedProperties": false
     },
     "identifier": {
@@ -232,10 +234,10 @@
         "$ref": "#/$defs/itemClaim"
       }
     },
-    "isClaims": {
+    "propertyClaims": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/isClaim"
+        "$ref": "#/$defs/propertyClaim"
       }
     },
     "identifierClaims": {
@@ -463,8 +465,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "isClaim": {
-      "description": "Similar to labels, but restricted only to claims about entity's type.",
+    "propertyClaim": {
       "type": "object",
       "allOf": [
         {
@@ -474,10 +475,14 @@
       "properties": {
         "prop": {
           "$ref": "#/$defs/propertyReference"
+        },
+        "other": {
+          "$ref": "#/$defs/propertyReference"
         }
       },
       "required": [
-        "prop"
+        "prop",
+        "other"
       ],
       "unevaluatedProperties": false
     },

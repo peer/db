@@ -62,10 +62,11 @@ type ItemClaimTypes struct {
 type PropertyClaimTypes struct {
 	MetaClaimTypes
 	SimpleClaimTypes
+
+	Property PropertyClaims `json:"prop,omitempty"`
 }
 
 type MetaClaimTypes struct {
-	Is         IsClaims         `json:"is,omitempty"`
 	Identifier IdentifierClaims `json:"id,omitempty"`
 	Reference  ReferenceClaims  `json:"ref,omitempty"`
 }
@@ -89,7 +90,7 @@ type TimeClaimTypes struct {
 }
 
 type (
-	IsClaims            = []IsClaim
+	PropertyClaims      = []PropertyClaim
 	IdentifierClaims    = []IdentifierClaim
 	ReferenceClaims     = []ReferenceClaim
 	TextClaims          = []TextClaim
@@ -135,10 +136,11 @@ type DocumentReference struct {
 	Scores Scores     `json:"scores,omitempty"`
 }
 
-type IsClaim struct {
+type PropertyClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop  PropertyReference `json:"prop"`
+	Other PropertyReference `json:"other"`
 }
 
 type IdentifierClaim struct {
