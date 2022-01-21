@@ -314,6 +314,9 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 	case mediawiki.MonolingualTextValue:
 		switch snak.DataType {
 		case mediawiki.MonolingualText:
+			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
+				return nil, errors.Errorf("%w: limited only to English", notSupportedError)
+			}
 			return search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         id,
