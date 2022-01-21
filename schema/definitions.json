@@ -55,7 +55,7 @@
         "confidence"
       ]
     },
-    "metaClaimTypes": {
+    "refClaimTypes": {
       "type": "object",
       "properties": {
         "id": {
@@ -87,6 +87,9 @@
         "enum": {
           "$ref": "#/$defs/enumerationClaims"
         },
+        "rel": {
+          "$ref": "#/$defs/relationClaims"
+        },
         "none": {
           "$ref": "#/$defs/noValueClaims"
         },
@@ -112,11 +115,11 @@
         }
       }
     },
-    "itemClaimTypes": {
+    "documentClaimTypes": {
       "type": "object",
       "allOf": [
         {
-          "$ref": "#/$defs/metaClaimTypes"
+          "$ref": "#/$defs/refClaimTypes"
         },
         {
           "$ref": "#/$defs/simpleClaimTypes"
@@ -130,27 +133,7 @@
           "$ref": "#/$defs/fileClaims"
         },
         "list": {
-          "$ref": "#/$defs/itemListClaims"
-        },
-        "item": {
-          "$ref": "#/$defs/itemClaims"
-        }
-      },
-      "unevaluatedProperties": false
-    },
-    "propertyClaimTypes": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/metaClaimTypes"
-        },
-        {
-          "$ref": "#/$defs/simpleClaimTypes"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/propertyClaims"
+          "$ref": "#/$defs/listClaims"
         }
       },
       "unevaluatedProperties": false
@@ -222,22 +205,16 @@
         "$ref": "#/$defs/fileClaim"
       }
     },
-    "itemListClaims": {
+    "listClaims": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/itemListClaim"
+        "$ref": "#/$defs/listClaim"
       }
     },
-    "itemClaims": {
+    "relationClaims": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/itemClaim"
-      }
-    },
-    "propertyClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/propertyClaim"
+        "$ref": "#/$defs/relationClaim"
       }
     },
     "identifierClaims": {
@@ -321,7 +298,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "plain": {
           "$ref": "#/$defs/translatablePlainString"
@@ -346,7 +323,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "string": {
           "type": "string",
@@ -368,7 +345,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "type": {
           "description": "a media type of the file",
@@ -392,7 +369,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "itemListClaim": {
+    "listClaim": {
       "type": "object",
       "allOf": [
         {
@@ -401,10 +378,10 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
-        "item": {
-          "$ref": "#/$defs/itemReference"
+        "el": {
+          "$ref": "#/$defs/documentReference"
         },
         "list": {
           "description": "A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
@@ -421,7 +398,7 @@
             "type": "object",
             "properties": {
               "prop": {
-                "$ref": "#/$defs/propertyReference"
+                "$ref": "#/$defs/documentReference"
               },
               "child": {
                 "description": "List ID of the child.",
@@ -438,13 +415,13 @@
       },
       "required": [
         "prop",
-        "item",
+        "el",
         "list",
         "order"
       ],
       "unevaluatedProperties": false
     },
-    "itemClaim": {
+    "relationClaim": {
       "type": "object",
       "allOf": [
         {
@@ -453,31 +430,10 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
-        },
-        "item": {
-          "$ref": "#/$defs/itemReference"
-        }
-      },
-      "required": [
-        "prop",
-        "item"
-      ],
-      "unevaluatedProperties": false
-    },
-    "propertyClaim": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "other": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
@@ -495,7 +451,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "id": {
           "description": "ID should be represented as a string we want to show. During indexing we might process it in a special way, e.g., remove trailing zeroes.",
@@ -517,7 +473,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "iri": {
           "type": "string",
@@ -539,7 +495,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
@@ -557,7 +513,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
@@ -575,7 +531,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
@@ -592,7 +548,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "amount": {
           "type": "number"
@@ -625,7 +581,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "lower": {
           "description": "The lower bound of the range. Inclusive.",
@@ -665,7 +621,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "enum": {
           "type": "array",
@@ -689,7 +645,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "timestamp": {
           "$ref": "#/$defs/timestamp"
@@ -721,7 +677,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "lower": {
           "description": "The lower bound of the range. Inclusive.",
@@ -760,7 +716,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "amount": {
           "type": "number"
@@ -790,7 +746,7 @@
       ],
       "properties": {
         "prop": {
-          "$ref": "#/$defs/propertyReference"
+          "$ref": "#/$defs/documentReference"
         },
         "lower": {
           "description": "The lower bound of the range. Inclusive.",
@@ -837,12 +793,6 @@
       },
       "minProperties": 1,
       "additionalProperties": false
-    },
-    "propertyReference": {
-      "$ref": "#/$defs/documentReference"
-    },
-    "itemReference": {
-      "$ref": "#/$defs/documentReference"
     },
     "documentReference": {
       "type": "object",

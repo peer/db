@@ -12,15 +12,13 @@ import (
 )
 
 func saveStandardProperties(config *Config) errors.E {
-	outputDir := filepath.Join(config.OutputDir, "properties")
-
-	err := os.MkdirAll(outputDir, 0o700)
+	err := os.MkdirAll(config.OutputDir, 0o700)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	for id, property := range search.KnownProperties {
-		path := filepath.Join(outputDir, fmt.Sprintf("%s.json", id))
+		path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", id))
 		file, err := os.Create(path)
 		if err != nil {
 			return errors.WithStack(err)

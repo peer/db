@@ -6,169 +6,240 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
-type Item struct {
-	CoreDocument
-
-	Active   *ItemClaimTypes `json:"active,omitempty"`
-	Inactive *ItemClaimTypes `json:"inactive,omitempty"`
-}
-
-type Property struct {
+type Document struct {
 	CoreDocument
 
 	Mnemonic Mnemonic            `json:"mnemonic,omitempty"`
-	Active   *PropertyClaimTypes `json:"active,omitempty"`
-	Inactive *PropertyClaimTypes `json:"inactive,omitempty"`
+	Active   *DocumentClaimTypes `json:"active,omitempty"`
+	Inactive *DocumentClaimTypes `json:"inactive,omitempty"`
 }
 
-func (p *Property) Add(claim interface{}) errors.E {
-	var claimTypes *PropertyClaimTypes
+func (d *Document) Add(claim interface{}) errors.E {
+	var claimTypes *DocumentClaimTypes
 	switch c := claim.(type) {
-	case PropertyClaim:
-		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
-			}
-			claimTypes = p.Active
-		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
-			}
-			claimTypes = p.Inactive
-		}
-		claimTypes.Property = append(claimTypes.Property, c)
 	case IdentifierClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Identifier = append(claimTypes.Identifier, c)
 	case ReferenceClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Reference = append(claimTypes.Reference, c)
 	case TextClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Text = append(claimTypes.Text, c)
 	case StringClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.String = append(claimTypes.String, c)
 	case LabelClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Label = append(claimTypes.Label, c)
 	case AmountClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Amount = append(claimTypes.Amount, c)
 	case AmountRangeClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.AmountRange = append(claimTypes.AmountRange, c)
 	case EnumerationClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.Enumeration = append(claimTypes.Enumeration, c)
+	case RelationClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.Relation = append(claimTypes.Relation, c)
 	case NoValueClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.NoValue = append(claimTypes.NoValue, c)
 	case UnknownValueClaim:
 		if c.Confidence >= 0.0 {
-			if p.Active == nil {
-				p.Active = &PropertyClaimTypes{}
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Active
+			claimTypes = d.Active
 		} else {
-			if p.Inactive == nil {
-				p.Inactive = &PropertyClaimTypes{}
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
 			}
-			claimTypes = p.Inactive
+			claimTypes = d.Inactive
 		}
 		claimTypes.UnknownValue = append(claimTypes.UnknownValue, c)
+	case TimeClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.Time = append(claimTypes.Time, c)
+	case TimeRangeClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.TimeRange = append(claimTypes.TimeRange, c)
+	case DurationClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.Duration = append(claimTypes.Duration, c)
+	case DurationRangeClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.DurationRange = append(claimTypes.DurationRange, c)
+	case FileClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.File = append(claimTypes.File, c)
+	case ListClaim:
+		if c.Confidence >= 0.0 {
+			if d.Active == nil {
+				d.Active = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Active
+		} else {
+			if d.Inactive == nil {
+				d.Inactive = &DocumentClaimTypes{}
+			}
+			claimTypes = d.Inactive
+		}
+		claimTypes.List = append(claimTypes.List, c)
 	default:
-		return errors.Errorf(`claim of type %T is not supported on a property`, claim)
+		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
 	return nil
 }
@@ -203,24 +274,16 @@ type OtherNames map[string][]string
 // Score name to score mapping.
 type Scores map[string]Score
 
-type ItemClaimTypes struct {
-	MetaClaimTypes
+type DocumentClaimTypes struct {
+	RefClaimTypes
 	SimpleClaimTypes
 	TimeClaimTypes
 
-	File FileClaims     `json:"file,omitempty"`
-	List ItemListClaims `json:"list,omitempty"`
-	Item ItemClaims     `json:"item,omitempty"`
+	File FileClaims `json:"file,omitempty"`
+	List ListClaims `json:"list,omitempty"`
 }
 
-type PropertyClaimTypes struct {
-	MetaClaimTypes
-	SimpleClaimTypes
-
-	Property PropertyClaims `json:"prop,omitempty"`
-}
-
-type MetaClaimTypes struct {
+type RefClaimTypes struct {
 	Identifier IdentifierClaims `json:"id,omitempty"`
 	Reference  ReferenceClaims  `json:"ref,omitempty"`
 }
@@ -232,6 +295,7 @@ type SimpleClaimTypes struct {
 	Amount       AmountClaims       `json:"amount,omitempty"`
 	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
 	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
+	Relation     RelationClaims     `json:"rel,omitempty"`
 	NoValue      NoValueClaims      `json:"none,omitempty"`
 	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
 }
@@ -244,7 +308,6 @@ type TimeClaimTypes struct {
 }
 
 type (
-	PropertyClaims      = []PropertyClaim
 	IdentifierClaims    = []IdentifierClaim
 	ReferenceClaims     = []ReferenceClaim
 	TextClaims          = []TextClaim
@@ -253,6 +316,7 @@ type (
 	AmountClaims        = []AmountClaim
 	AmountRangeClaims   = []AmountRangeClaim
 	EnumerationClaims   = []EnumerationClaim
+	RelationClaims      = []RelationClaim
 	NoValueClaims       = []NoValueClaim
 	UnknownValueClaims  = []UnknownValueClaim
 	TimeClaims          = []TimeClaim
@@ -260,8 +324,7 @@ type (
 	DurationClaims      = []DurationClaim
 	DurationRangeClaims = []DurationRangeClaim
 	FileClaims          = []FileClaim
-	ItemListClaims      = []ItemListClaim
-	ItemClaims          = []ItemClaim
+	ListClaims          = []ListClaim
 )
 
 type CoreClaim struct {
@@ -279,10 +342,6 @@ type MetaClaims struct {
 	TimeClaimTypes
 }
 
-type PropertyReference = DocumentReference
-
-type ItemReference = DocumentReference
-
 type DocumentReference struct {
 	ID     Identifier `json:"_id"`
 	Name   Name       `json:"name"`
@@ -290,31 +349,24 @@ type DocumentReference struct {
 	Scores Scores     `json:"scores,omitempty"`
 }
 
-type PropertyClaim struct {
-	CoreClaim
-
-	Prop  PropertyReference `json:"prop"`
-	Other PropertyReference `json:"other"`
-}
-
 type IdentifierClaim struct {
 	CoreClaim
 
-	Prop       PropertyReference `json:"prop"`
+	Prop       DocumentReference `json:"prop"`
 	Identifier string            `json:"id"`
 }
 
 type ReferenceClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop DocumentReference `json:"prop"`
 	IRI  string            `json:"iri"`
 }
 
 type TextClaim struct {
 	CoreClaim
 
-	Prop  PropertyReference       `json:"prop"`
+	Prop  DocumentReference       `json:"prop"`
 	Plain TranslatablePlainString `json:"plain"`
 	HTML  TranslatableHTMLString  `json:"html"`
 }
@@ -322,14 +374,14 @@ type TextClaim struct {
 type StringClaim struct {
 	CoreClaim
 
-	Prop   PropertyReference `json:"prop"`
+	Prop   DocumentReference `json:"prop"`
 	String string            `json:"string"`
 }
 
 type LabelClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop DocumentReference `json:"prop"`
 }
 
 type AmountUnit int
@@ -357,7 +409,7 @@ const (
 type AmountClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Amount           float64           `json:"amount"`
 	UncertaintyLower float64           `json:"uncertaintyLower,omitempty"`
 	UncertaintyUpper float64           `json:"uncertaintyUpper,omitempty"`
@@ -367,7 +419,7 @@ type AmountClaim struct {
 type AmountRangeClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Lower            float64           `json:"lower"`
 	Upper            float64           `json:"upper"`
 	UncertaintyLower float64           `json:"uncertaintyLower,omitempty"`
@@ -378,20 +430,20 @@ type AmountRangeClaim struct {
 type EnumerationClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop DocumentReference `json:"prop"`
 	Enum []string          `json:"enum"`
 }
 
 type NoValueClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop DocumentReference `json:"prop"`
 }
 
 type UnknownValueClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
+	Prop DocumentReference `json:"prop"`
 }
 
 type TimePrecision int
@@ -417,7 +469,7 @@ const (
 type TimeClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Timestamp        Timestamp         `json:"timestamp"`
 	UncertaintyLower Timestamp         `json:"uncertaintyLower,omitempty"`
 	UncertaintyUpper Timestamp         `json:"uncertaintyUpper,omitempty"`
@@ -427,7 +479,7 @@ type TimeClaim struct {
 type TimeRangeClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Lower            Timestamp         `json:"lower"`
 	Upper            Timestamp         `json:"upper"`
 	UncertaintyLower Timestamp         `json:"uncertaintyLower,omitempty"`
@@ -438,7 +490,7 @@ type TimeRangeClaim struct {
 type DurationClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Amount           Duration          `json:"amount"`
 	UncertaintyLower Duration          `json:"uncertaintyLower,omitempty"`
 	UncertaintyUpper Duration          `json:"uncertaintyUpper,omitempty"`
@@ -447,7 +499,7 @@ type DurationClaim struct {
 type DurationRangeClaim struct {
 	CoreClaim
 
-	Prop             PropertyReference `json:"prop"`
+	Prop             DocumentReference `json:"prop"`
 	Lower            Duration          `json:"lower"`
 	Upper            Duration          `json:"upper"`
 	UncertaintyLower Duration          `json:"uncertaintyLower,omitempty"`
@@ -457,30 +509,30 @@ type DurationRangeClaim struct {
 type FileClaim struct {
 	CoreClaim
 
-	Prop    PropertyReference `json:"prop"`
+	Prop    DocumentReference `json:"prop"`
 	Type    string            `json:"type"`
 	URL     string            `json:"url"`
 	Preview string            `json:"preview"`
 }
 
-type ItemListClaim struct {
+type ListClaim struct {
 	CoreClaim
 
-	Prop     PropertyReference `json:"prop"`
-	Item     ItemReference     `json:"item"`
+	Prop     DocumentReference `json:"prop"`
+	Element  DocumentReference `json:"el"`
 	List     Identifier        `json:"list"`
 	Order    float64           `json:"order"`
-	Children []ItemListChild   `json:"children,omitempty"`
+	Children []ListChild       `json:"children,omitempty"`
 }
 
-type ItemListChild struct {
-	Prop  PropertyReference `json:"prop"`
+type ListChild struct {
+	Prop  DocumentReference `json:"prop"`
 	Child Identifier        `json:"child"`
 }
 
-type ItemClaim struct {
+type RelationClaim struct {
 	CoreClaim
 
-	Prop PropertyReference `json:"prop"`
-	Item ItemReference     `json:"item"`
+	Prop  DocumentReference `json:"prop"`
+	Other DocumentReference `json:"other"`
 }

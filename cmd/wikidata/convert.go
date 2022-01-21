@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -17,13 +16,9 @@ import (
 var client = retryablehttp.NewClient()
 
 func convert(config *Config) errors.E {
-	for _, dir := range []string{"properties", "items"} {
-		outputDir := filepath.Join(config.OutputDir, dir)
-
-		err := os.MkdirAll(outputDir, 0o700)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	err := os.MkdirAll(config.OutputDir, 0o700)
+	if err != nil {
+		return errors.WithStack(err)
 	}
 
 	ctx := context.Background()

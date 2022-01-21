@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "item.json",
-  "title": "Item description",
+  "title": "Document description",
   "type": "object",
   "allOf": [
     {
@@ -9,11 +9,14 @@
     }
   ],
   "properties": {
+    "mnemonic": {
+      "$ref": "definitions.json#/$defs/mnemonic"
+    },
     "active": {
-      "$ref": "definitions.json#/$defs/itemClaimTypes"
+      "$ref": "definitions.json#/$defs/documentClaimTypes"
     },
     "inactive": {
-      "$ref": "definitions.json#/$defs/itemClaimTypes"
+      "$ref": "definitions.json#/$defs/documentClaimTypes"
     }
   },
   "unevaluatedProperties": false

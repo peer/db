@@ -25,106 +25,9 @@ var (
 	notSupportedError              = errors.Base("not supported")
 	notSupportedDataValueTypeError = errors.BaseWrap(notSupportedError, "not supported data value type")
 	notSupportedDataTypeError      = errors.BaseWrap(notSupportedError, "not supported data type")
-
-	// A set of properties which are ignored when referencing items.
-	// We want properties to only reference other properties.
-	ignoredPropertiesReferencingItems = map[string]bool{
-		// Wikidata item of this property.
-		// TODO: Handle somehow? Merge into property?
-		"P1629": true,
-		// Wikidata property example.
-		"P1855": true,
-		// applicable 'stated in' value.
-		"P9073": true,
-		// country.
-		"P17": true,
-		// issued by.
-		"P2378": true,
-		// creator.
-		"P170": true,
-		// maintained by.
-		"P126": true,
-		// maintained by WikiProject.
-		"P6104": true,
-		// has quality.
-		"P1552": true,
-		// type of unit for this property.
-		// TODO: Handle somehow? Convert to PeerDB unit?
-		"P2876": true,
-		// used by.
-		"P1535": true,
-		// uses.
-		"P2283": true,
-		// part of.
-		"P361": true,
-		// applies to jurisdiction.
-		"P1001": true,
-		// sport.
-		"P641": true,
-		// operator.
-		"P137": true,
-		// standards body.
-		"P1462": true,
-		// language of work or name.
-		"P407": true,
-		// different from.
-		// TODO: Handle somehow? Redirect to property instead?
-		"P1889": true,
-		// member of.
-		"P463": true,
-		// publisher.
-		"P123": true,
-		// on focus list of Wikimedia project.
-		"P5008": true,
-		// subject has role.
-		"P2868": true,
-		// facet of.
-		"P1269": true,
-	}
-
-	// Some items we convert to properties. These properties are referencing
-	// items, but we want to reference converted properties instead.
-	propertiesReferencingConvertedItems = map[string]bool{
-		// property constraint.
-		"P2302": true,
-		// instance of.
-		"P31": true,
-		// inverse label item.
-		"P7087": true,
-		// living people protection class.
-		"P8274": true,
-		// stability of property value.
-		"P2668": true,
-		// expected completeness.
-		"P2429": true,
-	}
-
-	// Some items we skip. These properties are referencing items we skip.
-	propertiesReferencingSkippedItems = map[string]bool{
-		// property usage tracking category.
-		"P2875": true,
-		// category for value not in Wikidata.
-		"P3713": true,
-		// category for value same as Wikidata.
-		"P3734": true,
-		// category for value different from Wikidata.
-		"P3709": true,
-		// has list.
-		"P2354": true,
-		// corresponding template.
-		"P2667": true,
-		// topic's main template.
-		"P1424": true,
-	}
-
-	// Properties for which we allow quantities.
-	propertiesWithQuantities = map[string]bool{
-		// number of records.
-		"P4876": true,
-	}
 )
 
-func getItemID(id string) search.Identifier {
+func getDocumentID(id string) search.Identifier {
 	return search.Identifier(identifier.FromUUID(uuid.NewSHA1(NameSpaceWikidata, []byte(id))))
 }
 
@@ -236,7 +139,7 @@ func getEnglishValuesSlice(values map[string][]mediawiki.LanguageValue) []string
 func getPropertyClaimType(dataType mediawiki.DataType) string {
 	switch dataType {
 	case mediawiki.WikiBaseItem:
-		return "ITEM_CLAIM_TYPE"
+		return "RELATION_CLAIM_TYPE"
 	case mediawiki.ExternalID:
 		return "IDENTIFIER_CLAIM_TYPE"
 	case mediawiki.String:
@@ -264,7 +167,7 @@ func getPropertyClaimType(dataType mediawiki.DataType) string {
 		// Not supported.
 		return ""
 	case mediawiki.WikiBaseProperty:
-		return "PROPERTY_CLAIM_TYPE"
+		return "RELATION_CLAIM_TYPE"
 	case mediawiki.Math:
 		// Not supported.
 		return ""
@@ -294,17 +197,9 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 }
 
 // It does not return a valid reference: name is missing.
-func getPropertyReference(prop string) search.PropertyReference {
-	return search.PropertyReference{
-		ID:    getItemID(prop),
-		Score: 0.0,
-	}
-}
-
-// It does not return a valid reference: name is missing.
-func getItemReference(item string) search.ItemReference {
-	return search.ItemReference{
-		ID:    getItemID(item),
+func getDocumentReference(prop string) search.DocumentReference {
+	return search.DocumentReference{
+		ID:    getDocumentID(prop),
 		Score: 0.0,
 	}
 }
@@ -326,7 +221,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 				ID:         id,
 				Confidence: confidence,
 			},
-			Prop: getPropertyReference(prop),
+			Prop: getDocumentReference(prop),
 		}, nil
 	case mediawiki.NoValue:
 		return search.NoValueClaim{
@@ -334,7 +229,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 				ID:         id,
 				Confidence: confidence,
 			},
-			Prop: getPropertyReference(prop),
+			Prop: getDocumentReference(prop),
 		}, nil
 	}
 
@@ -353,7 +248,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:       getPropertyReference(prop),
+				Prop:       getDocumentReference(prop),
 				Identifier: string(value),
 			}, nil
 		case mediawiki.String:
@@ -362,7 +257,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:   getPropertyReference(prop),
+				Prop:   getDocumentReference(prop),
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
@@ -373,7 +268,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getPropertyReference(prop),
+				Prop: getDocumentReference(prop),
 				IRI:  string(value),
 			}, nil
 		default:
@@ -385,44 +280,25 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 			if value.Type != mediawiki.ItemType {
 				return nil, errors.Errorf("WikiBaseItem data type, but WikiBaseEntityIDValue has type %d, not ItemType", value.Type)
 			}
-			if ignoredPropertiesReferencingItems[prop] {
-				// A special case for ignored references.
-				return nil, errors.Errorf("%w: an ignored reference to an item: %s", notSupportedError, value.ID)
-			} else if propertiesReferencingConvertedItems[prop] {
-				// A special case for items we convert to properties.
-				// TODO: Remember which items we have to convert to a property.
-				return search.PropertyClaim{
-					CoreClaim: search.CoreClaim{
-						ID:         id,
-						Confidence: confidence,
-					},
-					Prop:  getPropertyReference(prop),
-					Other: getPropertyReference(value.ID),
-				}, nil
-			} else if propertiesReferencingSkippedItems[prop] {
-				// A special case for items we skip.
-				// TODO: Remember which items we have to skip.
-				return nil, errors.Errorf("%w: an item we skip: %s", notSupportedError, value.ID)
-			}
-			return search.ItemClaim{
+			return search.RelationClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getPropertyReference(prop),
-				Item: getItemReference(value.ID),
+				Prop:  getDocumentReference(prop),
+				Other: getDocumentReference(value.ID),
 			}, nil
 		case mediawiki.WikiBaseProperty:
 			if value.Type != mediawiki.PropertyType {
 				return nil, errors.Errorf("WikiBaseProperty data type, but WikiBaseEntityIDValue has type %d, not PropertyType", value.Type)
 			}
-			return search.PropertyClaim{
+			return search.RelationClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:  getPropertyReference(prop),
-				Other: getPropertyReference(value.ID),
+				Prop:  getDocumentReference(prop),
+				Other: getDocumentReference(value.ID),
 			}, nil
 		case mediawiki.WikiBaseLexeme:
 			return nil, errors.Errorf("%w: WikiBaseLexeme", notSupportedDataTypeError)
@@ -443,7 +319,7 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:  getPropertyReference(prop),
+				Prop:  getDocumentReference(prop),
 				Plain: search.TranslatablePlainString{value.Language: value.Text},
 				HTML:  search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 			}, nil
@@ -453,9 +329,6 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 	case mediawiki.QuantityValue:
 		switch snak.DataType {
 		case mediawiki.Quantity:
-			if propertiesWithQuantities[prop] {
-				return nil, errors.Errorf("%w: TODO", notSupportedError)
-			}
 			return nil, errors.New("TODO Quantity")
 		default:
 			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", snak.DataType)
@@ -485,7 +358,7 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 		return nil
 	}
 
-	id := getItemID(entity.ID)
+	id := getDocumentID(entity.ID)
 
 	// We simply use the first label we have.
 	name := englishLabels[0]
@@ -493,7 +366,7 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 
 	// TODO: Set mnemonic if name is unique (it should be).
 	// TODO: Store last item revision and last modification time somewhere.
-	property := search.Property{
+	property := search.Document{
 		CoreDocument: search.CoreDocument{
 			ID: id,
 			Name: search.Name{
@@ -501,8 +374,8 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 			},
 			Score: 0.0,
 		},
-		Active: &search.PropertyClaimTypes{
-			MetaClaimTypes: search.MetaClaimTypes{
+		Active: &search.DocumentClaimTypes{
+			RefClaimTypes: search.RefClaimTypes{
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{
@@ -524,12 +397,24 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 					},
 				},
 			},
+			SimpleClaimTypes: search.SimpleClaimTypes{
+				Relation: search.RelationClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         getStandardPropertyClaimID(entity.ID, "PROPERTY", 0),
+							Confidence: 1.0,
+						},
+						Prop:  search.GetStandardPropertyReference("IS"),
+						Other: search.GetStandardPropertyReference("PROPERTY"),
+					},
+				},
+			},
 		},
 	}
 
 	claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 	if claimTypeMnemonic != "" {
-		property.Active.Property = append(property.Active.Property, search.PropertyClaim{
+		property.Active.SimpleClaimTypes.Relation = append(property.Active.SimpleClaimTypes.Relation, search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID: getStandardPropertyClaimID(entity.ID, claimTypeMnemonic, 0),
 				// We have low confidence in this claim. Later on we augment it using statistics
@@ -598,6 +483,14 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has mainsnak that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
+			// err = addQualifiers(claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
+			// if err != nil {
+			// 	return err
+			// }
+			// err = addReferences(claim, entity.ID, prop, statement.ID, statement.References)
+			// if err != nil {
+			// 	return err
+			// }
 			err = property.Add(claim)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s cannot be added: %s\n", statement.ID, prop, entity.ID, err.Error())
@@ -606,11 +499,11 @@ func processProperty(ctx context.Context, config *Config, entity mediawiki.Entit
 		}
 	}
 
-	return saveProperty(config, property)
+	return saveDocument(config, property)
 }
 
-func saveProperty(config *Config, property search.Property) errors.E {
-	path := filepath.Join(config.OutputDir, "properties", fmt.Sprintf("%s.json", property.ID))
+func saveDocument(config *Config, property search.Document) errors.E {
+	path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", property.ID))
 	file, err := os.Create(path)
 	if err != nil {
 		return errors.WithStack(err)
