@@ -16,7 +16,6 @@ var (
 	// TODO: Determine automatically.
 	claimTypes = []string{
 		// Meta claim types.
-		"is",
 		"identifier",
 		"reference",
 
@@ -38,6 +37,9 @@ var (
 		"file",
 		"list",
 		"item",
+
+		// Property claim types.
+		"property",
 	}
 
 	builtinProperties = []struct {
@@ -48,8 +50,8 @@ var (
 	}{
 		{
 			"is",
-			"unspecified relation between two entities",
-			"unspecified relation between two entities",
+			"unspecified type relation between two entities",
+			"unspecified type relation between two entities",
 			nil,
 		},
 		{
