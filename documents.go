@@ -2,6 +2,8 @@ package search
 
 import (
 	"time"
+
+	"gitlab.com/tozd/go/errors"
 )
 
 type Item struct {
@@ -17,6 +19,158 @@ type Property struct {
 	Mnemonic Mnemonic            `json:"mnemonic,omitempty"`
 	Active   *PropertyClaimTypes `json:"active,omitempty"`
 	Inactive *PropertyClaimTypes `json:"inactive,omitempty"`
+}
+
+func (p *Property) Add(claim interface{}) errors.E {
+	var claimTypes *PropertyClaimTypes
+	switch c := claim.(type) {
+	case PropertyClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Property = append(claimTypes.Property, c)
+	case IdentifierClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Identifier = append(claimTypes.Identifier, c)
+	case ReferenceClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Reference = append(claimTypes.Reference, c)
+	case TextClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Text = append(claimTypes.Text, c)
+	case StringClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.String = append(claimTypes.String, c)
+	case LabelClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Label = append(claimTypes.Label, c)
+	case AmountClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Amount = append(claimTypes.Amount, c)
+	case AmountRangeClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.AmountRange = append(claimTypes.AmountRange, c)
+	case EnumerationClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.Enumeration = append(claimTypes.Enumeration, c)
+	case NoValueClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.NoValue = append(claimTypes.NoValue, c)
+	case UnknownValueClaim:
+		if c.Confidence >= 0.0 {
+			if p.Active == nil {
+				p.Active = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Active
+		} else {
+			if p.Inactive == nil {
+				p.Inactive = &PropertyClaimTypes{}
+			}
+			claimTypes = p.Inactive
+		}
+		claimTypes.UnknownValue = append(claimTypes.UnknownValue, c)
+	default:
+		return errors.Errorf(`claim of type %T is not supported on a property`, claim)
+	}
+	return nil
 }
 
 type CoreDocument struct {
