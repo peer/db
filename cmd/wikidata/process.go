@@ -528,7 +528,15 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 	return saveDocument(config, document)
 }
 
+var savedCount = 0
+
 func saveDocument(config *Config, property search.Document) errors.E {
+	// TODO: Remove.
+	if savedCount >= 10000 {
+		return nil
+	}
+	savedCount++
+
 	path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", property.ID))
 	file, err := os.Create(path)
 	if err != nil {
