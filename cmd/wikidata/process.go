@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,7 +15,6 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/identifier"
 )
 
 var (
@@ -28,61 +26,7 @@ var (
 )
 
 func getDocumentID(id string) search.Identifier {
-	return search.Identifier(identifier.FromUUID(uuid.NewSHA1(NameSpaceWikidata, []byte(id))))
-}
-
-func getStandardPropertyClaimID(id, mnemonic string, i int) search.Identifier {
-	return search.Identifier(identifier.FromUUID(
-		uuid.NewSHA1(
-			uuid.NewSHA1(
-				uuid.NewSHA1(
-					NameSpaceWikidata,
-					[]byte(id),
-				),
-				[]byte(mnemonic),
-			),
-			[]byte(strconv.Itoa(i)),
-		),
-	))
-}
-
-func getPropertyClaimIDFromHash(id, prop, statementID, hash string) search.Identifier {
-	return search.Identifier(identifier.FromUUID(
-		uuid.NewSHA1(
-			uuid.NewSHA1(
-				uuid.NewSHA1(
-					uuid.NewSHA1(
-						NameSpaceWikidata,
-						[]byte(id),
-					),
-					[]byte(prop),
-				),
-				[]byte(statementID),
-			),
-			[]byte(hash),
-		),
-	))
-}
-
-func getPropertyClaimID(id, prop, statementID, namespace string, i int) search.Identifier {
-	return search.Identifier(identifier.FromUUID(
-		uuid.NewSHA1(
-			uuid.NewSHA1(
-				uuid.NewSHA1(
-					uuid.NewSHA1(
-						uuid.NewSHA1(
-							NameSpaceWikidata,
-							[]byte(id),
-						),
-						[]byte(prop),
-					),
-					[]byte(statementID),
-				),
-				[]byte(namespace),
-			),
-			[]byte(strconv.Itoa(i)),
-		),
-	))
+	return search.GetID(NameSpaceWikidata, id)
 }
 
 func deduplicate(data []string) []string {
@@ -204,13 +148,11 @@ func getDocumentReference(prop string) search.DocumentReference {
 	}
 }
 
-func processSnak(entityID, prop, statementID, namespace string, confidence search.Confidence, snak mediawiki.Snak) (interface{}, errors.E) {
-	var id search.Identifier
+func processSnak(ctx context.Context, entityID, prop, statementID string, confidence search.Confidence, snak mediawiki.Snak) (interface{}, errors.E) {
 	if snak.Hash != "" {
-		id = getPropertyClaimIDFromHash(entityID, prop, statementID, snak.Hash)
-	} else {
-		id = getPropertyClaimID(entityID, prop, statementID, namespace, 0)
+		return nil, errors.Errorf("statement %s of property %s for entity %s has a snak without a hash", statementID, prop, entityID)
 	}
+	id := search.GetID(NameSpaceWikidata, entityID, prop, statementID, snak.Hash)
 
 	switch snak.SnakType {
 	case mediawiki.Value:
@@ -261,7 +203,38 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
-			return nil, errors.New("TODO string+CommonsMedia")
+			fileInfo, err := getFileInfo(ctx, string(value))
+			if err != nil {
+				return nil, err
+			}
+			if fileInfo.MediaType == "" {
+				return nil, errors.Errorf(`unknown media type for "%s"`, value)
+			}
+			claimID := search.GetID(NameSpaceWikidata, id, prop, statementID, snak.Hash, "WIKIMEDIA_COMMONS_FILE", 0)
+			return search.FileClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         id,
+					Confidence: confidence,
+					Meta: &search.MetaClaims{
+						RefClaimTypes: search.RefClaimTypes{
+							Reference: search.ReferenceClaims{
+								{
+									CoreClaim: search.CoreClaim{
+										ID:         claimID,
+										Confidence: 1.0,
+									},
+									Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
+									IRI:  fileInfo.PageURL,
+								},
+							},
+						},
+					},
+				},
+				Prop:    getDocumentReference(prop),
+				Type:    fileInfo.MediaType,
+				URL:     fileInfo.URL,
+				Preview: fileInfo.Preview,
+			}, nil
 		case mediawiki.URL:
 			return search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
@@ -273,6 +246,12 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 			}, nil
 		case mediawiki.GeoShape:
 			return nil, errors.Errorf("%w: GeoShape", notSupportedDataTypeError)
+		case mediawiki.Math:
+			return nil, errors.Errorf("%w: Math", notSupportedDataTypeError)
+		case mediawiki.MusicalNotation:
+			return nil, errors.Errorf("%w: MusicalNotation", notSupportedDataTypeError)
+		case mediawiki.TabularData:
+			return nil, errors.Errorf("%w: TabularData", notSupportedDataTypeError)
 		default:
 			return nil, errors.Errorf("unexpected data type for StringValue: %d", snak.DataType)
 		}
@@ -334,14 +313,14 @@ func processSnak(entityID, prop, statementID, namespace string, confidence searc
 	case mediawiki.QuantityValue:
 		switch snak.DataType {
 		case mediawiki.Quantity:
-			return nil, errors.New("TODO Quantity")
+			return nil, errors.Errorf("%w: TODO Quantity", notSupportedError)
 		default:
 			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", snak.DataType)
 		}
 	case mediawiki.TimeValue:
 		switch snak.DataType {
 		case mediawiki.Time:
-			return nil, errors.New("TODO Time")
+			return nil, errors.Errorf("%w: TODO Time", notSupportedError)
 		default:
 			return nil, errors.Errorf("unexpected data type for TimeValue: %d", snak.DataType)
 		}
@@ -385,7 +364,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_PROPERTY_ID", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
 							Confidence: 1.0,
 						},
 						Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
@@ -395,7 +374,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Reference: search.ReferenceClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
 							Confidence: 1.0,
 						},
 						Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
@@ -407,7 +386,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Relation: search.RelationClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "PROPERTY", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "PROPERTY", 0),
 							Confidence: 1.0,
 						},
 						Prop: search.GetStandardPropertyReference("IS"),
@@ -422,7 +401,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_ITEM_ID", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_ID", 0),
 							Confidence: 1.0,
 						},
 						Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
@@ -432,7 +411,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Reference: search.ReferenceClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "WIKIDATA_ITEM_PAGE", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
 							Confidence: 1.0,
 						},
 						Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
@@ -444,7 +423,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 				Relation: search.RelationClaims{
 					{
 						CoreClaim: search.CoreClaim{
-							ID:         getStandardPropertyClaimID(entity.ID, "ITEM", 0),
+							ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "ITEM", 0),
 							Confidence: 1.0,
 						},
 						Prop: search.GetStandardPropertyReference("IS"),
@@ -462,7 +441,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 		if claimTypeMnemonic != "" {
 			document.Active.SimpleClaimTypes.Relation = append(document.Active.SimpleClaimTypes.Relation, search.RelationClaim{
 				CoreClaim: search.CoreClaim{
-					ID: getStandardPropertyClaimID(entity.ID, claimTypeMnemonic, 0),
+					ID: search.GetID(NameSpaceWikidata, entity.ID, "IS", claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					Confidence: 0.0,
@@ -491,7 +470,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 		for i, description := range englishDescriptions {
 			simple.Text = append(simple.Text, search.TextClaim{
 				CoreClaim: search.CoreClaim{
-					ID:         getStandardPropertyClaimID(entity.ID, "DESCRIPTION", i),
+					ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
 					Confidence: 1.0,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
@@ -522,7 +501,7 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claim, err := processSnak(entity.ID, prop, statement.ID, "", confidence, statement.MainSnak)
+			claim, err := processSnak(ctx, entity.ID, prop, statement.ID, confidence, statement.MainSnak)
 			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue

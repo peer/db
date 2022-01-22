@@ -41,6 +41,9 @@
           "type": "object",
           "allOf": [
             {
+              "$ref": "#/$defs/refClaimTypes"
+            },
+            {
               "$ref": "#/$defs/simpleClaimTypes"
             },
             {
@@ -356,16 +359,18 @@
           "format": "iri"
         },
         "preview": {
-          "description": "a preview of the file as an image, 128 px wide and/or high",
-          "type": "string",
-          "format": "iri"
+          "description": "preview of the file as images, 128 px wide and/or high",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "iri"
+          }
         }
       },
       "required": [
         "prop",
         "type",
-        "url",
-        "preview"
+        "url"
       ],
       "unevaluatedProperties": false
     },

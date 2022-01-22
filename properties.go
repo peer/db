@@ -3,7 +3,6 @@ package search
 import (
 	"fmt"
 	"html"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -105,6 +104,12 @@ var (
 			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
 			[]string{`"reference" claim type`},
 		},
+		{
+			"Wikimedia Commons file",
+			"reference to Wikimedia Commons file",
+			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file`,
+			[]string{`"reference" claim type`},
+		},
 	}
 
 	NameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
@@ -114,7 +119,7 @@ var (
 )
 
 func GetStandardPropertyReference(mnemonic string) DocumentReference {
-	property, ok := KnownProperties[getPropertyID(mnemonic)]
+	property, ok := KnownProperties[string(getPropertyID(mnemonic))]
 	if !ok {
 		panic(errors.Errorf(`standard property for mnemonic "%s" cannot be found`, mnemonic))
 	}
@@ -130,29 +135,26 @@ func getMnemonic(data string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(data), " ", "_"), `"`, "")
 }
 
-func getPropertyID(mnemonic string) string {
-	return identifier.FromUUID(uuid.NewSHA1(NameSpaceStandardProperties, []byte(mnemonic)))
+func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
+	res := namespace
+	for _, arg := range args {
+		res = uuid.NewSHA1(namespace, []byte(fmt.Sprint(arg)))
+	}
+	return Identifier(identifier.FromUUID(res))
 }
 
-func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int) string {
-	return identifier.FromUUID(
-		uuid.NewSHA1(
-			uuid.NewSHA1(
-				uuid.NewSHA1(
-					NameSpaceStandardProperties,
-					[]byte(propertyMnemonic),
-				),
-				[]byte(claimMnemonic),
-			),
-			[]byte(strconv.Itoa(i)),
-		),
-	)
+func getPropertyID(mnemonic string) Identifier {
+	return GetID(NameSpaceStandardProperties, mnemonic)
+}
+
+func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int) Identifier {
+	return GetID(NameSpaceStandardProperties, propertyMnemonic, claimMnemonic, i)
 }
 
 func populateStandardProperties() {
 	for _, builtinProperty := range builtinProperties {
 		mnemonic := getMnemonic(builtinProperty.Name)
-		id := getPropertyID(mnemonic)
+		id := string(getPropertyID(mnemonic))
 		KnownProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
@@ -167,11 +169,11 @@ func populateStandardProperties() {
 					Text: TextClaims{
 						{
 							CoreClaim: CoreClaim{
-								ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION", 0)),
+								ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: Identifier(getPropertyID("DESCRIPTION")),
+								ID: getPropertyID("DESCRIPTION"),
 								Name: Name{
 									"en": "description",
 								},
@@ -188,18 +190,18 @@ func populateStandardProperties() {
 					Relation: RelationClaims{
 						{
 							CoreClaim: CoreClaim{
-								ID:         Identifier(getPropertyClaimID(mnemonic, "PROPERTY", 0)),
+								ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: Identifier(getPropertyID("IS")),
+								ID: getPropertyID("IS"),
 								Name: Name{
 									"en": "is",
 								},
 								Score: 0.0,
 							},
 							To: DocumentReference{
-								ID: Identifier(getPropertyID("PROPERTY")),
+								ID: getPropertyID("PROPERTY"),
 								Name: Name{
 									"en": "property",
 								},
@@ -216,18 +218,18 @@ func populateStandardProperties() {
 			isClaimMnemonic := getMnemonic(isClaim)
 			simple.Relation = append(simple.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
-					ID:         Identifier(getPropertyClaimID(mnemonic, isClaimMnemonic, 0)),
+					ID:         getPropertyClaimID(mnemonic, isClaimMnemonic, 0),
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID: Identifier(getPropertyID("IS")),
+					ID: getPropertyID("IS"),
 					Name: Name{
 						"en": "is",
 					},
 					Score: 0.0,
 				},
 				To: DocumentReference{
-					ID: Identifier(getPropertyID(isClaimMnemonic)),
+					ID: getPropertyID(isClaimMnemonic),
 					Name: Name{
 						"en": isClaim,
 					},
@@ -239,7 +241,7 @@ func populateStandardProperties() {
 		for _, claimType := range claimTypes {
 			name := fmt.Sprintf(`"%s" claim type`, claimType)
 			mnemonic := getMnemonic(name)
-			id := getPropertyID(mnemonic)
+			id := string(getPropertyID(mnemonic))
 			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
 			KnownProperties[id] = Document{
 				CoreDocument: CoreDocument{
@@ -255,11 +257,11 @@ func populateStandardProperties() {
 						Text: TextClaims{
 							{
 								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "DESCRIPTION", 0)),
+									ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 									Confidence: 1.0,
 								},
 								Prop: DocumentReference{
-									ID: Identifier(getPropertyID("DESCRIPTION")),
+									ID: getPropertyID("DESCRIPTION"),
 									Name: Name{
 										"en": "description",
 									},
@@ -276,18 +278,18 @@ func populateStandardProperties() {
 						Relation: RelationClaims{
 							{
 								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "PROPERTY", 0)),
+									ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 									Confidence: 1.0,
 								},
 								Prop: DocumentReference{
-									ID: Identifier(getPropertyID("IS")),
+									ID: getPropertyID("IS"),
 									Name: Name{
 										"en": "is",
 									},
 									Score: 0.0,
 								},
 								To: DocumentReference{
-									ID: Identifier(getPropertyID("PROPERTY")),
+									ID: getPropertyID("PROPERTY"),
 									Name: Name{
 										"en": "property",
 									},
@@ -296,18 +298,18 @@ func populateStandardProperties() {
 							},
 							{
 								CoreClaim: CoreClaim{
-									ID:         Identifier(getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0)),
+									ID:         getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0),
 									Confidence: 1.0,
 								},
 								Prop: DocumentReference{
-									ID: Identifier(getPropertyID("IS")),
+									ID: getPropertyID("IS"),
 									Name: Name{
 										"en": "is",
 									},
 									Score: 0.0,
 								},
 								To: DocumentReference{
-									ID: Identifier(getPropertyID("CLAIM_TYPE")),
+									ID: getPropertyID("CLAIM_TYPE"),
 									Name: Name{
 										"en": "claim type",
 									},

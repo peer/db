@@ -338,6 +338,7 @@ type Confidence = Score
 type Score float64
 
 type MetaClaims struct {
+	RefClaimTypes
 	SimpleClaimTypes
 	TimeClaimTypes
 }
@@ -512,7 +513,7 @@ type FileClaim struct {
 	Prop    DocumentReference `json:"prop"`
 	Type    string            `json:"type"`
 	URL     string            `json:"url"`
-	Preview string            `json:"preview"`
+	Preview []string          `json:"preview,omitempty"`
 }
 
 type ListClaim struct {
