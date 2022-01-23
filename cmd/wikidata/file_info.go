@@ -89,16 +89,19 @@ type ImageInfo struct {
 }
 
 type APIResponse struct {
-	BatchComplete string `json:"batchcomplete"`
+	BatchComplete bool `json:"batchcomplete"`
 	Continue      struct {
 		IIStart  string `json:"iistart"`
 		Continue string `json:"continue"`
 	} `json:"continue"`
 	Query struct {
-		Pages map[string]struct {
+		Pages []struct {
 			PageID          int         `json:"pageid"`
 			Namespace       int         `json:"ns"`
 			Title           string      `json:"title"`
+			Missing         bool        `json:"missing"`
+			Invalid         bool        `json:"invalid"`
+			InvalidReason   string      `json:"invalidreason"`
 			ImageRepository string      `json:"imagerepository"`
 			ImageInfo       []ImageInfo `json:"imageinfo"`
 		} `json:"pages"`
@@ -150,7 +153,7 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 	// TODO: Fetch and use also other image info data using "size|bitdepth|extmetadata|metadata|commonmetadata".
 	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
 	u := fmt.Sprintf(
-		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime&titles=%s&format=json",
+		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime&titles=%s&format=json&formatversion=2",
 		url.QueryEscape(titleWithPrefix),
 	)
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
@@ -182,16 +185,18 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 		return FileInfo{}, errors.Errorf(`not exactly one result page for "%s"`, titleWithPrefix)
 	}
 
-	for _, page := range apiResponse.Query.Pages {
-		if page.Title != titleWithPrefix {
-			return FileInfo{}, errors.Errorf(`result title "%s" does not match query title "%s"`, page.Title, titleWithPrefix)
-		}
-		if len(page.ImageInfo) != 1 {
-			return FileInfo{}, errors.Errorf(`not exactly one image info result for "%s"`, titleWithPrefix)
-		}
-		return makeFileInfo(page.ImageInfo[0].Mime, filename), nil
+	page := apiResponse.Query.Pages[0]
+	if page.Missing {
+		return FileInfo{}, errors.Errorf(`"%s" missing`, titleWithPrefix)
 	}
-
-	// It cannot really get there, but to make compiler happy.
-	return FileInfo{}, errors.Errorf(`not exactly one result page for "%s"`, titleWithPrefix)
+	if page.Invalid {
+		return FileInfo{}, errors.Errorf(`"%s" invalid: %s`, titleWithPrefix, page.InvalidReason)
+	}
+	if page.Title != titleWithPrefix {
+		return FileInfo{}, errors.Errorf(`result title "%s" does not match query title "%s"`, page.Title, titleWithPrefix)
+	}
+	if len(page.ImageInfo) != 1 {
+		return FileInfo{}, errors.Errorf(`not exactly one image info result for "%s"`, titleWithPrefix)
+	}
+	return makeFileInfo(page.ImageInfo[0].Mime, filename), nil
 }
