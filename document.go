@@ -388,7 +388,8 @@ type LabelClaim struct {
 type AmountUnit int
 
 const (
-	AmountUnitNone AmountUnit = iota
+	AmountUnitCustom AmountUnit = iota
+	AmountUnitNone
 	AmountUnitRatio
 	AmountUnitKilogramPerKilogram
 	AmountUnitKilogram
@@ -451,7 +452,7 @@ type TimePrecision int
 
 const (
 	TimePrecisionBillionYears TimePrecision = iota
-	TimePrecisionHoundredMillionYears
+	TimePrecisionHundredMillionYears
 	TimePrecisionTenMillionYears
 	TimePrecisionMillionYears
 	TimePrecisionHoundredMillenniums
