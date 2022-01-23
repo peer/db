@@ -848,21 +848,21 @@
     "timePrecision": {
       "description": "See precisions used in Wikidata (https://www.wikidata.org/wiki/Help:Dates).",
       "enum": [
-        "billion years",
-        "100 million years",
-        "10 million years",
-        "million years",
-        "100 millenniums",
-        "10 millenniums",
-        "millennium",
-        "century",
-        "decade",
-        "year",
-        "month",
-        "hour",
-        "day",
-        "minute",
-        "second"
+        "G",
+        "100M",
+        "10M",
+        "M",
+        "100k",
+        "10k",
+        "k",
+        "100y",
+        "10y",
+        "y",
+        "m",
+        "d",
+        "h",
+        "min",
+        "s"
       ]
     }
   }

@@ -1,6 +1,8 @@
 package search
 
 import (
+	"bytes"
+	"encoding/json"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
@@ -408,6 +410,99 @@ const (
 	AmountUnitDollar
 )
 
+func (u AmountUnit) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	switch u {
+	case AmountUnitCustom:
+		buffer.WriteString("")
+	case AmountUnitNone:
+		buffer.WriteString("1")
+	case AmountUnitRatio:
+		buffer.WriteString("/")
+	case AmountUnitKilogramPerKilogram:
+		buffer.WriteString("kg/kg")
+	case AmountUnitKilogram:
+		buffer.WriteString("kg")
+	case AmountUnitKilogramPerCubicMetre:
+		buffer.WriteString("kg/m³")
+	case AmountUnitMetre:
+		buffer.WriteString("m")
+	case AmountUnitSquareMetre:
+		buffer.WriteString("m²")
+	case AmountUnitMetrePerSecond:
+		buffer.WriteString("m/s")
+	case AmountUnitVolt:
+		buffer.WriteString("V")
+	case AmountUnitWatt:
+		buffer.WriteString("W")
+	case AmountUnitPascal:
+		buffer.WriteString("Pa")
+	case AmountUnitCoulomb:
+		buffer.WriteString("C")
+	case AmountUnitJoule:
+		buffer.WriteString("J")
+	case AmountUnitCelsius:
+		buffer.WriteString("°C")
+	case AmountUnitRadian:
+		buffer.WriteString("rad")
+	case AmountUnitHertz:
+		buffer.WriteString("Hz")
+	case AmountUnitDollar:
+		buffer.WriteString("$")
+	}
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func (u *AmountUnit) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	switch s {
+	case "":
+		*u = AmountUnitCustom
+	case "1":
+		*u = AmountUnitNone
+	case "/":
+		*u = AmountUnitRatio
+	case "kg/kg":
+		*u = AmountUnitKilogramPerKilogram
+	case "kg":
+		*u = AmountUnitKilogram
+	case "kg/m³":
+		*u = AmountUnitKilogramPerCubicMetre
+	case "m":
+		*u = AmountUnitMetre
+	case "m²":
+		*u = AmountUnitSquareMetre
+	case "m/s":
+		*u = AmountUnitMetrePerSecond
+	case "V":
+		*u = AmountUnitVolt
+	case "W":
+		*u = AmountUnitWatt
+	case "Pa":
+		*u = AmountUnitPascal
+	case "C":
+		*u = AmountUnitCoulomb
+	case "J":
+		*u = AmountUnitJoule
+	case "°C":
+		*u = AmountUnitCelsius
+	case "rad":
+		*u = AmountUnitRadian
+	case "Hz":
+		*u = AmountUnitHertz
+	case "$":
+		*u = AmountUnitDollar
+	default:
+		return errors.Errorf("unknown amount unit: %s", s)
+	}
+	return nil
+}
+
 type AmountClaim struct {
 	CoreClaim
 
@@ -451,15 +546,15 @@ type UnknownValueClaim struct {
 type TimePrecision int
 
 const (
-	TimePrecisionBillionYears TimePrecision = iota
-	TimePrecisionHundredMillionYears
-	TimePrecisionTenMillionYears
-	TimePrecisionMillionYears
-	TimePrecisionHoundredMillenniums
-	TimePrecisionTenMillenniums
-	TimePrecisionMillennium
-	TimePrecisionCentury
-	TimePrecisionDecade
+	TimePrecisionGigaYears TimePrecision = iota
+	TimePrecisionHundredMegaYears
+	TimePrecisionTenMegaYears
+	TimePrecisionMegaYears
+	TimePrecisionHundredKiloYears
+	TimePrecisionTenKiloYears
+	TimePrecisionKiloYears
+	TimePrecisionHundredYears
+	TimePrecisionTenYears
 	TimePrecisionYear
 	TimePrecisionMonth
 	TimePrecisionDay
@@ -467,6 +562,87 @@ const (
 	TimePrecisionMinute
 	TimePrecisionSecond
 )
+
+func (p TimePrecision) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	switch p {
+	case TimePrecisionGigaYears:
+		buffer.WriteString("G")
+	case TimePrecisionHundredMegaYears:
+		buffer.WriteString("100M")
+	case TimePrecisionTenMegaYears:
+		buffer.WriteString("10M")
+	case TimePrecisionMegaYears:
+		buffer.WriteString("M")
+	case TimePrecisionHundredKiloYears:
+		buffer.WriteString("100k")
+	case TimePrecisionTenKiloYears:
+		buffer.WriteString("10k")
+	case TimePrecisionKiloYears:
+		buffer.WriteString("k")
+	case TimePrecisionHundredYears:
+		buffer.WriteString("100y")
+	case TimePrecisionTenYears:
+		buffer.WriteString("10y")
+	case TimePrecisionYear:
+		buffer.WriteString("y")
+	case TimePrecisionMonth:
+		buffer.WriteString("m")
+	case TimePrecisionDay:
+		buffer.WriteString("d")
+	case TimePrecisionHour:
+		buffer.WriteString("h")
+	case TimePrecisionMinute:
+		buffer.WriteString("min")
+	case TimePrecisionSecond:
+		buffer.WriteString("s")
+	}
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func (p *TimePrecision) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	switch s {
+	case "G":
+		*p = TimePrecisionGigaYears
+	case "100M":
+		*p = TimePrecisionHundredMegaYears
+	case "10M":
+		*p = TimePrecisionTenMegaYears
+	case "M":
+		*p = TimePrecisionMegaYears
+	case "100k":
+		*p = TimePrecisionHundredKiloYears
+	case "10k":
+		*p = TimePrecisionTenKiloYears
+	case "k":
+		*p = TimePrecisionKiloYears
+	case "100y":
+		*p = TimePrecisionHundredYears
+	case "10y":
+		*p = TimePrecisionTenYears
+	case "y":
+		*p = TimePrecisionYear
+	case "m":
+		*p = TimePrecisionMonth
+	case "d":
+		*p = TimePrecisionDay
+	case "h":
+		*p = TimePrecisionHour
+	case "min":
+		*p = TimePrecisionMinute
+	case "s":
+		*p = TimePrecisionSecond
+	default:
+		return errors.Errorf("unknown time precision: %s", s)
+	}
+	return nil
+}
 
 type TimeClaim struct {
 	CoreClaim

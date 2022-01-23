@@ -63,6 +63,12 @@ var (
 			nil,
 		},
 		{
+			"unit",
+			"unit associated with the amount",
+			"unit associated with the amount",
+			nil,
+		},
+		{
 			"claim type",
 			"the property maps to a supported claim type",
 			"the property maps to a supported claim type",
