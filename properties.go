@@ -99,6 +99,12 @@ var (
 			[]string{`"reference" claim type`},
 		},
 		{
+			"English Wikipedia article title",
+			"English Wikipedia article title",
+			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article title`,
+			[]string{`"identifier" claim type`},
+		},
+		{
 			"English Wikipedia article",
 			"reference to English Wikipedia article",
 			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
@@ -138,7 +144,7 @@ func getMnemonic(data string) string {
 func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
 	res := namespace
 	for _, arg := range args {
-		res = uuid.NewSHA1(namespace, []byte(fmt.Sprint(arg)))
+		res = uuid.NewSHA1(res, []byte(fmt.Sprint(arg)))
 	}
 	return Identifier(identifier.FromUUID(res))
 }

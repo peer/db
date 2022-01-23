@@ -24,6 +24,20 @@ var (
 	notSupportedError              = errors.Base("not supported")
 	notSupportedDataValueTypeError = errors.BaseWrap(notSupportedError, "not supported data value type")
 	notSupportedDataTypeError      = errors.BaseWrap(notSupportedError, "not supported data type")
+
+	nonMainWikipediaNamespaces = []string{
+		"User:",
+		"Wikipedia:",
+		"File:",
+		"MediaWiki:",
+		"Template:",
+		"Help:",
+		"Category:",
+		"Portal:",
+		"Draft:",
+		"TimedText:",
+		"Module:",
+	}
 )
 
 func getDocumentID(id string) search.Identifier {
@@ -435,6 +449,37 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 		}
 	} else {
 		return errors.Errorf(`entity %s has invalid type: %d`, entity.ID, entity.Type)
+	}
+
+	siteLink, ok := entity.SiteLinks["enwiki"]
+	if ok {
+		url := siteLink.URL
+		if url == "" {
+			url = fmt.Sprintf("https://en.wikipedia.org/wiki/%s", siteLink.Title)
+		}
+		for _, namespace := range nonMainWikipediaNamespaces {
+			if strings.HasPrefix(siteLink.Title, namespace) {
+				// Only items have sitelinks. We want only items related to main
+				// Wikipedia articles (main namespace).
+				return nil
+			}
+		}
+		document.Active.RefClaimTypes.Identifier = append(document.Active.RefClaimTypes.Identifier, search.IdentifierClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
+				Confidence: 1.0,
+			},
+			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE_TITLE"),
+			Identifier: siteLink.Title,
+		})
+		document.Active.RefClaimTypes.Reference = append(document.Active.RefClaimTypes.Reference, search.ReferenceClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
+				Confidence: 1.0,
+			},
+			Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE"),
+			IRI:  url,
+		})
 	}
 
 	if entity.DataType != nil {
