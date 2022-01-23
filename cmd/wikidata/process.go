@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"gitlab.com/tozd/go/errors"
@@ -528,14 +529,14 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 	return saveDocument(config, document)
 }
 
-var savedCount = 0
+var savedCount int32 = 0
 
 func saveDocument(config *Config, property search.Document) errors.E {
 	// TODO: Remove.
-	if savedCount >= 10000 {
+	if atomic.LoadInt32(&savedCount) >= 10000 {
 		return nil
 	}
-	savedCount++
+	atomic.AddInt32(&savedCount, 1)
 
 	path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", property.ID))
 	file, err := os.Create(path)
