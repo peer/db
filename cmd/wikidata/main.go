@@ -16,6 +16,17 @@ var (
 	revision       = ""
 )
 
+// A silent logger.
+type nullLogger struct{}
+
+func (nullLogger) Error(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Info(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
+
 func main() {
 	var config Config
 	ctx := kong.Parse(&config,
@@ -28,6 +39,10 @@ func main() {
 			os.Stderr,
 		),
 	)
+
+	// We silent debug logging from HTTP client.
+	// TODO: Configure proper logger.
+	client.Logger = nullLogger{}
 
 	err := convert(&config)
 	if err != nil {
