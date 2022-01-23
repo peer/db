@@ -136,7 +136,7 @@ func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
 				extraExtension = thumbnailExtraExtensions[imageInfo.Mime]
 			}
 			preview = append(preview,
-				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s128px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
+				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s256px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
 			)
 		}
 	}

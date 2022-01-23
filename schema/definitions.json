@@ -359,7 +359,7 @@
           "format": "iri"
         },
         "preview": {
-          "description": "preview of the file as images, 128 px wide and/or high",
+          "description": "preview of the file as images, 256 px wide and/or high",
           "type": "array",
           "items": {
             "type": "string",
