@@ -9,11 +9,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
+	"golang.org/x/time/rate"
 )
 
 var (
@@ -88,6 +93,17 @@ type ImageInfo struct {
 	// BitDepth  int     `json:"bitdepth"`
 }
 
+type Page struct {
+	PageID          int         `json:"pageid"`
+	Namespace       int         `json:"ns"`
+	Title           string      `json:"title"`
+	Missing         bool        `json:"missing"`
+	Invalid         bool        `json:"invalid"`
+	InvalidReason   string      `json:"invalidreason"`
+	ImageRepository string      `json:"imagerepository"`
+	ImageInfo       []ImageInfo `json:"imageinfo"`
+}
+
 type APIResponse struct {
 	BatchComplete bool `json:"batchcomplete"`
 	Continue      struct {
@@ -95,16 +111,7 @@ type APIResponse struct {
 		Continue string `json:"continue"`
 	} `json:"continue"`
 	Query struct {
-		Pages []struct {
-			PageID          int         `json:"pageid"`
-			Namespace       int         `json:"ns"`
-			Title           string      `json:"title"`
-			Missing         bool        `json:"missing"`
-			Invalid         bool        `json:"invalid"`
-			InvalidReason   string      `json:"invalidreason"`
-			ImageRepository string      `json:"imagerepository"`
-			ImageInfo       []ImageInfo `json:"imageinfo"`
-		} `json:"pages"`
+		Pages []Page `json:"pages"`
 	} `json:"query"`
 }
 
@@ -138,8 +145,226 @@ func makeFileInfo(mediaType, filename string) FileInfo {
 	}
 }
 
+type apiTask struct {
+	Title         string
+	ImageInfoChan chan<- ImageInfo
+	ErrChan       chan<- errors.E
+}
+
+var apiWorkers sync.Map
+
+func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
+	titles := strings.Builder{}
+	tasksMap := map[string]apiTask{}
+	for _, task := range tasks {
+		titleWithPrefix := "File:" + task.Title
+		tasksMap[titleWithPrefix] = task
+		// Separator, instead of "|". It has also be the prefix.
+		titles.WriteString("%1F")
+		titles.WriteString(url.QueryEscape(titleWithPrefix))
+	}
+
+	// TODO: Fetch and use also other image info data using "size|bitdepth|extmetadata|metadata|commonmetadata".
+	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
+	u := fmt.Sprintf(
+		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime&titles=%s&format=json&formatversion=2",
+		titles.String(),
+	)
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	// TODO: Make contact e-mail into a CLI argument.
+	userAgent := fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision)
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.WithMessage(err, u)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return errors.Errorf(`%s: bad response status (%s): %s`, u, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var apiResponse APIResponse
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&apiResponse)
+	if err != nil {
+		return errors.WithMessagef(err, `%s: json decode failure`, u)
+	}
+
+	if len(apiResponse.Query.Pages) != len(tasks) {
+		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResponse.Query.Pages), len(tasks))
+	}
+
+	pagesMap := map[string]Page{}
+	for _, page := range apiResponse.Query.Pages {
+		_, ok := tasksMap[page.Title]
+		if !ok {
+			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
+		}
+		pagesMap[page.Title] = page
+	}
+
+	if len(tasksMap) != len(pagesMap) {
+		return errors.Errorf(`got %d unique result page(s), expected %d`, len(pagesMap), len(tasksMap))
+	}
+
+	// Now we report errors only to individual tasks. Once we get to here all tasks
+	// have to be processed and all their channels closed.
+	for _, page := range pagesMap {
+		// We have checked above that task always exists.
+		task := tasksMap[page.Title]
+		if page.Missing {
+			task.ErrChan <- errors.Errorf(`"%s" missing`, page.Title)
+		} else if page.Invalid {
+			task.ErrChan <- errors.Errorf(`"%s" invalid: %s`, page.Title, page.InvalidReason)
+		} else if len(page.ImageInfo) != 1 {
+			task.ErrChan <- errors.Errorf(`not exactly one image info result for "%s"`, page.Title)
+		} else {
+			task.ImageInfoChan <- page.ImageInfo[0]
+		}
+		close(task.ImageInfoChan)
+		close(task.ErrChan)
+	}
+
+	return nil
+}
+
+func getAPIWorker(ctx context.Context) chan<- apiTask {
+	// Sanity check so that we do not do unnecessary work of setup
+	// just to be cleaned up soon aftwards.
+	if ctx.Err() != nil {
+		return nil
+	}
+
+	// A queue of up to (and including) 50 tasks.
+	// 50 is the limit per one API call (500 for clients allowed higher limits).
+	apiTaskChan := make(chan apiTask, 50)
+
+	existingApiTaskChan, loaded := apiWorkers.LoadOrStore(ctx, apiTaskChan)
+	if loaded {
+		// We made it just in case but we do not need it.
+		close(apiTaskChan)
+		return existingApiTaskChan.(chan apiTask)
+	}
+
+	go func() {
+		tasks := []apiTask{}
+		limiter := rate.NewLimiter(rate.Every(time.Second), 1)
+
+		defer func() {
+			if ctx.Err() == nil {
+				// We have a problem, we are here but context has not been canceled.
+				// Is this a panic? For now we do not do anything and just let it propagate.
+				// TODO: Can we do something better?
+				return
+			}
+
+			// First we delete the worker so that it is not available anymore for this context.
+			apiWorkers.Delete(ctx)
+
+			for {
+				// There might be pending tasks for which we should close channels.
+				for _, task := range tasks {
+					close(task.ImageInfoChan)
+					close(task.ErrChan)
+				}
+				tasks = []apiTask{}
+
+				// Allow other goroutines to send their tasks, if they are any still in flight.
+				runtime.Gosched()
+
+				// There might be more tasks in the queue, drain it.
+			DRAIN:
+				select {
+				case task := <-apiTaskChan:
+					tasks = append(tasks, task)
+				default:
+					break DRAIN
+				}
+
+				if len(tasks) == 0 {
+					break
+				}
+			}
+
+			// TODO: Is it really safe to close the channel now?
+			close(apiTaskChan)
+		}()
+
+		for {
+			select {
+			// Wait for at least one task to be available.
+			case task := <-apiTaskChan:
+				tasks = []apiTask{task}
+				for {
+					// Make sure we are respecting the rate limit.
+					err := limiter.Wait(ctx)
+					if err != nil {
+						// Context has been canceled.
+						return
+					}
+
+					// Drain any other pending task, up to 50.
+				DRAIN:
+					for len(tasks) < 50 {
+						select {
+						case task := <-apiTaskChan:
+							tasks = append(tasks, task)
+						default:
+							break DRAIN
+						}
+					}
+
+					errE := doAPIRequest(ctx, tasks)
+					if errE == nil {
+						// No error, we exit the retry loop.
+						break
+					}
+
+					if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
+						// Context has been canceled.
+						return
+					}
+
+					// TODO: Use logger.
+					fmt.Fprintf(os.Stderr, "API request failed: %+v\n", errE)
+					// We retry here.
+				}
+			case <-ctx.Done():
+				// Context has been canceled.
+				return
+			}
+		}
+	}()
+
+	return apiTaskChan
+}
+
+func getImageInfo(ctx context.Context, title string) (<-chan ImageInfo, <-chan errors.E) {
+	apiTaskChan := getAPIWorker(ctx)
+
+	imageInfoChan := make(chan ImageInfo)
+	errChan := make(chan errors.E)
+
+	select {
+	case <-ctx.Done():
+		close(imageInfoChan)
+		close(errChan)
+		return nil, nil
+	case apiTaskChan <- apiTask{
+		Title:         title,
+		ImageInfoChan: imageInfoChan,
+		ErrChan:       errChan,
+	}:
+		return imageInfoChan, errChan
+	}
+}
+
 func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
-	titleWithPrefix := "File:" + title
 	filename := strings.ReplaceAll(title, " ", "_")
 	extension := strings.ToLower(path.Ext(title))
 	mediaTypes := extensionToMediaTypes[extension]
@@ -150,53 +375,26 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 	}
 
 	// We have to use the API to determine the media type.
-	// TODO: Fetch and use also other image info data using "size|bitdepth|extmetadata|metadata|commonmetadata".
-	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
-	u := fmt.Sprintf(
-		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime&titles=%s&format=json&formatversion=2",
-		url.QueryEscape(titleWithPrefix),
-	)
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return FileInfo{}, errors.WithStack(err)
-	}
-	// TODO: Make contact e-mail into a CLI argument.
-	userAgent := fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision)
-	req.Header.Set("User-Agent", userAgent)
-	resp, err := client.Do(req)
-	if err != nil {
-		return FileInfo{}, errors.WithStack(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return FileInfo{}, errors.Errorf(`bad response status (%s) for "%s": %s`, resp.Status, titleWithPrefix, strings.TrimSpace(string(body)))
-	}
+	imageInfoChan, errChan := getImageInfo(ctx, title)
 
-	var apiResponse APIResponse
-	decoder := json.NewDecoder(resp.Body)
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&apiResponse)
-	if err != nil {
-		return FileInfo{}, errors.WithMessagef(err, `json decode failure for "%s"`, titleWithPrefix)
+	for {
+		select {
+		case <-ctx.Done():
+			return FileInfo{}, errors.WithStack(ctx.Err())
+		case imageInfo, ok := <-imageInfoChan:
+			if !ok {
+				imageInfoChan = nil
+				// Break the select and retry the loop.
+				break
+			}
+			return makeFileInfo(imageInfo.Mime, filename), nil
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				// Break the select and retry the loop.
+				break
+			}
+			return FileInfo{}, err
+		}
 	}
-
-	if len(apiResponse.Query.Pages) != 1 {
-		return FileInfo{}, errors.Errorf(`not exactly one result page for "%s"`, titleWithPrefix)
-	}
-
-	page := apiResponse.Query.Pages[0]
-	if page.Missing {
-		return FileInfo{}, errors.Errorf(`"%s" missing`, titleWithPrefix)
-	}
-	if page.Invalid {
-		return FileInfo{}, errors.Errorf(`"%s" invalid: %s`, titleWithPrefix, page.InvalidReason)
-	}
-	if page.Title != titleWithPrefix {
-		return FileInfo{}, errors.Errorf(`result title "%s" does not match query title "%s"`, page.Title, titleWithPrefix)
-	}
-	if len(page.ImageInfo) != 1 {
-		return FileInfo{}, errors.Errorf(`not exactly one image info result for "%s"`, titleWithPrefix)
-	}
-	return makeFileInfo(page.ImageInfo[0].Mime, filename), nil
 }
