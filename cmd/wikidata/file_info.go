@@ -35,6 +35,7 @@ var (
 		".oga":  []string{"audio/ogg"},
 		".opus": []string{"audio/ogg"},
 		".mid":  []string{"audio/midi"},
+		".midi": []string{"audio/midi"},
 		".flac": []string{"audio/flac"},
 		".wav":  []string{"audio/wav"},
 		".mp3":  []string{"audio/mpeg"},
