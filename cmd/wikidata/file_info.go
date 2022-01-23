@@ -155,13 +155,17 @@ var apiWorkers sync.Map
 
 func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
-	tasksMap := map[string]apiTask{}
+	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
 		titleWithPrefix := "File:" + task.Title
-		tasksMap[titleWithPrefix] = task
-		// Separator, instead of "|". It has also be the prefix.
-		titles.WriteString("%1F")
-		titles.WriteString(url.QueryEscape(titleWithPrefix))
+		if _, ok := tasksMap[titleWithPrefix]; ok {
+			tasksMap[titleWithPrefix] = append(tasksMap[titleWithPrefix], task)
+		} else {
+			tasksMap[titleWithPrefix] = []apiTask{task}
+			// Separator, instead of "|". It has also be the prefix.
+			titles.WriteString("%1F")
+			titles.WriteString(url.QueryEscape(titleWithPrefix))
+		}
 	}
 
 	// TODO: Fetch and use also other image info data using "size|bitdepth|extmetadata|metadata|commonmetadata".
@@ -195,14 +199,13 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 		return errors.WithMessagef(err, `%s: json decode failure`, u)
 	}
 
-	if len(apiResponse.Query.Pages) != len(tasks) {
-		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResponse.Query.Pages), len(tasks))
+	if len(apiResponse.Query.Pages) != len(tasksMap) {
+		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResponse.Query.Pages), len(tasksMap))
 	}
 
 	pagesMap := map[string]Page{}
 	for _, page := range apiResponse.Query.Pages {
-		_, ok := tasksMap[page.Title]
-		if !ok {
+		if _, ok := tasksMap[page.Title]; !ok {
 			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
 		}
 		pagesMap[page.Title] = page
@@ -215,19 +218,29 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 	// Now we report errors only to individual tasks. Once we get to here all tasks
 	// have to be processed and all their channels closed.
 	for _, page := range pagesMap {
-		// We have checked above that task always exists.
-		task := tasksMap[page.Title]
+		// We have checked above that tasks per page always exists.
+		pageTasks := tasksMap[page.Title]
 		if page.Missing {
-			task.ErrChan <- errors.Errorf(`"%s" missing`, page.Title)
+			for _, task := range pageTasks {
+				task.ErrChan <- errors.Errorf(`"%s" missing`, page.Title)
+			}
 		} else if page.Invalid {
-			task.ErrChan <- errors.Errorf(`"%s" invalid: %s`, page.Title, page.InvalidReason)
+			for _, task := range pageTasks {
+				task.ErrChan <- errors.Errorf(`"%s" invalid: %s`, page.Title, page.InvalidReason)
+			}
 		} else if len(page.ImageInfo) != 1 {
-			task.ErrChan <- errors.Errorf(`not exactly one image info result for "%s"`, page.Title)
+			for _, task := range pageTasks {
+				task.ErrChan <- errors.Errorf(`not exactly one image info result for "%s"`, page.Title)
+			}
 		} else {
-			task.ImageInfoChan <- page.ImageInfo[0]
+			for _, task := range pageTasks {
+				task.ImageInfoChan <- page.ImageInfo[0]
+			}
 		}
-		close(task.ImageInfoChan)
-		close(task.ErrChan)
+		for _, task := range pageTasks {
+			close(task.ImageInfoChan)
+			close(task.ErrChan)
+		}
 	}
 
 	return nil
@@ -322,6 +335,7 @@ func getAPIWorker(ctx context.Context) chan<- apiTask {
 					errE := doAPIRequest(ctx, tasks)
 					if errE == nil {
 						// No error, we exit the retry loop.
+						tasks = []apiTask{}
 						break
 					}
 
