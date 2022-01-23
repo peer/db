@@ -120,24 +120,24 @@ func getWikimediaCommonsFilePrefix(filename string) string {
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
 
-func makeFileInfo(mediaType, filename string) FileInfo {
+func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
 	prefix := getWikimediaCommonsFilePrefix(filename)
 	preview := []string{}
-	if !noPreview[mediaType] {
+	if !noPreview[imageInfo.Mime] {
 		pagePrefix := ""
-		if hasPages[mediaType] {
+		if hasPages[imageInfo.Mime] {
 			pagePrefix = "page1-"
 		}
 		extraExtension := ""
-		if thumbnailExtraExtensions[mediaType] != "" {
-			extraExtension = thumbnailExtraExtensions[mediaType]
+		if thumbnailExtraExtensions[imageInfo.Mime] != "" {
+			extraExtension = thumbnailExtraExtensions[imageInfo.Mime]
 		}
 		preview = []string{
 			fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s128px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
 		}
 	}
 	return FileInfo{
-		MediaType: mediaType,
+		MediaType: imageInfo.Mime,
 		PageURL:   fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
 		URL:       fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
 		Preview:   preview,
@@ -346,7 +346,7 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 	if len(mediaTypes) == 0 {
 		return FileInfo{}, nil
 	} else if len(mediaTypes) == 1 {
-		return makeFileInfo(mediaTypes[0], filename), nil
+		return makeFileInfo(ImageInfo{Mime: mediaTypes[0]}, filename), nil
 	}
 
 	// We have to use the API to determine the media type.
@@ -362,7 +362,7 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 				// Break the select and retry the loop.
 				break
 			}
-			return makeFileInfo(imageInfo.Mime, filename), nil
+			return makeFileInfo(imageInfo, filename), nil
 		case err, ok := <-errChan:
 			if !ok {
 				errChan = nil
