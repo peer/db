@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -215,8 +214,8 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 		return errors.Errorf(`got %d unique result page(s), expected %d`, len(pagesMap), len(tasksMap))
 	}
 
-	// Now we report errors only to individual tasks. Once we get to here all tasks
-	// have to be processed and all their channels closed.
+	// Now we report errors only to individual tasks.
+	// Once we get to here all tasks have to be processed.
 	for _, page := range pagesMap {
 		// We have checked above that tasks per page always exists.
 		pageTasks := tasksMap[page.Title]
@@ -246,6 +245,8 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 	return nil
 }
 
+// Returned apiTaskChan is never explicitly closed but it is left
+// to the garbage collector to clean it up when it is suitable.
 func getAPIWorker(ctx context.Context) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
@@ -257,62 +258,23 @@ func getAPIWorker(ctx context.Context) chan<- apiTask {
 	// 50 is the limit per one API call (500 for clients allowed higher limits).
 	apiTaskChan := make(chan apiTask, 50)
 
-	existingApiTaskChan, loaded := apiWorkers.LoadOrStore(ctx, apiTaskChan)
+	existingAPITaskChan, loaded := apiWorkers.LoadOrStore(ctx, apiTaskChan)
 	if loaded {
 		// We made it just in case but we do not need it.
 		close(apiTaskChan)
-		return existingApiTaskChan.(chan apiTask)
+		return existingAPITaskChan.(chan apiTask)
 	}
 
 	go func() {
-		tasks := []apiTask{}
+		defer apiWorkers.Delete(ctx)
+
 		limiter := rate.NewLimiter(rate.Every(time.Second), 1)
-
-		defer func() {
-			if ctx.Err() == nil {
-				// We have a problem, we are here but context has not been canceled.
-				// Is this a panic? For now we do not do anything and just let it propagate.
-				// TODO: Can we do something better?
-				return
-			}
-
-			// First we delete the worker so that it is not available anymore for this context.
-			apiWorkers.Delete(ctx)
-
-			for {
-				// There might be pending tasks for which we should close channels.
-				for _, task := range tasks {
-					close(task.ImageInfoChan)
-					close(task.ErrChan)
-				}
-				tasks = []apiTask{}
-
-				// Allow other goroutines to send their tasks, if they are any still in flight.
-				runtime.Gosched()
-
-				// There might be more tasks in the queue, drain it.
-			DRAIN:
-				select {
-				case task := <-apiTaskChan:
-					tasks = append(tasks, task)
-				default:
-					break DRAIN
-				}
-
-				if len(tasks) == 0 {
-					break
-				}
-			}
-
-			// TODO: Is it really safe to close the channel now?
-			close(apiTaskChan)
-		}()
 
 		for {
 			select {
 			// Wait for at least one task to be available.
 			case task := <-apiTaskChan:
-				tasks = []apiTask{task}
+				tasks := []apiTask{task}
 				for {
 					// Make sure we are respecting the rate limit.
 					err := limiter.Wait(ctx)
@@ -335,7 +297,6 @@ func getAPIWorker(ctx context.Context) chan<- apiTask {
 					errE := doAPIRequest(ctx, tasks)
 					if errE == nil {
 						// No error, we exit the retry loop.
-						tasks = []apiTask{}
 						break
 					}
 
