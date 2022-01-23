@@ -82,14 +82,12 @@ type FileInfo struct {
 }
 
 type ImageInfo struct {
-	Mime string `json:"mime"`
-	// Additional fields for "size|bitdepth":
-	// Size      int     `json:"size"`
-	// Width              int     `json:"width"`
-	// Height             int     `json:"height"`
-	// PageCount int     `json:"pagecount"`
-	// Duration  float64 `json:"duration"`
-	// BitDepth  int     `json:"bitdepth"`
+	Mime      string  `json:"mime"`
+	Size      int     `json:"size"`
+	Width     int     `json:"width"`
+	Height    int     `json:"height"`
+	PageCount int     `json:"pagecount"`
+	Duration  float64 `json:"duration"`
 }
 
 type Page struct {
@@ -122,18 +120,24 @@ func getWikimediaCommonsFilePrefix(filename string) string {
 
 func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
 	prefix := getWikimediaCommonsFilePrefix(filename)
+	pages := imageInfo.PageCount
+	if pages == 0 {
+		pages = 1
+	}
 	preview := []string{}
 	if !noPreview[imageInfo.Mime] {
-		pagePrefix := ""
-		if hasPages[imageInfo.Mime] {
-			pagePrefix = "page1-"
-		}
-		extraExtension := ""
-		if thumbnailExtraExtensions[imageInfo.Mime] != "" {
-			extraExtension = thumbnailExtraExtensions[imageInfo.Mime]
-		}
-		preview = []string{
-			fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s128px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
+		for page := 1; page <= pages; page++ {
+			pagePrefix := ""
+			if hasPages[imageInfo.Mime] {
+				pagePrefix = fmt.Sprintf("page%d-", page)
+			}
+			extraExtension := ""
+			if thumbnailExtraExtensions[imageInfo.Mime] != "" {
+				extraExtension = thumbnailExtraExtensions[imageInfo.Mime]
+			}
+			preview = append(preview,
+				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s128px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
+			)
 		}
 	}
 	return FileInfo{
@@ -167,10 +171,10 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 		}
 	}
 
-	// TODO: Fetch and use also other image info data using "size|bitdepth|extmetadata|metadata|commonmetadata".
+	// TODO: Fetch and use also other image info data using "bitdepth|extmetadata|metadata|commonmetadata".
 	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
 	u := fmt.Sprintf(
-		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime&titles=%s&format=json&formatversion=2",
+		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime|size&titles=%s&format=json&formatversion=2",
 		titles.String(),
 	)
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
@@ -345,11 +349,11 @@ func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
 	mediaTypes := extensionToMediaTypes[extension]
 	if len(mediaTypes) == 0 {
 		return FileInfo{}, nil
-	} else if len(mediaTypes) == 1 {
+	} else if len(mediaTypes) == 1 && !hasPages[mediaTypes[0]] {
 		return makeFileInfo(ImageInfo{Mime: mediaTypes[0]}, filename), nil
 	}
 
-	// We have to use the API to determine the media type.
+	// We have to use the API to determine the media type or the number of pages.
 	imageInfoChan, errChan := getImageInfo(ctx, title)
 
 	for {
