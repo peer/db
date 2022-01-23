@@ -508,8 +508,8 @@ type AmountClaim struct {
 
 	Prop             DocumentReference `json:"prop"`
 	Amount           float64           `json:"amount"`
-	UncertaintyLower float64           `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper float64           `json:"uncertaintyUpper,omitempty"`
+	UncertaintyLower *float64          `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *float64          `json:"uncertaintyUpper,omitempty"`
 	Unit             AmountUnit        `json:"unit"`
 }
 
@@ -519,8 +519,8 @@ type AmountRangeClaim struct {
 	Prop             DocumentReference `json:"prop"`
 	Lower            float64           `json:"lower"`
 	Upper            float64           `json:"upper"`
-	UncertaintyLower float64           `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper float64           `json:"uncertaintyUpper,omitempty"`
+	UncertaintyLower *float64          `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *float64          `json:"uncertaintyUpper,omitempty"`
 	Unit             AmountUnit        `json:"unit"`
 }
 
@@ -649,9 +649,9 @@ type TimeClaim struct {
 
 	Prop             DocumentReference `json:"prop"`
 	Timestamp        Timestamp         `json:"timestamp"`
-	UncertaintyLower Timestamp         `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper Timestamp         `json:"uncertaintyUpper,omitempty"`
-	Precision        TimePrecision     `json:"precision,omitempty"`
+	UncertaintyLower *Timestamp        `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *Timestamp        `json:"uncertaintyUpper,omitempty"`
+	Precision        TimePrecision     `json:"precision"`
 }
 
 type TimeRangeClaim struct {
@@ -660,9 +660,9 @@ type TimeRangeClaim struct {
 	Prop             DocumentReference `json:"prop"`
 	Lower            Timestamp         `json:"lower"`
 	Upper            Timestamp         `json:"upper"`
-	UncertaintyLower Timestamp         `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper Timestamp         `json:"uncertaintyUpper,omitempty"`
-	Precision        TimePrecision     `json:"precision,omitempty"`
+	UncertaintyLower *Timestamp        `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *Timestamp        `json:"uncertaintyUpper,omitempty"`
+	Precision        TimePrecision     `json:"precision"`
 }
 
 type DurationClaim struct {
@@ -670,8 +670,8 @@ type DurationClaim struct {
 
 	Prop             DocumentReference `json:"prop"`
 	Amount           Duration          `json:"amount"`
-	UncertaintyLower Duration          `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper Duration          `json:"uncertaintyUpper,omitempty"`
+	UncertaintyLower *Duration         `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *Duration         `json:"uncertaintyUpper,omitempty"`
 }
 
 type DurationRangeClaim struct {
@@ -680,8 +680,8 @@ type DurationRangeClaim struct {
 	Prop             DocumentReference `json:"prop"`
 	Lower            Duration          `json:"lower"`
 	Upper            Duration          `json:"upper"`
-	UncertaintyLower Duration          `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper Duration          `json:"uncertaintyUpper,omitempty"`
+	UncertaintyLower *Duration         `json:"uncertaintyLower,omitempty"`
+	UncertaintyUpper *Duration         `json:"uncertaintyUpper,omitempty"`
 }
 
 type FileClaim struct {

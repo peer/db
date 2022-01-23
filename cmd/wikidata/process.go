@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -156,9 +157,9 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 }
 
 // It does not return a valid reference: name is missing.
-func getDocumentReference(prop string) search.DocumentReference {
+func getDocumentReference(id string) search.DocumentReference {
 	return search.DocumentReference{
-		ID:    getDocumentID(prop),
+		ID:    getDocumentID(id),
 		Score: 0.0,
 	}
 }
@@ -328,7 +329,74 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 	case mediawiki.QuantityValue:
 		switch snak.DataType {
 		case mediawiki.Quantity:
-			return nil, errors.Errorf("%w: TODO Quantity", notSupportedError)
+			amount, exact := value.Amount.Float64()
+			if !exact && math.IsInf(amount, 0) {
+				return nil, errors.Errorf("amount cannot be represented by float64: %s", value.Amount.String())
+			}
+			var uncertaintyLower, uncertaintyUpper *float64
+			if value.LowerBound != nil && value.UpperBound != nil {
+				l, exact := value.LowerBound.Float64()
+				if !exact && math.IsInf(l, 0) {
+					return nil, errors.Errorf("lower bound cannot be represented by float64: %s", value.LowerBound.String())
+				}
+				uncertaintyLower = &l
+				u, exact := value.UpperBound.Float64()
+				if !exact && math.IsInf(u, 0) {
+					return nil, errors.Errorf("upper bound cannot be represented by float64: %s", value.UpperBound.String())
+				}
+				uncertaintyUpper = &u
+				if *uncertaintyLower > amount {
+					return nil, errors.Errorf("lower bound %f cannot be larger than the amount %f", *uncertaintyLower, amount)
+				}
+				if *uncertaintyUpper < amount {
+					return nil, errors.Errorf("upper bound %f cannot be smaller than the amount %f", *uncertaintyUpper, amount)
+				}
+			} else if value.LowerBound != nil || value.UpperBound != nil {
+				return nil, errors.Errorf("both lower and upper bounds have to be provided, or none, not just one")
+			}
+			claim := search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         id,
+					Confidence: confidence,
+				},
+				Prop:             getDocumentReference(prop),
+				Amount:           amount,
+				UncertaintyLower: uncertaintyLower,
+				UncertaintyUpper: uncertaintyUpper,
+			}
+
+			if value.Unit == "1" {
+				claim.Unit = search.AmountUnitNone
+			} else {
+				// For now we store the amount as-is and convert to the same unit later on
+				// using the unit we store into meta claims.
+				claim.Unit = search.AmountUnitCustom
+				claimID := search.GetID(NameSpaceWikidata, id, prop, statementID, snak.Hash, "UNIT", 0)
+				var unitID string
+				if strings.HasPrefix(value.Unit, "http://www.wikidata.org/entity/") {
+					unitID = strings.TrimPrefix(value.Unit, "http://www.wikidata.org/entity/")
+				} else if strings.HasPrefix(value.Unit, "https://www.wikidata.org/wiki/") {
+					unitID = strings.TrimPrefix(value.Unit, "https://www.wikidata.org/wiki/")
+				} else {
+					return nil, errors.Errorf("unsupported unit URL: %s", value.Unit)
+				}
+				claim.CoreClaim.Meta = &search.MetaClaims{
+					SimpleClaimTypes: search.SimpleClaimTypes{
+						Relation: search.RelationClaims{
+							{
+								CoreClaim: search.CoreClaim{
+									ID:         claimID,
+									Confidence: 1.0,
+								},
+								Prop: search.GetStandardPropertyReference("UNIT"),
+								To:   getDocumentReference(unitID),
+							},
+						},
+					},
+				}
+			}
+
+			return claim, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", snak.DataType)
 		}

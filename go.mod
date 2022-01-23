@@ -7,8 +7,9 @@ require github.com/alecthomas/kong v0.2.22
 require (
 	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/tozd/go/mediawiki v0.0.0-20220108224605-7251d23ac662
-	gitlab.com/tozd/go/x v0.0.0-20220108094539-5cfbb5b32eba
+	gitlab.com/tozd/go/mediawiki v0.2.0
+	gitlab.com/tozd/go/x v0.0.0-20220119220156-959f8101491d
+	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
 
 require (
@@ -39,7 +40,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
 	golang.org/x/net v0.0.0-20210326060303-6b1517762897 // indirect
 	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
