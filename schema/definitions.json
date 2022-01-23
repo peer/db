@@ -823,9 +823,9 @@
       "additionalProperties": false
     },
     "amountUnit": {
-      "description": "All amounts for the same quantity should use the same unit so that it is easier to compare values during search. The exception is unit \"\" which stands for an unit for which conversion is not yet available or done, the real unit should then be described using a meta claim. \"1\" is used unit-less amounts. \"/\" represents ratio.",
+      "description": "All amounts for the same quantity should use the same unit so that it is easier to compare values during search. The exception is unit \"@\" which stands for an unit for which conversion is not yet available or done, the real unit should then be described using an UNIT meta claim. \"1\" is used unit-less amounts. \"/\" represents ratio.",
       "enum": [
-        "",
+        "@",
         "1",
         "/",
         "kg/kg",

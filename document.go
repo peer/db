@@ -414,7 +414,7 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	switch u {
 	case AmountUnitCustom:
-		buffer.WriteString("")
+		buffer.WriteString("@")
 	case AmountUnitNone:
 		buffer.WriteString("1")
 	case AmountUnitRatio:
@@ -461,7 +461,7 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		return errors.WithStack(err)
 	}
 	switch s {
-	case "":
+	case "@":
 		*u = AmountUnitCustom
 	case "1":
 		*u = AmountUnitNone
