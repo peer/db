@@ -98,7 +98,7 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Amount = append(claimTypes.Amount, c)
 	case AmountRangeClaim:
-		if c.Confidence >= 0.0 {
+		if c.Confidence >= 0.0 && c.Unit != AmountUnitCustom {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
 			}
