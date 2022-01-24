@@ -403,7 +403,16 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 	case mediawiki.TimeValue:
 		switch snak.DataType {
 		case mediawiki.Time:
-			return nil, errors.Errorf("%w: TODO Time", notSupportedError)
+			// TODO: Convert timestamps in Julian calendar to ones in Gregorian calendar.
+			return search.TimeClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         id,
+					Confidence: confidence,
+				},
+				Prop:      getDocumentReference(prop),
+				Timestamp: search.Timestamp(value.Time),
+				Precision: search.TimePrecision(value.Precision),
+			}, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for TimeValue: %d", snak.DataType)
 		}
