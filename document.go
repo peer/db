@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
@@ -247,7 +248,7 @@ func (d *Document) Add(claim interface{}) errors.E {
 }
 
 type CoreDocument struct {
-	ID         Identifier `json:"_id"`
+	ID         Identifier `json:"-"`
 	Name       Name       `json:"name"`
 	OtherNames OtherNames `json:"otherNames,omitempty"`
 	Score      Score      `json:"score"`
@@ -259,6 +260,21 @@ type Mnemonic string
 type Identifier string
 
 type Timestamp time.Time
+
+func (t Timestamp) MarshalJSON() ([]byte, error) {
+	x := time.Time(t)
+	return []byte(fmt.Sprintf(`"%04d-%02d-%02dT%02d:%02d:%02dZ"`, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())), nil
+}
+
+func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	var x time.Time
+	err := json.Unmarshal(data, &x)
+	if err != nil {
+		return err
+	}
+	*t = Timestamp(x)
+	return nil
+}
 
 type Duration time.Duration
 
