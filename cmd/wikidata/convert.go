@@ -21,9 +21,106 @@ var (
 	esClient *elastic.Client
 )
 
-const mapping = `{
+// TODO: Generate automatically.
+const indexConfiguration = `{
+	"settings":{
+		"number_of_shards": 1,
+		"number_of_replicas": 0
+	},
 	"mappings": {
-		"dynamic": false
+		"dynamic": false,
+		"dynamic_templates": [
+			{
+				"scores_float": {
+					"match_mapping_type": "float",
+					"mapping": {
+						"type": "double"
+					}
+				},
+				"scores_integer": {
+					"match_mapping_type": "integer",
+					"mapping": {
+						"type": "double"
+					}
+				},
+				"scores_long": {
+					"match_mapping_type": "long",
+					"mapping": {
+						"type": "double"
+					}
+				}
+			}
+		],
+		"properties": {
+			"name": {
+				"properties": {
+						"en": {
+							"type": "text"
+							"analyzer: "english"
+						}
+					}
+				}
+			},
+			"otherNames": {
+				"properties": {
+					"en": {
+						"type": "text"
+						"analyzer: "english"
+					}
+				}
+			},
+			"score": {
+				"type": "double"
+			},
+			"scores": {
+				"dynamic": true,
+				"properties": {}
+			}
+			"mnemonic": {
+				"type": "keyword",
+				"doc_values": false
+			},
+			"active": {
+				"properties": {
+					"id": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+
+								}
+							},
+							"id": {
+								"type": "keyword",
+							}
+						}
+					},
+					"ref": {},
+					"text": {},
+					"string": {},
+					"label": {},
+					"amount": {},
+					"amountRange": {},
+					"enum": {},
+					"rel": {},
+					"none": {},
+					"unknown": {},
+					"time": {},
+					"timeRange": {},
+					"duration": {},
+					"durationRange": {},
+					"file": {},
+					"list": {}
+				}
+			}
+		}
 	}
 }`
 
@@ -103,7 +200,7 @@ func convert(config *Config) errors.E {
 		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision),
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, created: %d, updated: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Created, stats.Updated, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, processed: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), p.Count, stats.Indexed, stats.Failed)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
 		return processEntity(ctx, config, processor, entity)

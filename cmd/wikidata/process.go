@@ -652,6 +652,6 @@ func processEntity(ctx context.Context, config *Config, processor *elastic.BulkP
 }
 
 func saveDocument(config *Config, processor *elastic.BulkProcessor, doc search.Document) {
-	req := elastic.NewBulkUpdateRequest().Index("docs").Id(string(doc.ID)).Doc(doc).DocAsUpsert(true)
+	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(doc.ID)).Doc(doc)
 	processor.Add(req)
 }
