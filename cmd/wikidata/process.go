@@ -2,17 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"math"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
-	"sync/atomic"
 
 	"github.com/google/uuid"
+	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
@@ -421,7 +419,7 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 	return nil, errors.Errorf(`unknown data value type: %+v`, snak.DataValue.Value)
 }
 
-func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity) errors.E {
+func processEntity(ctx context.Context, config *Config, processor *elastic.BulkProcessor, entity mediawiki.Entity) errors.E {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
 	if len(englishLabels) == 0 {
@@ -648,30 +646,12 @@ func processEntity(ctx context.Context, config *Config, entity mediawiki.Entity)
 		}
 	}
 
-	return saveDocument(config, document)
+	saveDocument(config, processor, document)
+
+	return nil
 }
 
-var savedCount int32 = 0
-
-func saveDocument(config *Config, property search.Document) errors.E {
-	// TODO: Remove.
-	if atomic.LoadInt32(&savedCount) >= 10000 {
-		return nil
-	}
-	atomic.AddInt32(&savedCount, 1)
-
-	path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", property.ID))
-	file, err := os.Create(path)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer file.Close()
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(property)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
+func saveDocument(config *Config, processor *elastic.BulkProcessor, doc search.Document) {
+	req := elastic.NewBulkUpdateRequest().Index("docs").Id(string(doc.ID)).Doc(doc).DocAsUpsert(true)
+	processor.Add(req)
 }
