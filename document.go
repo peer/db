@@ -385,9 +385,8 @@ type ReferenceClaim struct {
 type TextClaim struct {
 	CoreClaim
 
-	Prop  DocumentReference       `json:"prop"`
-	Plain TranslatablePlainString `json:"plain"`
-	HTML  TranslatableHTMLString  `json:"html"`
+	Prop DocumentReference      `json:"prop"`
+	HTML TranslatableHTMLString `json:"html"`
 }
 
 type StringClaim struct {

@@ -317,9 +317,8 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:  getDocumentReference(prop),
-				Plain: search.TranslatablePlainString{value.Language: value.Text},
-				HTML:  search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
+				Prop: getDocumentReference(prop),
+				HTML: search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 			}, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for MonolingualTextValue: %d", snak.DataType)
@@ -595,9 +594,6 @@ func processEntity(ctx context.Context, config *Config, processor *elastic.BulkP
 					Confidence: 1.0,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				Plain: search.TranslatablePlainString{
-					"en": description,
-				},
 				HTML: search.TranslatableHTMLString{
 					"en": html.EscapeString(description),
 				},

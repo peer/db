@@ -303,16 +303,12 @@
         "prop": {
           "$ref": "#/$defs/documentReference"
         },
-        "plain": {
-          "$ref": "#/$defs/translatablePlainString"
-        },
         "html": {
           "$ref": "#/$defs/translatableHtmlString"
         }
       },
       "required": [
         "prop",
-        "plain",
         "html"
       ],
       "unevaluatedProperties": false

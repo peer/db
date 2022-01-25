@@ -39,86 +39,72 @@ var (
 	}
 
 	builtinProperties = []struct {
-		Name             string
-		DescriptionPlain string
-		DescriptionHTML  string
-		Is               []string
+		Name            string
+		DescriptionHTML string
+		Is              []string
 	}{
 		{
 			"is",
-			"unspecified type relation between two entities",
 			"unspecified type relation between two entities",
 			nil,
 		},
 		{
 			"property",
 			"the entity is a property",
-			"the entity is a property",
 			nil,
 		},
 		{
 			"item",
-			"the entity is an item",
 			"the entity is an item",
 			nil,
 		},
 		{
 			"unit",
 			"unit associated with the amount",
-			"unit associated with the amount",
 			nil,
 		},
 		{
 			"claim type",
 			"the property maps to a supported claim type",
-			"the property maps to a supported claim type",
 			nil,
 		},
 		{
-			"description",
 			"description",
 			"description",
 			[]string{`"text" claim type`},
 		},
 		{
 			"Wikidata property id",
-			"Wikidata property identifier",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata item id",
-			"Wikidata item identifier",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
 			[]string{`"identifier" claim type`},
 		},
 		{
-			"Wikidata property page",
 			"Wikidata property page",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"Wikidata item page",
-			"Wikidata item page",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI`,
 			[]string{`"reference" claim type`},
 		},
 		{
-			"English Wikipedia article title",
 			"English Wikipedia article title",
 			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article title`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"English Wikipedia article",
-			"reference to English Wikipedia article",
 			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"Wikimedia Commons file",
-			"reference to Wikimedia Commons file",
 			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file`,
 			[]string{`"reference" claim type`},
 		},
@@ -190,9 +176,6 @@ func populateStandardProperties() {
 									"en": "description",
 								},
 								Score: 0.0,
-							},
-							Plain: TranslatablePlainString{
-								"en": builtinProperty.DescriptionPlain,
 							},
 							HTML: TranslatableHTMLString{
 								"en": builtinProperty.DescriptionHTML,
@@ -278,9 +261,6 @@ func populateStandardProperties() {
 										"en": "description",
 									},
 									Score: 0.0,
-								},
-								Plain: TranslatablePlainString{
-									"en": description,
 								},
 								HTML: TranslatableHTMLString{
 									"en": html.EscapeString(description),
