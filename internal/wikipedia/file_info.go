@@ -75,7 +75,7 @@ var (
 	}
 )
 
-type FileInfo struct {
+type fileInfo struct {
 	MediaType string
 	PageURL   string
 	URL       string
@@ -119,7 +119,7 @@ func getWikimediaCommonsFilePrefix(filename string) string {
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
 
-func makeFileInfo(info imageInfo, filename string) FileInfo {
+func makeFileInfo(info imageInfo, filename string) fileInfo {
 	prefix := getWikimediaCommonsFilePrefix(filename)
 	pages := info.PageCount
 	if pages == 0 {
@@ -141,7 +141,7 @@ func makeFileInfo(info imageInfo, filename string) FileInfo {
 			)
 		}
 	}
-	return FileInfo{
+	return fileInfo{
 		MediaType: info.Mime,
 		PageURL:   fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
 		URL:       fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
@@ -341,12 +341,12 @@ func getImageInfo(ctx context.Context, client *retryablehttp.Client, title strin
 	}
 }
 
-func GetFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (FileInfo, errors.E) {
+func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (fileInfo, errors.E) {
 	filename := strings.ReplaceAll(title, " ", "_")
 	extension := strings.ToLower(path.Ext(title))
 	mediaTypes := extensionToMediaTypes[extension]
 	if len(mediaTypes) == 0 {
-		return FileInfo{}, nil
+		return fileInfo{}, nil
 	} else if len(mediaTypes) == 1 && !hasPages[mediaTypes[0]] {
 		return makeFileInfo(imageInfo{Mime: mediaTypes[0]}, filename), nil
 	}
@@ -357,7 +357,7 @@ func GetFileInfo(ctx context.Context, client *retryablehttp.Client, title string
 	for {
 		select {
 		case <-ctx.Done():
-			return FileInfo{}, errors.WithStack(ctx.Err())
+			return fileInfo{}, errors.WithStack(ctx.Err())
 		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
@@ -371,7 +371,7 @@ func GetFileInfo(ctx context.Context, client *retryablehttp.Client, title string
 				// Break the select and retry the loop.
 				break
 			}
-			return FileInfo{}, err
+			return fileInfo{}, err
 		}
 	}
 }
