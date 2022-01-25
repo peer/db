@@ -1,0 +1,532 @@
+{
+	"settings": {
+		"number_of_shards": 1,
+		"number_of_replicas": 0,
+		"analysis": {
+			"analyzer": {
+				"english_plain": {
+					"type": "custom",
+					"tokenizer": "standard",
+					"filter": ["english_possessive_stemmer", "lowercase", "decimal_digit", "asciifolding", "english_stop", "english_stemmer"]
+				},
+				"english_html": {
+					"type": "custom",
+					"tokenizer": "standard",
+					"char_filter": ["html_strip"],
+					"filter": ["english_possessive_stemmer", "lowercase", "decimal_digit", "asciifolding", "english_stop", "english_stemmer"]
+				}
+			},
+			"filter": {
+				"english_possessive_stemmer": {
+					"type": "stemmer",
+					"language": "possessive_english"
+				},
+				"english_stop": {
+					"type": "stop",
+					"stopwords": "_english_"
+				},
+				"english_stemmer": {
+					"type": "stemmer",
+					"language": "english"
+				}
+			},
+			"normalizer": {
+				"id_normalizer": {
+					"type": "custom",
+					"char_filter": ["zeros_prefix_trim"],
+					"filter": ["trim"]
+				}
+			},
+			"char_filter": {
+				"zeros_prefix_trim": {
+					"type": "pattern_replace",
+					"pattern": "^[0\\s]+",
+					"replacement": ""
+				}
+			}
+		}
+	},
+	"mappings": {
+		"dynamic": false,
+		"dynamic_templates": [
+			{
+				"scores": {
+					"match_mapping_type": "long",
+					"mapping": {
+						"type": "double"
+					}
+				}
+			}
+		],
+		"properties": {
+			"name": {
+				"properties": {
+          "en": {
+            "type": "text",
+            "analyzer": "english_plain"
+          }
+				}
+			},
+			"otherNames": {
+				"properties": {
+					"en": {
+						"type": "text",
+						"analyzer": "english_plain"
+					}
+				}
+			},
+			"score": {
+				"type": "double"
+			},
+			"scores": {
+				"dynamic": true,
+				"properties": {}
+			},
+			"mnemonic": {
+				"type": "keyword",
+				"doc_values": false
+			},
+			"active": {
+				"properties": {
+					"id": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"id": {
+								"type": "keyword",
+								"normalizer": "id_normalizer"
+							}
+						}
+					},
+					"ref": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"iri": {
+								"type": "keyword",
+								"doc_values": false
+							}
+						}
+					},
+					"text": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"html": {
+								"properties": {
+									"en": {
+										"type": "text",
+										"analyzer": "english_html"
+									}
+								}
+							}
+						}
+					},
+					"string": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"string": {
+								"type": "keyword"
+							}
+						}
+					},
+					"label": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							}
+						}
+					},
+					"amount": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"amount": {
+								"type": "double"
+							},
+							"unit": {
+								"type": "keyword"
+							}
+						}
+					},
+					"amountRange": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"lower": {
+								"type": "double"
+							},
+							"upper": {
+								"type": "double"
+							},
+							"unit": {
+								"type": "keyword"
+							}
+						}
+					},
+					"enum": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"lower": {
+								"type": "double"
+							},
+							"enum": {
+								"type": "keyword"
+							}
+						}
+					},
+					"rel": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"to": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							}
+						}
+					},
+					"none": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							}
+						}
+					},
+					"unknown": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							}
+						}
+					},
+					"time": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"timestamp": {
+								"type": "date",
+								"format": "uuuu-MM-dd'T'HH:mm:ssX",
+								"ignore_malformed": true
+							},
+							"precision": {
+								"type": "keyword"
+							}
+						}
+					},
+					"timeRange": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"lower": {
+								"type": "date",
+								"format": "uuuu-MM-dd'T'HH:mm:ssX",
+								"ignore_malformed": true
+							},
+							"upper": {
+								"type": "date",
+								"format": "uuuu-MM-dd'T'HH:mm:ssX",
+								"ignore_malformed": true
+							},
+							"precision": {
+								"type": "keyword"
+							}
+						}
+					},
+					"duration": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"amount": {
+								"type": "double"
+							}
+						}
+					},
+					"durationRange": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"lower": {
+								"type": "double"
+							},
+							"upper": {
+								"type": "double"
+							}
+						}
+					},
+					"file": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"type": {
+								"type": "keyword"
+							},
+							"url": {
+								"type": "keyword",
+								"doc_values": false
+							}
+						}
+					},
+					"list": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"el": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"list": {
+								"type": "keyword",
+								"doc_values": false
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

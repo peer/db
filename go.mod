@@ -6,6 +6,7 @@ require github.com/alecthomas/kong v0.2.22
 
 require (
 	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d
+	github.com/olivere/elastic/v7 v7.0.31
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/tozd/go/mediawiki v0.3.0
 	gitlab.com/tozd/go/x v0.0.0-20220119220156-959f8101491d
@@ -34,7 +35,6 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/olivere/elastic/v7 v7.0.31 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

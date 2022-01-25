@@ -13,6 +13,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/search"
 )
 
 var (
@@ -20,109 +22,6 @@ var (
 	client   = retryablehttp.NewClient()
 	esClient *elastic.Client
 )
-
-// TODO: Generate automatically.
-const indexConfiguration = `{
-	"settings":{
-		"number_of_shards": 1,
-		"number_of_replicas": 0
-	},
-	"mappings": {
-		"dynamic": false,
-		"dynamic_templates": [
-			{
-				"scores_float": {
-					"match_mapping_type": "float",
-					"mapping": {
-						"type": "double"
-					}
-				},
-				"scores_integer": {
-					"match_mapping_type": "integer",
-					"mapping": {
-						"type": "double"
-					}
-				},
-				"scores_long": {
-					"match_mapping_type": "long",
-					"mapping": {
-						"type": "double"
-					}
-				}
-			}
-		],
-		"properties": {
-			"name": {
-				"properties": {
-						"en": {
-							"type": "text"
-							"analyzer: "english"
-						}
-					}
-				}
-			},
-			"otherNames": {
-				"properties": {
-					"en": {
-						"type": "text"
-						"analyzer: "english"
-					}
-				}
-			},
-			"score": {
-				"type": "double"
-			},
-			"scores": {
-				"dynamic": true,
-				"properties": {}
-			}
-			"mnemonic": {
-				"type": "keyword",
-				"doc_values": false
-			},
-			"active": {
-				"properties": {
-					"id": {
-						"type": "nested",
-						"properties": {
-							"_id": {
-								"type": "keyword",
-								"doc_values": false
-							},
-							"confidence": {
-								"type": "double"
-							},
-							"prop": {
-								"properties": {
-
-								}
-							},
-							"id": {
-								"type": "keyword",
-							}
-						}
-					},
-					"ref": {},
-					"text": {},
-					"string": {},
-					"label": {},
-					"amount": {},
-					"amountRange": {},
-					"enum": {},
-					"rel": {},
-					"none": {},
-					"unknown": {},
-					"time": {},
-					"timeRange": {},
-					"duration": {},
-					"durationRange": {},
-					"file": {},
-					"list": {}
-				}
-			}
-		}
-	}
-}`
 
 func init() {
 	var err error
@@ -167,7 +66,7 @@ func convert(config *Config) errors.E {
 	}
 
 	if !exists {
-		createIndex, err := esClient.CreateIndex("docs").BodyString(mapping).Do(ctx)
+		createIndex, err := esClient.CreateIndex("docs").BodyString(search.IndexConfiguration).Do(ctx)
 		if err != nil {
 			return errors.WithStack(err)
 		}
