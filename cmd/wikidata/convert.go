@@ -99,7 +99,7 @@ func convert(config *Config) errors.E {
 		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision),
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, processed: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), p.Count, stats.Indexed, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Indexed, stats.Failed)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
 		return processEntity(ctx, config, processor, entity)
