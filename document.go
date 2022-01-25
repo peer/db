@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
@@ -261,18 +263,58 @@ type Identifier string
 
 type Timestamp time.Time
 
+var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
+
 func (t Timestamp) MarshalJSON() ([]byte, error) {
-	x := time.Time(t)
-	return []byte(fmt.Sprintf(`"%04d-%02d-%02dT%02d:%02d:%02dZ"`, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())), nil
+	x := time.Time(t).UTC()
+	w := 4
+	if x.Year() < 0 {
+		// An extra character for the minus sign.
+		w = 5
+	}
+	return []byte(fmt.Sprintf(`"%0*d-%02d-%02dT%02d:%02d:%02dZ"`, w, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())), nil
 }
 
+// We cannot use standard time.Time implementation.
+// See: https://github.com/golang/go/issues/4556
 func (t *Timestamp) UnmarshalJSON(data []byte) error {
-	var x time.Time
-	err := json.Unmarshal(data, &x)
-	if err != nil {
-		return err
+	if string(data) == "null" {
+		return nil
 	}
-	*t = Timestamp(x)
+	var s string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	match := timeRegex.FindStringSubmatch(s)
+	if match == nil {
+		return errors.Errorf(`unable to parse time "%s"`, s)
+	}
+	year, err := strconv.ParseInt(match[1], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse year "%s"`, s)
+	}
+	month, err := strconv.ParseInt(match[2], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse month "%s"`, s)
+	}
+	day, err := strconv.ParseInt(match[3], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse day "%s"`, s)
+	}
+	hour, err := strconv.ParseInt(match[4], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse hour "%s"`, s)
+	}
+	minute, err := strconv.ParseInt(match[5], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse minute "%s"`, s)
+	}
+	second, err := strconv.ParseInt(match[6], 10, 0) //nolint:gomnd
+	if err != nil {
+		return errors.WithMessagef(err, `unable to parse second "%s"`, s)
+	}
+	*t = Timestamp(time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC))
 	return nil
 }
 
