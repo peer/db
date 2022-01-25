@@ -7,7 +7,7 @@ require github.com/alecthomas/kong v0.2.22
 require (
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/tozd/go/mediawiki v0.3.0
+	gitlab.com/tozd/go/mediawiki v0.4.0
 	gitlab.com/tozd/go/x v0.0.0-20220119220156-959f8101491d
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
