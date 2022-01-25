@@ -65,29 +65,9 @@ func convert(config *Config) errors.E {
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
-	esClient, err := elastic.NewClient()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	_, _, err = esClient.Ping(elastic.DefaultURL).Do(ctx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	exists, err := esClient.IndexExists("docs").Do(ctx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !exists {
-		createIndex, err := esClient.CreateIndex("docs").BodyString(search.IndexConfiguration).Do(ctx) //nolint:govet
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !createIndex.Acknowledged {
-			return errors.New("create index not acknowledged")
-		}
+	esClient, errE := search.EnsureIndex(ctx)
+	if errE != nil {
+		return errE
 	}
 
 	// TODO: Make number of workers configurable.
