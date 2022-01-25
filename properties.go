@@ -112,12 +112,12 @@ var (
 
 	NameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
 
-	// TODO: Use sync.Map.
-	KnownProperties = map[string]Document{}
+	// TODO: Use sync.Map?
+	StandardProperties = map[string]Document{}
 )
 
 func GetStandardPropertyReference(mnemonic string) DocumentReference {
-	property, ok := KnownProperties[string(getPropertyID(mnemonic))]
+	property, ok := StandardProperties[string(getPropertyID(mnemonic))]
 	if !ok {
 		panic(errors.Errorf(`standard property for mnemonic "%s" cannot be found`, mnemonic))
 	}
@@ -153,7 +153,7 @@ func populateStandardProperties() {
 	for _, builtinProperty := range builtinProperties {
 		mnemonic := getMnemonic(builtinProperty.Name)
 		id := string(getPropertyID(mnemonic))
-		KnownProperties[id] = Document{
+		StandardProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
 				Name: Name{
@@ -208,7 +208,7 @@ func populateStandardProperties() {
 			},
 		}
 
-		simple := &KnownProperties[id].Active.SimpleClaimTypes
+		simple := &StandardProperties[id].Active.SimpleClaimTypes
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
 			simple.Relation = append(simple.Relation, RelationClaim{
@@ -238,7 +238,7 @@ func populateStandardProperties() {
 			mnemonic := getMnemonic(name)
 			id := string(getPropertyID(mnemonic))
 			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
-			KnownProperties[id] = Document{
+			StandardProperties[id] = Document{
 				CoreDocument: CoreDocument{
 					ID: Identifier(id),
 					Name: Name{

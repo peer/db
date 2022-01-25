@@ -17,7 +17,7 @@ func saveStandardProperties(config *Config) errors.E {
 		return errors.WithStack(err)
 	}
 
-	for id, property := range search.KnownProperties {
+	for id, property := range search.StandardProperties {
 		path := filepath.Join(config.OutputDir, fmt.Sprintf("%s.json", id))
 		file, err := os.Create(path)
 		if err != nil {
