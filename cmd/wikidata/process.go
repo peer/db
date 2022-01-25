@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
 var (
@@ -162,7 +164,7 @@ func getDocumentReference(id string) search.DocumentReference {
 	}
 }
 
-func processSnak(ctx context.Context, entityID, prop, statementID string, confidence search.Confidence, snak mediawiki.Snak) (interface{}, errors.E) {
+func processSnak(ctx context.Context, client *retryablehttp.Client, entityID, prop, statementID string, confidence search.Confidence, snak mediawiki.Snak) (interface{}, errors.E) {
 	if snak.Hash != "" {
 		return nil, errors.Errorf("statement %s of property %s for entity %s has a snak without a hash", statementID, prop, entityID)
 	}
@@ -217,7 +219,7 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
-			fileInfo, err := getFileInfo(ctx, string(value))
+			fileInfo, err := wikipedia.GetFileInfo(ctx, client, string(value))
 			if err != nil {
 				return nil, err
 			}
@@ -418,7 +420,7 @@ func processSnak(ctx context.Context, entityID, prop, statementID string, confid
 	return nil, errors.Errorf(`unknown data value type: %+v`, snak.DataValue.Value)
 }
 
-func processEntity(ctx context.Context, config *Config, processor *elastic.BulkProcessor, entity mediawiki.Entity) errors.E {
+func processEntity(ctx context.Context, config *Config, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity) errors.E {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
 	if len(englishLabels) == 0 {
@@ -618,7 +620,7 @@ func processEntity(ctx context.Context, config *Config, processor *elastic.BulkP
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claim, err := processSnak(ctx, entity.ID, prop, statement.ID, confidence, statement.MainSnak)
+			claim, err := processSnak(ctx, client, entity.ID, prop, statement.ID, confidence, statement.MainSnak)
 			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,19 +18,16 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
-var (
-	// TODO: Configure logger.
-	client   = retryablehttp.NewClient()
-	esClient *elastic.Client
-)
+// A silent logger.
+type nullLogger struct{}
 
-func init() {
-	var err error
-	esClient, err = elastic.NewClient()
-	if err != nil {
-		panic(err)
-	}
-}
+func (nullLogger) Error(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Info(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
+
+func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
 
 func convert(config *Config) errors.E {
 	ctx := context.Background()
@@ -55,7 +53,24 @@ func convert(config *Config) errors.E {
 		}
 	}()
 
-	_, _, err := esClient.Ping(elastic.DefaultURL).Do(ctx)
+	client := retryablehttp.NewClient()
+
+	// We silent debug logging from HTTP client.
+	// TODO: Configure proper logger.
+	client.Logger = nullLogger{}
+
+	// Set User-Agent header.
+	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+		// TODO: Make contact e-mail into a CLI argument.
+		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
+	}
+
+	esClient, err := elastic.NewClient()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	_, _, err = esClient.Ping(elastic.DefaultURL).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -66,7 +81,7 @@ func convert(config *Config) errors.E {
 	}
 
 	if !exists {
-		createIndex, err := esClient.CreateIndex("docs").BodyString(search.IndexConfiguration).Do(ctx)
+		createIndex, err := esClient.CreateIndex("docs").BodyString(search.IndexConfiguration).Do(ctx) //nolint:govet
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -95,13 +110,11 @@ func convert(config *Config) errors.E {
 		DecompressionThreads:   0,
 		JSONDecodeThreads:      0,
 		ItemsProcessingThreads: 0,
-		// TODO: Make contact e-mail into a CLI argument.
-		UserAgent: fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision),
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
 			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Indexed, stats.Failed)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return processEntity(ctx, config, processor, entity)
+		return processEntity(ctx, config, client, processor, entity)
 	})
 }

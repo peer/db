@@ -1,4 +1,4 @@
-package main
+package wikipedia
 
 import (
 	"context"
@@ -82,7 +82,7 @@ type FileInfo struct {
 	Preview   []string
 }
 
-type ImageInfo struct {
+type imageInfo struct {
 	Mime      string  `json:"mime"`
 	Size      int     `json:"size"`
 	Width     int     `json:"width"`
@@ -91,7 +91,7 @@ type ImageInfo struct {
 	Duration  float64 `json:"duration"`
 }
 
-type Page struct {
+type page struct {
 	PageID          int         `json:"pageid"`
 	Namespace       int         `json:"ns"`
 	Title           string      `json:"title"`
@@ -99,17 +99,17 @@ type Page struct {
 	Invalid         bool        `json:"invalid"`
 	InvalidReason   string      `json:"invalidreason"`
 	ImageRepository string      `json:"imagerepository"`
-	ImageInfo       []ImageInfo `json:"imageinfo"`
+	ImageInfo       []imageInfo `json:"imageinfo"`
 }
 
-type APIResponse struct {
+type apiResponse struct {
 	BatchComplete bool `json:"batchcomplete"`
 	Continue      struct {
 		IIStart  string `json:"iistart"`
 		Continue string `json:"continue"`
 	} `json:"continue"`
 	Query struct {
-		Pages []Page `json:"pages"`
+		Pages []page `json:"pages"`
 	} `json:"query"`
 }
 
@@ -119,22 +119,22 @@ func getWikimediaCommonsFilePrefix(filename string) string {
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
 
-func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
+func makeFileInfo(info imageInfo, filename string) FileInfo {
 	prefix := getWikimediaCommonsFilePrefix(filename)
-	pages := imageInfo.PageCount
+	pages := info.PageCount
 	if pages == 0 {
 		pages = 1
 	}
 	preview := []string{}
-	if !noPreview[imageInfo.Mime] {
+	if !noPreview[info.Mime] {
 		for page := 1; page <= pages; page++ {
 			pagePrefix := ""
-			if hasPages[imageInfo.Mime] {
+			if hasPages[info.Mime] {
 				pagePrefix = fmt.Sprintf("page%d-", page)
 			}
 			extraExtension := ""
-			if thumbnailExtraExtensions[imageInfo.Mime] != "" {
-				extraExtension = thumbnailExtraExtensions[imageInfo.Mime]
+			if thumbnailExtraExtensions[info.Mime] != "" {
+				extraExtension = thumbnailExtraExtensions[info.Mime]
 			}
 			preview = append(preview,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s256px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
@@ -142,7 +142,7 @@ func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
 		}
 	}
 	return FileInfo{
-		MediaType: imageInfo.Mime,
+		MediaType: info.Mime,
 		PageURL:   fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
 		URL:       fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
 		Preview:   preview,
@@ -151,13 +151,13 @@ func makeFileInfo(imageInfo ImageInfo, filename string) FileInfo {
 
 type apiTask struct {
 	Title         string
-	ImageInfoChan chan<- ImageInfo
+	ImageInfoChan chan<- imageInfo
 	ErrChan       chan<- errors.E
 }
 
 var apiWorkers sync.Map
 
-func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
+func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -182,9 +182,6 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	// TODO: Make contact e-mail into a CLI argument.
-	userAgent := fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision)
-	req.Header.Set("User-Agent", userAgent)
 	resp, err := client.Do(req)
 	if err != nil {
 		return errors.WithMessage(err, u)
@@ -195,20 +192,20 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 		return errors.Errorf(`%s: bad response status (%s): %s`, u, resp.Status, strings.TrimSpace(string(body)))
 	}
 
-	var apiResponse APIResponse
+	var apiResp apiResponse
 	decoder := json.NewDecoder(resp.Body)
 	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&apiResponse)
+	err = decoder.Decode(&apiResp)
 	if err != nil {
 		return errors.WithMessagef(err, `%s: json decode failure`, u)
 	}
 
-	if len(apiResponse.Query.Pages) != len(tasksMap) {
-		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResponse.Query.Pages), len(tasksMap))
+	if len(apiResp.Query.Pages) != len(tasksMap) {
+		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResp.Query.Pages), len(tasksMap))
 	}
 
-	pagesMap := map[string]Page{}
-	for _, page := range apiResponse.Query.Pages {
+	pagesMap := map[string]page{}
+	for _, page := range apiResp.Query.Pages {
 		if _, ok := tasksMap[page.Title]; !ok {
 			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
 		}
@@ -252,7 +249,7 @@ func doAPIRequest(ctx context.Context, tasks []apiTask) errors.E {
 
 // Returned apiTaskChan is never explicitly closed but it is left
 // to the garbage collector to clean it up when it is suitable.
-func getAPIWorker(ctx context.Context) chan<- apiTask {
+func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
 	if ctx.Err() != nil {
@@ -299,7 +296,7 @@ func getAPIWorker(ctx context.Context) chan<- apiTask {
 						}
 					}
 
-					errE := doAPIRequest(ctx, tasks)
+					errE := doAPIRequest(ctx, client, tasks)
 					if errE == nil {
 						// No error, we exit the retry loop.
 						break
@@ -324,10 +321,10 @@ func getAPIWorker(ctx context.Context) chan<- apiTask {
 	return apiTaskChan
 }
 
-func getImageInfo(ctx context.Context, title string) (<-chan ImageInfo, <-chan errors.E) {
-	apiTaskChan := getAPIWorker(ctx)
+func getImageInfo(ctx context.Context, client *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
+	apiTaskChan := getAPIWorker(ctx, client)
 
-	imageInfoChan := make(chan ImageInfo)
+	imageInfoChan := make(chan imageInfo)
 	errChan := make(chan errors.E)
 
 	select {
@@ -344,30 +341,30 @@ func getImageInfo(ctx context.Context, title string) (<-chan ImageInfo, <-chan e
 	}
 }
 
-func getFileInfo(ctx context.Context, title string) (FileInfo, errors.E) {
+func GetFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (FileInfo, errors.E) {
 	filename := strings.ReplaceAll(title, " ", "_")
 	extension := strings.ToLower(path.Ext(title))
 	mediaTypes := extensionToMediaTypes[extension]
 	if len(mediaTypes) == 0 {
 		return FileInfo{}, nil
 	} else if len(mediaTypes) == 1 && !hasPages[mediaTypes[0]] {
-		return makeFileInfo(ImageInfo{Mime: mediaTypes[0]}, filename), nil
+		return makeFileInfo(imageInfo{Mime: mediaTypes[0]}, filename), nil
 	}
 
 	// We have to use the API to determine the media type or the number of pages.
-	imageInfoChan, errChan := getImageInfo(ctx, title)
+	imageInfoChan, errChan := getImageInfo(ctx, client, title)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return FileInfo{}, errors.WithStack(ctx.Err())
-		case imageInfo, ok := <-imageInfoChan:
+		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
 				// Break the select and retry the loop.
 				break
 			}
-			return makeFileInfo(imageInfo, filename), nil
+			return makeFileInfo(info, filename), nil
 		case err, ok := <-errChan:
 			if !ok {
 				errChan = nil
