@@ -29,7 +29,7 @@ func main() {
 		),
 	)
 
-	err := saveStandardProperties(&config)
+	err := prepare(&config)
 	if err != nil {
 		fmt.Fprintf(ctx.Stderr, "error: %+v", err)
 		ctx.Exit(exitCode)

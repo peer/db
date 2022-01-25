@@ -13,7 +13,7 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
-func saveStandardProperties(config *Config) errors.E {
+func prepare(config *Config) errors.E {
 	ctx := context.Background()
 
 	// We call cancel on SIGINT or SIGTERM signal.
@@ -55,10 +55,14 @@ func saveStandardProperties(config *Config) errors.E {
 	}
 	defer processor.Close()
 
+	saveStandardProperties(config, processor)
+
+	return nil
+}
+
+func saveStandardProperties(config *Config, processor *elastic.BulkProcessor) {
 	for id, property := range search.StandardProperties {
 		req := elastic.NewBulkIndexRequest().Index("docs").Id(id).Doc(property)
 		processor.Add(req)
 	}
-
-	return nil
 }
