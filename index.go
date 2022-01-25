@@ -5,5 +5,6 @@ import (
 )
 
 // TODO: Generate automatically.
+
 //go:embed index.json
 var IndexConfiguration string
