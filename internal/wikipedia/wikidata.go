@@ -443,6 +443,43 @@ func addQualifiers(
 	return nil
 }
 
+// addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
+func addReference(ctx context.Context, client *retryablehttp.Client, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference) errors.E {
+	var referenceClaim search.Claim
+
+	for _, p := range reference.SnaksOrder {
+		for j, snak := range reference.Snaks[p] {
+			c, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, 0.5, snak)
+			if errors.Is(err, NotSupportedError) {
+				// We know what we do not support, ignore.
+				continue
+			} else if err != nil {
+				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: %s\n", statementID, prop, entityID, i, p, j, err.Error())
+				continue
+			}
+			if referenceClaim == nil {
+				referenceClaim = c
+			} else {
+				err = referenceClaim.AddMeta(c)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: cannot be added to meta claims\n", statementID, prop, entityID, i, p, j)
+				}
+			}
+		}
+	}
+
+	if referenceClaim == nil {
+		return nil
+	}
+
+	err := claim.AddMeta(referenceClaim)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: cannot be added to meta claims\n", statementID, prop, entityID, i)
+	}
+
+	return nil
+}
+
 func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity mediawiki.Entity) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
@@ -655,14 +692,16 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
-			// err = addReferences(claim, entity.ID, prop, statement.ID, statement.References)
-			// if err != nil {
-			// 	return err
-			// }
+			for i, reference := range statement.References {
+				err = addReference(ctx, client, claim, entity.ID, prop, statement.ID, i, reference)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: %s\n", statement.ID, prop, entity.ID, i, err.Error())
+					continue
+				}
+			}
 			err = document.Add(claim)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s cannot be added: %s\n", statement.ID, prop, entity.ID, err.Error())
-				continue
 			}
 		}
 	}
