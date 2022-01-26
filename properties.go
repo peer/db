@@ -74,6 +74,11 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
+			"article",
+			"article",
+			[]string{`"text" claim type`},
+		},
+		{
 			"Wikidata property id",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
 			[]string{`"identifier" claim type`},

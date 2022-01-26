@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/search"
 )
 
 func convert(config *Config) errors.E {
@@ -47,6 +50,24 @@ func convert(config *Config) errors.E {
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
+	esClient, errE := search.EnsureIndex(ctx)
+	if errE != nil {
+		return errE
+	}
+
+	// TODO: Make number of workers configurable.
+	processor, err := esClient.BulkProcessor().Workers(2).Stats(true).After(
+		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())
+			}
+		},
+	).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer processor.Close()
+
 	return mediawiki.ProcessWikipediaDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
 		CacheDir:               config.CacheDir,
@@ -55,7 +76,10 @@ func convert(config *Config) errors.E {
 		JSONDecodeThreads:      0,
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s\n", p.Percent(), p.Remaining().Truncate(time.Second))
+			stats := processor.Stats()
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Indexed, stats.Failed)
 		},
-	}, processArticle)
+	}, func(ctx context.Context, article mediawiki.Article) errors.E {
+		return processArticle(ctx, config, esClient, processor, article)
+	})
 }

@@ -39,7 +39,7 @@ var (
 	}
 )
 
-func getDocumentID(id string) search.Identifier {
+func GetDocumentID(id string) search.Identifier {
 	return search.GetID(NameSpaceWikidata, id)
 }
 
@@ -157,7 +157,7 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 // It does not return a valid reference: name is missing.
 func getDocumentReference(id string) search.DocumentReference {
 	return search.DocumentReference{
-		ID:    getDocumentID(id),
+		ID:    GetDocumentID(id),
 		Score: 0.0,
 	}
 }
@@ -429,7 +429,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 		return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
 	}
 
-	id := getDocumentID(entity.ID)
+	id := GetDocumentID(entity.ID)
 
 	// We simply use the first label we have.
 	name := englishLabels[0]
