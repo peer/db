@@ -19,10 +19,108 @@ type Document struct {
 	Inactive *DocumentClaimTypes `json:"inactive,omitempty"`
 }
 
+func (d *Document) GetByID(id Identifier) interface{} {
+	for _, claims := range []*DocumentClaimTypes{d.Active, d.Inactive} {
+		if claims == nil {
+			continue
+		}
+		for _, claim := range claims.Identifier {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Reference {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Text {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.String {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Label {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Amount {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.AmountRange {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Enumeration {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Relation {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.NoValue {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.UnknownValue {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Time {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.TimeRange {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.Duration {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.DurationRange {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.File {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+		for _, claim := range claims.List {
+			if claim.ID == id {
+				return &claim
+			}
+		}
+	}
+
+	return nil
+}
+
 func (d *Document) Add(claim interface{}) errors.E {
 	var claimTypes *DocumentClaimTypes
 	switch c := claim.(type) {
 	case IdentifierClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -36,6 +134,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Identifier = append(claimTypes.Identifier, c)
 	case ReferenceClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -49,6 +150,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Reference = append(claimTypes.Reference, c)
 	case TextClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -62,6 +166,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Text = append(claimTypes.Text, c)
 	case StringClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -75,6 +182,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.String = append(claimTypes.String, c)
 	case LabelClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -88,6 +198,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Label = append(claimTypes.Label, c)
 	case AmountClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -101,6 +214,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Amount = append(claimTypes.Amount, c)
 	case AmountRangeClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 && c.Unit != AmountUnitCustom {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -114,6 +230,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.AmountRange = append(claimTypes.AmountRange, c)
 	case EnumerationClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -127,6 +246,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Enumeration = append(claimTypes.Enumeration, c)
 	case RelationClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -140,6 +262,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Relation = append(claimTypes.Relation, c)
 	case NoValueClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -153,6 +278,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.NoValue = append(claimTypes.NoValue, c)
 	case UnknownValueClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -166,6 +294,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.UnknownValue = append(claimTypes.UnknownValue, c)
 	case TimeClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -179,6 +310,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Time = append(claimTypes.Time, c)
 	case TimeRangeClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -192,6 +326,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.TimeRange = append(claimTypes.TimeRange, c)
 	case DurationClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -205,6 +342,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.Duration = append(claimTypes.Duration, c)
 	case DurationRangeClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -218,6 +358,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.DurationRange = append(claimTypes.DurationRange, c)
 	case FileClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
@@ -231,6 +374,9 @@ func (d *Document) Add(claim interface{}) errors.E {
 		}
 		claimTypes.File = append(claimTypes.File, c)
 	case ListClaim:
+		if d.GetByID(c.ID) != nil {
+			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+		}
 		if c.Confidence >= 0.0 {
 			if d.Active == nil {
 				d.Active = &DocumentClaimTypes{}
