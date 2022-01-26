@@ -83,8 +83,6 @@ type fileInfo struct {
 }
 
 type imageInfo struct {
-	// An internal field to provide potentially normalized title.
-	Title     string  `json:"-"`
 	Mime      string  `json:"mime"`
 	Size      int     `json:"size"`
 	Width     int     `json:"width"`
@@ -104,12 +102,6 @@ type page struct {
 	ImageInfo       []imageInfo `json:"imageinfo"`
 }
 
-type normalized struct {
-	FromIsEncoded bool   `json:"fromencoded"`
-	From          string `json:"from"`
-	To            string `json:"to"`
-}
-
 type apiResponse struct {
 	BatchComplete bool `json:"batchcomplete"`
 	Continue      struct {
@@ -117,8 +109,7 @@ type apiResponse struct {
 		Continue string `json:"continue"`
 	} `json:"continue"`
 	Query struct {
-		Normalized []normalized `json:"normalized,omitempty"`
-		Pages      []page       `json:"pages"`
+		Pages []page `json:"pages"`
 	} `json:"query"`
 }
 
@@ -128,8 +119,7 @@ func getWikimediaCommonsFilePrefix(filename string) string {
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
 
-func makeFileInfo(info imageInfo) fileInfo {
-	filename := strings.TrimPrefix(info.Title, "File:")
+func makeFileInfo(info imageInfo, filename string) fileInfo {
 	prefix := getWikimediaCommonsFilePrefix(filename)
 	pages := info.PageCount
 	if pages == 0 {
@@ -166,32 +156,6 @@ type apiTask struct {
 }
 
 var apiWorkers sync.Map
-
-func normalize(normalization map[string]string, title string) string {
-	to, ok := normalization[title]
-	if ok {
-		return to
-	}
-	return title
-}
-
-func getNormalizationMap(normalization []normalized) (map[string]string, errors.E) {
-	res := map[string]string{}
-
-	for _, n := range normalization {
-		from := n.From
-		if n.FromIsEncoded {
-			var err error
-			from, err = url.PathUnescape(from)
-			if err != nil {
-				return nil, errors.WithMessagef(err, `cannot decode "from" in the normalization map`)
-			}
-		}
-		res[from] = n.To
-	}
-
-	return res, nil
-}
 
 func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
@@ -236,41 +200,27 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 		return errors.WithMessagef(err, `%s: json decode failure`, u)
 	}
 
-	normalization, err := getNormalizationMap(apiResp.Query.Normalized)
-	if err != nil {
-		return errors.WithMessage(err, u)
+	if len(apiResp.Query.Pages) != len(tasksMap) {
+		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResp.Query.Pages), len(tasksMap))
 	}
 
-	// pagesMap has normalized titles.
 	pagesMap := map[string]page{}
 	for _, page := range apiResp.Query.Pages {
+		if _, ok := tasksMap[page.Title]; !ok {
+			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
+		}
 		pagesMap[page.Title] = page
 	}
 
-	normalizedTasksMap := map[string][]apiTask{}
-	for titleWithPrefix, tasksForTitle := range tasksMap {
-		titleWithPrefix = normalize(normalization, titleWithPrefix)
-		if _, ok := normalizedTasksMap[titleWithPrefix]; !ok {
-			normalizedTasksMap[titleWithPrefix] = []apiTask{}
-		}
-		normalizedTasksMap[titleWithPrefix] = append(normalizedTasksMap[titleWithPrefix], tasksForTitle...)
-	}
-
-	if len(normalizedTasksMap) != len(pagesMap) {
-		return errors.Errorf(`%s: got %d unique result page(s), expected %d`, u, len(pagesMap), len(normalizedTasksMap))
-	}
-
-	for _, page := range pagesMap {
-		if _, ok := normalizedTasksMap[page.Title]; !ok {
-			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
-		}
+	if len(tasksMap) != len(pagesMap) {
+		return errors.Errorf(`got %d unique result page(s), expected %d`, len(pagesMap), len(tasksMap))
 	}
 
 	// Now we report errors only to individual tasks.
 	// Once we get to here all tasks have to be processed.
 	for _, page := range pagesMap {
 		// We have checked above that tasks per page always exists.
-		pageTasks := normalizedTasksMap[page.Title]
+		pageTasks := tasksMap[page.Title]
 		if page.Missing {
 			for _, task := range pageTasks {
 				task.ErrChan <- errors.Errorf(`"%s" missing`, page.Title)
@@ -285,8 +235,6 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 			}
 		} else {
 			for _, task := range pageTasks {
-				// We pass potentially normalized title, too.
-				page.ImageInfo[0].Title = page.Title
 				task.ImageInfoChan <- page.ImageInfo[0]
 			}
 		}
@@ -400,8 +348,7 @@ func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string
 	if len(mediaTypes) == 0 {
 		return fileInfo{}, nil
 	} else if len(mediaTypes) == 1 && !hasPages[mediaTypes[0]] {
-		// TODO: Normalize filenames here, too, they might not be.
-		return makeFileInfo(imageInfo{Title: "File:" + filename, Mime: mediaTypes[0]}), nil
+		return makeFileInfo(imageInfo{Mime: mediaTypes[0]}, filename), nil
 	}
 
 	// We have to use the API to determine the media type or the number of pages.
@@ -417,7 +364,7 @@ func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string
 				// Break the select and retry the loop.
 				break
 			}
-			return makeFileInfo(info), nil
+			return makeFileInfo(info, filename), nil
 		case err, ok := <-errChan:
 			if !ok {
 				errChan = nil
