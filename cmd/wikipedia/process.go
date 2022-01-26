@@ -14,6 +14,20 @@ import (
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
+// TODO: Store the revision, license, and source used for the HTML into a meta claim.
+// TODO: Investigate how to make use of additional entities metadata.
+// TODO: Store categories and used templates into claims.
+// TODO: Make internal links to other articles work in HTML (link to PeerDB documents instead).
+// TODO: Remove links to other articles which do not exist, if there are any.
+// TODO: Split article into summary and main part.
+// TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that.
+// TODO: Make // links/src into https:// links/src.
+// TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
+// TODO: Remove rendered links to categories (they should be claims).
+// TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
+// TODO: Keep only contents of <body>.
+// TODO: Skip disambiguation pages (remove corresponding document if we already have it).
+
 func processArticle(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article) errors.E {
 	if article.MainEntity.Identifier == "" {
 		return nil
