@@ -346,6 +346,9 @@ func getImageInfo(ctx context.Context, client *retryablehttp.Client, title strin
 }
 
 func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (fileInfo, errors.E) {
+	// First we make sure we do not have underscores.
+	title = strings.ReplaceAll(title, "_", " ")
+
 	// The first letter has to be upper case.
 	titleRunes := []rune(title)
 	titleRunes[0] = unicode.ToUpper(titleRunes[0])
