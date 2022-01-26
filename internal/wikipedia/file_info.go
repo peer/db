@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
@@ -109,6 +110,9 @@ type apiResponse struct {
 		Continue string `json:"continue"`
 	} `json:"continue"`
 	Query struct {
+		// We on purpose do not list "normalized" field and we want response parsing to fail
+		// if one is included: we want to always pass correctly normalized titles ourselves
+		// (we have to know how to do that ourselves because we are not calling API for all files).
 		Pages []page `json:"pages"`
 	} `json:"query"`
 }
@@ -342,6 +346,11 @@ func getImageInfo(ctx context.Context, client *retryablehttp.Client, title strin
 }
 
 func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (fileInfo, errors.E) {
+	// The first letter has to be upper case.
+	titleRunes := []rune(title)
+	titleRunes[0] = unicode.ToUpper(titleRunes[0])
+	title = string(titleRunes)
+
 	filename := strings.ReplaceAll(title, " ", "_")
 	extension := strings.ToLower(path.Ext(title))
 	mediaTypes := extensionToMediaTypes[extension]
