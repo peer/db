@@ -93,6 +93,9 @@
         "rel": {
           "$ref": "#/$defs/relationClaims"
         },
+        "file": {
+          "$ref": "#/$defs/fileClaims"
+        },
         "none": {
           "$ref": "#/$defs/noValueClaims"
         },
@@ -132,9 +135,6 @@
         }
       ],
       "properties": {
-        "file": {
-          "$ref": "#/$defs/fileClaims"
-        },
         "list": {
           "$ref": "#/$defs/listClaims"
         }

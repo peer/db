@@ -11,6 +11,13 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+type Claim interface {
+	GetID() Identifier
+	GetConfidence() Confidence
+	AddMeta(claim Claim) errors.E
+	GetMetaByID(id Identifier) Claim
+}
+
 type Document struct {
 	CoreDocument
 
@@ -19,7 +26,7 @@ type Document struct {
 	Inactive *DocumentClaimTypes `json:"inactive,omitempty"`
 }
 
-func (d *Document) GetByID(id Identifier) interface{} {
+func (d *Document) GetByID(id Identifier) Claim {
 	for _, claims := range []*DocumentClaimTypes{d.Active, d.Inactive} {
 		if claims == nil {
 			continue
@@ -114,281 +121,64 @@ func (d *Document) GetByID(id Identifier) interface{} {
 	return nil
 }
 
-func (d *Document) Add(claim interface{}) errors.E {
-	var claimTypes *DocumentClaimTypes
+func (d *Document) Add(claim Claim) errors.E {
+	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
+		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
+	}
+	activeClaims := claim.GetConfidence() >= 0.0
 	switch c := claim.(type) {
-	case IdentifierClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
+	case *AmountClaim:
+		activeClaims = activeClaims && c.Unit != AmountUnitCustom
+	case *AmountRangeClaim:
+		activeClaims = activeClaims && c.Unit != AmountUnitCustom
+	}
+	var claimTypes *DocumentClaimTypes
+	if activeClaims {
+		if d.Active == nil {
+			d.Active = &DocumentClaimTypes{}
 		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
+		claimTypes = d.Active
+	} else {
+		if d.Inactive == nil {
+			d.Inactive = &DocumentClaimTypes{}
 		}
-		claimTypes.Identifier = append(claimTypes.Identifier, c)
-	case ReferenceClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Reference = append(claimTypes.Reference, c)
-	case TextClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Text = append(claimTypes.Text, c)
-	case StringClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.String = append(claimTypes.String, c)
-	case LabelClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Label = append(claimTypes.Label, c)
-	case AmountClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Amount = append(claimTypes.Amount, c)
-	case AmountRangeClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 && c.Unit != AmountUnitCustom {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.AmountRange = append(claimTypes.AmountRange, c)
-	case EnumerationClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Enumeration = append(claimTypes.Enumeration, c)
-	case RelationClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Relation = append(claimTypes.Relation, c)
-	case NoValueClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.NoValue = append(claimTypes.NoValue, c)
-	case UnknownValueClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.UnknownValue = append(claimTypes.UnknownValue, c)
-	case TimeClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Time = append(claimTypes.Time, c)
-	case TimeRangeClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.TimeRange = append(claimTypes.TimeRange, c)
-	case DurationClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.Duration = append(claimTypes.Duration, c)
-	case DurationRangeClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.DurationRange = append(claimTypes.DurationRange, c)
-	case FileClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.File = append(claimTypes.File, c)
-	case ListClaim:
-		if d.GetByID(c.ID) != nil {
-			return errors.Errorf(`claim with ID "%s" already exists`, c.ID)
-		}
-		if c.Confidence >= 0.0 {
-			if d.Active == nil {
-				d.Active = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Active
-		} else {
-			if d.Inactive == nil {
-				d.Inactive = &DocumentClaimTypes{}
-			}
-			claimTypes = d.Inactive
-		}
-		claimTypes.List = append(claimTypes.List, c)
+		claimTypes = d.Inactive
+	}
+	switch c := claim.(type) {
+	case *IdentifierClaim:
+		claimTypes.Identifier = append(claimTypes.Identifier, *c)
+	case *ReferenceClaim:
+		claimTypes.Reference = append(claimTypes.Reference, *c)
+	case *TextClaim:
+		claimTypes.Text = append(claimTypes.Text, *c)
+	case *StringClaim:
+		claimTypes.String = append(claimTypes.String, *c)
+	case *LabelClaim:
+		claimTypes.Label = append(claimTypes.Label, *c)
+	case *AmountClaim:
+		claimTypes.Amount = append(claimTypes.Amount, *c)
+	case *AmountRangeClaim:
+		claimTypes.AmountRange = append(claimTypes.AmountRange, *c)
+	case *EnumerationClaim:
+		claimTypes.Enumeration = append(claimTypes.Enumeration, *c)
+	case *RelationClaim:
+		claimTypes.Relation = append(claimTypes.Relation, *c)
+	case *NoValueClaim:
+		claimTypes.NoValue = append(claimTypes.NoValue, *c)
+	case *UnknownValueClaim:
+		claimTypes.UnknownValue = append(claimTypes.UnknownValue, *c)
+	case *TimeClaim:
+		claimTypes.Time = append(claimTypes.Time, *c)
+	case *TimeRangeClaim:
+		claimTypes.TimeRange = append(claimTypes.TimeRange, *c)
+	case *DurationClaim:
+		claimTypes.Duration = append(claimTypes.Duration, *c)
+	case *DurationRangeClaim:
+		claimTypes.DurationRange = append(claimTypes.DurationRange, *c)
+	case *FileClaim:
+		claimTypes.File = append(claimTypes.File, *c)
+	case *ListClaim:
+		claimTypes.List = append(claimTypes.List, *c)
 	default:
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
@@ -485,7 +275,6 @@ type DocumentClaimTypes struct {
 	SimpleClaimTypes
 	TimeClaimTypes
 
-	File FileClaims `json:"file,omitempty"`
 	List ListClaims `json:"list,omitempty"`
 }
 
@@ -502,6 +291,7 @@ type SimpleClaimTypes struct {
 	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
 	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
 	Relation     RelationClaims     `json:"rel,omitempty"`
+	File         FileClaims         `json:"file,omitempty"`
 	NoValue      NoValueClaims      `json:"none,omitempty"`
 	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
 }
@@ -537,6 +327,149 @@ type CoreClaim struct {
 	ID         Identifier  `json:"_id"`
 	Confidence Confidence  `json:"confidence"`
 	Meta       *MetaClaims `json:"meta,omitempty"`
+}
+
+func (cc CoreClaim) GetID() Identifier {
+	return cc.ID
+}
+
+func (cc CoreClaim) GetConfidence() Confidence {
+	return cc.Confidence
+}
+
+func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
+	if claimID := claim.GetID(); cc.GetMetaByID(claimID) != nil {
+		return errors.Errorf(`meta claim with ID "%s" already exists`, claimID)
+	}
+	if cc.Meta == nil {
+		cc.Meta = &MetaClaims{}
+	}
+	switch c := claim.(type) {
+	case *IdentifierClaim:
+		cc.Meta.Identifier = append(cc.Meta.Identifier, *c)
+	case *ReferenceClaim:
+		cc.Meta.Reference = append(cc.Meta.Reference, *c)
+	case *TextClaim:
+		cc.Meta.Text = append(cc.Meta.Text, *c)
+	case *StringClaim:
+		cc.Meta.String = append(cc.Meta.String, *c)
+	case *LabelClaim:
+		cc.Meta.Label = append(cc.Meta.Label, *c)
+	case *AmountClaim:
+		cc.Meta.Amount = append(cc.Meta.Amount, *c)
+	case *AmountRangeClaim:
+		cc.Meta.AmountRange = append(cc.Meta.AmountRange, *c)
+	case *EnumerationClaim:
+		cc.Meta.Enumeration = append(cc.Meta.Enumeration, *c)
+	case *RelationClaim:
+		cc.Meta.Relation = append(cc.Meta.Relation, *c)
+	case *FileClaim:
+		cc.Meta.File = append(cc.Meta.File, *c)
+	case *NoValueClaim:
+		cc.Meta.NoValue = append(cc.Meta.NoValue, *c)
+	case *UnknownValueClaim:
+		cc.Meta.UnknownValue = append(cc.Meta.UnknownValue, *c)
+	case *TimeClaim:
+		cc.Meta.Time = append(cc.Meta.Time, *c)
+	case *TimeRangeClaim:
+		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
+	case *DurationClaim:
+		cc.Meta.Duration = append(cc.Meta.Duration, *c)
+	case *DurationRangeClaim:
+		cc.Meta.DurationRange = append(cc.Meta.DurationRange, *c)
+	default:
+		return errors.Errorf(`meta claim of type %T is not supported`, claim)
+	}
+	return nil
+}
+
+func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
+	if cc.Meta == nil {
+		return nil
+	}
+
+	for _, claim := range cc.Meta.Identifier {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Reference {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Text {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.String {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Label {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Amount {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.AmountRange {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Enumeration {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Relation {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.File {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.NoValue {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.UnknownValue {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Time {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.TimeRange {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.Duration {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+	for _, claim := range cc.Meta.DurationRange {
+		if claim.ID == id {
+			return &claim
+		}
+	}
+
+	return nil
 }
 
 type Confidence = Score

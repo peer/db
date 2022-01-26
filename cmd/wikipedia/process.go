@@ -21,6 +21,7 @@ import (
 // TODO: Remove links to other articles which do not exist, if there are any.
 // TODO: Split article into summary and main part.
 // TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that.
+//       See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
 // TODO: Make // links/src into https:// links/src.
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Remove rendered links to categories (they should be claims).
@@ -52,7 +53,7 @@ func processArticle(ctx context.Context, config *Config, esClient *elastic.Clien
 		}
 		claim.HTML["en"] = article.ArticleBody.HTML
 	} else {
-		claim := search.TextClaim{
+		claim := &search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
 				Confidence: 1.0,
