@@ -37,7 +37,6 @@ func (c *counter) Count() int64 {
 
 type Cache struct {
 	*lru.Cache
-	getCount  uint64
 	missCount uint64
 }
 
@@ -48,14 +47,12 @@ func NewCache(size int) (*Cache, error) {
 	}
 	return &Cache{
 		Cache:     cache,
-		getCount:  0,
 		missCount: 0,
 	}, nil
 }
 
 func (c *Cache) Get(key interface{}) (interface{}, bool) {
 	value, ok := c.Cache.Get(key)
-	atomic.AddUint64(&c.getCount, 1)
 	if !ok {
 		atomic.AddUint64(&c.missCount, 1)
 	}
@@ -63,11 +60,7 @@ func (c *Cache) Get(key interface{}) (interface{}, bool) {
 }
 
 func (c *Cache) MissCount() uint64 {
-	return atomic.LoadUint64(&c.missCount)
-}
-
-func (c *Cache) GetCount() uint64 {
-	return atomic.LoadUint64(&c.getCount)
+	return atomic.SwapUint64(&c.missCount, 0)
 }
 
 func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
