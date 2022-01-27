@@ -66,6 +66,10 @@ func (c *Cache) MissCount() uint64 {
 	return atomic.LoadUint64(&c.missCount)
 }
 
+func (c *Cache) GetCount() uint64 {
+	return atomic.LoadUint64(&c.getCount)
+}
+
 func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
