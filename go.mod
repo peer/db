@@ -49,7 +49,9 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.1-0.20211018174820-ff6d014e72d9
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	gitlab.com/tozd/go/errors v0.3.0
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )

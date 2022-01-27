@@ -16,6 +16,32 @@ type Claim interface {
 	GetConfidence() Confidence
 	AddMeta(claim Claim) errors.E
 	GetMetaByID(id Identifier) Claim
+	VisitMeta(visitor visitorMeta) errors.E
+}
+
+type visitorMeta interface {
+	VisitIdentifier(claim *IdentifierClaim) errors.E
+	VisitReference(claim *ReferenceClaim) errors.E
+	VisitText(claim *TextClaim) errors.E
+	VisitString(claim *StringClaim) errors.E
+	VisitLabel(claim *LabelClaim) errors.E
+	VisitAmount(claim *AmountClaim) errors.E
+	VisitAmountRange(claim *AmountRangeClaim) errors.E
+	VisitEnumeration(claim *EnumerationClaim) errors.E
+	VisitRelation(claim *RelationClaim) errors.E
+	VisitNoValue(claim *NoValueClaim) errors.E
+	VisitUnknownValue(claim *UnknownValueClaim) errors.E
+	VisitTime(claim *TimeClaim) errors.E
+	VisitTimeRange(claim *TimeRangeClaim) errors.E
+	VisitDuration(claim *DurationClaim) errors.E
+	VisitDurationRange(claim *DurationRangeClaim) errors.E
+	VisitFile(claim *FileClaim) errors.E
+}
+
+type visitor interface {
+	visitorMeta
+
+	VisitList(claim *ListClaim) errors.E
 }
 
 type Document struct {
@@ -26,99 +52,268 @@ type Document struct {
 	Inactive *DocumentClaimTypes `json:"inactive,omitempty"`
 }
 
-func (d *Document) GetByID(id Identifier) Claim {
+func (d *Document) Visit(visitor visitor) errors.E {
 	for _, claims := range []*DocumentClaimTypes{d.Active, d.Inactive} {
 		if claims == nil {
 			continue
 		}
 		for _, claim := range claims.Identifier {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitIdentifier(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Reference {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitReference(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Text {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitText(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.String {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitString(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Label {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitLabel(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Amount {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitAmount(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.AmountRange {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitAmountRange(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Enumeration {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitEnumeration(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Relation {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitRelation(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.NoValue {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitNoValue(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.UnknownValue {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitUnknownValue(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Time {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitTime(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.TimeRange {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitTimeRange(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.Duration {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitDuration(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.DurationRange {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitDurationRange(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.File {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitFile(&claim)
+			if err != nil {
+				return err
 			}
 		}
 		for _, claim := range claims.List {
-			if claim.ID == id {
-				return &claim
+			err := visitor.VisitList(&claim)
+			if err != nil {
+				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+type getByIDVisitor struct {
+	ID     Identifier
+	Result Claim
+}
+
+var getByIDVisitorStopError = errors.Base("stop visitor")
+
+func (v *getByIDVisitor) VisitIdentifier(claim *IdentifierClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitReference(claim *ReferenceClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitText(claim *TextClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitString(claim *StringClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitTime(claim *TimeClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitFile(claim *FileClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (v *getByIDVisitor) VisitList(claim *ListClaim) errors.E {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return errors.WithStack(getByIDVisitorStopError)
+	}
+	return nil
+}
+
+func (d *Document) GetByID(id Identifier) Claim {
+	v := getByIDVisitor{
+		ID:     id,
+		Result: nil,
+	}
+	_ = d.Visit(&v)
+	return v.Result
 }
 
 func (d *Document) Add(claim Claim) errors.E {
@@ -383,93 +578,118 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 	return nil
 }
 
-func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
+func (cc *CoreClaim) VisitMeta(visitor visitorMeta) errors.E {
 	if cc.Meta == nil {
 		return nil
 	}
 
 	for _, claim := range cc.Meta.Identifier {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitIdentifier(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Reference {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitReference(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Text {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitText(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.String {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitString(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Label {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitLabel(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Amount {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitAmount(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.AmountRange {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitAmountRange(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Enumeration {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitEnumeration(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Relation {
-		if claim.ID == id {
-			return &claim
-		}
-	}
-	for _, claim := range cc.Meta.File {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitRelation(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.NoValue {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitNoValue(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.UnknownValue {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitUnknownValue(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Time {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitTime(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.TimeRange {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitTimeRange(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.Duration {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitDuration(&claim)
+		if err != nil {
+			return err
 		}
 	}
 	for _, claim := range cc.Meta.DurationRange {
-		if claim.ID == id {
-			return &claim
+		err := visitor.VisitDurationRange(&claim)
+		if err != nil {
+			return err
+		}
+	}
+	for _, claim := range cc.Meta.File {
+		err := visitor.VisitFile(&claim)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
+	v := getByIDVisitor{
+		ID:     id,
+		Result: nil,
+	}
+	_ = cc.VisitMeta(&v)
+	return v.Result
 }
 
 type Confidence = Score

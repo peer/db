@@ -57,7 +57,7 @@ func prepare(config *Config) errors.E {
 
 	saveStandardProperties(config, processor)
 
-	return nil
+	return updateEmbeddedDocuments(ctx, config, esClient, processor)
 }
 
 func saveStandardProperties(config *Config, processor *elastic.BulkProcessor) {

@@ -35,8 +35,14 @@ func processArticle(ctx context.Context, config *Config, esClient *elastic.Clien
 	}
 	id := wikipedia.GetDocumentID(article.MainEntity.Identifier)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
-	if err != nil {
+	if elastic.IsNotFound(err) {
+		fmt.Fprintf(os.Stderr, "document %s for entity %s for article \"%s\" not found\n", id, article.MainEntity.Identifier, article.Name)
+		return nil
+	} else if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting document %s for entity %s for article \"%s\": %s\n", id, article.MainEntity.Identifier, article.Name, err.Error())
+		return nil
+	} else if !esDoc.Found {
+		fmt.Fprintf(os.Stderr, "document %s for entity %s for article \"%s\" not found\n", id, article.MainEntity.Identifier, article.Name)
 		return nil
 	}
 	var document search.Document
