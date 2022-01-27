@@ -23,6 +23,7 @@ type Claim interface {
 	GetConfidence() Confidence
 	AddMeta(claim Claim) errors.E
 	GetMetaByID(id Identifier) Claim
+	RemoveMetaByID(id Identifier) Claim
 	VisitMeta(visitor visitor) errors.E
 }
 
@@ -403,6 +404,7 @@ func (c *ClaimTypes) Size() int {
 
 type getByIDVisitor struct {
 	ID     Identifier
+	Action VisitResult
 	Result Claim
 }
 
@@ -411,7 +413,7 @@ var getByIDVisitorStopError = errors.Base("stop visitor")
 func (v *getByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -419,7 +421,7 @@ func (v *getByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, e
 func (v *getByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -427,7 +429,7 @@ func (v *getByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 func (v *getByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -435,7 +437,7 @@ func (v *getByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -443,7 +445,7 @@ func (v *getByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E)
 func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -451,7 +453,7 @@ func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -459,7 +461,7 @@ func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -467,7 +469,7 @@ func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult,
 func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -475,7 +477,7 @@ func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult,
 func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -483,7 +485,7 @@ func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -491,7 +493,7 @@ func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -499,7 +501,7 @@ func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.
 func (v *getByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -507,7 +509,7 @@ func (v *getByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResul
 func (v *getByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -515,7 +517,7 @@ func (v *getByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -523,7 +525,7 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -531,7 +533,7 @@ func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, error
 func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -539,7 +541,7 @@ func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitRes
 func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, errors.WithStack(getByIDVisitorStopError)
 	}
 	return Keep, nil
 }
@@ -547,6 +549,17 @@ func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 func (d *Document) GetByID(id Identifier) Claim {
 	v := getByIDVisitor{
 		ID:     id,
+		Action: Keep,
+		Result: nil,
+	}
+	_ = d.Visit(&v)
+	return v.Result
+}
+
+func (d *Document) RemoveByID(id Identifier) Claim {
+	v := getByIDVisitor{
+		ID:     id,
+		Action: Drop,
 		Result: nil,
 	}
 	_ = d.Visit(&v)
@@ -822,6 +835,17 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
 	v := getByIDVisitor{
 		ID:     id,
 		Result: nil,
+		Action: Keep,
+	}
+	_ = cc.VisitMeta(&v)
+	return v.Result
+}
+
+func (cc *CoreClaim) RemoveMetaByID(id Identifier) Claim {
+	v := getByIDVisitor{
+		ID:     id,
+		Result: nil,
+		Action: Drop,
 	}
 	_ = cc.VisitMeta(&v)
 	return v.Result
