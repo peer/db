@@ -37,8 +37,8 @@ func (c *counter) Count() int64 {
 
 type Cache struct {
 	*lru.Cache
-	GetCount   uint64
-	FoundCount uint64
+	getCount  uint64
+	missCount uint64
 }
 
 func NewCache(size int) (*Cache, error) {
@@ -47,28 +47,23 @@ func NewCache(size int) (*Cache, error) {
 		return nil, err
 	}
 	return &Cache{
-		Cache:      cache,
-		GetCount:   0,
-		FoundCount: 0,
+		Cache:     cache,
+		getCount:  0,
+		missCount: 0,
 	}, nil
 }
 
-func (c *Cache) Get(key interface{}) (value interface{}, ok bool) {
-	value, ok = c.Cache.Get(key)
-	atomic.AddUint64(&c.GetCount, 1)
-	if ok {
-		atomic.AddUint64(&c.FoundCount, 1)
+func (c *Cache) Get(key interface{}) (interface{}, bool) {
+	value, ok := c.Cache.Get(key)
+	atomic.AddUint64(&c.getCount, 1)
+	if !ok {
+		atomic.AddUint64(&c.missCount, 1)
 	}
 	return value, ok
 }
 
-func (c *Cache) HitRatio() float64 {
-	get := atomic.LoadUint64(&c.GetCount)
-	found := atomic.LoadUint64(&c.FoundCount)
-	if get == 0 {
-		return 0.0
-	}
-	return float64(found) / float64(get)
+func (c *Cache) MissCount() uint64 {
+	return atomic.LoadUint64(&c.missCount)
 }
 
 func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
@@ -94,7 +89,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache hit: %0.2f, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.HitRatio(), c.Count(), stats.Indexed, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), stats.Indexed, stats.Failed)
 		}
 	}()
 
