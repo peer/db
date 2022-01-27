@@ -151,20 +151,20 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(id search.Identifi
 	return ref, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.IdentifierClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.IdentifierClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -172,23 +172,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -196,23 +196,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -220,23 +220,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) erro
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -244,23 +244,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -268,23 +268,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) er
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -292,23 +292,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRangeClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRangeClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -316,23 +316,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.EnumerationClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.EnumerationClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -340,23 +340,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.Enumerat
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -366,12 +366,12 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	ref, err = v.getDocumentReference(claim.To.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.To.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -379,23 +379,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -403,23 +403,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.UnknownValueClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.UnknownValueClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -427,23 +427,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -451,23 +451,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) erro
 		v.Changed = true
 	}
 
-	return nil
+	return search.Drop, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -475,23 +475,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitDuration(claim *search.DurationClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitDuration(claim *search.DurationClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -499,23 +499,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitDuration(claim *search.DurationCla
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitDurationRange(claim *search.DurationRangeClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitDurationRange(claim *search.DurationRangeClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -523,23 +523,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitDurationRange(claim *search.Durati
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -547,23 +547,23 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) erro
 		v.Changed = true
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -573,12 +573,12 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) erro
 
 	ref, err = v.getDocumentReference(claim.Element.ID)
 	if err != nil {
-		return err
+		return search.Keep, err
 	}
 
 	if ref == nil {
 		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Element.ID)
-		return nil
+		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Element, ref) {
@@ -590,12 +590,12 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) erro
 		child := &claim.Children[i]
 		ref, err := v.getDocumentReference(child.Prop.ID)
 		if err != nil {
-			return err
+			return search.Keep, err
 		}
 
 		if ref == nil {
 			fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, child.Prop.ID)
-			return nil
+			return search.Drop, nil
 		}
 
 		if !reflect.DeepEqual(&child.Prop, ref) {
@@ -604,7 +604,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) erro
 		}
 	}
 
-	return nil
+	return search.Keep, nil
 }
 
 func processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *lru.Cache, hit *elastic.SearchHit) errors.E {
