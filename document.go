@@ -15,7 +15,9 @@ type VisitResult int
 
 const (
 	Keep VisitResult = iota
+	KeepAndStop
 	Drop
+	DropAndStop
 )
 
 type Claim interface {
@@ -84,293 +86,465 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 		return nil
 	}
 
+	var err errors.E
+
+	stopping := false
 	k := 0
-	for i, claim := range c.Identifier {
-		keep, err := visitor.VisitIdentifier(&claim)
-		if err != nil {
-			return err
+	for i := range c.Identifier {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitIdentifier(&c.Identifier[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Identifier[k] = claim
+				c.Identifier[k] = c.Identifier[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Identifier) != k {
 		c.Identifier = c.Identifier[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Reference {
-		keep, err := visitor.VisitReference(&claim)
-		if err != nil {
-			return err
+	for i := range c.Reference {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitReference(&c.Reference[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Reference[k] = claim
+				c.Reference[k] = c.Reference[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Reference) != k {
 		c.Reference = c.Reference[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Text {
-		keep, err := visitor.VisitText(&claim)
-		if err != nil {
-			return err
+	for i := range c.Text {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitText(&c.Text[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Text[k] = claim
+				c.Text[k] = c.Text[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Text) != k {
 		c.Text = c.Text[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.String {
-		keep, err := visitor.VisitString(&claim)
-		if err != nil {
-			return err
+	for i := range c.String {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitString(&c.String[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.String[k] = claim
+				c.String[k] = c.String[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.String) != k {
 		c.String = c.String[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Label {
-		keep, err := visitor.VisitLabel(&claim)
-		if err != nil {
-			return err
+	for i := range c.Label {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitLabel(&c.Label[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Label[k] = claim
+				c.Label[k] = c.Label[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Label) != k {
 		c.Label = c.Label[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Amount {
-		keep, err := visitor.VisitAmount(&claim)
-		if err != nil {
-			return err
+	for i := range c.Amount {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitAmount(&c.Amount[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Amount[k] = claim
+				c.Amount[k] = c.Amount[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Amount) != k {
 		c.Amount = c.Amount[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.AmountRange {
-		keep, err := visitor.VisitAmountRange(&claim)
-		if err != nil {
-			return err
+	for i := range c.AmountRange {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitAmountRange(&c.AmountRange[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.AmountRange[k] = claim
+				c.AmountRange[k] = c.AmountRange[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.AmountRange) != k {
 		c.AmountRange = c.AmountRange[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Enumeration {
-		keep, err := visitor.VisitEnumeration(&claim)
-		if err != nil {
-			return err
+	for i := range c.Enumeration {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitEnumeration(&c.Enumeration[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Enumeration[k] = claim
+				c.Enumeration[k] = c.Enumeration[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Enumeration) != k {
 		c.Enumeration = c.Enumeration[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Relation {
-		keep, err := visitor.VisitRelation(&claim)
-		if err != nil {
-			return err
+	for i := range c.Relation {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitRelation(&c.Relation[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Relation[k] = claim
+				c.Relation[k] = c.Relation[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Relation) != k {
 		c.Relation = c.Relation[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.File {
-		keep, err := visitor.VisitFile(&claim)
-		if err != nil {
-			return err
+	for i := range c.File {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitFile(&c.File[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.File[k] = claim
+				c.File[k] = c.File[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.File) != k {
 		c.File = c.File[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.NoValue {
-		keep, err := visitor.VisitNoValue(&claim)
-		if err != nil {
-			return err
+	for i := range c.NoValue {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitNoValue(&c.NoValue[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.NoValue[k] = claim
+				c.NoValue[k] = c.NoValue[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.NoValue) != k {
 		c.NoValue = c.NoValue[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.UnknownValue {
-		keep, err := visitor.VisitUnknownValue(&claim)
-		if err != nil {
-			return err
+	for i := range c.UnknownValue {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitUnknownValue(&c.UnknownValue[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.UnknownValue[k] = claim
+				c.UnknownValue[k] = c.UnknownValue[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.UnknownValue) != k {
 		c.UnknownValue = c.UnknownValue[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Time {
-		keep, err := visitor.VisitTime(&claim)
-		if err != nil {
-			return err
+	for i := range c.Time {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitTime(&c.Time[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Time[k] = claim
+				c.Time[k] = c.Time[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Time) != k {
 		c.Time = c.Time[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.TimeRange {
-		keep, err := visitor.VisitTimeRange(&claim)
-		if err != nil {
-			return err
+	for i := range c.TimeRange {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitTimeRange(&c.TimeRange[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.TimeRange[k] = claim
+				c.TimeRange[k] = c.TimeRange[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.TimeRange) != k {
 		c.TimeRange = c.TimeRange[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.Duration {
-		keep, err := visitor.VisitDuration(&claim)
-		if err != nil {
-			return err
+	for i := range c.Duration {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitDuration(&c.Duration[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Duration[k] = claim
+				c.Duration[k] = c.Duration[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.Duration) != k {
 		c.Duration = c.Duration[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.DurationRange {
-		keep, err := visitor.VisitDurationRange(&claim)
-		if err != nil {
-			return err
+	for i := range c.DurationRange {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitDurationRange(&c.DurationRange[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.DurationRange[k] = claim
+				c.DurationRange[k] = c.DurationRange[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.DurationRange) != k {
 		c.DurationRange = c.DurationRange[:k]
 	}
+	if stopping {
+		return nil
+	}
 
+	stopping = false
 	k = 0
-	for i, claim := range c.List {
-		keep, err := visitor.VisitList(&claim)
-		if err != nil {
-			return err
+	for i := range c.List {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitList(&c.List[i])
+			if err != nil {
+				return err
+			}
 		}
-		if keep == Keep {
+		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.List[k] = claim
+				c.List[k] = c.List[i]
 			}
 			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
 		}
 	}
 	if len(c.List) != k {
 		c.List = c.List[:k]
+	}
+	if stopping {
+		return nil
 	}
 
 	return nil
@@ -408,12 +582,10 @@ type getByIDVisitor struct {
 	Result Claim
 }
 
-var getByIDVisitorStopError = errors.Base("stop visitor")
-
 func (v *getByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -421,7 +593,7 @@ func (v *getByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, e
 func (v *getByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -429,7 +601,7 @@ func (v *getByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 func (v *getByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -437,7 +609,7 @@ func (v *getByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -445,7 +617,7 @@ func (v *getByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E)
 func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -453,7 +625,7 @@ func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -461,7 +633,7 @@ func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -469,7 +641,7 @@ func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult,
 func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -477,7 +649,7 @@ func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult,
 func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -485,7 +657,7 @@ func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -493,7 +665,7 @@ func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -501,7 +673,7 @@ func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.
 func (v *getByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -509,7 +681,7 @@ func (v *getByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResul
 func (v *getByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -517,7 +689,7 @@ func (v *getByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -525,7 +697,7 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -533,7 +705,7 @@ func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, error
 func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -541,7 +713,7 @@ func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitRes
 func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
-		return v.Action, errors.WithStack(getByIDVisitorStopError)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -549,7 +721,7 @@ func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 func (d *Document) GetByID(id Identifier) Claim {
 	v := getByIDVisitor{
 		ID:     id,
-		Action: Keep,
+		Action: KeepAndStop,
 		Result: nil,
 	}
 	_ = d.Visit(&v)
@@ -559,7 +731,7 @@ func (d *Document) GetByID(id Identifier) Claim {
 func (d *Document) RemoveByID(id Identifier) Claim {
 	v := getByIDVisitor{
 		ID:     id,
-		Action: Drop,
+		Action: DropAndStop,
 		Result: nil,
 	}
 	_ = d.Visit(&v)
