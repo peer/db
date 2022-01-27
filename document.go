@@ -23,10 +23,10 @@ type Claim interface {
 	GetConfidence() Confidence
 	AddMeta(claim Claim) errors.E
 	GetMetaByID(id Identifier) Claim
-	VisitMeta(visitor visitorMeta) errors.E
+	VisitMeta(visitor visitor) errors.E
 }
 
-type visitorMeta interface {
+type visitor interface {
 	VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E)
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
 	VisitText(claim *TextClaim) (VisitResult, errors.E)
@@ -36,326 +36,369 @@ type visitorMeta interface {
 	VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E)
 	VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E)
 	VisitRelation(claim *RelationClaim) (VisitResult, errors.E)
+	VisitFile(claim *FileClaim) (VisitResult, errors.E)
 	VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E)
 	VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E)
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
 	VisitDuration(claim *DurationClaim) (VisitResult, errors.E)
 	VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E)
-	VisitFile(claim *FileClaim) (VisitResult, errors.E)
-}
-
-type visitor interface {
-	visitorMeta
-
 	VisitList(claim *ListClaim) (VisitResult, errors.E)
 }
 
 type Document struct {
 	CoreDocument
 
-	Mnemonic Mnemonic            `json:"mnemonic,omitempty"`
-	Active   *DocumentClaimTypes `json:"active,omitempty"`
-	Inactive *DocumentClaimTypes `json:"inactive,omitempty"`
+	Mnemonic Mnemonic    `json:"mnemonic,omitempty"`
+	Active   *ClaimTypes `json:"active,omitempty"`
+	Inactive *ClaimTypes `json:"inactive,omitempty"`
 }
 
 func (d *Document) Visit(visitor visitor) errors.E {
-	for _, claims := range []*DocumentClaimTypes{d.Active, d.Inactive} {
-		if claims == nil {
-			continue
+	if d.Active != nil {
+		err := d.Active.Visit(visitor)
+		if err != nil {
+			return err
 		}
+		// If active claims became empty after visiting, we set them to nil.
+		if d.Active.Size() == 0 {
+			d.Active = nil
+		}
+	}
+	if d.Inactive != nil {
+		err := d.Inactive.Visit(visitor)
+		if err != nil {
+			return err
+		}
+		// If inactive claims became empty after visiting, we set them to nil.
+		if d.Inactive.Size() == 0 {
+			d.Inactive = nil
+		}
+	}
+	return nil
+}
 
-		k := 0
-		for i, claim := range claims.Identifier {
-			keep, err := visitor.VisitIdentifier(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Identifier[k] = claim
-				}
-				k++
-			}
-		}
-		if len(claims.Identifier) != k {
-			claims.Identifier = claims.Identifier[:k]
-		}
+func (c *ClaimTypes) Visit(visitor visitor) errors.E {
+	if c == nil {
+		return nil
+	}
 
-		k = 0
-		for i, claim := range claims.Reference {
-			keep, err := visitor.VisitReference(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Reference[k] = claim
-				}
-				k++
-			}
+	k := 0
+	for i, claim := range c.Identifier {
+		keep, err := visitor.VisitIdentifier(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Reference) != k {
-			claims.Reference = claims.Reference[:k]
+		if keep == Keep {
+			if i != k {
+				c.Identifier[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Identifier) != k {
+		c.Identifier = c.Identifier[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Text {
-			keep, err := visitor.VisitText(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Text[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Reference {
+		keep, err := visitor.VisitReference(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Text) != k {
-			claims.Text = claims.Text[:k]
+		if keep == Keep {
+			if i != k {
+				c.Reference[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Reference) != k {
+		c.Reference = c.Reference[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.String {
-			keep, err := visitor.VisitString(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.String[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Text {
+		keep, err := visitor.VisitText(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.String) != k {
-			claims.String = claims.String[:k]
+		if keep == Keep {
+			if i != k {
+				c.Text[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Text) != k {
+		c.Text = c.Text[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Label {
-			keep, err := visitor.VisitLabel(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Label[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.String {
+		keep, err := visitor.VisitString(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Label) != k {
-			claims.Label = claims.Label[:k]
+		if keep == Keep {
+			if i != k {
+				c.String[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.String) != k {
+		c.String = c.String[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Amount {
-			keep, err := visitor.VisitAmount(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Amount[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Label {
+		keep, err := visitor.VisitLabel(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Amount) != k {
-			claims.Amount = claims.Amount[:k]
+		if keep == Keep {
+			if i != k {
+				c.Label[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Label) != k {
+		c.Label = c.Label[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.AmountRange {
-			keep, err := visitor.VisitAmountRange(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.AmountRange[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Amount {
+		keep, err := visitor.VisitAmount(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.AmountRange) != k {
-			claims.AmountRange = claims.AmountRange[:k]
+		if keep == Keep {
+			if i != k {
+				c.Amount[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Amount) != k {
+		c.Amount = c.Amount[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Enumeration {
-			keep, err := visitor.VisitEnumeration(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Enumeration[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.AmountRange {
+		keep, err := visitor.VisitAmountRange(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Enumeration) != k {
-			claims.Enumeration = claims.Enumeration[:k]
+		if keep == Keep {
+			if i != k {
+				c.AmountRange[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.AmountRange) != k {
+		c.AmountRange = c.AmountRange[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Relation {
-			keep, err := visitor.VisitRelation(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Relation[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Enumeration {
+		keep, err := visitor.VisitEnumeration(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Relation) != k {
-			claims.Relation = claims.Relation[:k]
+		if keep == Keep {
+			if i != k {
+				c.Enumeration[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Enumeration) != k {
+		c.Enumeration = c.Enumeration[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.NoValue {
-			keep, err := visitor.VisitNoValue(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.NoValue[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Relation {
+		keep, err := visitor.VisitRelation(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.NoValue) != k {
-			claims.NoValue = claims.NoValue[:k]
+		if keep == Keep {
+			if i != k {
+				c.Relation[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Relation) != k {
+		c.Relation = c.Relation[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.UnknownValue {
-			keep, err := visitor.VisitUnknownValue(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.UnknownValue[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.File {
+		keep, err := visitor.VisitFile(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.UnknownValue) != k {
-			claims.UnknownValue = claims.UnknownValue[:k]
+		if keep == Keep {
+			if i != k {
+				c.File[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.File) != k {
+		c.File = c.File[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Time {
-			keep, err := visitor.VisitTime(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Time[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.NoValue {
+		keep, err := visitor.VisitNoValue(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Time) != k {
-			claims.Time = claims.Time[:k]
+		if keep == Keep {
+			if i != k {
+				c.NoValue[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.NoValue) != k {
+		c.NoValue = c.NoValue[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.TimeRange {
-			keep, err := visitor.VisitTimeRange(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.TimeRange[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.UnknownValue {
+		keep, err := visitor.VisitUnknownValue(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.TimeRange) != k {
-			claims.TimeRange = claims.TimeRange[:k]
+		if keep == Keep {
+			if i != k {
+				c.UnknownValue[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.UnknownValue) != k {
+		c.UnknownValue = c.UnknownValue[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.Duration {
-			keep, err := visitor.VisitDuration(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.Duration[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Time {
+		keep, err := visitor.VisitTime(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.Duration) != k {
-			claims.Duration = claims.Duration[:k]
+		if keep == Keep {
+			if i != k {
+				c.Time[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Time) != k {
+		c.Time = c.Time[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.DurationRange {
-			keep, err := visitor.VisitDurationRange(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.DurationRange[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.TimeRange {
+		keep, err := visitor.VisitTimeRange(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.DurationRange) != k {
-			claims.DurationRange = claims.DurationRange[:k]
+		if keep == Keep {
+			if i != k {
+				c.TimeRange[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.TimeRange) != k {
+		c.TimeRange = c.TimeRange[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.File {
-			keep, err := visitor.VisitFile(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.File[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.Duration {
+		keep, err := visitor.VisitDuration(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.File) != k {
-			claims.File = claims.File[:k]
+		if keep == Keep {
+			if i != k {
+				c.Duration[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.Duration) != k {
+		c.Duration = c.Duration[:k]
+	}
 
-		k = 0
-		for i, claim := range claims.List {
-			keep, err := visitor.VisitList(&claim)
-			if err != nil {
-				return err
-			}
-			if keep == Keep {
-				if i != k {
-					claims.List[k] = claim
-				}
-				k++
-			}
+	k = 0
+	for i, claim := range c.DurationRange {
+		keep, err := visitor.VisitDurationRange(&claim)
+		if err != nil {
+			return err
 		}
-		if len(claims.List) != k {
-			claims.List = claims.List[:k]
+		if keep == Keep {
+			if i != k {
+				c.DurationRange[k] = claim
+			}
+			k++
 		}
+	}
+	if len(c.DurationRange) != k {
+		c.DurationRange = c.DurationRange[:k]
+	}
+
+	k = 0
+	for i, claim := range c.List {
+		keep, err := visitor.VisitList(&claim)
+		if err != nil {
+			return err
+		}
+		if keep == Keep {
+			if i != k {
+				c.List[k] = claim
+			}
+			k++
+		}
+	}
+	if len(c.List) != k {
+		c.List = c.List[:k]
 	}
 
 	return nil
+}
+
+func (c *ClaimTypes) Size() int {
+	if c == nil {
+		return 0
+	}
+
+	s := 0
+	s += len(c.Identifier)
+	s += len(c.Reference)
+	s += len(c.Text)
+	s += len(c.String)
+	s += len(c.Label)
+	s += len(c.Amount)
+	s += len(c.AmountRange)
+	s += len(c.Enumeration)
+	s += len(c.Relation)
+	s += len(c.File)
+	s += len(c.NoValue)
+	s += len(c.UnknownValue)
+	s += len(c.Time)
+	s += len(c.TimeRange)
+	s += len(c.Duration)
+	s += len(c.DurationRange)
+	s += len(c.List)
+	return s
 }
 
 type getByIDVisitor struct {
@@ -437,6 +480,14 @@ func (v *getByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 	return Keep, nil
 }
 
+func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return Keep, errors.WithStack(getByIDVisitorStopError)
+	}
+	return Keep, nil
+}
+
 func (v *getByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -485,14 +536,6 @@ func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitRes
 	return Keep, nil
 }
 
-func (v *getByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return Keep, errors.WithStack(getByIDVisitorStopError)
-	}
-	return Keep, nil
-}
-
 func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -521,15 +564,15 @@ func (d *Document) Add(claim Claim) errors.E {
 	case *AmountRangeClaim:
 		activeClaims = activeClaims && c.Unit != AmountUnitCustom
 	}
-	var claimTypes *DocumentClaimTypes
+	var claimTypes *ClaimTypes
 	if activeClaims {
 		if d.Active == nil {
-			d.Active = &DocumentClaimTypes{}
+			d.Active = &ClaimTypes{}
 		}
 		claimTypes = d.Active
 	} else {
 		if d.Inactive == nil {
-			d.Inactive = &DocumentClaimTypes{}
+			d.Inactive = &ClaimTypes{}
 		}
 		claimTypes = d.Inactive
 	}
@@ -552,6 +595,8 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Enumeration = append(claimTypes.Enumeration, *c)
 	case *RelationClaim:
 		claimTypes.Relation = append(claimTypes.Relation, *c)
+	case *FileClaim:
+		claimTypes.File = append(claimTypes.File, *c)
 	case *NoValueClaim:
 		claimTypes.NoValue = append(claimTypes.NoValue, *c)
 	case *UnknownValueClaim:
@@ -564,8 +609,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Duration = append(claimTypes.Duration, *c)
 	case *DurationRangeClaim:
 		claimTypes.DurationRange = append(claimTypes.DurationRange, *c)
-	case *FileClaim:
-		claimTypes.File = append(claimTypes.File, *c)
 	case *ListClaim:
 		claimTypes.List = append(claimTypes.List, *c)
 	default:
@@ -659,37 +702,24 @@ type OtherNames map[string][]string
 // Score name to score mapping.
 type Scores map[string]Score
 
-type DocumentClaimTypes struct {
-	RefClaimTypes
-	SimpleClaimTypes
-	TimeClaimTypes
-
-	List ListClaims `json:"list,omitempty"`
-}
-
-type RefClaimTypes struct {
-	Identifier IdentifierClaims `json:"id,omitempty"`
-	Reference  ReferenceClaims  `json:"ref,omitempty"`
-}
-
-type SimpleClaimTypes struct {
-	Text         TextClaims         `json:"text,omitempty"`
-	String       StringClaims       `json:"string,omitempty"`
-	Label        LabelClaims        `json:"label,omitempty"`
-	Amount       AmountClaims       `json:"amount,omitempty"`
-	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
-	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
-	Relation     RelationClaims     `json:"rel,omitempty"`
-	File         FileClaims         `json:"file,omitempty"`
-	NoValue      NoValueClaims      `json:"none,omitempty"`
-	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
-}
-
-type TimeClaimTypes struct {
+type ClaimTypes struct {
+	Identifier    IdentifierClaims    `json:"id,omitempty"`
+	Reference     ReferenceClaims     `json:"ref,omitempty"`
+	Text          TextClaims          `json:"text,omitempty"`
+	String        StringClaims        `json:"string,omitempty"`
+	Label         LabelClaims         `json:"label,omitempty"`
+	Amount        AmountClaims        `json:"amount,omitempty"`
+	AmountRange   AmountRangeClaims   `json:"amountRange,omitempty"`
+	Enumeration   EnumerationClaims   `json:"enum,omitempty"`
+	Relation      RelationClaims      `json:"rel,omitempty"`
+	File          FileClaims          `json:"file,omitempty"`
+	NoValue       NoValueClaims       `json:"none,omitempty"`
+	UnknownValue  UnknownValueClaims  `json:"unknown,omitempty"`
 	Time          TimeClaims          `json:"time,omitempty"`
 	TimeRange     TimeRangeClaims     `json:"timeRange,omitempty"`
 	Duration      DurationClaims      `json:"duration,omitempty"`
 	DurationRange DurationRangeClaims `json:"durationRange,omitempty"`
+	List          ListClaims          `json:"list,omitempty"`
 }
 
 type (
@@ -702,20 +732,20 @@ type (
 	AmountRangeClaims   = []AmountRangeClaim
 	EnumerationClaims   = []EnumerationClaim
 	RelationClaims      = []RelationClaim
+	FileClaims          = []FileClaim
 	NoValueClaims       = []NoValueClaim
 	UnknownValueClaims  = []UnknownValueClaim
 	TimeClaims          = []TimeClaim
 	TimeRangeClaims     = []TimeRangeClaim
 	DurationClaims      = []DurationClaim
 	DurationRangeClaims = []DurationRangeClaim
-	FileClaims          = []FileClaim
 	ListClaims          = []ListClaim
 )
 
 type CoreClaim struct {
 	ID         Identifier  `json:"_id"`
 	Confidence Confidence  `json:"confidence"`
-	Meta       *MetaClaims `json:"meta,omitempty"`
+	Meta       *ClaimTypes `json:"meta,omitempty"`
 }
 
 func (cc CoreClaim) GetID() Identifier {
@@ -731,7 +761,7 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		return errors.Errorf(`meta claim with ID "%s" already exists`, claimID)
 	}
 	if cc.Meta == nil {
-		cc.Meta = &MetaClaims{}
+		cc.Meta = &ClaimTypes{}
 	}
 	switch c := claim.(type) {
 	case *IdentifierClaim:
@@ -766,289 +796,25 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.Duration = append(cc.Meta.Duration, *c)
 	case *DurationRangeClaim:
 		cc.Meta.DurationRange = append(cc.Meta.DurationRange, *c)
+	case *ListClaim:
+		cc.Meta.List = append(cc.Meta.List, *c)
 	default:
 		return errors.Errorf(`meta claim of type %T is not supported`, claim)
 	}
 	return nil
 }
 
-func (cc *CoreClaim) VisitMeta(visitor visitorMeta) errors.E {
-	if cc.Meta == nil {
-		return nil
-	}
-
-	k := 0
-	for i, claim := range cc.Meta.Identifier {
-		keep, err := visitor.VisitIdentifier(&claim)
+func (cc *CoreClaim) VisitMeta(visitor visitor) errors.E {
+	if cc.Meta != nil {
+		err := cc.Meta.Visit(visitor)
 		if err != nil {
 			return err
 		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Identifier[k] = claim
-			}
-			k++
+		// If meta claims became empty after visiting, we set them to nil.
+		if cc.Meta.Size() == 0 {
+			cc.Meta = nil
 		}
 	}
-	if len(cc.Meta.Identifier) != k {
-		cc.Meta.Identifier = cc.Meta.Identifier[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Reference {
-		keep, err := visitor.VisitReference(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Reference[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Reference) != k {
-		cc.Meta.Reference = cc.Meta.Reference[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Text {
-		keep, err := visitor.VisitText(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Text[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Text) != k {
-		cc.Meta.Text = cc.Meta.Text[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.String {
-		keep, err := visitor.VisitString(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.String[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.String) != k {
-		cc.Meta.String = cc.Meta.String[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Label {
-		keep, err := visitor.VisitLabel(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Label[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Label) != k {
-		cc.Meta.Label = cc.Meta.Label[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Amount {
-		keep, err := visitor.VisitAmount(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Amount[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Amount) != k {
-		cc.Meta.Amount = cc.Meta.Amount[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.AmountRange {
-		keep, err := visitor.VisitAmountRange(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.AmountRange[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.AmountRange) != k {
-		cc.Meta.AmountRange = cc.Meta.AmountRange[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Enumeration {
-		keep, err := visitor.VisitEnumeration(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Enumeration[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Enumeration) != k {
-		cc.Meta.Enumeration = cc.Meta.Enumeration[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Relation {
-		keep, err := visitor.VisitRelation(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Relation[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Relation) != k {
-		cc.Meta.Relation = cc.Meta.Relation[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.NoValue {
-		keep, err := visitor.VisitNoValue(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.NoValue[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.NoValue) != k {
-		cc.Meta.NoValue = cc.Meta.NoValue[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.UnknownValue {
-		keep, err := visitor.VisitUnknownValue(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.UnknownValue[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.UnknownValue) != k {
-		cc.Meta.UnknownValue = cc.Meta.UnknownValue[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Time {
-		keep, err := visitor.VisitTime(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Time[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Time) != k {
-		cc.Meta.Time = cc.Meta.Time[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.TimeRange {
-		keep, err := visitor.VisitTimeRange(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.TimeRange[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.TimeRange) != k {
-		cc.Meta.TimeRange = cc.Meta.TimeRange[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.Duration {
-		keep, err := visitor.VisitDuration(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.Duration[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.Duration) != k {
-		cc.Meta.Duration = cc.Meta.Duration[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.DurationRange {
-		keep, err := visitor.VisitDurationRange(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.DurationRange[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.DurationRange) != k {
-		cc.Meta.DurationRange = cc.Meta.DurationRange[:k]
-	}
-
-	k = 0
-	for i, claim := range cc.Meta.File {
-		keep, err := visitor.VisitFile(&claim)
-		if err != nil {
-			return err
-		}
-		if keep == Keep {
-			if i != k {
-				cc.Meta.File[k] = claim
-			}
-			k++
-		}
-	}
-	if len(cc.Meta.File) != k {
-		cc.Meta.File = cc.Meta.File[:k]
-	}
-
 	return nil
 }
 
@@ -1064,12 +830,6 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
 type Confidence = Score
 
 type Score float64
-
-type MetaClaims struct {
-	RefClaimTypes
-	SimpleClaimTypes
-	TimeClaimTypes
-}
 
 type DocumentReference struct {
 	ID     Identifier `json:"_id"`
@@ -1256,6 +1016,22 @@ type EnumerationClaim struct {
 	Enum []string          `json:"enum"`
 }
 
+type RelationClaim struct {
+	CoreClaim
+
+	Prop DocumentReference `json:"prop"`
+	To   DocumentReference `json:"to"`
+}
+
+type FileClaim struct {
+	CoreClaim
+
+	Prop    DocumentReference `json:"prop"`
+	Type    string            `json:"type"`
+	URL     string            `json:"url"`
+	Preview []string          `json:"preview,omitempty"`
+}
+
 type NoValueClaim struct {
 	CoreClaim
 
@@ -1409,15 +1185,6 @@ type DurationRangeClaim struct {
 	UncertaintyUpper *Duration         `json:"uncertaintyUpper,omitempty"`
 }
 
-type FileClaim struct {
-	CoreClaim
-
-	Prop    DocumentReference `json:"prop"`
-	Type    string            `json:"type"`
-	URL     string            `json:"url"`
-	Preview []string          `json:"preview,omitempty"`
-}
-
 type ListClaim struct {
 	CoreClaim
 
@@ -1431,11 +1198,4 @@ type ListClaim struct {
 type ListChild struct {
 	Prop  DocumentReference `json:"prop"`
 	Child Identifier        `json:"child"`
-}
-
-type RelationClaim struct {
-	CoreClaim
-
-	Prop DocumentReference `json:"prop"`
-	To   DocumentReference `json:"to"`
 }

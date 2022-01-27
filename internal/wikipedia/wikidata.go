@@ -228,17 +228,15 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 				CoreClaim: search.CoreClaim{
 					ID:         id,
 					Confidence: confidence,
-					Meta: &search.MetaClaims{
-						RefClaimTypes: search.RefClaimTypes{
-							Reference: search.ReferenceClaims{
-								{
-									CoreClaim: search.CoreClaim{
-										ID:         claimID,
-										Confidence: 1.0,
-									},
-									Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
-									IRI:  fileInfo.PageURL,
+					Meta: &search.ClaimTypes{
+						Reference: search.ReferenceClaims{
+							{
+								CoreClaim: search.CoreClaim{
+									ID:         claimID,
+									Confidence: 1.0,
 								},
+								Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
+								IRI:  fileInfo.PageURL,
 							},
 						},
 					},
@@ -378,17 +376,15 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 				} else {
 					return nil, errors.Errorf("unsupported unit URL: %s", value.Unit)
 				}
-				claim.CoreClaim.Meta = &search.MetaClaims{
-					SimpleClaimTypes: search.SimpleClaimTypes{
-						Relation: search.RelationClaims{
-							{
-								CoreClaim: search.CoreClaim{
-									ID:         claimID,
-									Confidence: 1.0,
-								},
-								Prop: search.GetStandardPropertyReference("UNIT"),
-								To:   getDocumentReference(unitID),
+				claim.CoreClaim.Meta = &search.ClaimTypes{
+					Relation: search.RelationClaims{
+						{
+							CoreClaim: search.CoreClaim{
+								ID:         claimID,
+								Confidence: 1.0,
 							},
+							Prop: search.GetStandardPropertyReference("UNIT"),
+							To:   getDocumentReference(unitID),
 						},
 					},
 				}
@@ -510,76 +506,68 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 	}
 
 	if entity.Type == mediawiki.Property {
-		document.Active = &search.DocumentClaimTypes{
-			RefClaimTypes: search.RefClaimTypes{
-				Identifier: search.IdentifierClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
-							Confidence: 1.0,
-						},
-						Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
-						Identifier: entity.ID,
+		document.Active = &search.ClaimTypes{
+			Identifier: search.IdentifierClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
+						Confidence: 1.0,
 					},
-				},
-				Reference: search.ReferenceClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
-							Confidence: 1.0,
-						},
-						Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
-						IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
-					},
+					Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
+					Identifier: entity.ID,
 				},
 			},
-			SimpleClaimTypes: search.SimpleClaimTypes{
-				Relation: search.RelationClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "PROPERTY", 0),
-							Confidence: 1.0,
-						},
-						Prop: search.GetStandardPropertyReference("IS"),
-						To:   search.GetStandardPropertyReference("PROPERTY"),
+			Reference: search.ReferenceClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
+						Confidence: 1.0,
 					},
+					Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
+					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
+				},
+			},
+			Relation: search.RelationClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "PROPERTY", 0),
+						Confidence: 1.0,
+					},
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("PROPERTY"),
 				},
 			},
 		}
 	} else if entity.Type == mediawiki.Item {
-		document.Active = &search.DocumentClaimTypes{
-			RefClaimTypes: search.RefClaimTypes{
-				Identifier: search.IdentifierClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_ID", 0),
-							Confidence: 1.0,
-						},
-						Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
-						Identifier: entity.ID,
+		document.Active = &search.ClaimTypes{
+			Identifier: search.IdentifierClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_ID", 0),
+						Confidence: 1.0,
 					},
-				},
-				Reference: search.ReferenceClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
-							Confidence: 1.0,
-						},
-						Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
-						IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
-					},
+					Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
+					Identifier: entity.ID,
 				},
 			},
-			SimpleClaimTypes: search.SimpleClaimTypes{
-				Relation: search.RelationClaims{
-					{
-						CoreClaim: search.CoreClaim{
-							ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "ITEM", 0),
-							Confidence: 1.0,
-						},
-						Prop: search.GetStandardPropertyReference("IS"),
-						To:   search.GetStandardPropertyReference("ITEM"),
+			Reference: search.ReferenceClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
+						Confidence: 1.0,
 					},
+					Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
+					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
+				},
+			},
+			Relation: search.RelationClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "ITEM", 0),
+						Confidence: 1.0,
+					},
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("ITEM"),
 				},
 			},
 		}
@@ -600,7 +588,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				return nil, errors.Errorf("%w: limited only to items related to main Wikipedia articles: %s", NotSupportedError, siteLink.Title)
 			}
 		}
-		document.Active.RefClaimTypes.Identifier = append(document.Active.RefClaimTypes.Identifier, search.IdentifierClaim{
+		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
 				Confidence: 1.0,
@@ -608,7 +596,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE_TITLE"),
 			Identifier: siteLink.Title,
 		})
-		document.Active.RefClaimTypes.Reference = append(document.Active.RefClaimTypes.Reference, search.ReferenceClaim{
+		document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
 				Confidence: 1.0,
@@ -621,7 +609,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 	if entity.DataType != nil {
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
-			document.Active.SimpleClaimTypes.Relation = append(document.Active.SimpleClaimTypes.Relation, search.RelationClaim{
+			document.Active.Relation = append(document.Active.Relation, search.RelationClaim{
 				CoreClaim: search.CoreClaim{
 					ID: search.GetID(NameSpaceWikidata, entity.ID, "IS", claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
@@ -648,9 +636,8 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 
 	englishDescriptions := getEnglishValues(entity.Descriptions)
 	if len(englishDescriptions) > 0 {
-		simple := &document.Active.SimpleClaimTypes
 		for i, description := range englishDescriptions {
-			simple.Text = append(simple.Text, search.TextClaim{
+			document.Active.Text = append(document.Active.Text, search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
 					Confidence: 1.0,

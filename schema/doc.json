@@ -13,10 +13,10 @@
       "$ref": "definitions.json#/$defs/mnemonic"
     },
     "active": {
-      "$ref": "definitions.json#/$defs/documentClaimTypes"
+      "$ref": "definitions.json#/$defs/claimTypes"
     },
     "inactive": {
-      "$ref": "definitions.json#/$defs/documentClaimTypes"
+      "$ref": "definitions.json#/$defs/claimTypes"
     }
   },
   "unevaluatedProperties": false

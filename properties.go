@@ -13,12 +13,10 @@ import (
 
 var (
 	// TODO: Determine automatically.
+	// "none" and "unknown" are not listed here because they can take any property.
 	claimTypes = []string{
-		// Ref claim types.
 		"identifier",
 		"reference",
-
-		// Simple claim types.
 		"text",
 		"string",
 		"label",
@@ -26,15 +24,11 @@ var (
 		"amount range",
 		"enumeration",
 		"relation",
-
-		// Time claim types.
+		"file",
 		"time",
 		"time range",
 		"duration",
 		"duration range",
-
-		// Item claim types.
-		"file",
 		"list",
 	}
 
@@ -167,56 +161,54 @@ func populateStandardProperties() {
 				Score: 0.0,
 			},
 			Mnemonic: Mnemonic(mnemonic),
-			Active: &DocumentClaimTypes{
-				SimpleClaimTypes: SimpleClaimTypes{
-					Text: TextClaims{
-						{
-							CoreClaim: CoreClaim{
-								ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
-								Confidence: 1.0,
+			Active: &ClaimTypes{
+				Text: TextClaims{
+					{
+						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID: getPropertyID("DESCRIPTION"),
+							Name: Name{
+								"en": "description",
 							},
-							Prop: DocumentReference{
-								ID: getPropertyID("DESCRIPTION"),
-								Name: Name{
-									"en": "description",
-								},
-								Score: 0.0,
-							},
-							HTML: TranslatableHTMLString{
-								"en": builtinProperty.DescriptionHTML,
-							},
+							Score: 0.0,
+						},
+						HTML: TranslatableHTMLString{
+							"en": builtinProperty.DescriptionHTML,
 						},
 					},
-					Relation: RelationClaims{
-						{
-							CoreClaim: CoreClaim{
-								ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
-								Confidence: 1.0,
+				},
+				Relation: RelationClaims{
+					{
+						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID: getPropertyID("IS"),
+							Name: Name{
+								"en": "is",
 							},
-							Prop: DocumentReference{
-								ID: getPropertyID("IS"),
-								Name: Name{
-									"en": "is",
-								},
-								Score: 0.0,
+							Score: 0.0,
+						},
+						To: DocumentReference{
+							ID: getPropertyID("PROPERTY"),
+							Name: Name{
+								"en": "property",
 							},
-							To: DocumentReference{
-								ID: getPropertyID("PROPERTY"),
-								Name: Name{
-									"en": "property",
-								},
-								Score: 0.0,
-							},
+							Score: 0.0,
 						},
 					},
 				},
 			},
 		}
 
-		simple := &StandardProperties[id].Active.SimpleClaimTypes
+		activeClaimTypes := StandardProperties[id].Active
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
-			simple.Relation = append(simple.Relation, RelationClaim{
+			activeClaimTypes.Relation = append(activeClaimTypes.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
 					ID:         getPropertyClaimID(mnemonic, isClaimMnemonic, 0),
 					Confidence: 1.0,
@@ -252,66 +244,64 @@ func populateStandardProperties() {
 					Score: 0.0,
 				},
 				Mnemonic: Mnemonic(mnemonic),
-				Active: &DocumentClaimTypes{
-					SimpleClaimTypes: SimpleClaimTypes{
-						Text: TextClaims{
-							{
-								CoreClaim: CoreClaim{
-									ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
-									Confidence: 1.0,
+				Active: &ClaimTypes{
+					Text: TextClaims{
+						{
+							CoreClaim: CoreClaim{
+								ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
+								Confidence: 1.0,
+							},
+							Prop: DocumentReference{
+								ID: getPropertyID("DESCRIPTION"),
+								Name: Name{
+									"en": "description",
 								},
-								Prop: DocumentReference{
-									ID: getPropertyID("DESCRIPTION"),
-									Name: Name{
-										"en": "description",
-									},
-									Score: 0.0,
-								},
-								HTML: TranslatableHTMLString{
-									"en": html.EscapeString(description),
-								},
+								Score: 0.0,
+							},
+							HTML: TranslatableHTMLString{
+								"en": html.EscapeString(description),
 							},
 						},
-						Relation: RelationClaims{
-							{
-								CoreClaim: CoreClaim{
-									ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
-									Confidence: 1.0,
-								},
-								Prop: DocumentReference{
-									ID: getPropertyID("IS"),
-									Name: Name{
-										"en": "is",
-									},
-									Score: 0.0,
-								},
-								To: DocumentReference{
-									ID: getPropertyID("PROPERTY"),
-									Name: Name{
-										"en": "property",
-									},
-									Score: 0.0,
-								},
+					},
+					Relation: RelationClaims{
+						{
+							CoreClaim: CoreClaim{
+								ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
+								Confidence: 1.0,
 							},
-							{
-								CoreClaim: CoreClaim{
-									ID:         getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0),
-									Confidence: 1.0,
+							Prop: DocumentReference{
+								ID: getPropertyID("IS"),
+								Name: Name{
+									"en": "is",
 								},
-								Prop: DocumentReference{
-									ID: getPropertyID("IS"),
-									Name: Name{
-										"en": "is",
-									},
-									Score: 0.0,
+								Score: 0.0,
+							},
+							To: DocumentReference{
+								ID: getPropertyID("PROPERTY"),
+								Name: Name{
+									"en": "property",
 								},
-								To: DocumentReference{
-									ID: getPropertyID("CLAIM_TYPE"),
-									Name: Name{
-										"en": "claim type",
-									},
-									Score: 0.0,
+								Score: 0.0,
+							},
+						},
+						{
+							CoreClaim: CoreClaim{
+								ID:         getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0),
+								Confidence: 1.0,
+							},
+							Prop: DocumentReference{
+								ID: getPropertyID("IS"),
+								Name: Name{
+									"en": "is",
 								},
+								Score: 0.0,
+							},
+							To: DocumentReference{
+								ID: getPropertyID("CLAIM_TYPE"),
+								Name: Name{
+									"en": "claim type",
+								},
+								Score: 0.0,
 							},
 						},
 					},

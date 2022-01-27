@@ -41,13 +41,7 @@
           "type": "object",
           "allOf": [
             {
-              "$ref": "#/$defs/refClaimTypes"
-            },
-            {
-              "$ref": "#/$defs/simpleClaimTypes"
-            },
-            {
-              "$ref": "#/$defs/timeClaimTypes"
+              "$ref": "#/$defs/claimTypes"
             }
           ],
           "unevaluatedProperties": false
@@ -58,7 +52,7 @@
         "confidence"
       ]
     },
-    "refClaimTypes": {
+    "claimTypes": {
       "type": "object",
       "properties": {
         "id": {
@@ -66,12 +60,7 @@
         },
         "ref": {
           "$ref": "#/$defs/referenceClaims"
-        }
-      }
-    },
-    "simpleClaimTypes": {
-      "type": "object",
-      "properties": {
+        },
         "text": {
           "$ref": "#/$defs/textClaims"
         },
@@ -101,12 +90,7 @@
         },
         "unknown": {
           "$ref": "#/$defs/unknownValueClaims"
-        }
-      }
-    },
-    "timeClaimTypes": {
-      "type": "object",
-      "properties": {
+        },
         "time": {
           "$ref": "#/$defs/timeClaims"
         },
@@ -118,23 +102,7 @@
         },
         "durationRange": {
           "$ref": "#/$defs/durationRangeClaims"
-        }
-      }
-    },
-    "documentClaimTypes": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/refClaimTypes"
         },
-        {
-          "$ref": "#/$defs/simpleClaimTypes"
-        },
-        {
-          "$ref": "#/$defs/timeClaimTypes"
-        }
-      ],
-      "properties": {
         "list": {
           "$ref": "#/$defs/listClaims"
         }
