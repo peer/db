@@ -35,6 +35,42 @@ func (c *counter) Count() int64 {
 	return atomic.LoadInt64((*int64)(c))
 }
 
+type Cache struct {
+	*lru.Cache
+	GetCount   uint64
+	FoundCount uint64
+}
+
+func NewCache(size int) (*Cache, error) {
+	cache, err := lru.New(lruCacheSize)
+	if err != nil {
+		return nil, err
+	}
+	return &Cache{
+		Cache:      cache,
+		GetCount:   0,
+		FoundCount: 0,
+	}, nil
+}
+
+func (c *Cache) Get(key interface{}) (value interface{}, ok bool) {
+	value, ok = c.Cache.Get(key)
+	atomic.AddUint64(&c.GetCount, 1)
+	if ok {
+		atomic.AddUint64(&c.FoundCount, 1)
+	}
+	return value, ok
+}
+
+func (c *Cache) HitRatio() float64 {
+	get := atomic.LoadUint64(&c.GetCount)
+	found := atomic.LoadUint64(&c.FoundCount)
+	if get == 0 {
+		return 0.0
+	}
+	return float64(found) / float64(get)
+}
+
 func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -46,7 +82,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 		return errors.WithStack(err)
 	}
 
-	cache, err := lru.New(lruCacheSize)
+	cache, err := NewCache(lruCacheSize)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -58,7 +94,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), c.Count(), stats.Indexed, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache hit: %0.2f, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.HitRatio(), c.Count(), stats.Indexed, stats.Failed)
 		}
 	}()
 
@@ -110,7 +146,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 
 type updateEmbeddedDocumentsVisitor struct {
 	Context  context.Context
-	Cache    *lru.Cache
+	Cache    *Cache
 	ESClient *elastic.Client
 	Changed  bool
 }
@@ -607,7 +643,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	return search.Keep, nil
 }
 
-func processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *lru.Cache, hit *elastic.SearchHit) errors.E {
+func processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *Cache, hit *elastic.SearchHit) errors.E {
 	var document search.Document
 	err := json.Unmarshal(hit.Source, &document)
 	if err != nil {
