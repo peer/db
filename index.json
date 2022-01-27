@@ -50,8 +50,14 @@
 		"dynamic": false,
 		"dynamic_templates": [
 			{
-				"scores": {
+				"scores_long": {
 					"match_mapping_type": "long",
+					"mapping": {
+						"type": "double"
+					}
+				},
+				"scores_double": {
+					"match_mapping_type": "double",
 					"mapping": {
 						"type": "double"
 					}
@@ -61,10 +67,10 @@
 		"properties": {
 			"name": {
 				"properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "english_plain"
-          }
+					"en": {
+						"type": "text",
+						"analyzer": "english_plain"
+					}
 				}
 			},
 			"otherNames": {
