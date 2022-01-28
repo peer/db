@@ -23,20 +23,6 @@ var (
 	NotSupportedError              = errors.Base("not supported")
 	notSupportedDataValueTypeError = errors.BaseWrap(NotSupportedError, "not supported data value type")
 	notSupportedDataTypeError      = errors.BaseWrap(NotSupportedError, "not supported data type")
-
-	nonMainWikipediaNamespaces = []string{
-		"User:",
-		"Wikipedia:",
-		"File:",
-		"MediaWiki:",
-		"Template:",
-		"Help:",
-		"Category:",
-		"Portal:",
-		"Draft:",
-		"TimedText:",
-		"Module:",
-	}
 )
 
 func GetDocumentID(id string) search.Identifier {
@@ -583,13 +569,6 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 		url := siteLink.URL
 		if url == "" {
 			url = fmt.Sprintf("https://en.wikipedia.org/wiki/%s", siteLink.Title)
-		}
-		for _, namespace := range nonMainWikipediaNamespaces {
-			if strings.HasPrefix(siteLink.Title, namespace) {
-				// Only items have sitelinks. We want only items related to main
-				// Wikipedia articles (main namespace).
-				return nil, errors.Errorf("%w: limited only to items related to main Wikipedia articles: %s", NotSupportedError, siteLink.Title)
-			}
 		}
 		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
