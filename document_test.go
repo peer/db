@@ -45,6 +45,7 @@ func TestDocument(t *testing.T) {
 		CoreClaim: search.CoreClaim{
 			ID: id,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, search.Document{
@@ -54,6 +55,7 @@ func TestDocument(t *testing.T) {
 					CoreClaim: search.CoreClaim{
 						ID: id,
 					},
+					Prop: search.GetStandardPropertyReference("ARTICLE"),
 				},
 			},
 		},
@@ -63,12 +65,23 @@ func TestDocument(t *testing.T) {
 		CoreClaim: search.CoreClaim{
 			ID: id,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, claim)
+	claims := doc.Get(search.GetStandardPropertyID("ARTICLE"))
+	assert.Equal(t, []search.Claim{
+		&search.NoValueClaim{
+			CoreClaim: search.CoreClaim{
+				ID: id,
+			},
+			Prop: search.GetStandardPropertyReference("ARTICLE"),
+		},
+	}, claims)
 	claim = doc.RemoveByID(id)
 	assert.Equal(t, &search.NoValueClaim{
 		CoreClaim: search.CoreClaim{
 			ID: id,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, claim)
 	assert.Equal(t, search.Document{}, doc)
 
@@ -78,6 +91,7 @@ func TestDocument(t *testing.T) {
 		CoreClaim: search.CoreClaim{
 			ID: id2,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, &search.NoValueClaim{
@@ -89,26 +103,31 @@ func TestDocument(t *testing.T) {
 						CoreClaim: search.CoreClaim{
 							ID: id2,
 						},
+						Prop: search.GetStandardPropertyReference("ARTICLE"),
 					},
 				},
 			},
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, claim)
 	metaClaim := claim.GetMetaByID(id2)
 	assert.Equal(t, &search.UnknownValueClaim{
 		CoreClaim: search.CoreClaim{
 			ID: id2,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, metaClaim)
 	metaClaim = claim.RemoveMetaByID(id2)
 	assert.Equal(t, &search.UnknownValueClaim{
 		CoreClaim: search.CoreClaim{
 			ID: id2,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, metaClaim)
 	assert.Equal(t, &search.NoValueClaim{
 		CoreClaim: search.CoreClaim{
 			ID: id,
 		},
+		Prop: search.GetStandardPropertyReference("ARTICLE"),
 	}, claim)
 }

@@ -154,10 +154,13 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
-// It does not return a valid reference: name is missing.
+// It does not return a valid reference: name is set to the ID itself for the language "XX".
 func getDocumentReference(id string) search.DocumentReference {
 	return search.DocumentReference{
-		ID:    GetDocumentID(id),
+		ID: GetDocumentID(id),
+		Name: map[string]string{
+			"XX": id,
+		},
 		Score: 0.0,
 	}
 }

@@ -116,7 +116,7 @@ var (
 )
 
 func GetStandardPropertyReference(mnemonic string) DocumentReference {
-	property, ok := StandardProperties[string(getPropertyID(mnemonic))]
+	property, ok := StandardProperties[string(GetStandardPropertyID(mnemonic))]
 	if !ok {
 		panic(errors.Errorf(`standard property for mnemonic "%s" cannot be found`, mnemonic))
 	}
@@ -140,7 +140,7 @@ func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
 	return Identifier(identifier.FromUUID(res))
 }
 
-func getPropertyID(mnemonic string) Identifier {
+func GetStandardPropertyID(mnemonic string) Identifier {
 	return GetID(NameSpaceStandardProperties, mnemonic)
 }
 
@@ -151,7 +151,7 @@ func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int) Identifie
 func populateStandardProperties() {
 	for _, builtinProperty := range builtinProperties {
 		mnemonic := getMnemonic(builtinProperty.Name)
-		id := string(getPropertyID(mnemonic))
+		id := string(GetStandardPropertyID(mnemonic))
 		StandardProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
@@ -169,7 +169,7 @@ func populateStandardProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: getPropertyID("DESCRIPTION"),
+							ID: GetStandardPropertyID("DESCRIPTION"),
 							Name: Name{
 								"en": "description",
 							},
@@ -187,14 +187,14 @@ func populateStandardProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: getPropertyID("IS"),
+							ID: GetStandardPropertyID("IS"),
 							Name: Name{
 								"en": "is",
 							},
 							Score: 0.0,
 						},
 						To: DocumentReference{
-							ID: getPropertyID("PROPERTY"),
+							ID: GetStandardPropertyID("PROPERTY"),
 							Name: Name{
 								"en": "property",
 							},
@@ -214,14 +214,14 @@ func populateStandardProperties() {
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID: getPropertyID("IS"),
+					ID: GetStandardPropertyID("IS"),
 					Name: Name{
 						"en": "is",
 					},
 					Score: 0.0,
 				},
 				To: DocumentReference{
-					ID: getPropertyID(isClaimMnemonic),
+					ID: GetStandardPropertyID(isClaimMnemonic),
 					Name: Name{
 						"en": isClaim,
 					},
@@ -233,7 +233,7 @@ func populateStandardProperties() {
 		for _, claimType := range claimTypes {
 			name := fmt.Sprintf(`"%s" claim type`, claimType)
 			mnemonic := getMnemonic(name)
-			id := string(getPropertyID(mnemonic))
+			id := string(GetStandardPropertyID(mnemonic))
 			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
 			StandardProperties[id] = Document{
 				CoreDocument: CoreDocument{
@@ -252,7 +252,7 @@ func populateStandardProperties() {
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: getPropertyID("DESCRIPTION"),
+								ID: GetStandardPropertyID("DESCRIPTION"),
 								Name: Name{
 									"en": "description",
 								},
@@ -270,14 +270,14 @@ func populateStandardProperties() {
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: getPropertyID("IS"),
+								ID: GetStandardPropertyID("IS"),
 								Name: Name{
 									"en": "is",
 								},
 								Score: 0.0,
 							},
 							To: DocumentReference{
-								ID: getPropertyID("PROPERTY"),
+								ID: GetStandardPropertyID("PROPERTY"),
 								Name: Name{
 									"en": "property",
 								},
@@ -290,14 +290,14 @@ func populateStandardProperties() {
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: getPropertyID("IS"),
+								ID: GetStandardPropertyID("IS"),
 								Name: Name{
 									"en": "is",
 								},
 								Score: 0.0,
 							},
 							To: DocumentReference{
-								ID: getPropertyID("CLAIM_TYPE"),
+								ID: GetStandardPropertyID("CLAIM_TYPE"),
 								Name: Name{
 									"en": "claim type",
 								},
