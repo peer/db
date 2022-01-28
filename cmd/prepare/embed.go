@@ -18,12 +18,32 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
 const (
 	progressPrintRate = 30 * time.Second
 	lruCacheSize      = 1000000
 )
+
+// For easier debugging.
+var reverseIDs = map[search.Identifier]string{}
+
+func init() {
+	// TODO: This takes time to initialize. Could we find a better approach?
+	//       Store Wikidata ID into the name of the reference, temporarily (which on valid references
+	//       then gets replaced with the real name, and invalid references are removed alltogether)?
+	for i := 0; i < 130000000; i++ {
+		q := fmt.Sprintf("Q%d", i)
+		id := wikipedia.GetDocumentID(q)
+		reverseIDs[id] = q
+	}
+	for i := 0; i < 20000; i++ {
+		p := fmt.Sprintf("P%d", i)
+		id := wikipedia.GetDocumentID(p)
+		reverseIDs[id] = p
+	}
+}
 
 type counter int64
 
@@ -137,10 +157,11 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 }
 
 type updateEmbeddedDocumentsVisitor struct {
-	Context  context.Context
-	Cache    *Cache
-	ESClient *elastic.Client
-	Changed  bool
+	Context    context.Context
+	Cache      *Cache
+	ESClient   *elastic.Client
+	Changed    bool
+	DocumentID search.Identifier
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(id search.Identifier) (*search.DocumentReference, errors.E) {
@@ -191,7 +212,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -215,7 +236,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -239,7 +260,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (sea
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -263,7 +284,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -287,7 +308,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) (s
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -311,7 +332,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -335,7 +356,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -359,7 +380,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.Enumerat
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -383,7 +404,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -398,7 +419,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.To.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.To.ID, reverseIDs[claim.To.ID])
 		return search.Drop, nil
 	}
 
@@ -422,7 +443,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -446,7 +467,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -470,7 +491,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (sea
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -494,7 +515,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -518,7 +539,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitDuration(claim *search.DurationCla
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -542,7 +563,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitDurationRange(claim *search.Durati
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -566,7 +587,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -590,7 +611,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Prop.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Prop.ID, reverseIDs[claim.Prop.ID])
 		return search.Drop, nil
 	}
 
@@ -605,7 +626,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	}
 
 	if ref == nil {
-		fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, claim.Element.ID)
+		fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, claim.Element.ID, reverseIDs[claim.Element.ID])
 		return search.Drop, nil
 	}
 
@@ -622,7 +643,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 		}
 
 		if ref == nil {
-			fmt.Fprintf(os.Stderr, "claim %s has a document reference to %s, but document does not exist\n", claim.ID, child.Prop.ID)
+			fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, reverseIDs[v.DocumentID], claim.ID, child.Prop.ID, reverseIDs[claim.Prop.ID])
 			return search.Drop, nil
 		}
 
@@ -654,10 +675,11 @@ func processDocument(ctx context.Context, esClient *elastic.Client, processor *e
 	cache.Add(document.ID, ref)
 
 	v := updateEmbeddedDocumentsVisitor{
-		Context:  ctx,
-		Cache:    cache,
-		ESClient: esClient,
-		Changed:  false,
+		Context:    ctx,
+		Cache:      cache,
+		ESClient:   esClient,
+		Changed:    false,
+		DocumentID: document.ID,
 	}
 	errE := document.Visit(&v)
 	if errE != nil {
