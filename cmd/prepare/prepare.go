@@ -55,14 +55,27 @@ func prepare(config *Config) errors.E {
 	}
 	defer processor.Close()
 
-	saveStandardProperties(config, processor)
+	errE = saveStandardProperties(ctx, config, esClient)
+	if errE != nil {
+		return errE
+	}
 
 	return updateEmbeddedDocuments(ctx, config, esClient, processor)
 }
 
-func saveStandardProperties(config *Config, processor *elastic.BulkProcessor) {
+func saveStandardProperties(ctx context.Context, config *Config, esClient *elastic.Client) errors.E {
 	for id, property := range search.StandardProperties {
-		req := elastic.NewBulkIndexRequest().Index("docs").Id(id).Doc(property)
-		processor.Add(req)
+		// We do not use a bulk processor because we want these documents to be available immediately.
+		_, err := esClient.Index().Index("docs").Id(id).BodyJson(&property).Do(ctx)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
+	// Make sure all added documents are available for search.
+	_, err := esClient.Refresh().Index("docs").Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
