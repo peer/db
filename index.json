@@ -322,6 +322,33 @@
 							}
 						}
 					},
+					"file": {
+						"type": "nested",
+						"properties": {
+							"_id": {
+								"type": "keyword",
+								"doc_values": false
+							},
+							"confidence": {
+								"type": "double"
+							},
+							"prop": {
+								"properties": {
+									"_id": {
+										"type": "keyword",
+										"doc_values": false
+									}
+								}
+							},
+							"type": {
+								"type": "keyword"
+							},
+							"url": {
+								"type": "keyword",
+								"doc_values": false
+							}
+						}
+					},
 					"none": {
 						"type": "nested",
 						"properties": {
@@ -469,33 +496,6 @@
 							},
 							"upper": {
 								"type": "double"
-							}
-						}
-					},
-					"file": {
-						"type": "nested",
-						"properties": {
-							"_id": {
-								"type": "keyword",
-								"doc_values": false
-							},
-							"confidence": {
-								"type": "double"
-							},
-							"prop": {
-								"properties": {
-									"_id": {
-										"type": "keyword",
-										"doc_values": false
-									}
-								}
-							},
-							"type": {
-								"type": "keyword"
-							},
-							"url": {
-								"type": "keyword",
-								"doc_values": false
 							}
 						}
 					},
