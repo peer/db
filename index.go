@@ -20,11 +20,6 @@ func EnsureIndex(ctx context.Context) (*elastic.Client, errors.E) {
 		return nil, errors.WithStack(err)
 	}
 
-	_, _, err = client.Ping(elastic.DefaultURL).Do(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
 	exists, err := client.IndexExists("docs").Do(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)

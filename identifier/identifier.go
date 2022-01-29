@@ -3,11 +3,14 @@ package identifier
 import (
 	"crypto/rand"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
 )
+
+var idRegex = regexp.MustCompile(`^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{22}$`)
 
 func FromUUID(data uuid.UUID) string {
 	res := base58.Encode(data[:])
@@ -30,4 +33,8 @@ func NewRandomFromReader(r io.Reader) string {
 	}
 	res := base58.Encode(data)
 	return res[0:22]
+}
+
+func Valid(id string) bool {
+	return idRegex.MatchString(id)
 }
