@@ -56,6 +56,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 			//       See: https://github.com/golang/go/pull/50904
 			w.Header().Set("Content-Length", resp.Header.Get("Content-Length"))
 		}
+		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Etag", etag)
 
 		// See: https://github.com/golang/go/issues/50905
