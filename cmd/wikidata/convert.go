@@ -75,6 +75,11 @@ func convert(config *Config) errors.E {
 		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())
+			} else if response.Errors {
+				for _, failed := range response.Failed() {
+					fmt.Fprintf(os.Stderr, "Indexing error %d (%s): %s [type=%s]\n", failed.Status, http.StatusText(failed.Status), failed.Error.Reason, failed.Error.Type)
+				}
+				fmt.Fprintf(os.Stderr, "Indexing error\n")
 			}
 		},
 	).Do(ctx)
