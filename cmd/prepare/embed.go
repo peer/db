@@ -638,6 +638,9 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 
 		if ref == nil {
 			v.Changed = true
+			// We might want just to remove a child, but because this codepath should not really by Wikidata
+			// data (we do not convert any Wikidata statements to PeerDB list claims, and this is about
+			// hierarchical lists) it is probably a reasonable simplification.
 			return search.Drop, nil
 		}
 

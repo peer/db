@@ -16,6 +16,8 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
+// TODO: Support slug per document.
+
 func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		ctx := req.Context()
