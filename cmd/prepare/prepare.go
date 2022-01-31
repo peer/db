@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 
@@ -37,7 +38,7 @@ func prepare(config *Config) errors.E {
 		}
 	}()
 
-	esClient, errE := search.EnsureIndex(ctx)
+	esClient, errE := search.EnsureIndex(ctx, cleanhttp.DefaultPooledClient())
 	if errE != nil {
 		return errE
 	}

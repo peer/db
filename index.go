@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	_ "embed"
+	"net/http"
 
 	"github.com/olivere/elastic/v7"
 
@@ -14,8 +15,10 @@ import (
 //go:embed index.json
 var indexConfiguration string
 
-func EnsureIndex(ctx context.Context) (*elastic.Client, errors.E) {
-	client, err := elastic.NewClient()
+func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client, errors.E) {
+	client, err := elastic.NewClient(
+		elastic.SetHttpClient(httpClient),
+	)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

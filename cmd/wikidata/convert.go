@@ -65,7 +65,7 @@ func convert(config *Config) errors.E {
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
-	esClient, errE := search.EnsureIndex(ctx)
+	esClient, errE := search.EnsureIndex(ctx, client.HTTPClient)
 	if errE != nil {
 		return errE
 	}
