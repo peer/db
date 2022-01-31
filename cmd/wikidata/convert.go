@@ -54,6 +54,8 @@ func convert(config *Config) errors.E {
 	}()
 
 	client := retryablehttp.NewClient()
+	client.RetryWaitMax = 10 * 60 * time.Second
+	client.RetryMax = 9
 
 	// We silent debug logging from HTTP client.
 	// TODO: Configure proper logger.

@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/julienschmidt/httprouter"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
@@ -11,7 +12,9 @@ import (
 )
 
 func listen(config *Config) errors.E {
-	client, err := elastic.NewClient()
+	client, err := elastic.NewClient(
+		elastic.SetHttpClient(cleanhttp.DefaultPooledClient()),
+	)
 	if err != nil {
 		return errors.WithStack(err)
 	}

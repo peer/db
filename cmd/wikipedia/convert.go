@@ -43,6 +43,8 @@ func convert(config *Config) errors.E {
 	}()
 
 	client := retryablehttp.NewClient()
+	client.RetryWaitMax = 10 * 60 * time.Second
+	client.RetryMax = 9
 
 	// Set User-Agent header.
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
