@@ -87,8 +87,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			indexed := stats.Indexed - stats.Failed
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), indexed, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), stats.Succeeded, stats.Failed)
 		}
 	}()
 
