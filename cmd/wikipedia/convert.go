@@ -77,7 +77,8 @@ func convert(config *Config) errors.E {
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Indexed, stats.Failed)
+			indexed := stats.Indexed - stats.Failed
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), indexed, stats.Failed)
 		},
 	}, func(ctx context.Context, article mediawiki.Article) errors.E {
 		return processArticle(ctx, config, esClient, processor, article)
