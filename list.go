@@ -16,13 +16,16 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-type Search struct {
+// Search represents current search state.
+// Search states form a tree with a link to the previous (parent) state.
+type search struct {
 	ID       string
 	ParentID string
 	Text     string
 }
 
-func (q *Search) Encode() string {
+// Encode encodes search state into a string suitable for use in a query string.
+func (q *search) Encode() string {
 	v := url.Values{}
 	v.Set("q", q.Text)
 	v.Set("s", q.ID)
@@ -32,12 +35,14 @@ func (q *Search) Encode() string {
 // TODO: Use a database instead.
 var searches = sync.Map{}
 
-type Field struct {
+// Field describes a nested field for ElasticSearch to search on.
+type field struct {
 	Prefix string
 	Field  string
 }
 
-func makeSearch(form url.Values) *Search {
+// MakeSearch creates a new search state given optional existing state and new queries.
+func makeSearch(form url.Values) *search {
 	parentSearchID := form.Get("s")
 	if !identifier.Valid(parentSearchID) {
 		parentSearchID = ""
@@ -46,7 +51,7 @@ func makeSearch(form url.Values) *Search {
 	if parentSearchID != "" {
 		ps, ok := searches.Load(parentSearchID)
 		if ok {
-			parentSearch := ps.(*Search)
+			parentSearch := ps.(*search)
 			// There was no change.
 			if parentSearch.Text == textQuery {
 				return parentSearch
@@ -56,20 +61,18 @@ func makeSearch(form url.Values) *Search {
 			parentSearchID = ""
 		}
 	}
-	search := &Search{
+	s := &search{
 		ID:       identifier.NewRandom(),
 		ParentID: parentSearchID,
 		Text:     textQuery,
 	}
-	searches.Store(search.ID, search)
-	return search
+	searches.Store(s.ID, s)
+	return s
 }
 
-type ListResult struct {
-	ID string `json:"_id"`
-}
-
-func getSearch(form url.Values) (*Search, bool) {
+// GetSearch resolves an existing search state if possible.
+// If not, it creates a new search state.
+func getSearch(form url.Values) (*search, bool) {
 	searchID := form.Get("s")
 	if !identifier.Valid(searchID) {
 		return makeSearch(form), false
@@ -79,21 +82,31 @@ func getSearch(form url.Values) (*Search, bool) {
 		return makeSearch(form), false
 	}
 	textQuery := form.Get("q")
-	search := s.(*Search)
+	ss := s.(*search)
 	// There was a change, we make current search
 	// a parent search to a new search.
-	if search.Text != textQuery {
-		search = &Search{
+	if ss.Text != textQuery {
+		ss = &search{
 			ID:       identifier.NewRandom(),
 			ParentID: searchID,
 			Text:     textQuery,
 		}
-		searches.Store(search.ID, search)
-		return search, false
+		searches.Store(ss.ID, ss)
+		return ss, false
 	}
-	return search, true
+	return ss, true
 }
 
+// ListResult is returned from the ListGet API endpoint.
+type listResult struct {
+	ID string `json:"_id"`
+}
+
+// ListGet searches ElasticSearch using provided search state and returns to the API caller
+// a JSON with an array of IDs of found documents. If called using HTTP2, it also pushes all
+// found documents to the client. If search state is invalid, it redirects to a valid one.
+// It supports compression based on accepted content encoding and range queries.
+// It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
@@ -101,10 +114,10 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			badRequest(w, req, errors.WithStack(err))
 			return
 		}
-		search, ok := getSearch(req.Form)
+		s, ok := getSearch(req.Form)
 		if !ok {
 			// Something was not OK, so we redirect to the correct URL.
-			w.Header().Set("Location", "/d?"+search.Encode())
+			w.Header().Set("Location", "/d?"+s.Encode())
 			w.WriteHeader(http.StatusSeeOther)
 			return
 		}
@@ -120,21 +133,21 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 		// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 		ctx := req.Context()
 		searchService := client.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr)
-		if search.Text == "" {
+		if s.Text == "" {
 			matchQuery := elastic.NewMatchAllQuery()
 			searchService = searchService.Query(matchQuery)
 		} else {
 			boolQuery := elastic.NewBoolQuery()
 			// TODO: Check which analyzer is used.
-			boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(search.Text).Field("name.en").Field("otherNames.en").DefaultOperator("AND"))
-			for _, field := range []Field{
+			boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(s.Text).Field("name.en").Field("otherNames.en").DefaultOperator("AND"))
+			for _, field := range []field{
 				{"active.id", "id"},
 				{"active.ref", "iri"},
 				{"active.text", "html.en"},
 				{"active.string", "string"},
 			} {
 				// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-				q := elastic.NewSimpleQueryStringQuery(search.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+				q := elastic.NewSimpleQueryStringQuery(s.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
 				boolQuery = boolQuery.Should(elastic.NewNestedQuery(field.Prefix, q))
 			}
 			searchService = searchService.Query(boolQuery)
@@ -155,9 +168,9 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			},
 		}
 
-		results := make([]ListResult, len(searchResult.Hits.Hits))
+		results := make([]listResult, len(searchResult.Hits.Hits))
 		for i, hit := range searchResult.Hits.Hits {
-			results[i] = ListResult{ID: hit.Id}
+			results[i] = listResult{ID: hit.Id}
 			if pusher != nil {
 				err := pusher.Push("/d/"+hit.Id, options)
 				if errors.Is(err, http.ErrNotSupported) {
@@ -187,8 +200,8 @@ func ListPost(client *elastic.Client) func(http.ResponseWriter, *http.Request, h
 			badRequest(w, req, errors.WithStack(err))
 			return
 		}
-		search := makeSearch(req.Form)
-		w.Header().Set("Location", "/d?"+search.Encode())
+		s := makeSearch(req.Form)
+		w.Header().Set("Location", "/d?"+s.Encode())
 		w.WriteHeader(http.StatusSeeOther)
 	}
 }
