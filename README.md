@@ -43,7 +43,7 @@ requires a TLS certificate because it uses HTTP2.
 
 To populate search with Wikipedia articles and Wikidata data, run:
 
-``sh
+```sh
 make
 ./wikidata
 ./prepare
