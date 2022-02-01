@@ -12,6 +12,50 @@ to be used and merged together.
 
 As a demonstration we provide a search service for Wikipedia articles and Wikidata data.
 
+## Installation
+
+### Backend
+
+Backend is implemented in Go and provides a HTTP2 API. It requires an ElasticSearch instance.
+
+To run backend locally first start an an ElasticSearch instance:
+
+```sh
+docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.16.3
+```
+
+Then clone the repository and run:
+
+```sh
+make
+go install filippo.io/mkcert@latest
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+./search -c localhost+2.pem -k localhost+2-key.pem
+```
+This will expose [https://localhost:8080/d](https://localhost:8080/d) search API endpoint.
+
+[mkcert](https://github.com/FiloSottile/mkcert) is a tool to create a local CA
+keypair which is then used to create TLS certificates for development. PeerDB Search
+requires a TLS certificate because it uses HTTP2.
+
+### Wikipedia search
+
+To populate search with Wikipedia articles and Wikidata data, run:
+
+``sh
+make
+./wikidata
+./prepare
+./wikipedia
+```
+
+* `wikidata` downloads Wikidata dump (70GB) and imports data into ElasticSearch (runtime 1-2 days).
+* `prepare` goes over imported documents and process them for PeerDB Search (runtime 1 day).
+* `wikipedia` downloads English Wikipedia dump (100GB) and imports articles (runtime 1 day)
+
+The whole process requires substantial amount of disk space (at least 500 GB), bandwidth, and time.
+
 ## GitHub mirror
 
 There is also a [read-only GitHub mirror available](https://github.com/peer/db-search),
