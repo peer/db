@@ -33,6 +33,7 @@ mkcert -install
 mkcert localhost 127.0.0.1 ::1
 ./search -c localhost+2.pem -k localhost+2-key.pem
 ```
+
 This will expose [https://localhost:8080/d](https://localhost:8080/d) search API endpoint.
 
 [mkcert](https://github.com/FiloSottile/mkcert) is a tool to create a local CA
