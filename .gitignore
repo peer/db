@@ -1,3 +1,6 @@
+tests.xml
+coverage.*
+codeclimate.json
 /.cache
 /output
 /wikidata
