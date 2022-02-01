@@ -61,3 +61,10 @@ The whole process requires substantial amount of disk space (at least 500 GB), b
 
 There is also a [read-only GitHub mirror available](https://github.com/peer/db-search),
 if you need to fork the project there.
+
+## Funding
+
+This project was funded through the [NGI0 Discovery Fund](https://nlnet.nl/discovery/), a
+fund established by NLnet with financial support from the European Commission's
+[Next Generation Internet](https://ngi.eu/) programme, under the aegis of DG Communications
+Networks, Content and Technology under grant agreement No 825322.
