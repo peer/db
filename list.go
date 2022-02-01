@@ -123,6 +123,9 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			return
 		}
 
+		// TODO: Determine which operator should be the default?
+		// TODO: Make sure right analyzers are used for all fields.
+		// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 		ctx := req.Context()
 		searchService := client.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr)
 		if search.Text == "" {
@@ -130,6 +133,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			searchService = searchService.Query(matchQuery)
 		} else {
 			boolQuery := elastic.NewBoolQuery()
+			// TODO: Check which analyzer is used.
 			boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(search.Text).Field("name.en").Field("otherNames.en").DefaultOperator("AND"))
 			for _, field := range []Field{
 				{"active.id", "id"},
@@ -137,7 +141,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 				{"active.text", "html.en"},
 				{"active.string", "string"},
 			} {
-				// TODO: Can we use simple query for keyword fields?
+				// TODO: Can we use simple query for keyword fields? Which analyzer is used?
 				q := elastic.NewSimpleQueryStringQuery(search.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
 				boolQuery = boolQuery.Should(elastic.NewNestedQuery(field.Prefix, q))
 			}
