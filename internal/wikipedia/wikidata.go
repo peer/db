@@ -17,6 +17,13 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
+const (
+	highConfidence   = 1.0
+	mediumConfidence = 0.5
+	lowConfidence    = 0.0
+	noConfidence     = -1.0
+)
+
 var (
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
@@ -131,11 +138,11 @@ func getPropertyClaimType(dataType mediawiki.DataType) string {
 func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementRank) search.Confidence {
 	switch rank {
 	case mediawiki.Preferred:
-		return 1.0
+		return highConfidence
 	case mediawiki.Normal:
-		return 0.5
+		return mediumConfidence
 	case mediawiki.Deprecated:
-		return -1.0
+		return noConfidence
 	}
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
@@ -151,7 +158,10 @@ func getDocumentReference(id string) search.DocumentReference {
 	}
 }
 
-func processSnak(ctx context.Context, client *retryablehttp.Client, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak) (search.Claim, errors.E) {
+func processSnak( //nolint:ireturn
+	ctx context.Context, client *retryablehttp.Client, prop string, idArgs []interface{},
+	confidence search.Confidence, snak mediawiki.Snak,
+) (search.Claim, errors.E) {
 	id := search.GetID(NameSpaceWikidata, idArgs...)
 
 	switch snak.SnakType {
@@ -183,7 +193,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 	case mediawiki.ErrorValue:
 		return nil, errors.New(string(value))
 	case mediawiki.StringValue:
-		switch snak.DataType {
+		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.ExternalID:
 			return &search.IdentifierClaim{
 				CoreClaim: search.CoreClaim{
@@ -222,7 +232,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         claimID,
-									Confidence: 1.0,
+									Confidence: highConfidence,
 								},
 								Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
 								IRI:  fileInfo.PageURL,
@@ -256,7 +266,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 			return nil, errors.Errorf("unexpected data type for StringValue: %d", snak.DataType)
 		}
 	case mediawiki.WikiBaseEntityIDValue:
-		switch snak.DataType {
+		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.WikiBaseItem:
 			if value.Type != mediawiki.ItemType {
 				return nil, errors.Errorf("WikiBaseItem data type, but WikiBaseEntityIDValue has type %d, not ItemType", value.Type)
@@ -293,7 +303,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 	case mediawiki.GlobeCoordinateValue:
 		return nil, errors.Errorf("%w: GlobeCoordinateValue", notSupportedDataValueTypeError)
 	case mediawiki.MonolingualTextValue:
-		switch snak.DataType {
+		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.MonolingualText:
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
 				return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
@@ -310,7 +320,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 			return nil, errors.Errorf("unexpected data type for MonolingualTextValue: %d", snak.DataType)
 		}
 	case mediawiki.QuantityValue:
-		switch snak.DataType {
+		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.Quantity:
 			amount, exact := value.Amount.Float64()
 			if !exact && math.IsInf(amount, 0) {
@@ -370,7 +380,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 						{
 							CoreClaim: search.CoreClaim{
 								ID:         claimID,
-								Confidence: 1.0,
+								Confidence: highConfidence,
 							},
 							Prop: search.GetStandardPropertyReference("UNIT"),
 							To:   getDocumentReference(unitID),
@@ -384,7 +394,7 @@ func processSnak(ctx context.Context, client *retryablehttp.Client, prop string,
 			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", snak.DataType)
 		}
 	case mediawiki.TimeValue:
-		switch snak.DataType {
+		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.Time:
 			// TODO: Convert timestamps in Julian calendar to ones in Gregorian calendar.
 			return &search.TimeClaim{
@@ -411,17 +421,25 @@ func addQualifiers(
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
-			qualifierClaim, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, 0.5, qualifier)
+			qualifierClaim, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, mediumConfidence, qualifier)
 			if errors.Is(err, NotSupportedError) {
 				// We know what we do not support, ignore.
 				continue
 			} else if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: snak cannot be processed: %s\n", statementID, prop, entityID, p, i, err.Error())
+				fmt.Fprintf(
+					os.Stderr,
+					"statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: snak cannot be processed: %s\n",
+					statementID, prop, entityID, p, i, err.Error(),
+				)
 				continue
 			}
 			err = claim.AddMeta(qualifierClaim)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: cannot be added to meta claims\n", statementID, prop, entityID, p, i)
+				fmt.Fprintf(
+					os.Stderr,
+					"statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: cannot be added to meta claims\n",
+					statementID, prop, entityID, p, i,
+				)
 			}
 		}
 	}
@@ -429,17 +447,24 @@ func addQualifiers(
 }
 
 // addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
-func addReference(ctx context.Context, client *retryablehttp.Client, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference) errors.E {
+func addReference(
+	ctx context.Context, client *retryablehttp.Client, claim search.Claim, entityID, prop,
+	statementID string, i int, reference mediawiki.Reference,
+) errors.E {
 	var referenceClaim search.Claim
 
 	for _, p := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[p] {
-			c, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, 0.5, snak)
+			c, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak)
 			if errors.Is(err, NotSupportedError) {
 				// We know what we do not support, ignore.
 				continue
 			} else if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: %s\n", statementID, prop, entityID, i, p, j, err.Error())
+				fmt.Fprintf(
+					os.Stderr,
+					"statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: %s\n",
+					statementID, prop, entityID, i, p, j, err.Error(),
+				)
 				continue
 			}
 			if referenceClaim == nil {
@@ -447,7 +472,11 @@ func addReference(ctx context.Context, client *retryablehttp.Client, claim searc
 			} else {
 				err = referenceClaim.AddMeta(c)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: cannot be added to meta claims\n", statementID, prop, entityID, i, p, j)
+					fmt.Fprintf(
+						os.Stderr,
+						"statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: cannot be added to meta claims\n",
+						statementID, prop, entityID, i, p, j,
+					)
 				}
 			}
 		}
@@ -459,7 +488,11 @@ func addReference(ctx context.Context, client *retryablehttp.Client, claim searc
 
 	err := claim.AddMeta(referenceClaim)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: cannot be added to meta claims\n", statementID, prop, entityID, i)
+		fmt.Fprintf(
+			os.Stderr,
+			"statement %s of property %s for entity %s has a reference %d that cannot be processed: cannot be added to meta claims\n",
+			statementID, prop, entityID, i,
+		)
 	}
 
 	return nil
@@ -500,7 +533,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
 					Identifier: entity.ID,
@@ -510,7 +543,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
@@ -520,7 +553,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "PROPERTY", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("IS"),
 					To:   search.GetStandardPropertyReference("PROPERTY"),
@@ -533,7 +566,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_ID", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
 					Identifier: entity.ID,
@@ -543,7 +576,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
@@ -553,7 +586,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "ITEM", 0),
-						Confidence: 1.0,
+						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("IS"),
 					To:   search.GetStandardPropertyReference("ITEM"),
@@ -573,7 +606,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
-				Confidence: 1.0,
+				Confidence: highConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE_TITLE"),
 			Identifier: siteLink.Title,
@@ -581,7 +614,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 		document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
-				Confidence: 1.0,
+				Confidence: highConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE"),
 			IRI:  url,
@@ -596,7 +629,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 					ID: search.GetID(NameSpaceWikidata, entity.ID, "IS", claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
-					Confidence: 0.0,
+					Confidence: lowConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("IS"),
 				To:   search.GetStandardPropertyReference(claimTypeMnemonic),
@@ -622,7 +655,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 			document.Active.Text = append(document.Active.Text, search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
-					Confidence: 1.0,
+					Confidence: highConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{

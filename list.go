@@ -51,7 +51,7 @@ func makeSearch(form url.Values) *search {
 	if parentSearchID != "" {
 		ps, ok := searches.Load(parentSearchID)
 		if ok {
-			parentSearch := ps.(*search)
+			parentSearch := ps.(*search) //nolint:errcheck
 			// There was no change.
 			if parentSearch.Text == textQuery {
 				return parentSearch
@@ -82,7 +82,7 @@ func getSearch(form url.Values) (*search, bool) {
 		return makeSearch(form), false
 	}
 	textQuery := form.Get("q")
-	ss := s.(*search)
+	ss := s.(*search) //nolint:errcheck
 	// There was a change, we make current search
 	// a parent search to a new search.
 	if ss.Text != textQuery {
@@ -122,7 +122,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			return
 		}
 
-		contentEncoding := httputil.NegotiateContentEncoding(req, []string{"br", "gzip", "deflate", "identity"})
+		contentEncoding := httputil.NegotiateContentEncoding(req, []string{compressionBrotli, compressionGzip, compressionDeflate, compressionIdentity})
 		if contentEncoding == "" {
 			http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 			return
@@ -132,7 +132,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 		// TODO: Make sure right analyzers are used for all fields.
 		// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 		ctx := req.Context()
-		searchService := client.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr)
+		searchService := client.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr) //nolint:gomnd
 		if s.Text == "" {
 			matchQuery := elastic.NewMatchAllQuery()
 			searchService = searchService.Query(matchQuery)
@@ -182,7 +182,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			}
 		}
 
-		total := strconv.FormatInt(searchResult.Hits.TotalHits.Value, 10)
+		total := strconv.FormatInt(searchResult.Hits.TotalHits.Value, 10) //nolint:gomnd
 		if searchResult.Hits.TotalHits.Relation == "gte" {
 			total += "+"
 		}

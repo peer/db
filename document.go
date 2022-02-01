@@ -718,7 +718,7 @@ func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
 	return Keep, nil
 }
 
-func (d *Document) GetByID(id Identifier) Claim {
+func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -861,7 +861,7 @@ func (d *Document) Get(propID Identifier) []Claim {
 	return v.Result
 }
 
-func (d *Document) RemoveByID(id Identifier) Claim {
+func (d *Document) RemoveByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,
@@ -1137,7 +1137,7 @@ func (cc *CoreClaim) VisitMeta(visitor visitor) errors.E {
 	return nil
 }
 
-func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
+func (cc *CoreClaim) GetMetaByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Result: nil,
@@ -1147,7 +1147,7 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim {
 	return v.Result
 }
 
-func (cc *CoreClaim) RemoveMetaByID(id Identifier) Claim {
+func (cc *CoreClaim) RemoveMetaByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Result: nil,

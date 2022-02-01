@@ -87,9 +87,3 @@ linters:
     # - importas
     # - testpackage
     # - wrapcheck
-
-issues:
-  exclude-rules:
-    - path: cmd/wikidata/config\.go
-      linters:
-        - lll

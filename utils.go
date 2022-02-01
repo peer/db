@@ -18,6 +18,16 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+const (
+	compressionBrotli   = "br"
+	compressionGzip     = "gzip"
+	compressionDeflate  = "deflate"
+	compressionIdentity = "identity"
+
+	// Compress only if content is larger than 1 KB.
+	minCompressionSize = 1024
+)
+
 // NotFound is a HTTP request handler which returns a 404 error to the client.
 func NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
@@ -46,14 +56,13 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 		return
 	}
 
-	// Compress only if content is larger than 1 KB.
-	if len(encoded) <= 1024 {
-		contentEncoding = "identity"
+	if len(encoded) <= minCompressionSize {
+		contentEncoding = compressionIdentity
 	}
 
 	// TODO: Use a pool of compression workers?
 	switch contentEncoding {
-	case "br":
+	case compressionBrotli:
 		var buf bytes.Buffer
 		writer := brotli.NewWriter(&buf)
 		_, err := writer.Write(encoded)
@@ -65,7 +74,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			return
 		}
 		encoded = buf.Bytes()
-	case "gzip":
+	case compressionGzip:
 		var buf bytes.Buffer
 		writer := gzip.NewWriter(&buf)
 		_, err := writer.Write(encoded)
@@ -77,7 +86,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			return
 		}
 		encoded = buf.Bytes()
-	case "deflate":
+	case compressionDeflate:
 		var buf bytes.Buffer
 		writer, err := flate.NewWriter(&buf, -1)
 		if err != nil {
@@ -93,7 +102,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			return
 		}
 		encoded = buf.Bytes()
-	case "identity":
+	case compressionIdentity:
 		// Nothing.
 	}
 
@@ -111,7 +120,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 	etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
 
 	w.Header().Set("Content-Type", "application/json")
-	if contentEncoding != "identity" {
+	if contentEncoding != compressionIdentity {
 		w.Header().Set("Content-Encoding", contentEncoding)
 	} else {
 		// TODO: Always set Content-Length.

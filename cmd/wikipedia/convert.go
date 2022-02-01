@@ -18,6 +18,12 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
+const (
+	bulkProcessorWorkers = 2
+	clientRetryWaitMax   = 10 * 60 * time.Second
+	clientRetryMax       = 9
+)
+
 func convert(config *Config) errors.E {
 	ctx := context.Background()
 
@@ -43,8 +49,8 @@ func convert(config *Config) errors.E {
 	}()
 
 	client := retryablehttp.NewClient()
-	client.RetryWaitMax = 10 * 60 * time.Second
-	client.RetryMax = 9
+	client.RetryWaitMax = clientRetryWaitMax
+	client.RetryMax = clientRetryMax
 
 	// Set User-Agent header.
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
@@ -58,7 +64,7 @@ func convert(config *Config) errors.E {
 	}
 
 	// TODO: Make number of workers configurable.
-	processor, err := esClient.BulkProcessor().Workers(2).Stats(true).After(
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
 		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())

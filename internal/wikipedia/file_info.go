@@ -2,7 +2,7 @@ package wikipedia
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,6 +19,12 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/time/rate"
+)
+
+const (
+	// A queue of up to (and including) 50 tasks.
+	// 50 is the limit per one API call (500 for clients allowed higher limits).
+	apiLimit = 50
 )
 
 var (
@@ -118,7 +124,7 @@ type apiResponse struct {
 }
 
 func getWikimediaCommonsFilePrefix(filename string) string {
-	sum := md5.Sum([]byte(filename))
+	sum := md5.Sum([]byte(filename)) //nolint:gosec
 	digest := hex.EncodeToString(sum[:])
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
@@ -260,9 +266,7 @@ func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiT
 		return nil
 	}
 
-	// A queue of up to (and including) 50 tasks.
-	// 50 is the limit per one API call (500 for clients allowed higher limits).
-	apiTaskChan := make(chan apiTask, 50)
+	apiTaskChan := make(chan apiTask, apiLimit)
 
 	existingAPITaskChan, loaded := apiWorkers.LoadOrStore(ctx, apiTaskChan)
 	if loaded {

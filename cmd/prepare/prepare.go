@@ -15,6 +15,10 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
+const (
+	bulkProcessorWorkers = 2
+)
+
 func prepare(config *Config) errors.E {
 	ctx := context.Background()
 
@@ -45,7 +49,7 @@ func prepare(config *Config) errors.E {
 	}
 
 	// TODO: Make number of workers configurable.
-	processor, err := esClient.BulkProcessor().Workers(2).Stats(true).After(
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
 		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())
@@ -73,7 +77,8 @@ func prepare(config *Config) errors.E {
 func saveStandardProperties(ctx context.Context, config *Config, esClient *elastic.Client) errors.E {
 	for id, property := range search.StandardProperties {
 		// We do not use a bulk processor because we want these documents to be available immediately.
-		_, err := esClient.Index().Index("docs").Id(id).BodyJson(&property).Do(ctx)
+		// We can pass a reference here because it is a blocking call and call completes before the next loop.
+		_, err := esClient.Index().Index("docs").Id(id).BodyJson(&property).Do(ctx) //nolint:gosec
 		if err != nil {
 			return errors.WithStack(err)
 		}

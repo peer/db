@@ -33,7 +33,7 @@ func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client,
 	}
 
 	if !exists {
-		createIndex, err := client.CreateIndex("docs").BodyString(indexConfiguration).Do(ctx) //nolint:govet
+		createIndex, err := client.CreateIndex("docs").BodyString(indexConfiguration).Do(ctx)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

@@ -29,7 +29,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 			http.Error(w, "400 bad request", http.StatusBadRequest)
 		}
 
-		contentEncoding := httputil.NegotiateContentEncoding(req, []string{"gzip", "deflate", "identity"})
+		contentEncoding := httputil.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
 		if contentEncoding == "" {
 			http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 			return
@@ -54,7 +54,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 		etag := `"` + base64.RawURLEncoding.EncodeToString(hash[:]) + `"`
 
 		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
-		if contentEncoding != "identity" {
+		if contentEncoding != compressionIdentity {
 			w.Header().Set("Content-Encoding", contentEncoding)
 		} else {
 			// TODO: Always set Content-Length.

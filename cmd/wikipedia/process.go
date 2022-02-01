@@ -71,7 +71,11 @@ func processArticle(ctx context.Context, config *Config, esClient *elastic.Clien
 		}
 		err = document.Add(claim)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "article claim cannot be added to document %s for entity %s for article \"%s\": %s\n", id, article.MainEntity.Identifier, article.Name, err.Error())
+			fmt.Fprintf(
+				os.Stderr,
+				"article claim cannot be added to document %s for entity %s for article \"%s\": %s\n",
+				id, article.MainEntity.Identifier, article.Name, err.Error(),
+			)
 			return nil
 		}
 	}

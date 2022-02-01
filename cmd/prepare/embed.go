@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	progressPrintRate = 30 * time.Second
-	lruCacheSize      = 1000000
+	progressPrintRate   = 30 * time.Second
+	lruCacheSize        = 1000000
+	scrollingMultiplier = 10
 )
 
 type counter int64
@@ -87,7 +88,11 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), stats.Succeeded, stats.Failed)
+			fmt.Fprintf(
+				os.Stderr,
+				"Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n",
+				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), stats.Succeeded, stats.Failed,
+			)
 		}
 	}()
 
@@ -95,7 +100,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 	g.Go(func() error {
 		defer close(hits)
 
-		scroll := esClient.Scroll("docs").Size(documentProcessingThreads * 10).SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
+		scroll := esClient.Scroll("docs").Size(documentProcessingThreads * scrollingMultiplier).SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
 		for {
 			results, err := scroll.Do(ctx)
 			if errors.Is(err, io.EOF) {
@@ -151,7 +156,11 @@ func (v *updateEmbeddedDocumentsVisitor) warnDocumentReference(ref search.Docume
 	if name == "" {
 		name = ref.Name["XX"]
 	}
-	fmt.Fprintf(os.Stderr, "document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n", v.DocumentID, v.WikidataID, claimID, ref.ID, name)
+	fmt.Fprintf(
+		os.Stderr,
+		"document %s (%s) has a claim %s with a document reference to %s (%s), but document does not exist\n",
+		v.DocumentID, v.WikidataID, claimID, ref.ID, name,
+	)
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
