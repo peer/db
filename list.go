@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 
 	"github.com/golang/gddo/httputil"
@@ -168,7 +169,14 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			}
 		}
 
-		writeJSON(w, req, contentEncoding, results, nil)
+		total := strconv.FormatInt(searchResult.Hits.TotalHits.Value, 10)
+		if searchResult.Hits.TotalHits.Relation == "gte" {
+			total += "+"
+		}
+
+		writeJSON(w, req, contentEncoding, results, http.Header{
+			"Total": {total},
+		})
 	}
 }
 

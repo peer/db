@@ -38,7 +38,7 @@ func badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
 	http.Error(w, "400 bad request", http.StatusBadRequest)
 }
 
-func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata map[string]string) {
+func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata http.Header) {
 	encoded, err := json.Marshal(data)
 	if err != nil {
 		internalServerError(w, req, errors.WithStack(err))
@@ -96,8 +96,18 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 		// Nothing.
 	}
 
-	hash := sha256.Sum256(encoded)
-	etag := `"` + base64.RawURLEncoding.EncodeToString(hash[:]) + `"`
+	hash := sha256.New()
+	_, _ = hash.Write(encoded)
+
+	for key, value := range metadata {
+		w.Header()["PeerDB-"+key] = value
+		_, _ = hash.Write([]byte(key))
+		for _, v := range value {
+			_, _ = hash.Write([]byte(v))
+		}
+	}
+
+	etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
 
 	w.Header().Set("Content-Type", "application/json")
 	if contentEncoding != "identity" {
