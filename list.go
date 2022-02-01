@@ -97,7 +97,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
 		if err != nil {
-			BadRequestError(w, req, errors.WithStack(err))
+			badRequest(w, req, errors.WithStack(err))
 			return
 		}
 		search, ok := getSearch(req.Form)
@@ -140,7 +140,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 		}
 		searchResult, err := searchService.Do(ctx)
 		if err != nil {
-			InternalError(w, req, errors.WithStack(err))
+			internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 
@@ -168,7 +168,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 			}
 		}
 
-		WriteJSON(w, req, contentEncoding, results, nil)
+		writeJSON(w, req, contentEncoding, results, nil)
 	}
 }
 
@@ -176,7 +176,7 @@ func ListPost(client *elastic.Client) func(http.ResponseWriter, *http.Request, h
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
 		if err != nil {
-			BadRequestError(w, req, errors.WithStack(err))
+			badRequest(w, req, errors.WithStack(err))
 			return
 		}
 		search := makeSearch(req.Form)

@@ -44,7 +44,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 			NotFound(w, req)
 			return
 		} else if err != nil {
-			InternalError(w, req, errors.WithStack(err))
+			internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 
