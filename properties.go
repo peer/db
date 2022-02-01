@@ -109,9 +109,11 @@ var (
 		},
 	}
 
-	NameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
+	nameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
 
 	// TODO: Use sync.Map?
+
+	// StandardProperties is a map from a standard property ID to a document describing it.
 	StandardProperties = map[string]Document{}
 )
 
@@ -141,11 +143,11 @@ func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
 }
 
 func GetStandardPropertyID(mnemonic string) Identifier {
-	return GetID(NameSpaceStandardProperties, mnemonic)
+	return GetID(nameSpaceStandardProperties, mnemonic)
 }
 
 func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int) Identifier {
-	return GetID(NameSpaceStandardProperties, propertyMnemonic, claimMnemonic, i)
+	return GetID(nameSpaceStandardProperties, propertyMnemonic, claimMnemonic, i)
 }
 
 func populateStandardProperties() {

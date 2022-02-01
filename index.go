@@ -15,6 +15,10 @@ import (
 //go:embed index.json
 var indexConfiguration string
 
+// EnsureIndex creates an instance of the ElasticSearch client and makes sure
+// the index for PeerDB documents exists. If not, it creates it.
+// It does not update configuration of an existing index if it is different from
+// what current implementation of EnsureIndex would otherwise create.
 func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client, errors.E) {
 	client, err := elastic.NewClient(
 		elastic.SetHttpClient(httpClient),
@@ -34,6 +38,7 @@ func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client,
 			return nil, errors.WithStack(err)
 		}
 		if !createIndex.Acknowledged {
+			// TODO: Wait for acknowledgment using Task API?
 			return nil, errors.New("create index not acknowledged")
 		}
 	}

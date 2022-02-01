@@ -963,6 +963,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 
 // We cannot use standard time.Time implementation.
 // See: https://github.com/golang/go/issues/4556
+
 func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil

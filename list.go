@@ -102,10 +102,10 @@ type listResult struct {
 	ID string `json:"_id"`
 }
 
-// ListGet searches ElasticSearch using provided search state and returns to the API caller
-// a JSON with an array of IDs of found documents. If called using HTTP2, it also pushes all
-// found documents to the client. If search state is invalid, it redirects to a valid one.
-// It supports compression based on accepted content encoding and range queries.
+// ListGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// state and returns to the client a JSON with an array of IDs of found documents. If called using
+// HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
+// a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -193,6 +193,8 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
+// ListPost is a POST HTTP request handler which stores the search state and redirect to
+// the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
 func ListPost(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
@@ -201,6 +203,9 @@ func ListPost(client *elastic.Client) func(http.ResponseWriter, *http.Request, h
 			return
 		}
 		s := makeSearch(req.Form)
+		// TODO: Should we push the location to the client, too?
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit ES twice?
 		w.Header().Set("Location", "/d?"+s.Encode())
 		w.WriteHeader(http.StatusSeeOther)
 	}

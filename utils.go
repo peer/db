@@ -18,9 +18,10 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
-var NotFound = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+// NotFound is a HTTP request handler which returns a 404 error to the client.
+func NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
-})
+}
 
 func internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

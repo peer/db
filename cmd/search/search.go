@@ -29,7 +29,7 @@ func listen(config *Config) errors.E {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
-	router.NotFound = search.NotFound
+	router.NotFound = http.HandlerFunc(search.NotFound)
 
 	server := &http.Server{
 		Addr:    ":8080",

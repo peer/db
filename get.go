@@ -18,6 +18,8 @@ import (
 
 // TODO: Support slug per document.
 
+// Get is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// It supports compression based on accepted content encoding and range requests.
 func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		ctx := req.Context()
