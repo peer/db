@@ -20,6 +20,9 @@ func listen(config *Config) errors.E {
 	}
 
 	router := httprouter.New()
+	router.GET("/d", search.ListGet(client))
+	router.HEAD("/d", search.ListGet(client))
+	router.POST("/d", search.ListPost(client))
 	router.GET("/d/:id", search.Get(client))
 	router.HEAD("/d/:id", search.Get(client))
 

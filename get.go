@@ -44,7 +44,8 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 			NotFound(w, req)
 			return
 		} else if err != nil {
-			Error(w, req, errors.WithStack(err))
+			InternalError(w, req, errors.WithStack(err))
+			return
 		}
 
 		hash := sha256.Sum256(resp.Body)
@@ -59,6 +60,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 			w.Header().Set("Content-Length", resp.Header.Get("Content-Length"))
 		}
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Vary", "Accept-Encoding")
 		w.Header().Set("Etag", etag)
 
 		// See: https://github.com/golang/go/issues/50905

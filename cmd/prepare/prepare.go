@@ -79,7 +79,7 @@ func saveStandardProperties(ctx context.Context, config *Config, esClient *elast
 		}
 	}
 	// Make sure all added documents are available for search.
-	_, err := esClient.Refresh().Index("docs").Do(ctx)
+	_, err := esClient.Refresh("docs").Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}

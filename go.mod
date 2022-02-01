@@ -48,6 +48,7 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.0.4
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.1-0.20211018174820-ff6d014e72d9
