@@ -3,9 +3,7 @@ coverage.*
 codeclimate.json
 /.cache
 /output
-/wikidata
-/wikipedia
-/prepare
 /search
+/wikipedia
 *.pem
 *.log

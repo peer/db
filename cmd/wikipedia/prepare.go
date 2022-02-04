@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
+	"os/signal"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
@@ -65,11 +69,86 @@ func (c *Cache) MissCount() uint64 {
 	return atomic.SwapUint64(&c.missCount, 0)
 }
 
-func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
+type PrepareCommand struct{}
+
+func (c *PrepareCommand) Run(globals *Globals) errors.E {
+	ctx := context.Background()
+
+	// We call cancel on SIGINT or SIGTERM signal.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Call cancel on SIGINT or SIGTERM signal.
+	go func() {
+		c := make(chan os.Signal, 1)
+		defer close(c)
+
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(c)
+
+		// We wait for a signal or that the context is canceled
+		// or that all goroutines are done.
+		select {
+		case <-c:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	esClient, errE := search.EnsureIndex(ctx, cleanhttp.DefaultPooledClient())
+	if errE != nil {
+		return errE
+	}
+
+	// TODO: Make number of workers configurable.
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
+		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())
+			} else if response.Errors {
+				for _, failed := range response.Failed() {
+					fmt.Fprintf(os.Stderr, "Indexing error %d (%s): %s [type=%s]\n", failed.Status, http.StatusText(failed.Status), failed.Error.Reason, failed.Error.Type)
+				}
+				fmt.Fprintf(os.Stderr, "Indexing error\n")
+			}
+		},
+	).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer processor.Close()
+
+	errE = c.saveStandardProperties(ctx, globals, esClient)
+	if errE != nil {
+		return errE
+	}
+
+	return c.updateEmbeddedDocuments(ctx, globals, esClient, processor)
+}
+
+func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Globals, esClient *elastic.Client) errors.E {
+	for id, property := range search.StandardProperties {
+		// We do not use a bulk processor because we want these documents to be available immediately.
+		// We can pass a reference here because it is a blocking call and call completes before the next loop.
+		_, err := esClient.Index().Index("docs").Id(id).BodyJson(&property).Do(ctx) //nolint:gosec
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	// Make sure all added documents are available for search.
+	_, err := esClient.Refresh("docs").Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (c *PrepareCommand) updateEmbeddedDocuments(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
 
-	var c counter
+	var count counter
 
 	total, err := esClient.Count("docs").Do(ctx)
 	if err != nil {
@@ -83,7 +162,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	ticker := x.NewTicker(ctx, &c, total, progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -91,7 +170,7 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 			fmt.Fprintf(
 				os.Stderr,
 				"Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), c.Count(), stats.Succeeded, stats.Failed,
+				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), count.Count(), stats.Succeeded, stats.Failed,
 			)
 		}
 	}()
@@ -127,11 +206,11 @@ func updateEmbeddedDocuments(ctx context.Context, config *Config, esClient *elas
 					if !ok {
 						return nil
 					}
-					err := processDocument(ctx, esClient, processor, cache, hit)
+					err := c.processDocument(ctx, esClient, processor, cache, hit)
 					if err != nil {
 						return err
 					}
-					c.Increment()
+					count.Increment()
 				case <-ctx.Done():
 					return errors.WithStack(ctx.Err())
 				}
@@ -662,7 +741,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	return search.Keep, nil
 }
 
-func processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *Cache, hit *elastic.SearchHit) errors.E {
+func (c *PrepareCommand) processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *Cache, hit *elastic.SearchHit) errors.E {
 	var document search.Document
 	err := json.Unmarshal(hit.Source, &document)
 	if err != nil {

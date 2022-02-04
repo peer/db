@@ -29,7 +29,7 @@ func main() {
 		),
 	)
 
-	err := convert(&config)
+	err := ctx.Run(&config.Globals)
 	if err != nil {
 		fmt.Fprintf(ctx.Stderr, "error: %+v", err)
 		ctx.Exit(exitCode)

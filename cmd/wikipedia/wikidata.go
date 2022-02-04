@@ -16,12 +16,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
-)
-
-const (
-	bulkProcessorWorkers = 2
-	clientRetryWaitMax   = 10 * 60 * time.Second
-	clientRetryMax       = 9
+	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
 // A silent logger.
@@ -35,7 +30,9 @@ func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
 
 func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
 
-func convert(config *Config) errors.E {
+type WikidataCommand struct{}
+
+func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	ctx := context.Background()
 
 	// We call cancel on SIGINT or SIGTERM signal.
@@ -98,16 +95,34 @@ func convert(config *Config) errors.E {
 
 	return mediawiki.ProcessWikidataDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
-		CacheDir:               config.CacheDir,
+		CacheDir:               globals.CacheDir,
 		Client:                 client,
 		DecompressionThreads:   0,
-		JSONDecodeThreads:      0,
+		DecodingThreads:        0,
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
 			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, stats.Failed)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return processEntity(ctx, config, client, processor, entity)
+		return c.processEntity(ctx, globals, client, processor, entity)
 	})
+}
+
+func (c *WikidataCommand) processEntity(ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity) errors.E {
+	document, err := wikipedia.ConvertEntity(ctx, client, entity)
+	if errors.Is(err, wikipedia.NotSupportedError) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	c.saveDocument(globals, processor, document)
+
+	return nil
+}
+
+func (c *WikidataCommand) saveDocument(globals *Globals, processor *elastic.BulkProcessor, doc *search.Document) {
+	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(doc.ID)).Doc(doc)
+	processor.Add(req)
 }
