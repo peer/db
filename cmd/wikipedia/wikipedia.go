@@ -122,7 +122,9 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 // TODO: Keep only contents of <body>.
 // TODO: Skip disambiguation pages (remove corresponding document if we already have it).
 
-func (c *WikipediaArticlesCommand) processArticle(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article) errors.E {
+func (c *WikipediaArticlesCommand) processArticle(
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+) errors.E {
 	if article.MainEntity.Identifier == "" {
 		return nil
 	}

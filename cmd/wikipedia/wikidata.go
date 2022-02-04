@@ -109,7 +109,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	})
 }
 
-func (c *WikidataCommand) processEntity(ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity) errors.E {
+func (c *WikidataCommand) processEntity(
+	ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+) errors.E {
 	document, err := wikipedia.ConvertEntity(ctx, client, entity)
 	if errors.Is(err, wikipedia.NotSupportedError) {
 		return nil
