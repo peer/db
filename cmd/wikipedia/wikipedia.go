@@ -20,9 +20,9 @@ import (
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
-type WikipediaMediaInfoCommand struct{}
+type WikipediaImagesCommand struct{}
 
-func (c *WikipediaMediaInfoCommand) Run(globals *Globals) errors.E {
+func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 

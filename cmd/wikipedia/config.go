@@ -26,12 +26,12 @@ type Config struct {
 
 	// TODO: Populate with Wikimedia Commons entities.
 	// TODO: Populate with Wikimedia Commons file descriptions rendered in HTML.
-	CommonsMediaInfo   CommonsMediaInfoCommand   `cmd:"" name:"commons-mediainfo" help:"Populate search with Wikimedia Commons mediainfo SQL dump."`
-	Wikidata           WikidataCommand           `cmd:"" help:"Populate search with Wikidata entities dump."`
-	Prepare            PrepareCommand            `cmd:"" help:"Prepare populated data for search."`
-	WikipediaMediaInfo WikipediaMediaInfoCommand `cmd:"" name:"wikipedia-mediainfo" help:"Populate search with Wikipedia mediainfo SQL dump."`
-	WikipediaFiles     WikipediaFilesCommand     `cmd:"" help:"Populate search with Wikipedia file descriptions HTML dump."`
-	WikipediaArticles  WikipediaArticlesCommand  `cmd:"" help:"Populate search with Wikipedia articles HTML dump."`
+	CommonsImages     CommonsImagesCommand     `cmd:"" name:"commons-images" help:"Populate search with Wikimedia Commons images table SQL dump."`
+	Wikidata          WikidataCommand          `cmd:"" help:"Populate search with Wikidata entities dump."`
+	Prepare           PrepareCommand           `cmd:"" help:"Prepare populated data for search."`
+	WikipediaImages   WikipediaImagesCommand   `cmd:"" name:"wikipedia-images" help:"Populate search with Wikipedia images table SQL dump."`
+	WikipediaFiles    WikipediaFilesCommand    `cmd:"" help:"Populate search with Wikipedia file descriptions HTML dump."`
+	WikipediaArticles WikipediaArticlesCommand `cmd:"" help:"Populate search with Wikipedia articles HTML dump."`
 
 	All AllCommand `cmd:"" default:"" help:"Run all passes in order. Default command."`
 }
@@ -44,10 +44,10 @@ type AllCommand struct{}
 
 func (c *AllCommand) Run(globals *Globals) errors.E {
 	allCommands := []runner{
-		&CommonsMediaInfoCommand{},
+		&CommonsImagesCommand{},
 		&WikidataCommand{},
 		&PrepareCommand{},
-		&WikipediaMediaInfoCommand{},
+		&WikipediaImagesCommand{},
 		&WikipediaFilesCommand{},
 		&WikipediaArticlesCommand{},
 	}
