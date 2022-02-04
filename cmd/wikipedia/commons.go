@@ -11,10 +11,11 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
-	"gitlab.com/peerdb/search"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/search"
 )
 
 const (
