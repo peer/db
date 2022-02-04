@@ -45,12 +45,22 @@ var (
 		{
 			"property",
 			"the entity is a property",
-			nil,
+			[]string{`"relation" claim type`},
 		},
 		{
 			"item",
 			"the entity is an item",
-			nil,
+			[]string{`"relation" claim type`},
+		},
+		{
+			"file",
+			"the entity is a file",
+			[]string{`"relation" claim type`},
+		},
+		{
+			"data",
+			"data of the file entity",
+			[]string{`"file" claim type`},
 		},
 		{
 			"unit",
@@ -73,19 +83,29 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
-			"Wikidata property id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
-			[]string{`"identifier" claim type`},
+			"page count",
+			"number of pages the entity has",
+			[]string{`"amount" claim type`},
 		},
 		{
-			"Wikidata item id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			"media type",
+			"media (MIME) type of the file",
+			[]string{`"string" claim type`},
+		},
+		{
+			"Wikidata property id",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata property page",
 			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI`,
 			[]string{`"reference" claim type`},
+		},
+		{
+			"Wikidata item id",
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata item page",
@@ -101,6 +121,11 @@ var (
 			"English Wikipedia article",
 			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
 			[]string{`"reference" claim type`},
+		},
+		{
+			"Wikimedia Commons file name",
+			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name`,
+			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikimedia Commons file",
