@@ -119,12 +119,12 @@ func (c *WikidataCommand) processEntity(
 		return err
 	}
 
-	c.saveDocument(globals, processor, document)
+	saveDocument(globals, processor, document)
 
 	return nil
 }
 
-func (c *WikidataCommand) saveDocument(globals *Globals, processor *elastic.BulkProcessor, doc *search.Document) {
+func saveDocument(globals *Globals, processor *elastic.BulkProcessor, doc *search.Document) {
 	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(doc.ID)).Doc(doc)
 	processor.Add(req)
 }

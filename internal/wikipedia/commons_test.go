@@ -1,4 +1,4 @@
-package main
+package wikipedia
 
 import (
 	"encoding/json"

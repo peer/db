@@ -1,9 +1,7 @@
 package wikipedia
 
 import (
-	"context"
-	"crypto/md5" //nolint:gosec
-	"encoding/hex"
+	"context" //nolint:gosec
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,60 +25,34 @@ const (
 	apiLimit = 50
 )
 
-var (
-	extensionToMediaTypes = map[string][]string{
-		".djvu": {"image/vnd.djvu"},
-		".pdf":  {"application/pdf"},
-		".stl":  {"application/sla"},
-		// We have to additionally determine which of these two media types a file is.
-		".webm": {"audio/webm", "video/webm"},
-		".mpg":  {"video/mpeg"},
-		// Wikimedia Commons uses "application/ogg" for both "ogv" and "oga", but we find it more informative
-		// to tell if it is audio or video through the media type, if this information is already available.
-		".ogv":  {"video/ogg"},
-		".ogg":  {"audio/ogg"},
-		".oga":  {"audio/ogg"},
-		".opus": {"audio/ogg"},
-		".mid":  {"audio/midi"},
-		".midi": {"audio/midi"},
-		".flac": {"audio/flac"},
-		".wav":  {"audio/wav"},
-		".mp3":  {"audio/mpeg"},
-		".tiff": {"image/tiff"},
-		".tif":  {"image/tiff"},
-		".png":  {"image/png"},
-		".gif":  {"image/gif"},
-		".jpg":  {"image/jpeg"},
-		".jpeg": {"image/jpeg"},
-		".webp": {"image/webp"},
-		".xcf":  {"image/x-xcf"},
-		".svg":  {"image/svg+xml"},
-	}
-	thumbnailExtraExtensions = map[string]string{
-		"image/vnd.djvu":  ".jpg",
-		"application/pdf": ".jpg",
-		"application/sla": ".png",
-		"video/mpeg":      ".jpg",
-		"video/ogg":       ".jpg",
-		"video/webm":      ".jpg",
-		"image/tiff":      ".jpg",
-		"image/webp":      ".jpg",
-		"image/x-xcf":     ".png",
-		"image/svg+xml":   ".png",
-	}
-	hasPages = map[string]bool{
-		"image/vnd.djvu":  true,
-		"application/pdf": true,
-	}
-	noPreview = map[string]bool{
-		"audio/webm": true,
-		"audio/ogg":  true,
-		"audio/midi": true,
-		"audio/flac": true,
-		"audio/wav":  true,
-		"audio/mpeg": true,
-	}
-)
+var extensionToMediaTypes = map[string][]string{
+	".djvu": {"image/vnd.djvu"},
+	".pdf":  {"application/pdf"},
+	".stl":  {"application/sla"},
+	// We have to additionally determine which of these two media types a file is.
+	".webm": {"audio/webm", "video/webm"},
+	".mpg":  {"video/mpeg"},
+	// Wikimedia Commons uses "application/ogg" for both "ogv" and "oga", but we find it more informative
+	// to tell if it is audio or video through the media type, if this information is already available.
+	".ogv":  {"video/ogg"},
+	".ogg":  {"audio/ogg"},
+	".oga":  {"audio/ogg"},
+	".opus": {"audio/ogg"},
+	".mid":  {"audio/midi"},
+	".midi": {"audio/midi"},
+	".flac": {"audio/flac"},
+	".wav":  {"audio/wav"},
+	".mp3":  {"audio/mpeg"},
+	".tiff": {"image/tiff"},
+	".tif":  {"image/tiff"},
+	".png":  {"image/png"},
+	".gif":  {"image/gif"},
+	".jpg":  {"image/jpeg"},
+	".jpeg": {"image/jpeg"},
+	".webp": {"image/webp"},
+	".xcf":  {"image/x-xcf"},
+	".svg":  {"image/svg+xml"},
+}
 
 type fileInfo struct {
 	MediaType string
@@ -121,12 +93,6 @@ type apiResponse struct {
 		// (we have to know how to do that ourselves because we are not calling API for all files).
 		Pages []page `json:"pages"`
 	} `json:"query"`
-}
-
-func getWikimediaCommonsFilePrefix(filename string) string {
-	sum := md5.Sum([]byte(filename)) //nolint:gosec
-	digest := hex.EncodeToString(sum[:])
-	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
 }
 
 func makeFileInfo(info imageInfo, filename string) fileInfo {
