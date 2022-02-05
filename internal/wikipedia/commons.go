@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -317,11 +318,14 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		}
 	}
 
+	name := strings.ReplaceAll(image.Name, "_", " ")
+	name = strings.TrimSuffix(name, path.Ext(name))
+
 	document := search.Document{
 		CoreDocument: search.CoreDocument{
 			ID: id,
 			Name: search.Name{
-				"en": strings.ReplaceAll(image.Name, "_", " "),
+				"en": name,
 			},
 			Score: 0.0,
 		},
