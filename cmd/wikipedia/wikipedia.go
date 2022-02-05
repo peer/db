@@ -174,7 +174,8 @@ func (c *WikipediaArticlesCommand) processArticle(
 			return nil
 		}
 	}
-	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(id)).IfSeqNo(*esDoc.SeqNo).IfPrimaryTerm(*esDoc.PrimaryTerm).Doc(&document)
-	processor.Add(req)
+
+	updateDocument(globals, processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
+
 	return nil
 }
