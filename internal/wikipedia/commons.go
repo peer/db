@@ -1,11 +1,9 @@
 package wikipedia
 
 import (
-	"bytes"
 	"context"
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -295,6 +293,9 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	pageCount := 0
 	if hasPages[mediaType] {
 		pageCount = getPageCount(image)
+		if pageCount == 0 {
+			fmt.Fprintf(os.Stderr, `file "%s" is missing pages metadata`+"\n", image.Name)
+		}
 	}
 
 	previewPages := pageCount
