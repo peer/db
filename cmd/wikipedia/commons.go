@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"os"
@@ -294,6 +295,46 @@ func getPathSliceLen(metadata map[string]interface{}, path []string) int {
 	}
 }
 
+type xmlParam struct {
+	Name  string `xml:"name,attr"`
+	Value string `xml:"value,attr"`
+}
+
+type xmlObject struct {
+	Height int        `xml:"height,attr"`
+	Width  int        `xml:"width,attr"`
+	Params []xmlParam `xml:"PARAM"`
+}
+
+type xmlBody struct {
+	Objects []xmlObject `xml:"OBJECT"`
+}
+
+type xmlData struct {
+	Body xmlBody `xml:"BODY"`
+}
+
+type xmlDjvu struct {
+	Data xmlData `xml:"DjVuXML"`
+}
+
+func getXMLPageCount(metadata map[string]interface{}) int {
+	data, ok := metadata["xml"]
+	if !ok {
+		return 0
+	}
+	dataString, ok := data.(string)
+	if !ok {
+		return 0
+	}
+	var djvu xmlDjvu
+	err := xml.Unmarshal([]byte(dataString), &djvu)
+	if err != nil {
+		return 0
+	}
+	return len(djvu.Data.Body.Objects)
+}
+
 func getPageCount(image Image) int {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
@@ -310,6 +351,10 @@ func getPageCount(image Image) int {
 	blobID := getPathString(image.Metadata, []string{"blobs", "data"})
 	if strings.HasPrefix(blobID, "tt:") {
 		return 1
+	}
+	count = getXMLPageCount(image.Metadata)
+	if count != 0 {
+		return count
 	}
 	return 0
 }
