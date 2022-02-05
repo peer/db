@@ -19,6 +19,6 @@ func TestGetXMLPageCount(t *testing.T) {
 	var metadata map[string]interface{}
 	err := json.Unmarshal([]byte(xmlJSON), &metadata)
 	require.NoError(t, err)
-	pages := getXMLPageCount(metadata)
+	pages := getXMLPageCount(metadata, []string{"xml"})
 	assert.Equal(t, 4, pages)
 }

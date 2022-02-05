@@ -223,21 +223,39 @@ type xmlDjvu struct {
 	Data xmlData `xml:"DjVuXML"`
 }
 
-func getXMLPageCount(metadata map[string]interface{}) int {
-	data, ok := metadata["xml"]
-	if !ok {
-		return 0
+func getXMLPageCount(metadata map[string]interface{}, path []string) int {
+	for {
+		if len(path) == 0 {
+			return 0
+		}
+
+		head := path[0]
+		tail := path[1:]
+
+		data, ok := metadata[head]
+		if !ok {
+			return 0
+		}
+		if len(tail) == 0 {
+			dataString, ok := data.(string)
+			if !ok {
+				return 0
+			}
+			var djvu xmlDjvu
+			err := xml.Unmarshal([]byte(dataString), &djvu)
+			if err != nil {
+				return 0
+			}
+			return len(djvu.Data.Body.Objects)
+		}
+		dataMap, ok := data.(map[string]interface{})
+		if !ok {
+			return 0
+		}
+
+		metadata = dataMap
+		path = tail
 	}
-	dataString, ok := data.(string)
-	if !ok {
-		return 0
-	}
-	var djvu xmlDjvu
-	err := xml.Unmarshal([]byte(dataString), &djvu)
-	if err != nil {
-		return 0
-	}
-	return len(djvu.Data.Body.Objects)
 }
 
 func getPageCount(image Image) int {
@@ -257,7 +275,11 @@ func getPageCount(image Image) int {
 	if strings.HasPrefix(blobID, "tt:") {
 		return 1
 	}
-	count = getXMLPageCount(image.Metadata)
+	count = getXMLPageCount(image.Metadata, []string{"xml"})
+	if count != 0 {
+		return count
+	}
+	count = getXMLPageCount(image.Metadata, []string{"data", "xml"})
 	if count != 0 {
 		return count
 	}
