@@ -32,7 +32,7 @@ var (
 	notSupportedDataTypeError      = errors.BaseWrap(NotSupportedError, "not supported data type")
 )
 
-func GetDocumentID(id string) search.Identifier {
+func GetWikidataDocumentID(id string) search.Identifier {
 	return search.GetID(NameSpaceWikidata, id)
 }
 
@@ -150,7 +150,7 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 // It does not return a valid reference: name is set to the ID itself for the language "XX".
 func getDocumentReference(id string) search.DocumentReference {
 	return search.DocumentReference{
-		ID: GetDocumentID(id),
+		ID: GetWikidataDocumentID(id),
 		Name: map[string]string{
 			"XX": id,
 		},
@@ -509,7 +509,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 		return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
 	}
 
-	id := GetDocumentID(entity.ID)
+	id := GetWikidataDocumentID(entity.ID)
 
 	// We simply use the first label we have.
 	name := englishLabels[0]

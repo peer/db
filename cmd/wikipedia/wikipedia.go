@@ -128,7 +128,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 	if article.MainEntity.Identifier == "" {
 		return nil
 	}
-	id := wikipedia.GetDocumentID(article.MainEntity.Identifier)
+	id := wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
 	if elastic.IsNotFound(err) {
 		fmt.Fprintf(os.Stderr, "document %s for entity %s for article \"%s\" not found\n", id, article.MainEntity.Identifier, article.Name)
