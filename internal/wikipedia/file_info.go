@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,29 +75,36 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 		} else {
 			tasksMap[titleWithPrefix] = []apiTask{task}
 			// Separator, instead of "|". It has also be the prefix.
-			titles.WriteString("%1F")
-			titles.WriteString(url.QueryEscape(titleWithPrefix))
+			titles.WriteString("\u001F")
+			titles.WriteString(titleWithPrefix)
 		}
 	}
 
+	data := url.Values{}
+	data.Set("action", "query")
+	data.Set("prop", "imageinfo")
 	// TODO: Fetch and use also other image info data using "bitdepth|extmetadata|metadata|commonmetadata".
 	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
-	u := fmt.Sprintf(
-		"https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=mime|size&titles=%s&format=json&formatversion=2",
-		titles.String(),
-	)
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	data.Set("iiprop", "mime|size")
+	data.Set("format", "json")
+	data.Set("formatversion", "2")
+	data.Set("titles", titles.String())
+	encodedData := data.Encode()
+	debugURL := fmt.Sprintf("https://commons.wikimedia.org/w/api.php?%s", encodedData)
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, "https://commons.wikimedia.org/w/api.php", strings.NewReader(encodedData))
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(encodedData)))
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.WithMessage(err, u)
+		return errors.WithMessage(err, debugURL)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return errors.Errorf(`%s: bad response status (%s): %s`, u, resp.Status, strings.TrimSpace(string(body)))
+		return errors.Errorf(`%s: bad response status (%s): %s`, debugURL, resp.Status, strings.TrimSpace(string(body)))
 	}
 
 	var apiResp apiResponse
@@ -104,7 +112,7 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 	decoder.DisallowUnknownFields()
 	err = decoder.Decode(&apiResp)
 	if err != nil {
-		return errors.WithMessagef(err, `%s: json decode failure`, u)
+		return errors.WithMessagef(err, `%s: json decode failure`, debugURL)
 	}
 
 	if len(apiResp.Query.Pages) != len(tasksMap) {
