@@ -139,36 +139,6 @@ func getPathInt(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPathString(metadata map[string]interface{}, path []string) string {
-	for {
-		if len(path) == 0 {
-			return ""
-		}
-
-		head := path[0]
-		tail := path[1:]
-
-		data, ok := metadata[head]
-		if !ok {
-			return ""
-		}
-		if len(tail) == 0 {
-			dataString, ok := data.(string) //nolint:govet
-			if !ok {
-				return ""
-			}
-			return dataString
-		}
-		dataMap, ok := data.(map[string]interface{})
-		if !ok {
-			return ""
-		}
-
-		metadata = dataMap
-		path = tail
-	}
-}
-
 func getPathSliceLen(metadata map[string]interface{}, path []string) int {
 	for {
 		if len(path) == 0 {
@@ -257,7 +227,7 @@ func getXMLPageCount(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPageCount(image Image) int {
+func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image) int {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
 		return count
@@ -270,10 +240,6 @@ func getPageCount(image Image) int {
 	if count != 0 {
 		return count
 	}
-	blobID := getPathString(image.Metadata, []string{"blobs", "data"})
-	if strings.HasPrefix(blobID, "tt:") {
-		return 1
-	}
 	count = getXMLPageCount(image.Metadata, []string{"xml"})
 	if count != 0 {
 		return count
@@ -282,7 +248,12 @@ func getPageCount(image Image) int {
 	if count != 0 {
 		return count
 	}
-	return 0
+	imageInfo, err := getImageInfo(ctx, client, image.Name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, `unable to get image info for "%s": %s`+"\n", image.Name, err.Error())
+		return 0
+	}
+	return imageInfo.PageCount
 }
 
 func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image) (*search.Document, errors.E) {
@@ -292,7 +263,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 
 	pageCount := 0
 	if hasPages[mediaType] {
-		pageCount = getPageCount(image)
+		pageCount = getPageCount(ctx, client, image)
 		if pageCount == 0 {
 			fmt.Fprintf(os.Stderr, `file "%s" is missing pages metadata`+"\n", image.Name)
 		}

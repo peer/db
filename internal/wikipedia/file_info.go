@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -24,42 +22,6 @@ const (
 	// 50 is the limit per one API call (500 for clients allowed higher limits).
 	apiLimit = 50
 )
-
-var extensionToMediaTypes = map[string][]string{
-	".djvu": {"image/vnd.djvu"},
-	".pdf":  {"application/pdf"},
-	".stl":  {"application/sla"},
-	// We have to additionally determine which of these two media types a file is.
-	".webm": {"audio/webm", "video/webm"},
-	".mpg":  {"video/mpeg"},
-	// Wikimedia Commons uses "application/ogg" for both "ogv" and "oga", but we find it more informative
-	// to tell if it is audio or video through the media type, if this information is already available.
-	".ogv":  {"video/ogg"},
-	".ogg":  {"audio/ogg"},
-	".oga":  {"audio/ogg"},
-	".opus": {"audio/ogg"},
-	".mid":  {"audio/midi"},
-	".midi": {"audio/midi"},
-	".flac": {"audio/flac"},
-	".wav":  {"audio/wav"},
-	".mp3":  {"audio/mpeg"},
-	".tiff": {"image/tiff"},
-	".tif":  {"image/tiff"},
-	".png":  {"image/png"},
-	".gif":  {"image/gif"},
-	".jpg":  {"image/jpeg"},
-	".jpeg": {"image/jpeg"},
-	".webp": {"image/webp"},
-	".xcf":  {"image/x-xcf"},
-	".svg":  {"image/svg+xml"},
-}
-
-type fileInfo struct {
-	MediaType string
-	PageURL   string
-	URL       string
-	Preview   []string
-}
 
 type imageInfo struct {
 	Mime      string  `json:"mime"`
@@ -89,40 +51,9 @@ type apiResponse struct {
 	} `json:"continue"`
 	Query struct {
 		// We on purpose do not list "normalized" field and we want response parsing to fail
-		// if one is included: we want to always pass correctly normalized titles ourselves
-		// (we have to know how to do that ourselves because we are not calling API for all files).
+		// if one is included: we want to always pass correctly normalized titles ourselves.
 		Pages []page `json:"pages"`
 	} `json:"query"`
-}
-
-func makeFileInfo(info imageInfo, filename string) fileInfo {
-	prefix := getWikimediaCommonsFilePrefix(filename)
-	pages := info.PageCount
-	if pages == 0 {
-		pages = 1
-	}
-	preview := []string{}
-	if !noPreview[info.Mime] {
-		for page := 1; page <= pages; page++ {
-			pagePrefix := ""
-			if hasPages[info.Mime] {
-				pagePrefix = fmt.Sprintf("page%d-", page)
-			}
-			extraExtension := ""
-			if thumbnailExtraExtensions[info.Mime] != "" {
-				extraExtension = thumbnailExtraExtensions[info.Mime]
-			}
-			preview = append(preview,
-				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s256px-%s%s", prefix, filename, pagePrefix, filename, extraExtension),
-			)
-		}
-	}
-	return fileInfo{
-		MediaType: info.Mime,
-		PageURL:   fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
-		URL:       fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
-		Preview:   preview,
-	}
 }
 
 type apiTask struct {
@@ -251,39 +182,39 @@ func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiT
 			// Wait for at least one task to be available.
 			case task := <-apiTaskChan:
 				tasks := []apiTask{task}
-				for {
-					// Make sure we are respecting the rate limit.
-					err := limiter.Wait(ctx)
-					if err != nil {
-						// Context has been canceled.
-						return
-					}
+				// Make sure we are respecting the rate limit.
+				err := limiter.Wait(ctx)
+				if err != nil {
+					// Context has been canceled.
+					return
+				}
 
-					// Drain any other pending task, up to 50.
-				DRAIN:
-					for len(tasks) < 50 {
-						select {
-						case task := <-apiTaskChan:
-							tasks = append(tasks, task)
-						default:
-							break DRAIN
-						}
+				// Drain any other pending task, up to apiLimit.
+			DRAIN:
+				for len(tasks) < apiLimit {
+					select {
+					case task := <-apiTaskChan:
+						tasks = append(tasks, task)
+					default:
+						break DRAIN
 					}
+				}
 
-					errE := doAPIRequest(ctx, client, tasks)
-					if errE == nil {
-						// No error, we exit the retry loop.
-						break
-					}
+				errE := doAPIRequest(ctx, client, tasks)
+				if errE == nil {
+					// No error, we continue the outer loop.
+					continue
+				}
 
-					if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
-						// Context has been canceled.
-						return
-					}
+				if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
+					// Context has been canceled.
+					return
+				}
 
-					// TODO: Use logger.
-					fmt.Fprintf(os.Stderr, "API request failed: %+v\n", errE)
-					// We retry here.
+				// We report the error.
+				errE = errors.Errorf("API request failed: %w", errE)
+				for _, t := range tasks {
+					t.ErrChan <- errE
 				}
 			case <-ctx.Done():
 				// Context has been canceled.
@@ -295,7 +226,7 @@ func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiT
 	return apiTaskChan
 }
 
-func getImageInfo(ctx context.Context, client *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
+func getImageInfoChan(ctx context.Context, client *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
 	apiTaskChan := getAPIWorker(ctx, client)
 
 	imageInfoChan := make(chan imageInfo)
@@ -315,45 +246,35 @@ func getImageInfo(ctx context.Context, client *retryablehttp.Client, title strin
 	}
 }
 
-func getFileInfo(ctx context.Context, client *retryablehttp.Client, title string) (fileInfo, errors.E) {
+func getImageInfo(ctx context.Context, client *retryablehttp.Client, filename string) (imageInfo, errors.E) {
 	// First we make sure we do not have underscores.
-	title = strings.ReplaceAll(title, "_", " ")
+	title := strings.ReplaceAll(filename, "_", " ")
 
 	// The first letter has to be upper case.
 	titleRunes := []rune(title)
 	titleRunes[0] = unicode.ToUpper(titleRunes[0])
 	title = string(titleRunes)
 
-	filename := strings.ReplaceAll(title, " ", "_")
-	extension := strings.ToLower(path.Ext(title))
-	mediaTypes := extensionToMediaTypes[extension]
-	if len(mediaTypes) == 0 {
-		return fileInfo{}, nil
-	} else if len(mediaTypes) == 1 && !hasPages[mediaTypes[0]] {
-		return makeFileInfo(imageInfo{Mime: mediaTypes[0]}, filename), nil
-	}
-
-	// We have to use the API to determine the media type or the number of pages.
-	imageInfoChan, errChan := getImageInfo(ctx, client, title)
+	imageInfoChan, errChan := getImageInfoChan(ctx, client, title)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return fileInfo{}, errors.WithStack(ctx.Err())
+			return imageInfo{}, errors.WithStack(ctx.Err())
 		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
 				// Break the select and retry the loop.
 				break
 			}
-			return makeFileInfo(info, filename), nil
+			return info, nil
 		case err, ok := <-errChan:
 			if !ok {
 				errChan = nil
 				// Break the select and retry the loop.
 				break
 			}
-			return fileInfo{}, err
+			return imageInfo{}, err
 		}
 	}
 }
