@@ -382,6 +382,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	}
 
 	// TODO: Store other metadata from the image table (width, height, bits, media type (category), size).
+	// TODO: Store audio/video length.
 
 	if pageCount > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
