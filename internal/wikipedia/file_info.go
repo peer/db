@@ -1,7 +1,7 @@
 package wikipedia
 
 import (
-	"context" //nolint:gosec
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"

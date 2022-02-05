@@ -3,7 +3,7 @@ package wikipedia
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
@@ -120,7 +120,7 @@ func getPathInt(metadata map[string]interface{}, path []string) int {
 			return 0
 		}
 		if len(tail) == 0 {
-			dataString, ok := data.(string)
+			dataString, ok := data.(string) //nolint:govet
 			if !ok {
 				return 0
 			}
@@ -154,7 +154,7 @@ func getPathString(metadata map[string]interface{}, path []string) string {
 			return ""
 		}
 		if len(tail) == 0 {
-			dataString, ok := data.(string)
+			dataString, ok := data.(string) //nolint:govet
 			if !ok {
 				return ""
 			}
@@ -184,7 +184,7 @@ func getPathSliceLen(metadata map[string]interface{}, path []string) int {
 			return 0
 		}
 		if len(tail) == 0 {
-			dataSlice, ok := data.([]interface{})
+			dataSlice, ok := data.([]interface{}) //nolint:govet
 			if !ok {
 				return 0
 			}
