@@ -119,45 +119,20 @@ func getPathInt(metadata map[string]interface{}, path []string) int {
 			return 0
 		}
 		if len(tail) == 0 {
-			dataString, ok := data.(string) //nolint:govet
-			if !ok {
-				return 0
+			switch d := data.(type) {
+			case float64:
+				return int(d)
+			case int64:
+				return int(d)
+			case string:
+				dataInt, err := strconv.Atoi(d)
+				if err == nil {
+					return dataInt
+				}
+			case []interface{}:
+				return len(d)
 			}
-			dataInt, err := strconv.Atoi(dataString)
-			if err != nil {
-				return 0
-			}
-			return dataInt
-		}
-		dataMap, ok := data.(map[string]interface{})
-		if !ok {
 			return 0
-		}
-
-		metadata = dataMap
-		path = tail
-	}
-}
-
-func getPathSliceLen(metadata map[string]interface{}, path []string) int {
-	for {
-		if len(path) == 0 {
-			return 0
-		}
-
-		head := path[0]
-		tail := path[1:]
-
-		data, ok := metadata[head]
-		if !ok {
-			return 0
-		}
-		if len(tail) == 0 {
-			dataSlice, ok := data.([]interface{}) //nolint:govet
-			if !ok {
-				return 0
-			}
-			return len(dataSlice)
 		}
 		dataMap, ok := data.(map[string]interface{})
 		if !ok {
@@ -236,15 +211,23 @@ func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image
 	if count != 0 {
 		return count
 	}
-	count = getPathSliceLen(image.Metadata, []string{"data", "data", "pages"})
+	count = getPathInt(image.Metadata, []string{"data", "page_count"})
 	if count != 0 {
 		return count
 	}
-	count = getXMLPageCount(image.Metadata, []string{"xml"})
+	count = getPathInt(image.Metadata, []string{"page_count"})
+	if count != 0 {
+		return count
+	}
+	count = getPathInt(image.Metadata, []string{"data", "data", "pages"})
 	if count != 0 {
 		return count
 	}
 	count = getXMLPageCount(image.Metadata, []string{"data", "xml"})
+	if count != 0 {
+		return count
+	}
+	count = getXMLPageCount(image.Metadata, []string{"xml"})
 	if count != 0 {
 		return count
 	}
