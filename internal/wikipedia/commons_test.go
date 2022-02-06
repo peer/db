@@ -22,3 +22,8 @@ func TestGetXMLPageCount(t *testing.T) {
 	pages := getXMLPageCount(metadata, []string{"xml"})
 	assert.Equal(t, 4, pages)
 }
+
+func TestFitBoxWidth(t *testing.T) {
+	width := fitBoxWidth(691, 1097)
+	assert.Equal(t, 161, width)
+}
