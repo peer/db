@@ -227,41 +227,40 @@ func getXMLPageCount(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image) int {
+func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image) (int, errors.E) {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getPathInt(image.Metadata, []string{"Pages"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getPathInt(image.Metadata, []string{"data", "page_count"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getPathInt(image.Metadata, []string{"page_count"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getPathInt(image.Metadata, []string{"data", "data", "pages"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getXMLPageCount(image.Metadata, []string{"data", "xml"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	count = getXMLPageCount(image.Metadata, []string{"xml"})
 	if count != 0 {
-		return count
+		return count, nil
 	}
 	imageInfo, err := getImageInfo(ctx, client, image.Name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, `unable to get image info for "%s": %s`+"\n", image.Name, err.Error())
-		return 0
+		return 0, errors.Errorf(`unable to get image info for "%s": %w`, image.Name, err)
 	}
-	return imageInfo.PageCount
+	return imageInfo.PageCount, nil
 }
 
 // Implementation matches includes/media/MediaHandler.php's fitBoxWidth of MediaWiki.
@@ -294,11 +293,17 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		return nil, errors.Errorf(`unsupported media type "%s" for "%s"`, mediaType, image.Name)
 	}
 
+	var err errors.E
 	pageCount := 0
 	if hasPages[mediaType] {
-		pageCount = getPageCount(ctx, client, image)
+		pageCount, err = getPageCount(ctx, client, image)
+		if err != nil {
+			// Error happens if there was a problem using the API. This could mean that the file
+			// does not exist anymore. In any case, we skip it.
+			return nil, errors.Errorf("%w: %s", SkippedError, err.Error())
+		}
 		if pageCount == 0 {
-			fmt.Fprintf(os.Stderr, `file "%s" is missing pages metadata`+"\n", image.Name)
+			fmt.Fprintf(os.Stderr, "zero page count for \"%s\"\n", image.Name)
 		}
 	}
 

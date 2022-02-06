@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	SkippedError = errors.Base("document skipped")
+	SkippedError = errors.Base("skipped")
 )
