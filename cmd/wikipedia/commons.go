@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -22,6 +24,11 @@ import (
 const (
 	// TODO: Determine full latest dump dynamically (not in progress/partial).
 	latestCommonsImages = "https://dumps.wikimedia.org/commonswiki/20220120/commonswiki-20220120-image.sql.gz"
+)
+
+var (
+	skippedcommonsImages            = sync.Map{}
+	skippedcommonsImagesCount int64 = 0
 )
 
 type CommonsImagesCommand struct{}
@@ -103,7 +110,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 		},
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, stats.Failed)
+			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedcommonsImagesCount, stats.Failed)
 		},
 		Item:        &wikipedia.Image{},
 		FileType:    mediawiki.SQLDump,
@@ -116,6 +123,8 @@ func (c *CommonsImagesCommand) processImage(
 ) errors.E {
 	document, err := wikipedia.ConvertImage(ctx, client, image)
 	if errors.Is(err, wikipedia.SkippedError) {
+		skippedcommonsImages.Store(image.Name, true)
+		atomic.AddInt64(&skippedcommonsImagesCount, 1)
 		return nil
 	} else if err != nil {
 		return err
