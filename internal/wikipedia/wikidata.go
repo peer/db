@@ -27,9 +27,9 @@ const (
 var (
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
-	NotSupportedError              = errors.Base("not supported")
-	notSupportedDataValueTypeError = errors.BaseWrap(NotSupportedError, "not supported data value type")
-	notSupportedDataTypeError      = errors.BaseWrap(NotSupportedError, "not supported data type")
+	notSupportedError              = errors.BaseWrap(SkippedError, "not supported")
+	notSupportedDataValueTypeError = errors.BaseWrap(notSupportedError, "not supported data value type")
+	notSupportedDataTypeError      = errors.BaseWrap(notSupportedError, "not supported data type")
 )
 
 func GetWikidataDocumentID(id string) search.Identifier {
@@ -306,7 +306,7 @@ func processSnak( //nolint:ireturn
 		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.MonolingualText:
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
-				return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
+				return nil, errors.Errorf("%w: limited only to English", notSupportedError)
 			}
 			return &search.TextClaim{
 				CoreClaim: search.CoreClaim{
@@ -422,7 +422,7 @@ func addQualifiers(
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaim, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, mediumConfidence, qualifier)
-			if errors.Is(err, NotSupportedError) {
+			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
 			} else if err != nil {
@@ -456,7 +456,7 @@ func addReference(
 	for _, p := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[p] {
 			c, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak)
-			if errors.Is(err, NotSupportedError) {
+			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
 			} else if err != nil {
@@ -506,7 +506,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 			// But properties should all have English label, so we warn here.
 			fmt.Fprintf(os.Stderr, "property %s is missing a label in English\n", entity.ID)
 		}
-		return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
+		return nil, errors.Errorf("%w: limited only to English", notSupportedError)
 	}
 
 	id := GetWikidataDocumentID(entity.ID)
@@ -682,7 +682,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claim, err := processSnak(ctx, client, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak)
-			if errors.Is(err, NotSupportedError) {
+			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
 			} else if err != nil {

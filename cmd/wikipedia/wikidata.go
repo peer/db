@@ -113,7 +113,7 @@ func (c *WikidataCommand) processEntity(
 	ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
 	document, err := wikipedia.ConvertEntity(ctx, client, entity)
-	if errors.Is(err, wikipedia.NotSupportedError) {
+	if errors.Is(err, wikipedia.SkippedError) {
 		return nil
 	} else if err != nil {
 		return err

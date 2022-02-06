@@ -115,7 +115,9 @@ func (c *CommonsImagesCommand) processImage(
 	ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
 	document, err := wikipedia.ConvertImage(ctx, client, image)
-	if err != nil {
+	if errors.Is(err, wikipedia.SkippedError) {
+		return nil
+	} else if err != nil {
 		return err
 	}
 
