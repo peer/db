@@ -125,6 +125,7 @@ func (c *CommonsImagesCommand) processImage(
 	if errors.Is(err, wikipedia.SkippedError) {
 		skippedcommonsImages.Store(image.Name, true)
 		atomic.AddInt64(&skippedcommonsImagesCount, 1)
+		fmt.Fprint(os.Stderr, "%s\n", err.Error())
 		return nil
 	} else if err != nil {
 		return err

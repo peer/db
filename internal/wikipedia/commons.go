@@ -7,7 +7,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"math"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -72,6 +71,12 @@ var (
 		"audio/flac": true,
 		"audio/wav":  true,
 		"audio/mpeg": true,
+	}
+	browsersSupport = map[string]bool{
+		"image/gif":  true,
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/webp": true,
 	}
 )
 
@@ -290,7 +295,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		mediaType = "audio/flac"
 	}
 	if !supportedMediaTypes[mediaType] {
-		return nil, errors.Errorf(`unsupported media type "%s" for "%s"`, mediaType, image.Name)
+		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
 	}
 
 	var err errors.E
@@ -300,10 +305,10 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file
 			// does not exist anymore. In any case, we skip it.
-			return nil, errors.Errorf("%w: %s", SkippedError, err.Error())
+			return nil, errors.Errorf("%w: error getting page count \"%s\": %s", SkippedError, image.Name, err.Error())
 		}
 		if pageCount == 0 {
-			fmt.Fprintf(os.Stderr, "zero page count for \"%s\"\n", image.Name)
+			return nil, errors.Errorf("%w: zero page count for \"%s\"", SkippedError, image.Name)
 		}
 	}
 
@@ -313,7 +318,11 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	}
 	preview := []string{}
 	if !noPreview[mediaType] {
-		if mediaType != "image/svg+xml" && !hasPages[mediaType] && image.Width <= 256 && image.Height <= 256 {
+		if image.Width == 0 || image.Height == 0 {
+			return nil, errors.Errorf("%w: invalid width/height (%dx%d) for \"%s\"", SkippedError, image.Width, image.Height, image.Name)
+		}
+
+		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= 256 && image.Height <= 256 {
 			// If the image is small, we link directly to the image.
 			preview = append(preview,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, image.Name),
