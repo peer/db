@@ -807,7 +807,8 @@
         "rad",
         "Hz",
         "$",
-        "B"
+        "B",
+        "px"
       ]
     },
     "timePrecision": {

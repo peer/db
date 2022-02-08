@@ -456,7 +456,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		},
 	}
 
-	// TODO: Store other metadata from the image table (width, height, bits, media type (category), size).
+	// TODO: Store other metadata from the image table (media type (category)).
 	// TODO: Store audio/video length.
 
 	if pageCount > 0 {
@@ -468,6 +468,25 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 			Prop:   search.GetStandardPropertyReference("PAGE_COUNT"),
 			Amount: float64(pageCount),
 			Unit:   search.AmountUnitNone,
+		})
+	}
+	if !noPreview[mediaType] {
+		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "WIDTH", 0),
+				Confidence: mediumConfidence,
+			},
+			Prop:   search.GetStandardPropertyReference("WIDTH"),
+			Amount: float64(image.Width),
+			Unit:   search.AmountUnitPixel,
+		}, search.AmountClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "HEIGHT", 0),
+				Confidence: mediumConfidence,
+			},
+			Prop:   search.GetStandardPropertyReference("HEIGHT"),
+			Amount: float64(image.Height),
+			Unit:   search.AmountUnitPixel,
 		})
 	}
 
