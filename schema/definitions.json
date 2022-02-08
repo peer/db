@@ -808,7 +808,8 @@
         "Hz",
         "$",
         "B",
-        "px"
+        "px",
+        "s"
       ]
     },
     "timePrecision": {

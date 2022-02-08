@@ -64,6 +64,22 @@ var (
 		"application/pdf": true,
 		"image/tiff":      true,
 	}
+	hasDuration = map[string]bool{
+		"audio/flac": true,
+		"audio/mpeg": true,
+		"audio/ogg":  true,
+		"audio/wav":  true,
+		"audio/webm": true,
+		"video/mpeg": true,
+		"video/ogg":  true,
+		"video/webm": true,
+		"image/gif":  true,
+		"image/webp": true,
+	}
+	canHaveZeroDuration = map[string]bool{
+		"image/gif":  true,
+		"image/webp": true,
+	}
 	noPreview = map[string]bool{
 		"audio/webm": true,
 		"audio/ogg":  true,
@@ -174,6 +190,44 @@ func getPathInt(metadata map[string]interface{}, path []string) int {
 	}
 }
 
+func getPathFloat(metadata map[string]interface{}, path []string) *float64 {
+	for {
+		if len(path) == 0 {
+			return nil
+		}
+
+		head := path[0]
+		tail := path[1:]
+
+		data, ok := metadata[head]
+		if !ok {
+			return nil
+		}
+		if len(tail) == 0 {
+			switch d := data.(type) {
+			case float64:
+				return &d
+			case int64:
+				f := float64(d)
+				return &f
+			case string:
+				dataFloat, err := strconv.ParseFloat(d, 64)
+				if err == nil {
+					return &dataFloat
+				}
+			}
+			return nil
+		}
+		dataMap, ok := data.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+
+		metadata = dataMap
+		path = tail
+	}
+}
+
 type xmlParam struct {
 	Name  string `xml:"name,attr"`
 	Value string `xml:"value,attr"`
@@ -268,6 +322,34 @@ func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image
 	return imageInfo.PageCount, nil
 }
 
+func getDuration(ctx context.Context, client *retryablehttp.Client, image Image) (float64, errors.E) {
+	duration := getPathFloat(image.Metadata, []string{"data", "duration"})
+	if duration != nil {
+		return *duration, nil
+	}
+	duration = getPathFloat(image.Metadata, []string{"duration"})
+	if duration != nil {
+		return *duration, nil
+	}
+	duration = getPathFloat(image.Metadata, []string{"data", "playtime_seconds"})
+	if duration != nil {
+		return *duration, nil
+	}
+	duration = getPathFloat(image.Metadata, []string{"playtime_seconds"})
+	if duration != nil {
+		return *duration, nil
+	}
+	duration = getPathFloat(image.Metadata, []string{"data", "length"})
+	if duration != nil {
+		return *duration, nil
+	}
+	duration = getPathFloat(image.Metadata, []string{"length"})
+	if duration != nil {
+		return *duration, nil
+	}
+	return 0.0, nil
+}
+
 // Implementation matches includes/media/MediaHandler.php's fitBoxWidth of MediaWiki.
 func fitBoxWidth(width, height float64) int {
 	idealWidth := width * 256.0 / height
@@ -312,6 +394,19 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		}
 		if pageCount == 0 {
 			return nil, errors.Errorf("%w: zero page count for \"%s\"", SkippedError, image.Name)
+		}
+	}
+
+	duration := 0.0
+	if hasDuration[mediaType] {
+		duration, err = getDuration(ctx, client, image)
+		if err != nil {
+			// Error happens if there was a problem using the API. This could mean that the file
+			// does not exist anymore. In any case, we skip it.
+			return nil, errors.Errorf("%w: error getting duration \"%s\": %s", SkippedError, image.Name, err.Error())
+		}
+		if duration == 0.0 && !canHaveZeroDuration[mediaType] {
+			return nil, errors.Errorf("%w: zero duration for \"%s\"", SkippedError, image.Name)
 		}
 	}
 
@@ -457,7 +552,6 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	}
 
 	// TODO: Store other metadata from the image table (media type (category)).
-	// TODO: Store audio/video length.
 
 	if pageCount > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
@@ -470,7 +564,18 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 			Unit:   search.AmountUnitNone,
 		})
 	}
-	if !noPreview[mediaType] {
+	if duration > 0.0 {
+		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "LENGTH", 0),
+				Confidence: mediumConfidence,
+			},
+			Prop:   search.GetStandardPropertyReference("LENGTH"),
+			Amount: duration,
+			Unit:   search.AmountUnitSecond,
+		})
+	}
+	if image.Width > 0 && image.Height > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "WIDTH", 0),

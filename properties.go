@@ -93,6 +93,11 @@ var (
 			[]string{`"amount" claim type`},
 		},
 		{
+			"length",
+			"the length the entity has",
+			[]string{`"amount" claim type`},
+		},
+		{
 			"width",
 			"the width the entity has",
 			[]string{`"amount" claim type`},

@@ -1225,6 +1225,7 @@ const (
 	AmountUnitDollar
 	AmountUnitByte
 	AmountUnitPixel
+	AmountUnitSecond
 )
 
 func (u AmountUnit) MarshalJSON() ([]byte, error) {
@@ -1270,6 +1271,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("B")
 	case AmountUnitPixel:
 		buffer.WriteString("px")
+	case AmountUnitSecond:
+		buffer.WriteString("s")
 	}
 	buffer.WriteString(`"`)
 	return buffer.Bytes(), nil
@@ -1322,6 +1325,8 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		*u = AmountUnitByte
 	case "px":
 		*u = AmountUnitPixel
+	case "s":
+		*u = AmountUnitSecond
 	default:
 		return errors.Errorf("unknown amount unit: %s", s)
 	}
