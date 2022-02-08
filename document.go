@@ -1223,6 +1223,7 @@ const (
 	AmountUnitRadian
 	AmountUnitHertz
 	AmountUnitDollar
+	AmountUnitByte
 )
 
 func (u AmountUnit) MarshalJSON() ([]byte, error) {
@@ -1264,6 +1265,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("Hz")
 	case AmountUnitDollar:
 		buffer.WriteString("$")
+	case AmountUnitByte:
+		buffer.WriteString("B")
 	}
 	buffer.WriteString(`"`)
 	return buffer.Bytes(), nil
@@ -1312,6 +1315,8 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		*u = AmountUnitHertz
 	case "$":
 		*u = AmountUnitDollar
+	case "B":
+		*u = AmountUnitByte
 	default:
 		return errors.Errorf("unknown amount unit: %s", s)
 	}

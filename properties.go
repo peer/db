@@ -88,6 +88,11 @@ var (
 			[]string{`"amount" claim type`},
 		},
 		{
+			"size",
+			"the size the entity has",
+			[]string{`"amount" claim type`},
+		},
+		{
 			"media type",
 			"media (MIME) type of the file",
 			[]string{`"string" claim type`},

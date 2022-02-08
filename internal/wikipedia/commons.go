@@ -297,6 +297,9 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	if !supportedMediaTypes[mediaType] {
 		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
 	}
+	if image.Size == 0 {
+		return nil, errors.Errorf("%w: zero size for \"%s\"", SkippedError, image.Name)
+	}
 
 	var err errors.E
 	pageCount := 0
@@ -437,6 +440,17 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 					},
 					Prop:   search.GetStandardPropertyReference("MEDIA_TYPE"),
 					String: mediaType,
+				},
+			},
+			Amount: search.AmountClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "SIZE", 0),
+						Confidence: highConfidence,
+					},
+					Prop:   search.GetStandardPropertyReference("SIZE"),
+					Amount: float64(image.Size),
+					Unit:   search.AmountUnitByte,
 				},
 			},
 		},
