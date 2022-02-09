@@ -27,8 +27,7 @@ var (
 		"file",
 		"time",
 		"time range",
-		"duration",
-		"duration range",
+		"is",
 		"list",
 	}
 
@@ -38,24 +37,19 @@ var (
 		Is              []string
 	}{
 		{
-			"is",
-			"unspecified type relation between two entities",
-			nil,
-		},
-		{
 			"property",
 			"the entity is a property",
-			[]string{`"relation" claim type`},
+			[]string{`"is" claim type`},
 		},
 		{
 			"item",
 			"the entity is an item",
-			[]string{`"relation" claim type`},
+			[]string{`"is" claim type`},
 		},
 		{
 			"file",
 			"the entity is a file",
-			[]string{`"relation" claim type`},
+			[]string{`"is" claim type`},
 		},
 		{
 			"data",
@@ -232,20 +226,13 @@ func populateStandardProperties() {
 						},
 					},
 				},
-				Relation: RelationClaims{
+				Is: IsClaims{
 					{
 						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetStandardPropertyID("IS"),
-							Name: Name{
-								"en": "is",
-							},
-							Score: 0.0,
-						},
-						To: DocumentReference{
 							ID: GetStandardPropertyID("PROPERTY"),
 							Name: Name{
 								"en": "property",
@@ -260,19 +247,12 @@ func populateStandardProperties() {
 		activeClaimTypes := StandardProperties[id].Active
 		for _, isClaim := range builtinProperty.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
-			activeClaimTypes.Relation = append(activeClaimTypes.Relation, RelationClaim{
+			activeClaimTypes.Is = append(activeClaimTypes.Is, IsClaim{
 				CoreClaim: CoreClaim{
 					ID:         getPropertyClaimID(mnemonic, isClaimMnemonic, 0),
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID: GetStandardPropertyID("IS"),
-					Name: Name{
-						"en": "is",
-					},
-					Score: 0.0,
-				},
-				To: DocumentReference{
 					ID: GetStandardPropertyID(isClaimMnemonic),
 					Name: Name{
 						"en": isClaim,
@@ -315,20 +295,13 @@ func populateStandardProperties() {
 							},
 						},
 					},
-					Relation: RelationClaims{
+					Is: IsClaims{
 						{
 							CoreClaim: CoreClaim{
 								ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: GetStandardPropertyID("IS"),
-								Name: Name{
-									"en": "is",
-								},
-								Score: 0.0,
-							},
-							To: DocumentReference{
 								ID: GetStandardPropertyID("PROPERTY"),
 								Name: Name{
 									"en": "property",
@@ -342,13 +315,6 @@ func populateStandardProperties() {
 								Confidence: 1.0,
 							},
 							Prop: DocumentReference{
-								ID: GetStandardPropertyID("IS"),
-								Name: Name{
-									"en": "is",
-								},
-								Score: 0.0,
-							},
-							To: DocumentReference{
 								ID: GetStandardPropertyID("CLAIM_TYPE"),
 								Name: Name{
 									"en": "claim type",

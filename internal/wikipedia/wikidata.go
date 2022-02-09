@@ -82,9 +82,9 @@ func getEnglishValuesSlice(values map[string][]mediawiki.LanguageValue) []string
 	return deduplicate(res)
 }
 
-// We have more precise claim types so this is not very precise (e.g., quantity is used
-// both for amount and durations). It is good for the first pass but later on we augment
-// claims about claim types using statistics on how are properties really used.
+// We have more precise claim types so this is not very precise. It is good for the
+// first pass but later on we augment claims about claim types using statistics on
+// how are properties really used.
 // TODO: Really collect statistics and augment claims about claim types.
 // TODO: Determine automatically mnemonics.
 func getPropertyClaimType(dataType mediawiki.DataType) string {
@@ -549,14 +549,13 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
 				},
 			},
-			Relation: search.RelationClaims{
+			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "PROPERTY", 0),
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "PROPERTY", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("PROPERTY"),
+					Prop: search.GetStandardPropertyReference("PROPERTY"),
 				},
 			},
 		}
@@ -582,14 +581,13 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
 				},
 			},
-			Relation: search.RelationClaims{
+			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "IS", "ITEM", 0),
+						ID:         search.GetID(NameSpaceWikidata, entity.ID, "ITEM", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("ITEM"),
+					Prop: search.GetStandardPropertyReference("ITEM"),
 				},
 			},
 		}
@@ -624,15 +622,14 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 	if entity.DataType != nil {
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
-			document.Active.Relation = append(document.Active.Relation, search.RelationClaim{
+			document.Active.Is = append(document.Active.Is, search.IsClaim{
 				CoreClaim: search.CoreClaim{
-					ID: search.GetID(NameSpaceWikidata, entity.ID, "IS", claimTypeMnemonic, 0),
+					ID: search.GetID(NameSpaceWikidata, entity.ID, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					Confidence: lowConfidence,
 				},
-				Prop: search.GetStandardPropertyReference("IS"),
-				To:   search.GetStandardPropertyReference(claimTypeMnemonic),
+				Prop: search.GetStandardPropertyReference(claimTypeMnemonic),
 			})
 		}
 	}

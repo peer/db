@@ -526,14 +526,13 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 					IRI:  fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", image.Name),
 				},
 			},
-			Relation: search.RelationClaims{
+			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "IS", "FILE", 0),
+						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "FILE", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("FILE"),
+					Prop: search.GetStandardPropertyReference("FILE"),
 				},
 			},
 			File: search.FileClaims{

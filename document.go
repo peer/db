@@ -44,8 +44,7 @@ type visitor interface {
 	VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E)
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
-	VisitDuration(claim *DurationClaim) (VisitResult, errors.E)
-	VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E)
+	VisitIs(claim *IsClaim) (VisitResult, errors.E)
 	VisitList(claim *ListClaim) (VisitResult, errors.E)
 }
 
@@ -468,17 +467,17 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 
 	stopping = false
 	k = 0
-	for i := range c.Duration {
+	for i := range c.Is {
 		var keep VisitResult
 		if !stopping {
-			keep, err = visitor.VisitDuration(&c.Duration[i])
+			keep, err = visitor.VisitIs(&c.Is[i])
 			if err != nil {
 				return err
 			}
 		}
 		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.Duration[k] = c.Duration[i]
+				c.Is[k] = c.Is[i]
 			}
 			k++
 		}
@@ -486,35 +485,8 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 			stopping = true
 		}
 	}
-	if len(c.Duration) != k {
-		c.Duration = c.Duration[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.DurationRange {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitDurationRange(&c.DurationRange[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.DurationRange[k] = c.DurationRange[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.DurationRange) != k {
-		c.DurationRange = c.DurationRange[:k]
+	if len(c.Is) != k {
+		c.Is = c.Is[:k]
 	}
 	if stopping {
 		return nil
@@ -570,8 +542,7 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.UnknownValue)
 	s += len(c.Time)
 	s += len(c.TimeRange)
-	s += len(c.Duration)
-	s += len(c.DurationRange)
+	s += len(c.Is)
 	s += len(c.List)
 	return s
 }
@@ -694,15 +665,7 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 	return Keep, nil
 }
 
-func (v *getByIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-func (v *getByIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E) {
+func (v *getByIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -831,14 +794,7 @@ func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 	return Keep, nil
 }
 
-func (v *getByPropIDVisitor) VisitDuration(claim *DurationClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-	}
-	return Keep, nil
-}
-
-func (v *getByPropIDVisitor) VisitDurationRange(claim *DurationRangeClaim) (VisitResult, errors.E) {
+func (v *getByPropIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 	}
@@ -923,10 +879,8 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Time = append(claimTypes.Time, *c)
 	case *TimeRangeClaim:
 		claimTypes.TimeRange = append(claimTypes.TimeRange, *c)
-	case *DurationClaim:
-		claimTypes.Duration = append(claimTypes.Duration, *c)
-	case *DurationRangeClaim:
-		claimTypes.DurationRange = append(claimTypes.DurationRange, *c)
+	case *IsClaim:
+		claimTypes.Is = append(claimTypes.Is, *c)
 	case *ListClaim:
 		claimTypes.List = append(claimTypes.List, *c)
 	default:
@@ -1005,8 +959,6 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type Duration time.Duration
-
 type Name = TranslatablePlainString
 
 // Language to plain string mapping.
@@ -1022,43 +974,41 @@ type OtherNames map[string][]string
 type Scores map[string]Score
 
 type ClaimTypes struct {
-	Identifier    IdentifierClaims    `json:"id,omitempty"`
-	Reference     ReferenceClaims     `json:"ref,omitempty"`
-	Text          TextClaims          `json:"text,omitempty"`
-	String        StringClaims        `json:"string,omitempty"`
-	Label         LabelClaims         `json:"label,omitempty"`
-	Amount        AmountClaims        `json:"amount,omitempty"`
-	AmountRange   AmountRangeClaims   `json:"amountRange,omitempty"`
-	Enumeration   EnumerationClaims   `json:"enum,omitempty"`
-	Relation      RelationClaims      `json:"rel,omitempty"`
-	File          FileClaims          `json:"file,omitempty"`
-	NoValue       NoValueClaims       `json:"none,omitempty"`
-	UnknownValue  UnknownValueClaims  `json:"unknown,omitempty"`
-	Time          TimeClaims          `json:"time,omitempty"`
-	TimeRange     TimeRangeClaims     `json:"timeRange,omitempty"`
-	Duration      DurationClaims      `json:"duration,omitempty"`
-	DurationRange DurationRangeClaims `json:"durationRange,omitempty"`
-	List          ListClaims          `json:"list,omitempty"`
+	Identifier   IdentifierClaims   `json:"id,omitempty"`
+	Reference    ReferenceClaims    `json:"ref,omitempty"`
+	Text         TextClaims         `json:"text,omitempty"`
+	String       StringClaims       `json:"string,omitempty"`
+	Label        LabelClaims        `json:"label,omitempty"`
+	Amount       AmountClaims       `json:"amount,omitempty"`
+	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
+	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
+	Relation     RelationClaims     `json:"rel,omitempty"`
+	File         FileClaims         `json:"file,omitempty"`
+	NoValue      NoValueClaims      `json:"none,omitempty"`
+	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
+	Time         TimeClaims         `json:"time,omitempty"`
+	TimeRange    TimeRangeClaims    `json:"timeRange,omitempty"`
+	Is           IsClaims           `json:"is,omitempty"`
+	List         ListClaims         `json:"list,omitempty"`
 }
 
 type (
-	IdentifierClaims    = []IdentifierClaim
-	ReferenceClaims     = []ReferenceClaim
-	TextClaims          = []TextClaim
-	StringClaims        = []StringClaim
-	LabelClaims         = []LabelClaim
-	AmountClaims        = []AmountClaim
-	AmountRangeClaims   = []AmountRangeClaim
-	EnumerationClaims   = []EnumerationClaim
-	RelationClaims      = []RelationClaim
-	FileClaims          = []FileClaim
-	NoValueClaims       = []NoValueClaim
-	UnknownValueClaims  = []UnknownValueClaim
-	TimeClaims          = []TimeClaim
-	TimeRangeClaims     = []TimeRangeClaim
-	DurationClaims      = []DurationClaim
-	DurationRangeClaims = []DurationRangeClaim
-	ListClaims          = []ListClaim
+	IdentifierClaims   = []IdentifierClaim
+	ReferenceClaims    = []ReferenceClaim
+	TextClaims         = []TextClaim
+	StringClaims       = []StringClaim
+	LabelClaims        = []LabelClaim
+	AmountClaims       = []AmountClaim
+	AmountRangeClaims  = []AmountRangeClaim
+	EnumerationClaims  = []EnumerationClaim
+	RelationClaims     = []RelationClaim
+	FileClaims         = []FileClaim
+	NoValueClaims      = []NoValueClaim
+	UnknownValueClaims = []UnknownValueClaim
+	TimeClaims         = []TimeClaim
+	TimeRangeClaims    = []TimeRangeClaim
+	IsClaims           = []IsClaim
+	ListClaims         = []ListClaim
 )
 
 type CoreClaim struct {
@@ -1111,10 +1061,8 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.Time = append(cc.Meta.Time, *c)
 	case *TimeRangeClaim:
 		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
-	case *DurationClaim:
-		cc.Meta.Duration = append(cc.Meta.Duration, *c)
-	case *DurationRangeClaim:
-		cc.Meta.DurationRange = append(cc.Meta.DurationRange, *c)
+	case *IsClaim:
+		cc.Meta.Is = append(cc.Meta.Is, *c)
 	case *ListClaim:
 		cc.Meta.List = append(cc.Meta.List, *c)
 	default:
@@ -1511,23 +1459,10 @@ type TimeRangeClaim struct {
 	Precision        TimePrecision     `json:"precision"`
 }
 
-type DurationClaim struct {
+type IsClaim struct {
 	CoreClaim
 
-	Prop             DocumentReference `json:"prop"`
-	Amount           Duration          `json:"amount"`
-	UncertaintyLower *Duration         `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *Duration         `json:"uncertaintyUpper,omitempty"`
-}
-
-type DurationRangeClaim struct {
-	CoreClaim
-
-	Prop             DocumentReference `json:"prop"`
-	Lower            Duration          `json:"lower"`
-	Upper            Duration          `json:"upper"`
-	UncertaintyLower *Duration         `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *Duration         `json:"uncertaintyUpper,omitempty"`
+	Prop DocumentReference `json:"prop"`
 }
 
 type ListClaim struct {

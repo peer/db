@@ -609,31 +609,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitDuration(claim *search.DurationClaim) (search.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
-	}
-
-	if !reflect.DeepEqual(&claim.Prop, ref) {
-		claim.Prop = *ref
-		v.Changed = true
-	}
-
-	return search.Keep, nil
-}
-
-func (v *updateEmbeddedDocumentsVisitor) VisitDurationRange(claim *search.DurationRangeClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
 		return search.Keep, err

@@ -97,11 +97,8 @@
         "timeRange": {
           "$ref": "#/$defs/timeRangeClaims"
         },
-        "duration": {
-          "$ref": "#/$defs/durationClaims"
-        },
-        "durationRange": {
-          "$ref": "#/$defs/durationRangeClaims"
+        "is": {
+          "$ref": "#/$defs/isClaims"
         },
         "list": {
           "$ref": "#/$defs/listClaims"
@@ -248,16 +245,10 @@
         "$ref": "#/$defs/timeRangeClaim"
       }
     },
-    "durationClaims": {
+    "isClaims": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/durationClaim"
-      }
-    },
-    "durationRangeClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/durationRangeClaim"
+        "$ref": "#/$defs/isClaim"
       }
     },
     "textClaim": {
@@ -675,8 +666,8 @@
       ],
       "unevaluatedProperties": false
     },
-    "durationClaim": {
-      "description": "All durations are in seconds so that it is easier to compare values during search.",
+    "isClaim": {
+      "description": "Similar to labels, but restricted only to claims about entity's type.",
       "type": "object",
       "allOf": [
         {
@@ -686,58 +677,10 @@
       "properties": {
         "prop": {
           "$ref": "#/$defs/documentReference"
-        },
-        "amount": {
-          "type": "number"
-        },
-        "uncertaintyLower": {
-          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
         }
       },
       "required": [
-        "prop",
-        "amount"
-      ],
-      "unevaluatedProperties": false
-    },
-    "durationRangeClaim": {
-      "description": "All durations are in seconds so that it is easier to compare values during search.",
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/documentReference"
-        },
-        "lower": {
-          "description": "The lower bound of the range. Inclusive.",
-          "type": "number"
-        },
-        "upper": {
-          "description": "The lower bound of the range. Inclusive.",
-          "type": "number"
-        },
-        "uncertaintyLower": {
-          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        }
-      },
-      "required": [
-        "prop",
-        "lower",
-        "upper"
+        "prop"
       ],
       "unevaluatedProperties": false
     },
