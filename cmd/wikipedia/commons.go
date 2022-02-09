@@ -28,8 +28,8 @@ const (
 )
 
 var (
-	skippedcommonsImages            = sync.Map{}
-	skippedcommonsImagesCount int64 = 0
+	skippedcommonsImages      = sync.Map{}
+	skippedcommonsImagesCount int64
 )
 
 type CommonsImagesCommand struct {
@@ -97,7 +97,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 	}
 	defer processor.Close()
 
-	err = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
+	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
 		URL:       latestCommonsImages,
 		CacheDir:  globals.CacheDir,
 		CacheGlob: "commonswiki-*-image.sql.gz",
@@ -113,7 +113,11 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 		},
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedcommonsImagesCount, stats.Failed)
+			fmt.Fprintf(
+				os.Stderr,
+				"Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n",
+				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedcommonsImagesCount, stats.Failed,
+			)
 		},
 		Item:        &wikipedia.Image{},
 		FileType:    mediawiki.SQLDump,
