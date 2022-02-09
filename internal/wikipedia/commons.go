@@ -47,6 +47,20 @@ var (
 		"video/ogg":       true,
 		"video/webm":      true,
 	}
+	// See: https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type
+	supportedMediawikiMediaTypes = map[string]bool{
+		"UNKNOWN":    true,
+		"BITMAP":     true,
+		"DRAWING":    true,
+		"AUDIO":      true,
+		"VIDEO":      true,
+		"MULTIMEDIA": true,
+		"OFFICE":     true,
+		"TEXT":       true,
+		"EXECUTABLE": true,
+		"ARCHIVE":    true,
+		"3D":         true,
+	}
 	thumbnailExtraExtensions = map[string]string{
 		"image/vnd.djvu":  ".jpg",
 		"application/pdf": ".jpg",
@@ -65,6 +79,7 @@ var (
 		"image/tiff":      true,
 	}
 	// TODO: Add audio/midi. See: https://phabricator.wikimedia.org/T301323
+	// TODO: Duration for image/webp is not really provided. See: https://phabricator.wikimedia.org/T301332
 	hasDuration = map[string]bool{
 		"audio/flac": true,
 		"audio/mpeg": true,
@@ -75,10 +90,12 @@ var (
 		"video/ogg":  true,
 		"video/webm": true,
 		"image/gif":  true,
+		"image/png":  true,
 		"image/webp": true,
 	}
 	canHaveZeroDuration = map[string]bool{
 		"image/gif":  true,
+		"image/png":  true,
 		"image/webp": true,
 	}
 	noPreview = map[string]bool{
@@ -380,6 +397,9 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	if !supportedMediaTypes[mediaType] {
 		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
 	}
+	if !supportedMediawikiMediaTypes[image.MediaType] {
+		return nil, errors.Errorf(`%w: unsupported Mediawiki media type "%s" for "%s"`, notSupportedError, image.MediaType, image.Name)
+	}
 	if image.Size == 0 {
 		return nil, errors.Errorf("%w: zero size for \"%s\"", SkippedError, image.Name)
 	}
@@ -547,6 +567,16 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 					Prop:   search.GetStandardPropertyReference("SIZE"),
 					Amount: float64(image.Size),
 					Unit:   search.AmountUnitByte,
+				},
+			},
+			Enumeration: search.EnumerationClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
+						Confidence: highConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+					Enum: []string{strings.ToLower(image.MediaType)},
 				},
 			},
 		},

@@ -152,6 +152,11 @@ var (
 			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file`,
 			[]string{`"reference" claim type`},
 		},
+		{
+			"Mediawiki media type",
+			`see possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase`,
+			[]string{`"enumeration" claim type`},
+		},
 	}
 
 	nameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
