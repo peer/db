@@ -581,8 +581,6 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 		},
 	}
 
-	// TODO: Store other metadata from the image table (media type (category)).
-
 	if pageCount > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
