@@ -64,6 +64,7 @@ var (
 		"application/pdf": true,
 		"image/tiff":      true,
 	}
+	// TODO: Add audio/midi. See: https://phabricator.wikimedia.org/T301323
 	hasDuration = map[string]bool{
 		"audio/flac": true,
 		"audio/mpeg": true,
