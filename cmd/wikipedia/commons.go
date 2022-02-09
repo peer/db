@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -31,7 +32,9 @@ var (
 	skippedcommonsImagesCount int64 = 0
 )
 
-type CommonsImagesCommand struct{}
+type CommonsImagesCommand struct {
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
+}
 
 func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 	ctx := context.Background()
@@ -94,7 +97,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 	}
 	defer processor.Close()
 
-	return mediawiki.Process(ctx, &mediawiki.ProcessConfig{
+	err = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
 		URL:       latestCommonsImages,
 		CacheDir:  globals.CacheDir,
 		CacheGlob: "commonswiki-*-image.sql.gz",
@@ -116,6 +119,29 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 		FileType:    mediawiki.SQLDump,
 		Compression: mediawiki.GZIP,
 	})
+	if errE != nil {
+		return errE
+	}
+
+	if c.SaveSkipped != "" {
+		var w io.Writer
+		if c.SaveSkipped == "-" {
+			w = os.Stdout
+		} else {
+			file, err := os.Create(c.SaveSkipped)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			defer file.Close()
+			w = file
+		}
+		skippedcommonsImages.Range(func(key, _ interface{}) bool {
+			fmt.Fprintf(w, "%s\n", key.(string))
+			return false
+		})
+	}
+
+	return nil
 }
 
 func (c *CommonsImagesCommand) processImage(
