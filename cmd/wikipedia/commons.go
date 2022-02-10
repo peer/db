@@ -157,7 +157,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 func (c *CommonsImagesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
-	document, err := wikipedia.ConvertImage(ctx, httpClient, image)
+	document, err := wikipedia.ConvertWikimediaCommonsImage(ctx, httpClient, image)
 	if errors.Is(err, wikipedia.SkippedError) {
 		skippedcommonsImages.Store(image.Name, true)
 		atomic.AddInt64(&skippedcommonsImagesCount, 1)

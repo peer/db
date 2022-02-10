@@ -164,11 +164,7 @@ func (i *Image) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func GetWikimediaCommonsFileDocumentID(id string) search.Identifier {
-	return search.GetID(NameSpaceWikimediaCommonsFile, id)
-}
-
-func getWikimediaCommonsFilePrefix(filename string) string {
+func getMediawikiFilePrefix(filename string) string {
 	sum := md5.Sum([]byte(filename)) //nolint:gosec
 	digest := hex.EncodeToString(sum[:])
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
@@ -384,11 +380,15 @@ func fitBoxWidth(width, height float64) int {
 	return int(roundedUp)
 }
 
-func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image Image) (*search.Document, errors.E) {
-	id := GetWikimediaCommonsFileDocumentID(image.Name)
-	prefix := getWikimediaCommonsFilePrefix(image.Name)
+func ConvertWikimediaCommonsImage(ctx context.Context, httpClient *retryablehttp.Client, image Image) (*search.Document, errors.E) {
+	return convertImage(ctx, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", image)
+}
+
+func convertImage(ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix string, image Image) (*search.Document, errors.E) {
+	id := search.GetID(namespace, image.Name)
+	prefix := getMediawikiFilePrefix(image.Name)
 	mediaType := fmt.Sprintf("%s/%s", image.MajorMIME, image.MinorMIME)
-	// Wikimedia Commons uses "application/ogg" for both video and audio, but we find it more informative
+	// Mediawiki uses "application/ogg" for both video and audio, but we find it more informative
 	// to tell if it is audio or video through the media type, if this information is already available.
 	if mediaType == "application/ogg" {
 		if image.MediaType == "AUDIO" {
@@ -450,7 +450,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
 			// If the image is small, we link directly to the image.
 			preview = append(preview,
-				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, image.Name),
+				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 			)
 		} else {
 			width := previewSize
@@ -494,7 +494,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 					}
 				}
 				preview = append(preview,
-					fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s%dpx-%s%s%s", prefix, image.Name, pagePrefix, width, extraDash, thumbName, extraExtension),
+					fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/thumb/%s/%s/%s%dpx-%s%s%s", fileSite, prefix, image.Name, pagePrefix, width, extraDash, thumbName, extraExtension),
 				)
 			}
 		}
@@ -515,27 +515,27 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "WIKIMEDIA_COMMONS_FILE_NAME", 0),
+						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
 						Confidence: highConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE_NAME"),
+					Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
 				},
 			},
 			Reference: search.ReferenceClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "WIKIMEDIA_COMMONS_FILE", 0),
+						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
-					IRI:  fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", image.Name),
+					Prop: search.GetStandardPropertyReference(mnemonicPrefix + "_FILE"),
+					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
 				},
 			},
 			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "FILE", 0),
+						ID:         search.GetID(namespace, image.Name, "FILE", 0),
 						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("FILE"),
@@ -544,19 +544,19 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 			File: search.FileClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "DATA", 0),
+						ID:         search.GetID(namespace, image.Name, "DATA", 0),
 						Confidence: highConfidence,
 					},
 					Prop:    search.GetStandardPropertyReference("DATA"),
 					Type:    mediaType,
-					URL:     fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, image.Name),
+					URL:     fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 					Preview: preview,
 				},
 			},
 			String: search.StringClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "MEDIA_TYPE", 0),
+						ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
 						Confidence: highConfidence,
 					},
 					Prop:   search.GetStandardPropertyReference("MEDIA_TYPE"),
@@ -566,7 +566,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 			Amount: search.AmountClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "SIZE", 0),
+						ID:         search.GetID(namespace, image.Name, "SIZE", 0),
 						Confidence: highConfidence,
 					},
 					Prop:   search.GetStandardPropertyReference("SIZE"),
@@ -577,7 +577,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 			Enumeration: search.EnumerationClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
+						ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 						Confidence: highConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
@@ -590,7 +590,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 	if pageCount > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "PAGE_COUNT", 0),
+				ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 				Confidence: mediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("PAGE_COUNT"),
@@ -601,7 +601,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 	if duration > 0.0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "LENGTH", 0),
+				ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
 				Confidence: mediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("LENGTH"),
@@ -612,7 +612,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 	if image.Width > 0 && image.Height > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "WIDTH", 0),
+				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: mediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("WIDTH"),
@@ -620,7 +620,7 @@ func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image I
 			Unit:   search.AmountUnitPixel,
 		}, search.AmountClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikimediaCommonsFile, image.Name, "HEIGHT", 0),
+				ID:         search.GetID(namespace, image.Name, "HEIGHT", 0),
 				Confidence: mediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("HEIGHT"),
