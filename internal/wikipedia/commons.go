@@ -48,6 +48,7 @@ var (
 		"image/vnd.djvu":  true,
 		"image/webp":      true,
 		"image/x-xcf":     true,
+		"image/bmp":       true,
 		"video/mpeg":      true,
 		"video/ogg":       true,
 		"video/webm":      true,
@@ -76,6 +77,7 @@ var (
 		"image/tiff":      ".jpg",
 		"image/webp":      ".png",
 		"image/x-xcf":     ".png",
+		"image/bmp":       ".png",
 		"image/svg+xml":   ".png",
 	}
 	hasPages = map[string]bool{
@@ -401,6 +403,9 @@ func convertImage(
 	}
 	if mediaType == "audio/x-flac" {
 		mediaType = "audio/flac"
+	}
+	if mediaType == "image/x-bmp" {
+		mediaType = "image/bmp"
 	}
 	if !supportedMediaTypes[mediaType] {
 		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
