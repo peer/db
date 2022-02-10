@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -139,10 +140,15 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 			defer file.Close()
 			w = file
 		}
+		sortedSkipped := make([]string, 0, skippedcommonsImagesCount)
 		skippedcommonsImages.Range(func(key, _ interface{}) bool {
-			fmt.Fprintf(w, "%s\n", key.(string))
-			return false
+			sortedSkipped = append(sortedSkipped, key.(string))
+			return true
 		})
+		sort.Strings(sortedSkipped)
+		for _, key := range sortedSkipped {
+			fmt.Fprintf(w, "%s\n", key)
+		}
 	}
 
 	return nil
