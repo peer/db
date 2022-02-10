@@ -119,6 +119,16 @@ var (
 		"image/png":  true,
 		"image/webp": true,
 	}
+	// Mediawiki sometimes wrongly classifies audio/video.
+	ambiguousAudioVideo = map[string]struct {
+		Mime      string
+		MediaType string
+	}{
+		"audio/ogg":  {"video/ogg", "AUDIO"},
+		"audio/webm": {"video/webm", "AUDIO"},
+		"video/ogg":  {"audio/ogg", "VIDEO"},
+		"video/webm": {"audio/webm", "VIDEO"},
+	}
 )
 
 type Image struct {
@@ -407,6 +417,13 @@ func convertImage(
 	if mediaType == "image/x-bmp" {
 		mediaType = "image/bmp"
 	}
+	// Mediawiki sometimes wrongly classifies audio/video.
+	if ambiguous, ok := ambiguousAudioVideo[mediaType]; ok &&
+		(noPreview[mediaType] && image.Width != 0 && image.Height != 0) ||
+		(!noPreview[mediaType] && image.Width == 0 && image.Height == 0) {
+		mediaType = ambiguous.Mime
+		image.MediaType = ambiguous.MediaType
+	}
 	if !supportedMediaTypes[mediaType] {
 		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
 	}
@@ -451,7 +468,7 @@ func convertImage(
 	preview := []string{}
 	if !noPreview[mediaType] {
 		if image.Width == 0 || image.Height == 0 {
-			return nil, errors.Errorf("%w: invalid width/height (%dx%d) for \"%s\"", SkippedError, image.Width, image.Height, image.Name)
+			return nil, errors.Errorf("%w: expected width/height (%dx%d) for \"%s\"", SkippedError, image.Width, image.Height, image.Name)
 		}
 
 		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
@@ -508,6 +525,8 @@ func convertImage(
 				)
 			}
 		}
+	} else if image.Width != 0 || image.Height != 0 {
+		return nil, errors.Errorf("%w: unexpected width/height (%dx%d) for \"%s\"", SkippedError, image.Width, image.Height, image.Name)
 	}
 
 	name := strings.ReplaceAll(image.Name, "_", " ")
