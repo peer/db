@@ -52,7 +52,7 @@ var (
 		"video/mpeg":      true,
 		"video/ogg":       true,
 		"video/webm":      true,
-		"plain/text":      true,
+		"text/plain":      true,
 	}
 	// See: https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type
 	supportedMediawikiMediaTypes = map[string]bool{
@@ -113,7 +113,7 @@ var (
 		"audio/flac": true,
 		"audio/wav":  true,
 		"audio/mpeg": true,
-		"plain/text": true,
+		"text/plain": true,
 	}
 	browsersSupport = map[string]bool{
 		"image/gif":  true,
