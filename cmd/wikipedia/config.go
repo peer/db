@@ -27,9 +27,9 @@ type Config struct {
 	// TODO: Populate with Wikimedia Commons entities.
 	// TODO: Populate with Wikimedia Commons file descriptions rendered in HTML.
 	CommonsImages     CommonsImagesCommand     `cmd:"" name:"commons-images" help:"Populate search with Wikimedia Commons images table SQL dump."`
+	WikipediaImages   WikipediaImagesCommand   `cmd:"" name:"wikipedia-images" help:"Populate search with Wikipedia images table SQL dump."`
 	Wikidata          WikidataCommand          `cmd:"" help:"Populate search with Wikidata entities dump."`
 	Prepare           PrepareCommand           `cmd:"" help:"Prepare populated data for search."`
-	WikipediaImages   WikipediaImagesCommand   `cmd:"" name:"wikipedia-images" help:"Populate search with Wikipedia images table SQL dump."`
 	WikipediaFiles    WikipediaFilesCommand    `cmd:"" help:"Populate search with Wikipedia file descriptions HTML dump."`
 	WikipediaArticles WikipediaArticlesCommand `cmd:"" help:"Populate search with Wikipedia articles HTML dump."`
 
@@ -45,9 +45,9 @@ type AllCommand struct{}
 func (c *AllCommand) Run(globals *Globals) errors.E {
 	allCommands := []runner{
 		&CommonsImagesCommand{},
+		&WikipediaImagesCommand{},
 		&WikidataCommand{},
 		&PrepareCommand{},
-		&WikipediaImagesCommand{},
 		&WikipediaFilesCommand{},
 		&WikipediaArticlesCommand{},
 	}

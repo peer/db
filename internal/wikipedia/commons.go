@@ -384,7 +384,9 @@ func ConvertWikimediaCommonsImage(ctx context.Context, httpClient *retryablehttp
 	return convertImage(ctx, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", image)
 }
 
-func convertImage(ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix string, image Image) (*search.Document, errors.E) {
+func convertImage(
+	ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix string, image Image,
+) (*search.Document, errors.E) {
 	id := search.GetID(namespace, image.Name)
 	prefix := getMediawikiFilePrefix(image.Name)
 	mediaType := fmt.Sprintf("%s/%s", image.MajorMIME, image.MinorMIME)
@@ -494,7 +496,10 @@ func convertImage(ctx context.Context, httpClient *retryablehttp.Client, namespa
 					}
 				}
 				preview = append(preview,
-					fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/thumb/%s/%s/%s%dpx-%s%s%s", fileSite, prefix, image.Name, pagePrefix, width, extraDash, thumbName, extraExtension),
+					fmt.Sprintf(
+						"https://upload.wikimedia.org/wikipedia/%s/thumb/%s/%s/%s%dpx-%s%s%s",
+						fileSite, prefix, image.Name, pagePrefix, width, extraDash, thumbName, extraExtension,
+					),
 				)
 			}
 		}

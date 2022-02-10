@@ -137,6 +137,16 @@ var (
 			[]string{`"reference" claim type`},
 		},
 		{
+			"English Wikipedia file name",
+			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file name`,
+			[]string{`"identifier" claim type`},
+		},
+		{
+			"English Wikipedia file",
+			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file`,
+			[]string{`"reference" claim type`},
+		},
+		{
 			"Wikimedia Commons file name",
 			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name`,
 			[]string{`"identifier" claim type`},

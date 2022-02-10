@@ -29,8 +29,8 @@ const (
 )
 
 var (
-	skippedcommonsImages      = sync.Map{}
-	skippedcommonsImagesCount int64
+	skippedCommonsImages      = sync.Map{}
+	skippedCommonsImagesCount int64
 )
 
 type CommonsImagesCommand struct {
@@ -117,7 +117,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 			fmt.Fprintf(
 				os.Stderr,
 				"Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedcommonsImagesCount, stats.Failed,
+				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedCommonsImagesCount, stats.Failed,
 			)
 		},
 		Item:        &wikipedia.Image{},
@@ -140,8 +140,8 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 			defer file.Close()
 			w = file
 		}
-		sortedSkipped := make([]string, 0, skippedcommonsImagesCount)
-		skippedcommonsImages.Range(func(key, _ interface{}) bool {
+		sortedSkipped := make([]string, 0, skippedCommonsImagesCount)
+		skippedCommonsImages.Range(func(key, _ interface{}) bool {
 			sortedSkipped = append(sortedSkipped, key.(string))
 			return true
 		})
@@ -159,8 +159,8 @@ func (c *CommonsImagesCommand) processImage(
 ) errors.E {
 	document, err := wikipedia.ConvertWikimediaCommonsImage(ctx, httpClient, image)
 	if errors.Is(err, wikipedia.SkippedError) {
-		skippedcommonsImages.Store(image.Name, true)
-		atomic.AddInt64(&skippedcommonsImagesCount, 1)
+		skippedCommonsImages.Store(image.Name, true)
+		atomic.AddInt64(&skippedCommonsImagesCount, 1)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return nil
 	} else if err != nil {
