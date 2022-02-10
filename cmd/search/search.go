@@ -12,7 +12,7 @@ import (
 )
 
 func listen(config *Config) errors.E {
-	client, err := elastic.NewClient(
+	esClient, err := elastic.NewClient(
 		elastic.SetHttpClient(cleanhttp.DefaultPooledClient()),
 	)
 	if err != nil {
@@ -20,11 +20,11 @@ func listen(config *Config) errors.E {
 	}
 
 	router := httprouter.New()
-	router.GET("/d", search.ListGet(client))
-	router.HEAD("/d", search.ListGet(client))
-	router.POST("/d", search.ListPost(client))
-	router.GET("/d/:id", search.Get(client))
-	router.HEAD("/d/:id", search.Get(client))
+	router.GET("/d", search.ListGet(esClient))
+	router.HEAD("/d", search.ListGet(esClient))
+	router.POST("/d", search.ListPost(esClient))
+	router.GET("/d/:id", search.Get(esClient))
+	router.HEAD("/d/:id", search.Get(esClient))
 
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true

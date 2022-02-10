@@ -159,7 +159,7 @@ func getDocumentReference(id string) search.DocumentReference {
 }
 
 func processSnak( //nolint:ireturn
-	ctx context.Context, client *retryablehttp.Client, prop string, idArgs []interface{},
+	ctx context.Context, httpClient *retryablehttp.Client, prop string, idArgs []interface{},
 	confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
 	id := search.GetID(NameSpaceWikidata, idArgs...)
@@ -415,13 +415,13 @@ func processSnak( //nolint:ireturn
 }
 
 func addQualifiers(
-	ctx context.Context, client *retryablehttp.Client, claim search.Claim,
+	ctx context.Context, httpClient *retryablehttp.Client, claim search.Claim,
 	entityID, prop, statementID string,
 	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
-			qualifierClaim, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, mediumConfidence, qualifier)
+			qualifierClaim, err := processSnak(ctx, httpClient, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, mediumConfidence, qualifier)
 			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
@@ -448,14 +448,14 @@ func addQualifiers(
 
 // addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
 func addReference(
-	ctx context.Context, client *retryablehttp.Client, claim search.Claim, entityID, prop,
+	ctx context.Context, httpClient *retryablehttp.Client, claim search.Claim, entityID, prop,
 	statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	var referenceClaim search.Claim
 
 	for _, p := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[p] {
-			c, err := processSnak(ctx, client, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak)
+			c, err := processSnak(ctx, httpClient, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak)
 			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
@@ -498,7 +498,7 @@ func addReference(
 	return nil
 }
 
-func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity mediawiki.Entity) (*search.Document, errors.E) {
+func ConvertEntity(ctx context.Context, httpClient *retryablehttp.Client, entity mediawiki.Entity) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
 	if len(englishLabels) == 0 {
@@ -678,7 +678,7 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claim, err := processSnak(ctx, client, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak)
+			claim, err := processSnak(ctx, httpClient, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak)
 			if errors.Is(err, notSupportedError) {
 				// We know what we do not support, ignore.
 				continue
@@ -686,13 +686,13 @@ func ConvertEntity(ctx context.Context, client *retryablehttp.Client, entity med
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has mainsnak that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
-			err = addQualifiers(ctx, client, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
+			err = addQualifiers(ctx, httpClient, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
 			for i, reference := range statement.References {
-				err = addReference(ctx, client, claim, entity.ID, prop, statement.ID, i, reference)
+				err = addReference(ctx, httpClient, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: %s\n", statement.ID, prop, entity.ID, i, err.Error())
 					continue

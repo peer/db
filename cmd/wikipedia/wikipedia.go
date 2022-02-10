@@ -58,17 +58,17 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		}
 	}()
 
-	client := retryablehttp.NewClient()
-	client.RetryWaitMax = clientRetryWaitMax
-	client.RetryMax = clientRetryMax
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryWaitMax = clientRetryWaitMax
+	httpClient.RetryMax = clientRetryMax
 
 	// Set User-Agent header.
-	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		// TODO: Make contact e-mail into a CLI argument.
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
-	esClient, errE := search.EnsureIndex(ctx, client.HTTPClient)
+	esClient, errE := search.EnsureIndex(ctx, httpClient.HTTPClient)
 	if errE != nil {
 		return errE
 	}
@@ -94,7 +94,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	return mediawiki.ProcessWikipediaDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
 		CacheDir:               globals.CacheDir,
-		Client:                 client,
+		Client:                 httpClient,
 		DecompressionThreads:   0,
 		DecodingThreads:        0,
 		ItemsProcessingThreads: 0,

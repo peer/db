@@ -107,7 +107,7 @@ type listResult struct {
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+func ListGet(esClient *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
 		if err != nil {
@@ -132,7 +132,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 		// TODO: Make sure right analyzers are used for all fields.
 		// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 		ctx := req.Context()
-		searchService := client.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr) //nolint:gomnd
+		searchService := esClient.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr) //nolint:gomnd
 		if s.Text == "" {
 			matchQuery := elastic.NewMatchAllQuery()
 			searchService = searchService.Query(matchQuery)
@@ -195,7 +195,7 @@ func ListGet(client *elastic.Client) func(http.ResponseWriter, *http.Request, ht
 
 // ListPost is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func ListPost(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+func ListPost(esClient *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		err := req.ParseForm()
 		if err != nil {

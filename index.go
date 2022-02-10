@@ -20,20 +20,20 @@ var indexConfiguration string
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
 func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client, errors.E) {
-	client, err := elastic.NewClient(
+	esClient, err := elastic.NewClient(
 		elastic.SetHttpClient(httpClient),
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	exists, err := client.IndexExists("docs").Do(ctx)
+	exists, err := esClient.IndexExists("docs").Do(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	if !exists {
-		createIndex, err := client.CreateIndex("docs").BodyString(indexConfiguration).Do(ctx)
+		createIndex, err := esClient.CreateIndex("docs").BodyString(indexConfiguration).Do(ctx)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -43,5 +43,5 @@ func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client,
 		}
 	}
 
-	return client, nil
+	return esClient, nil
 }

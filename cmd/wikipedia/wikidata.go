@@ -56,21 +56,21 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		}
 	}()
 
-	client := retryablehttp.NewClient()
-	client.RetryWaitMax = clientRetryWaitMax
-	client.RetryMax = clientRetryMax
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryWaitMax = clientRetryWaitMax
+	httpClient.RetryMax = clientRetryMax
 
 	// We silent debug logging from HTTP client.
 	// TODO: Configure proper logger.
-	client.Logger = nullLogger{}
+	httpClient.Logger = nullLogger{}
 
 	// Set User-Agent header.
-	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		// TODO: Make contact e-mail into a CLI argument.
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
-	esClient, errE := search.EnsureIndex(ctx, client.HTTPClient)
+	esClient, errE := search.EnsureIndex(ctx, httpClient.HTTPClient)
 	if errE != nil {
 		return errE
 	}
@@ -96,7 +96,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	return mediawiki.ProcessWikidataDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
 		CacheDir:               globals.CacheDir,
-		Client:                 client,
+		Client:                 httpClient,
 		DecompressionThreads:   0,
 		DecodingThreads:        0,
 		ItemsProcessingThreads: 0,
@@ -105,14 +105,14 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, stats.Failed)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, client, processor, entity)
+		return c.processEntity(ctx, globals, httpClient, processor, entity)
 	})
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, client, entity)
+	document, err := wikipedia.ConvertEntity(ctx, httpClient, entity)
 	if errors.Is(err, wikipedia.SkippedError) {
 		return nil
 	} else if err != nil {

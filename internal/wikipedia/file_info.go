@@ -65,7 +65,7 @@ type apiTask struct {
 
 var apiWorkers sync.Map
 
-func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []apiTask) errors.E {
+func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -97,7 +97,7 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(encodedData)))
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return errors.WithMessage(err, debugURL)
 	}
@@ -164,7 +164,7 @@ func doAPIRequest(ctx context.Context, client *retryablehttp.Client, tasks []api
 
 // Returned apiTaskChan is never explicitly closed but it is left
 // to the garbage collector to clean it up when it is suitable.
-func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiTask {
+func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
 	if ctx.Err() != nil {
@@ -208,7 +208,7 @@ func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiT
 					}
 				}
 
-				errE := doAPIRequest(ctx, client, tasks)
+				errE := doAPIRequest(ctx, httpClient, tasks)
 				if errE == nil {
 					// No error, we continue the outer loop.
 					continue
@@ -234,8 +234,8 @@ func getAPIWorker(ctx context.Context, client *retryablehttp.Client) chan<- apiT
 	return apiTaskChan
 }
 
-func getImageInfoChan(ctx context.Context, client *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
-	apiTaskChan := getAPIWorker(ctx, client)
+func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
+	apiTaskChan := getAPIWorker(ctx, httpClient)
 
 	imageInfoChan := make(chan imageInfo)
 	errChan := make(chan errors.E)
@@ -254,7 +254,7 @@ func getImageInfoChan(ctx context.Context, client *retryablehttp.Client, title s
 	}
 }
 
-func getImageInfo(ctx context.Context, client *retryablehttp.Client, filename string) (imageInfo, errors.E) {
+func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, filename string) (imageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 
@@ -263,7 +263,7 @@ func getImageInfo(ctx context.Context, client *retryablehttp.Client, filename st
 	titleRunes[0] = unicode.ToUpper(titleRunes[0])
 	title = string(titleRunes)
 
-	imageInfoChan, errChan := getImageInfoChan(ctx, client, title)
+	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, title)
 
 	for {
 		select {

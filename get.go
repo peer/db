@@ -20,7 +20,7 @@ import (
 
 // Get is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+func Get(esClient *elastic.Client) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		ctx := req.Context()
 
@@ -37,7 +37,7 @@ func Get(client *elastic.Client) func(http.ResponseWriter, *http.Request, httpro
 
 		headers := http.Header{}
 		headers.Set("Accept-Encoding", contentEncoding)
-		resp, err := client.PerformRequest(ctx, elastic.PerformRequestOptions{
+		resp, err := esClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 			Method:  "GET",
 			Path:    fmt.Sprintf("/docs/_source/%s", id),
 			Headers: headers,

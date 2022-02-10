@@ -309,7 +309,7 @@ func getXMLPageCount(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image) (int, errors.E) {
+func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, image Image) (int, errors.E) {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
 		return count, nil
@@ -338,14 +338,14 @@ func getPageCount(ctx context.Context, client *retryablehttp.Client, image Image
 	if count != 0 {
 		return count, nil
 	}
-	imageInfo, err := getImageInfo(ctx, client, image.Name)
+	imageInfo, err := getImageInfo(ctx, httpClient, image.Name)
 	if err != nil {
 		return 0, errors.Errorf(`unable to get image info for "%s": %w`, image.Name, err)
 	}
 	return imageInfo.PageCount, nil
 }
 
-func getDuration(ctx context.Context, client *retryablehttp.Client, image Image) (float64, errors.E) {
+func getDuration(ctx context.Context, httpClient *retryablehttp.Client, image Image) (float64, errors.E) {
 	duration := getPathFloat(image.Metadata, []string{"data", "duration"})
 	if duration != nil {
 		return *duration, nil
@@ -384,7 +384,7 @@ func fitBoxWidth(width, height float64) int {
 	return int(roundedUp)
 }
 
-func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image) (*search.Document, errors.E) {
+func ConvertImage(ctx context.Context, httpClient *retryablehttp.Client, image Image) (*search.Document, errors.E) {
 	id := GetWikimediaCommonsFileDocumentID(image.Name)
 	prefix := getWikimediaCommonsFilePrefix(image.Name)
 	mediaType := fmt.Sprintf("%s/%s", image.MajorMIME, image.MinorMIME)
@@ -413,7 +413,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 	var err errors.E
 	pageCount := 0
 	if hasPages[mediaType] {
-		pageCount, err = getPageCount(ctx, client, image)
+		pageCount, err = getPageCount(ctx, httpClient, image)
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file
 			// does not exist anymore. In any case, we skip it.
@@ -426,7 +426,7 @@ func ConvertImage(ctx context.Context, client *retryablehttp.Client, image Image
 
 	duration := 0.0
 	if hasDuration[mediaType] {
-		duration, err = getDuration(ctx, client, image)
+		duration, err = getDuration(ctx, httpClient, image)
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file
 			// does not exist anymore. In any case, we skip it.

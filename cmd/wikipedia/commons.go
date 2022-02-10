@@ -61,21 +61,21 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 		}
 	}()
 
-	client := retryablehttp.NewClient()
-	client.RetryWaitMax = clientRetryWaitMax
-	client.RetryMax = clientRetryMax
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryWaitMax = clientRetryWaitMax
+	httpClient.RetryMax = clientRetryMax
 
 	// We silent debug logging from HTTP client.
 	// TODO: Configure proper logger.
-	client.Logger = nullLogger{}
+	httpClient.Logger = nullLogger{}
 
 	// Set User-Agent header.
-	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		// TODO: Make contact e-mail into a CLI argument.
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
-	esClient, errE := search.EnsureIndex(ctx, client.HTTPClient)
+	esClient, errE := search.EnsureIndex(ctx, httpClient.HTTPClient)
 	if errE != nil {
 		return errE
 	}
@@ -105,12 +105,12 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 		CacheFilename: func(_ *http.Response) (string, errors.E) {
 			return "commonswiki-20220120-image.sql.gz", nil
 		},
-		Client:                 client,
+		Client:                 httpClient,
 		DecompressionThreads:   0,
 		DecodingThreads:        0,
 		ItemsProcessingThreads: 0,
 		Process: func(ctx context.Context, i interface{}) errors.E {
-			return c.processImage(ctx, globals, client, processor, *i.(*wikipedia.Image))
+			return c.processImage(ctx, globals, httpClient, processor, *i.(*wikipedia.Image))
 		},
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
@@ -155,9 +155,9 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsImagesCommand) processImage(
-	ctx context.Context, globals *Globals, client *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
-	document, err := wikipedia.ConvertImage(ctx, client, image)
+	document, err := wikipedia.ConvertImage(ctx, httpClient, image)
 	if errors.Is(err, wikipedia.SkippedError) {
 		skippedcommonsImages.Store(image.Name, true)
 		atomic.AddInt64(&skippedcommonsImagesCount, 1)
