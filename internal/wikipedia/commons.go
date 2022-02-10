@@ -421,8 +421,7 @@ func convertImage(
 	}
 	// Mediawiki sometimes wrongly classifies audio/video.
 	if ambiguous, ok := ambiguousAudioVideo[mediaType]; ok &&
-		(noPreview[mediaType] && image.Width != 0 && image.Height != 0) ||
-		(!noPreview[mediaType] && image.Width == 0 && image.Height == 0) {
+		((noPreview[mediaType] && image.Width != 0 && image.Height != 0) || (!noPreview[mediaType] && image.Width == 0 && image.Height == 0)) {
 		mediaType = ambiguous.Mime
 		image.MediaType = ambiguous.MediaType
 	}
