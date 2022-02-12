@@ -46,14 +46,17 @@ To populate search with Wikipedia articles and Wikidata data, run:
 
 ```sh
 make
-./wikidata
-./prepare
 ./wikipedia
 ```
 
-* `wikidata` downloads Wikidata dump (70GB) and imports data into ElasticSearch (runtime 1-2 days).
+This will do multiple passes:
+
+* `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 0.5 day).
+* `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 30 minutes).
+* `wikidata` downloads Wikidata dump (70GB) and imports data into search (runtime 3 days).
 * `prepare` goes over imported documents and process them for PeerDB Search (runtime 1 day).
-* `wikipedia` downloads English Wikipedia dump (100GB) and imports articles (runtime 1 day)
+* `wikipedia-file-descriptions` downloads Wikipedia files HTML dump (2 GB) and imports file descriptions (runtime 30 minutes)
+* `wikipedia-articles` downloads Wikipedia articles HTML dump (100GB) and imports articles (runtime 1 day)
 
 The whole process requires substantial amount of disk space (at least 500 GB), bandwidth, and time.
 

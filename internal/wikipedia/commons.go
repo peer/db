@@ -426,10 +426,10 @@ func convertImage(
 		image.MediaType = ambiguous.MediaType
 	}
 	if !supportedMediaTypes[mediaType] {
-		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, notSupportedError, mediaType, image.Name)
+		return nil, errors.Errorf(`%w: unsupported media type "%s" for "%s"`, NotSupportedError, mediaType, image.Name)
 	}
 	if !supportedMediawikiMediaTypes[image.MediaType] {
-		return nil, errors.Errorf(`%w: unsupported Mediawiki media type "%s" for "%s"`, notSupportedError, image.MediaType, image.Name)
+		return nil, errors.Errorf(`%w: unsupported Mediawiki media type "%s" for "%s"`, NotSupportedError, image.MediaType, image.Name)
 	}
 	if image.Size == 0 {
 		return nil, errors.Errorf("%w: zero size for \"%s\"", SkippedError, image.Name)

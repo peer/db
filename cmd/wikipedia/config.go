@@ -26,12 +26,12 @@ type Config struct {
 
 	// TODO: Populate with Wikimedia Commons entities.
 	// TODO: Populate with Wikimedia Commons file descriptions rendered in HTML.
-	CommonsImages     CommonsImagesCommand     `cmd:"" name:"commons-images" help:"Populate search with Wikimedia Commons images table SQL dump."`
-	WikipediaImages   WikipediaImagesCommand   `cmd:"" name:"wikipedia-images" help:"Populate search with Wikipedia images table SQL dump."`
-	Wikidata          WikidataCommand          `cmd:"" help:"Populate search with Wikidata entities dump."`
-	Prepare           PrepareCommand           `cmd:"" help:"Prepare populated data for search."`
-	WikipediaFiles    WikipediaFilesCommand    `cmd:"" help:"Populate search with Wikipedia file descriptions HTML dump."`
-	WikipediaArticles WikipediaArticlesCommand `cmd:"" help:"Populate search with Wikipedia articles HTML dump."`
+	CommonsFiles              CommonsFilesCommand              `cmd:"" name:"commons-files" help:"Populate search with Wikimedia Commons files from image table SQL dump."`
+	WikipediaFiles            WikipediaFilesCommand            `cmd:"" name:"wikipedia-files" help:"Populate search with Wikipedia files from image table SQL dump."`
+	Wikidata                  WikidataCommand                  `cmd:"" help:"Populate search with Wikidata entities dump."`
+	Prepare                   PrepareCommand                   `cmd:"" help:"Prepare populated data for search."`
+	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" name:"wikipedia-file-descriptions" help:"Populate search with Wikipedia file descriptions HTML dump."`
+	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`
 
 	All AllCommand `cmd:"" default:"" help:"Run all passes in order. Default command."`
 }
@@ -44,11 +44,11 @@ type AllCommand struct{}
 
 func (c *AllCommand) Run(globals *Globals) errors.E {
 	allCommands := []runner{
-		&CommonsImagesCommand{},
-		&WikipediaImagesCommand{},
+		&CommonsFilesCommand{},
+		&WikipediaFilesCommand{},
 		&WikidataCommand{},
 		&PrepareCommand{},
-		&WikipediaFilesCommand{},
+		&WikipediaFileDescriptionsCommand{},
 		&WikipediaArticlesCommand{},
 	}
 

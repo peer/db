@@ -26,19 +26,19 @@ import (
 
 const (
 	// TODO: Determine full latest dump dynamically (not in progress/partial).
-	latestWikipediaImages = "https://dumps.wikimedia.org/enwiki/20220120/enwiki-20220120-image.sql.gz"
+	latestWikipediaFiles = "https://dumps.wikimedia.org/enwiki/20220120/enwiki-20220120-image.sql.gz"
 )
 
 var (
-	skippedWikipediaImages      = sync.Map{}
-	skippedWikipediaImagesCount int64
+	skippedWikipediaFiles      = sync.Map{}
+	skippedWikipediaFilesCount int64
 )
 
-type WikipediaImagesCommand struct {
+type WikipediaFilesCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
 }
 
-func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
+func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 	ctx := context.Background()
 
 	// We call cancel on SIGINT or SIGTERM signal.
@@ -100,7 +100,7 @@ func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
-		URL:       latestWikipediaImages,
+		URL:       latestWikipediaFiles,
 		CacheDir:  globals.CacheDir,
 		CacheGlob: "enwiki-*-image.sql.gz",
 		CacheFilename: func(_ *http.Response) (string, errors.E) {
@@ -118,7 +118,7 @@ func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
 			fmt.Fprintf(
 				os.Stderr,
 				"Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedWikipediaImagesCount, stats.Failed,
+				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedWikipediaFilesCount, stats.Failed,
 			)
 		},
 		Item:        &wikipedia.Image{},
@@ -141,8 +141,8 @@ func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
 			defer file.Close()
 			w = file
 		}
-		sortedSkipped := make([]string, 0, skippedWikipediaImagesCount)
-		skippedWikipediaImages.Range(func(key, _ interface{}) bool {
+		sortedSkipped := make([]string, 0, skippedWikipediaFilesCount)
+		skippedWikipediaFiles.Range(func(key, _ interface{}) bool {
 			sortedSkipped = append(sortedSkipped, key.(string))
 			return true
 		})
@@ -155,13 +155,15 @@ func (c *WikipediaImagesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-func (c *WikipediaImagesCommand) processImage(
+func (c *WikipediaFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
 	document, err := wikipedia.ConvertWikipediaImage(ctx, httpClient, image)
 	if errors.Is(err, wikipedia.SkippedError) {
-		skippedWikipediaImages.Store(image.Name, true)
-		atomic.AddInt64(&skippedWikipediaImagesCount, 1)
+		_, loaded := skippedWikipediaFiles.LoadOrStore(image.Name, true)
+		if !loaded {
+			atomic.AddInt64(&skippedWikipediaFilesCount, 1)
+		}
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return nil
 	} else if err != nil {
@@ -173,9 +175,9 @@ func (c *WikipediaImagesCommand) processImage(
 	return nil
 }
 
-type WikipediaFilesCommand struct{}
+type WikipediaFileDescriptionsCommand struct{}
 
-func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
+func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 

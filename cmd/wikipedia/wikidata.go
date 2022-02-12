@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -30,7 +36,16 @@ func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
 
 func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
 
-type WikidataCommand struct{}
+var (
+	skippedWikidataEntities      = sync.Map{}
+	skippedWikidataEntitiesCount int64
+)
+
+type WikidataCommand struct {
+	SkippedCommonsFiles   string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikimedia Commons files."`
+	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikipedia files."`
+	SaveSkipped           string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
+}
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	ctx := context.Background()
@@ -75,6 +90,11 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
+	cache, err := wikipedia.NewCache(lruCacheSize)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	// TODO: Make number of workers configurable.
 	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
 		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
@@ -93,7 +113,53 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	}
 	defer processor.Close()
 
-	return mediawiki.ProcessWikidataDump(ctx, &mediawiki.ProcessDumpConfig{
+	if c.SkippedCommonsFiles != "" {
+		file, err := os.Open(c.SkippedCommonsFiles)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer file.Close()
+		r := bufio.NewReader(file)
+		for {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return errors.WithStack(err)
+			}
+			line = strings.TrimSuffix(line, "\n")
+			_, loaded := skippedCommonsFiles.LoadOrStore(line, true)
+			if !loaded {
+				atomic.AddInt64(&skippedCommonsFilesCount, 1)
+			}
+		}
+	}
+
+	if c.SkippedWikipediaFiles != "" {
+		file, err := os.Open(c.SkippedWikipediaFiles)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer file.Close()
+		r := bufio.NewReader(file)
+		for {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return errors.WithStack(err)
+			}
+			line = strings.TrimSuffix(line, "\n")
+			_, loaded := skippedWikipediaFiles.LoadOrStore(line, true)
+			if !loaded {
+				atomic.AddInt64(&skippedWikipediaFilesCount, 1)
+			}
+		}
+	}
+
+	errE = mediawiki.ProcessWikidataDump(ctx, &mediawiki.ProcessDumpConfig{
 		URL:                    "",
 		CacheDir:               globals.CacheDir,
 		Client:                 httpClient,
@@ -102,18 +168,58 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(os.Stderr, "Progress: %0.2f%%, ETA: %s, indexed: %d, failed: %d\n", p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, stats.Failed)
+			fmt.Fprintf(
+				os.Stderr,
+				"Progress: %0.2f%%, ETA: %s, cache miss: %d, indexed: %d, skipped: %d, failed: %d\n",
+				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), stats.Succeeded, skippedWikidataEntitiesCount, stats.Failed,
+			)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, httpClient, processor, entity)
+		return c.processEntity(ctx, globals, esClient, processor, cache, entity)
 	})
+	if errE != nil {
+		return errE
+	}
+
+	if c.SaveSkipped != "" {
+		var w io.Writer
+		if c.SaveSkipped == "-" {
+			w = os.Stdout
+		} else {
+			file, err := os.Create(c.SaveSkipped)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			defer file.Close()
+			w = file
+		}
+		sortedSkipped := make([]string, 0, skippedWikidataEntitiesCount)
+		skippedWikidataEntities.Range(func(key, _ interface{}) bool {
+			sortedSkipped = append(sortedSkipped, key.(string))
+			return true
+		})
+		sort.Strings(sortedSkipped)
+		for _, key := range sortedSkipped {
+			fmt.Fprintf(w, "%s\n", key)
+		}
+	}
+
+	return nil
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, httpClient, entity)
+	document, err := wikipedia.ConvertEntity(ctx, esClient, cache, &skippedCommonsFiles, entity)
 	if errors.Is(err, wikipedia.SkippedError) {
+		_, loaded := skippedWikidataEntities.LoadOrStore(entity.ID, true)
+		if !loaded {
+			atomic.AddInt64(&skippedWikidataEntitiesCount, 1)
+		}
+		// Printing out all skipped entities is noisy.
+		if errors.Is(err, wikipedia.NotSupportedError) {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		}
 		return nil
 	} else if err != nil {
 		return err

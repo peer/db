@@ -25,19 +25,19 @@ import (
 
 const (
 	// TODO: Determine full latest dump dynamically (not in progress/partial).
-	latestCommonsImages = "https://dumps.wikimedia.org/commonswiki/20220120/commonswiki-20220120-image.sql.gz"
+	latestCommonsFiles = "https://dumps.wikimedia.org/commonswiki/20220120/commonswiki-20220120-image.sql.gz"
 )
 
 var (
-	skippedCommonsImages      = sync.Map{}
-	skippedCommonsImagesCount int64
+	skippedCommonsFiles      = sync.Map{}
+	skippedCommonsFilesCount int64
 )
 
-type CommonsImagesCommand struct {
+type CommonsFilesCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
 }
 
-func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
+func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 	ctx := context.Background()
 
 	// We call cancel on SIGINT or SIGTERM signal.
@@ -99,7 +99,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
-		URL:       latestCommonsImages,
+		URL:       latestCommonsFiles,
 		CacheDir:  globals.CacheDir,
 		CacheGlob: "commonswiki-*-image.sql.gz",
 		CacheFilename: func(_ *http.Response) (string, errors.E) {
@@ -117,7 +117,7 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 			fmt.Fprintf(
 				os.Stderr,
 				"Progress: %0.2f%%, ETA: %s, indexed: %d, skipped: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedCommonsImagesCount, stats.Failed,
+				p.Percent(), p.Remaining().Truncate(time.Second), stats.Succeeded, skippedCommonsFilesCount, stats.Failed,
 			)
 		},
 		Item:        &wikipedia.Image{},
@@ -140,8 +140,8 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 			defer file.Close()
 			w = file
 		}
-		sortedSkipped := make([]string, 0, skippedCommonsImagesCount)
-		skippedCommonsImages.Range(func(key, _ interface{}) bool {
+		sortedSkipped := make([]string, 0, skippedCommonsFilesCount)
+		skippedCommonsFiles.Range(func(key, _ interface{}) bool {
 			sortedSkipped = append(sortedSkipped, key.(string))
 			return true
 		})
@@ -154,13 +154,15 @@ func (c *CommonsImagesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-func (c *CommonsImagesCommand) processImage(
+func (c *CommonsFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
 	document, err := wikipedia.ConvertWikimediaCommonsImage(ctx, httpClient, image)
 	if errors.Is(err, wikipedia.SkippedError) {
-		skippedCommonsImages.Store(image.Name, true)
-		atomic.AddInt64(&skippedCommonsImagesCount, 1)
+		_, loaded := skippedCommonsFiles.LoadOrStore(image.Name, true)
+		if !loaded {
+			atomic.AddInt64(&skippedCommonsFilesCount, 1)
+		}
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return nil
 	} else if err != nil {

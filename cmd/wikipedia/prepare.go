@@ -16,13 +16,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
 const (
@@ -39,34 +39,6 @@ func (c *counter) Increment() {
 
 func (c *counter) Count() int64 {
 	return atomic.LoadInt64((*int64)(c))
-}
-
-type Cache struct {
-	*lru.Cache
-	missCount uint64
-}
-
-func NewCache(size int) (*Cache, error) {
-	cache, err := lru.New(lruCacheSize)
-	if err != nil {
-		return nil, err
-	}
-	return &Cache{
-		Cache:     cache,
-		missCount: 0,
-	}, nil
-}
-
-func (c *Cache) Get(key interface{}) (interface{}, bool) {
-	value, ok := c.Cache.Get(key)
-	if !ok {
-		atomic.AddUint64(&c.missCount, 1)
-	}
-	return value, ok
-}
-
-func (c *Cache) MissCount() uint64 {
-	return atomic.SwapUint64(&c.missCount, 0)
 }
 
 type PrepareCommand struct{}
@@ -155,7 +127,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(ctx context.Context, globals *G
 		return errors.WithStack(err)
 	}
 
-	cache, err := NewCache(lruCacheSize)
+	cache, err := wikipedia.NewCache(lruCacheSize)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -223,7 +195,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(ctx context.Context, globals *G
 
 type updateEmbeddedDocumentsVisitor struct {
 	Context    context.Context
-	Cache      *Cache
+	Cache      *wikipedia.Cache
 	ESClient   *elastic.Client
 	Changed    bool
 	DocumentID search.Identifier
@@ -717,7 +689,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	return search.Keep, nil
 }
 
-func (c *PrepareCommand) processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *Cache, hit *elastic.SearchHit) errors.E {
+func (c *PrepareCommand) processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit) errors.E {
 	var document search.Document
 	err := json.Unmarshal(hit.Source, &document)
 	if err != nil {
