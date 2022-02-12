@@ -689,7 +689,9 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	return search.Keep, nil
 }
 
-func (c *PrepareCommand) processDocument(ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit) errors.E {
+func (c *PrepareCommand) processDocument(
+	ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
+) errors.E {
 	var document search.Document
 	err := json.Unmarshal(hit.Source, &document)
 	if err != nil {

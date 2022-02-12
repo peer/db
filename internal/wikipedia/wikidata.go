@@ -509,7 +509,11 @@ func addQualifiers(
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
-			qualifierClaim, err := processSnak(ctx, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, mediumConfidence, qualifier)
+			qualifierClaim, err := processSnak(
+				ctx, esClient, cache, skippedCommonsFiles, p,
+				[]interface{}{entityID, prop, statementID, "qualifier", p, i},
+				mediumConfidence, qualifier,
+			)
 			if errors.Is(err, SkippedError) {
 				// We know what we do not support, ignore.
 				continue
