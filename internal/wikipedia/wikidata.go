@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/olivere/elastic/v7"
@@ -290,15 +291,23 @@ func processSnak( //nolint:ireturn
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
-			file, err := getMediawikiCommonsFile(ctx, esClient, cache, string(value))
+			// First we make sure we do not have spaces.
+			filename := strings.ReplaceAll(string(value), " ", "_")
+
+			// The first letter has to be upper case.
+			filenameRunes := []rune(filename)
+			filenameRunes[0] = unicode.ToUpper(filenameRunes[0])
+			filename = string(filenameRunes)
+
+			file, err := getMediawikiCommonsFile(ctx, esClient, cache, filename)
 			if err != nil {
 				return nil, err
 			}
 			if file == nil {
-				if _, ok := skippedCommonsFiles.Load(string(value)); ok {
-					return nil, errors.Errorf("%w: skipped Wikimedia Commons file: %s", SkippedError, value)
+				if _, ok := skippedCommonsFiles.Load(filename); ok {
+					return nil, errors.Errorf("%w: skipped Wikimedia Commons file: %s", SkippedError, filename)
 				}
-				return nil, errors.Errorf("Wikimedia Commons file could not be found: %s", value)
+				return nil, errors.Errorf("Wikimedia Commons file could not be found: %s", filename)
 			}
 			args := append([]interface{}{}, idArgs...)
 			args = append(args, file.Reference.ID, 0)
