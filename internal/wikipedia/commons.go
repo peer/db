@@ -568,7 +568,7 @@ func convertImage(
 						ID:         search.GetID(namespace, image.Name, "FILE", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("FILE"),
+					To: search.GetStandardPropertyReference("FILE"),
 				},
 			},
 			File: search.FileClaims{

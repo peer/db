@@ -667,7 +667,6 @@
       "unevaluatedProperties": false
     },
     "isClaim": {
-      "description": "Similar to labels, but restricted only to claims about entity's type.",
       "type": "object",
       "allOf": [
         {
@@ -675,12 +674,12 @@
         }
       ],
       "properties": {
-        "prop": {
+        "to": {
           "$ref": "#/$defs/documentReference"
         }
       },
       "required": [
-        "prop"
+        "to"
       ],
       "unevaluatedProperties": false
     },

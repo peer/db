@@ -314,7 +314,7 @@ func processSnak( //nolint:ireturn
 									ID:         claimID,
 									Confidence: highConfidence,
 								},
-								Prop: file.Reference,
+								To: file.Reference,
 							},
 						},
 					},
@@ -634,7 +634,7 @@ func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, 
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "PROPERTY", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("PROPERTY"),
+					To: search.GetStandardPropertyReference("PROPERTY"),
 				},
 			},
 		}
@@ -666,7 +666,7 @@ func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, 
 						ID:         search.GetID(NameSpaceWikidata, entity.ID, "ITEM", 0),
 						Confidence: highConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("ITEM"),
+					To: search.GetStandardPropertyReference("ITEM"),
 				},
 			},
 		}
@@ -715,7 +715,7 @@ func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, 
 					// on how are properties really used.
 					Confidence: lowConfidence,
 				},
-				Prop: search.GetStandardPropertyReference(claimTypeMnemonic),
+				To: search.GetStandardPropertyReference(claimTypeMnemonic),
 			})
 		}
 	}

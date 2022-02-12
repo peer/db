@@ -242,7 +242,7 @@ func populateStandardProperties() {
 							ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
-						Prop: DocumentReference{
+						To: DocumentReference{
 							ID: GetStandardPropertyID("PROPERTY"),
 							Name: Name{
 								"en": "property",
@@ -262,7 +262,7 @@ func populateStandardProperties() {
 					ID:         getPropertyClaimID(mnemonic, isClaimMnemonic, 0),
 					Confidence: 1.0,
 				},
-				Prop: DocumentReference{
+				To: DocumentReference{
 					ID: GetStandardPropertyID(isClaimMnemonic),
 					Name: Name{
 						"en": isClaim,
@@ -311,7 +311,7 @@ func populateStandardProperties() {
 								ID:         getPropertyClaimID(mnemonic, "PROPERTY", 0),
 								Confidence: 1.0,
 							},
-							Prop: DocumentReference{
+							To: DocumentReference{
 								ID: GetStandardPropertyID("PROPERTY"),
 								Name: Name{
 									"en": "property",
@@ -324,7 +324,7 @@ func populateStandardProperties() {
 								ID:         getPropertyClaimID(mnemonic, "CLAIM_TYPE", 0),
 								Confidence: 1.0,
 							},
-							Prop: DocumentReference{
+							To: DocumentReference{
 								ID: GetStandardPropertyID("CLAIM_TYPE"),
 								Name: Name{
 									"en": "claim type",

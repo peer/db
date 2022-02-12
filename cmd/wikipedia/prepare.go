@@ -587,7 +587,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.
 		return search.Keep, err
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
+	ref, err := v.getDocumentReference(claim.To, claim.ID)
 	if err != nil {
 		return search.Keep, err
 	}
@@ -597,8 +597,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.
 		return search.Drop, nil
 	}
 
-	if !reflect.DeepEqual(&claim.Prop, ref) {
-		claim.Prop = *ref
+	if !reflect.DeepEqual(&claim.To, ref) {
+		claim.To = *ref
 		v.Changed = true
 	}
 

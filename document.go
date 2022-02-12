@@ -795,7 +795,7 @@ func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 }
 
 func (v *getByPropIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.To.ID == v.ID {
 		v.Result = append(v.Result, claim)
 	}
 	return Keep, nil
@@ -1462,7 +1462,7 @@ type TimeRangeClaim struct {
 type IsClaim struct {
 	CoreClaim
 
-	Prop DocumentReference `json:"prop"`
+	To DocumentReference `json:"to"`
 }
 
 type ListClaim struct {

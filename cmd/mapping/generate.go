@@ -414,7 +414,7 @@ var claimTypes = []claimType{
 		"is",
 		[]field{
 			{
-				"prop",
+				"to",
 				"_id",
 				`{
 					"properties": {
