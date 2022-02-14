@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
@@ -350,11 +349,8 @@ func processSnak( //nolint:ireturn
 		case mediawiki.CommonsMedia:
 			// First we make sure we do not have spaces.
 			filename := strings.ReplaceAll(string(value), " ", "_")
-
 			// The first letter has to be upper case.
-			filenameRunes := []rune(filename)
-			filenameRunes[0] = unicode.ToUpper(filenameRunes[0])
-			filename = string(filenameRunes)
+			filename = firstUpperCase(filename)
 
 			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {

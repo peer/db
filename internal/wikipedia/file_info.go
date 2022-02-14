@@ -277,14 +277,24 @@ func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, tit
 	}
 }
 
+// Implementation semantically matches includes/language/Language.php's ucfirst of MediaWiki, with C.UTF-8 locale.
+func firstUpperCase(str string) string {
+	runes := []rune(str)
+	r := runes[0]
+	if r <= unicode.MaxASCII {
+		if 'a' <= r && r <= 'z' {
+			r -= 'a' - 'A'
+		}
+	}
+	runes[0] = r
+	return string(runes)
+}
+
 func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, filename string) (imageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
-
 	// The first letter has to be upper case.
-	titleRunes := []rune(title)
-	titleRunes[0] = unicode.ToUpper(titleRunes[0])
-	title = string(titleRunes)
+	title = firstUpperCase(title)
 
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, title)
 
