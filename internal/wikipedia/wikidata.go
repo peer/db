@@ -228,7 +228,7 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 }
 
 func getMediawikiCommonsFile(
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, name string,
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, idArgs []interface{}, name string,
 ) (*mediawikiCommonsFile, errors.E) {
 	maybeFile, ok := cache.Get(name)
 	if ok {
@@ -267,10 +267,13 @@ func getMediawikiCommonsFile(
 	file, err = getMediawikiCommonsFileFromES(ctx, esClient, ii.Redirect)
 	if err != nil {
 		return nil, err
+	} else if file != nil {
+		fmt.Fprintf(os.Stderr, "%v is referencing a file \"%s\" which redirects to \"%s\"\n", idArgs, name, ii.Redirect)
 	}
 
 	// We store whatever we got, missing file or not.
 	cache.Add(name, file)
+	cache.Add(ii.Redirect, file)
 	return file, nil
 }
 
@@ -337,7 +340,7 @@ func processSnak( //nolint:ireturn
 			filenameRunes[0] = unicode.ToUpper(filenameRunes[0])
 			filename = string(filenameRunes)
 
-			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, filename)
+			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
 				return nil, err
 			}
