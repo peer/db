@@ -192,15 +192,31 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 	)).Do(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
-	} else if len(searchResult.Hits.Hits) > 1 {
-		return nil, errors.Errorf(`more than one Wikimedia commons file document found for "%s"`, name)
 	}
 
+	// There might be multiple hits because IDs are not unique (we remove zeroes).
 	for _, hit := range searchResult.Hits.Hits {
 		var document search.Document
 		err = json.Unmarshal(hit.Source, &document)
 		if err != nil {
 			return nil, errors.WithStack(err)
+		}
+
+		found := false
+		for _, claim := range document.Active.Identifier {
+			if claim.Prop.ID != search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME") {
+				continue
+			}
+
+			if claim.Identifier == name {
+				found = true
+				break
+			}
+		}
+
+		// If this hit is not precisely for this name, we continue with the next one.
+		if !found {
+			continue
 		}
 
 		for _, claim := range document.Active.File {
@@ -249,7 +265,7 @@ func getMediawikiCommonsFile(
 	// We could not find a file. Maybe there is a redirect?
 	ii, err := getImageInfo(ctx, httpClient, name)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, `checking for redirect of "%s"`, name)
 	} else if ii.Redirect == "" {
 		// No redirect.
 		cache.Add(name, nil)
@@ -266,7 +282,7 @@ func getMediawikiCommonsFile(
 
 	file, err = getMediawikiCommonsFileFromES(ctx, esClient, ii.Redirect)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, `after redirect from "%s" to "%s"`, name, ii.Redirect)
 	} else if file != nil {
 		fmt.Fprintf(os.Stderr, "%v is referencing a file \"%s\" which redirects to \"%s\"\n", idArgs, name, ii.Redirect)
 	}
