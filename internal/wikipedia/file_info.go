@@ -31,6 +31,8 @@ type imageInfo struct {
 	Height    int     `json:"height"`
 	PageCount int     `json:"pagecount"`
 	Duration  float64 `json:"duration"`
+	// Set if the requested page redirected to another page and info is from that other page.
+	Redirect string `json:"-"`
 }
 
 type page struct {
@@ -53,6 +55,10 @@ type apiResponse struct {
 	Query struct {
 		// We on purpose do not list "normalized" field and we want response parsing to fail
 		// if one is included: we want to always pass correctly normalized titles ourselves.
+		Redirects []struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"redirects"`
 		Pages []page `json:"pages"`
 	} `json:"query"`
 }
@@ -89,6 +95,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 	data.Set("format", "json")
 	data.Set("formatversion", "2")
 	data.Set("titles", titles.String())
+	data.Set("redirects", "")
 	encodedData := data.Encode()
 	debugURL := fmt.Sprintf("https://commons.wikimedia.org/w/api.php?%s", encodedData)
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, "https://commons.wikimedia.org/w/api.php", strings.NewReader(encodedData))
@@ -119,8 +126,18 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResp.Query.Pages), len(tasksMap))
 	}
 
+	redirects := map[string]string{}
+	redirectsReverse := map[string]string{}
+	for _, redirect := range apiResp.Query.Redirects {
+		redirects[redirect.From] = redirect.To
+		redirectsReverse[redirect.To] = redirect.From
+	}
+
 	pagesMap := map[string]page{}
 	for _, page := range apiResp.Query.Pages {
+		if redirect, ok := redirectsReverse[page.Title]; ok {
+			page.Title = redirect
+		}
 		if _, ok := tasksMap[page.Title]; !ok {
 			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
 		}
@@ -150,7 +167,13 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 			}
 		} else {
 			for _, task := range pageTasks {
-				task.ImageInfoChan <- page.ImageInfo[0]
+				// Make a copy.
+				ii := page.ImageInfo[0]
+				// Set redirect if there is one, otherwise this sets an empty string.
+				ii.Redirect = redirects[page.Title]
+				ii.Redirect = strings.TrimPrefix(ii.Redirect, "File:")
+				ii.Redirect = strings.ReplaceAll(ii.Redirect, " ", "_")
+				task.ImageInfoChan <- ii
 			}
 		}
 		for _, task := range pageTasks {

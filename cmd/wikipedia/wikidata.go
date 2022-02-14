@@ -175,7 +175,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 			)
 		},
 	}, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, esClient, processor, cache, entity)
+		return c.processEntity(ctx, globals, httpClient, esClient, processor, cache, entity)
 	})
 	if errE != nil {
 		return errE
@@ -208,9 +208,10 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client,
+	processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, esClient, cache, &skippedCommonsFiles, entity)
+	document, err := wikipedia.ConvertEntity(ctx, httpClient, esClient, cache, &skippedCommonsFiles, entity)
 	if errors.Is(err, wikipedia.SkippedError) {
 		_, loaded := skippedWikidataEntities.LoadOrStore(entity.ID, true)
 		if !loaded {

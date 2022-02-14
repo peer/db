@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
@@ -182,15 +183,7 @@ type mediawikiCommonsFile struct {
 	Preview   []string
 }
 
-func getMediawikiCommonsFile(ctx context.Context, esClient *elastic.Client, cache *Cache, name string) (*mediawikiCommonsFile, errors.E) {
-	maybeFile, ok := cache.Get(name)
-	if ok {
-		if maybeFile == nil {
-			return nil, nil
-		}
-		return maybeFile.(*mediawikiCommonsFile), nil
-	}
-
+func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client, name string) (*mediawikiCommonsFile, errors.E) {
 	searchResult, err := esClient.Search("docs").Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME")),
@@ -225,19 +218,64 @@ func getMediawikiCommonsFile(ctx context.Context, esClient *elastic.Client, cach
 				URL:     claim.URL,
 				Preview: claim.Preview,
 			}
-			cache.Add(name, file)
 			return file, nil
 		}
 
 		return nil, errors.Errorf(`Wikimedia commons file document for "%s" is missing a DATA file claim`, name)
 	}
 
-	cache.Add(name, nil)
 	return nil, nil
 }
 
+func getMediawikiCommonsFile(
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, name string,
+) (*mediawikiCommonsFile, errors.E) {
+	maybeFile, ok := cache.Get(name)
+	if ok {
+		if maybeFile == nil {
+			return nil, nil
+		}
+		return maybeFile.(*mediawikiCommonsFile), nil
+	}
+
+	file, err := getMediawikiCommonsFileFromES(ctx, esClient, name)
+	if err != nil {
+		return nil, err
+	} else if file != nil {
+		cache.Add(name, file)
+		return file, nil
+	}
+
+	// We could not find a file. Maybe there is a redirect?
+	ii, err := getImageInfo(ctx, httpClient, name)
+	if err != nil {
+		return nil, err
+	} else if ii.Redirect == "" {
+		// No redirect.
+		cache.Add(name, nil)
+		return nil, nil
+	}
+
+	maybeFile, ok = cache.Get(ii.Redirect)
+	if ok {
+		if maybeFile == nil {
+			return nil, nil
+		}
+		return maybeFile.(*mediawikiCommonsFile), nil
+	}
+
+	file, err = getMediawikiCommonsFileFromES(ctx, esClient, ii.Redirect)
+	if err != nil {
+		return nil, err
+	}
+
+	// We store whatever we got, missing file or not.
+	cache.Add(name, file)
+	return file, nil
+}
+
 func processSnak( //nolint:ireturn
-	ctx context.Context, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
 	id := search.GetID(NameSpaceWikidata, idArgs...)
@@ -299,7 +337,7 @@ func processSnak( //nolint:ireturn
 			filenameRunes[0] = unicode.ToUpper(filenameRunes[0])
 			filename = string(filenameRunes)
 
-			file, err := getMediawikiCommonsFile(ctx, esClient, cache, filename)
+			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, filename)
 			if err != nil {
 				return nil, err
 			}
@@ -309,6 +347,10 @@ func processSnak( //nolint:ireturn
 				}
 				return nil, errors.Errorf("Wikimedia Commons file could not be found: %s", filename)
 			}
+
+			// After here we should not be using "filename" anymore because we might figure out that
+			// it redirects to another file. So only "file" should be used.
+
 			args := append([]interface{}{}, idArgs...)
 			args = append(args, file.Reference.ID, 0)
 			claimID := search.GetID(NameSpaceWikidata, args...)
@@ -503,14 +545,14 @@ func processSnak( //nolint:ireturn
 }
 
 func addQualifiers(
-	ctx context.Context, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	claim search.Claim, entityID, prop, statementID string,
 	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaim, err := processSnak(
-				ctx, esClient, cache, skippedCommonsFiles, p,
+				ctx, httpClient, esClient, cache, skippedCommonsFiles, p,
 				[]interface{}{entityID, prop, statementID, "qualifier", p, i},
 				mediumConfidence, qualifier,
 			)
@@ -540,14 +582,16 @@ func addQualifiers(
 
 // addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
 func addReference(
-	ctx context.Context, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	var referenceClaim search.Claim
 
 	for _, p := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[p] {
-			c, err := processSnak(ctx, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak)
+			c, err := processSnak(
+				ctx, httpClient, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
+			)
 			if errors.Is(err, SkippedError) {
 				// We know what we do not support, ignore.
 				continue
@@ -590,7 +634,10 @@ func addReference(
 	return nil
 }
 
-func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map, entity mediawiki.Entity) (*search.Document, errors.E) {
+func ConvertEntity(
+	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
+	skippedCommonsFiles *sync.Map, entity mediawiki.Entity,
+) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English content for now.
 	if len(englishLabels) == 0 {
@@ -777,7 +824,9 @@ func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, 
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claim, err := processSnak(ctx, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak)
+			claim, err := processSnak(
+				ctx, httpClient, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+			)
 			if errors.Is(err, SkippedError) {
 				// We know what we do not support, ignore.
 				continue
@@ -785,13 +834,13 @@ func ConvertEntity(ctx context.Context, esClient *elastic.Client, cache *Cache, 
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has mainsnak that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
-			err = addQualifiers(ctx, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
+			err = addQualifiers(ctx, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
 				continue
 			}
 			for i, reference := range statement.References {
-				err = addReference(ctx, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
+				err = addReference(ctx, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: %s\n", statement.ID, prop, entity.ID, i, err.Error())
 					continue
