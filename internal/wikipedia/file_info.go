@@ -277,7 +277,12 @@ func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, tit
 	}
 }
 
-// Implementation semantically matches includes/language/Language.php's ucfirst of MediaWiki, with C.UTF-8 locale.
+// Implementation changes case only of ASCII characters. Using unicode.ToUpper sometimes
+// changes case of characters for which Mediawiki does not change it. If we do change case when
+// Mediawiki does not a corresponding file is not found. On the other hand, if we do not change
+// case when Mediawiki does, then API returns a "normalized" field which fails JSON decoding
+// so we detect such cases, if and when they happen.
+// See: https://phabricator.wikimedia.org/T301758
 func firstUpperCase(str string) string {
 	runes := []rune(str)
 	r := runes[0]
