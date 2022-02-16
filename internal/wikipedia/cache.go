@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.com/tozd/go/errors"
 )
 
 // Cache is a LRU cache which counts cache misses.
@@ -12,10 +13,10 @@ type Cache struct {
 	missCount uint64
 }
 
-func NewCache(size int) (*Cache, error) {
+func NewCache(size int) (*Cache, errors.E) {
 	cache, err := lru.New(size)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &Cache{
 		Cache:     cache,

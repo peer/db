@@ -297,7 +297,7 @@ func getMediawikiCommonsFile(
 	return file, nil
 }
 
-func processSnak( //nolint:ireturn
+func processSnak( //nolint:ireturn,nolintlint
 	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
