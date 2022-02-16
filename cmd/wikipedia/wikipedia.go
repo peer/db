@@ -164,7 +164,9 @@ func (c *WikipediaFilesCommand) processImage(
 		if !loaded {
 			atomic.AddInt64(&skippedWikipediaFilesCount, 1)
 		}
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		if !errors.Is(err, wikipedia.SilentSkippedError) {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		}
 		return nil
 	} else if err != nil {
 		return err

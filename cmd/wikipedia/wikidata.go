@@ -217,8 +217,7 @@ func (c *WikidataCommand) processEntity(
 		if !loaded {
 			atomic.AddInt64(&skippedWikidataEntitiesCount, 1)
 		}
-		// Printing out all skipped entities is noisy.
-		if errors.Is(err, wikipedia.NotSupportedError) {
+		if !errors.Is(err, wikipedia.SilentSkippedError) {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		}
 		return nil

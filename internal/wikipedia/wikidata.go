@@ -30,9 +30,8 @@ const (
 var (
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
-	NotSupportedError              = errors.BaseWrap(SkippedError, "not supported")
-	notSupportedDataValueTypeError = errors.BaseWrap(NotSupportedError, "not supported data value type")
-	notSupportedDataTypeError      = errors.BaseWrap(NotSupportedError, "not supported data type")
+	notSupportedDataValueTypeError = errors.BaseWrap(SilentSkippedError, "not supported data value type")
+	notSupportedDataTypeError      = errors.BaseWrap(SilentSkippedError, "not supported data type")
 
 	nonMainWikipediaNamespaces = []string{
 		"User:",
@@ -358,9 +357,9 @@ func processSnak( //nolint:ireturn
 			}
 			if file == nil {
 				if _, ok := skippedCommonsFiles.Load(filename); ok {
-					return nil, errors.Errorf("%w: skipped Wikimedia Commons file: %s", SkippedError, filename)
+					return nil, errors.Wrapf(SilentSkippedError, `skipped Wikimedia Commons file "%s"`, filename)
 				}
-				return nil, errors.Errorf("Wikimedia Commons file could not be found: %s", filename)
+				return nil, errors.Errorf(`Wikimedia Commons file "%s" could not be found`, filename)
 			}
 
 			// After here we should not be using "filename" anymore because we might figure out that
@@ -451,7 +450,7 @@ func processSnak( //nolint:ireturn
 		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.MonolingualText:
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
-				return nil, errors.Errorf("%w: limited only to English", NotSupportedError)
+				return nil, errors.Wrap(SilentSkippedError, "limited only to English")
 			}
 			return &search.TextClaim{
 				CoreClaim: search.CoreClaim{
@@ -571,8 +570,7 @@ func addQualifiers(
 				[]interface{}{entityID, prop, statementID, "qualifier", p, i},
 				mediumConfidence, qualifier,
 			)
-			if errors.Is(err, SkippedError) {
-				// We know what we do not support, ignore.
+			if errors.Is(err, SilentSkippedError) {
 				continue
 			} else if err != nil {
 				fmt.Fprintf(
@@ -607,8 +605,7 @@ func addReference(
 			c, err := processSnak(
 				ctx, httpClient, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
 			)
-			if errors.Is(err, SkippedError) {
-				// We know what we do not support, ignore.
+			if errors.Is(err, SilentSkippedError) {
 				continue
 			} else if err != nil {
 				fmt.Fprintf(
@@ -660,7 +657,7 @@ func ConvertEntity(
 			// But properties should all have English label, so we warn here.
 			fmt.Fprintf(os.Stderr, "property %s is missing a label in English\n", entity.ID)
 		}
-		return nil, errors.Errorf("%w: limited only to English", SkippedError)
+		return nil, errors.Wrap(SilentSkippedError, "limited only to English")
 	}
 
 	id := GetWikidataDocumentID(entity.ID)
@@ -746,7 +743,7 @@ func ConvertEntity(
 			},
 		}
 	} else {
-		return nil, errors.Errorf(`%w: entity %s has invalid type: %d`, NotSupportedError, entity.ID, entity.Type)
+		return nil, errors.Wrapf(SkippedError, `entity %s has invalid type: %d`, entity.ID, entity.Type)
 	}
 
 	siteLink, ok := entity.SiteLinks["enwiki"]
@@ -757,9 +754,8 @@ func ConvertEntity(
 		}
 		for _, namespace := range nonMainWikipediaNamespaces {
 			if strings.HasPrefix(siteLink.Title, namespace) {
-				// Only items have sitelinks. We want only items related to main
-				// Wikipedia articles (main namespace).
-				return nil, errors.Errorf("%w: limited only to items related to main Wikipedia articles: %s", SkippedError, siteLink.Title)
+				// Only items have sitelinks. We want only items related to main Wikipedia articles (main namespace).
+				return nil, errors.Wrapf(SilentSkippedError, `limited only to items related to main Wikipedia articles "%s"`, siteLink.Title)
 			}
 		}
 		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
@@ -842,8 +838,7 @@ func ConvertEntity(
 			claim, err := processSnak(
 				ctx, httpClient, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
-			if errors.Is(err, SkippedError) {
-				// We know what we do not support, ignore.
+			if errors.Is(err, SilentSkippedError) {
 				continue
 			} else if err != nil {
 				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has mainsnak that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())

@@ -6,6 +6,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
+// Cache is a LRU cache which counts cache misses.
 type Cache struct {
 	*lru.Cache
 	missCount uint64
@@ -30,6 +31,8 @@ func (c *Cache) Get(key interface{}) (interface{}, bool) {
 	return value, ok
 }
 
+// MissCount returns the number of cache misses since the last call
+// of MissCount (or since the initialization of the cache).
 func (c *Cache) MissCount() uint64 {
 	return atomic.SwapUint64(&c.missCount, 0)
 }

@@ -163,7 +163,9 @@ func (c *CommonsFilesCommand) processImage(
 		if !loaded {
 			atomic.AddInt64(&skippedCommonsFilesCount, 1)
 		}
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		if !errors.Is(err, wikipedia.SilentSkippedError) {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		}
 		return nil
 	} else if err != nil {
 		return err
