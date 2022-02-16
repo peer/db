@@ -32,6 +32,7 @@ var (
 
 	notSupportedDataValueTypeError = errors.BaseWrap(SilentSkippedError, "not supported data value type")
 	notSupportedDataTypeError      = errors.BaseWrap(SilentSkippedError, "not supported data type")
+	notFoundFileError              = errors.Base("not found file")
 
 	nonMainWikipediaNamespaces = []string{
 		"User:",
@@ -238,7 +239,7 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 		return nil, errors.Errorf(`Wikimedia commons file document for "%s" is missing a DATA file claim`, name)
 	}
 
-	return nil, nil
+	return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
 }
 
 func getMediawikiCommonsFile(
@@ -247,15 +248,17 @@ func getMediawikiCommonsFile(
 	maybeFile, ok := cache.Get(name)
 	if ok {
 		if maybeFile == nil {
-			return nil, nil
+			return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
 		}
 		return maybeFile.(*mediawikiCommonsFile), nil
 	}
 
 	file, err := getMediawikiCommonsFileFromES(ctx, esClient, name)
-	if err != nil {
+	if errors.Is(err, notFoundFileError) {
+		// Continue.
+	} else if err != nil {
 		return nil, err
-	} else if file != nil {
+	} else {
 		cache.Add(name, file)
 		return file, nil
 	}
@@ -267,25 +270,28 @@ func getMediawikiCommonsFile(
 	} else if ii.Redirect == "" {
 		// No redirect.
 		cache.Add(name, nil)
-		return nil, nil
+		return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
 	}
 
 	maybeFile, ok = cache.Get(ii.Redirect)
 	if ok {
 		if maybeFile == nil {
-			return nil, nil
+			return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
 		}
 		return maybeFile.(*mediawikiCommonsFile), nil
 	}
 
 	file, err = getMediawikiCommonsFileFromES(ctx, esClient, ii.Redirect)
 	if err != nil {
+		if errors.Is(err, notFoundFileError) {
+			cache.Add(name, nil)
+			cache.Add(ii.Redirect, nil)
+		}
 		return nil, errors.WithMessagef(err, `after redirect from "%s" to "%s"`, name, ii.Redirect)
-	} else if file != nil {
-		fmt.Fprintf(os.Stderr, "%v is referencing a file \"%s\" which redirects to \"%s\"\n", idArgs, name, ii.Redirect)
 	}
 
-	// We store whatever we got, missing file or not.
+	fmt.Fprintf(os.Stderr, "%v is referencing a file \"%s\" which redirects to \"%s\"\n", idArgs, name, ii.Redirect)
+
 	cache.Add(name, file)
 	cache.Add(ii.Redirect, file)
 	return file, nil
@@ -353,13 +359,12 @@ func processSnak( //nolint:ireturn
 
 			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
-				return nil, err
-			}
-			if file == nil {
-				if _, ok := skippedCommonsFiles.Load(filename); ok {
-					return nil, errors.Wrapf(SilentSkippedError, `skipped Wikimedia Commons file "%s"`, filename)
+				if errors.Is(err, notFoundFileError) {
+					if _, ok := skippedCommonsFiles.Load(filename); ok {
+						return nil, errors.Wrapf(SilentSkippedError, `skipped file "%s"`, filename)
+					}
 				}
-				return nil, errors.Errorf(`Wikimedia Commons file "%s" could not be found`, filename)
+				return nil, err
 			}
 
 			// After here we should not be using "filename" anymore because we might figure out that

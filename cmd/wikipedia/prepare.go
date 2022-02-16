@@ -31,6 +31,8 @@ const (
 	scrollingMultiplier = 10
 )
 
+var notFoundDocumentError = errors.Base("not found document")
+
 type counter int64
 
 func (c *counter) Increment() {
@@ -220,7 +222,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	if ok {
 		if maybeRef == nil {
 			v.warnDocumentReference(ref, claimID)
-			return nil, nil
+			return nil, errors.Errorf(`%w %s`, notFoundDocumentError, claimID)
 		}
 		return maybeRef.(*search.DocumentReference), nil
 	}
@@ -229,13 +231,13 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	if elastic.IsNotFound(err) {
 		v.Cache.Add(id, nil)
 		v.warnDocumentReference(ref, claimID)
-		return nil, nil
+		return nil, errors.Errorf(`%w %s`, notFoundDocumentError, claimID)
 	} else if err != nil {
 		return nil, errors.WithStack(err)
 	} else if !esDoc.Found {
 		v.Cache.Add(id, nil)
 		v.warnDocumentReference(ref, claimID)
-		return nil, nil
+		return nil, errors.Errorf(`%w %s`, notFoundDocumentError, claimID)
 	}
 
 	var document search.Document
@@ -262,12 +264,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -286,12 +287,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -310,12 +310,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -334,12 +333,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -358,12 +356,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) (s
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -382,12 +379,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -406,12 +402,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -430,12 +425,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.Enumerat
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -454,12 +448,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -469,12 +462,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	ref, err = v.getDocumentReference(claim.To, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -493,12 +485,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -517,12 +508,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -541,12 +531,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -565,12 +554,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -589,12 +577,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.
 
 	ref, err := v.getDocumentReference(claim.To, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -613,12 +600,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -637,12 +623,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -652,12 +637,11 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 
 	ref, err = v.getDocumentReference(claim.Element, claim.ID)
 	if err != nil {
+		if errors.Is(err, notFoundDocumentError) {
+			v.Changed = true
+			return search.Drop, nil
+		}
 		return search.Keep, err
-	}
-
-	if ref == nil {
-		v.Changed = true
-		return search.Drop, nil
 	}
 
 	if !reflect.DeepEqual(&claim.Element, ref) {
@@ -669,15 +653,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 		child := &claim.Children[i]
 		ref, err := v.getDocumentReference(child.Prop, claim.ID)
 		if err != nil {
+			if errors.Is(err, notFoundDocumentError) {
+				v.Changed = true
+				// We might want just to remove a child, but because this codepath should not really by Wikidata
+				// data (we do not convert any Wikidata statements to PeerDB list claims, and this is about
+				// hierarchical lists) it is probably a reasonable simplification.
+				return search.Drop, nil
+			}
 			return search.Keep, err
-		}
-
-		if ref == nil {
-			v.Changed = true
-			// We might want just to remove a child, but because this codepath should not really by Wikidata
-			// data (we do not convert any Wikidata statements to PeerDB list claims, and this is about
-			// hierarchical lists) it is probably a reasonable simplification.
-			return search.Drop, nil
 		}
 
 		if !reflect.DeepEqual(&child.Prop, ref) {
