@@ -22,7 +22,7 @@ var (
 
 type CommonsFilesCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
-	URL         string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. Default: the latest."`
+	URL         string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {

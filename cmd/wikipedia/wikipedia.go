@@ -24,7 +24,7 @@ var (
 
 type WikipediaFilesCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
-	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. Default: the latest."`
+	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
@@ -102,7 +102,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 type WikipediaArticlesCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. Default: the latest."`
+	URL string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {

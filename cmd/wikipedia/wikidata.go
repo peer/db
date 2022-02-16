@@ -24,7 +24,7 @@ type WikidataCommand struct {
 	SkippedCommonsFiles   string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikimedia Commons files."`
 	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikipedia files."`
 	SaveSkipped           string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
-	URL                   string `placeholder:"URL" help:"URL of Wikidata Entities JSON dump to use. Default: the latest."`
+	URL                   string `placeholder:"URL" help:"URL of Wikidata Entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {

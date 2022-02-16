@@ -184,7 +184,15 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		return nil, nil, nil, nil, nil, nil, nil, errE
 	}
 
-	dumpPath := filepath.Join(globals.CacheDir, path.Base(url))
+	// Is URL in fact a path to a local file?
+	var dumpPath string
+	_, err = os.Stat(url)
+	if os.IsNotExist(err) {
+		dumpPath = filepath.Join(globals.CacheDir, path.Base(url))
+	} else {
+		dumpPath = url
+		url = ""
+	}
 
 	return ctx, cancel, httpClient, esClient, processor, cache, &mediawiki.ProcessDumpConfig{
 		URL:                    url,
