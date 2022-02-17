@@ -146,7 +146,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
-	if article.MainEntity.Identifier == "" {
+	if article.MainEntity == nil {
 		_, loaded := skippedWikipediaArticles.LoadOrStore(article.Name, true)
 		if !loaded {
 			atomic.AddInt64(&skippedWikipediaArticlesCount, 1)
