@@ -227,8 +227,6 @@ github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6e
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 gitlab.com/tozd/go/errors v0.3.0 h1:5CKqYz4EfXLxYFhYtxD1s51Nh50J06flPdBqrdXn2AY=
 gitlab.com/tozd/go/errors v0.3.0/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
-gitlab.com/tozd/go/mediawiki v0.7.0 h1:MPC/s44y5pkRY/EGuMpKVYWXFCK8Exiow4M4QEm79E0=
-gitlab.com/tozd/go/mediawiki v0.7.0/go.mod h1:HvroiDcBPsIpN2CxPqZL6iiJk5Dip9JRMsmjqWUSFEU=
 gitlab.com/tozd/go/mediawiki v0.8.0 h1:oDTS3CVEqh6drXwilRvT6yciJkjnaRIeWlNzFnh3Blk=
 gitlab.com/tozd/go/mediawiki v0.8.0/go.mod h1:HvroiDcBPsIpN2CxPqZL6iiJk5Dip9JRMsmjqWUSFEU=
 gitlab.com/tozd/go/x v0.0.0-20220203140942-e215f78d9e8a h1:yOunjWBNppMqweQvnBc0V0C87Bj7psi/HcQeO4ArqLo=

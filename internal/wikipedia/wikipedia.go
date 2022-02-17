@@ -33,16 +33,16 @@ func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client
 // TODO: Remove rendered links to categories (they should be claims).
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
 // TODO: Keep only contents of <body>.
-func ConvertWikipediaArticle(document *search.Document, article mediawiki.Article) errors.E {
-	claimID := search.GetID(NameSpaceWikidata, article.MainEntity.Identifier, "ARTICLE", 0)
+func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+	claimID := search.GetID(namespace, id, "ARTICLE", 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
 		claim, ok := existingClaim.(*search.TextClaim)
 		if !ok {
 			fmt.Fprintf(
 				os.Stderr,
-				"unexpected: document %s for entity %s for article \"%s\" has existing non-text claim with ID %s",
-				document.ID, article.MainEntity.Identifier, article.Name, claimID,
+				"unexpected: document %s for source ID \"%s\" for article \"%s\" has existing non-text claim with ID %s",
+				document.ID, id, article.Name, claimID,
 			)
 		}
 		claim.HTML["en"] = article.ArticleBody.HTML
@@ -61,8 +61,8 @@ func ConvertWikipediaArticle(document *search.Document, article mediawiki.Articl
 		if err != nil {
 			fmt.Fprintf(
 				os.Stderr,
-				"unexpected: article claim cannot be added to document %s for entity %s for article \"%s\": %s\n",
-				document.ID, article.MainEntity.Identifier, article.Name, err.Error(),
+				"unexpected: article claim cannot be added to document %s for source ID \"%s\" for article \"%s\": %s\n",
+				document.ID, id, article.Name, err.Error(),
 			)
 		}
 	}

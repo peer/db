@@ -283,7 +283,7 @@ func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, tit
 // case when Mediawiki does, then API returns a "normalized" field which fails JSON decoding
 // so we detect such cases, if and when they happen.
 // See: https://phabricator.wikimedia.org/T301758
-func firstUpperCase(str string) string {
+func FirstUpperCase(str string) string {
 	runes := []rune(str)
 	r := runes[0]
 	if r <= unicode.MaxASCII {
@@ -299,7 +299,7 @@ func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, filenam
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
-	title = firstUpperCase(title)
+	title = FirstUpperCase(title)
 
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, title)
 

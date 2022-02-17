@@ -353,7 +353,7 @@ func processSnak( //nolint:ireturn,nolintlint
 			// First we make sure we do not have spaces.
 			filename := strings.ReplaceAll(string(value), " ", "_")
 			// The first letter has to be upper case.
-			filename = firstUpperCase(filename)
+			filename = FirstUpperCase(filename)
 
 			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
