@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -241,7 +240,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	}
 
 	var document search.Document
-	err = json.Unmarshal(esDoc.Source, &document)
+	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -676,7 +675,7 @@ func (c *PrepareCommand) processDocument(
 	ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
 ) errors.E {
 	var document search.Document
-	err := json.Unmarshal(hit.Source, &document)
+	err := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
 	if err != nil {
 		return errors.WithStack(err)
 	}

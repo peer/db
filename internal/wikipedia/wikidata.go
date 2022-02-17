@@ -2,7 +2,6 @@ package wikipedia
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"math"
@@ -16,6 +15,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
 )
@@ -196,18 +196,17 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 	// There might be multiple hits because IDs are not unique (we remove zeroes).
 	for _, hit := range searchResult.Hits.Hits {
 		var document search.Document
-		err = json.Unmarshal(hit.Source, &document)
+		err = x.UnmarshalWithoutUnknownFields(hit.Source, &document)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
-		found := false
-		for _, claim := range document.Active.Identifier {
-			if claim.Prop.ID != search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME") {
-				continue
-			}
+		// ID is not stored in the document, so we set it here ourselves.
+		document.ID = search.Identifier(hit.Id)
 
-			if claim.Identifier == name {
+		found := false
+		for _, claim := range document.Get(search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME")) {
+			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == name {
 				found = true
 				break
 			}
@@ -218,22 +217,21 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 			continue
 		}
 
-		for _, claim := range document.Active.File {
-			if claim.Prop.ID != search.GetStandardPropertyID("DATA") {
-				continue
+		for _, claim := range document.Get(search.GetStandardPropertyID("DATA")) {
+			if c, ok := claim.(*search.FileClaim); ok {
+				file := &mediawikiCommonsFile{
+					Reference: search.DocumentReference{
+						ID:     search.Identifier(hit.Id),
+						Name:   document.Name,
+						Score:  document.Score,
+						Scores: document.Scores,
+					},
+					Type:    c.Type,
+					URL:     c.URL,
+					Preview: c.Preview,
+				}
+				return file, nil
 			}
-			file := &mediawikiCommonsFile{
-				Reference: search.DocumentReference{
-					ID:     search.Identifier(hit.Id),
-					Name:   document.Name,
-					Score:  document.Score,
-					Scores: document.Scores,
-				},
-				Type:    claim.Type,
-				URL:     claim.URL,
-				Preview: claim.Preview,
-			}
-			return file, nil
 		}
 
 		return nil, errors.Errorf(`Wikimedia commons file document for "%s" is missing a DATA file claim`, name)
