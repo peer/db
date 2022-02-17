@@ -44,7 +44,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = mediawiki.LatestCommonsEntitiesRun
+		urlFunc = mediawiki.LatestWikidataEntitiesRun
 	}
 
 	ctx, cancel, httpClient, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
