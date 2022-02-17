@@ -231,6 +231,8 @@ gitlab.com/tozd/go/mediawiki v0.8.0 h1:oDTS3CVEqh6drXwilRvT6yciJkjnaRIeWlNzFnh3B
 gitlab.com/tozd/go/mediawiki v0.8.0/go.mod h1:HvroiDcBPsIpN2CxPqZL6iiJk5Dip9JRMsmjqWUSFEU=
 gitlab.com/tozd/go/x v0.0.0-20220203140942-e215f78d9e8a h1:yOunjWBNppMqweQvnBc0V0C87Bj7psi/HcQeO4ArqLo=
 gitlab.com/tozd/go/x v0.0.0-20220203140942-e215f78d9e8a/go.mod h1:FovFeRAlfCK4SAP8agkHrx1WqVtjUiyLkJwHCpSMkj4=
+gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560 h1:loLTjSXn4MKOjwLZMQfn8x3skt/EfuYbUzoDAmUdHsA=
+gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560/go.mod h1:FovFeRAlfCK4SAP8agkHrx1WqVtjUiyLkJwHCpSMkj4=
 go.opencensus.io v0.23.0/go.mod h1:XItmlyltB5F7CS4xOC1DcqMoFqwtC6OG2xF7mCv7P7E=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.5.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=

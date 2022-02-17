@@ -11,7 +11,7 @@ require (
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/tozd/go/mediawiki v0.8.0
-	gitlab.com/tozd/go/x v0.0.0-20220203140942-e215f78d9e8a
+	gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
 

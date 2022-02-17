@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -31,16 +30,6 @@ const (
 )
 
 var notFoundDocumentError = errors.Base("not found document")
-
-type counter int64
-
-func (c *counter) Increment() {
-	atomic.AddInt64((*int64)(c), 1)
-}
-
-func (c *counter) Count() int64 {
-	return atomic.LoadInt64((*int64)(c))
-}
 
 type PrepareCommand struct{}
 
@@ -121,7 +110,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(ctx context.Context, globals *G
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
 
-	var count counter
+	var count x.Counter
 
 	total, err := esClient.Count("docs").Do(ctx)
 	if err != nil {
