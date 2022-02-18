@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 
@@ -26,6 +27,10 @@ import (
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
+)
+
+const (
+	lruCacheSize = 1000000
 )
 
 func saveDocument(globals *Globals, processor *elastic.BulkProcessor, doc *search.Document) {
@@ -112,9 +117,9 @@ func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
 
 func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
 
-func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
-	string, errors.E), count *int64) (context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
-	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
+func initializeElasticSearch(globals *Globals) (
+	context.Context, context.CancelFunc, *http.Client, *elastic.Client,
+	*elastic.BulkProcessor, *wikipedia.Cache, errors.E,
 ) {
 	ctx := context.Background()
 
@@ -138,28 +143,16 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		}
 	}()
 
-	httpClient := retryablehttp.NewClient()
-	httpClient.RetryWaitMax = clientRetryWaitMax
-	httpClient.RetryMax = clientRetryMax
+	httpClient := cleanhttp.DefaultPooledClient()
 
-	// We silent debug logging from HTTP client.
-	// TODO: Configure proper logger.
-	httpClient.Logger = nullLogger{}
-
-	// Set User-Agent header.
-	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
-		// TODO: Make contact e-mail into a CLI argument.
-		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
-	}
-
-	esClient, errE := search.EnsureIndex(ctx, httpClient.HTTPClient)
+	esClient, errE := search.EnsureIndex(ctx, httpClient)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, errE
 	}
 
 	cache, errE := wikipedia.NewCache(lruCacheSize)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, errE
 	}
 
 	// TODO: Make number of workers configurable.
@@ -176,7 +169,34 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		},
 	).Do(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, errors.WithStack(err)
+		return nil, nil, nil, nil, nil, nil, errors.WithStack(err)
+	}
+
+	return ctx, cancel, httpClient, esClient, processor, cache, nil
+}
+
+func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
+	string, errors.E), count *int64) (context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
+	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
+) {
+	ctx, cancel, simpleHTTPClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
+	if errE != nil {
+		return nil, nil, nil, nil, nil, nil, nil, errE
+	}
+
+	httpClient := retryablehttp.NewClient()
+	httpClient.HTTPClient = simpleHTTPClient
+	httpClient.RetryWaitMax = clientRetryWaitMax
+	httpClient.RetryMax = clientRetryMax
+
+	// We silent debug logging from HTTP client.
+	// TODO: Configure proper logger.
+	httpClient.Logger = nullLogger{}
+
+	// Set User-Agent header.
+	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+		// TODO: Make contact e-mail into a CLI argument.
+		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
 	}
 
 	url, errE := urlFunc(httpClient)
@@ -186,7 +206,7 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 
 	// Is URL in fact a path to a local file?
 	var dumpPath string
-	_, err = os.Stat(url)
+	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
 		dumpPath = filepath.Join(globals.CacheDir, path.Base(url))
 	} else {

@@ -106,7 +106,7 @@ func (c *WikipediaFilesCommand) processImage(
 }
 
 type WikipediaFileDescriptionsCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped file descriptions."`
 	URL         string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
@@ -196,7 +196,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 }
 
 type WikipediaArticlesCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped articles."`
 	URL         string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
