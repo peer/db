@@ -79,7 +79,7 @@ func (c *CommonsFilesCommand) processImage(
 			// We do not log stack trace.
 			globals.Log.Warn().Str("file", image.Name).Msg(err.Error())
 		} else {
-			globals.Log.Error().Str("file", image.Name).Err(err).Msg("")
+			globals.Log.Error().Str("file", image.Name).Err(err).Send()
 		}
 		_, loaded := skippedCommonsFiles.LoadOrStore(image.Name, true)
 		if !loaded {
