@@ -34,6 +34,7 @@ const (
 	colorBold = 1
 )
 
+//nolint:lll
 type LoggingConfig struct {
 	Log     zerolog.Logger `kong:"-"`
 	Logging struct {
