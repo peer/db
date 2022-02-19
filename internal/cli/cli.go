@@ -324,6 +324,7 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 		return
 	}
 
+	level := zerolog.Disabled
 	writers := []io.Writer{}
 	switch loggingConfig.Logging.Console.Type {
 	case "color", "nocolor":
@@ -332,12 +333,18 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 			Writer: levelWriterAdapter{w},
 			Level:  loggingConfig.Logging.Console.Level,
 		})
+		if loggingConfig.Logging.Console.Level < level {
+			level = loggingConfig.Logging.Console.Level
+		}
 	case "json":
 		w := os.Stdout
 		writers = append(writers, &filteredWriter{
 			Writer: levelWriterAdapter{w},
 			Level:  loggingConfig.Logging.Console.Level,
 		})
+		if loggingConfig.Logging.Console.Level < level {
+			level = loggingConfig.Logging.Console.Level
+		}
 	}
 	if loggingConfig.Logging.File.Path != "" {
 		w, err := os.OpenFile(loggingConfig.Logging.File.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
@@ -353,10 +360,13 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 			Writer: levelWriterAdapter{w},
 			Level:  loggingConfig.Logging.File.Level,
 		})
+		if loggingConfig.Logging.Console.Level < level {
+			level = loggingConfig.Logging.File.Level
+		}
 	}
 
 	writer := zerolog.MultiLevelWriter(writers...)
-	logger := zerolog.New(writer).With().Timestamp().Logger()
+	logger := zerolog.New(writer).Level(level).With().Timestamp().Logger()
 
 	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.TimestampFunc = func() time.Time {
