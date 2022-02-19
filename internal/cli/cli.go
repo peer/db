@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,8 +30,15 @@ const (
 	fileMode = 0o600
 	// Exit code 1 is used by Kong, 2 when program panics.
 	errorExitCode = 3
-	// Copied from zerolog/console.go.
-	colorRed  = 31
+)
+
+// Copied from zerolog/console.go.
+const (
+	colorRed = iota + 31
+	colorGreen
+	colorYellow
+	colorBlue
+
 	colorBold = 1
 )
 
@@ -100,6 +108,39 @@ func formatError(noColor bool) zerolog.Formatter {
 	}
 }
 
+func formatLevel(noColor bool) zerolog.Formatter {
+	return func(i interface{}) string {
+		var l string
+		if ll, ok := i.(string); ok {
+			switch ll {
+			case zerolog.LevelTraceValue:
+				l = colorize("TRC", colorBlue, noColor)
+			case zerolog.LevelDebugValue:
+				l = "DBG"
+			case zerolog.LevelInfoValue:
+				l = colorize("INF", colorGreen, noColor)
+			case zerolog.LevelWarnValue:
+				l = colorize("WRN", colorYellow, noColor)
+			case zerolog.LevelErrorValue:
+				l = colorize("ERR", colorRed, noColor)
+			case zerolog.LevelFatalValue:
+				l = colorize("FTL", colorRed, noColor)
+			case zerolog.LevelPanicValue:
+				l = colorize("PNC", colorRed, noColor)
+			default:
+				l = "???"
+			}
+		} else {
+			if i == nil {
+				l = "???"
+			} else {
+				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
+			}
+		}
+		return l
+	}
+}
+
 type eventError struct {
 	Error string `json:"error,omitempty"`
 	Stack []struct {
@@ -126,6 +167,7 @@ func newConsoleWriter(noColor bool) *consoleWriter {
 	w.Out = buf
 	w.NoColor = noColor
 	w.FormatErrFieldValue = formatError(w.NoColor)
+	w.FormatLevel = formatLevel(w.NoColor)
 
 	return &consoleWriter{ConsoleWriter: w, buf: buf}
 }
