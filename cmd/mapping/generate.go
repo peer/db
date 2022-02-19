@@ -466,7 +466,7 @@ var claimTypes = []claimType{
 	},
 }
 
-func generate() errors.E {
+func generate(globals *Config) errors.E {
 	t, err := template.New("indexTemplate").Parse(indexTemplate)
 	if err != nil {
 		return errors.WithStack(err)

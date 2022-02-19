@@ -5,6 +5,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/search/internal/cli"
 )
 
 const (
@@ -15,8 +17,9 @@ const (
 
 // Globals describes top-level (global) flags.
 type Globals struct {
-	Version  kong.VersionFlag `short:"V" help:"Show program's version and exit."`
-	CacheDir string           `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to."`
+	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
+	cli.LoggingConfig
+	CacheDir string `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to."`
 }
 
 // Config provides configuration.

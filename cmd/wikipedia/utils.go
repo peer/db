@@ -26,6 +26,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/cli"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -196,7 +197,7 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 	// Set User-Agent header.
 	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		// TODO: Make contact e-mail into a CLI argument.
-		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", version, buildTimestamp, revision))
+		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
 	}
 
 	url, errE := urlFunc(httpClient)
