@@ -21,7 +21,7 @@ Backend is implemented in Go and provides a HTTP2 API. It requires an ElasticSea
 To run backend locally first start an an ElasticSearch instance:
 
 ```sh
-docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.16.3
+docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" elasticsearch:7.16.3
 ```
 
 Then clone the repository and run:

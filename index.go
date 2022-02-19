@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 
 	"gitlab.com/tozd/go/errors"
 )
@@ -15,13 +16,28 @@ import (
 //go:embed index.json
 var indexConfiguration string
 
+type loggerAdapter struct {
+	log   zerolog.Logger
+	level zerolog.Level
+}
+
+func (a loggerAdapter) Printf(format string, v ...interface{}) {
+	a.log.WithLevel(a.level).Msgf(format, v...)
+}
+
+var _ elastic.Logger = (*loggerAdapter)(nil)
+
 // EnsureIndex creates an instance of the ElasticSearch client and makes sure
 // the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
-func EnsureIndex(ctx context.Context, httpClient *http.Client) (*elastic.Client, errors.E) {
+func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
 		elastic.SetHttpClient(httpClient),
+		elastic.SetErrorLog(loggerAdapter{logger, zerolog.ErrorLevel}),
+		// We use debug level here because logging at info level is too noisy.
+		elastic.SetInfoLog(loggerAdapter{logger, zerolog.DebugLevel}),
+		elastic.SetTraceLog(loggerAdapter{logger, zerolog.TraceLevel}),
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)

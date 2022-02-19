@@ -146,7 +146,7 @@ func initializeElasticSearch(globals *Globals) (
 
 	httpClient := cleanhttp.DefaultPooledClient()
 
-	esClient, errE := search.EnsureIndex(ctx, httpClient)
+	esClient, errE := search.EnsureIndex(ctx, httpClient, globals.Log)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
