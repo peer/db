@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	fileMode = 0o600
 	// Exit code 1 is used by Kong.
 	errorExitCode = 2
 	// Copied from zerolog/console.go.
@@ -130,7 +131,7 @@ func main() {
 		})
 	}
 	if config.Logging.File.Path != "" {
-		w, err := os.OpenFile(config.Logging.File.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+		w, err := os.OpenFile(config.Logging.File.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cannot open logging file: %s\n", err.Error())
 			// Use the same exit code as Kong does.
@@ -155,7 +156,7 @@ func main() {
 	zerolog.ErrorMarshalFunc = func(ee error) interface{} {
 		var j []byte
 		var err error
-		switch e := ee.(type) {
+		switch e := ee.(type) { //nolint:errorlint
 		case interface {
 			MarshalJSON() ([]byte, error)
 		}:
