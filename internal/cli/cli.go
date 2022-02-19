@@ -57,6 +57,7 @@ type LoggingConfig struct {
 	} `embed:"" prefix:"logging."`
 }
 
+// filteredWriter writes only logs at Level or above.
 type filteredWriter struct {
 	Writer zerolog.LevelWriter
 	Level  zerolog.Level
@@ -108,6 +109,7 @@ func formatError(noColor bool) zerolog.Formatter {
 	}
 }
 
+// Based on zerolog/console.go, but with different colors.
 func formatLevel(noColor bool) zerolog.Formatter {
 	return func(i interface{}) string {
 		var l string
@@ -155,6 +157,7 @@ type eventWithError struct {
 	Error *eventError `json:"error,omitempty"`
 }
 
+// consoleWriter writes stack traces for errors after the line with the log.
 type consoleWriter struct {
 	zerolog.ConsoleWriter
 	buf  *bytes.Buffer
@@ -164,6 +167,8 @@ type consoleWriter struct {
 func newConsoleWriter(noColor bool) *consoleWriter {
 	buf := &bytes.Buffer{}
 	w := zerolog.NewConsoleWriter()
+	// Embedded ConsoleWriter writes to a buffer, to which this consoleWriter
+	// appends a stack trace and only then writes it to stdout.
 	w.Out = buf
 	w.NoColor = noColor
 	w.FormatErrFieldValue = formatError(w.NoColor)
