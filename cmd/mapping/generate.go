@@ -466,7 +466,7 @@ var claimTypes = []claimType{
 	},
 }
 
-func generate(globals *Config) errors.E {
+func generate(config *Config) errors.E {
 	t, err := template.New("indexTemplate").Parse(indexTemplate)
 	if err != nil {
 		return errors.WithStack(err)
@@ -485,10 +485,18 @@ func generate(globals *Config) errors.E {
 	}
 	res.WriteString("\n")
 
-	_, err = io.Copy(os.Stdout, &res)
+	f, err := os.Create(config.Output)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	defer f.Close()
+
+	_, err = io.Copy(f, &res)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	config.Log.Info().Msg("mapping generated successfully")
 
 	return nil
 }

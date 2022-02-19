@@ -11,4 +11,5 @@ import (
 type Config struct {
 	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
 	cli.LoggingConfig
+	Output string `short:"o" placeholder:"PATH" type:"path" default:"index.json" help:"Where to output generated mapping. Default: ${default}"`
 }
