@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -20,7 +23,8 @@ const (
 	// Exit code 1 is used by Kong.
 	errorExitCode = 2
 	// Copied from zerolog/console.go.
-	colorRed = 31
+	colorRed  = 31
+	colorBold = 1
 )
 
 // These variables should be set during build time using "-X" ldflags.
@@ -63,11 +67,12 @@ func colorize(s interface{}, c int, disabled bool) string {
 	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
 }
 
+// formatError extracts just the error message from error's JSON.
 func formatError(noColor bool) zerolog.Formatter {
 	return func(i interface{}) string {
-		j, ok := i.([]uint8)
+		j, ok := i.([]byte)
 		if !ok {
-			return colorize("[error: value is not []uint8]", colorRed, noColor)
+			return colorize("[error: value is not []byte]", colorRed, noColor)
 		}
 		var e struct {
 			Error string `json:"error,omitempty"`
@@ -76,8 +81,82 @@ func formatError(noColor bool) zerolog.Formatter {
 		if err != nil {
 			return colorize(fmt.Sprintf("[error: %s]", err.Error()), colorRed, noColor)
 		}
-		return colorize(e.Error, colorRed, noColor)
+		return colorize(colorize(e.Error, colorRed, noColor), colorBold, noColor)
 	}
+}
+
+type eventError struct {
+	Error string `json:"error,omitempty"`
+	Stack []struct {
+		Name string `json:"name,omitempty"`
+		File string `json:"file,omitempty"`
+		Line int    `json:"line,omitempty"`
+	} `json:"stack,omitempty"`
+	Cause *eventError `json:"cause,omitempty"`
+}
+
+type eventWithError struct {
+	Error *eventError `json:"error,omitempty"`
+}
+
+type consoleWriter struct {
+	zerolog.ConsoleWriter
+	buf  *bytes.Buffer
+	lock sync.Mutex
+}
+
+func newConsoleWriter(noColor bool) *consoleWriter {
+	buf := &bytes.Buffer{}
+	w := zerolog.NewConsoleWriter()
+	w.Out = buf
+	w.NoColor = noColor
+	w.FormatErrFieldValue = formatError(w.NoColor)
+
+	return &consoleWriter{ConsoleWriter: w, buf: buf}
+}
+
+func (w *consoleWriter) Write(p []byte) (int, error) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	_, err := w.ConsoleWriter.Write(p)
+	if err != nil {
+		return 0, err
+	}
+
+	var event eventWithError
+	err = json.Unmarshal(p, &event)
+	if err != nil {
+		return 0, errors.Errorf("cannot decode event: %w", err)
+	}
+
+	ee := event.Error
+	first := true
+	for ee != nil {
+		if !first {
+			w.buf.WriteString(colorize("\nThe above error was caused by the following error:\n\n", colorRed, w.NoColor))
+			if ee.Error != "" {
+				w.buf.WriteString(colorize(colorize(ee.Error, colorRed, w.NoColor), colorBold, w.NoColor))
+				w.buf.WriteString("\n")
+			}
+		}
+		first = false
+		if len(ee.Stack) > 0 {
+			w.buf.WriteString(colorize("Stack trace (most recent call first):\n", colorRed, w.NoColor))
+			for _, s := range ee.Stack {
+				w.buf.WriteString(colorize(s.Name, colorRed, w.NoColor))
+				w.buf.WriteString("\n\t")
+				w.buf.WriteString(colorize(s.File, colorRed, w.NoColor))
+				w.buf.WriteString(colorize(":", colorRed, w.NoColor))
+				w.buf.WriteString(colorize(strconv.Itoa(s.Line), colorRed, w.NoColor))
+				w.buf.WriteString("\n")
+			}
+		}
+		ee = ee.Cause
+	}
+
+	_, err = w.buf.WriteTo(os.Stdout)
+	return len(p), err
 }
 
 func main() {
@@ -116,9 +195,7 @@ func main() {
 	writers := []io.Writer{}
 	switch config.Logging.Console.Type {
 	case "color", "nocolor":
-		w := zerolog.NewConsoleWriter()
-		w.NoColor = config.Logging.Console.Type == "nocolor"
-		w.FormatErrFieldValue = formatError(w.NoColor)
+		w := newConsoleWriter(config.Logging.Console.Type == "nocolor")
 		writers = append(writers, &filteredWriter{
 			Writer: levelWriterAdapter{w},
 			Level:  config.Logging.Console.Level,
