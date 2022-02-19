@@ -253,7 +253,7 @@ func getMediawikiCommonsFile(
 
 	file, err := getMediawikiCommonsFileFromES(ctx, esClient, name)
 	if errors.Is(err, notFoundFileError) {
-		// Continue.
+		// Passthrough.
 	} else if err != nil {
 		return nil, err
 	} else {

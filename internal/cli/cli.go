@@ -178,13 +178,48 @@ func newConsoleWriter(noColor bool) *consoleWriter {
 	return &consoleWriter{ConsoleWriter: w, buf: buf}
 }
 
+func makeMessageBold(p []byte) ([]byte, errors.E) {
+	var event map[string]interface{}
+	d := json.NewDecoder(bytes.NewReader(p))
+	d.UseNumber()
+	err := d.Decode(&event)
+	if err != nil {
+		return p, errors.Errorf("cannot decode event: %w", err)
+	}
+
+	if event[zerolog.MessageFieldName] == "" || event[zerolog.MessageFieldName] == nil {
+		return p, nil
+	}
+
+	switch event[zerolog.LevelFieldName] {
+	case zerolog.LevelInfoValue, zerolog.LevelWarnValue, zerolog.LevelErrorValue, zerolog.LevelFatalValue, zerolog.LevelPanicValue:
+		// Passthrough.
+	default:
+		return p, nil
+	}
+
+	event[zerolog.MessageFieldName] = colorize(fmt.Sprintf("%s", event[zerolog.MessageFieldName]), colorBold, false)
+	return x.MarshalWithoutEscapeHTML(event)
+}
+
 func (w *consoleWriter) Write(p []byte) (int, error) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
+	// Remember the length before we maybe modify p.
+	n := len(p)
+
+	var errE errors.E
+	if !w.NoColor {
+		p, errE = makeMessageBold(p)
+		if errE != nil {
+			return 0, errE
+		}
+	}
+
 	_, err := w.ConsoleWriter.Write(p)
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 
 	var event eventWithError
@@ -219,7 +254,7 @@ func (w *consoleWriter) Write(p []byte) (int, error) {
 	}
 
 	_, err = w.buf.WriteTo(os.Stdout)
-	return len(p), err
+	return n, errors.WithStack(err)
 }
 
 func extractLoggingConfig(config interface{}) (*LoggingConfig, errors.E) {
