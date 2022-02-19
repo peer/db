@@ -171,6 +171,7 @@ func newConsoleWriter(noColor bool) *consoleWriter {
 	// appends a stack trace and only then writes it to stdout.
 	w.Out = buf
 	w.NoColor = noColor
+	w.TimeFormat = "15:04"
 	w.FormatErrFieldValue = formatError(w.NoColor)
 	w.FormatLevel = formatLevel(w.NoColor)
 
