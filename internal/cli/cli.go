@@ -381,6 +381,9 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 		}
 		return json.RawMessage(j)
 	}
+	zerolog.InterfaceMarshalFunc = func(v interface{}) ([]byte, error) {
+		return x.MarshalWithoutEscapeHTML(v)
+	}
 	log.Logger = logger
 	loggingConfig.Log = logger
 
