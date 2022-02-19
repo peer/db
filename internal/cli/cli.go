@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	stdlog "log"
 	"os"
 	"reflect"
 	"strconv"
@@ -205,6 +206,7 @@ func makeMessageBold(p []byte) ([]byte, errors.E) {
 func (w *consoleWriter) Write(p []byte) (int, error) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
+	defer w.buf.Reset()
 
 	// Remember the length before we maybe modify p.
 	n := len(p)
@@ -386,6 +388,8 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 	}
 	log.Logger = logger
 	loggingConfig.Log = logger
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(logger)
 
 	err = run(ctx)
 	if err != nil {
