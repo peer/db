@@ -160,12 +160,14 @@ func initializeElasticSearch(globals *Globals) (
 	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
 		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Indexing error: %s\n", err.Error())
-			} else if response.Errors {
-				for _, failed := range response.Failed() {
-					fmt.Fprintf(os.Stderr, "Indexing error %d (%s): %s [type=%s]\n", failed.Status, http.StatusText(failed.Status), failed.Error.Reason, failed.Error.Type)
+				globals.Log.Error().Err(err).Msg("indexing error")
+			} else if failed := response.Failed(); len(failed) > 0 {
+				for _, f := range failed {
+					globals.Log.Error().
+						Str("id", f.Id).Int("code", f.Status).Str("status", http.StatusText(f.Status)).
+						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
+						Msg("indexing error")
 				}
-				fmt.Fprintf(os.Stderr, "Indexing error\n")
 			}
 		},
 	).Do(ctx)
@@ -224,11 +226,10 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			fmt.Fprintf(
-				os.Stderr,
-				"Progress: %0.2f%%, ETA: %s, cache miss: %d, indexed: %d, skipped: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), stats.Succeeded, atomic.LoadInt64(count), stats.Failed,
-			)
+			globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("skipped", atomic.LoadInt64(count)).Int64("indexed", stats.Succeeded).
+				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String()).
+				Msgf("progress %0.2f%%", p.Percent())
 		},
 	}, nil
 }

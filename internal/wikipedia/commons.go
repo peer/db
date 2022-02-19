@@ -350,7 +350,7 @@ func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, image I
 	}
 	imageInfo, err := getImageInfo(ctx, httpClient, image.Name)
 	if err != nil {
-		return 0, errors.Errorf(`unable to get image info for "%s": %w`, image.Name, err)
+		return 0, errors.Errorf(`unable to get image info: %w`, err)
 	}
 	return imageInfo.PageCount, nil
 }
@@ -426,13 +426,13 @@ func convertImage(
 		image.MediaType = ambiguous.MediaType
 	}
 	if !supportedMediaTypes[mediaType] {
-		return nil, errors.Wrapf(SkippedError, `unsupported media type "%s" for "%s"`, mediaType, image.Name)
+		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
 	}
 	if !supportedMediawikiMediaTypes[image.MediaType] {
-		return nil, errors.Wrapf(SkippedError, `unsupported Mediawiki media type "%s" for "%s"`, image.MediaType, image.Name)
+		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
 	}
 	if image.Size == 0 {
-		return nil, errors.Wrapf(SkippedError, `zero size for "%s"`, image.Name)
+		return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero size`))
 	}
 
 	var err errors.E
@@ -442,10 +442,10 @@ func convertImage(
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file
 			// does not exist anymore. In any case, we skip it.
-			return nil, errors.Wrapf(SkippedError, `error getting page count "%s": %s`, image.Name, err.Error())
+			return nil, errors.WithMessage(err, `error getting page count`)
 		}
 		if pageCount == 0 {
-			return nil, errors.Wrapf(SkippedError, `zero page count for "%s"`, image.Name)
+			return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero page count`))
 		}
 	}
 
@@ -455,10 +455,10 @@ func convertImage(
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file
 			// does not exist anymore. In any case, we skip it.
-			return nil, errors.Wrapf(SkippedError, `error getting duration "%s": %s`, image.Name, err.Error())
+			return nil, errors.WithMessage(err, `error getting duration`)
 		}
 		if duration == 0.0 && !canHaveZeroDuration[mediaType] {
-			return nil, errors.Wrapf(SkippedError, `zero duration for "%s"`, image.Name)
+			return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero duration`))
 		}
 	}
 
@@ -469,7 +469,7 @@ func convertImage(
 	preview := []string{}
 	if !noPreview[mediaType] {
 		if image.Width == 0 || image.Height == 0 {
-			return nil, errors.Wrapf(SkippedError, `expected width/height (%dx%d) for "%s"`, image.Width, image.Height, image.Name)
+			return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `expected width/height (%dx%d)`, image.Width, image.Height))
 		}
 
 		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
@@ -527,7 +527,7 @@ func convertImage(
 			}
 		}
 	} else if image.Width != 0 || image.Height != 0 {
-		return nil, errors.Wrapf(SkippedError, `unexpected width/height (%dx%d) for "%s"`, image.Width, image.Height, image.Name)
+		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unexpected width/height (%dx%d)`, image.Width, image.Height))
 	}
 
 	name := strings.ReplaceAll(image.Name, "_", " ")

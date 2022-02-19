@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 
@@ -73,17 +71,21 @@ func (c *CommonsFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
 	document, err := wikipedia.ConvertWikimediaCommonsImage(ctx, httpClient, image)
-	if errors.Is(err, wikipedia.SkippedError) {
+	if err != nil {
+		if errors.Is(err, wikipedia.SilentSkippedError) {
+			// We do not log stack trace.
+			globals.Log.Debug().Str("file", image.Name).Msg(err.Error())
+		} else if errors.Is(err, wikipedia.SkippedError) {
+			// We do not log stack trace.
+			globals.Log.Warn().Str("file", image.Name).Msg(err.Error())
+		} else {
+			globals.Log.Error().Str("file", image.Name).Err(err).Msg("")
+		}
 		_, loaded := skippedCommonsFiles.LoadOrStore(image.Name, true)
 		if !loaded {
 			atomic.AddInt64(&skippedCommonsFilesCount, 1)
 		}
-		if !errors.Is(err, wikipedia.SilentSkippedError) {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		}
 		return nil
-	} else if err != nil {
-		return err
 	}
 
 	saveDocument(globals, processor, document)
