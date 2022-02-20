@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"math"
-	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
@@ -241,7 +241,7 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 }
 
 func getMediawikiCommonsFile(
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, idArgs []interface{}, name string,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, idArgs []interface{}, name string,
 ) (*mediawikiCommonsFile, errors.E) {
 	maybeFile, ok := cache.Get(name)
 	if ok {
@@ -288,7 +288,7 @@ func getMediawikiCommonsFile(
 		return nil, errors.WithMessagef(err, `after redirect from "%s" to "%s"`, name, ii.Redirect)
 	}
 
-	fmt.Fprintf(os.Stderr, "%v is referencing a file \"%s\" which redirects to \"%s\"\n", idArgs, name, ii.Redirect)
+	log.Warn().Interface("entity", idArgs[0]).Interface("path", idArgs[1:]).Str("file", name).Str("redirect", ii.Redirect).Msg("referencing a file which redirects")
 
 	cache.Add(name, file)
 	cache.Add(ii.Redirect, file)
@@ -296,7 +296,7 @@ func getMediawikiCommonsFile(
 }
 
 func processSnak( //nolint:ireturn,nolintlint
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
 	id := search.GetID(NameSpaceWikidata, idArgs...)
@@ -355,7 +355,7 @@ func processSnak( //nolint:ireturn,nolintlint
 			// The first letter has to be upper case.
 			filename = FirstUpperCase(filename)
 
-			file, err := getMediawikiCommonsFile(ctx, httpClient, esClient, cache, idArgs, filename)
+			file, err := getMediawikiCommonsFile(ctx, log, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
 				if errors.Is(err, notFoundFileError) {
 					if _, ok := skippedCommonsFiles.Load(filename); ok {
@@ -562,34 +562,27 @@ func processSnak( //nolint:ireturn,nolintlint
 }
 
 func addQualifiers(
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	claim search.Claim, entityID, prop, statementID string,
 	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaim, err := processSnak(
-				ctx, httpClient, esClient, cache, skippedCommonsFiles, p,
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, p,
 				[]interface{}{entityID, prop, statementID, "qualifier", p, i},
 				mediumConfidence, qualifier,
 			)
 			if errors.Is(err, SilentSkippedError) {
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Msg(err.Error())
 				continue
 			} else if err != nil {
-				fmt.Fprintf(
-					os.Stderr,
-					"statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: snak cannot be processed: %s\n",
-					statementID, prop, entityID, p, i, err.Error(),
-				)
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Msg(err.Error())
 				continue
 			}
 			err = claim.AddMeta(qualifierClaim)
 			if err != nil {
-				fmt.Fprintf(
-					os.Stderr,
-					"statement %s of property %s for entity %s has qualifiers that cannot be processed: property %s, qualifier %d: cannot be added to meta claims\n",
-					statementID, prop, entityID, p, i,
-				)
+				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Err(err).Msg("meta claim cannot be added")
 			}
 		}
 	}
@@ -598,7 +591,7 @@ func addQualifiers(
 
 // addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
 func addReference(
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	var referenceClaim search.Claim
@@ -606,16 +599,13 @@ func addReference(
 	for _, p := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[p] {
 			c, err := processSnak(
-				ctx, httpClient, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).Msg(err.Error())
 				continue
 			} else if err != nil {
-				fmt.Fprintf(
-					os.Stderr,
-					"statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: %s\n",
-					statementID, prop, entityID, i, p, j, err.Error(),
-				)
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).Msg(err.Error())
 				continue
 			}
 			if referenceClaim == nil {
@@ -623,11 +613,8 @@ func addReference(
 			} else {
 				err = referenceClaim.AddMeta(c)
 				if err != nil {
-					fmt.Fprintf(
-						os.Stderr,
-						"statement %s of property %s for entity %s has a reference %d that cannot be processed: snak %s/%d cannot be processed: cannot be added to meta claims\n",
-						statementID, prop, entityID, i, p, j,
-					)
+					log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
+						Err(err).Msg("meta claim cannot be added")
 				}
 			}
 		}
@@ -639,18 +626,15 @@ func addReference(
 
 	err := claim.AddMeta(referenceClaim)
 	if err != nil {
-		fmt.Fprintf(
-			os.Stderr,
-			"statement %s of property %s for entity %s has a reference %d that cannot be processed: cannot be added to meta claims\n",
-			statementID, prop, entityID, i,
-		)
+		log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
+			Err(err).Msg("meta claim cannot be added")
 	}
 
 	return nil
 }
 
 func ConvertEntity(
-	ctx context.Context, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
 	skippedCommonsFiles *sync.Map, entity mediawiki.Entity,
 ) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
@@ -658,7 +642,7 @@ func ConvertEntity(
 	if len(englishLabels) == 0 {
 		if entity.Type == mediawiki.Property {
 			// But properties should all have English label, so we warn here.
-			fmt.Fprintf(os.Stderr, "property %s is missing a label in English\n", entity.ID)
+			log.Warn().Str("entity", entity.ID).Msg("property is missing a label in English")
 		}
 		return nil, errors.Wrap(SilentSkippedError, "limited only to English")
 	}
@@ -746,7 +730,7 @@ func ConvertEntity(
 			},
 		}
 	} else {
-		return nil, errors.Wrapf(SkippedError, `entity %s has invalid type: %d`, entity.ID, entity.Type)
+		return nil, errors.Errorf(`entity has invalid type: %d`, entity.Type)
 	}
 
 	siteLink, ok := entity.SiteLinks["enwiki"]
@@ -833,35 +817,36 @@ func ConvertEntity(
 		for i, statement := range entity.Claims[prop] {
 			if statement.ID == "" {
 				// All statements should have an ID, so we warn here.
-				fmt.Fprintf(os.Stderr, "statement %d of property %s for entity %s is missing an ID\n", i, prop, entity.ID)
+				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Int(i)).Msg("missing a statement ID")
 				continue
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claim, err := processSnak(
-				ctx, httpClient, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
+				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).Msg(err.Error())
 				continue
 			} else if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has mainsnak that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
+				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).Msg(err.Error())
 				continue
 			}
-			err = addQualifiers(ctx, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
+			err = addQualifiers(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has qualifiers that cannot be processed: %s\n", statement.ID, prop, entity.ID, err.Error())
+				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).Msg(err.Error())
 				continue
 			}
 			for i, reference := range statement.References {
-				err = addReference(ctx, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
+				err = addReference(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s has a reference %d that cannot be processed: %s\n", statement.ID, prop, entity.ID, i, err.Error())
+					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).Msg(err.Error())
 					continue
 				}
 			}
 			err = document.Add(claim)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "statement %s of property %s for entity %s cannot be added: %s\n", statement.ID, prop, entity.ID, err.Error())
+				log.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID)).Err(err).Msg("claim cannot be added")
 			}
 		}
 	}

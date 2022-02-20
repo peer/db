@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 
@@ -73,18 +71,22 @@ func (c *WikidataCommand) processEntity(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client,
 	processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, httpClient, esClient, cache, &skippedCommonsFiles, entity)
-	if errors.Is(err, wikipedia.SkippedError) {
+	document, err := wikipedia.ConvertEntity(ctx, globals.Log, httpClient, esClient, cache, &skippedCommonsFiles, entity)
+	if err != nil {
+		if errors.Is(err, wikipedia.SilentSkippedError) {
+			// We do not log stack trace.
+			globals.Log.Debug().Str("entity", entity.ID).Msg(err.Error())
+		} else if errors.Is(err, wikipedia.SkippedError) {
+			// We do not log stack entity.
+			globals.Log.Warn().Str("entity", entity.ID).Msg(err.Error())
+		} else {
+			globals.Log.Error().Str("entity", entity.ID).Err(err).Send()
+		}
 		_, loaded := skippedWikidataEntities.LoadOrStore(entity.ID, true)
 		if !loaded {
 			atomic.AddInt64(&skippedWikidataEntitiesCount, 1)
 		}
-		if !errors.Is(err, wikipedia.SilentSkippedError) {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		}
 		return nil
-	} else if err != nil {
-		return err
 	}
 
 	saveDocument(globals, processor, document)
