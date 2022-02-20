@@ -10,6 +10,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
+	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -48,7 +49,10 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 		DecodingThreads:        config.DecodingThreads,
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i interface{}) errors.E {
-			return c.processImage(ctx, globals, httpClient, processor, *i.(*wikipedia.Image))
+			return processImage(
+				ctx, globals, httpClient, processor, wikipedia.ConvertWikimediaCommonsImage,
+				&skippedCommonsFiles, &skippedCommonsFilesCount, *i.(*wikipedia.Image),
+			)
 		},
 		Progress:    config.Progress,
 		Item:        &wikipedia.Image{},
@@ -67,10 +71,13 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-func (c *CommonsFilesCommand) processImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
+func processImage(
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
+	convert func(context.Context, *retryablehttp.Client, wikipedia.Image) (*search.Document, errors.E),
+	skippedMap *sync.Map, count *int64,
+	image wikipedia.Image,
 ) errors.E {
-	document, err := wikipedia.ConvertWikimediaCommonsImage(ctx, httpClient, image)
+	document, err := convert(ctx, httpClient, image)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			// We do not log stack trace.
@@ -81,9 +88,9 @@ func (c *CommonsFilesCommand) processImage(
 		} else {
 			globals.Log.Error().Str("file", image.Name).Err(err).Send()
 		}
-		_, loaded := skippedCommonsFiles.LoadOrStore(image.Name, true)
+		_, loaded := skippedMap.LoadOrStore(image.Name, true)
 		if !loaded {
-			atomic.AddInt64(&skippedCommonsFilesCount, 1)
+			atomic.AddInt64(count, 1)
 		}
 		return nil
 	}

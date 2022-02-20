@@ -64,7 +64,10 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 		DecodingThreads:        config.DecodingThreads,
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i interface{}) errors.E {
-			return c.processImage(ctx, globals, httpClient, processor, *i.(*wikipedia.Image))
+			return processImage(
+				ctx, globals, httpClient, processor, wikipedia.ConvertWikipediaImage,
+				&skippedWikipediaFiles, &skippedWikipediaFilesCount, *i.(*wikipedia.Image),
+			)
 		},
 		Progress:    config.Progress,
 		Item:        &wikipedia.Image{},
@@ -79,28 +82,6 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 	if errE != nil {
 		return errE
 	}
-
-	return nil
-}
-
-func (c *WikipediaFilesCommand) processImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
-) errors.E {
-	document, err := wikipedia.ConvertWikipediaImage(ctx, httpClient, image)
-	if errors.Is(err, wikipedia.SkippedError) {
-		_, loaded := skippedWikipediaFiles.LoadOrStore(image.Name, true)
-		if !loaded {
-			atomic.AddInt64(&skippedWikipediaFilesCount, 1)
-		}
-		if !errors.Is(err, wikipedia.SilentSkippedError) {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		}
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	saveDocument(globals, processor, document)
 
 	return nil
 }
