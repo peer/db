@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
@@ -107,16 +109,41 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	return nil
 }
 
-// A silent logger.
-type nullLogger struct{}
+func prepareFields(keysAndValues []interface{}) {
+	for i, keyOrValue := range keysAndValues {
+		// We want URLs logged as strings.
+		u, ok := keyOrValue.(*url.URL)
+		if ok {
+			keysAndValues[i] = u.String()
+		}
+	}
+}
 
-func (nullLogger) Error(msg string, keysAndValues ...interface{}) {}
+type retryableHTTPLoggerAdapter struct {
+	log zerolog.Logger
+}
 
-func (nullLogger) Info(msg string, keysAndValues ...interface{}) {}
+func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...interface{}) {
+	prepareFields(keysAndValues)
+	a.log.Error().Fields(keysAndValues).Msg(msg)
+}
 
-func (nullLogger) Debug(msg string, keysAndValues ...interface{}) {}
+func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...interface{}) {
+	prepareFields(keysAndValues)
+	a.log.Info().Fields(keysAndValues).Msg(msg)
+}
 
-func (nullLogger) Warn(msg string, keysAndValues ...interface{}) {}
+func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...interface{}) {
+	prepareFields(keysAndValues)
+	a.log.Debug().Fields(keysAndValues).Msg(msg)
+}
+
+func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{}) {
+	prepareFields(keysAndValues)
+	a.log.Warn().Fields(keysAndValues).Msg(msg)
+}
+
+var _ retryablehttp.LeveledLogger = (*retryableHTTPLoggerAdapter)(nil)
 
 func initializeElasticSearch(globals *Globals) (
 	context.Context, context.CancelFunc, *http.Client, *elastic.Client,
@@ -191,10 +218,7 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 	httpClient.HTTPClient = simpleHTTPClient
 	httpClient.RetryWaitMax = clientRetryWaitMax
 	httpClient.RetryMax = clientRetryMax
-
-	// We silent debug logging from HTTP client.
-	// TODO: Configure proper logger.
-	httpClient.Logger = nullLogger{}
+	httpClient.Logger = retryableHTTPLoggerAdapter{globals.Log}
 
 	// Set User-Agent header.
 	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
