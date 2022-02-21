@@ -100,18 +100,27 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 	debugURL := fmt.Sprintf("https://commons.wikimedia.org/w/api.php?%s", encodedData)
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, "https://commons.wikimedia.org/w/api.php", strings.NewReader(encodedData))
 	if err != nil {
-		return errors.WithStack(err)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = debugURL
+		return errE
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(encodedData)))
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return errors.WithMessage(err, debugURL)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = debugURL
+		return errE
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return errors.Errorf(`%s: bad response status (%s): %s`, debugURL, resp.Status, strings.TrimSpace(string(body)))
+		errE := errors.New("bad response status")
+		errors.Details(errE)["url"] = debugURL
+		errors.Details(errE)["code"] = resp.StatusCode
+		errors.Details(errE)["status"] = http.StatusText(resp.StatusCode)
+		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+		return errE
 	}
 
 	var apiResp apiResponse
@@ -119,11 +128,16 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 	decoder.DisallowUnknownFields()
 	err = decoder.Decode(&apiResp)
 	if err != nil {
-		return errors.WithMessagef(err, `%s: json decode failure`, debugURL)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = debugURL
+		return errE
 	}
 
 	if len(apiResp.Query.Pages) != len(tasksMap) {
-		return errors.Errorf(`got %d result page(s), expected %d`, len(apiResp.Query.Pages), len(tasksMap))
+		errE := errors.New("unexpected result page(s)")
+		errors.Details(errE)["got"] = len(apiResp.Query.Pages)
+		errors.Details(errE)["expected"] = len(tasksMap)
+		return errE
 	}
 
 	redirects := map[string]string{}
@@ -139,13 +153,18 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 			page.Title = redirect
 		}
 		if _, ok := tasksMap[page.Title]; !ok {
-			return errors.Errorf(`unexpected result page for "%s"`, page.Title)
+			errE := errors.New("unexpected result page")
+			errors.Details(errE)["title"] = page.Title
+			return errE
 		}
 		pagesMap[page.Title] = page
 	}
 
 	if len(tasksMap) != len(pagesMap) {
-		return errors.Errorf(`got %d unique result page(s), expected %d`, len(pagesMap), len(tasksMap))
+		errE := errors.New("unexpected mapped result page(s)")
+		errors.Details(errE)["got"] = len(pagesMap)
+		errors.Details(errE)["expected"] = len(tasksMap)
+		return errE
 	}
 
 	// Now we report errors only to individual tasks.
@@ -155,15 +174,22 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 		pageTasks := tasksMap[page.Title]
 		if page.Missing {
 			for _, task := range pageTasks {
-				task.ErrChan <- errors.Errorf(`"%s" missing`, page.Title)
+				errE := errors.New("missing")
+				errors.Details(errE)["title"] = page.Title
+				task.ErrChan <- errE
 			}
 		} else if page.Invalid {
 			for _, task := range pageTasks {
-				task.ErrChan <- errors.Errorf(`"%s" invalid: %s`, page.Title, page.InvalidReason)
+				errE := errors.New("invalid")
+				errors.Details(errE)["title"] = page.Title
+				errors.Details(errE)["reason"] = page.InvalidReason
+				task.ErrChan <- errE
 			}
 		} else if len(page.ImageInfo) != 1 {
 			for _, task := range pageTasks {
-				task.ErrChan <- errors.Errorf(`not exactly one image info result for "%s"`, page.Title)
+				errE := errors.New("not exactly one image info result")
+				errors.Details(errE)["title"] = page.Title
+				task.ErrChan <- errE
 			}
 		} else {
 			for _, task := range pageTasks {
