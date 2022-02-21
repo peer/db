@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"golang.org/x/sync/errgroup"
@@ -137,7 +138,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.processDocument(ctx, esClient, processor, cache, hit)
+					err := c.processDocument(ctx, globals.Log, esClient, processor, cache, hit)
 					if err != nil {
 						return err
 					}
@@ -153,7 +154,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) processDocument(
-	ctx context.Context, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
 ) errors.E {
 	var document search.Document
 	err := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
@@ -165,7 +166,7 @@ func (c *PrepareCommand) processDocument(
 	// ID is not stored in the document, so we set it here ourselves.
 	document.ID = search.Identifier(hit.Id)
 
-	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, esClient, cache, &document)
+	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, log, esClient, cache, &document)
 	if errE != nil {
 		fmt.Fprintf(os.Stderr, "updating document %s failed: %s\n", hit.Id, err.Error())
 		return nil //nolint:nilerr
