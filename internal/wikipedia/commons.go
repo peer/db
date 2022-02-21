@@ -440,8 +440,7 @@ func convertImage(
 	if hasPages[mediaType] {
 		pageCount, err = getPageCount(ctx, httpClient, image)
 		if err != nil {
-			// Error happens if there was a problem using the API. This could mean that the file
-			// does not exist anymore. In any case, we skip it.
+			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
 			return nil, errors.WithMessage(err, `error getting page count`)
 		}
 		if pageCount == 0 {
