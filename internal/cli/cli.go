@@ -443,7 +443,7 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 
 	err = run(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("")
+		log.Error().Err(err).Fields(errors.AllDetails(err)).Send()
 		exitCode = errorExitCode
 	}
 
