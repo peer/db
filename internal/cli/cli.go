@@ -40,7 +40,8 @@ const (
 	colorYellow
 	colorBlue
 
-	colorBold = 1
+	colorBold     = 1
+	colorDarkGray = 90
 )
 
 //nolint:lll
@@ -144,6 +145,44 @@ func formatLevel(noColor bool) zerolog.Formatter {
 	}
 }
 
+// Based on zerolog/console.go, but formatted to local timezone.
+// See: https://github.com/rs/zerolog/pull/415
+func formatTimestamp(timeFormat string, noColor bool) zerolog.Formatter {
+	if timeFormat == "" {
+		timeFormat = time.Kitchen
+	}
+	return func(i interface{}) string {
+		t := "<nil>"
+		switch tt := i.(type) {
+		case string:
+			ts, err := time.Parse(zerolog.TimeFieldFormat, tt)
+			if err != nil {
+				t = tt
+			} else {
+				t = ts.Local().Format(timeFormat)
+			}
+		case json.Number:
+			i, err := tt.Int64()
+			if err != nil {
+				t = tt.String()
+			} else {
+				var sec, nsec int64 = i, 0
+				switch zerolog.TimeFieldFormat {
+				case zerolog.TimeFormatUnixMs:
+					nsec = int64(time.Duration(i) * time.Millisecond)
+					sec = 0
+				case zerolog.TimeFormatUnixMicro:
+					nsec = int64(time.Duration(i) * time.Microsecond)
+					sec = 0
+				}
+				ts := time.Unix(sec, nsec)
+				t = ts.Format(timeFormat)
+			}
+		}
+		return colorize(t, colorDarkGray, noColor)
+	}
+}
+
 type eventError struct {
 	Error string `json:"error,omitempty"`
 	Stack []struct {
@@ -175,6 +214,7 @@ func newConsoleWriter(noColor bool) *consoleWriter {
 	w.TimeFormat = "15:04"
 	w.FormatErrFieldValue = formatError(w.NoColor)
 	w.FormatLevel = formatLevel(w.NoColor)
+	w.FormatTimestamp = formatTimestamp(w.TimeFormat, w.NoColor)
 
 	return &consoleWriter{ConsoleWriter: w, buf: buf}
 }
