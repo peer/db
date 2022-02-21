@@ -250,10 +250,13 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		ItemsProcessingThreads: 0,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
-			globals.Log.Info().
-				Int64("failed", stats.Failed).Int64("skipped", atomic.LoadInt64(count)).Int64("indexed", stats.Succeeded).
-				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String()).
-				Msgf("progress %0.2f%%", p.Percent())
+			e := globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
+				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String())
+			if count != nil {
+				e = e.Int64("skipped", atomic.LoadInt64(count))
+			}
+			e.Msgf("progress %0.2f%%", p.Percent())
 		},
 	}, nil
 }

@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
@@ -24,12 +21,8 @@ const (
 )
 
 var (
-	skippedWikipediaFiles                 = sync.Map{}
-	skippedWikipediaFilesCount            int64
-	skippedWikipediaFileDescriptions      = sync.Map{}
-	skippedWikipediaFileDescriptionsCount int64
-	skippedWikipediaArticles              = sync.Map{}
-	skippedWikipediaArticlesCount         int64
+	skippedWikipediaFiles      = sync.Map{}
+	skippedWikipediaFilesCount int64
 )
 
 type WikipediaFilesCommand struct {
@@ -87,8 +80,7 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 }
 
 type WikipediaFileDescriptionsCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped file descriptions."`
-	URL         string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
+	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 //nolint:dupl
@@ -104,7 +96,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, &skippedWikipediaFileDescriptionsCount)
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -114,11 +106,6 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
 		return c.processArticle(ctx, globals, esClient, processor, article)
 	})
-	if errE != nil {
-		return errE
-	}
-
-	errE = saveSkippedMap(c.SaveSkipped, &skippedWikipediaFileDescriptions, &skippedWikipediaFileDescriptionsCount)
 	if errE != nil {
 		return errE
 	}
@@ -138,37 +125,37 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	id := search.GetID(wikipedia.NameSpaceWikipediaFile, filename)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
 	if elastic.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "document %s for file \"%s\" not found\n", id, article.Name)
+		globals.Log.Warn().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Err(err).Msg("not found")
 		return nil
 	} else if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting document %s for file \"%s\": %s\n", id, article.Name, err.Error())
+		globals.Log.Error().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Err(err).Send()
 		return nil
 	} else if !esDoc.Found {
-		fmt.Fprintf(os.Stderr, "document %s for file \"%s\" not found\n", id, article.Name)
+		globals.Log.Warn().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Err(err).Msg("not found")
 		return nil
 	}
 	var document search.Document
-	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error JSON decoding document %s for file \"%s\": %s", id, article.Name, err.Error())
+	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = string(id)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
 	document.ID = id
 
-	errE := wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikipediaFile, filename, article)
-	if errors.Is(errE, wikipedia.SkippedError) {
-		_, loaded := skippedWikipediaFileDescriptions.LoadOrStore(article.Name, true)
-		if !loaded {
-			atomic.AddInt64(&skippedWikipediaFileDescriptionsCount, 1)
-		}
-		if !errors.Is(errE, wikipedia.SilentSkippedError) {
-			fmt.Fprintf(os.Stderr, "%s\n", errE.Error())
-		}
+	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = string(id)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
-	} else if errE != nil {
-		return errE
 	}
 
 	updateDocument(globals, processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
@@ -177,8 +164,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 }
 
 type WikipediaArticlesCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped articles."`
-	URL         string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	URL string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 //nolint:dupl
@@ -194,7 +180,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, &skippedWikipediaArticlesCount)
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -208,11 +194,6 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	errE = saveSkippedMap(c.SaveSkipped, &skippedWikipediaArticles, &skippedWikipediaArticlesCount)
-	if errE != nil {
-		return errE
-	}
-
 	return nil
 }
 
@@ -221,47 +202,43 @@ func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
-		_, loaded := skippedWikipediaArticles.LoadOrStore(article.Name, true)
-		if !loaded {
-			atomic.AddInt64(&skippedWikipediaArticlesCount, 1)
-		}
-		fmt.Fprintf(os.Stderr, "article \"%s\" does not have an associated entity\n", article.Name)
+		globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
 		return nil
 	}
 	id := wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
 	if elastic.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "document %s for entity %s for article \"%s\" not found\n", id, article.MainEntity.Identifier, article.Name)
+		globals.Log.Warn().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Err(err).Msg("not found")
 		return nil
 	} else if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting document %s for entity %s for article \"%s\": %s\n", id, article.MainEntity.Identifier, article.Name, err.Error())
+		globals.Log.Error().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Err(err).Send()
 		return nil
 	} else if !esDoc.Found {
-		fmt.Fprintf(os.Stderr, "document %s for entity %s for article \"%s\" not found\n", id, article.MainEntity.Identifier, article.Name)
+		globals.Log.Warn().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Err(err).Msg("not found")
 		return nil
 	}
 	var document search.Document
-	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error JSON decoding document %s for entity %s for article \"%s\": %s", id, article.MainEntity.Identifier, article.Name, err.Error())
+	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = string(id)
+		details["entity"] = article.MainEntity.Identifier
+		details["title"] = article.Name
+		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
 	document.ID = id
 
-	errE := wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikidata, article.MainEntity.Identifier, article)
-	if errors.Is(errE, wikipedia.SkippedError) {
-		_, loaded := skippedWikipediaArticles.LoadOrStore(article.Name, true)
-		if !loaded {
-			atomic.AddInt64(&skippedWikipediaArticlesCount, 1)
-		}
-		if !errors.Is(errE, wikipedia.SilentSkippedError) {
-			fmt.Fprintf(os.Stderr, "%s\n", errE.Error())
-		}
+	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikidata, article.MainEntity.Identifier, article)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = string(id)
+		details["entity"] = article.MainEntity.Identifier
+		details["title"] = article.Name
+		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
-	} else if errE != nil {
-		return errE
 	}
 
 	updateDocument(globals, processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)

@@ -3,7 +3,6 @@ package wikipedia
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
@@ -39,11 +38,13 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 	if existingClaim != nil {
 		claim, ok := existingClaim.(*search.TextClaim)
 		if !ok {
-			fmt.Fprintf(
-				os.Stderr,
-				"unexpected: document %s for source ID \"%s\" for article \"%s\" has existing non-text claim with ID %s",
-				document.ID, id, article.Name, claimID,
-			)
+			errE := errors.New("unexpected article claim type")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+			errors.Details(errE)["title"] = article.Name
+			return errE
 		}
 		claim.HTML["en"] = article.ArticleBody.HTML
 	} else {
@@ -59,11 +60,11 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		}
 		err := document.Add(claim)
 		if err != nil {
-			fmt.Fprintf(
-				os.Stderr,
-				"unexpected: article claim cannot be added to document %s for source ID \"%s\" for article \"%s\": %s\n",
-				document.ID, id, article.Name, err.Error(),
-			)
+			errE := errors.WithMessage(err, "claim cannot be added")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["title"] = article.Name
+			return errE
 		}
 	}
 
