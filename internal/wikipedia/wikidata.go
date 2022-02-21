@@ -290,6 +290,7 @@ func getMediawikiCommonsFile(
 		if maybeFile == nil {
 			errE := errors.WithStack(notFoundFileError)
 			errors.Details(errE)["file"] = name
+			errors.Details(errE)["redirect"] = ii.Redirect
 			return nil, errE
 		}
 		return maybeFile.(*mediawikiCommonsFile), nil
