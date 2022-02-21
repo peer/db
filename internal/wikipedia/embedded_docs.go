@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -17,13 +16,13 @@ import (
 var referenceNotFoundError = errors.Base("document reference to a nonexistent document")
 
 type updateEmbeddedDocumentsVisitor struct {
-	Context    context.Context
-	Log        zerolog.Logger
-	Cache      *Cache
-	ESClient   *elastic.Client
-	Changed    bool
-	DocumentID search.Identifier
-	WikidataID string
+	Context     context.Context
+	Log         zerolog.Logger
+	Cache       *Cache
+	ESClient    *elastic.Client
+	Changed     bool
+	DocumentID  search.Identifier
+	WikidataIDs []string
 }
 
 func (v *updateEmbeddedDocumentsVisitor) referenceNotFound(ref search.DocumentReference, claimID search.Identifier) errors.E {
@@ -34,10 +33,16 @@ func (v *updateEmbeddedDocumentsVisitor) referenceNotFound(ref search.DocumentRe
 	errE := errors.WithStack(referenceNotFoundError)
 	details := errors.Details(errE)
 	details["doc"] = string(v.DocumentID)
-	details["entity"] = v.WikidataID
+	if len(v.WikidataIDs) == 1 {
+		details["entity"] = v.WikidataIDs[0]
+	} else if len(v.WikidataIDs) > 1 {
+		details["entity"] = v.WikidataIDs
+	}
 	details["claim"] = string(claimID)
 	details["ref"] = string(ref.ID)
-	details["name"] = name
+	if name != "" {
+		details["name"] = name
+	}
 	return errE
 }
 
@@ -532,8 +537,6 @@ func UpdateEmbeddedDocuments(ctx context.Context, log zerolog.Logger, esClient *
 		wikidataIDs = append(wikidataIDs, idClaim.Identifier)
 	}
 
-	wikidataID := strings.Join(wikidataIDs, ",")
-
 	ref := &search.DocumentReference{
 		ID:     document.ID,
 		Name:   document.Name,
@@ -543,13 +546,13 @@ func UpdateEmbeddedDocuments(ctx context.Context, log zerolog.Logger, esClient *
 	cache.Add(document.ID, ref)
 
 	v := updateEmbeddedDocumentsVisitor{
-		Context:    ctx,
-		Log:        log,
-		Cache:      cache,
-		ESClient:   esClient,
-		Changed:    false,
-		DocumentID: document.ID,
-		WikidataID: wikidataID,
+		Context:     ctx,
+		Log:         log,
+		Cache:       cache,
+		ESClient:    esClient,
+		Changed:     false,
+		DocumentID:  document.ID,
+		WikidataIDs: wikidataIDs,
 	}
 	errE := document.Visit(&v)
 	if errE != nil {
