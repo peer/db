@@ -75,12 +75,12 @@ func (c *WikidataCommand) processEntity(
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			// We do not log stack trace.
-			globals.Log.Debug().Str("entity", entity.ID).Msg(err.Error())
+			globals.Log.Debug().Str("entity", entity.ID).Fields(errors.AllDetails(err)).Msg(err.Error())
 		} else if errors.Is(err, wikipedia.SkippedError) {
 			// We do not log stack entity.
-			globals.Log.Warn().Str("entity", entity.ID).Msg(err.Error())
+			globals.Log.Warn().Str("entity", entity.ID).Fields(errors.AllDetails(err)).Msg(err.Error())
 		} else {
-			globals.Log.Error().Str("entity", entity.ID).Err(err).Send()
+			globals.Log.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		_, loaded := skippedWikidataEntities.LoadOrStore(entity.ID, true)
 		if !loaded {

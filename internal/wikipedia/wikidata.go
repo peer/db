@@ -190,7 +190,9 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 		),
 	)).Do(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["file"] = name
+		return nil, errE
 	}
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes).
@@ -198,7 +200,9 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 		var document search.Document
 		err = x.UnmarshalWithoutUnknownFields(hit.Source, &document)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			errE := errors.WithStack(err)
+			errors.Details(errE)["file"] = name
+			return nil, errE
 		}
 
 		// ID is not stored in the document, so we set it here ourselves.
@@ -234,10 +238,14 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 			}
 		}
 
-		return nil, errors.Errorf(`Wikimedia commons file document for "%s" is missing a DATA file claim`, name)
+		errE := errors.New("Wikimedia commons file document is missing a DATA file claim")
+		errors.Details(errE)["file"] = name
+		return nil, errE
 	}
 
-	return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
+	errE := errors.WithStack(notFoundFileError)
+	errors.Details(errE)["file"] = name
+	return nil, errE
 }
 
 func getMediawikiCommonsFile(
@@ -246,7 +254,9 @@ func getMediawikiCommonsFile(
 	maybeFile, ok := cache.Get(name)
 	if ok {
 		if maybeFile == nil {
-			return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
+			errE := errors.WithStack(notFoundFileError)
+			errors.Details(errE)["file"] = name
+			return nil, errE
 		}
 		return maybeFile.(*mediawikiCommonsFile), nil
 	}
@@ -264,17 +274,23 @@ func getMediawikiCommonsFile(
 	// We could not find a file. Maybe there is a redirect?
 	ii, err := getImageInfo(ctx, httpClient, name)
 	if err != nil {
-		return nil, errors.WithMessagef(err, `checking for redirect of "%s"`, name)
+		errE := errors.WithMessage(err, "checking for redirect")
+		errors.Details(errE)["file"] = name
+		return nil, errE
 	} else if ii.Redirect == "" {
 		// No redirect.
 		cache.Add(name, nil)
-		return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
+		errE := errors.WithStack(notFoundFileError)
+		errors.Details(errE)["file"] = name
+		return nil, errE
 	}
 
 	maybeFile, ok = cache.Get(ii.Redirect)
 	if ok {
 		if maybeFile == nil {
-			return nil, errors.Errorf(`%w "%s"`, notFoundFileError, name)
+			errE := errors.WithStack(notFoundFileError)
+			errors.Details(errE)["file"] = name
+			return nil, errE
 		}
 		return maybeFile.(*mediawikiCommonsFile), nil
 	}
@@ -285,7 +301,10 @@ func getMediawikiCommonsFile(
 			cache.Add(name, nil)
 			cache.Add(ii.Redirect, nil)
 		}
-		return nil, errors.WithMessagef(err, `after redirect from "%s" to "%s"`, name, ii.Redirect)
+		errE := errors.WithMessage(err, "after redirect")
+		errors.Details(errE)["file"] = name
+		errors.Details(errE)["redirect"] = ii.Redirect
+		return nil, errE
 	}
 
 	log.Warn().Interface("entity", idArgs[0]).Interface("path", idArgs[1:]).Str("file", name).Str("redirect", ii.Redirect).Msg("referencing a file which redirects")
@@ -323,7 +342,7 @@ func processSnak( //nolint:ireturn,nolintlint
 	}
 
 	if snak.DataValue == nil {
-		return nil, errors.Errorf(`nil data value`)
+		return nil, errors.New("nil data value")
 	}
 
 	switch value := snak.DataValue.Value.(type) {
@@ -359,7 +378,9 @@ func processSnak( //nolint:ireturn,nolintlint
 			if err != nil {
 				if errors.Is(err, notFoundFileError) {
 					if _, ok := skippedCommonsFiles.Load(filename); ok {
-						return nil, errors.Wrapf(SilentSkippedError, `skipped file "%s"`, filename)
+						errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, err.Error()))
+						errors.Details(errE)["file"] = filename
+						return nil, errE
 					}
 				}
 				return nil, err
@@ -453,7 +474,7 @@ func processSnak( //nolint:ireturn,nolintlint
 		switch snak.DataType { //nolint:exhaustive
 		case mediawiki.MonolingualText:
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
-				return nil, errors.Wrap(SilentSkippedError, "limited only to English")
+				return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
 			}
 			return &search.TextClaim{
 				CoreClaim: search.CoreClaim{
@@ -574,15 +595,18 @@ func addQualifiers(
 				mediumConfidence, qualifier,
 			)
 			if errors.Is(err, SilentSkippedError) {
-				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Msg(err.Error())
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			} else if err != nil {
-				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Msg(err.Error())
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			}
 			err = claim.AddMeta(qualifierClaim)
 			if err != nil {
-				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).Err(err).Msg("meta claim cannot be added")
+				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
+					Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
 			}
 		}
 	}
@@ -602,10 +626,12 @@ func addReference(
 				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
-				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).Msg(err.Error())
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			} else if err != nil {
-				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).Msg(err.Error())
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			}
 			if referenceClaim == nil {
@@ -614,7 +640,7 @@ func addReference(
 				err = referenceClaim.AddMeta(c)
 				if err != nil {
 					log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
-						Err(err).Msg("meta claim cannot be added")
+						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
 				}
 			}
 		}
@@ -627,7 +653,7 @@ func addReference(
 	err := claim.AddMeta(referenceClaim)
 	if err != nil {
 		log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
-			Err(err).Msg("meta claim cannot be added")
+			Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
 	}
 
 	return nil
@@ -644,7 +670,7 @@ func ConvertEntity(
 			// But properties should all have English label, so we warn here.
 			log.Warn().Str("entity", entity.ID).Msg("property is missing a label in English")
 		}
-		return nil, errors.Wrap(SilentSkippedError, "limited only to English")
+		return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
 	}
 
 	id := GetWikidataDocumentID(entity.ID)
@@ -742,7 +768,9 @@ func ConvertEntity(
 		for _, namespace := range nonMainWikipediaNamespaces {
 			if strings.HasPrefix(siteLink.Title, namespace) {
 				// Only items have sitelinks. We want only items related to main Wikipedia articles (main namespace).
-				return nil, errors.Wrapf(SilentSkippedError, `limited only to items related to main Wikipedia articles "%s"`, siteLink.Title)
+				errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "`limited only to items related to main Wikipedia articles"))
+				errors.Details(errE)["title"] = siteLink.Title
+				return nil, errE
 			}
 		}
 		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
@@ -826,27 +854,32 @@ func ConvertEntity(
 				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
-				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).Msg(err.Error())
+				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			} else if err != nil {
-				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).Msg(err.Error())
+				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			}
 			err = addQualifiers(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
 			if err != nil {
-				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).Msg(err.Error())
+				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
+					Fields(errors.AllDetails(err)).Msg(err.Error())
 				continue
 			}
 			for i, reference := range statement.References {
 				err = addReference(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
-					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).Msg(err.Error())
+					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).
+						Fields(errors.AllDetails(err)).Msg(err.Error())
 					continue
 				}
 			}
 			err = document.Add(claim)
 			if err != nil {
-				log.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID)).Err(err).Msg("claim cannot be added")
+				log.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID)).
+					Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 			}
 		}
 	}

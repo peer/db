@@ -81,12 +81,12 @@ func processImage(
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			// We do not log stack trace.
-			globals.Log.Debug().Str("file", image.Name).Msg(err.Error())
+			globals.Log.Debug().Str("file", image.Name).Fields(errors.AllDetails(err)).Msg(err.Error())
 		} else if errors.Is(err, wikipedia.SkippedError) {
 			// We do not log stack trace.
-			globals.Log.Warn().Str("file", image.Name).Msg(err.Error())
+			globals.Log.Warn().Str("file", image.Name).Fields(errors.AllDetails(err)).Msg(err.Error())
 		} else {
-			globals.Log.Error().Str("file", image.Name).Err(err).Send()
+			globals.Log.Error().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		_, loaded := skippedMap.LoadOrStore(image.Name, true)
 		if !loaded {
