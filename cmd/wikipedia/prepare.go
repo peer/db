@@ -61,7 +61,8 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
 	for _, property := range search.StandardProperties {
 		property := property
-		saveDocument(globals, processor, &property)
+		globals.Log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
+		saveDocument(processor, &property)
 	}
 
 	// Make sure all just added documents are available for search.
@@ -174,8 +175,8 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	}
 
 	if changed {
-		req := elastic.NewBulkIndexRequest().Index("docs").Id(hit.Id).IfSeqNo(*hit.SeqNo).IfPrimaryTerm(*hit.PrimaryTerm).Doc(&document)
-		processor.Add(req)
+		log.Debug().Str("doc", string(document.ID)).Msg("updating document")
+		updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, &document)
 	}
 
 	return nil

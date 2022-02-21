@@ -191,14 +191,15 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikipediaFile, filename, article)
 	if errE != nil {
 		details := errors.AllDetails(errE)
-		details["doc"] = string(id)
+		details["doc"] = string(document.ID)
 		details["file"] = filename
 		details["title"] = article.Name
 		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
-	updateDocument(globals, processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", article.Name).Msg("updating document")
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
 
 	return nil
 }
@@ -274,14 +275,15 @@ func (c *WikipediaArticlesCommand) processArticle(
 	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikidata, article.MainEntity.Identifier, article)
 	if errE != nil {
 		details := errors.AllDetails(errE)
-		details["doc"] = string(id)
+		details["doc"] = string(document.ID)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
 		globals.Log.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
-	updateDocument(globals, processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
 
 	return nil
 }

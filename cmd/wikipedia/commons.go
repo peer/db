@@ -95,7 +95,8 @@ func processImage(
 		return nil
 	}
 
-	saveDocument(globals, processor, document)
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
+	saveDocument(processor, document)
 
 	return nil
 }
