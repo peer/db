@@ -25,12 +25,12 @@ type updateEmbeddedDocumentsVisitor struct {
 	WikidataIDs []string
 }
 
-func (v *updateEmbeddedDocumentsVisitor) referenceNotFound(ref search.DocumentReference, claimID search.Identifier) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
 	name := ref.Name["en"]
 	if name == "" {
 		name = ref.Name["XX"]
 	}
-	errE := errors.WithStack(referenceNotFoundError)
+	errE := errors.WithStack(err)
 	details := errors.Details(errE)
 	details["doc"] = string(v.DocumentID)
 	if len(v.WikidataIDs) == 1 {
@@ -51,7 +51,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	maybeRef, ok := v.Cache.Get(id)
 	if ok {
 		if maybeRef == nil {
-			return nil, v.referenceNotFound(ref, claimID)
+			return nil, v.makeError(referenceNotFoundError, ref, claimID)
 		}
 		return maybeRef.(*search.DocumentReference), nil
 	}
@@ -59,18 +59,18 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	esDoc, err := v.ESClient.Get().Index("docs").Id(string(id)).Do(v.Context)
 	if elastic.IsNotFound(err) {
 		v.Cache.Add(id, nil)
-		return nil, v.referenceNotFound(ref, claimID)
+		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, v.makeError(err, ref, claimID)
 	} else if !esDoc.Found {
 		v.Cache.Add(id, nil)
-		return nil, v.referenceNotFound(ref, claimID)
+		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	}
 
 	var document search.Document
 	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, v.makeError(err, ref, claimID)
 	}
 
 	res := &search.DocumentReference{
