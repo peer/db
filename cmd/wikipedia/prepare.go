@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
 	"runtime"
 	"time"
 
@@ -99,11 +97,10 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			fmt.Fprintf(
-				os.Stderr,
-				"Progress: %0.2f%%, ETA: %s, cache miss: %d, docs: %d, indexed: %d, failed: %d\n",
-				p.Percent(), p.Remaining().Truncate(time.Second), cache.MissCount(), count.Count(), stats.Succeeded, stats.Failed,
-			)
+			globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
+				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String()).
+				Msgf("progress %0.2f%%", p.Percent())
 		}
 	}()
 
@@ -138,7 +135,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.processDocument(ctx, globals.Log, esClient, processor, cache, hit)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Log, esClient, processor, cache, hit)
 					if err != nil {
 						return err
 					}
@@ -153,13 +150,15 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	return errors.WithStack(g.Wait())
 }
 
-func (c *PrepareCommand) processDocument(
+func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
 ) errors.E {
 	var document search.Document
-	err := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "JSON decoding document %s failed: %s\n", hit.Id, err.Error())
+	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = hit.Id
+		log.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
@@ -168,7 +167,9 @@ func (c *PrepareCommand) processDocument(
 
 	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, log, esClient, cache, &document)
 	if errE != nil {
-		fmt.Fprintf(os.Stderr, "updating document %s failed: %s\n", hit.Id, err.Error())
+		details := errors.AllDetails(errE)
+		details["doc"] = string(document.ID)
+		log.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
 		return nil //nolint:nilerr
 	}
 
