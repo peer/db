@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -16,13 +17,14 @@ import (
 var referenceNotFoundError = errors.Base("document reference to a nonexistent document")
 
 type updateEmbeddedDocumentsVisitor struct {
-	Context     context.Context
-	Log         zerolog.Logger
-	Cache       *Cache
-	ESClient    *elastic.Client
-	Changed     bool
-	DocumentID  search.Identifier
-	WikidataIDs []string
+	Context                 context.Context
+	Log                     zerolog.Logger
+	Cache                   *Cache
+	SkippedWikidataEntities *sync.Map
+	ESClient                *elastic.Client
+	Changed                 bool
+	DocumentID              search.Identifier
+	WikidataIDs             []string
 }
 
 func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
@@ -44,6 +46,19 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 		details["name"] = name
 	}
 	return errE
+}
+
+func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
+	if errors.Is(err, referenceNotFoundError) {
+		if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
+			v.Log.Debug().Fields(errors.AllDetails(err)).Msg(err.Error())
+		} else {
+			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
+		}
+		v.Changed = true
+		return search.Drop, nil
+	}
+	return search.Keep, err
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
@@ -91,12 +106,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -115,12 +125,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -139,12 +144,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -163,12 +163,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -187,12 +182,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) (s
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -211,12 +201,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -235,12 +220,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -259,12 +239,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.Enumerat
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -283,12 +258,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -298,12 +268,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	ref, err = v.getDocumentReference(claim.To, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.To)
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -322,12 +287,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -346,12 +306,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -370,12 +325,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -394,12 +344,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -418,12 +363,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.
 
 	ref, err := v.getDocumentReference(claim.To, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.To)
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -442,12 +382,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -466,12 +401,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -481,12 +411,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 
 	ref, err = v.getDocumentReference(claim.Element, claim.ID)
 	if err != nil {
-		if errors.Is(err, referenceNotFoundError) {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-			v.Changed = true
-			return search.Drop, nil
-		}
-		return search.Keep, err
+		return v.handleError(err, claim.Element)
 	}
 
 	if !reflect.DeepEqual(&claim.Element, ref) {
@@ -498,15 +423,10 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 		child := &claim.Children[i]
 		ref, err := v.getDocumentReference(child.Prop, claim.ID)
 		if err != nil {
-			if errors.Is(err, referenceNotFoundError) {
-				v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
-				v.Changed = true
-				// We might want just to remove a child, but because this codepath should not really by Wikidata
-				// data (we do not convert any Wikidata statements to PeerDB list claims, and this is about
-				// hierarchical lists) it is probably a reasonable simplification.
-				return search.Drop, nil
-			}
-			return search.Keep, err
+			// When error is referenceNotFoundError we might want just to remove a child, but because this
+			// codepath should not really happen with Wikidata data (we do not convert any Wikidata statements
+			// to PeerDB list claims, and this is about hierarchical lists) it is probably a reasonable simplification.
+			return v.handleError(err, child.Prop)
 		}
 
 		if !reflect.DeepEqual(&child.Prop, ref) {
@@ -518,7 +438,9 @@ func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (sea
 	return search.Keep, nil
 }
 
-func UpdateEmbeddedDocuments(ctx context.Context, log zerolog.Logger, esClient *elastic.Client, cache *Cache, document *search.Document) (bool, errors.E) {
+func UpdateEmbeddedDocuments(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
+) (bool, errors.E) {
 	wikidataIDClaims := []search.Claim{}
 	wikidataIDClaims = append(wikidataIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_ITEM_ID"))...)
 	wikidataIDClaims = append(wikidataIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_PROPERTY_ID"))...)
@@ -546,13 +468,14 @@ func UpdateEmbeddedDocuments(ctx context.Context, log zerolog.Logger, esClient *
 	cache.Add(document.ID, ref)
 
 	v := updateEmbeddedDocumentsVisitor{
-		Context:     ctx,
-		Log:         log,
-		Cache:       cache,
-		ESClient:    esClient,
-		Changed:     false,
-		DocumentID:  document.ID,
-		WikidataIDs: wikidataIDs,
+		Context:                 ctx,
+		Log:                     log,
+		Cache:                   cache,
+		SkippedWikidataEntities: skippedWikidataEntities,
+		ESClient:                esClient,
+		Changed:                 false,
+		DocumentID:              document.ID,
+		WikidataIDs:             wikidataIDs,
 	}
 	errE := document.Visit(&v)
 	if errE != nil {

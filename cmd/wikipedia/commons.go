@@ -15,12 +15,13 @@ import (
 )
 
 var (
+	// Set of filenames.
 	skippedCommonsFiles      = sync.Map{}
 	skippedCommonsFilesCount int64
 )
 
 type CommonsFilesCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped files."`
 	URL         string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 

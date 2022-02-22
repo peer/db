@@ -21,12 +21,13 @@ const (
 )
 
 var (
+	// Set of filenames.
 	skippedWikipediaFiles      = sync.Map{}
 	skippedWikipediaFilesCount int64
 )
 
 type WikipediaFilesCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped files."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped files."`
 	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
@@ -80,11 +81,17 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 }
 
 type WikipediaFileDescriptionsCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikipedia files."`
+	URL                   string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 //nolint:dupl
 func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedWikipediaFiles, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
+	if errE != nil {
+		return errE
+	}
+
 	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
@@ -135,6 +142,28 @@ func (c *WikipediaFileDescriptionsCommand) isCommonsFile(
 	return true, nil
 }
 
+func (c *WikipediaFileDescriptionsCommand) handleNotFoundError(
+	ctx context.Context, globals *Globals, esClient *elastic.Client, article mediawiki.Article, id, filename string,
+) errors.E {
+	if _, ok := skippedWikipediaFiles.Load(filename); ok {
+		globals.Log.Debug().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("not found skipped file")
+		return nil
+	}
+
+	commons, err := c.isCommonsFile(ctx, esClient, filename)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Msg("error determining if commons file")
+	} else if commons {
+		globals.Log.Debug().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("commons file")
+	} else {
+		globals.Log.Warn().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("not found")
+	}
+
+	return nil
+}
+
 func (c *WikipediaFileDescriptionsCommand) processArticle(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
@@ -147,32 +176,12 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	id := search.GetID(wikipedia.NameSpaceWikipediaFile, filename)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
 	if elastic.IsNotFound(err) {
-		commons, err2 := c.isCommonsFile(ctx, esClient, filename)
-		if err2 != nil {
-			details := errors.AllDetails(err2)
-			details["title"] = article.Name
-			globals.Log.Error().Err(err2).Fields(details).Msg("error determining if commons file")
-		} else if commons {
-			globals.Log.Debug().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Msg("commons file")
-		} else {
-			globals.Log.Warn().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Msg("not found")
-		}
-		return nil
+		return c.handleNotFoundError(ctx, globals, esClient, article, string(id), filename)
 	} else if err != nil {
 		globals.Log.Error().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Err(err).Send()
 		return nil
 	} else if !esDoc.Found {
-		commons, err2 := c.isCommonsFile(ctx, esClient, filename)
-		if err2 != nil {
-			details := errors.AllDetails(err2)
-			details["title"] = article.Name
-			globals.Log.Error().Err(err2).Fields(details).Msg("error determining if commons file")
-		} else if commons {
-			globals.Log.Debug().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Msg("commons file")
-		} else {
-			globals.Log.Warn().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Msg("not found")
-		}
-		return nil
+		return c.handleNotFoundError(ctx, globals, esClient, article, string(id), filename)
 	}
 	var document search.Document
 	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
@@ -205,11 +214,17 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 }
 
 type WikipediaArticlesCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 //nolint:dupl
 func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
 	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
@@ -238,6 +253,17 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
+func (c *WikipediaArticlesCommand) handleNotFoundError(
+	globals *Globals, article mediawiki.Article, id string,
+) errors.E {
+	if _, ok := skippedWikidataEntities.Load(id); ok {
+		globals.Log.Debug().Str("doc", id).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found skipped file")
+	} else {
+		globals.Log.Warn().Str("doc", id).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found")
+	}
+	return nil
+}
+
 // TODO: Skip disambiguation pages (remove corresponding document if we already have it).
 func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
@@ -249,14 +275,12 @@ func (c *WikipediaArticlesCommand) processArticle(
 	id := wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)
 	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
 	if elastic.IsNotFound(err) {
-		globals.Log.Warn().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found")
-		return nil
+		return c.handleNotFoundError(globals, article, string(id))
 	} else if err != nil {
 		globals.Log.Error().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Err(err).Send()
 		return nil
 	} else if !esDoc.Found {
-		globals.Log.Warn().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found")
-		return nil
+		return c.handleNotFoundError(globals, article, string(id))
 	}
 	var document search.Document
 	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)

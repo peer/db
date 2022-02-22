@@ -14,24 +14,19 @@ import (
 )
 
 var (
+	// Set of document IDs.
 	skippedWikidataEntities      = sync.Map{}
 	skippedWikidataEntitiesCount int64
 )
 
 type WikidataCommand struct {
-	SkippedCommonsFiles   string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikimedia Commons files."`
-	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikipedia files."`
-	SaveSkipped           string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
-	URL                   string `placeholder:"URL" help:"URL of Wikidata Entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedCommonsFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
+	SaveSkipped         string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
+	URL                 string `placeholder:"URL" help:"URL of Wikidata Entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	errE := populateSkippedMap(c.SkippedCommonsFiles, &skippedCommonsFiles, &skippedCommonsFilesCount)
-	if errE != nil {
-		return errE
-	}
-
-	errE = populateSkippedMap(c.SkippedWikipediaFiles, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
 	if errE != nil {
 		return errE
 	}
@@ -82,7 +77,8 @@ func (c *WikidataCommand) processEntity(
 		} else {
 			globals.Log.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
-		_, loaded := skippedWikidataEntities.LoadOrStore(entity.ID, true)
+		id := wikipedia.GetWikidataDocumentID(entity.ID)
+		_, loaded := skippedWikidataEntities.LoadOrStore(string(id), true)
 		if !loaded {
 			atomic.AddInt64(&skippedWikidataEntitiesCount, 1)
 		}

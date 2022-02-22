@@ -22,23 +22,11 @@ const (
 )
 
 type PrepareCommand struct {
-	SkippedCommonsFiles     string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikimedia Commons files."`
-	SkippedWikipediaFiles   string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikipedia files."`
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 }
 
 func (c *PrepareCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedCommonsFiles, &skippedCommonsFiles, &skippedCommonsFilesCount)
-	if errE != nil {
-		return errE
-	}
-
-	errE = populateSkippedMap(c.SkippedWikipediaFiles, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
-	if errE != nil {
-		return errE
-	}
-
-	errE = populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
 	if errE != nil {
 		return errE
 	}
@@ -166,12 +154,12 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	// ID is not stored in the document, so we set it here ourselves.
 	document.ID = search.Identifier(hit.Id)
 
-	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, log, esClient, cache, &document)
+	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, log, esClient, cache, &skippedWikidataEntities, &document)
 	if errE != nil {
 		details := errors.AllDetails(errE)
 		details["doc"] = string(document.ID)
 		log.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
-		return nil //nolint:nilerr
+		return nil
 	}
 
 	if changed {

@@ -379,7 +379,7 @@ func processSnak( //nolint:ireturn,nolintlint
 			if err != nil {
 				if errors.Is(err, notFoundFileError) {
 					if _, ok := skippedCommonsFiles.Load(filename); ok {
-						errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, err.Error()))
+						errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "not found skipped file"))
 						errors.Details(errE)["file"] = filename
 						return nil, errE
 					}
@@ -660,6 +660,7 @@ func addReference(
 	return nil
 }
 
+// Wikipedia entities can reference only Wikimedia Commons files and not Wikipedia files. So we need only skippedCommonsFiles.
 func ConvertEntity(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
 	skippedCommonsFiles *sync.Map, entity mediawiki.Entity,
