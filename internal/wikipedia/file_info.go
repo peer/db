@@ -75,14 +75,13 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
-		titleWithPrefix := "File:" + task.Title
-		if _, ok := tasksMap[titleWithPrefix]; ok {
-			tasksMap[titleWithPrefix] = append(tasksMap[titleWithPrefix], task)
+		if _, ok := tasksMap[task.Title]; ok {
+			tasksMap[task.Title] = append(tasksMap[task.Title], task)
 		} else {
-			tasksMap[titleWithPrefix] = []apiTask{task}
+			tasksMap[task.Title] = []apiTask{task}
 			// Separator, instead of "|". It has also be the prefix.
 			titles.WriteString("\u001F")
-			titles.WriteString(titleWithPrefix)
+			titles.WriteString(task.Title)
 		}
 	}
 
@@ -326,6 +325,7 @@ func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, filenam
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
 	title = FirstUpperCase(title)
+	title = "File:" + title
 
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, title)
 
