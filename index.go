@@ -27,11 +27,7 @@ func (a loggerAdapter) Printf(format string, v ...interface{}) {
 
 var _ elastic.Logger = (*loggerAdapter)(nil)
 
-// EnsureIndex creates an instance of the ElasticSearch client and makes sure
-// the index for PeerDB documents exists. If not, it creates it.
-// It does not update configuration of an existing index if it is different from
-// what current implementation of EnsureIndex would otherwise create.
-func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
+func GetClient(httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
 		elastic.SetHttpClient(httpClient),
 		elastic.SetErrorLog(loggerAdapter{logger, zerolog.ErrorLevel}),
@@ -39,8 +35,17 @@ func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Lo
 		elastic.SetInfoLog(loggerAdapter{logger, zerolog.DebugLevel}),
 		elastic.SetTraceLog(loggerAdapter{logger, zerolog.TraceLevel}),
 	)
-	if err != nil {
-		return nil, errors.WithStack(err)
+	return esClient, errors.WithStack(err)
+}
+
+// EnsureIndex creates an instance of the ElasticSearch client and makes sure
+// the index for PeerDB documents exists. If not, it creates it.
+// It does not update configuration of an existing index if it is different from
+// what current implementation of EnsureIndex would otherwise create.
+func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
+	esClient, errE := GetClient(httpClient, logger)
+	if errE != nil {
+		return nil, errE
 	}
 
 	exists, err := esClient.IndexExists("docs").Do(ctx)

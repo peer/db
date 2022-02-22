@@ -320,7 +320,7 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 	if description == "" {
 		description = "All logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
 	} else {
-		description += description + "\n\nAll logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
+		description += "All logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
 	}
 	ctx := kong.Parse(config,
 		kong.Description(description),

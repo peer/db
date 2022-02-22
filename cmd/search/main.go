@@ -1,37 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/alecthomas/kong"
-)
+	"gitlab.com/tozd/go/errors"
 
-const exitCode = 2
-
-// These variables should be set during build time using "-X" ldflags.
-var (
-	version        = ""
-	buildTimestamp = ""
-	revision       = ""
+	"gitlab.com/peerdb/search/internal/cli"
 )
 
 func main() {
 	var config Config
-	ctx := kong.Parse(&config,
-		kong.Vars{
-			"version": fmt.Sprintf("version %s (build on %s, git revision %s)", version, buildTimestamp, revision),
-		},
-		kong.UsageOnError(),
-		kong.Writers(
-			os.Stderr,
-			os.Stderr,
-		),
-	)
-
-	err := listen(&config)
-	if err != nil {
-		fmt.Fprintf(ctx.Stderr, "error: %+v", err)
-		ctx.Exit(exitCode)
-	}
+	cli.Run(&config, "Every request is logged once. ", func(_ *kong.Context) errors.E {
+		return listen(&config)
+	})
 }
