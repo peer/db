@@ -234,10 +234,7 @@ github.com/whilp/git-urls v1.0.0/go.mod h1:J16SAmobsqc3Qcy98brfl5f5+e0clUvg1krgw
 github.com/xanzy/ssh-agent v0.3.0 h1:wUMzuKtKilRgBAD1sUb8gOwwRr2FGoBVumcjoOACClI=
 github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6eAcqrDh0=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
-gitlab.com/tozd/go/errors v0.3.0 h1:5CKqYz4EfXLxYFhYtxD1s51Nh50J06flPdBqrdXn2AY=
 gitlab.com/tozd/go/errors v0.3.0/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
-gitlab.com/tozd/go/errors v0.3.1-0.20220220225305-e8c56559fa77 h1:7w/mihlRbC1VLQ1hteCCfHn9G8/IPofRDRDZa9x8DP4=
-gitlab.com/tozd/go/errors v0.3.1-0.20220220225305-e8c56559fa77/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686 h1:9/y1jNYf1ow356MDVEj1Y0mmAA+Lqt4LRIvSK9Nv63g=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
 gitlab.com/tozd/go/mediawiki v0.8.0 h1:oDTS3CVEqh6drXwilRvT6yciJkjnaRIeWlNzFnh3Blk=
