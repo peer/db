@@ -29,6 +29,7 @@ func listen(config *Config) errors.E {
 	router := httprouter.New()
 	handler := s.RouteWith(router)
 
+	// TODO: Implement graceful shutdown.
 	server := &http.Server{
 		Addr:        listenAddr,
 		Handler:     handler,

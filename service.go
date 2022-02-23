@@ -3,6 +3,8 @@ package search
 import (
 	"context"
 	"net/http"
+	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
@@ -111,23 +113,79 @@ func EtagHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
+func ContentEncodingHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req)
+			contentEncoding := w.Header().Get("Content-Encoding")
+			if contentEncoding != "" {
+				log := zerolog.Ctx(req.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, contentEncoding)
+				})
+			}
+		})
+	}
+}
+
+func LogHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
+	i := strings.LastIndex(name, ".")
+	if i != -1 {
+		name = name[i+1:]
+	}
+	name = strings.TrimSuffix(name, "-fm")
+
+	if name == "" {
+		return h
+	}
+
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		log := zerolog.Ctx(req.Context())
+		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str(zerolog.MessageFieldName, name)
+		})
+		h(w, req, ps)
+	}
+}
+
+func LogHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
+	i := strings.LastIndex(name, ".")
+	if i != -1 {
+		name = name[i+1:]
+	}
+	name = strings.TrimSuffix(name, "-fm")
+
+	if name == "" {
+		return h
+	}
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		log := zerolog.Ctx(req.Context())
+		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str(zerolog.MessageFieldName, name)
+		})
+		h(w, req)
+	}
+}
+
 func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
 
-	router.GET("/d", s.ListGet)
-	router.HEAD("/d", s.ListGet)
-	router.POST("/d", s.ListPost)
-	router.GET("/d/:id", s.Get)
-	router.HEAD("/d/:id", s.Get)
+	router.GET("/d", LogHandlerName(s.ListGet))
+	router.HEAD("/d", LogHandlerName(s.ListGet))
+	router.POST("/d", LogHandlerName(s.ListPost))
+	router.GET("/d/:id", LogHandlerName(s.Get))
+	router.HEAD("/d/:id", LogHandlerName(s.Get))
 
-	router.NotFound = http.HandlerFunc(s.NotFound)
+	router.NotFound = http.HandlerFunc(LogHandlerNameNoParams(s.NotFound))
 
 	c := alice.New()
 
 	c = c.Append(hlog.NewHandler(s.Log))
-
 	c = c.Append(hlog.AccessHandler(func(req *http.Request, status, size int, duration time.Duration) {
 		level := zerolog.InfoLevel
 		if status >= http.StatusBadRequest {
@@ -140,9 +198,8 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 			Int("code", status).
 			Int("size", size).
 			Dur("duration", duration).
-			Msg("request")
+			Send()
 	}))
-
 	c = c.Append(hlog.MethodHandler("method"))
 	c = c.Append(RemoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))
@@ -150,6 +207,7 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	c = c.Append(ConnectionIDHandler("connection"))
 	c = c.Append(RequestIDHandler("request", "Request-ID"))
 	c = c.Append(EtagHandler("etag"))
+	c = c.Append(ContentEncodingHandler("encoding"))
 	// parseForm should be as late as possible because it can fail
 	// and we want other fields to be logged.
 	c = c.Append(s.parseForm)
