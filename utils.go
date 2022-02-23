@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
@@ -144,6 +146,13 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 		}
 	}
 
+	log := hlog.FromRequest(req)
+	if len(metadata) > 0 {
+		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return logValues(c, "metadata", metadata)
+		})
+	}
+
 	etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
 
 	w.Header().Set("Content-Type", "application/json")
@@ -187,4 +196,24 @@ func (s *Service) parseForm(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, req)
 	})
+}
+
+type valuesLogObjectMarshaler map[string][]string
+
+func (v valuesLogObjectMarshaler) MarshalZerologObject(e *zerolog.Event) {
+	for key, values := range v {
+		arr := zerolog.Arr()
+		for _, val := range values {
+			arr.Str(val)
+		}
+		e.Array(key, arr)
+	}
+}
+
+func logValues(c zerolog.Context, field string, values map[string][]string) zerolog.Context {
+	if len(values) == 0 {
+		return c
+	}
+
+	return c.Object(field, valuesLogObjectMarshaler(values))
 }

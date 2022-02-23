@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -10,6 +11,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
+
 	"gitlab.com/peerdb/search/identifier"
 )
 
@@ -83,11 +85,28 @@ func URLHandler(pathKey, queryKey string) func(next http.Handler) http.Handler {
 			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 				c = c.Str(pathKey, req.URL.Path)
 				if len(req.Form) > 0 {
-					c = c.Interface("query", req.Form)
+					c = logValues(c, "query", req.Form)
 				}
 				return c
 			})
 			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+func EtagHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req)
+			etag := w.Header().Get("Etag")
+			if etag != "" {
+				etag = strings.TrimPrefix(etag, `"`)
+				etag = strings.TrimSuffix(etag, `"`)
+				log := zerolog.Ctx(req.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, etag)
+				})
+			}
 		})
 	}
 }
@@ -117,7 +136,7 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 		if status >= http.StatusInternalServerError {
 			level = zerolog.ErrorLevel
 		}
-		hlog.FromRequest(req).WithLevel(level).
+		zerolog.Ctx(req.Context()).WithLevel(level).
 			Int("code", status).
 			Int("size", size).
 			Dur("duration", duration).
@@ -130,6 +149,9 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	c = c.Append(hlog.RefererHandler("referer"))
 	c = c.Append(ConnectionIDHandler("connection"))
 	c = c.Append(RequestIDHandler("request", "Request-ID"))
+	c = c.Append(EtagHandler("etag"))
+	// parseForm should be as late as possible because it can fail
+	// and we want other fields to be logged.
 	c = c.Append(s.parseForm)
 	// URLHandler should be after the parseForm middleware.
 	c = c.Append(URLHandler("path", "query"))
