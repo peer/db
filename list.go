@@ -158,9 +158,13 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		pusher = nil
 	}
 	options := &http.PushOptions{
-		Header: http.Header{
-			"Accept-Encoding": req.Header["Accept-Encoding"],
-		},
+		Header: http.Header{},
+	}
+	if len(req.Header["Accept-Encoding"]) > 0 {
+		options.Header["Accept-Encoding"] = req.Header["Accept-Encoding"]
+	}
+	if len(req.Header["User-Agent"]) > 0 {
+		options.Header["User-Agent"] = req.Header["User-Agent"]
 	}
 
 	results := make([]listResult, len(searchResult.Hits.Hits))
