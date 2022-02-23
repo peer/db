@@ -45,7 +45,7 @@ func (s *Service) Get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 		NotFound(w, req)
 		return
 	} else if err != nil {
-		internalServerError(w, req, errors.WithStack(err))
+		s.internalServerError(w, req, errors.WithStack(err))
 		return
 	}
 

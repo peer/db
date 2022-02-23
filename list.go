@@ -110,7 +110,7 @@ type listResult struct {
 func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	err := req.ParseForm()
 	if err != nil {
-		badRequest(w, req, errors.WithStack(err))
+		s.badRequest(w, req, errors.WithStack(err))
 		return
 	}
 	sh, ok := getSearch(req.Form)
@@ -153,7 +153,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	}
 	searchResult, err := searchService.Do(ctx)
 	if err != nil {
-		internalServerError(w, req, errors.WithStack(err))
+		s.internalServerError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -186,7 +186,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		total += "+"
 	}
 
-	writeJSON(w, req, contentEncoding, results, http.Header{
+	s.writeJSON(w, req, contentEncoding, results, http.Header{
 		"Total": {total},
 	})
 }
@@ -196,7 +196,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 func (s *Service) ListPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	err := req.ParseForm()
 	if err != nil {
-		badRequest(w, req, errors.WithStack(err))
+		s.badRequest(w, req, errors.WithStack(err))
 		return
 	}
 	sh := makeSearch(req.Form)

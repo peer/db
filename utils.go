@@ -33,7 +33,7 @@ func NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
-func internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
+func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return
 	}
@@ -43,16 +43,16 @@ func internalServerError(w http.ResponseWriter, req *http.Request, err errors.E)
 	http.Error(w, "500 internal server error", http.StatusInternalServerError)
 }
 
-func badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
+func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
 	// TODO: Use logger.
 	fmt.Fprintf(os.Stderr, "bad request: %+v", err)
 	http.Error(w, "400 bad request", http.StatusBadRequest)
 }
 
-func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata http.Header) {
+func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata http.Header) {
 	encoded, err := json.Marshal(data)
 	if err != nil {
-		internalServerError(w, req, errors.WithStack(err))
+		s.internalServerError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -70,7 +70,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			err = closeErr
 		}
 		if err != nil {
-			internalServerError(w, req, errors.WithStack(err))
+			s.internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 		encoded = buf.Bytes()
@@ -82,7 +82,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			err = closeErr
 		}
 		if err != nil {
-			internalServerError(w, req, errors.WithStack(err))
+			s.internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 		encoded = buf.Bytes()
@@ -90,7 +90,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 		var buf bytes.Buffer
 		writer, err := flate.NewWriter(&buf, -1)
 		if err != nil {
-			internalServerError(w, req, errors.WithStack(err))
+			s.internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 		_, err = writer.Write(encoded)
@@ -98,7 +98,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string,
 			err = closeErr
 		}
 		if err != nil {
-			internalServerError(w, req, errors.WithStack(err))
+			s.internalServerError(w, req, errors.WithStack(err))
 			return
 		}
 		encoded = buf.Bytes()
