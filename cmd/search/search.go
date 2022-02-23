@@ -22,11 +22,6 @@ func listen(config *Config) errors.E {
 	}
 
 	router := httprouter.New()
-	router.RedirectTrailingSlash = true
-	router.RedirectFixedPath = true
-	router.HandleMethodNotAllowed = true
-	router.NotFound = http.HandlerFunc(search.NotFound)
-
 	s.RouteWith(router)
 
 	server := &http.Server{

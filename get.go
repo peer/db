@@ -42,7 +42,7 @@ func (s *Service) Get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 		Headers: headers,
 	})
 	if elastic.IsNotFound(err) {
-		NotFound(w, req)
+		s.NotFound(w, req)
 		return
 	} else if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))

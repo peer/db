@@ -29,7 +29,7 @@ const (
 )
 
 // NotFound is a HTTP request handler which returns a 404 error to the client.
-func NotFound(w http.ResponseWriter, req *http.Request) {
+func (s *Service) NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
