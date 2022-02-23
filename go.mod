@@ -28,6 +28,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/phpserialize v1.3.2 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/foolin/pagser v0.1.5 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect

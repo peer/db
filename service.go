@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/felixge/httpsnoop"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"github.com/olivere/elastic/v7"
@@ -170,6 +171,17 @@ func LogHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(htt
 	}
 }
 
+// AccessHandler is similar to hlog.AccessHandler, but it uses github.com/felixge/httpsnoop.
+// See: https://github.com/rs/zerolog/issues/417
+func AccessHandler(f func(req *http.Request, code int, size int64, duration time.Duration)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			m := httpsnoop.CaptureMetrics(next, w, req)
+			f(req, m.Code, m.Written, m.Duration)
+		})
+	}
+}
+
 func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
@@ -186,17 +198,17 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	c := alice.New()
 
 	c = c.Append(hlog.NewHandler(s.Log))
-	c = c.Append(hlog.AccessHandler(func(req *http.Request, status, size int, duration time.Duration) {
+	c = c.Append(AccessHandler(func(req *http.Request, code int, size int64, duration time.Duration) {
 		level := zerolog.InfoLevel
-		if status >= http.StatusBadRequest {
+		if code >= http.StatusBadRequest {
 			level = zerolog.WarnLevel
 		}
-		if status >= http.StatusInternalServerError {
+		if code >= http.StatusInternalServerError {
 			level = zerolog.ErrorLevel
 		}
 		zerolog.Ctx(req.Context()).WithLevel(level).
-			Int("code", status).
-			Int("size", size).
+			Int("code", code).
+			Int64("size", size).
 			Dur("duration", duration).
 			Send()
 	}))
