@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -27,6 +28,14 @@ const (
 	// Compress only if content is larger than 1 KB.
 	minCompressionSize = 1024
 )
+
+func getHost(hostPort string) string {
+	host, _, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return hostPort
+	}
+	return host
+}
 
 // NotFound is a HTTP request handler which returns a 404 error to the client.
 func (s *Service) NotFound(w http.ResponseWriter, req *http.Request) {

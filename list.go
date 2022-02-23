@@ -131,7 +131,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	// TODO: Make sure right analyzers are used for all fields.
 	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 	ctx := req.Context()
-	searchService := s.ESClient.Search("docs").From(0).Size(1000).FetchSource(false).Routing(req.RemoteAddr) //nolint:gomnd
+	searchService := s.ESClient.Search("docs").From(0).Size(1000).FetchSource(false).Routing(getHost(req.RemoteAddr)) //nolint:gomnd
 	if sh.Text == "" {
 		matchQuery := elastic.NewMatchAllQuery()
 		searchService = searchService.Query(matchQuery)
