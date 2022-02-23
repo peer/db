@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/mattn/go-colorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/tozd/go/errors"
@@ -201,6 +202,7 @@ type eventWithError struct {
 type consoleWriter struct {
 	zerolog.ConsoleWriter
 	buf  *bytes.Buffer
+	out  io.Writer
 	lock sync.Mutex
 }
 
@@ -216,7 +218,11 @@ func newConsoleWriter(noColor bool) *consoleWriter {
 	w.FormatLevel = formatLevel(w.NoColor)
 	w.FormatTimestamp = formatTimestamp(w.TimeFormat, w.NoColor)
 
-	return &consoleWriter{ConsoleWriter: w, buf: buf}
+	return &consoleWriter{
+		ConsoleWriter: w,
+		buf:           buf,
+		out:           colorable.NewColorable(os.Stdout),
+	}
 }
 
 func makeMessageBold(p []byte) ([]byte, errors.E) {
@@ -295,7 +301,7 @@ func (w *consoleWriter) Write(p []byte) (int, error) {
 		ee = ee.Cause
 	}
 
-	_, err = w.buf.WriteTo(os.Stdout)
+	_, err = w.buf.WriteTo(w.out)
 	return n, errors.WithStack(err)
 }
 

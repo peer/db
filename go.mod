@@ -8,6 +8,7 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/mattn/go-colorable v0.1.12
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
 	github.com/stretchr/testify v1.7.0
@@ -36,7 +37,6 @@ require (
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
