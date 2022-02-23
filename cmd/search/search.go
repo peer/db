@@ -11,6 +11,10 @@ import (
 	"gitlab.com/peerdb/search"
 )
 
+const (
+	listenAddr = ":8080"
+)
+
 func listen(config *Config) errors.E {
 	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), config.Log)
 	if err != nil {
@@ -26,11 +30,13 @@ func listen(config *Config) errors.E {
 	handler := s.RouteWith(router)
 
 	server := &http.Server{
-		Addr:        ":8080",
+		Addr:        listenAddr,
 		Handler:     handler,
 		ErrorLog:    log.New(config.Log, "", 0),
 		ConnContext: s.ConnContext,
 	}
+
+	config.Log.Info().Msgf("starting on %s", listenAddr)
 
 	return errors.WithStack(server.ListenAndServeTLS(config.CertFile, config.KeyFile))
 }

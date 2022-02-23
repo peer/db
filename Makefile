@@ -10,12 +10,12 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build build-static test test-ci lint lint-ci fmt fmt-ci clean lint-docs audit
+.PHONY: build search wikipedia mapping build-static test test-ci lint lint-ci fmt fmt-ci clean lint-docs audit serve watch
 
-build:
-	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o search gitlab.com/peerdb/search/cmd/search
-	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
-	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/search/cmd/mapping
+build: search wikipedia mapping
+
+search wikipedia mapping:
+	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
 
 build-static:
 	go build -ldflags "-linkmode external -extldflags '-static' -X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o search gitlab.com/peerdb/search/cmd/search
@@ -55,3 +55,6 @@ lint-docs:
 
 audit:
 	go list -json -deps | nancy sleuth --skip-update-check
+
+watch:
+	CompileDaemon -build="make --silent search" -command="./search -c localhost+2.pem -k localhost+2-key.pem" -include="*.tmpl" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true
