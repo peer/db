@@ -191,7 +191,7 @@ func initializeElasticSearch(globals *Globals) (
 			} else if failed := response.Failed(); len(failed) > 0 {
 				for _, f := range failed {
 					globals.Log.Error().
-						Str("id", f.Id).Int("code", f.Status).Str("status", http.StatusText(f.Status)).
+						Str("id", f.Id).Int("code", f.Status).
 						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
 						Msg("indexing error")
 				}

@@ -8,6 +8,7 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-colorable v0.1.12
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
@@ -43,6 +44,7 @@ require (
 	github.com/pingcap/log v0.0.0-20210625125904-98ed8e2eb1c7 // indirect
 	github.com/pingcap/parser v0.0.0-20210802034743-dd9b189324ce // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/xid v1.3.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/whilp/git-urls v1.0.0 // indirect

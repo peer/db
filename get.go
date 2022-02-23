@@ -36,6 +36,7 @@ func (s *Service) Get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 
 	headers := http.Header{}
 	headers.Set("Accept-Encoding", contentEncoding)
+	headers.Set("X-Opaque-ID", IDFromRequest(req))
 	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "GET",
 		Path:    fmt.Sprintf("/docs/_source/%s", id),

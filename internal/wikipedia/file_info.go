@@ -117,7 +117,6 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 		errE := errors.New("bad response status")
 		errors.Details(errE)["url"] = debugURL
 		errors.Details(errE)["code"] = resp.StatusCode
-		errors.Details(errE)["status"] = http.StatusText(resp.StatusCode)
 		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
 		return errE
 	}

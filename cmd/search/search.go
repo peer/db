@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -22,11 +23,13 @@ func listen(config *Config) errors.E {
 	}
 
 	router := httprouter.New()
-	s.RouteWith(router)
+	handler := s.RouteWith(router)
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: router,
+		Addr:        ":8080",
+		Handler:     handler,
+		ErrorLog:    log.New(config.Log, "", 0),
+		ConnContext: s.ConnContext,
 	}
 
 	return errors.WithStack(server.ListenAndServeTLS(config.CertFile, config.KeyFile))

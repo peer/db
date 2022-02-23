@@ -17,6 +17,8 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/search/identifier"
 )
 
 const (
@@ -29,7 +31,23 @@ const (
 	minCompressionSize = 1024
 )
 
+// contextKey is a value for use with context.WithValue. It's used as
+// a pointer so it fits in an interface{} without allocation.
+type contextKey struct {
+	name string
+}
+
+// ConnectionIDContextKey provides a random ID for each HTTP connection.
+var ConnectionIDContextKey = &contextKey{"connection-id"}
+
+// RequestIDContextKey provides a random ID for each HTTP request.
+var RequestIDContextKey = &contextKey{"request-id"}
+
 func getHost(hostPort string) string {
+	if hostPort == "" {
+		return ""
+	}
+
 	host, _, err := net.SplitHostPort(hostPort)
 	if err != nil {
 		return hostPort
@@ -143,4 +161,30 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 	// See: https://github.com/golang/go/issues/50905
 	// See: https://github.com/golang/go/pull/50903
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(encoded))
+}
+
+func (s *Service) ConnContext(ctx context.Context, c net.Conn) context.Context {
+	return context.WithValue(ctx, ConnectionIDContextKey, identifier.NewRandom())
+}
+
+func IDFromRequest(req *http.Request) string {
+	if req == nil {
+		return ""
+	}
+	id, ok := req.Context().Value(RequestIDContextKey).(string)
+	if ok {
+		return id
+	}
+	return ""
+}
+
+func (s *Service) parseForm(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		err := req.ParseForm()
+		if err != nil {
+			s.badRequest(w, req, errors.WithStack(err))
+			return
+		}
+		next.ServeHTTP(w, req)
+	})
 }
