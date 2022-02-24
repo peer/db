@@ -111,7 +111,9 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
+	m := timing.NewMetric("s").Start()
 	sh, ok := getSearch(req.Form)
+	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
 		w.Header().Set("Location", "/d?"+sh.Encode())
@@ -149,7 +151,7 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		}
 		searchService = searchService.Query(boolQuery)
 	}
-	m := timing.NewMetric("es").Start()
+	m = timing.NewMetric("es").Start()
 	searchResult, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
@@ -199,7 +201,12 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 // listPost is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
 func (s *Service) listPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	m := timing.NewMetric("s").Start()
 	sh := makeSearch(req.Form)
+	m.Stop()
 	// TODO: Should we push the location to the client, too?
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
