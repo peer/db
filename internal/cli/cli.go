@@ -196,6 +196,7 @@ type eventError struct {
 
 type eventWithError struct {
 	Error *eventError `json:"error,omitempty"`
+	Level string      `json:"level,omitempty"`
 }
 
 // consoleWriter writes stack traces for errors after the line with the log.
@@ -274,6 +275,14 @@ func (w *consoleWriter) Write(p []byte) (int, error) {
 	err = json.Unmarshal(p, &event)
 	if err != nil {
 		return 0, errors.Errorf("cannot decode event: %w", err)
+	}
+
+	level, _ := zerolog.ParseLevel(event.Level)
+
+	// Print a stack trace only on error or above levels.
+	if level < zerolog.ErrorLevel {
+		_, err = w.buf.WriteTo(w.out)
+		return n, errors.WithStack(err)
 	}
 
 	ee := event.Error
