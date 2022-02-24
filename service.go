@@ -175,13 +175,14 @@ func logHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(htt
 
 // accessHandler is similar to hlog.accessHandler, but it uses github.com/felixge/httpsnoop.
 // See: https://github.com/rs/zerolog/issues/417
+// Afterwards, it was extended with Server-Timing trailer.
 func accessHandler(f func(req *http.Request, code int, size int64, duration time.Duration)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.Header().Set("Trailer", "Server-Timing")
+			w.Header().Set("Trailer", servertiming.HeaderKey)
 			m := httpsnoop.CaptureMetrics(next, w, req)
 			milliseconds := float64(m.Duration) / float64(time.Millisecond)
-			w.Header().Set("Server-Timing", fmt.Sprintf("t;dur=%.1f", milliseconds))
+			w.Header().Set(servertiming.HeaderKey, fmt.Sprintf("t;dur=%.1f", milliseconds))
 			f(req, m.Code, m.Written, m.Duration)
 		})
 	}
@@ -204,6 +205,10 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	c := alice.New()
 
 	c = c.Append(hlog.NewHandler(s.Log))
+	// It has to be before accessHandler so that it can access the timing context.
+	c = c.Append(func(next http.Handler) http.Handler {
+		return servertiming.Middleware(next, nil)
+	})
 	c = c.Append(accessHandler(func(req *http.Request, code int, size int64, duration time.Duration) {
 		level := zerolog.InfoLevel
 		if code >= http.StatusBadRequest {
@@ -212,15 +217,18 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 		if code >= http.StatusInternalServerError {
 			level = zerolog.ErrorLevel
 		}
+		timing := servertiming.FromContext(req.Context())
+		metrics := zerolog.Dict()
+		for _, metric := range timing.Metrics {
+			metrics.Dur(metric.Name, metric.Duration)
+		}
+		metrics.Dur("t", duration)
 		zerolog.Ctx(req.Context()).WithLevel(level).
 			Int("code", code).
 			Int64("size", size).
-			Dur("duration", duration).
+			Dict("metrics", metrics).
 			Send()
 	}))
-	c = c.Append(func(next http.Handler) http.Handler {
-		return servertiming.Middleware(next, nil)
-	})
 	c = c.Append(hlog.MethodHandler("method"))
 	c = c.Append(remoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))
