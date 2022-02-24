@@ -597,11 +597,11 @@ func addQualifiers(
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			} else if err != nil {
 				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
 			err = claim.AddMeta(qualifierClaim)
@@ -628,11 +628,11 @@ func addReference(
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			} else if err != nil {
 				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
 			if referenceClaim == nil {
@@ -857,24 +857,24 @@ func ConvertEntity(
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			} else if err != nil {
 				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
 			err = addQualifiers(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
 			if err != nil {
 				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
-					Fields(errors.AllDetails(err)).Msg(err.Error())
+					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
 			for i, reference := range statement.References {
 				err = addReference(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
 					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).
-						Fields(errors.AllDetails(err)).Msg(err.Error())
+						Err(err).Fields(errors.AllDetails(err)).Send()
 					continue
 				}
 			}

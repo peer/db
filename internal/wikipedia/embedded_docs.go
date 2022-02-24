@@ -51,9 +51,9 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
 	if errors.Is(err, referenceNotFoundError) {
 		if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
-			v.Log.Debug().Fields(errors.AllDetails(err)).Msg(err.Error())
+			v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
-			v.Log.Warn().Fields(errors.AllDetails(err)).Msg(err.Error())
+			v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		v.Changed = true
 		return search.Drop, nil

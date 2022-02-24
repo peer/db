@@ -81,11 +81,9 @@ func processImage(
 	document, err := convert(ctx, httpClient, image)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
-			// We do not log stack trace.
-			globals.Log.Debug().Str("file", image.Name).Fields(errors.AllDetails(err)).Msg(err.Error())
+			globals.Log.Debug().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else if errors.Is(err, wikipedia.SkippedError) {
-			// We do not log stack trace.
-			globals.Log.Warn().Str("file", image.Name).Fields(errors.AllDetails(err)).Msg(err.Error())
+			globals.Log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
 			globals.Log.Error().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
