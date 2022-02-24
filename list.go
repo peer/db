@@ -176,7 +176,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 			if errors.Is(err, http.ErrNotSupported) {
 				// Nothing.
 			} else if err != nil {
-				log.Error().Err(err).Str("push", push).Msg("failed to push")
+				log.Error().Err(err).Fields(errors.AllDetails(err)).Str("push", push).Msg("failed to push")
 			}
 		}
 	}

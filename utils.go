@@ -63,7 +63,7 @@ func (s *Service) notFound(w http.ResponseWriter, req *http.Request) {
 func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
 	log := hlog.FromRequest(req)
 	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Err(err)
+		return c.Err(err).Fields(errors.AllDetails(err))
 	})
 	if errors.Is(err, context.Canceled) {
 		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
@@ -91,7 +91,7 @@ func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err inte
 	}
 	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 		if e != nil {
-			return c.Err(e)
+			return c.Err(e).Fields(errors.AllDetails(e))
 		}
 		return c.Interface("panic", err)
 	})
@@ -102,7 +102,7 @@ func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err inte
 func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
 	log := hlog.FromRequest(req)
 	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Err(err)
+		return c.Err(err).Fields(errors.AllDetails(err))
 	})
 
 	http.Error(w, "400 bad request", http.StatusBadRequest)
