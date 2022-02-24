@@ -196,6 +196,7 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	// See: https://github.com/golang/go/issues/50905
 	// See: https://github.com/golang/go/pull/50903
