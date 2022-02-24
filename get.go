@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/gddo/httputil"
 	"github.com/julienschmidt/httprouter"
+	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 
@@ -22,6 +23,7 @@ import (
 // It supports compression based on accepted content encoding and range requests.
 func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
 
 	id := ps.ByName("id")
 	if !identifier.Valid(id) {
@@ -37,11 +39,13 @@ func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 	headers := http.Header{}
 	headers.Set("Accept-Encoding", contentEncoding)
 	headers.Set("X-Opaque-ID", idFromRequest(req))
+	m := timing.NewMetric("es").Start()
 	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "GET",
 		Path:    fmt.Sprintf("/docs/_source/%s", id),
 		Headers: headers,
 	})
+	m.Stop()
 	if elastic.IsNotFound(err) {
 		s.notFound(w, req)
 		return

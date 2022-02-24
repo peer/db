@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/gddo/httputil"
 	"github.com/julienschmidt/httprouter"
+	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
@@ -107,6 +108,9 @@ type listResult struct {
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
 	sh, ok := getSearch(req.Form)
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
@@ -124,7 +128,6 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	// TODO: Determine which operator should be the default?
 	// TODO: Make sure right analyzers are used for all fields.
 	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-	ctx := req.Context()
 	searchService := s.ESClient.Search("docs").FetchSource(false).Routing(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", idFromRequest(req)).From(0).Size(1000) //nolint:gomnd
 	if sh.Text == "" {
@@ -146,7 +149,9 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		}
 		searchService = searchService.Query(boolQuery)
 	}
+	m := timing.NewMetric("es").Start()
 	searchResult, err := searchService.Do(ctx)
+	m.Stop()
 	if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
 		return

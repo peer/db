@@ -41,6 +41,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/go-server-timing v1.0.1 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
 	github.com/pingcap/log v0.0.0-20210625125904-98ed8e2eb1c7 // indirect
 	github.com/pingcap/parser v0.0.0-20210802034743-dd9b189324ce // indirect

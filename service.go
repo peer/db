@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -11,6 +12,7 @@ import (
 	"github.com/felixge/httpsnoop"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -176,7 +178,10 @@ func logHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(htt
 func accessHandler(f func(req *http.Request, code int, size int64, duration time.Duration)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Trailer", "Server-Timing")
 			m := httpsnoop.CaptureMetrics(next, w, req)
+			milliseconds := float64(m.Duration) / float64(time.Millisecond)
+			w.Header().Set("Server-Timing", fmt.Sprintf("t;dur=%.1f", milliseconds))
 			f(req, m.Code, m.Written, m.Duration)
 		})
 	}
@@ -213,6 +218,9 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 			Dur("duration", duration).
 			Send()
 	}))
+	c = c.Append(func(next http.Handler) http.Handler {
+		return servertiming.Middleware(next, nil)
+	})
 	c = c.Append(hlog.MethodHandler("method"))
 	c = c.Append(remoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))

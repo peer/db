@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
+	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
@@ -109,15 +110,24 @@ func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err error
 }
 
 func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata http.Header) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	m := timing.NewMetric("j").Start()
+
 	encoded, err := json.Marshal(data)
 	if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
 		return
 	}
 
+	m.Stop()
+
 	if len(encoded) <= minCompressionSize {
 		contentEncoding = compressionIdentity
 	}
+
+	m = timing.NewMetric("c").Start()
 
 	// TODO: Use a pool of compression workers?
 	switch contentEncoding {
@@ -165,6 +175,8 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 		// Nothing.
 	}
 
+	m.Stop()
+
 	hash := sha256.New()
 	_, _ = hash.Write(encoded)
 
@@ -176,14 +188,14 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 		}
 	}
 
+	etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
+
 	log := hlog.FromRequest(req)
 	if len(metadata) > 0 {
 		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 			return logValues(c, "metadata", metadata)
 		})
 	}
-
-	etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
 
 	w.Header().Set("Content-Type", "application/json")
 	if contentEncoding != compressionIdentity {
