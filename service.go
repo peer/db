@@ -193,7 +193,8 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.GET("/d/:id", LogHandlerName(s.Get))
 	router.HEAD("/d/:id", LogHandlerName(s.Get))
 
-	router.NotFound = http.HandlerFunc(LogHandlerNameNoParams(s.NotFound))
+	router.NotFound = http.HandlerFunc(LogHandlerNameNoParams(s.notFound))
+	router.PanicHandler = s.handlePanic
 
 	c := alice.New()
 

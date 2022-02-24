@@ -1,16 +1,15 @@
 package search
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"sync"
 
 	"github.com/golang/gddo/httputil"
 	"github.com/julienschmidt/httprouter"
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
@@ -167,16 +166,17 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		options.Header["User-Agent"] = req.Header["User-Agent"]
 	}
 
+	log := hlog.FromRequest(req)
 	results := make([]listResult, len(searchResult.Hits.Hits))
 	for i, hit := range searchResult.Hits.Hits {
 		results[i] = listResult{ID: hit.Id}
 		if pusher != nil {
-			err := pusher.Push("/d/"+hit.Id, options)
+			push := "/d/" + hit.Id
+			err := pusher.Push(push, options)
 			if errors.Is(err, http.ErrNotSupported) {
 				// Nothing.
 			} else if err != nil {
-				// TODO: Use logger.
-				fmt.Fprintf(os.Stderr, "failed to push: %+v\n", err)
+				log.Error().Err(err).Str("push", push).Msg("failed to push")
 			}
 		}
 	}

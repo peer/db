@@ -8,10 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -57,24 +55,56 @@ func getHost(hostPort string) string {
 	return host
 }
 
-// NotFound is a HTTP request handler which returns a 404 error to the client.
-func (s *Service) NotFound(w http.ResponseWriter, req *http.Request) {
+// notFound is a HTTP request handler which returns a 404 error to the client.
+func (s *Service) notFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
 func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	log := hlog.FromRequest(req)
+	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Err(err)
+	})
+	if errors.Is(err, context.Canceled) {
+		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("context", "canceled")
+		})
+		return
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("context", "deadline exceeded")
+		})
 		return
 	}
 
-	// TODO: Use logger.
-	fmt.Fprintf(os.Stderr, "internal server error: %+v", err)
+	http.Error(w, "500 internal server error", http.StatusInternalServerError)
+}
+
+func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err interface{}) {
+	log := hlog.FromRequest(req)
+	var e error
+	switch ee := err.(type) {
+	case error:
+		e = ee
+	case string:
+		e = errors.New(ee)
+	}
+	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		if e != nil {
+			return c.Err(e)
+		}
+		return c.Interface("panic", err)
+	})
+
 	http.Error(w, "500 internal server error", http.StatusInternalServerError)
 }
 
 func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
-	// TODO: Use logger.
-	fmt.Fprintf(os.Stderr, "bad request: %+v", err)
+	log := hlog.FromRequest(req)
+	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Err(err)
+	})
+
 	http.Error(w, "400 bad request", http.StatusBadRequest)
 }
 
