@@ -37,11 +37,11 @@ type contextKey struct {
 	name string
 }
 
-// ConnectionIDContextKey provides a random ID for each HTTP connection.
-var ConnectionIDContextKey = &contextKey{"connection-id"}
+// connectionIDContextKey provides a random ID for each HTTP connection.
+var connectionIDContextKey = &contextKey{"connection-id"}
 
-// RequestIDContextKey provides a random ID for each HTTP request.
-var RequestIDContextKey = &contextKey{"request-id"}
+// requestIDContextKey provides a random ID for each HTTP request.
+var requestIDContextKey = &contextKey{"request-id"}
 
 func getHost(hostPort string) string {
 	if hostPort == "" {
@@ -203,14 +203,14 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 }
 
 func (s *Service) ConnContext(ctx context.Context, c net.Conn) context.Context {
-	return context.WithValue(ctx, ConnectionIDContextKey, identifier.NewRandom())
+	return context.WithValue(ctx, connectionIDContextKey, identifier.NewRandom())
 }
 
-func IDFromRequest(req *http.Request) string {
+func idFromRequest(req *http.Request) string {
 	if req == nil {
 		return ""
 	}
-	id, ok := req.Context().Value(RequestIDContextKey).(string)
+	id, ok := req.Context().Value(requestIDContextKey).(string)
 	if ok {
 		return id
 	}

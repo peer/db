@@ -18,9 +18,9 @@ import (
 
 // TODO: Support slug per document.
 
-// Get is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// get is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) Get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
 
 	id := ps.ByName("id")
@@ -36,7 +36,7 @@ func (s *Service) Get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 
 	headers := http.Header{}
 	headers.Set("Accept-Encoding", contentEncoding)
-	headers.Set("X-Opaque-ID", IDFromRequest(req))
+	headers.Set("X-Opaque-ID", idFromRequest(req))
 	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "GET",
 		Path:    fmt.Sprintf("/docs/_source/%s", id),

@@ -23,10 +23,10 @@ type Service struct {
 	Log      zerolog.Logger
 }
 
-func ConnectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
+func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			id, ok := req.Context().Value(ConnectionIDContextKey).(string)
+			id, ok := req.Context().Value(connectionIDContextKey).(string)
 			if ok {
 				log := zerolog.Ctx(req.Context())
 				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
@@ -38,8 +38,8 @@ func ConnectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-// RemoteAddrHandler is similar to hlog.RemoteAddrHandler, but logs only an IP, not a port.
-func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
+// remoteAddrHandler is similar to hlog.remoteAddrHandler, but logs only an IP, not a port.
+func remoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ip := getHost(req.RemoteAddr)
@@ -54,15 +54,15 @@ func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-// RequestIDHandler is similar to hlog.RequestIDHandler, but uses identifier.NewRandom() for ID.
-func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
+// requestIDHandler is similar to hlog.requestIDHandler, but uses identifier.NewRandom() for ID.
+func requestIDHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := req.Context()
-			id := IDFromRequest(req)
+			id := idFromRequest(req)
 			if id == "" {
 				id = identifier.NewRandom()
-				ctx = context.WithValue(ctx, RequestIDContextKey, id)
+				ctx = context.WithValue(ctx, requestIDContextKey, id)
 				req = req.WithContext(ctx)
 			}
 			if fieldKey != "" {
@@ -79,9 +79,9 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 	}
 }
 
-// URLHandler is similar to hlog.URLHandler, but it adds path and separate query string fields.
+// urlHandler is similar to hlog.urlHandler, but it adds path and separate query string fields.
 // It should be after the parseForm middleware as it uses req.Form.
-func URLHandler(pathKey, queryKey string) func(next http.Handler) http.Handler {
+func urlHandler(pathKey, queryKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			log := zerolog.Ctx(req.Context())
@@ -97,7 +97,7 @@ func URLHandler(pathKey, queryKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-func EtagHandler(fieldKey string) func(next http.Handler) http.Handler {
+func etagHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			next.ServeHTTP(w, req)
@@ -114,7 +114,7 @@ func EtagHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-func ContentEncodingHandler(fieldKey string) func(next http.Handler) http.Handler {
+func contentEncodingHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			next.ServeHTTP(w, req)
@@ -129,7 +129,7 @@ func ContentEncodingHandler(fieldKey string) func(next http.Handler) http.Handle
 	}
 }
 
-func LogHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+func logHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	i := strings.LastIndex(name, ".")
 	if i != -1 {
@@ -150,7 +150,7 @@ func LogHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params
 	}
 }
 
-func LogHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func logHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	i := strings.LastIndex(name, ".")
 	if i != -1 {
@@ -171,9 +171,9 @@ func LogHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(htt
 	}
 }
 
-// AccessHandler is similar to hlog.AccessHandler, but it uses github.com/felixge/httpsnoop.
+// accessHandler is similar to hlog.accessHandler, but it uses github.com/felixge/httpsnoop.
 // See: https://github.com/rs/zerolog/issues/417
-func AccessHandler(f func(req *http.Request, code int, size int64, duration time.Duration)) func(next http.Handler) http.Handler {
+func accessHandler(f func(req *http.Request, code int, size int64, duration time.Duration)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			m := httpsnoop.CaptureMetrics(next, w, req)
@@ -187,19 +187,19 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
 
-	router.GET("/d", LogHandlerName(s.ListGet))
-	router.HEAD("/d", LogHandlerName(s.ListGet))
-	router.POST("/d", LogHandlerName(s.ListPost))
-	router.GET("/d/:id", LogHandlerName(s.Get))
-	router.HEAD("/d/:id", LogHandlerName(s.Get))
+	router.GET("/d", logHandlerName(s.listGet))
+	router.HEAD("/d", logHandlerName(s.listGet))
+	router.POST("/d", logHandlerName(s.listPost))
+	router.GET("/d/:id", logHandlerName(s.get))
+	router.HEAD("/d/:id", logHandlerName(s.get))
 
-	router.NotFound = http.HandlerFunc(LogHandlerNameNoParams(s.notFound))
+	router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.notFound))
 	router.PanicHandler = s.handlePanic
 
 	c := alice.New()
 
 	c = c.Append(hlog.NewHandler(s.Log))
-	c = c.Append(AccessHandler(func(req *http.Request, code int, size int64, duration time.Duration) {
+	c = c.Append(accessHandler(func(req *http.Request, code int, size int64, duration time.Duration) {
 		level := zerolog.InfoLevel
 		if code >= http.StatusBadRequest {
 			level = zerolog.WarnLevel
@@ -214,18 +214,18 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 			Send()
 	}))
 	c = c.Append(hlog.MethodHandler("method"))
-	c = c.Append(RemoteAddrHandler("client"))
+	c = c.Append(remoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))
 	c = c.Append(hlog.RefererHandler("referer"))
-	c = c.Append(ConnectionIDHandler("connection"))
-	c = c.Append(RequestIDHandler("request", "Request-ID"))
-	c = c.Append(EtagHandler("etag"))
-	c = c.Append(ContentEncodingHandler("encoding"))
+	c = c.Append(connectionIDHandler("connection"))
+	c = c.Append(requestIDHandler("request", "Request-ID"))
+	c = c.Append(etagHandler("etag"))
+	c = c.Append(contentEncodingHandler("encoding"))
 	// parseForm should be as late as possible because it can fail
 	// and we want other fields to be logged.
 	c = c.Append(s.parseForm)
 	// URLHandler should be after the parseForm middleware.
-	c = c.Append(URLHandler("path", "query"))
+	c = c.Append(urlHandler("path", "query"))
 
 	return c.Then(router)
 }

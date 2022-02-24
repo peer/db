@@ -101,12 +101,12 @@ type listResult struct {
 	ID string `json:"_id"`
 }
 
-// ListGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// listGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
 // state and returns to the client a JSON with an array of IDs of found documents. If called using
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	sh, ok := getSearch(req.Form)
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
@@ -126,7 +126,7 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 	ctx := req.Context()
 	searchService := s.ESClient.Search("docs").FetchSource(false).Routing(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", IDFromRequest(req)).From(0).Size(1000) //nolint:gomnd
+		Header("X-Opaque-ID", idFromRequest(req)).From(0).Size(1000) //nolint:gomnd
 	if sh.Text == "" {
 		matchQuery := elastic.NewMatchAllQuery()
 		searchService = searchService.Query(matchQuery)
@@ -191,9 +191,9 @@ func (s *Service) ListGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	})
 }
 
-// ListPost is a POST HTTP request handler which stores the search state and redirect to
+// listPost is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) ListPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) listPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	sh := makeSearch(req.Form)
 	// TODO: Should we push the location to the client, too?
 	// TODO: Should we already do the query, to warm up ES cache?
