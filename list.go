@@ -128,7 +128,7 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	// TODO: Determine which operator should be the default?
 	// TODO: Make sure right analyzers are used for all fields.
 	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-	searchService := s.ESClient.Search("docs").FetchSource(false).Routing(getHost(req.RemoteAddr)).
+	searchService := s.ESClient.Search("docs").FetchSource(false).Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", idFromRequest(req)).From(0).Size(1000) //nolint:gomnd
 	if sh.Text == "" {
 		matchQuery := elastic.NewMatchAllQuery()
