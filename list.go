@@ -1,7 +1,6 @@
 package search
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -162,9 +161,6 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	results := make([]listResult, len(searchResult.Hits.Hits))
 	for i, hit := range searchResult.Hits.Hits {
 		results[i] = listResult{ID: hit.Id}
-		if i < 100 {
-			w.Header().Add("Link", fmt.Sprintf("</d/%s>; rel=preload; as=fetch; crossorigin=use-credentials", hit.Id))
-		}
 	}
 
 	total := strconv.FormatInt(searchResult.Hits.TotalHits.Value, 10) //nolint:gomnd
