@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
-	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
@@ -159,32 +159,11 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		return
 	}
 
-	pusher, ok := w.(http.Pusher)
-	if !ok {
-		pusher = nil
-	}
-	options := &http.PushOptions{
-		Header: http.Header{},
-	}
-	if len(req.Header["Accept-Encoding"]) > 0 {
-		options.Header["Accept-Encoding"] = req.Header["Accept-Encoding"]
-	}
-	if len(req.Header["User-Agent"]) > 0 {
-		options.Header["User-Agent"] = req.Header["User-Agent"]
-	}
-
-	log := hlog.FromRequest(req)
 	results := make([]listResult, len(searchResult.Hits.Hits))
 	for i, hit := range searchResult.Hits.Hits {
 		results[i] = listResult{ID: hit.Id}
-		if pusher != nil {
-			push := "/d/" + hit.Id
-			err := pusher.Push(push, options)
-			if errors.Is(err, http.ErrNotSupported) {
-				// Nothing.
-			} else if err != nil {
-				log.Error().Err(err).Fields(errors.AllDetails(err)).Str("push", push).Msg("failed to push")
-			}
+		if i < 100 {
+			w.Header().Add("Link", fmt.Sprintf("</d/%s>; rel=preload; as=fetch; crossorigin=use-credentials", hit.Id))
 		}
 	}
 
