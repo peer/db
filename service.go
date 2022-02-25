@@ -188,6 +188,31 @@ func accessHandler(f func(req *http.Request, code int, size int64, duration time
 	}
 }
 
+// removeMetadataHeaders removes PeerDB metadata headers in a response
+// if the response is 304 Not Modified because clients will then use the cached
+// version of the response (and metadata headers there). This works because metadata
+// headers are included in the Etag, so 304 Not Modified means that metadata headers
+// have not changed either.
+func removeMetadataHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(httpsnoop.Wrap(w, httpsnoop.Hooks{
+			WriteHeader: func(next httpsnoop.WriteHeaderFunc) httpsnoop.WriteHeaderFunc {
+				return func(code int) {
+					if code == http.StatusNotModified {
+						headers := w.Header()
+						for header := range headers {
+							if strings.HasPrefix(strings.ToLower(header), peerDBMetadataHeaderPrefix) {
+								headers.Del(header)
+							}
+						}
+					}
+					next(code)
+				}
+			},
+		}), req)
+	})
+}
+
 func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
@@ -229,6 +254,7 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 			Dict("metrics", metrics).
 			Send()
 	}))
+	c = c.Append(removeMetadataHeaders)
 	c = c.Append(hlog.MethodHandler("method"))
 	c = c.Append(remoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))

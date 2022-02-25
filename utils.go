@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/textproto"
 	"strconv"
 	"time"
 
@@ -30,6 +31,10 @@ const (
 
 	// Compress only if content is larger than 1 KB.
 	minCompressionSize = 1024
+
+	// It should be kept all lower case so that it is easier to
+	// compare against in the case insensitive manner.
+	peerDBMetadataHeaderPrefix = "peerdb-"
 )
 
 // contextKey is a value for use with context.WithValue. It's used as
@@ -181,7 +186,7 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 	_, _ = hash.Write(encoded)
 
 	for key, value := range metadata {
-		w.Header()["PeerDB-"+key] = value
+		w.Header()[textproto.CanonicalMIMEHeaderKey(peerDBMetadataHeaderPrefix+key)] = value
 		_, _ = hash.Write([]byte(key))
 		for _, v := range value {
 			_, _ = hash.Write([]byte(v))
