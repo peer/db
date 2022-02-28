@@ -51,12 +51,12 @@ make
 
 This will do multiple passes:
 
-* `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 0.5 day).
-* `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 30 minutes).
-* `wikidata` downloads Wikidata dump (70GB) and imports data into search (runtime 3 days).
-* `prepare` goes over imported documents and process them for PeerDB Search (runtime 1 day).
-* `wikipedia-file-descriptions` downloads Wikipedia files HTML dump (2 GB) and imports file descriptions (runtime 30 minutes)
+* `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 0.5 days).
+* `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
+* `wikidata` downloads Wikidata dump (70GB) and imports data into search (runtime 2 days).
+* `wikipedia-file-descriptions` downloads Wikipedia files HTML dump (2 GB) and imports file descriptions (runtime 1 hour)
 * `wikipedia-articles` downloads Wikipedia articles HTML dump (100GB) and imports articles (runtime 1 day)
+* `prepare` goes over imported documents and process them for PeerDB Search (runtime 1 day).
 
 The whole process requires substantial amount of disk space (at least 500 GB), bandwidth, and time.
 

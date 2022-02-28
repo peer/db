@@ -32,9 +32,9 @@ type Config struct {
 	CommonsFiles              CommonsFilesCommand              `cmd:"" name:"commons-files" help:"Populate search with Wikimedia Commons files from image table SQL dump."`
 	WikipediaFiles            WikipediaFilesCommand            `cmd:"" name:"wikipedia-files" help:"Populate search with Wikipedia files from image table SQL dump."`
 	Wikidata                  WikidataCommand                  `cmd:"" help:"Populate search with Wikidata entities dump."`
-	Prepare                   PrepareCommand                   `cmd:"" help:"Prepare populated data for search."`
 	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" name:"wikipedia-file-descriptions" help:"Populate search with Wikipedia file descriptions HTML dump."`
 	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`
+	Prepare                   PrepareCommand                   `cmd:"" help:"Prepare populated data for search."`
 
 	All AllCommand `cmd:"" default:"" help:"Run all passes in order. Default command."`
 }
@@ -50,9 +50,9 @@ func (c *AllCommand) Run(globals *Globals) errors.E {
 		&CommonsFilesCommand{},
 		&WikipediaFilesCommand{},
 		&WikidataCommand{},
-		&PrepareCommand{},
 		&WikipediaFileDescriptionsCommand{},
 		&WikipediaArticlesCommand{},
+		&PrepareCommand{},
 	}
 
 	for _, command := range allCommands {
