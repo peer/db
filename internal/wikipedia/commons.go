@@ -419,6 +419,9 @@ func convertImage(
 	if mediaType == "image/x-bmp" {
 		mediaType = "image/bmp"
 	}
+	if mediaType == "image/svg" {
+		mediaType = "image/svg+xml"
+	}
 	// Mediawiki sometimes wrongly classifies audio/video.
 	if ambiguous, ok := ambiguousAudioVideo[mediaType]; ok &&
 		((noPreview[mediaType] && image.Width != 0 && image.Height != 0) || (!noPreview[mediaType] && image.Width == 0 && image.Height == 0)) {
