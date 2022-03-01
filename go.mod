@@ -5,15 +5,17 @@ go 1.17
 require github.com/alecthomas/kong v0.2.22
 
 require (
+	github.com/felixge/httpsnoop v1.0.2
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-colorable v0.1.12
+	github.com/mitchellh/go-server-timing v1.0.1
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/tozd/go/mediawiki v0.8.0
+	gitlab.com/tozd/go/mediawiki v0.8.1
 	gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
@@ -28,7 +30,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/phpserialize v1.3.2 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/foolin/pagser v0.1.5 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
@@ -41,7 +42,6 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/go-server-timing v1.0.1 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
 	github.com/pingcap/log v0.0.0-20210625125904-98ed8e2eb1c7 // indirect
 	github.com/pingcap/parser v0.0.0-20210802034743-dd9b189324ce // indirect
