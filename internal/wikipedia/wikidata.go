@@ -175,17 +175,17 @@ func getDocumentReference(id string) search.DocumentReference {
 	}
 }
 
-type mediawikiCommonsFile struct {
+type wikimediaCommonsFile struct {
 	Reference search.DocumentReference
 	Type      string
 	URL       string
 	Preview   []string
 }
 
-func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client, name string) (*mediawikiCommonsFile, errors.E) {
+func getFileFromES(ctx context.Context, esClient *elastic.Client, property, name string) (*search.Document, errors.E) {
 	searchResult, err := esClient.Search("docs").Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME")),
+			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
 			elastic.NewTermQuery("active.id.id", name),
 		),
 	)).Do(ctx)
@@ -209,7 +209,7 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 		document.ID = search.Identifier(hit.Id)
 
 		found := false
-		for _, claim := range document.Get(search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME")) {
+		for _, claim := range document.Get(search.GetStandardPropertyID(property)) {
 			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == name {
 				found = true
 				break
@@ -221,26 +221,7 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 			continue
 		}
 
-		for _, claim := range document.Get(search.GetStandardPropertyID("DATA")) {
-			if c, ok := claim.(*search.FileClaim); ok {
-				file := &mediawikiCommonsFile{
-					Reference: search.DocumentReference{
-						ID:     search.Identifier(hit.Id),
-						Name:   document.Name,
-						Score:  document.Score,
-						Scores: document.Scores,
-					},
-					Type:    c.Type,
-					URL:     c.URL,
-					Preview: c.Preview,
-				}
-				return file, nil
-			}
-		}
-
-		errE := errors.New("Wikimedia commons file document is missing a DATA file claim")
-		errors.Details(errE)["file"] = name
-		return nil, errE
+		return &document, nil
 	}
 
 	errE := errors.WithStack(notFoundFileError)
@@ -248,9 +229,37 @@ func getMediawikiCommonsFileFromES(ctx context.Context, esClient *elastic.Client
 	return nil, errE
 }
 
-func getMediawikiCommonsFile(
+func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elastic.Client, name string) (*wikimediaCommonsFile, errors.E) {
+	document, err := getFileFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, claim := range document.Get(search.GetStandardPropertyID("DATA")) {
+		if c, ok := claim.(*search.FileClaim); ok {
+			file := &wikimediaCommonsFile{
+				Reference: search.DocumentReference{
+					ID:     document.ID,
+					Name:   document.Name,
+					Score:  document.Score,
+					Scores: document.Scores,
+				},
+				Type:    c.Type,
+				URL:     c.URL,
+				Preview: c.Preview,
+			}
+			return file, nil
+		}
+	}
+
+	errE := errors.New("Wikimedia commons file document is missing a DATA file claim")
+	errors.Details(errE)["file"] = name
+	return nil, errE
+}
+
+func getWikimediaCommonsFileReference(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, idArgs []interface{}, name string,
-) (*mediawikiCommonsFile, errors.E) {
+) (*wikimediaCommonsFile, errors.E) {
 	maybeFile, ok := cache.Get(name)
 	if ok {
 		if maybeFile == nil {
@@ -258,10 +267,10 @@ func getMediawikiCommonsFile(
 			errors.Details(errE)["file"] = name
 			return nil, errE
 		}
-		return maybeFile.(*mediawikiCommonsFile), nil
+		return maybeFile.(*wikimediaCommonsFile), nil
 	}
 
-	file, err := getMediawikiCommonsFileFromES(ctx, esClient, name)
+	file, err := getWikimediaCommonsFileReferenceFromES(ctx, esClient, name)
 	if errors.Is(err, notFoundFileError) {
 		// Passthrough.
 	} else if err != nil {
@@ -293,10 +302,10 @@ func getMediawikiCommonsFile(
 			errors.Details(errE)["redirect"] = ii.Redirect
 			return nil, errE
 		}
-		return maybeFile.(*mediawikiCommonsFile), nil
+		return maybeFile.(*wikimediaCommonsFile), nil
 	}
 
-	file, err = getMediawikiCommonsFileFromES(ctx, esClient, ii.Redirect)
+	file, err = getWikimediaCommonsFileReferenceFromES(ctx, esClient, ii.Redirect)
 	if err != nil {
 		if errors.Is(err, notFoundFileError) {
 			cache.Add(name, nil)
@@ -375,7 +384,7 @@ func processSnak( //nolint:ireturn,nolintlint
 			// The first letter has to be upper case.
 			filename = FirstUpperCase(filename)
 
-			file, err := getMediawikiCommonsFile(ctx, log, httpClient, esClient, cache, idArgs, filename)
+			file, err := getWikimediaCommonsFileReference(ctx, log, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
 				if errors.Is(err, notFoundFileError) {
 					if _, ok := skippedCommonsFiles.Load(filename); ok {
