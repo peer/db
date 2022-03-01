@@ -103,7 +103,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -111,7 +111,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, esClient, processor, article)
+		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
 	})
 	if errE != nil {
 		return errE
@@ -120,52 +120,8 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
-// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
-// we check if it is a Wikimedia Commons file.
-func (c *WikipediaFileDescriptionsCommand) isCommonsFile(
-	ctx context.Context, esClient *elastic.Client, filename string,
-) (bool, errors.E) {
-	id := search.GetID(wikipedia.NameSpaceWikimediaCommonsFile, filename)
-	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
-	if elastic.IsNotFound(err) {
-		return false, nil
-	} else if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["doc"] = string(id)
-		errors.Details(errE)["file"] = filename
-		return false, errE
-	} else if !esDoc.Found {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func (c *WikipediaFileDescriptionsCommand) handleNotFoundError(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, article mediawiki.Article, id, filename string,
-) errors.E {
-	if _, ok := skippedWikipediaFiles.Load(filename); ok {
-		globals.Log.Debug().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("not found skipped file")
-		return nil
-	}
-
-	commons, err := c.isCommonsFile(ctx, esClient, filename)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Msg("error determining if commons file")
-	} else if commons {
-		globals.Log.Debug().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("commons file")
-	} else {
-		globals.Log.Warn().Str("doc", id).Str("file", filename).Str("title", article.Name).Msg("not found")
-	}
-
-	return nil
-}
-
 func (c *WikipediaFileDescriptionsCommand) processArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
 	// First we make sure we do not have spaces.
@@ -173,42 +129,40 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// The first letter has to be upper case.
 	filename = wikipedia.FirstUpperCase(filename)
 
-	id := search.GetID(wikipedia.NameSpaceWikipediaFile, filename)
-	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
-	if elastic.IsNotFound(err) {
-		return c.handleNotFoundError(ctx, globals, esClient, article, string(id), filename)
-	} else if err != nil {
-		globals.Log.Error().Str("doc", string(id)).Str("file", filename).Str("title", article.Name).Err(err).Send()
-		return nil
-	} else if !esDoc.Found {
-		return c.handleNotFoundError(ctx, globals, esClient, article, string(id), filename)
-	}
-	var document search.Document
-	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-	if errE != nil {
-		details := errors.AllDetails(errE)
-		details["doc"] = string(id)
+	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
+	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
+	// we check if it is a Wikimedia Commons file.
+	document, esDoc, err := wikipedia.GetWikipediaFile(ctx, globals.Log, httpClient, esClient, filename)
+	if err != nil {
+		details := errors.AllDetails(err)
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(errE).Fields(details).Send()
+		if errors.Is(err, wikipedia.WikimediaCommonsFileError) {
+			globals.Log.Debug().Err(err).Fields(details).Send()
+		} else if errors.Is(err, wikipedia.NotFoundFileError) {
+			if _, ok := skippedWikipediaFiles.Load(filename); ok {
+				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped file")
+			} else {
+				globals.Log.Warn().Err(err).Fields(details).Send()
+			}
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
 		return nil
 	}
 
-	// ID is not stored in the document, so we set it here ourselves.
-	document.ID = id
-
-	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikipediaFile, filename, article)
-	if errE != nil {
-		details := errors.AllDetails(errE)
+	err = wikipedia.ConvertWikipediaArticle(document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	if err != nil {
+		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(errE).Fields(details).Send()
+		globals.Log.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
 
 	return nil
 }
@@ -236,7 +190,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -244,7 +198,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, esClient, processor, article)
+		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
 	})
 	if errE != nil {
 		return errE
@@ -266,7 +220,7 @@ func (c *WikipediaArticlesCommand) handleNotFoundError(
 
 // TODO: Skip disambiguation pages (remove corresponding document if we already have it).
 func (c *WikipediaArticlesCommand) processArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
 		globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")

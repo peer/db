@@ -348,7 +348,7 @@ func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, image I
 	if count != 0 {
 		return count, nil
 	}
-	imageInfo, err := getImageInfo(ctx, httpClient, image.Name)
+	imageInfo, err := getImageInfo(ctx, httpClient, "commons.wikimedia.org", image.Name)
 	if err != nil {
 		return 0, errors.Errorf(`unable to get image info: %w`, err)
 	}

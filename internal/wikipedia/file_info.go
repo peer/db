@@ -25,12 +25,15 @@ const (
 )
 
 type imageInfo struct {
-	Mime      string  `json:"mime"`
-	Size      int     `json:"size"`
-	Width     int     `json:"width"`
-	Height    int     `json:"height"`
-	PageCount int     `json:"pagecount"`
-	Duration  float64 `json:"duration"`
+	Mime                string  `json:"mime"`
+	Size                int     `json:"size"`
+	Width               int     `json:"width"`
+	Height              int     `json:"height"`
+	PageCount           int     `json:"pagecount"`
+	Duration            float64 `json:"duration"`
+	URL                 string  `json:"url"`
+	DescriptionURL      string  `json:"descriptionurl"`
+	DescriptionShortURL string  `json:"descriptionshorturl"`
 	// Set if the requested page redirected to another page and info is from that other page.
 	Redirect string `json:"-"`
 }
@@ -56,8 +59,9 @@ type apiResponse struct {
 		// We on purpose do not list "normalized" field and we want response parsing to fail
 		// if one is included: we want to always pass correctly normalized titles ourselves.
 		Redirects []struct {
-			From string `json:"from"`
-			To   string `json:"to"`
+			From       string `json:"from"`
+			To         string `json:"to"`
+			ToFragment string `json:"tofragment,omitempty"`
 		} `json:"redirects"`
 		Pages []page `json:"pages"`
 	} `json:"query"`
@@ -69,9 +73,10 @@ type apiTask struct {
 	ErrChan       chan<- errors.E
 }
 
-var apiWorkers sync.Map
+// apiWorkersPerSite is a map between a site and another map, which is a map between a context and a channel.
+var apiWorkersPerSite sync.Map
 
-func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks []apiTask) errors.E {
+func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site string, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -90,13 +95,14 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 	data.Set("prop", "imageinfo")
 	// TODO: Fetch and use also other image info data using "bitdepth|extmetadata|metadata|commonmetadata".
 	//       Check out also "iiextmetadatamultilang" and "iimetadataversion".
-	data.Set("iiprop", "mime|size")
+	data.Set("iiprop", "mime|size|url")
 	data.Set("format", "json")
 	data.Set("formatversion", "2")
 	data.Set("titles", titles.String())
 	data.Set("redirects", "")
 	encodedData := data.Encode()
-	debugURL := fmt.Sprintf("https://commons.wikimedia.org/w/api.php?%s", encodedData)
+	apiURL := fmt.Sprintf("https://%s/w/api.php", site)
+	debugURL := fmt.Sprintf("%s?%s", apiURL, encodedData)
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, "https://commons.wikimedia.org/w/api.php", strings.NewReader(encodedData))
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -183,9 +189,18 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 				errors.Details(errE)["reason"] = page.InvalidReason
 				task.ErrChan <- errE
 			}
-		} else if len(page.ImageInfo) != 1 {
+		} else if len(page.ImageInfo) == 0 {
 			for _, task := range pageTasks {
-				errE := errors.New("not exactly one image info result")
+				ii := imageInfo{}
+				// Set redirect if there is one, otherwise this sets an empty string.
+				ii.Redirect = redirects[page.Title]
+				ii.Redirect = strings.TrimPrefix(ii.Redirect, "File:")
+				ii.Redirect = strings.ReplaceAll(ii.Redirect, " ", "_")
+				task.ImageInfoChan <- ii
+			}
+		} else if len(page.ImageInfo) > 1 {
+			for _, task := range pageTasks {
+				errE := errors.New("more than one image info result")
 				errors.Details(errE)["title"] = page.Title
 				task.ErrChan <- errE
 			}
@@ -211,12 +226,15 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, tasks [
 
 // Returned apiTaskChan is never explicitly closed but it is left
 // to the garbage collector to clean it up when it is suitable.
-func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client) chan<- apiTask {
+func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site string) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
 	if ctx.Err() != nil {
 		return nil
 	}
+
+	apiWorkersInterface, _ := apiWorkersPerSite.LoadOrStore(site, &sync.Map{})
+	apiWorkers := apiWorkersInterface.(*sync.Map)
 
 	apiTaskChan := make(chan apiTask, apiLimit)
 
@@ -255,7 +273,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client) chan<- 
 					}
 				}
 
-				errE := doAPIRequest(ctx, httpClient, tasks)
+				errE := doAPIRequest(ctx, httpClient, site, tasks)
 				if errE == nil {
 					// No error, we continue the outer loop.
 					continue
@@ -281,8 +299,8 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client) chan<- 
 	return apiTaskChan
 }
 
-func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, title string) (<-chan imageInfo, <-chan errors.E) {
-	apiTaskChan := getAPIWorker(ctx, httpClient)
+func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (<-chan imageInfo, <-chan errors.E) {
+	apiTaskChan := getAPIWorker(ctx, httpClient, site)
 
 	imageInfoChan := make(chan imageInfo)
 	errChan := make(chan errors.E)
@@ -319,14 +337,14 @@ func FirstUpperCase(str string) string {
 	return string(runes)
 }
 
-func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, filename string) (imageInfo, errors.E) {
+func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, filename string) (imageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
 	title = FirstUpperCase(title)
 	title = "File:" + title
 
-	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, title)
+	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, title)
 
 	for {
 		select {
