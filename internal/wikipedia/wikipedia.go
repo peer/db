@@ -137,7 +137,7 @@ func GetWikipediaFile(
 		return nil, nil, errE
 	}
 
-	if ii.Redirect == "" {
+	if ii.Redirect != "" {
 		log.Warn().Str("file", name).Str("redirect", ii.Redirect).Msg("file redirects")
 	}
 
