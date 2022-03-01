@@ -117,14 +117,14 @@ func GetWikipediaFile(
 	// (to add its article).
 	ii, errE := getImageInfo(ctx, httpClient, "en.wikipedia.org", name)
 	if errE != nil {
-		errE := errors.WithMessage(errE, "checking for Wikimedia Commons") //nolint:govet
+		errE := errors.WithMessage(errE, "checking API") //nolint:govet
 		errors.Details(errE)["file"] = name
 		return nil, nil, errE
 	}
 
 	descriptionURL, err := url.Parse(ii.DescriptionURL)
 	if err != nil {
-		errE := errors.WithMessage(err, "checking for Wikimedia Commons") //nolint:govet
+		errE := errors.WithMessage(err, "checking API") //nolint:govet
 		errors.Details(errE)["file"] = name
 		errors.Details(errE)["url"] = ii.DescriptionURL
 		return nil, nil, errE
@@ -141,6 +141,7 @@ func GetWikipediaFile(
 		log.Warn().Str("file", name).Str("redirect", ii.Redirect).Msg("file redirects")
 	}
 
+	// File exists through API but we do not have it. Probably it is too new.
 	errE = errors.WithStack(NotFoundFileError)
 	errors.Details(errE)["file"] = name
 	return nil, nil, errE
