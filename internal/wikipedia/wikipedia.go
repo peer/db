@@ -117,6 +117,7 @@ func GetWikipediaFile(
 	// (to add its article).
 	ii, errE := getImageInfo(ctx, httpClient, "en.wikipedia.org", name)
 	if errE != nil {
+		// Not found error here probably means that file has been deleted recently.
 		errE := errors.WithMessage(errE, "checking API") //nolint:govet
 		errors.Details(errE)["file"] = name
 		return nil, nil, errE
