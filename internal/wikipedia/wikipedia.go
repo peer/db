@@ -116,12 +116,7 @@ func GetWikipediaFile(
 	// the context where we want the document exactly under that name
 	// (to add its article).
 	ii, errE := getImageInfo(ctx, httpClient, "en.wikipedia.org", name)
-	if errors.Is(errE, NotFoundFileError) {
-		// We return the same error as through other code paths.
-		errE = errors.WithStack(NotFoundFileError)
-		errors.Details(errE)["file"] = name
-		return nil, nil, errE
-	} else if errE != nil {
+	if errE != nil {
 		errE := errors.WithMessage(errE, "checking for Wikimedia Commons") //nolint:govet
 		errors.Details(errE)["file"] = name
 		return nil, nil, errE
