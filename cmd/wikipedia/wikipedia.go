@@ -223,7 +223,22 @@ func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
-		globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
+		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", article.Name)
+		if err != nil {
+			details := errors.AllDetails(err)
+			details["title"] = article.Name
+			if errors.Is(err, wikipedia.NotFoundFileError) {
+				globals.Log.Warn().Err(err).Fields(details).Msg("article does not have an associated entity")
+			} else {
+				globals.Log.Error().Err(err).Fields(details).Msg("article does not have an associated entity")
+			}
+		} else if ii.Redirect != "" {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
+		} else if strings.Contains(article.ArticleBody.WikiText, "{{Wiktionary redirect") {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
+		} else {
+			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
+		}
 		return nil
 	}
 	id := wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)

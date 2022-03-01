@@ -182,17 +182,16 @@ type wikimediaCommonsFile struct {
 	Preview   []string
 }
 
-func getFileFromES(ctx context.Context, esClient *elastic.Client, property, name string) (*search.Document, *elastic.SearchHit, errors.E) {
+func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
 	searchResult, err := esClient.Search("docs").Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
-			elastic.NewTermQuery("active.id.id", name),
+			elastic.NewTermQuery("active.id.id", id),
 		),
 	)).SeqNoPrimaryTerm(true).Do(ctx)
 	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["file"] = name
-		return nil, nil, errE
+		// Caller should add details to the error.
+		return nil, nil, errors.WithStack(err)
 	}
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes).
@@ -200,9 +199,8 @@ func getFileFromES(ctx context.Context, esClient *elastic.Client, property, name
 		var document search.Document
 		err = x.UnmarshalWithoutUnknownFields(hit.Source, &document)
 		if err != nil {
-			errE := errors.WithStack(err)
-			errors.Details(errE)["file"] = name
-			return nil, nil, errE
+			// Caller should add details to the error.
+			return nil, nil, errors.WithStack(err)
 		}
 
 		// ID is not stored in the document, so we set it here ourselves.
@@ -210,7 +208,7 @@ func getFileFromES(ctx context.Context, esClient *elastic.Client, property, name
 
 		found := false
 		for _, claim := range document.Get(search.GetStandardPropertyID(property)) {
-			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == name {
+			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == id {
 				found = true
 				break
 			}
@@ -224,14 +222,14 @@ func getFileFromES(ctx context.Context, esClient *elastic.Client, property, name
 		return &document, hit, nil
 	}
 
-	errE := errors.WithStack(NotFoundFileError)
-	errors.Details(errE)["file"] = name
-	return nil, nil, errE
+	// Caller should add details to the error.
+	return nil, nil, errors.WithStack(NotFoundFileError)
 }
 
 func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elastic.Client, name string) (*wikimediaCommonsFile, errors.E) {
-	document, _, err := getFileFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	document, _, err := getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
+		errors.Details(err)["file"] = name
 		return nil, err
 	}
 
@@ -283,7 +281,7 @@ func getWikimediaCommonsFileReference(
 	// We could not find a file. Maybe there is a redirect?
 	// We do not check DescriptionURL because all Wikimedia Commons
 	// files should be from Wikimedia Commons.
-	ii, err := getImageInfo(ctx, httpClient, "commons.wikimedia.org", name)
+	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", name)
 	if err != nil {
 		errE := errors.WithMessage(err, "checking for redirect")
 		errors.Details(errE)["file"] = name

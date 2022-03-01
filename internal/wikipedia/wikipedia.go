@@ -84,10 +84,11 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 func GetWikipediaFile(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
-	document, hit, errE := getFileFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
+	document, hit, errE := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, NotFoundFileError) {
 		// Passthrough.
 	} else if errE != nil {
+		errors.Details(errE)["file"] = name
 		return nil, nil, errE
 	} else {
 		return document, hit, nil
@@ -99,10 +100,11 @@ func GetWikipediaFile(
 	// Commons which have different names so this can have false negatives. False positives might also
 	// be possible but are probably harmless: we already did not find a Wikipedia file, so we are
 	// primarily trying to understand why not.
-	_, _, errE = getFileFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	_, _, errE = getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if errors.Is(errE, NotFoundFileError) {
 		// Passthrough.
 	} else if errE != nil {
+		errors.Details(errE)["file"] = name
 		return nil, nil, errors.WithMessage(errE, "checking for Wikimedia Commons")
 	} else {
 		errE := errors.WithStack(WikimediaCommonsFileError) //nolint:govet
@@ -115,7 +117,7 @@ func GetWikipediaFile(
 	// We do not follow a redirect, because currently we use the function in
 	// the context where we want the document exactly under that name
 	// (to add its article).
-	ii, errE := getImageInfo(ctx, httpClient, "en.wikipedia.org", name)
+	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", name)
 	if errE != nil {
 		// Not found error here probably means that file has been deleted recently.
 		errE := errors.WithMessage(errE, "checking API") //nolint:govet

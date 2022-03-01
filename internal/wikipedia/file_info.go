@@ -24,7 +24,7 @@ const (
 	apiLimit = 50
 )
 
-type imageInfo struct {
+type ImageInfo struct {
 	Mime                string  `json:"mime"`
 	Size                int     `json:"size"`
 	Width               int     `json:"width"`
@@ -47,7 +47,7 @@ type page struct {
 	Invalid         bool        `json:"invalid"`
 	InvalidReason   string      `json:"invalidreason"`
 	ImageRepository string      `json:"imagerepository"`
-	ImageInfo       []imageInfo `json:"imageinfo"`
+	ImageInfo       []ImageInfo `json:"imageinfo"`
 }
 
 type apiResponse struct {
@@ -70,7 +70,7 @@ type apiResponse struct {
 
 type apiTask struct {
 	Title         string
-	ImageInfoChan chan<- imageInfo
+	ImageInfoChan chan<- ImageInfo
 	ErrChan       chan<- errors.E
 }
 
@@ -192,7 +192,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 			}
 		} else if len(page.ImageInfo) == 0 {
 			for _, task := range pageTasks {
-				ii := imageInfo{}
+				ii := ImageInfo{}
 				// Set redirect if there is one, otherwise this sets an empty string.
 				ii.Redirect = redirects[page.Title]
 				ii.Redirect = strings.TrimPrefix(ii.Redirect, "File:")
@@ -300,10 +300,10 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site st
 	return apiTaskChan
 }
 
-func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (<-chan imageInfo, <-chan errors.E) {
+func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (<-chan ImageInfo, <-chan errors.E) {
 	apiTaskChan := getAPIWorker(ctx, httpClient, site)
 
-	imageInfoChan := make(chan imageInfo)
+	imageInfoChan := make(chan ImageInfo)
 	errChan := make(chan errors.E)
 
 	select {
@@ -338,19 +338,27 @@ func FirstUpperCase(str string) string {
 	return string(runes)
 }
 
-func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, filename string) (imageInfo, errors.E) {
+func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Client, site, filename string) (ImageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
 	title = FirstUpperCase(title)
 	title = "File:" + title
 
+	ii, err := GetImageInfo(ctx, httpClient, site, title)
+	if err != nil {
+		errors.Details(err)["file"] = filename
+	}
+	return ii, err
+}
+
+func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (ImageInfo, errors.E) {
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, title)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return imageInfo{}, errors.WithStack(ctx.Err())
+			return ImageInfo{}, errors.WithStack(ctx.Err())
 		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
@@ -364,7 +372,7 @@ func getImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, f
 				// Break the select and retry the loop.
 				break
 			}
-			return imageInfo{}, err
+			return ImageInfo{}, err
 		}
 	}
 }

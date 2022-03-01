@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetImageInfo(t *testing.T) {
+func TestGetImageInfoForFilename(t *testing.T) {
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 
-	ii, err := getImageInfo(ctx, httpClient, "commons.wikimedia.org", "Logo_Google_2013_Official.svg")
+	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "Logo_Google_2013_Official.svg")
 	assert.NoError(t, err)
-	assert.Equal(t, imageInfo{
+	assert.Equal(t, ImageInfo{
 		Mime:                "image/svg+xml",
 		Size:                6380,
 		Width:               750,
