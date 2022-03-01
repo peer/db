@@ -103,7 +103,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 	encodedData := data.Encode()
 	apiURL := fmt.Sprintf("https://%s/w/api.php", site)
 	debugURL := fmt.Sprintf("%s?%s", apiURL, encodedData)
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, "https://commons.wikimedia.org/w/api.php", strings.NewReader(encodedData))
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(encodedData))
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = debugURL
