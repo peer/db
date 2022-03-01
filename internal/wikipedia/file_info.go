@@ -43,6 +43,7 @@ type page struct {
 	Namespace       int         `json:"ns"`
 	Title           string      `json:"title"`
 	Missing         bool        `json:"missing"`
+	Known           bool        `json:"known"`
 	Invalid         bool        `json:"invalid"`
 	InvalidReason   string      `json:"invalidreason"`
 	ImageRepository string      `json:"imagerepository"`
@@ -176,7 +177,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 	for _, page := range pagesMap {
 		// We have checked above that tasks per page always exists.
 		pageTasks := tasksMap[page.Title]
-		if page.Missing {
+		if page.Missing && !page.Known {
 			for _, task := range pageTasks {
 				errE := errors.New("missing")
 				errors.Details(errE)["title"] = page.Title
