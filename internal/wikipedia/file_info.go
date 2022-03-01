@@ -234,7 +234,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site st
 	}
 
 	apiWorkersInterface, _ := apiWorkersPerSite.LoadOrStore(site, &sync.Map{})
-	apiWorkers := apiWorkersInterface.(*sync.Map)
+	apiWorkers := apiWorkersInterface.(*sync.Map) //nolint: errcheck
 
 	apiTaskChan := make(chan apiTask, apiLimit)
 
