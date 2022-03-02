@@ -113,7 +113,7 @@ func GetWikipediaFile(
 		return nil, nil, errE
 	}
 
-	// We could not find a file. Maybe there it is from Wikimedia Commons?
+	// We could not find the file. Maybe there it is from Wikimedia Commons?
 	// We do not follow a redirect, because currently we use the function in
 	// the context where we want the document exactly under that name
 	// (to add its article).

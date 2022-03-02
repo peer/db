@@ -9,9 +9,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
-	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -207,17 +205,6 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-func (c *WikipediaArticlesCommand) handleNotFoundError(
-	globals *Globals, article mediawiki.Article, id string,
-) errors.E {
-	if _, ok := skippedWikidataEntities.Load(id); ok {
-		globals.Log.Debug().Str("doc", id).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found skipped file")
-	} else {
-		globals.Log.Warn().Str("doc", id).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("not found")
-	}
-	return nil
-}
-
 // TODO: Skip disambiguation pages (remove corresponding document if we already have it).
 func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
@@ -241,42 +228,46 @@ func (c *WikipediaArticlesCommand) processArticle(
 		}
 		return nil
 	}
-	id := wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)
-	esDoc, err := esClient.Get().Index("docs").Id(string(id)).Do(ctx)
-	if elastic.IsNotFound(err) {
-		return c.handleNotFoundError(globals, article, string(id))
-	} else if err != nil {
-		globals.Log.Error().Str("doc", string(id)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Err(err).Send()
-		return nil
-	} else if !esDoc.Found {
-		return c.handleNotFoundError(globals, article, string(id))
-	}
-	var document search.Document
-	errE := x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-	if errE != nil {
-		details := errors.AllDetails(errE)
-		details["doc"] = string(id)
+
+	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, article.MainEntity.Identifier)
+	if err != nil {
+		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
-		globals.Log.Error().Err(errE).Fields(details).Send()
+		if errors.Is(err, wikipedia.NotFoundFileError) {
+			redirectInterface, ok := details["redirect"]
+			if ok {
+				redirect = redirectInterface.(string) //nolint:errcheck
+			}
+			if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)); ok {
+				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
+			} else if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(redirect)); ok {
+				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
+			} else {
+				globals.Log.Warn().Err(err).Fields(details).Send()
+			}
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
 		return nil
 	}
 
-	// ID is not stored in the document, so we set it here ourselves.
-	document.ID = id
-
-	errE = wikipedia.ConvertWikipediaArticle(&document, wikipedia.NameSpaceWikidata, article.MainEntity.Identifier, article)
-	if errE != nil {
-		details := errors.AllDetails(errE)
+	id := article.MainEntity.Identifier
+	if redirect != "" {
+		id = redirect
+	}
+	err = wikipedia.ConvertWikipediaArticle(document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
-		details["entity"] = article.MainEntity.Identifier
+		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(errE).Fields(details).Send()
+		globals.Log.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, &document)
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
 
 	return nil
 }

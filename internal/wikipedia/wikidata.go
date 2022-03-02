@@ -278,11 +278,12 @@ func getWikimediaCommonsFileReference(
 		return file, nil
 	}
 
-	// We could not find a file. Maybe there is a redirect?
+	// We could not find the file. Maybe there is a redirect?
 	// We do not check DescriptionURL because all Wikimedia Commons
 	// files should be from Wikimedia Commons.
 	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", name)
 	if err != nil {
+		// Not found error here probably means that the file has been deleted recently.
 		errE := errors.WithMessage(err, "checking for redirect")
 		errors.Details(errE)["file"] = name
 		return nil, errE
@@ -322,6 +323,49 @@ func getWikimediaCommonsFileReference(
 	cache.Add(name, file)
 	cache.Add(ii.Redirect, file)
 	return file, nil
+}
+
+// TODO: Should we use cache for cases where item has not been found?
+//       Currently we use the function in the context where every item document is fetched
+//       only once, one after the other, so caching will not help.
+func GetWikidataItem(
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, id string,
+) (*search.Document, *elastic.SearchHit, string, errors.E) {
+	document, hit, err := getDocumentFromES(ctx, esClient, "WIKIDATA_ITEM_ID", id)
+	if errors.Is(err, NotFoundFileError) {
+		// Passthrough.
+	} else if err != nil {
+		errors.Details(err)["entity"] = id
+		return nil, nil, "", err
+	} else {
+		return document, hit, "", nil
+	}
+
+	// We could not find the item. Maybe there is a redirect?
+	ii, err := GetImageInfo(ctx, httpClient, "www.wikidata.org", id)
+	if err != nil {
+		// Not found error here probably means that the item has been deleted recently.
+		errE := errors.WithMessage(err, "checking for redirect")
+		errors.Details(errE)["entity"] = id
+		return nil, nil, "", errE
+	} else if ii.Redirect == "" {
+		// No redirect.
+		errE := errors.WithStack(NotFoundFileError)
+		errors.Details(errE)["entity"] = id
+		return nil, nil, "", errE
+	}
+
+	document, hit, err = getDocumentFromES(ctx, esClient, "WIKIDATA_ITEM_ID", ii.Redirect)
+	if err != nil {
+		errE := errors.WithMessage(err, "after redirect")
+		errors.Details(errE)["entity"] = id
+		errors.Details(errE)["redirect"] = ii.Redirect
+		return nil, nil, "", errE
+	}
+
+	log.Warn().Str("entity", id).Str("redirect", ii.Redirect).Msg("item redirects")
+
+	return document, hit, ii.Redirect, nil
 }
 
 func processSnak( //nolint:ireturn,nolintlint
