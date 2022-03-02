@@ -232,6 +232,11 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier))); ok {
+		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
+		return nil
+	}
+
 	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
@@ -242,9 +247,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 			if ok {
 				redirect = redirectInterface.(string) //nolint:errcheck
 			}
-			if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier)); ok {
-				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
-			} else if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(redirect)); ok {
+			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
 				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
 			} else {
 				globals.Log.Warn().Err(err).Fields(details).Send()
