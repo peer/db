@@ -363,7 +363,8 @@ func GetWikidataItem(
 		return nil, nil, "", errE
 	}
 
-	log.Warn().Str("entity", id).Str("redirect", ii.Redirect).Msg("item redirects")
+	// There is nothing to do about it. This is an artifact of items being merged.
+	log.Debug().Str("entity", id).Str("redirect", ii.Redirect).Msg("item redirects")
 
 	return document, hit, ii.Redirect, nil
 }
