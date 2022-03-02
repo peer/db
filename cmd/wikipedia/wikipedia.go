@@ -221,7 +221,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 			}
 		} else if ii.Redirect != "" {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
-		} else if strings.Contains(article.ArticleBody.WikiText, "{{Wiktionary redirect") {
+		} else if strings.Contains(strings.ToLower(article.ArticleBody.WikiText), "{{wiktionary redirect") {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
 		} else {
 			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
