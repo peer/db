@@ -81,6 +81,12 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 // TODO: Should we use cache for cases where file has not been found?
 //       Currently we use the function in the context where every file document is fetched
 //       only once, one after the other, so caching will not help.
+
+// We do not follow a redirect, because currently we use the function in
+// the context where we want the document exactly under that name
+// (to add its article). Otherwise it could happen that we add an article
+// with only a redirect tag to a document which has a proper article,
+// overwriting it (redirect pages also have articles).
 func GetWikipediaFile(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
@@ -114,9 +120,6 @@ func GetWikipediaFile(
 	}
 
 	// We could not find the file. Maybe there it is from Wikimedia Commons?
-	// We do not follow a redirect, because currently we use the function in
-	// the context where we want the document exactly under that name
-	// (to add its article).
 	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", name)
 	if errE != nil {
 		// Not found error here probably means that file has been deleted recently.
@@ -138,10 +141,6 @@ func GetWikipediaFile(
 		errors.Details(errE)["file"] = name
 		errors.Details(errE)["url"] = ii.DescriptionURL
 		return nil, nil, errE
-	}
-
-	if ii.Redirect != "" {
-		log.Warn().Str("file", name).Str("redirect", ii.Redirect).Msg("file redirects")
 	}
 
 	// File exists through API but we do not have it. Probably it is too new.

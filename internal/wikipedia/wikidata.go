@@ -328,6 +328,9 @@ func getWikimediaCommonsFileReference(
 // TODO: Should we use cache for cases where item has not been found?
 //       Currently we use the function in the context where every item document is fetched
 //       only once, one after the other, so caching will not help.
+
+// We do follow a redirect, because currently we use the function in
+// the context where we want the target document (to add its article).
 func GetWikidataItem(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, id string,
 ) (*search.Document, *elastic.SearchHit, string, errors.E) {
