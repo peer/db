@@ -32,7 +32,7 @@ var (
 
 	notSupportedDataValueTypeError = errors.BaseWrap(SilentSkippedError, "not supported data value type")
 	notSupportedDataTypeError      = errors.BaseWrap(SilentSkippedError, "not supported data type")
-	NotFoundFileError              = errors.Base("not found file")
+	NotFoundError                  = errors.Base("not found")
 
 	nonMainWikipediaNamespaces = []string{
 		"User:",
@@ -223,7 +223,7 @@ func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, 
 	}
 
 	// Caller should add details to the error.
-	return nil, nil, errors.WithStack(NotFoundFileError)
+	return nil, nil, errors.WithStack(NotFoundError)
 }
 
 func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elastic.Client, name string) (*wikimediaCommonsFile, errors.E) {
@@ -261,7 +261,7 @@ func getWikimediaCommonsFileReference(
 	maybeFile, ok := cache.Get(name)
 	if ok {
 		if maybeFile == nil {
-			errE := errors.WithStack(NotFoundFileError)
+			errE := errors.WithStack(NotFoundError)
 			errors.Details(errE)["file"] = name
 			return nil, errE
 		}
@@ -269,7 +269,7 @@ func getWikimediaCommonsFileReference(
 	}
 
 	file, err := getWikimediaCommonsFileReferenceFromES(ctx, esClient, name)
-	if errors.Is(err, NotFoundFileError) {
+	if errors.Is(err, NotFoundError) {
 		// Passthrough.
 	} else if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func getWikimediaCommonsFileReference(
 	} else if ii.Redirect == "" {
 		// No redirect.
 		cache.Add(name, nil)
-		errE := errors.WithStack(NotFoundFileError)
+		errE := errors.WithStack(NotFoundError)
 		errors.Details(errE)["file"] = name
 		return nil, errE
 	}
@@ -298,7 +298,7 @@ func getWikimediaCommonsFileReference(
 	maybeFile, ok = cache.Get(ii.Redirect)
 	if ok {
 		if maybeFile == nil {
-			errE := errors.WithStack(NotFoundFileError)
+			errE := errors.WithStack(NotFoundError)
 			errors.Details(errE)["file"] = name
 			errors.Details(errE)["redirect"] = ii.Redirect
 			return nil, errE
@@ -308,7 +308,7 @@ func getWikimediaCommonsFileReference(
 
 	file, err = getWikimediaCommonsFileReferenceFromES(ctx, esClient, ii.Redirect)
 	if err != nil {
-		if errors.Is(err, NotFoundFileError) {
+		if errors.Is(err, NotFoundError) {
 			cache.Add(name, nil)
 			cache.Add(ii.Redirect, nil)
 		}
@@ -332,7 +332,7 @@ func GetWikidataItem(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, id string,
 ) (*search.Document, *elastic.SearchHit, string, errors.E) {
 	document, hit, err := getDocumentFromES(ctx, esClient, "WIKIDATA_ITEM_ID", id)
-	if errors.Is(err, NotFoundFileError) {
+	if errors.Is(err, NotFoundError) {
 		// Passthrough.
 	} else if err != nil {
 		errors.Details(err)["entity"] = id
@@ -350,7 +350,7 @@ func GetWikidataItem(
 		return nil, nil, "", errE
 	} else if ii.Redirect == "" {
 		// No redirect.
-		errE := errors.WithStack(NotFoundFileError)
+		errE := errors.WithStack(NotFoundError)
 		errors.Details(errE)["entity"] = id
 		return nil, nil, "", errE
 	}
@@ -430,7 +430,7 @@ func processSnak( //nolint:ireturn,nolintlint
 
 			file, err := getWikimediaCommonsFileReference(ctx, log, httpClient, esClient, cache, idArgs, filename)
 			if err != nil {
-				if errors.Is(err, NotFoundFileError) {
+				if errors.Is(err, NotFoundError) {
 					if _, ok := skippedCommonsFiles.Load(filename); ok {
 						errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "not found skipped file"))
 						errors.Details(errE)["file"] = filename

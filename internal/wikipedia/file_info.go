@@ -179,7 +179,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 		pageTasks := tasksMap[page.Title]
 		if page.Missing && !page.Known {
 			for _, task := range pageTasks {
-				errE := errors.WithStack(NotFoundFileError)
+				errE := errors.WithStack(NotFoundError)
 				errors.Details(errE)["title"] = page.Title
 				task.ErrChan <- errE
 			}

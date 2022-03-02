@@ -85,7 +85,7 @@ func GetWikipediaFile(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
 	document, hit, errE := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
-	if errors.Is(errE, NotFoundFileError) {
+	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
 	} else if errE != nil {
 		errors.Details(errE)["file"] = name
@@ -101,7 +101,7 @@ func GetWikipediaFile(
 	// be possible but are probably harmless: we already did not find a Wikipedia file, so we are
 	// primarily trying to understand why not.
 	_, _, errE = getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
-	if errors.Is(errE, NotFoundFileError) {
+	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
 	} else if errE != nil {
 		errors.Details(errE)["file"] = name
@@ -145,7 +145,7 @@ func GetWikipediaFile(
 	}
 
 	// File exists through API but we do not have it. Probably it is too new.
-	errE = errors.WithStack(NotFoundFileError)
+	errE = errors.WithStack(NotFoundError)
 	errors.Details(errE)["file"] = name
 	return nil, nil, errE
 }

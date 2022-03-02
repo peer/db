@@ -137,7 +137,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		details["title"] = article.Name
 		if errors.Is(err, wikipedia.WikimediaCommonsFileError) {
 			globals.Log.Debug().Err(err).Fields(details).Send()
-		} else if errors.Is(err, wikipedia.NotFoundFileError) {
+		} else if errors.Is(err, wikipedia.NotFoundError) {
 			if _, ok := skippedWikipediaFiles.Load(filename); ok {
 				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped file")
 			} else {
@@ -214,7 +214,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		if err != nil {
 			details := errors.AllDetails(err)
 			details["title"] = article.Name
-			if errors.Is(err, wikipedia.NotFoundFileError) {
+			if errors.Is(err, wikipedia.NotFoundError) {
 				globals.Log.Warn().Err(err).Fields(details).Msg("article does not have an associated entity")
 			} else {
 				globals.Log.Error().Err(err).Fields(details).Msg("article does not have an associated entity")
@@ -234,7 +234,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
-		if errors.Is(err, wikipedia.NotFoundFileError) {
+		if errors.Is(err, wikipedia.NotFoundError) {
 			redirectInterface, ok := details["redirect"]
 			if ok {
 				redirect = redirectInterface.(string) //nolint:errcheck
