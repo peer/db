@@ -194,7 +194,7 @@ func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, 
 		return nil, nil, errors.WithStack(err)
 	}
 
-	// There might be multiple hits because IDs are not unique (we remove zeroes).
+	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
 	for _, hit := range searchResult.Hits.Hits {
 		var document search.Document
 		err = x.UnmarshalWithoutUnknownFields(hit.Source, &document)

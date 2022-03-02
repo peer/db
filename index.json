@@ -54,7 +54,8 @@
             "zeros_prefix_trim"
           ],
           "filter": [
-            "trim"
+            "trim",
+            "lowercase"
           ]
         }
       },
