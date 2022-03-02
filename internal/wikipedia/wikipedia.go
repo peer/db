@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
@@ -137,6 +138,11 @@ func GetWikipediaFile(
 	}
 
 	if descriptionURL.Host != "en.wikipedia.org" {
+		descriptionFilename := strings.TrimPrefix(descriptionURL.Path, "/wiki/File:")
+		if descriptionFilename != name {
+			log.Warn().Str("file", name).Str("commons", descriptionFilename).Msg("Wikipedia file name mismatch with Mediawiki Commons")
+		}
+
 		errE := errors.WithStack(WikimediaCommonsFileError) //nolint:govet
 		errors.Details(errE)["file"] = name
 		errors.Details(errE)["url"] = ii.DescriptionURL
