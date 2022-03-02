@@ -142,6 +142,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 		errE := errors.New("unexpected result page(s)")
 		errors.Details(errE)["got"] = len(apiResp.Query.Pages)
 		errors.Details(errE)["expected"] = len(tasksMap)
+		errors.Details(errE)["url"] = debugURL
 		return errE
 	}
 
@@ -160,6 +161,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 		if _, ok := tasksMap[page.Title]; !ok {
 			errE := errors.New("unexpected result page")
 			errors.Details(errE)["title"] = page.Title
+			errors.Details(errE)["url"] = debugURL
 			return errE
 		}
 		pagesMap[page.Title] = page
@@ -169,6 +171,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 		errE := errors.New("unexpected mapped result page(s)")
 		errors.Details(errE)["got"] = len(pagesMap)
 		errors.Details(errE)["expected"] = len(tasksMap)
+		errors.Details(errE)["url"] = debugURL
 		return errE
 	}
 
@@ -188,6 +191,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 				errE := errors.New("invalid")
 				errors.Details(errE)["title"] = page.Title
 				errors.Details(errE)["reason"] = page.InvalidReason
+				errors.Details(errE)["url"] = debugURL
 				task.ErrChan <- errE
 			}
 		} else if len(page.ImageInfo) == 0 {
@@ -203,6 +207,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 			for _, task := range pageTasks {
 				errE := errors.New("more than one image info result")
 				errors.Details(errE)["title"] = page.Title
+				errors.Details(errE)["url"] = debugURL
 				task.ErrChan <- errE
 			}
 		} else {
