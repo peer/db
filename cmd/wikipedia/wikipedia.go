@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -22,6 +23,8 @@ var (
 	// Set of filenames.
 	skippedWikipediaFiles      = sync.Map{}
 	skippedWikipediaFilesCount int64
+
+	wiktionaryRegex = regexp.MustCompile(`(?i)\{\{(wiktionary redirect|wi\|)`)
 )
 
 type WikipediaFilesCommand struct {
@@ -221,7 +224,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 			}
 		} else if ii.Redirect != "" {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
-		} else if strings.Contains(strings.ToLower(article.ArticleBody.WikiText), "{{wiktionary redirect") {
+		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
 		} else {
 			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
