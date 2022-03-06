@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -138,37 +139,46 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 		return errE
 	}
 
-	if len(apiResp.Query.Pages) != len(tasksMap) {
-		errE := errors.New("unexpected result page(s)")
-		errors.Details(errE)["got"] = len(apiResp.Query.Pages)
-		errors.Details(errE)["expected"] = len(tasksMap)
-		errors.Details(errE)["url"] = debugURL
-		return errE
-	}
-
 	redirects := map[string]string{}
-	redirectsReverse := map[string]string{}
+	redirectsReverse := map[string][]string{}
 	for _, redirect := range apiResp.Query.Redirects {
 		redirects[redirect.From] = redirect.To
-		redirectsReverse[redirect.To] = redirect.From
+		if _, ok := redirectsReverse[redirect.To]; !ok {
+			redirectsReverse[redirect.To] = []string{}
+		}
+		redirectsReverse[redirect.To] = append(redirectsReverse[redirect.To], redirect.From)
 	}
 
 	pagesMap := map[string]page{}
 	for _, page := range apiResp.Query.Pages {
-		if redirect, ok := redirectsReverse[page.Title]; ok {
-			page.Title = redirect
+		redirects, ok := redirectsReverse[page.Title]
+		if !ok {
+			// Fake redirect.
+			redirects = []string{page.Title}
 		}
-		if _, ok := tasksMap[page.Title]; !ok {
-			errE := errors.New("unexpected result page")
-			errors.Details(errE)["title"] = page.Title
-			errors.Details(errE)["url"] = debugURL
-			return errE
+		for _, redirect := range redirects {
+			// Make a copy.
+			p := page
+			// This assignment is unnecessary for a fake redirect.
+			p.Title = redirect
+			if _, ok := tasksMap[p.Title]; !ok {
+				errE := errors.New("unexpected result page")
+				errors.Details(errE)["got"] = p.Title
+				titles := []string{}
+				for t := range tasksMap {
+					titles = append(titles, t)
+				}
+				sort.Strings(titles)
+				errors.Details(errE)["expected"] = titles
+				errors.Details(errE)["url"] = debugURL
+				return errE
+			}
+			pagesMap[p.Title] = p
 		}
-		pagesMap[page.Title] = page
 	}
 
 	if len(tasksMap) != len(pagesMap) {
-		errE := errors.New("unexpected mapped result page(s)")
+		errE := errors.New("unexpected result page(s)")
 		errors.Details(errE)["got"] = len(pagesMap)
 		errors.Details(errE)["expected"] = len(tasksMap)
 		errors.Details(errE)["url"] = debugURL
