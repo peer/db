@@ -24,7 +24,9 @@ var (
 	skippedWikipediaFiles      = sync.Map{}
 	skippedWikipediaFilesCount int64
 
-	wiktionaryRegex = regexp.MustCompile(`(?i)\{\{(wiktionary redirect|wi\|)`)
+	wiktionaryRegex       = regexp.MustCompile(`(?i)\{\{(wiktionary redirect|WiktionaryRedirect|Wiktionary-redirect|wi(\||\}\})|wtr(\||\}\}))`)
+	wikispeciesRegex      = regexp.MustCompile(`(?i)\{\{(wikispecies redirect)`)
+	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
 )
 
 type WikipediaFilesCommand struct {
@@ -226,6 +228,10 @@ func (c *WikipediaArticlesCommand) processArticle(
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
 		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
+		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
+		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
 		} else {
 			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
 		}
