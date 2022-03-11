@@ -35,6 +35,7 @@ type Config struct {
 	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" name:"wikipedia-file-descriptions" help:"Populate search with Wikipedia file descriptions HTML dump."`
 	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`
 	Prepare                   PrepareCommand                   `cmd:"" help:"Prepare populated data for search."`
+	Optimize                  OptimizeCommand                  `cmd:"" help:"Optimize search data."`
 
 	All AllCommand `cmd:"" default:"" help:"Run all passes in order. Default command."`
 }
@@ -53,6 +54,7 @@ func (c *AllCommand) Run(globals *Globals) errors.E {
 		&WikipediaFileDescriptionsCommand{},
 		&WikipediaArticlesCommand{},
 		&PrepareCommand{},
+		&OptimizeCommand{},
 	}
 
 	for _, command := range allCommands {
