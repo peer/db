@@ -96,17 +96,17 @@ func getSearch(form url.Values) (*search, bool) {
 	return ss, true
 }
 
-// ListResult is returned from the ListGet API endpoint.
-type listResult struct {
+// searchResult is returned from the searchGet API endpoint.
+type searchResult struct {
 	ID string `json:"_id"`
 }
 
-// listGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// searchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
 // state and returns to the client a JSON with an array of IDs of found documents. If called using
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) searchGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -151,20 +151,20 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 		searchService = searchService.Query(boolQuery)
 	}
 	m = timing.NewMetric("es").Start()
-	searchResult, err := searchService.Do(ctx)
+	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
 		return
 	}
 
-	results := make([]listResult, len(searchResult.Hits.Hits))
-	for i, hit := range searchResult.Hits.Hits {
-		results[i] = listResult{ID: hit.Id}
+	results := make([]searchResult, len(res.Hits.Hits))
+	for i, hit := range res.Hits.Hits {
+		results[i] = searchResult{ID: hit.Id}
 	}
 
-	total := strconv.FormatInt(searchResult.Hits.TotalHits.Value, 10) //nolint:gomnd
-	if searchResult.Hits.TotalHits.Relation == "gte" {
+	total := strconv.FormatInt(res.Hits.TotalHits.Value, 10) //nolint:gomnd
+	if res.Hits.TotalHits.Relation == "gte" {
 		total += "+"
 	}
 
@@ -173,9 +173,9 @@ func (s *Service) listGet(w http.ResponseWriter, req *http.Request, _ httprouter
 	})
 }
 
-// listPost is a POST HTTP request handler which stores the search state and redirect to
+// searchPost is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) listPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) searchPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 

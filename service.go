@@ -218,9 +218,9 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
 
-	router.GET("/d", logHandlerName(s.listGet))
-	router.HEAD("/d", logHandlerName(s.listGet))
-	router.POST("/d", logHandlerName(s.listPost))
+	router.GET("/d", logHandlerName(s.searchGet))
+	router.HEAD("/d", logHandlerName(s.searchGet))
+	router.POST("/d", logHandlerName(s.searchPost))
 	router.GET("/d/:id", logHandlerName(s.get))
 	router.HEAD("/d/:id", logHandlerName(s.get))
 
