@@ -1,8 +1,10 @@
 package search
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -35,6 +37,19 @@ func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
 					return c.Str(fieldKey, id)
 				})
 			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+func protocolHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			proto := strings.TrimPrefix(req.Proto, "HTTP/")
+			log := zerolog.Ctx(req.Context())
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, proto)
+			})
 			next.ServeHTTP(w, req)
 		})
 	}
@@ -105,8 +120,7 @@ func etagHandler(fieldKey string) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, req)
 			etag := w.Header().Get("Etag")
 			if etag != "" {
-				etag = strings.TrimPrefix(etag, `"`)
-				etag = strings.TrimSuffix(etag, `"`)
+				etag = strings.ReplaceAll(etag, `"`, "")
 				log := zerolog.Ctx(req.Context())
 				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 					return c.Str(fieldKey, etag)
@@ -213,6 +227,42 @@ func removeMetadataHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// websocketHandler records metrics about a websocket.
+func websocketHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			var websocket bool
+			var read int64
+			var written int64
+			next.ServeHTTP(httpsnoop.Wrap(w, httpsnoop.Hooks{
+				Hijack: func(next httpsnoop.HijackFunc) httpsnoop.HijackFunc {
+					return func() (net.Conn, *bufio.ReadWriter, error) {
+						conn, bufrw, err := next()
+						if err != nil {
+							return conn, bufrw, err
+						}
+						websocket = true
+						return &metricsConn{
+							Conn:    conn,
+							read:    &read,
+							written: &written,
+						}, bufrw, err
+					}
+				},
+			}), req)
+			if websocket {
+				log := zerolog.Ctx(req.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					data := zerolog.Dict()
+					data.Int64("fromClient", read)
+					data.Int64("toClient", written)
+					return c.Dict(fieldKey, data)
+				})
+			}
+		})
+	}
+}
+
 func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
@@ -255,12 +305,14 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 			Send()
 	}))
 	c = c.Append(removeMetadataHeaders)
+	c = c.Append(websocketHandler("ws"))
 	c = c.Append(hlog.MethodHandler("method"))
 	c = c.Append(remoteAddrHandler("client"))
 	c = c.Append(hlog.UserAgentHandler("agent"))
 	c = c.Append(hlog.RefererHandler("referer"))
 	c = c.Append(connectionIDHandler("connection"))
 	c = c.Append(requestIDHandler("request", "Request-ID"))
+	c = c.Append(protocolHandler("proto"))
 	c = c.Append(etagHandler("etag"))
 	c = c.Append(contentEncodingHandler("encoding"))
 	// parseForm should be as late as possible because it can fail

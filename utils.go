@@ -8,13 +8,18 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/textproto"
+	"net/url"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/andybalholm/brotli"
+	"github.com/hashicorp/go-cleanhttp"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -64,6 +69,32 @@ func getHost(hostPort string) string {
 // notFound is a HTTP request handler which returns a 404 error to the client.
 func (s *Service) notFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
+}
+
+func (s *Service) makeReverseProxy() errors.E {
+	target, err := url.Parse(s.Development)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	singleHostDirector := httputil.NewSingleHostReverseProxy(target).Director
+	director := func(req *http.Request) {
+		singleHostDirector(req)
+		// TODO: Map origin and other headers.
+	}
+
+	// TODO: Map response cookies, other headers which include origin, and redirect locations.
+	s.reverseProxy = &httputil.ReverseProxy{
+		Director:      director,
+		Transport:     cleanhttp.DefaultPooledTransport(),
+		FlushInterval: -1,
+		ErrorLog:      log.New(s.Log, "", 0),
+	}
+	return nil
+}
+
+func (s *Service) proxy(w http.ResponseWriter, req *http.Request) {
+	s.reverseProxy.ServeHTTP(w, req)
 }
 
 func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
@@ -264,4 +295,22 @@ func logValues(c zerolog.Context, field string, values map[string][]string) zero
 	}
 
 	return c.Object(field, valuesLogObjectMarshaler(values))
+}
+
+type metricsConn struct {
+	net.Conn
+	read    *int64
+	written *int64
+}
+
+func (c *metricsConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	atomic.AddInt64(c.read, int64(n))
+	return n, err
+}
+
+func (c *metricsConn) Write(b []byte) (int, error) {
+	n, err := c.Conn.Write(b)
+	atomic.AddInt64(c.written, int64(n))
+	return n, err
 }
