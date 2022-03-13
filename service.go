@@ -270,22 +270,33 @@ func websocketHandler(fieldKey string) func(next http.Handler) http.Handler {
 func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
+	router.HandleMethodNotAllowed = true
 
-	router.GET("/d", logHandlerName(s.searchGet))
-	router.HEAD("/d", logHandlerName(s.searchGet))
-	router.POST("/d", logHandlerName(s.searchPost))
-	router.GET("/d/:id", logHandlerName(s.get))
-	router.HEAD("/d/:id", logHandlerName(s.get))
+	router.GET("/d", contentTypeMux{
+		HTML: logHandlerName(s.searchGetHTML),
+		JSON: logHandlerName(s.searchGetJSON),
+	}.Handle)
+	router.HEAD("/d", contentTypeMux{
+		HTML: logHandlerName(s.searchGetHTML),
+		JSON: logHandlerName(s.searchGetJSON),
+	}.Handle)
+	router.POST("/d", logHandlerName(s.searchPostJSON))
+	router.GET("/d/:id", contentTypeMux{
+		HTML: logHandlerName(s.getHTML),
+		JSON: logHandlerName(s.getJSON),
+	}.Handle)
+	router.HEAD("/d/:id", contentTypeMux{
+		HTML: logHandlerName(s.getHTML),
+		JSON: logHandlerName(s.getJSON),
+	}.Handle)
 
 	if s.Development != "" {
 		errE := s.makeReverseProxy()
 		if errE != nil {
 			return nil, errE
 		}
-		router.HandleMethodNotAllowed = false
 		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.proxy))
 	} else {
-		router.HandleMethodNotAllowed = true
 		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.notFound))
 	}
 	router.PanicHandler = s.handlePanic

@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
+	gddo "github.com/golang/gddo/httputil"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -313,4 +315,28 @@ func (c *metricsConn) Write(b []byte) (int, error) {
 	n, err := c.Conn.Write(b)
 	atomic.AddInt64(c.written, int64(n))
 	return n, err
+}
+
+type contentTypeMux struct {
+	HTML func(http.ResponseWriter, *http.Request, httprouter.Params)
+	JSON func(http.ResponseWriter, *http.Request, httprouter.Params)
+}
+
+func (m contentTypeMux) Handle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	offers := []string{}
+	if m.HTML != nil {
+		offers = append(offers, "text/html")
+	}
+	if m.JSON != nil {
+		offers = append(offers, "application/json")
+	}
+
+	contentType := gddo.NegotiateContentType(req, offers, offers[0])
+
+	switch contentType {
+	case "text/html":
+		m.HTML(w, req, ps)
+	case "application/json":
+		m.JSON(w, req, ps)
+	}
 }

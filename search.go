@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/golang/gddo/httputil"
+	gddo "github.com/golang/gddo/httputil"
 	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
@@ -101,12 +101,12 @@ type searchResult struct {
 	ID string `json:"_id"`
 }
 
-// searchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// searchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
 // state and returns to the client a JSON with an array of IDs of found documents. If called using
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) searchGet(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) searchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -120,7 +120,7 @@ func (s *Service) searchGet(w http.ResponseWriter, req *http.Request, _ httprout
 		return
 	}
 
-	contentEncoding := httputil.NegotiateContentEncoding(req, []string{compressionBrotli, compressionGzip, compressionDeflate, compressionIdentity})
+	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionBrotli, compressionGzip, compressionDeflate, compressionIdentity})
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 		return
@@ -173,9 +173,9 @@ func (s *Service) searchGet(w http.ResponseWriter, req *http.Request, _ httprout
 	})
 }
 
-// searchPost is a POST HTTP request handler which stores the search state and redirect to
+// searchPostJSON is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) searchPost(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) searchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -187,4 +187,14 @@ func (s *Service) searchPost(w http.ResponseWriter, req *http.Request, _ httprou
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
 	w.Header().Set("Location", "/d?"+sh.Encode())
 	w.WriteHeader(http.StatusSeeOther)
+}
+
+// searchGetJSON is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+func (s *Service) searchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if s.Development != "" {
+		s.proxy(w, req)
+	} else {
+		// TODO
+		http.Error(w, "501 not implemented", http.StatusNotImplemented)
+	}
 }

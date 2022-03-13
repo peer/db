@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/gddo/httputil"
+	gddo "github.com/golang/gddo/httputil"
 	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
@@ -19,9 +19,9 @@ import (
 
 // TODO: Support slug per document.
 
-// get is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// getJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) getJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -30,7 +30,7 @@ func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 		http.Error(w, "400 bad request", http.StatusBadRequest)
 	}
 
-	contentEncoding := httputil.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
+	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 		return
@@ -73,4 +73,15 @@ func (s *Service) get(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 	// See: https://github.com/golang/go/issues/50905
 	// See: https://github.com/golang/go/pull/50903
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(resp.Body))
+}
+
+// getHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
+// document given its ID as a parameter.
+func (s *Service) getHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	if s.Development != "" {
+		s.proxy(w, req)
+	} else {
+		// TODO
+		http.Error(w, "501 not implemented", http.StatusNotImplemented)
+	}
 }
