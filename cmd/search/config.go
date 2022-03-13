@@ -11,6 +11,8 @@ import (
 type Config struct {
 	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
 	cli.LoggingConfig
-	CertFile string `short:"c" placeholder:"PATH" required:"" type:"existingfile" help:"A certificate for TLS."`
-	KeyFile  string `short:"k" placeholder:"PATH" required:"" type:"existingfile" help:"A certificate's matching private key."`
+	CertFile    string `short:"c" placeholder:"PATH" required:"" type:"existingfile" help:"A certificate for TLS."`
+	KeyFile     string `short:"k" placeholder:"PATH" required:"" type:"existingfile" help:"A certificate's matching private key."`
+	Development bool   `short:"d" help:"Run in development mode and proxy unknown requests."`
+	ProxyTo     string `placeholder:"URL" default:"http://localhost:3000" help:"Base URL to proxy to in development mode. Default: ${default}"`
 }

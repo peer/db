@@ -57,4 +57,4 @@ audit:
 	go list -json -deps | nancy sleuth --skip-update-check
 
 watch:
-	CompileDaemon -build="make --silent search" -command="./search -c localhost+2.pem -k localhost+2-key.pem" -include="*.tmpl" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true
+	CompileDaemon -build="make --silent search" -command="./search -d -c localhost+2.pem -k localhost+2-key.pem" -include="*.tmpl" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true

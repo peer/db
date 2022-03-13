@@ -21,13 +21,22 @@ func listen(config *Config) errors.E {
 		return err
 	}
 
+	development := config.ProxyTo
+	if !config.Development {
+		development = ""
+	}
+
 	s := &search.Service{
-		ESClient: esClient,
-		Log:      config.Log,
+		ESClient:    esClient,
+		Log:         config.Log,
+		Development: development,
 	}
 
 	router := httprouter.New()
-	handler := s.RouteWith(router)
+	handler, err := s.RouteWith(router)
+	if err != nil {
+		return err
+	}
 
 	// TODO: Implement graceful shutdown.
 	server := &http.Server{

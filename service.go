@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"reflect"
 	"runtime"
 	"strings"
@@ -18,13 +19,16 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
+	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
 )
 
 type Service struct {
-	ESClient *elastic.Client
-	Log      zerolog.Logger
+	ESClient     *elastic.Client
+	Log          zerolog.Logger
+	Development  string
+	reverseProxy *httputil.ReverseProxy
 }
 
 func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
@@ -263,10 +267,9 @@ func websocketHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
+func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
-	router.HandleMethodNotAllowed = true
 
 	router.GET("/d", logHandlerName(s.searchGet))
 	router.HEAD("/d", logHandlerName(s.searchGet))
@@ -274,7 +277,17 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	router.GET("/d/:id", logHandlerName(s.get))
 	router.HEAD("/d/:id", logHandlerName(s.get))
 
-	router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.notFound))
+	if s.Development != "" {
+		errE := s.makeReverseProxy()
+		if errE != nil {
+			return nil, errE
+		}
+		router.HandleMethodNotAllowed = false
+		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.proxy))
+	} else {
+		router.HandleMethodNotAllowed = true
+		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.notFound))
+	}
 	router.PanicHandler = s.handlePanic
 
 	c := alice.New()
@@ -321,5 +334,5 @@ func (s *Service) RouteWith(router *httprouter.Router) http.Handler {
 	// URLHandler should be after the parseForm middleware.
 	c = c.Append(urlHandler("path", "query"))
 
-	return c.Then(router)
+	return c.Then(router), nil
 }
