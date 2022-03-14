@@ -28,6 +28,7 @@ func (s *Service) DocumentGetJSON(w http.ResponseWriter, req *http.Request, ps h
 	id := ps.ByName("id")
 	if !identifier.Valid(id) {
 		http.Error(w, "400 bad request", http.StatusBadRequest)
+		return
 	}
 
 	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
@@ -78,6 +79,33 @@ func (s *Service) DocumentGetJSON(w http.ResponseWriter, req *http.Request, ps h
 // DocumentGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
 func (s *Service) DocumentGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	id := ps.ByName("id")
+	if !identifier.Valid(id) {
+		http.Error(w, "400 bad request", http.StatusBadRequest)
+		return
+	}
+
+	// We check if document exists.
+	headers := http.Header{}
+	headers.Set("X-Opaque-ID", idFromRequest(req))
+	m := timing.NewMetric("es").Start()
+	_, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
+		Method:  "HEAD",
+		Path:    fmt.Sprintf("/docs/_doc/%s", id),
+		Headers: headers,
+	})
+	m.Stop()
+	if elastic.IsNotFound(err) {
+		s.NotFound(w, req)
+		return
+	} else if err != nil {
+		s.internalServerError(w, req, errors.WithStack(err))
+		return
+	}
+
 	if s.Development != "" {
 		s.Proxy(w, req)
 	} else {
