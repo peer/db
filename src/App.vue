@@ -2,9 +2,10 @@
 </script>
 
 <template>
+  <router-view></router-view>
 </template>
 
-<style>
+<style lang="scss">
 #app {
   font-family: Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

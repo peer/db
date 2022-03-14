@@ -289,6 +289,8 @@ func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) 
 		HTML: logHandlerName(s.getHTML),
 		JSON: logHandlerName(s.getJSON),
 	}.Handle)
+	router.GET("/", logHandlerName(s.homeHTML))
+	router.HEAD("/", logHandlerName(s.homeHTML))
 
 	if s.Development != "" {
 		errE := s.makeReverseProxy()
