@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"reflect"
 	"runtime"
 	"strings"
@@ -41,6 +42,7 @@ type Service struct {
 	Log          zerolog.Logger
 	Development  string
 	reverseProxy *httputil.ReverseProxy
+	routes       map[string][]pathSegment
 }
 
 func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
@@ -321,12 +323,20 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 			errors.Details(errE)["path"] = route.Path
 			return errE
 		}
+
+		s.routes[route.Name] = parsePath(route.Path)
 	}
 
 	return nil
 }
 
 func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) {
+	if s.routes != nil {
+		panic(errors.New("RouteWith called more than once"))
+	}
+
+	s.routes = make(map[string][]pathSegment)
+
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
@@ -392,4 +402,72 @@ func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) 
 	c = c.Append(urlHandler("path", "query"))
 
 	return c.Then(router), nil
+}
+
+type pathSegment struct {
+	Value     string
+	Parameter bool
+	Optional  bool
+}
+
+func parsePath(path string) []pathSegment {
+	parts := strings.Split(path, "/")
+	segments := []pathSegment{}
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		var segment pathSegment
+		if strings.HasPrefix(part, ":") {
+			segment.Value = strings.TrimPrefix(part, ":")
+			segment.Parameter = true
+			segment.Optional = false
+		} else if strings.HasPrefix(part, "*") {
+			segment.Value = strings.TrimPrefix(part, "*")
+			segment.Parameter = true
+			segment.Optional = true
+		} else {
+			segment.Value = part
+		}
+		segments = append(segments, segment)
+	}
+	return segments
+}
+
+func (s *Service) path(name string, params url.Values, query url.Values) (string, errors.E) {
+	segments, ok := s.routes[name]
+	if !ok {
+		return "", errors.Errorf(`route with name "%s" does not exist`, name)
+	}
+
+	var res strings.Builder
+	for _, segment := range segments {
+		if !segment.Parameter {
+			res.WriteString("/")
+			res.WriteString(segment.Value)
+			continue
+		}
+
+		val := params.Get(segment.Value)
+		if val != "" {
+			res.WriteString("/")
+			res.WriteString(val)
+			continue
+		}
+
+		if !segment.Optional {
+			return "", errors.Errorf(`parameter "%s" for route "%s" is required`, segment.Value, name)
+		}
+	}
+
+	if res.Len() == 0 {
+		res.WriteString("/")
+	}
+
+	if len(query) > 0 {
+		res.WriteString("?")
+		res.WriteString(query.Encode())
+	}
+
+	return res.String(), nil
 }

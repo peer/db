@@ -23,12 +23,12 @@ type search struct {
 	Text     string
 }
 
-// Encode encodes search state into a string suitable for use in a query string.
-func (q *search) Encode() string {
+// Values returns search state as values suitable for use in a query string.
+func (q *search) Values() url.Values {
 	v := url.Values{}
 	v.Set("q", q.Text)
 	v.Set("s", q.ID)
-	return v.Encode()
+	return v
 }
 
 // TODO: Use a database instead.
@@ -115,7 +115,12 @@ func (s *Service) SearchGetJSON(w http.ResponseWriter, req *http.Request, _ http
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
-		w.Header().Set("Location", "/d?"+sh.Encode())
+		path, err := s.path("Search", nil, sh.Values())
+		if err != nil {
+			s.internalServerError(w, req, err)
+			return
+		}
+		w.Header().Set("Location", path)
 		w.WriteHeader(http.StatusSeeOther)
 		return
 	}
@@ -182,10 +187,15 @@ func (s *Service) SearchPostJSON(w http.ResponseWriter, req *http.Request, _ htt
 	m := timing.NewMetric("s").Start()
 	sh := makeSearch(req.Form)
 	m.Stop()
+	path, err := s.path("Search", nil, sh.Values())
+	if err != nil {
+		s.internalServerError(w, req, err)
+		return
+	}
 	// TODO: Should we push the location to the client, too?
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
-	w.Header().Set("Location", "/d?"+sh.Encode())
+	w.Header().Set("Location", path)
 	w.WriteHeader(http.StatusSeeOther)
 }
 
