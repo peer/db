@@ -1,19 +1,16 @@
 {
   "routes": [
     {
-      "name": "search",
-      "path": "/d",
-      "view": "Search"
+      "name": "Search",
+      "path": "/d"
     },
     {
-      "name": "get",
-      "path": "/d/:id",
-      "view": "Get"
+      "name": "Document",
+      "path": "/d/:id"
     },
     {
-      "name": "home",
-      "path": "/",
-      "view": "Home"
+      "name": "Home",
+      "path": "/"
     }
   ]
 }

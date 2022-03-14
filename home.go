@@ -6,10 +6,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// homeHTML is a GET/HEAD HTTP request handler which returns HTML frontend for the home page.
-func (s *Service) homeHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+// HomeGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for the home page.
+func (s *Service) HomeGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	if s.Development != "" {
-		s.proxy(w, req)
+		s.Proxy(w, req)
 	} else {
 		// TODO
 		http.Error(w, "501 not implemented", http.StatusNotImplemented)

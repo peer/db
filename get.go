@@ -19,9 +19,9 @@ import (
 
 // TODO: Support slug per document.
 
-// getJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// DocumentGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) getJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -47,7 +47,7 @@ func (s *Service) getJSON(w http.ResponseWriter, req *http.Request, ps httproute
 	})
 	m.Stop()
 	if elastic.IsNotFound(err) {
-		s.notFound(w, req)
+		s.NotFound(w, req)
 		return
 	} else if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
@@ -75,11 +75,11 @@ func (s *Service) getJSON(w http.ResponseWriter, req *http.Request, ps httproute
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(resp.Body))
 }
 
-// getHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
+// DocumentGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
-func (s *Service) getHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	if s.Development != "" {
-		s.proxy(w, req)
+		s.Proxy(w, req)
 	} else {
 		// TODO
 		http.Error(w, "501 not implemented", http.StatusNotImplemented)

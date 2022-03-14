@@ -3,6 +3,7 @@ package search
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,9 +21,20 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search/identifier"
 )
+
+//go:embed routes.json
+var routesConfiguration []byte
+
+type routes struct {
+	Routes []struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	} `json:"routes"`
+}
 
 type Service struct {
 	ESClient     *elastic.Client
@@ -149,14 +161,7 @@ func contentEncodingHandler(fieldKey string) func(next http.Handler) http.Handle
 	}
 }
 
-func logHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
-	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
-	i := strings.LastIndex(name, ".")
-	if i != -1 {
-		name = name[i+1:]
-	}
-	name = strings.TrimSuffix(name, "-fm")
-
+func logHandlerName(name string, h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	if name == "" {
 		return h
 	}
@@ -170,7 +175,7 @@ func logHandlerName(h func(http.ResponseWriter, *http.Request, httprouter.Params
 	}
 }
 
-func logHandlerNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func logHandlerAutoNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	i := strings.LastIndex(name, ".")
 	if i != -1 {
@@ -267,39 +272,78 @@ func websocketHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
+func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
+	var rs routes
+	errE := x.UnmarshalWithoutUnknownFields(routesConfiguration, &rs)
+	if errE != nil {
+		return errE
+	}
+
+	v := reflect.ValueOf(s)
+
+	for _, route := range rs.Routes {
+		foundGet := false
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			mux := contentTypeMux{}
+			vm := reflect.ValueOf(&mux)
+			for _, contentType := range []string{"HTML", "JSON"} {
+				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentType)
+				m := v.MethodByName(handlerName)
+				if !m.IsValid() {
+					s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler not found")
+					continue
+				}
+				s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler found")
+				h, ok := m.Interface().(func(http.ResponseWriter, *http.Request, httprouter.Params))
+				if !ok {
+					errE := errors.Errorf("invalid route handler type: %T", m.Interface())
+					errors.Details(errE)["handler"] = handlerName
+					errors.Details(errE)["name"] = route.Name
+					errors.Details(errE)["path"] = route.Path
+					return errE
+				}
+				h = logHandlerName(handlerName, h)
+				vf := vm.Elem().FieldByName(contentType)
+				vf.Set(reflect.ValueOf(h))
+			}
+			if mux.IsEmpty() {
+				continue
+			}
+			router.Handle(method, route.Path, mux.Handle)
+			if method == http.MethodGet {
+				foundGet = true
+				router.Handle(http.MethodHead, route.Path, mux.Handle)
+			}
+		}
+		if !foundGet {
+			errE := errors.Errorf("no GET route handler found")
+			errors.Details(errE)["name"] = route.Name
+			errors.Details(errE)["path"] = route.Path
+			return errE
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
 	router.HandleMethodNotAllowed = true
 
-	router.GET("/d", contentTypeMux{
-		HTML: logHandlerName(s.searchGetHTML),
-		JSON: logHandlerName(s.searchGetJSON),
-	}.Handle)
-	router.HEAD("/d", contentTypeMux{
-		HTML: logHandlerName(s.searchGetHTML),
-		JSON: logHandlerName(s.searchGetJSON),
-	}.Handle)
-	router.POST("/d", logHandlerName(s.searchPostJSON))
-	router.GET("/d/:id", contentTypeMux{
-		HTML: logHandlerName(s.getHTML),
-		JSON: logHandlerName(s.getJSON),
-	}.Handle)
-	router.HEAD("/d/:id", contentTypeMux{
-		HTML: logHandlerName(s.getHTML),
-		JSON: logHandlerName(s.getJSON),
-	}.Handle)
-	router.GET("/", logHandlerName(s.homeHTML))
-	router.HEAD("/", logHandlerName(s.homeHTML))
+	errE := s.configureRoutes(router)
+	if errE != nil {
+		return nil, errE
+	}
 
 	if s.Development != "" {
 		errE := s.makeReverseProxy()
 		if errE != nil {
 			return nil, errE
 		}
-		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.proxy))
+		router.NotFound = http.HandlerFunc(logHandlerAutoNameNoParams(s.Proxy))
 	} else {
-		router.NotFound = http.HandlerFunc(logHandlerNameNoParams(s.notFound))
+		router.NotFound = http.HandlerFunc(logHandlerAutoNameNoParams(s.NotFound))
 	}
 	router.PanicHandler = s.handlePanic
 

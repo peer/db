@@ -101,12 +101,12 @@ type searchResult struct {
 	ID string `json:"_id"`
 }
 
-// searchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// SearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
 // state and returns to the client a JSON with an array of IDs of found documents. If called using
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) searchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) SearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -173,9 +173,9 @@ func (s *Service) searchGetJSON(w http.ResponseWriter, req *http.Request, _ http
 	})
 }
 
-// searchPostJSON is a POST HTTP request handler which stores the search state and redirect to
+// SearchPostJSON is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) searchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) SearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -189,10 +189,10 @@ func (s *Service) searchPostJSON(w http.ResponseWriter, req *http.Request, _ htt
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-// searchGetJSON is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-func (s *Service) searchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+// SearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+func (s *Service) SearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	if s.Development != "" {
-		s.proxy(w, req)
+		s.Proxy(w, req)
 	} else {
 		// TODO
 		http.Error(w, "501 not implemented", http.StatusNotImplemented)

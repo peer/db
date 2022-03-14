@@ -68,8 +68,8 @@ func getHost(hostPort string) string {
 	return host
 }
 
-// notFound is a HTTP request handler which returns a 404 error to the client.
-func (s *Service) notFound(w http.ResponseWriter, req *http.Request) {
+// NotFound is a HTTP request handler which returns a 404 error to the client.
+func (s *Service) NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
@@ -95,7 +95,7 @@ func (s *Service) makeReverseProxy() errors.E {
 	return nil
 }
 
-func (s *Service) proxy(w http.ResponseWriter, req *http.Request) {
+func (s *Service) Proxy(w http.ResponseWriter, req *http.Request) {
 	s.reverseProxy.ServeHTTP(w, req)
 }
 
@@ -320,6 +320,10 @@ func (c *metricsConn) Write(b []byte) (int, error) {
 type contentTypeMux struct {
 	HTML func(http.ResponseWriter, *http.Request, httprouter.Params)
 	JSON func(http.ResponseWriter, *http.Request, httprouter.Params)
+}
+
+func (m contentTypeMux) IsEmpty() bool {
+	return m.HTML == nil && m.JSON == nil
 }
 
 func (m contentTypeMux) Handle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
