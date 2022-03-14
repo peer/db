@@ -11,7 +11,6 @@ func (s *Service) HomeGetHTML(w http.ResponseWriter, req *http.Request, ps httpr
 	if s.Development != "" {
 		s.Proxy(w, req)
 	} else {
-		// TODO
-		http.Error(w, "501 not implemented", http.StatusNotImplemented)
+		s.staticFile(w, req, "/index.html", false)
 	}
 }

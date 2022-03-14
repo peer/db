@@ -125,7 +125,7 @@ func (s *Service) SearchGetJSON(w http.ResponseWriter, req *http.Request, _ http
 		return
 	}
 
-	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionBrotli, compressionGzip, compressionDeflate, compressionIdentity})
+	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 		return
@@ -204,7 +204,6 @@ func (s *Service) SearchGetHTML(w http.ResponseWriter, req *http.Request, _ http
 	if s.Development != "" {
 		s.Proxy(w, req)
 	} else {
-		// TODO
-		http.Error(w, "501 not implemented", http.StatusNotImplemented)
+		s.staticFile(w, req, "/index.html", false)
 	}
 }

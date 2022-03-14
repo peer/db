@@ -7,13 +7,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"log"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/textproto"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search/identifier"
 )
@@ -43,6 +45,8 @@ const (
 	// compare against in the case insensitive manner.
 	peerDBMetadataHeaderPrefix = "peerdb-"
 )
+
+var allCompressions = []string{compressionBrotli, compressionGzip, compressionDeflate, compressionIdentity}
 
 // contextKey is a value for use with context.WithValue. It's used as
 // a pointer so it fits in an interface{} without allocation.
@@ -99,6 +103,20 @@ func (s *Service) Proxy(w http.ResponseWriter, req *http.Request) {
 	s.reverseProxy.ServeHTTP(w, req)
 }
 
+func (s *Service) serveStaticFiles(router *httprouter.Router) errors.E {
+	for path := range compressedFiles[compressionIdentity] {
+		if path == "/index.html" {
+			continue
+		}
+
+		h := logHandlerAutoName(s.StaticFile)
+		router.Handle(http.MethodGet, path, h)
+		router.Handle(http.MethodHead, path, h)
+	}
+
+	return nil
+}
+
 func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, err errors.E) {
 	log := hlog.FromRequest(req)
 	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
@@ -147,13 +165,60 @@ func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err error
 	http.Error(w, "400 bad request", http.StatusBadRequest)
 }
 
+// TODO: Use a pool of compression workers?
+func compress(compression string, data []byte) ([]byte, errors.E) {
+	switch compression {
+	case compressionBrotli:
+		var buf bytes.Buffer
+		writer := brotli.NewWriter(&buf)
+		_, err := writer.Write(data)
+		if closeErr := writer.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		data = buf.Bytes()
+	case compressionGzip:
+		var buf bytes.Buffer
+		writer := gzip.NewWriter(&buf)
+		_, err := writer.Write(data)
+		if closeErr := writer.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		data = buf.Bytes()
+	case compressionDeflate:
+		var buf bytes.Buffer
+		writer, err := flate.NewWriter(&buf, -1)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		_, err = writer.Write(data)
+		if closeErr := writer.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		data = buf.Bytes()
+	case compressionIdentity:
+		// Nothing.
+	default:
+		return nil, errors.Errorf("unknown compression: %s", compression)
+	}
+	return data, nil
+}
+
 func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEncoding string, data interface{}, metadata http.Header) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("j").Start()
 
-	encoded, err := json.Marshal(data)
+	encoded, err := x.MarshalWithoutEscapeHTML(data)
 	if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
 		return
@@ -167,50 +232,10 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 
 	m = timing.NewMetric("c").Start()
 
-	// TODO: Use a pool of compression workers?
-	switch contentEncoding {
-	case compressionBrotli:
-		var buf bytes.Buffer
-		writer := brotli.NewWriter(&buf)
-		_, err := writer.Write(encoded)
-		if closeErr := writer.Close(); err == nil {
-			err = closeErr
-		}
-		if err != nil {
-			s.internalServerError(w, req, errors.WithStack(err))
-			return
-		}
-		encoded = buf.Bytes()
-	case compressionGzip:
-		var buf bytes.Buffer
-		writer := gzip.NewWriter(&buf)
-		_, err := writer.Write(encoded)
-		if closeErr := writer.Close(); err == nil {
-			err = closeErr
-		}
-		if err != nil {
-			s.internalServerError(w, req, errors.WithStack(err))
-			return
-		}
-		encoded = buf.Bytes()
-	case compressionDeflate:
-		var buf bytes.Buffer
-		writer, err := flate.NewWriter(&buf, -1)
-		if err != nil {
-			s.internalServerError(w, req, errors.WithStack(err))
-			return
-		}
-		_, err = writer.Write(encoded)
-		if closeErr := writer.Close(); err == nil {
-			err = closeErr
-		}
-		if err != nil {
-			s.internalServerError(w, req, errors.WithStack(err))
-			return
-		}
-		encoded = buf.Bytes()
-	case compressionIdentity:
-		// Nothing.
+	encoded, errE := compress(contentEncoding, encoded)
+	if errE != nil {
+		s.internalServerError(w, req, errE)
+		return
 	}
 
 	m.Stop()
@@ -251,6 +276,67 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 	// See: https://github.com/golang/go/issues/50905
 	// See: https://github.com/golang/go/pull/50903
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(encoded))
+}
+
+func (s *Service) StaticFile(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	s.staticFile(w, req, req.URL.Path, true)
+}
+
+// TODO: Use Vite's manifest.json to send preload headers.
+func (s *Service) staticFile(w http.ResponseWriter, req *http.Request, path string, immutable bool) {
+	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
+	if contentEncoding == "" {
+		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		return
+	}
+
+	data, ok := compressedFiles[contentEncoding][path]
+	if !ok {
+		s.internalServerError(w, req, errors.Errorf(`no data for compression %s and file "%s"`, contentEncoding, path))
+		return
+	}
+
+	if len(data) <= minCompressionSize {
+		contentEncoding = compressionIdentity
+		data, ok = compressedFiles[contentEncoding][path]
+		if !ok {
+			s.internalServerError(w, req, errors.Errorf(`no data for compression %s and file "%s"`, contentEncoding, path))
+			return
+		}
+	}
+
+	etag, ok := compressedFilesEtags[contentEncoding][path]
+	if !ok {
+		s.internalServerError(w, req, errors.Errorf(`no etag for compression %s and file "%s"`, contentEncoding, path))
+		return
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(path))
+	if contentType == "" {
+		s.internalServerError(w, req, errors.Errorf(`unable to determine content type for file "%s"`, path))
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	if contentEncoding != compressionIdentity {
+		w.Header().Set("Content-Encoding", contentEncoding)
+	} else {
+		// TODO: Always set Content-Length.
+		//       See: https://github.com/golang/go/pull/50904
+		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	}
+	if immutable {
+		w.Header().Set("Cache-Control", "public,max-age=31536000,immutable,stale-while-revalidate=86400")
+	} else {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
+	w.Header().Set("Vary", "Accept-Encoding")
+	w.Header().Set("Etag", etag)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	// See: https://github.com/golang/go/issues/50905
+	// See: https://github.com/golang/go/pull/50903
+	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(data))
 }
 
 func (s *Service) ConnContext(ctx context.Context, c net.Conn) context.Context {

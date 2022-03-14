@@ -14,13 +14,18 @@ endif
 
 build: search wikipedia mapping
 
-search wikipedia mapping:
+# dist is build only if it is missing. Use "make clean" to remove it to build it again.
+search wikipedia mapping: dist
 	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
 
-build-static:
+# dist is build only if it is missing. Use "make clean" to remove it to build it again.
+build-static: dist
 	go build -ldflags "-linkmode external -extldflags '-static' -X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o search gitlab.com/peerdb/search/cmd/search
 	go build -ldflags "-linkmode external -extldflags '-static' -X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
 	go build -ldflags "-linkmode external -extldflags '-static' -X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/search/cmd/mapping
+
+dist:
+	npm run build
 
 test:
 	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
@@ -48,7 +53,7 @@ fmt-ci: fmt
 	git diff --exit-code --color=always
 
 clean:
-	rm -f coverage.* codeclimate.json tests.xml search wikipedia mapping
+	rm -rf coverage.* codeclimate.json tests.xml dist search wikipedia mapping
 
 lint-docs:
 	npx --yes --package 'markdownlint-cli@~0.30.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ '**/*.md'
@@ -57,4 +62,4 @@ audit:
 	go list -json -deps | nancy sleuth --skip-update-check
 
 watch:
-	CompileDaemon -build="make --silent search" -command="./search -d -c localhost+2.pem -k localhost+2-key.pem" -include="*.tmpl" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true
+	CompileDaemon -build="make --silent search" -command="./search -d -c localhost+2.pem -k localhost+2-key.pem" -include="*.tmpl" -include="*.json" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true
