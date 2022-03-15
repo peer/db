@@ -1,4 +1,6 @@
 {
   "semi": false,
-  "vueIndentScriptAndStyle": false
+  "vueIndentScriptAndStyle": false,
+  "trailingComma": "all",
+  "printWidth": 170
 }
