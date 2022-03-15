@@ -36,7 +36,7 @@ test-ci:
 	go tool cover -html=coverage.txt -o coverage.html
 
 lint:
-	golangci-lint run --timeout 4m --color always
+	golangci-lint run --timeout 4m --color always --fix
 
 # TODO: Output both formats at the same time, once it is supported.
 # See: https://github.com/golangci/golangci-lint/issues/481

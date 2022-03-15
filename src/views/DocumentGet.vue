@@ -8,8 +8,7 @@ defineProps({
 </script>
 
 <template>
-  <p>document {{id}}</p>
+  <p>document {{ id }}</p>
 </template>
 
-<style scoped lang="scss">
-</style>
+<style scoped lang="scss"></style>

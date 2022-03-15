@@ -1,9 +1,7 @@
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <p>search</p>
 </template>
 
-<style scoped lang="scss">
-</style>
+<style scoped lang="scss"></style>
