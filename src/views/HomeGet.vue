@@ -1,10 +1,8 @@
 <script setup lang="ts">
-const props = defineProps({
-  id: String
-})
 </script>
 
 <template>
+  <p>home</p>
 </template>
 
 <style scoped lang="scss">

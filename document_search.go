@@ -101,12 +101,12 @@ type searchResult struct {
 	ID string `json:"_id"`
 }
 
-// SearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
+// DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
 // state and returns to the client a JSON with an array of IDs of found documents. If called using
 // HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) SearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -178,9 +178,9 @@ func (s *Service) SearchGetJSON(w http.ResponseWriter, req *http.Request, _ http
 	})
 }
 
-// SearchPostJSON is a POST HTTP request handler which stores the search state and redirect to
+// DocumentSearchPostJSON is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) SearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -199,8 +199,8 @@ func (s *Service) SearchPostJSON(w http.ResponseWriter, req *http.Request, _ htt
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-// SearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-func (s *Service) SearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+// DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	if s.Development != "" {
 		s.Proxy(w, req)
 	} else {

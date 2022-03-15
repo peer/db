@@ -1,15 +1,15 @@
 {
   "routes": [
     {
-      "name": "Search",
+      "name": "DocumentSearch",
       "path": "/d"
     },
     {
-      "name": "Document",
+      "name": "DocumentGet",
       "path": "/d/:id"
     },
     {
-      "name": "Home",
+      "name": "HomeGet",
       "path": "/"
     }
   ]

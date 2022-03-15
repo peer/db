@@ -19,9 +19,9 @@ import (
 
 // TODO: Support slug per document.
 
-// DocumentGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) DocumentGetJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -76,9 +76,9 @@ func (s *Service) DocumentGetJSON(w http.ResponseWriter, req *http.Request, ps h
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(resp.Body))
 }
 
-// DocumentGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
+// DocumentGetGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
-func (s *Service) DocumentGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
