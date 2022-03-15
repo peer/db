@@ -3,5 +3,3 @@
 <template>
   <p>search</p>
 </template>
-
-<style scoped lang="scss"></style>

@@ -10,5 +10,3 @@ defineProps({
 <template>
   <p>document {{ id }}</p>
 </template>
-
-<style scoped lang="scss"></style>
