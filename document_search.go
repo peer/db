@@ -107,6 +107,12 @@ type searchResult struct {
 // a valid one. It supports compression based on accepted content encoding and range requests.
 // It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
+	if contentEncoding == "" {
+		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		return
+	}
+
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -122,12 +128,6 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		}
 		w.Header().Set("Location", path)
 		w.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 		return
 	}
 

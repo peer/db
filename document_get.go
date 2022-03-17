@@ -22,18 +22,18 @@ import (
 // DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
 func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
+	if contentEncoding == "" {
+		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		return
+	}
+
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	id := ps.ByName("id")
 	if !identifier.Valid(id) {
 		http.Error(w, "400 bad request", http.StatusBadRequest)
-		return
-	}
-
-	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
-	if contentEncoding == "" {
-		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
 		return
 	}
 
