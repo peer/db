@@ -19,7 +19,8 @@ async function onSubmit() {
           Accept: "application/json",
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         },
-        body: new URLSearchParams(new FormData(form.value)),
+        // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
+        body: new URLSearchParams(new FormData(form.value) as any),
         mode: "same-origin",
         credentials: "omit",
         redirect: "error",
