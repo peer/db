@@ -178,9 +178,9 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	})
 }
 
-// DocumentSearchPostJSON is a POST HTTP request handler which stores the search state and redirect to
+// DocumentSearchPostHTML is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -192,11 +192,34 @@ func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Reques
 		s.internalServerError(w, req, err)
 		return
 	}
+
 	// TODO: Should we push the location to the client, too?
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
 	w.Header().Set("Location", path)
 	w.WriteHeader(http.StatusSeeOther)
+}
+
+// DocumentSearchPostJSON is a POST HTTP request handler which stores the search state and returns
+// query parameters for the GET endpoint as JSON.
+func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
+	if contentEncoding == "" {
+		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		return
+	}
+
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	m := timing.NewMetric("s").Start()
+	sh := makeSearch(req.Form)
+	m.Stop()
+
+	// TODO: Should we push the location to the client, too?
+	// TODO: Should we already do the query, to warm up ES cache?
+	//       Maybe we should cache response ourselves so that we do not hit ES twice?
+	s.writeJSON(w, req, contentEncoding, sh, nil)
 }
 
 // DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
