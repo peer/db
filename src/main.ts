@@ -1,6 +1,6 @@
 import { createApp } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
-import App from "@/App.vue"
+import Main from "@/Main.vue"
 import { routes } from "@/../routes.json"
 import "./main.css"
 
@@ -14,4 +14,4 @@ const router = createRouter({
   })),
 })
 
-createApp(App).use(router).mount("#app")
+createApp(Main).use(router).mount("main")

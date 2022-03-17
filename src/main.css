@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@tailwind variants;
+
+@layer components {
+  .link {
+    @apply text-primary-600 font-medium outline-none drop-shadow-sm rounded-sm
+  }
+
+  .link:focus {
+    @apply focus:ring-2 focus:ring-primary-600 focus:ring-offset-1
+  }
+
+  .link:visited {
+    @apply text-primary-500
+  }
+
+  .link:hover {
+    @apply underline underline-offset-2 text-primary-700
+  }
+
+  .link:active {
+    @apply text-primary-500
+  }
+}
