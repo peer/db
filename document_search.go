@@ -18,9 +18,9 @@ import (
 // Search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
-	ID       string
-	ParentID string
-	Text     string
+	Text     string `json:"q"`
+	ID       string `json:"s"`
+	ParentID string `json:"-"`
 }
 
 // Values returns search state as values suitable for use in a query string.
