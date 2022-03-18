@@ -6,7 +6,7 @@ import Button from "@/components/Button.vue"
 import { makeSearch } from "@/search"
 
 const router = useRouter()
-const progress = ref(false)
+const progress = ref(0)
 const form = ref()
 
 async function onSubmit() {

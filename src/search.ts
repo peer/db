@@ -2,8 +2,8 @@ import type { Ref } from "vue"
 import type { Router } from "vue-router"
 import type { SearchResult } from "@/types"
 
-export async function makeSearch(router: Router, progress: Ref<boolean>, form: HTMLFormElement) {
-  progress.value = true
+export async function makeSearch(router: Router, progress: Ref<number>, form: HTMLFormElement) {
+  progress.value += 1
   try {
     const response = await fetch(
       router.resolve({
@@ -32,17 +32,17 @@ export async function makeSearch(router: Router, progress: Ref<boolean>, form: H
       query: await response.json(),
     })
   } finally {
-    progress.value = false
+    progress.value -= 0
   }
 }
 
 export async function doSearch(
   router: Router,
-  progress: Ref<boolean>,
+  progress: Ref<number>,
   query: string,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string } | null> {
-  progress.value = true
+  progress.value += 1
   try {
     const response = await fetch(
       router.resolve({
@@ -81,6 +81,6 @@ export async function doSearch(
       return null
     }
   } finally {
-    progress.value = false
+    progress.value -= 1
   }
 }

@@ -9,7 +9,7 @@ import { makeSearch, doSearch } from "@/search"
 
 const route = useRoute()
 const router = useRouter()
-const progress = ref(false)
+const progress = ref(0)
 const form = ref()
 const _results = ref()
 const _total = ref(0)
