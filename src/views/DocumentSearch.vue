@@ -17,10 +17,10 @@ async function onSubmit() {
 
 <template>
   <Teleport to="header">
-    <div class="flex border-b border-slate-400 bg-slate-300 py-1 px-4 shadow">
-      <form ref="form" :readonly="progress" class="flex gap-x-1" @submit.prevent="onSubmit">
+    <div class="flex flex-grow border-b border-slate-400 bg-slate-300 py-1 px-4 shadow">
+      <form ref="form" :readonly="progress" class="flex flex-grow gap-x-1" @submit.prevent="onSubmit">
         <input type="hidden" name="s" :value="route.query.s" />
-        <InputText :progress="progress" name="q" :value="route.query.q" />
+        <InputText :progress="progress" name="q" class="max-w-xl flex-grow" :value="route.query.q" />
         <Button :progress="progress" type="submit">Search</Button>
       </form>
     </div>
