@@ -101,11 +101,10 @@ type searchResult struct {
 	ID string `json:"_id"`
 }
 
-// DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided search
-// state and returns to the client a JSON with an array of IDs of found documents. If called using
-// HTTP2, it also pushes all found documents to the client. If search state is invalid, it redirects to
-// a valid one. It supports compression based on accepted content encoding and range requests.
-// It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
+// DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
+// search state and returns to the client a JSON with an array of IDs of found documents. If search state is
+// invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
+// encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
@@ -120,14 +119,10 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	sh, ok := getSearch(req.Form)
 	m.Stop()
 	if !ok {
-		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.path("Search", nil, sh.Values())
-		if err != nil {
-			s.internalServerError(w, req, err)
-			return
-		}
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
+		// Something was not OK, so we return new query parameters.
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		s.writeJSON(w, req, contentEncoding, sh, nil)
 		return
 	}
 
@@ -187,7 +182,7 @@ func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Reques
 	m := timing.NewMetric("s").Start()
 	sh := makeSearch(req.Form)
 	m.Stop()
-	path, err := s.path("Search", nil, sh.Values())
+	path, err := s.path("DocumentSearch", nil, sh.Values())
 	if err != nil {
 		s.internalServerError(w, req, err)
 		return
@@ -216,14 +211,34 @@ func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Reques
 	sh := makeSearch(req.Form)
 	m.Stop()
 
-	// TODO: Should we push the location to the client, too?
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
 	s.writeJSON(w, req, contentEncoding, sh, nil)
 }
 
 // DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+// If search state is invalid, it redirects to a valid one.
 func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	m := timing.NewMetric("s").Start()
+	sh, ok := getSearch(req.Form)
+	m.Stop()
+	if !ok {
+		// Something was not OK, so we redirect to the correct URL.
+		path, err := s.path("DocumentSearch", nil, sh.Values())
+		if err != nil {
+			s.internalServerError(w, req, err)
+			return
+		}
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		w.Header().Set("Location", path)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
 	if s.Development != "" {
 		s.Proxy(w, req)
 	} else {

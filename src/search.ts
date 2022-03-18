@@ -1,7 +1,8 @@
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
+import type { SearchResult } from "@/types"
 
-export async function doSearch(router: Router, progress: Ref<boolean>, form: HTMLFormElement) {
+export async function makeSearch(router: Router, progress: Ref<boolean>, form: HTMLFormElement) {
   progress.value = true
   try {
     const response = await fetch(
@@ -26,10 +27,59 @@ export async function doSearch(router: Router, progress: Ref<boolean>, form: HTM
     if (!response.ok) {
       throw new Error(`fetch error ${response.status}: ${await response.text()}`)
     }
-    router.push({
+    await router.push({
       name: "DocumentSearch",
       query: await response.json(),
     })
+  } finally {
+    progress.value = false
+  }
+}
+
+export async function doSearch(
+  router: Router,
+  progress: Ref<boolean>,
+  query: string,
+  abortSignal: AbortSignal,
+): Promise<{ results: SearchResult[]; total: string } | null> {
+  progress.value = true
+  try {
+    const response = await fetch(
+      router.resolve({
+        name: "DocumentSearch",
+      }).href +
+        "?" +
+        query,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        mode: "same-origin",
+        credentials: "omit",
+        redirect: "error",
+        referrer: document.location.href,
+        referrerPolicy: "strict-origin-when-cross-origin",
+        signal: abortSignal,
+      },
+    )
+    if (!response.ok) {
+      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
+    }
+    const data = await response.json()
+    if (Array.isArray(data)) {
+      const total = response.headers.get("Peerdb-Total")
+      if (total === null) {
+        throw new Error("Peerdb-Total header is null")
+      }
+      return { results: data, total }
+    } else {
+      await router.replace({
+        name: "DocumentSearch",
+        query: data,
+      })
+      return null
+    }
   } finally {
     progress.value = false
   }

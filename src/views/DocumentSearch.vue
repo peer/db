@@ -1,20 +1,63 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { GlobeIcon } from "@heroicons/vue/outline"
 import { SearchIcon } from "@heroicons/vue/solid"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
-import { doSearch } from "@/search"
+import { makeSearch, doSearch } from "@/search"
 
 const route = useRoute()
 const router = useRouter()
 const progress = ref(false)
 const form = ref()
+const _results = ref()
+const _total = ref(0)
+const _moreThanTotal = ref(false)
+const results = readonly(_results)
+const total = readonly(_total)
+const moreThanTotal = readonly(_moreThanTotal)
 
 async function onSubmit() {
-  await doSearch(router, progress, form.value)
+  await makeSearch(router, progress, form.value)
 }
+
+watch(
+  () => {
+    let q: string
+    let s: string
+    if (Array.isArray(route.query.q)) {
+      q = route.query.q[0] || ""
+    } else {
+      q = route.query.q || ""
+    }
+    if (Array.isArray(route.query.s)) {
+      s = route.query.s[0] || ""
+    } else {
+      s = route.query.s || ""
+    }
+    return new URLSearchParams({ q, s }).toString()
+  },
+  async (query, oldQuery, onCleanup) => {
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    const data = await doSearch(router, progress, query, controller.signal)
+    if (data === null) {
+      return
+    }
+    _results.value = data.results
+    if (data.total.endsWith("+")) {
+      _moreThanTotal.value = true
+      _total.value = parseInt(data.total.substring(0, data.total.length - 2))
+    } else {
+      _moreThanTotal.value = false
+      _total.value = parseInt(data.total)
+    }
+  },
+  {
+    immediate: true,
+  },
+)
 </script>
 
 <template>
@@ -33,4 +76,7 @@ async function onSubmit() {
       </form>
     </div>
   </Teleport>
+  <div class="flex flex-col">
+    <div v-for="result in results" :key="result._id">a</div>
+  </div>
 </template>
