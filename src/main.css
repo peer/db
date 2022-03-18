@@ -23,4 +23,53 @@
   .link:active {
     @apply text-primary-500
   }
+
+  .progress-bar-short, .progress-bar-long {
+    animation-duration: 2.2s;
+    animation-iteration-count: infinite;
+    animation-delay: 100ms;
+    will-change: left, right;
+  }
+
+  .progress-bar-short {
+    animation-name: indeterminate-short-ltr;
+  }
+
+  .progress-bar-long {
+    animation-name: indeterminate-ltr;
+  }
+
+  @keyframes indeterminate-ltr {
+    0% {
+      left: -90%;
+      right: 100%;
+    }
+
+    60% {
+      left: -90%;
+      right: 100%;
+    }
+
+    100% {
+      left: 100%;
+      right: -35%;
+    }
+  }
+
+  @keyframes indeterminate-short-ltr {
+    0% {
+      left: -200%;
+      right: 100%;
+    }
+
+    60% {
+      left: 107%;
+      right: -8%;
+    }
+
+    100% {
+      left: 107%;
+      right: -8%;
+    }
+  }
 }
