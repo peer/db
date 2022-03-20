@@ -15,7 +15,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <form ref="form" :readonly="progress" class="flex flex-grow flex-col" @submit.prevent="onSubmit">
+  <form ref="form" :disabled="progress > 0" class="flex flex-grow flex-col" @submit.prevent="onSubmit">
     <div class="flex flex-grow basis-0 flex-col-reverse">
       <h1 class="mb-10 p-4 text-center text-5xl font-bold">Wikipedia Search</h1>
     </div>

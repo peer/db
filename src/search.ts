@@ -32,7 +32,7 @@ export async function makeSearch(router: Router, progress: Ref<number>, form: HT
       query: await response.json(),
     })
   } finally {
-    progress.value -= 0
+    progress.value -= 1
   }
 }
 
