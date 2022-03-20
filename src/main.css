@@ -27,7 +27,7 @@
   .progress-bar-short, .progress-bar-long {
     animation-duration: 2.2s;
     animation-iteration-count: infinite;
-    animation-delay: 100ms;
+    animation-delay: 200ms;
     will-change: left, right;
   }
 

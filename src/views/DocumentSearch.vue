@@ -64,7 +64,7 @@ watch(
 
 <template>
   <Teleport to="header">
-    <div class="relative flex flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow sm:gap-x-4 sm:p-4 sm:pl-0">
+    <div class="fixed flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow sm:gap-x-4 sm:p-4 sm:pl-0">
       <router-link :to="{ name: 'HomeGet' }" class="group -my-4 hidden border-r border-slate-400 outline-none hover:bg-slate-400 active:bg-slate-200 sm:block">
         <GlobeIcon class="m-4 h-10 w-10 rounded group-focus:ring-2 group-focus:ring-primary-500" />
       </router-link>
@@ -79,7 +79,7 @@ watch(
       <ProgressBar :progress="dataProgress" class="absolute inset-x-0 -bottom-1.5 h-1.5 border-t border-transparent" />
     </div>
   </Teleport>
-  <div class="flex flex-col">
+  <div class="mt-12 flex flex-col border-t border-transparent sm:mt-[4.5rem]">
     <div v-for="result in results" :key="result._id">a</div>
   </div>
 </template>
