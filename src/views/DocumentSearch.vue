@@ -66,6 +66,7 @@ const navbar = ref()
 const position = ref("absolute")
 const navbarTop = ref(0)
 let lastScrollPosition = 0
+const animateNavbar = ref(false)
 const supportPageOffset = window.pageYOffset !== undefined
 
 function onScroll() {
@@ -79,6 +80,7 @@ function onScroll() {
 
   if (currentScrollPosition > lastScrollPosition) {
     if (position.value !== "absolute") {
+      animateNavbar.value = false
       let { top } = navbar.value.getBoundingClientRect()
       position.value = "absolute"
       if (currentScrollPosition - lastScrollPosition < 10) {
@@ -96,7 +98,14 @@ function onScroll() {
         navbarTop.value = 0
         position.value = "fixed"
       } else if (top < -height) {
-        navbarTop.value = currentScrollPosition - height
+        if (lastScrollPosition - currentScrollPosition > 10) {
+          // Scroll speed is large so we just do the animation instead.
+          navbarTop.value = 0
+          position.value = "fixed"
+          animateNavbar.value = true
+        } else {
+          navbarTop.value = currentScrollPosition - height
+        }
       }
     }
   }
@@ -119,6 +128,7 @@ onBeforeUnmount(() => {
     <div
       ref="navbar"
       class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
+      :class="{ 'animate-navbar': animateNavbar }"
       :style="{ position: position, top: navbarTop + 'px' }"
     >
       <router-link :to="{ name: 'HomeGet' }" class="group -my-4 hidden border-r border-slate-400 outline-none hover:bg-slate-400 active:bg-slate-200 sm:block">
