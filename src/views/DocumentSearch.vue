@@ -82,7 +82,8 @@ function onScroll() {
       let { top } = navbar.value.getBoundingClientRect()
       position.value = "absolute"
       if (currentScrollPosition - lastScrollPosition < 10) {
-        // Scroll speed is small enough for lastScrollPosition to be probably a better value.
+        // Scroll speed is small enough for lastScrollPosition to be probably a better value
+        // so that navbar appears at the location where the user started scrolling.
         navbarTop.value = lastScrollPosition + top
       } else {
         navbarTop.value = currentScrollPosition + top
@@ -95,12 +96,7 @@ function onScroll() {
         navbarTop.value = 0
         position.value = "fixed"
       } else if (top < -height) {
-        if (lastScrollPosition - currentScrollPosition < 10) {
-          // Scroll speed is small enough for lastScrollPosition to be probably a better value.
-          navbarTop.value = lastScrollPosition - height
-        } else {
-          navbarTop.value = currentScrollPosition - height
-        }
+        navbarTop.value = currentScrollPosition - height
       }
     }
   }
@@ -119,7 +115,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="header">
-    <ProgressBar :progress="dataProgress" class="fixed inset-x-0 top-0 z-50" />
+    <ProgressBar :progress="dataProgress" class="fixed inset-x-0 top-0 z-50 will-change-transform" />
     <div
       ref="navbar"
       class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
