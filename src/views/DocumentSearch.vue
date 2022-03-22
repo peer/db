@@ -63,8 +63,8 @@ watch(
 )
 
 const navbar = ref()
-let position = ref("absolute")
-let navbarTop = ref(0)
+const position = ref("absolute")
+const navbarTop = ref(0)
 let lastScrollPosition = 0
 const supportPageOffset = window.pageYOffset !== undefined
 
