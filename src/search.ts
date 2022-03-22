@@ -16,6 +16,7 @@ export async function makeSearch(router: Router, progress: Ref<number>, form: HT
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         },
         // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
+        // eslint-disable-next-line  @typescript-eslint/no-explicit-any
         body: new URLSearchParams(new FormData(form) as any),
         mode: "same-origin",
         credentials: "omit",
