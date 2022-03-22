@@ -17,9 +17,9 @@ const form = ref()
 const _results = ref()
 const _total = ref(0)
 const _moreThanTotal = ref(false)
-const results = readonly(_results)
-const total = readonly(_total)
-const moreThanTotal = readonly(_moreThanTotal)
+const results = import.meta.env.DEV ? readonly(_results) : _results
+const total = import.meta.env.DEV ? readonly(_total) : _total
+const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal.value
 
 async function onSubmit() {
   await makeSearch(router, formProgress, form.value)
