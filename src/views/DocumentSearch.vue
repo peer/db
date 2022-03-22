@@ -25,6 +25,7 @@ async function onSubmit() {
   await makeSearch(router, formProgress, form.value)
 }
 
+const initialRouteName = route.name
 watch(
   () => {
     let q: string
@@ -42,6 +43,10 @@ watch(
     return new URLSearchParams({ q, s }).toString()
   },
   async (query, oldQuery, onCleanup) => {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
     const controller = new AbortController()
     onCleanup(() => controller.abort())
     const data = await doSearch(router, dataProgress, query, controller.signal)
