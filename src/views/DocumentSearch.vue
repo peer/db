@@ -81,7 +81,12 @@ function onScroll() {
     if (position.value !== "absolute") {
       let { top } = navbar.value.getBoundingClientRect()
       position.value = "absolute"
-      navbarTop.value = lastScrollPosition + top
+      if (currentScrollPosition - lastScrollPosition < 10) {
+        // Scroll speed is small enough for lastScrollPosition to be probably a better value.
+        navbarTop.value = lastScrollPosition + top
+      } else {
+        navbarTop.value = currentScrollPosition + top
+      }
     }
   } else if (currentScrollPosition < lastScrollPosition) {
     if (position.value !== "fixed") {
@@ -90,7 +95,12 @@ function onScroll() {
         navbarTop.value = 0
         position.value = "fixed"
       } else if (top < -height) {
-        navbarTop.value = lastScrollPosition - height
+        if (lastScrollPosition - currentScrollPosition < 10) {
+          // Scroll speed is small enough for lastScrollPosition to be probably a better value.
+          navbarTop.value = lastScrollPosition - height
+        } else {
+          navbarTop.value = currentScrollPosition - height
+        }
       }
     }
   }
@@ -109,9 +119,10 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="header">
+    <ProgressBar :progress="1" class="fixed inset-x-0 top-0 z-50" />
     <div
       ref="navbar"
-      class="flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
+      class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
       :style="{ position: position, top: navbarTop + 'px' }"
     >
       <router-link :to="{ name: 'HomeGet' }" class="group -my-4 hidden border-r border-slate-400 outline-none hover:bg-slate-400 active:bg-slate-200 sm:block">
@@ -125,7 +136,6 @@ onBeforeUnmount(() => {
           <span class="hidden sm:inline">Search</span>
         </Button>
       </form>
-      <ProgressBar :progress="dataProgress" class="absolute inset-x-0 -bottom-1.5 h-1.5 border-t border-transparent" />
     </div>
   </Teleport>
   <div class="mt-12 flex flex-col border-t border-transparent sm:mt-[4.5rem]">
