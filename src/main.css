@@ -5,26 +5,27 @@
 
 @layer components {
   .link {
-    @apply text-primary-600 font-medium outline-none drop-shadow-sm rounded-sm
+    @apply rounded-sm font-medium text-primary-600 outline-none drop-shadow-sm;
   }
 
   .link:focus {
-    @apply focus:ring-2 focus:ring-primary-500 focus:ring-offset-1
+    @apply focus:ring-2 focus:ring-primary-500 focus:ring-offset-1;
   }
 
   .link:visited {
-    @apply text-primary-500
+    @apply text-primary-500;
   }
 
   .link:hover {
-    @apply underline underline-offset-2 text-primary-700
+    @apply text-primary-700 underline underline-offset-2;
   }
 
   .link:active {
-    @apply text-primary-500
+    @apply text-primary-500;
   }
 
-  .progress-bar-short, .progress-bar-long {
+  .progress-bar-short,
+  .progress-bar-long {
     animation-duration: 2.2s;
     animation-iteration-count: infinite;
     animation-delay: 200ms;
