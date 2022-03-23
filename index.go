@@ -27,8 +27,9 @@ func (a loggerAdapter) Printf(format string, v ...interface{}) {
 
 var _ elastic.Logger = (*loggerAdapter)(nil)
 
-func GetClient(httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
+func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
+		elastic.SetURL(url),
 		elastic.SetHttpClient(httpClient),
 		elastic.SetErrorLog(loggerAdapter{logger, zerolog.ErrorLevel}),
 		// We use debug level here because logging at info level is too noisy.
@@ -42,8 +43,8 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger) (*elastic.Client,
 // the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
-func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger) (*elastic.Client, errors.E) {
-	esClient, errE := GetClient(httpClient, logger)
+func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
+	esClient, errE := GetClient(httpClient, logger, url)
 	if errE != nil {
 		return nil, errE
 	}

@@ -16,7 +16,7 @@ const (
 )
 
 func listen(config *Config) errors.E {
-	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), config.Log)
+	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), config.Log, config.Elastic)
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ type Globals struct {
 	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
 	cli.LoggingConfig
 	CacheDir string `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to."`
+	Elastic  string `short:"e" placeholder:"URL" default:"http://127.0.0.1:9200" help:"URL of the ElasticSearch instance."`
 }
 
 // Config provides configuration.
