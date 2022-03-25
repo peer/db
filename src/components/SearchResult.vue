@@ -7,12 +7,23 @@ const props = defineProps<{
 }>()
 
 const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(props.doc, "name"))
+// TODO: Do not hard-code description property ID.
+const description = computed(() => {
+  for (const claim of props.doc.active?.text || []) {
+    if (claim.prop._id === "E7DXhBtz9UuoSG9V3uYeYF") {
+      return claim.html.en
+    }
+  }
+
+  return ""
+})
 </script>
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded" class="flex">
+    <div v-if="hasLoaded">
       <router-link :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link text-lg">{{ doc.name.en }}</router-link>
+      <p v-if="description" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">
