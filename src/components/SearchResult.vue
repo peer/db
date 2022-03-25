@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue"
+import { useRoute } from "vue-router"
 import type { PeerDBDocument } from "@/types"
 
 const props = defineProps<{
   doc: PeerDBDocument
 }>()
+
+const route = useRoute()
 
 const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(props.doc, "name"))
 // TODO: Do not hard-code description property ID.
@@ -22,7 +25,7 @@ const description = computed(() => {
 <template>
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded">
-      <router-link :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link text-lg">{{ doc.name.en }}</router-link>
+      <router-link :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link text-lg">{{ doc.name.en }}</router-link>
       <p v-if="description" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">

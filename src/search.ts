@@ -194,7 +194,7 @@ async function getSearch(router: Router, query: string, progress: Ref<number>, a
   }
 }
 
-async function getDocument(router: Router, id: string, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
+export async function getDocument(router: Router, id: string, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
   progress.value += 1
   try {
     const response = await fetch(
