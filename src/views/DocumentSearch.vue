@@ -7,6 +7,7 @@ import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import SearchResult from "@/components/SearchResult.vue"
+import Footer from "@/components/Footer.vue"
 import { postSearch, useSearch } from "@/search"
 import { useNavbar } from "@/navbar"
 
@@ -50,4 +51,7 @@ async function onSubmit() {
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <SearchResult v-for="doc in docs" :key="doc._id" :doc="doc" />
   </div>
+  <Teleport to="footer">
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+  </Teleport>
 </template>

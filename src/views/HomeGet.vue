@@ -3,6 +3,7 @@ import { ref } from "vue"
 import { useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
+import Footer from "@/components/Footer.vue"
 import { postSearch } from "@/search"
 
 const router = useRouter()
@@ -27,17 +28,6 @@ async function onSubmit() {
     </div>
   </form>
   <Teleport to="footer">
-    <div class="flex justify-between px-4 py-4 leading-none">
-      <ul class="flex gap-x-4">
-        <!-- <li><router-link :to="{ name: 'HomeGet' }" class="link">About</router-link></li>
-        <li><router-link :to="{ name: 'HomeGet' }" class="link">Help</router-link></li>
-        <li><router-link :to="{ name: 'HomeGet' }" class="link">Privacy</router-link></li>
-        <li><router-link :to="{ name: 'HomeGet' }" class="link">Terms</router-link></li>
-        <li><router-link :to="{ name: 'HomeGet' }" class="link">API</router-link></li> -->
-      </ul>
-      <ul class="flex gap-x-4">
-        <li class="text-neutral-500" title="build ">Powered by <a href="https://gitlab.com/peerdb/search" class="link">PeerDB Search</a></li>
-      </ul>
-    </div>
+    <Footer />
   </Teleport>
 </template>
