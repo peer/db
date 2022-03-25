@@ -6,11 +6,11 @@ import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
 
 const router = useRouter()
-const progress = ref(0)
 const form = ref()
+const progress = ref(0)
 
 async function onSubmit() {
-  await postSearch(router, progress, form.value)
+  await postSearch(router, form.value, progress)
 }
 </script>
 

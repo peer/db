@@ -1,8 +1,8 @@
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
-import type { SearchResult } from "@/types"
+import type { SearchResult, PeerDBDocument } from "@/types"
 
-export async function postSearch(router: Router, progress: Ref<number>, form: HTMLFormElement) {
+export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
   progress.value += 1
   try {
     const response = await fetch(
@@ -16,7 +16,7 @@ export async function postSearch(router: Router, progress: Ref<number>, form: HT
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         },
         // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
-        // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         body: new URLSearchParams(new FormData(form) as any),
         mode: "same-origin",
         credentials: "omit",
@@ -39,8 +39,8 @@ export async function postSearch(router: Router, progress: Ref<number>, form: HT
 
 export async function getSearch(
   router: Router,
-  progress: Ref<number>,
   query: string,
+  progress: Ref<number>,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string } | null> {
   progress.value += 1
@@ -81,6 +81,38 @@ export async function getSearch(
       })
       return null
     }
+  } finally {
+    progress.value -= 1
+  }
+}
+
+export async function getDocument(router: Router, id: string, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
+  progress.value += 1
+  try {
+    const response = await fetch(
+      router.resolve({
+        name: "DocumentGet",
+        params: {
+          id,
+        },
+      }).href,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        mode: "same-origin",
+        credentials: "omit",
+        redirect: "error",
+        referrer: document.location.href,
+        referrerPolicy: "strict-origin-when-cross-origin",
+        signal: abortSignal,
+      },
+    )
+    if (!response.ok) {
+      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
+    }
+    return await response.json()
   } finally {
     progress.value -= 1
   }
