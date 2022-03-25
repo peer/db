@@ -32,7 +32,7 @@ async function onSubmit() {
     <ProgressBar :progress="dataProgress" class="fixed inset-x-0 top-0 z-50 will-change-transform" />
     <div
       ref="navbar"
-      class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
+      class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
       v-bind="navbarAttrs"
     >
       <router-link :to="{ name: 'HomeGet' }" class="group -my-4 hidden border-r border-slate-400 outline-none hover:bg-slate-400 active:bg-slate-200 sm:block">
