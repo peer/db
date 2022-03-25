@@ -3,14 +3,14 @@ import { ref } from "vue"
 import { useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
-import { makeSearch } from "@/search"
+import { postSearch } from "@/search"
 
 const router = useRouter()
 const progress = ref(0)
 const form = ref()
 
 async function onSubmit() {
-  await makeSearch(router, progress, form.value)
+  await postSearch(router, progress, form.value)
 }
 </script>
 

@@ -22,7 +22,7 @@ const total = import.meta.env.DEV ? readonly(_total) : _total
 const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal.value
 
 async function onSubmit() {
-  await makeSearch(router, formProgress, form.value)
+  await postSearch(router, formProgress, form.value)
 }
 
 const initialRouteName = route.name
@@ -49,7 +49,7 @@ watch(
     }
     const controller = new AbortController()
     onCleanup(() => controller.abort())
-    const data = await doSearch(router, dataProgress, query, controller.signal)
+    const data = await getSearch(router, dataProgress, query, controller.signal)
     if (data === null) {
       return
     }

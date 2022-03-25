@@ -2,7 +2,7 @@ import type { Ref } from "vue"
 import type { Router } from "vue-router"
 import type { SearchResult } from "@/types"
 
-export async function makeSearch(router: Router, progress: Ref<number>, form: HTMLFormElement) {
+export async function postSearch(router: Router, progress: Ref<number>, form: HTMLFormElement) {
   progress.value += 1
   try {
     const response = await fetch(
@@ -37,7 +37,7 @@ export async function makeSearch(router: Router, progress: Ref<number>, form: HT
   }
 }
 
-export async function doSearch(
+export async function getSearch(
   router: Router,
   progress: Ref<number>,
   query: string,
