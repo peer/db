@@ -13,9 +13,6 @@ import { useNavbar } from "@/navbar"
 const { ref: navbar, attrs: navbarAttrs } = useNavbar()
 
 const route = useRoute()
-const router = useRouter()
-const form = ref()
-const formProgress = ref(0)
 const dataProgress = ref(0)
 // See: https://github.com/vuejs/composition-api/issues/317
 const dataProgressFn = () => dataProgress
@@ -26,6 +23,10 @@ const _moreThanTotal = ref(false)
 const results = import.meta.env.DEV ? readonly(_results) : _results
 const total = import.meta.env.DEV ? readonly(_total) : _total
 const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal.value
+
+const router = useRouter()
+const form = ref()
+const formProgress = ref(0)
 
 async function onSubmit() {
   await postSearch(router, form.value, formProgress)
