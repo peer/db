@@ -822,7 +822,11 @@ func ConvertEntity(
 	if ok {
 		url := siteLink.URL
 		if url == "" {
-			url = fmt.Sprintf("https://en.wikipedia.org/wiki/%s", siteLink.Title)
+			// First we make sure we do not have spaces.
+			urlTitle := strings.ReplaceAll(siteLink.Title, " ", "_")
+			// The first letter has to be upper case.
+			urlTitle = FirstUpperCase(urlTitle)
+			url = fmt.Sprintf("https://en.wikipedia.org/wiki/%s", urlTitle)
 		}
 		for _, namespace := range nonMainWikipediaNamespaces {
 			if strings.HasPrefix(siteLink.Title, namespace) {
