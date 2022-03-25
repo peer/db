@@ -18,6 +18,7 @@ import (
 )
 
 // TODO: Support slug per document.
+// TODO: JSON response should include _id field.
 
 // DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.

@@ -220,7 +220,10 @@ async function getDocument(router: Router, id: string, progress: Ref<number>, ab
     if (!response.ok) {
       throw new Error(`fetch error ${response.status}: ${await response.text()}`)
     }
-    return await response.json()
+    const doc = await response.json()
+    // TODO: JSON response should include _id field, but until then we add it here.
+    doc._id = id
+    return doc
   } finally {
     progress.value -= 1
   }

@@ -47,7 +47,7 @@ async function onSubmit() {
       </form>
     </div>
   </Teleport>
-  <div class="mt-12 flex flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
+  <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <SearchResult v-for="doc in docs" :key="doc._id" :doc="doc" />
   </div>
 </template>
