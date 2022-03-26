@@ -53,9 +53,6 @@ const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value,
     <div class="rounded border bg-white p-4 shadow">
       <div v-if="hasLoaded">
         <h1 class="text-lg font-medium drop-shadow-sm">{{ doc.name.en }}</h1>
-        <h2 v-for="name in doc.otherNames?.en" class="font-medium">
-          {{ name }}
-        </h2>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
@@ -64,6 +61,10 @@ const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value,
             </tr>
           </thead>
           <tbody>
+            <tr v-for="name in doc.otherNames?.en">
+              <td class="border-t border-r border-slate-200 px-2 py-1">also known as</td>
+              <td class="border-t border-l border-slate-200 px-2 py-1">{{ name }}</td>
+            </tr>
             <tr v-for="claim in doc.active?.id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.id }}</td>
