@@ -61,59 +61,59 @@ const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value,
             </tr>
           </thead>
           <tbody>
-            <tr v-for="name in doc.otherNames?.en">
+            <tr v-for="name in doc.otherNames?.en" :key="name">
               <td class="border-t border-r border-slate-200 px-2 py-1">also known as</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ name }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.id">
+            <tr v-for="claim in doc.active?.id" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.id }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.ref">
+            <tr v-for="claim in doc.active?.ref" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <a :href="claim.iri" class="link">{{ claim.iri }}</a>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.text">
+            <tr v-for="claim in doc.active?.text" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <iframe :srcdoc="claim.html?.en" class="w-full"></iframe>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.string">
+            <tr v-for="claim in doc.active?.string" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.string }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.label">
+            <tr v-for="claim in doc.active?.label" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">label</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.amount">
+            <tr v-for="claim in doc.active?.amount" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 {{ claim.amount }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.amountRange">
+            <tr v-for="claim in doc.active?.amountRange" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.enum">
+            <tr v-for="claim in doc.active?.enum" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 {{ claim.enum.join(", ") }}
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.rel">
+            <tr v-for="claim in doc.active?.rel" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <router-link :to="{ name: 'DocumentGet', params: { id: claim.to?._id } }" class="link">{{ claim.to?.name?.en }}</router-link>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.file">
+            <tr v-for="claim in doc.active?.file" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <a v-if="claim.preview?.length > 0" :href="claim.url">
@@ -122,29 +122,29 @@ const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value,
                 <a v-else :href="claim.url" class="link">{{ claim.type }}</a>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.none">
+            <tr v-for="claim in doc.active?.none" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1 italic">none</td>
             </tr>
-            <tr v-for="claim in doc.active?.unknown">
+            <tr v-for="claim in doc.active?.unknown" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1 italic">unknown</td>
             </tr>
-            <tr v-for="claim in doc.active?.time">
+            <tr v-for="claim in doc.active?.time" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.timestamp }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.timeRange">
+            <tr v-for="claim in doc.active?.timeRange" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">{{ claim.lower }}-{{ claim.upper }}</td>
             </tr>
-            <tr v-for="claim in doc.active?.is">
+            <tr v-for="claim in doc.active?.is" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">is</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <router-link :to="{ name: 'DocumentGet', params: { id: claim.to?._id } }" class="link">{{ claim.to?.name?.en }}</router-link>
               </td>
             </tr>
-            <tr v-for="claim in doc.active?.list">
+            <tr v-for="claim in doc.active?.list" :key="claim._id">
               <td class="border-t border-r border-slate-200 px-2 py-1">{{ claim.prop?.name?.en }}</td>
               <td class="border-t border-l border-slate-200 px-2 py-1">
                 <router-link :to="{ name: 'DocumentGet', params: { id: claim.el?._id } }" class="link">{{ claim.el?.name?.en }}</router-link>
