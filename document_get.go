@@ -65,6 +65,8 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		}
 	}
 
+	// TODO: If "s" is provided, should we validate that id is really part of search? Currently we do on the frontend.
+
 	// We check if document exists.
 	headers := http.Header{}
 	headers.Set("X-Opaque-ID", idFromRequest(req))

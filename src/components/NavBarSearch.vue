@@ -22,7 +22,7 @@ async function onSubmit() {
     <input v-if="route.query.s" type="hidden" name="s" :value="route.query.s" />
     <InputText :progress="progress" name="q" class="max-w-xl flex-grow" :value="route.query.s ? route.query.q : null" />
     <Button :progress="progress" type="submit" class="px-3.5">
-      <SearchIcon class="h-5 w-5 sm:hidden" />
+      <SearchIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>
   </form>

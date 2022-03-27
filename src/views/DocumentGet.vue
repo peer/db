@@ -3,7 +3,9 @@ import type { PeerDBDocument } from "@/types"
 
 import { ref, computed, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/solid"
 import InputText from "@/components/InputText.vue"
+import Button from "@/components/Button.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
@@ -53,6 +55,33 @@ const { results, query } = useSearchState(dataProgress, async (query) => {
   })
 })
 
+const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
+  const res = { previous: null, next: null } as { previous: string | null; next: string | null }
+  for (let i = 0; i < results.value.length; i++) {
+    if (results.value[i]._id === props.id) {
+      if (i > 0) {
+        res.previous = results.value[i - 1]._id
+      }
+      if (i < results.value.length - 1) {
+        res.next = results.value[i + 1]._id
+      }
+      return res
+    }
+  }
+
+  if (results.value.length > 0) {
+    // Results are loaded but we could not find ID. Redirect to the URL without "s".
+    // Ugly, a side effect inside computed. But it works well.
+    router.replace({
+      name: "DocumentGet",
+      params: {
+        id: props.id,
+      },
+    })
+  }
+  return res
+})
+
 async function onFocus() {
   const q = Object.assign({}, query.value, {
     at: props.id,
@@ -62,6 +91,22 @@ async function onFocus() {
     query: q,
   })
 }
+
+async function onPrevNext(id: string | null) {
+  if (id == null) {
+    return
+  }
+
+  await router.push({
+    name: "DocumentGet",
+    params: {
+      id,
+    },
+    query: {
+      s: query.value.s,
+    },
+  })
+}
 </script>
 
 <template>
@@ -69,6 +114,16 @@ async function onFocus() {
     <NavBar :progress="dataProgress">
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputText name="q" class="max-w-xl flex-grow" :value="query.q" @focus="onFocus" />
+        <div class="grid grid-cols-2 gap-x-1">
+          <Button class="px-3.5" :disabled="!prevNext.previous" @click="onPrevNext(prevNext.previous)">
+            <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
+            <span class="hidden sm:inline">Prev</span>
+          </Button>
+          <Button class="px-3.5" :disabled="!prevNext.next" @click="onPrevNext(prevNext.next)">
+            <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
+            <span class="hidden sm:inline">Next</span>
+          </Button>
+        </div>
       </div>
       <NavBarSearch v-else />
     </NavBar>
