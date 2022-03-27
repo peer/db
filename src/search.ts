@@ -165,8 +165,7 @@ async function getSearch(router: Router, query: string, progress: Ref<number>, a
         name: "DocumentSearch",
       }).href +
         "?" +
-        query +
-        "&strict=true",
+        query,
       {
         method: "GET",
         headers: {

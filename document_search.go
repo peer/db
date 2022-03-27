@@ -82,20 +82,15 @@ func getSearch(form url.Values) (*search, bool) {
 	}
 	textQuery := form.Get("q")
 	ss := sh.(*search) //nolint:errcheck
+	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" so that it is easier to use as an API.
-	if form.Has("q") {
-		// There was a change, we make current search a parent search to a new search.
-		if ss.Text != textQuery {
-			ss = &search{
-				ID:       identifier.NewRandom(),
-				ParentID: searchID,
-				Text:     textQuery,
-			}
-			searches.Store(ss.ID, ss)
-			return ss, false
+	if form.Has("q") && ss.Text != textQuery {
+		ss = &search{
+			ID:       identifier.NewRandom(),
+			ParentID: searchID,
+			Text:     textQuery,
 		}
-	} else if form.Get("strict") == "true" {
-		// But we also allow client to require "q" to be present.
+		searches.Store(ss.ID, ss)
 		return ss, false
 	}
 	return ss, true
@@ -230,8 +225,8 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	m := timing.NewMetric("s").Start()
 	sh, ok := getSearch(req.Form)
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we redirect to the correct URL.
+	if !ok || !req.Form.Has("q") {
+		// Something was not OK, or "q" is missing, so we redirect to the correct URL.
 		path, err := s.path("DocumentSearch", nil, sh.Values())
 		if err != nil {
 			s.internalServerError(w, req, err)
