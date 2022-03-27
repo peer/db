@@ -89,6 +89,7 @@ async function onInputText() {
     name: "DocumentSearch",
     query: q,
   })
+  document.getElementById("search-input-text")?.focus()
 }
 
 async function onPrevNext(id: string | null) {
