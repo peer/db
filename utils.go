@@ -269,7 +269,7 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 		w.Header().Set("Content-Length", strconv.Itoa(len(encoded)))
 	}
 	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Vary", "Accept-Encoding")
+	w.Header().Add("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -330,7 +330,7 @@ func (s *Service) staticFile(w http.ResponseWriter, req *http.Request, path stri
 	} else {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
-	w.Header().Set("Vary", "Accept-Encoding")
+	w.Header().Add("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -422,6 +422,8 @@ func (m contentTypeMux) Handle(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	contentType := gddo.NegotiateContentType(req, offers, offers[0])
+
+	w.Header().Add("Vary", "Accept")
 
 	switch contentType {
 	case "text/html":

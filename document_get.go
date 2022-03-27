@@ -68,7 +68,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 		w.Header().Set("Content-Length", resp.Header.Get("Content-Length"))
 	}
 	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Vary", "Accept-Encoding")
+	w.Header().Add("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
