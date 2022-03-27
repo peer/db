@@ -101,6 +101,36 @@ type searchResult struct {
 	ID string `json:"_id"`
 }
 
+// DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+// If search state is invalid, it redirects to a valid one.
+func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	ctx := req.Context()
+	timing := servertiming.FromContext(ctx)
+
+	m := timing.NewMetric("s").Start()
+	sh, ok := getSearch(req.Form)
+	m.Stop()
+	if !ok || !req.Form.Has("q") {
+		// Something was not OK, or "q" is missing, so we redirect to the correct URL.
+		path, err := s.path("DocumentSearch", nil, sh.Values())
+		if err != nil {
+			s.internalServerError(w, req, err)
+			return
+		}
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		w.Header().Set("Location", path)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
+	if s.Development != "" {
+		s.Proxy(w, req)
+	} else {
+		s.staticFile(w, req, "/index.html", false)
+	}
+}
+
 // DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
@@ -214,34 +244,4 @@ func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Reques
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
 	s.writeJSON(w, req, contentEncoding, sh, nil)
-}
-
-// DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-// If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
-
-	m := timing.NewMetric("s").Start()
-	sh, ok := getSearch(req.Form)
-	m.Stop()
-	if !ok || !req.Form.Has("q") {
-		// Something was not OK, or "q" is missing, so we redirect to the correct URL.
-		path, err := s.path("DocumentSearch", nil, sh.Values())
-		if err != nil {
-			s.internalServerError(w, req, err)
-			return
-		}
-		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
-	if s.Development != "" {
-		s.Proxy(w, req)
-	} else {
-		s.staticFile(w, req, "/index.html", false)
-	}
 }
