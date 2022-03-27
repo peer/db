@@ -15,7 +15,7 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-// Search represents current search state.
+// search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
 	Text     string `json:"q"`
@@ -34,13 +34,13 @@ func (q *search) Values() url.Values {
 // TODO: Use a database instead.
 var searches = sync.Map{}
 
-// Field describes a nested field for ElasticSearch to search on.
+// field describes a nested field for ElasticSearch to search on.
 type field struct {
 	Prefix string
 	Field  string
 }
 
-// MakeSearch creates a new search state given optional existing state and new queries.
+// makeSearch creates a new search state given optional existing state and new queries.
 func makeSearch(form url.Values) *search {
 	parentSearchID := form.Get("s")
 	if !identifier.Valid(parentSearchID) {
@@ -69,9 +69,9 @@ func makeSearch(form url.Values) *search {
 	return sh
 }
 
-// GetSearch resolves an existing search state if possible.
+// getOrMakeSearch resolves an existing search state if possible.
 // If not, it creates a new search state.
-func getSearch(form url.Values) (*search, bool) {
+func getOrMakeSearch(form url.Values) (*search, bool) {
 	searchID := form.Get("s")
 	if !identifier.Valid(searchID) {
 		return makeSearch(form), false
@@ -96,6 +96,25 @@ func getSearch(form url.Values) (*search, bool) {
 	return ss, true
 }
 
+// getSearch resolves an existing search state if possible.
+func getSearch(form url.Values) *search {
+	searchID := form.Get("s")
+	if !identifier.Valid(searchID) {
+		return nil
+	}
+	sh, ok := searches.Load(searchID)
+	if !ok {
+		return nil
+	}
+	textQuery := form.Get("q")
+	ss := sh.(*search) //nolint:errcheck
+	// We allow there to not be "q" so that it is easier to use as an API.
+	if form.Has("q") && ss.Text != textQuery {
+		return nil
+	}
+	return ss
+}
+
 // searchResult is returned from the searchGet API endpoint.
 type searchResult struct {
 	ID string `json:"_id"`
@@ -108,7 +127,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := getSearch(req.Form)
+	sh, ok := getOrMakeSearch(req.Form)
 	m.Stop()
 	if !ok || !req.Form.Has("q") {
 		// Something was not OK, or "q" is missing, so we redirect to the correct URL.
@@ -146,7 +165,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := getSearch(req.Form)
+	sh, ok := getOrMakeSearch(req.Form)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return new query parameters.

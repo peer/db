@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	gddo "github.com/golang/gddo/httputil"
@@ -30,6 +31,38 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 	if !identifier.Valid(id) {
 		http.Error(w, "400 bad request", http.StatusBadRequest)
 		return
+	}
+
+	// We validate "s" and "q" parameters.
+	if req.Form.Has("s") || req.Form.Has("q") {
+		m := timing.NewMetric("s").Start()
+		sh := getSearch(req.Form)
+		m.Stop()
+		if sh == nil {
+			// Something was not OK, so we redirect to the URL without both "s" and "q".
+			path, err := s.path("DocumentGet", url.Values{"id": {id}}, nil)
+			if err != nil {
+				s.internalServerError(w, req, err)
+				return
+			}
+			// TODO: Should we already do the query, to warm up ES cache?
+			//       Maybe we should cache response ourselves so that we do not hit ES twice?
+			w.Header().Set("Location", path)
+			w.WriteHeader(http.StatusSeeOther)
+			return
+		} else if req.Form.Has("q") {
+			// We redirect to the URL without "q".
+			path, err := s.path("DocumentGet", url.Values{"id": {id}}, url.Values{"s": {sh.ID}})
+			if err != nil {
+				s.internalServerError(w, req, err)
+				return
+			}
+			// TODO: Should we already do the query, to warm up ES cache?
+			//       Maybe we should cache response ourselves so that we do not hit ES twice?
+			w.Header().Set("Location", path)
+			w.WriteHeader(http.StatusSeeOther)
+			return
+		}
 	}
 
 	// We check if document exists.
@@ -74,6 +107,9 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 		http.Error(w, "400 bad request", http.StatusBadRequest)
 		return
 	}
+
+	// We do not check "s" and "q" parameters because the expectation is that
+	// they are not provided with JSON request (because they are not used).
 
 	headers := http.Header{}
 	headers.Set("Accept-Encoding", contentEncoding)
