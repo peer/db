@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { ref } from "vue"
+import { useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch } from "@/search"
 
+const router = useRouter()
+
 const dataProgress = ref(0)
-const { docs, total, moreThanTotal, hasMore, loadMore } = useSearch(dataProgress)
+const { docs, total, moreThanTotal, hasMore, loadMore } = useSearch(dataProgress, async (query) => {
+  await router.replace({
+    name: "DocumentSearch",
+    query,
+  })
+})
 </script>
 
 <template>

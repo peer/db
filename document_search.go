@@ -217,9 +217,16 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		total += "+"
 	}
 
-	s.writeJSON(w, req, contentEncoding, results, http.Header{
+	metadata := http.Header{
 		"Total": {total},
-	})
+	}
+
+	// A special case. If reqest had only "s" parameter, we expose the query in the response.
+	if !req.Form.Has("q") {
+		metadata.Set("Query", url.PathEscape(sh.Text))
+	}
+
+	s.writeJSON(w, req, contentEncoding, results, metadata)
 }
 
 // DocumentSearchPostHTML is a POST HTTP request handler which stores the search state and redirect to

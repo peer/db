@@ -9,7 +9,7 @@ const props = defineProps<{
 
 const route = useRoute()
 
-const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(props.doc, "name"))
+const hasLoaded = computed(() => "name" in props.doc)
 // TODO: Do not hard-code description property ID.
 const description = computed(() => {
   for (const claim of props.doc.active?.text || []) {

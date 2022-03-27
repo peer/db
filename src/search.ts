@@ -1,5 +1,5 @@
 import { Ref, DeepReadonly, onBeforeUnmount } from "vue"
-import type { Router } from "vue-router"
+import type { Router, LocationQueryRaw } from "vue-router"
 import type { SearchResult, PeerDBDocument } from "@/types"
 
 import { ref, watch, readonly } from "vue"
@@ -66,7 +66,10 @@ function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, 
   }
 }
 
-export function useSearch(progress: Ref<number>): {
+export function useSearch(
+  progress: Ref<number>,
+  redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   total: DeepReadonly<Ref<number>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
@@ -120,7 +123,8 @@ export function useSearch(progress: Ref<number>): {
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       const data = await getSearch(router, query, progress, controller.signal)
-      if (data === null) {
+      if (!("results" in data)) {
+        await redirect(data)
         return
       }
       results = data.results
@@ -157,7 +161,12 @@ export function useSearch(progress: Ref<number>): {
   }
 }
 
-async function getSearch(router: Router, query: string, progress: Ref<number>, abortSignal: AbortSignal): Promise<{ results: SearchResult[]; total: string } | null> {
+async function getSearch(
+  router: Router,
+  query: string,
+  progress: Ref<number>,
+  abortSignal: AbortSignal,
+): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
   progress.value += 1
   try {
     const response = await fetch(
@@ -188,13 +197,14 @@ async function getSearch(router: Router, query: string, progress: Ref<number>, a
       if (total === null) {
         throw new Error("Peerdb-Total header is null")
       }
-      return { results: data, total }
+      const res = { results: data, total } as { results: SearchResult[]; total: string; query?: string }
+      const query = response.headers.get("Peerdb-Query")
+      if (query !== null) {
+        res.query = query
+      }
+      return res
     } else {
-      await router.replace({
-        name: "DocumentSearch",
-        query: data,
-      })
-      return null
+      return data
     }
   } finally {
     progress.value -= 1
@@ -233,5 +243,66 @@ export async function getDocument(router: Router, id: string, progress: Ref<numb
     return doc
   } finally {
     progress.value -= 1
+  }
+}
+
+export function useSearchState(
+  progress: Ref<number>,
+  redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+): {
+  results: DeepReadonly<Ref<SearchResult[]>>
+  query: DeepReadonly<Ref<{ q?: string; s?: string }>>
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  const _results = ref<SearchResult[]>([])
+  const _query = ref<{ q?: string; s?: string }>({})
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const query = import.meta.env.DEV ? readonly(_query) : _query
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      if (Array.isArray(route.query.s)) {
+        return route.query.s[0]
+      } else {
+        return route.query.s
+      }
+    },
+    async (s, oldS, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (s == null) {
+        _results.value = []
+        _query.value = {}
+        return
+      }
+      const params = new URLSearchParams()
+      params.set("s", s)
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getSearch(router, params.toString(), progress, controller.signal)
+      if (!("results" in data)) {
+        await redirect(data)
+        return
+      }
+      _results.value = data.results
+      // We know it is available because we the query is without "q" parameter.
+      _query.value = {
+        q: decodeURIComponent(data.query as string),
+        s,
+      }
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    results,
+    query,
   }
 }

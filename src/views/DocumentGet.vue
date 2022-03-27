@@ -6,8 +6,9 @@ import { useRoute, useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
+import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
-import { getDocument } from "@/search"
+import { getDocument, useSearchState } from "@/search"
 
 const props = defineProps({
   id: {
@@ -39,26 +40,48 @@ watch(
   },
 )
 
-const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value, "name"))
+const hasLoaded = computed(() => "name" in doc.value)
+
+const { results, query } = useSearchState(dataProgress, async (query) => {
+  // Something was not OK, so we redirect to the URL without "s".
+  // TODO: This has still created a new search state on the server, we should not do that.
+  await router.replace({
+    name: "DocumentGet",
+    params: {
+      id: props.id,
+    },
+  })
+})
+
+async function onFocus() {
+  const q = Object.assign({}, query.value, {
+    at: props.id,
+  })
+  await router.push({
+    name: "DocumentSearch",
+    query: q,
+  })
+}
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar :progress="dataProgress">
-      <form ref="form" class="flex flex-grow gap-x-1 sm:gap-x-4" @submit.prevent>
-        <InputText name="q" class="max-w-xl flex-grow" :value="route.query.q" />
-      </form>
+      <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
+        <InputText name="q" class="max-w-xl flex-grow" :value="query.q" @focus="onFocus" />
+      </div>
+      <NavBarSearch v-else />
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
       <div v-if="hasLoaded">
-        <h1 class="mb-4 text-4xl font-medium drop-shadow-sm">{{ doc.name.en }}</h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name.en }}</h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
-              <th class="border-r border-slate-200 px-2 py-1 text-left font-medium">Property</th>
-              <th class="border-l border-slate-200 px-2 py-1 text-left font-medium">Value</th>
+              <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
+              <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
             </tr>
           </thead>
           <tbody>
