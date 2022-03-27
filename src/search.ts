@@ -91,19 +91,26 @@ export function useSearch(progress: Ref<number>): {
   const initialRouteName = route.name
   watch(
     () => {
-      let q: string
-      let s: string
+      const params = new URLSearchParams()
       if (Array.isArray(route.query.q)) {
-        q = route.query.q[0] || ""
+        if (route.query.q[0] != null) {
+          params.set("q", route.query.q[0])
+        }
       } else {
-        q = route.query.q || ""
+        if (route.query.q != null) {
+          params.set("q", route.query.q)
+        }
       }
       if (Array.isArray(route.query.s)) {
-        s = route.query.s[0] || ""
+        if (route.query.s[0] != null) {
+          params.set("s", route.query.s[0])
+        }
       } else {
-        s = route.query.s || ""
+        if (route.query.s != null) {
+          params.set("s", route.query.s)
+        }
       }
-      return new URLSearchParams({ q, s }).toString()
+      return params.toString()
     },
     async (query, oldQuery, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
@@ -158,7 +165,8 @@ async function getSearch(router: Router, query: string, progress: Ref<number>, a
         name: "DocumentSearch",
       }).href +
         "?" +
-        query,
+        query +
+        "&strict=true",
       {
         method: "GET",
         headers: {

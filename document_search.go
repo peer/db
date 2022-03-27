@@ -82,15 +82,20 @@ func getSearch(form url.Values) (*search, bool) {
 	}
 	textQuery := form.Get("q")
 	ss := sh.(*search) //nolint:errcheck
-	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" so that it is easier to use as an API.
-	if form.Has("q") && ss.Text != textQuery {
-		ss = &search{
-			ID:       identifier.NewRandom(),
-			ParentID: searchID,
-			Text:     textQuery,
+	if form.Has("q") {
+		// There was a change, we make current search a parent search to a new search.
+		if ss.Text != textQuery {
+			ss = &search{
+				ID:       identifier.NewRandom(),
+				ParentID: searchID,
+				Text:     textQuery,
+			}
+			searches.Store(ss.ID, ss)
+			return ss, false
 		}
-		searches.Store(ss.ID, ss)
+	} else if form.Get("strict") == "true" {
+		// But we also allow client to require "q" to be present.
 		return ss, false
 	}
 	return ss, true
