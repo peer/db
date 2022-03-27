@@ -53,7 +53,7 @@ const hasLoaded = computed(() => Object.prototype.hasOwnProperty.call(doc.value,
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
       <div v-if="hasLoaded">
-        <h1 class="text-lg font-medium drop-shadow-sm">{{ doc.name.en }}</h1>
+        <h1 class="mb-4 text-4xl font-medium drop-shadow-sm">{{ doc.name.en }}</h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
