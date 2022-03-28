@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue"
 import { useLink } from "vue-router"
 
 const props = defineProps({
@@ -17,7 +16,7 @@ const props = defineProps({
   },
 })
 
-const { navigate, href } = useLink({ to: props.to, replace: props.replace })
+const { navigate, href } = useLink(props)
 
 async function onClick(event: MouseEvent) {
   await navigate(event)
