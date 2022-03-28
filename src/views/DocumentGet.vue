@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/solid"
 import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
+import ButtonLink from "@/components/ButtonLink.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
@@ -85,22 +86,6 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
 async function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
-
-async function onPrevNext(id: string | null) {
-  if (id == null) {
-    return
-  }
-
-  await router.push({
-    name: "DocumentGet",
-    params: {
-      id,
-    },
-    query: {
-      s: query.value.s,
-    },
-  })
-}
 </script>
 
 <template>
@@ -115,14 +100,14 @@ async function onPrevNext(id: string | null) {
           {{ query.q }}
         </RouterLink>
         <div class="grid grid-cols-2 gap-x-1">
-          <Button class="px-3.5" :disabled="!prevNext.previous" @click="onPrevNext(prevNext.previous)">
+          <ButtonLink class="px-3.5" :disabled="!prevNext.previous" :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: { s: query.s } }">
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
-          </Button>
-          <Button class="px-3.5" :disabled="!prevNext.next" @click="onPrevNext(prevNext.next)">
+          </ButtonLink>
+          <ButtonLink class="px-3.5" :disabled="!prevNext.next" :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: { s: query.s } }">
             <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>
-          </Button>
+          </ButtonLink>
         </div>
       </div>
       <NavBarSearch v-else />
