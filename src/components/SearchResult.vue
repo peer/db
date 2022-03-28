@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { PeerDBDocument } from "@/types"
+
 import { computed } from "vue"
 import { useRoute } from "vue-router"
-import type { PeerDBDocument } from "@/types"
+import RouterLink from "@/components/RouterLink.vue"
 
 const props = defineProps<{
   doc: PeerDBDocument
@@ -25,7 +27,7 @@ const description = computed(() => {
 <template>
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded">
-      <router-link :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link text-lg">{{ doc.name.en }}</router-link>
+      <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link text-lg">{{ doc.name.en }}</RouterLink>
       <p v-if="description" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">

@@ -4,6 +4,7 @@ import type { PeerDBDocument } from "@/types"
 import { ref, computed, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/solid"
+import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
@@ -81,14 +82,7 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   return res
 })
 
-async function onInputText() {
-  const q = Object.assign({}, query.value, {
-    at: props.id,
-  })
-  await router.push({
-    name: "DocumentSearch",
-    query: q,
-  })
+async function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
@@ -113,12 +107,13 @@ async function onPrevNext(id: string | null) {
   <Teleport to="header">
     <NavBar :progress="dataProgress">
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <button
+        <RouterLink
           class="max-w-xl flex-grow appearance-none rounded border-0 border-gray-500 bg-white px-3 py-2 text-left text-base shadow-sm outline-none ring-2 ring-neutral-300 hover:ring-neutral-400 focus:border-blue-600 focus:ring-2 focus:ring-primary-500"
-          @click="onInputText"
+          :to="{ name: 'DocumentSearch', query: { ...query, ...{ at: id } } }"
+          :after-click="afterClick"
         >
           {{ query.q }}
-        </button>
+        </RouterLink>
         <div class="grid grid-cols-2 gap-x-1">
           <Button class="px-3.5" :disabled="!prevNext.previous" @click="onPrevNext(prevNext.previous)">
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
