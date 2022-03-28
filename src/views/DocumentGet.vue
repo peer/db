@@ -5,7 +5,7 @@ import { ref, computed, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/solid"
 import RouterLink from "@/components/RouterLink.vue"
-import Button from "@/components/Button.vue"
+import InputText from "@/components/InputText.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
@@ -92,7 +92,9 @@ async function afterClick() {
   <Teleport to="header">
     <NavBar :progress="dataProgress">
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
+        <InputText v-if="!query.s" :progress="1" class="max-w-xl flex-grow" :value="query.q" />
         <RouterLink
+          v-else
           class="max-w-xl flex-grow appearance-none rounded border-0 border-gray-500 bg-white px-3 py-2 text-left text-base shadow-sm outline-none ring-2 ring-neutral-300 hover:ring-neutral-400 focus:border-blue-600 focus:ring-2 focus:ring-primary-500"
           :to="{ name: 'DocumentSearch', query: { ...query, ...{ at: id } } }"
           :after-click="afterClick"
