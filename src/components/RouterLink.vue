@@ -10,6 +10,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
   afterClick: {
     type: Function,
     default: null,
@@ -27,5 +31,8 @@ async function onClick(event: MouseEvent) {
 </script>
 
 <template>
-  <a :href="href" @click="onClick"><slot /></a>
+  <span v-if="disabled">
+    <slot />
+  </span>
+  <a v-else :href="href" @click="onClick"><slot /></a>
 </template>
