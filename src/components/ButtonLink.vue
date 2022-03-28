@@ -30,7 +30,7 @@ const { navigate, href } = useLink({
     v-if="disabled"
     class="cursor-not-allowed select-none rounded bg-primary-300 px-6 py-2.5 font-medium uppercase leading-tight text-gray-100 shadow-sm outline-none hover:bg-primary-300 focus:ring-2 focus:ring-primary-300 focus:ring-offset-1 active:bg-primary-300"
   >
-    <slot></slot>
+    <slot />
   </div>
   <a
     v-else
@@ -38,6 +38,6 @@ const { navigate, href } = useLink({
     class="select-none rounded bg-primary-600 px-6 py-2.5 font-medium uppercase leading-tight text-white shadow-sm outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
     @click="navigate"
   >
-    <slot></slot>
+    <slot />
   </a>
 </template>
