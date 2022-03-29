@@ -44,18 +44,6 @@ export async function postSearch(router: Router, form: HTMLFormElement, progress
   }
 }
 
-function updateHasMore(hasMore: Ref<"yes" | "limit" | "no">, limit: number, results: number, total: number, moreThanTotal: boolean) {
-  if (limit < results) {
-    hasMore.value = "yes"
-  } else if (total > results) {
-    hasMore.value = "limit"
-  } else if (moreThanTotal) {
-    hasMore.value = "limit"
-  } else {
-    hasMore.value = "no"
-  }
-}
-
 function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, searchResults: SearchResult[], progress: Ref<number>, abortSignal: AbortSignal) {
   assert(limit <= searchResults.length, `${limit} <= ${searchResults.length}`)
   for (let i = docs.value.length; i < limit; i++) {
@@ -74,7 +62,7 @@ export function useSearch(
   results: DeepReadonly<Ref<number>>
   total: DeepReadonly<Ref<number>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
-  hasMore: DeepReadonly<Ref<"yes" | "limit" | "no">>
+  hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
 } {
   const router = useRouter()
@@ -89,7 +77,7 @@ export function useSearch(
   const _results = ref(-1)
   const _total = ref(-1)
   const _moreThanTotal = ref(false)
-  const _hasMore = ref<"yes" | "limit" | "no">("no")
+  const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
@@ -143,7 +131,7 @@ export function useSearch(
       }
       _docs.value = []
       limit = Math.min(INITIAL_LIMIT, results.value)
-      updateHasMore(_hasMore, limit, results.value, total.value, moreThanTotal.value)
+      _hasMore.value = limit < results.value
       updateDocs(router, _docs, limit, searchResults, progress, controller.signal)
     },
     {
@@ -162,7 +150,7 @@ export function useSearch(
     hasMore,
     loadMore: () => {
       limit = Math.min(limit + INCREASE, searchResults.length)
-      updateHasMore(_hasMore, limit, searchResults.length, total.value, moreThanTotal.value)
+      _hasMore.value = limit < results.value
       updateDocs(router, _docs, limit, searchResults, progress, controller.signal)
     },
   }

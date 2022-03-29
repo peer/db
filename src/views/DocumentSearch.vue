@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
+import Button from "@/components/Button.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
@@ -75,34 +76,41 @@ watch(
         <div class="text-center text-sm">No results found.</div>
       </div>
     </div>
-    <template v-for="(doc, i) in docs" :key="doc._id">
-      <div v-if="i === 0 && results < total && moreThanTotal" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Showing first {{ results }} of more than {{ total }} results found.</div>
-        <div class="h-1 w-full bg-slate-200"></div>
-      </div>
-      <div v-if="i === 0 && results == total && moreThanTotal" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Found more than {{ total }} results.</div>
-        <div class="h-1 w-full bg-slate-200"></div>
-      </div>
-      <div v-if="i === 0 && results < total && !moreThanTotal" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Showing first {{ results }} of {{ total }} results found.</div>
-        <div class="h-1 w-full bg-slate-200"></div>
-      </div>
-      <div v-if="i === 0 && results == total && !moreThanTotal" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Found {{ total }} results.</div>
-        <div class="h-1 w-full bg-slate-200"></div>
-      </div>
-      <div v-else-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-        <div v-if="results < total" class="text-center text-sm">{{ i }} of {{ results }} shown results.</div>
-        <div v-else-if="results == total" class="text-center text-sm">{{ i }} of {{ results }} results.</div>
-        <div class="relative h-1 w-full bg-slate-200">
-          <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / results) * 100 + '%' }"></div>
+    <template v-else>
+      <template v-for="(doc, i) in docs" :key="doc._id">
+        <div v-if="i === 0 && moreThanTotal" class="my-1 sm:my-4">
+          <div class="text-center text-sm">Showing first {{ results }} of more than {{ total }} results found.</div>
+          <div class="h-1 w-full bg-slate-200"></div>
         </div>
-      </div>
-      <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
+        <div v-if="i === 0 && results < total && !moreThanTotal" class="my-1 sm:my-4">
+          <div class="text-center text-sm">Showing first {{ results }} of {{ total }} results found.</div>
+          <div class="h-1 w-full bg-slate-200"></div>
+        </div>
+        <div v-if="i === 0 && results == total && !moreThanTotal" class="my-1 sm:my-4">
+          <div class="text-center text-sm">Found {{ total }} results.</div>
+          <div class="h-1 w-full bg-slate-200"></div>
+        </div>
+        <div v-else-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
+          <div v-if="results < total" class="text-center text-sm">{{ i }} of {{ results }} shown results.</div>
+          <div v-else-if="results == total" class="text-center text-sm">{{ i }} of {{ results }} results.</div>
+          <div class="relative h-1 w-full bg-slate-200">
+            <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / results) * 100 + '%' }"></div>
+          </div>
+        </div>
+        <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
+      </template>
     </template>
+    <Button v-if="hasMore" class="w-1/3 self-center" @click="loadMore">Load more</Button>
+    <div v-else class="my-1 sm:my-4">
+      <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of more than {{ total }} results found.</div>
+      <div v-else-if="results < total && !moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of {{ total }} results found.</div>
+      <div v-else-if="results == total && !moreThanTotal" class="text-center text-sm">All of {{ results }} results found.</div>
+      <div class="relative h-1 w-full bg-slate-200">
+        <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: 100 + '%' }"></div>
+      </div>
+    </div>
   </div>
-  <Teleport v-if="(total > 0 && hasMore !== 'yes') || total === 0" to="footer">
+  <Teleport v-if="(total > 0 && !hasMore) || total === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>
