@@ -1,8 +1,8 @@
-import { Ref, DeepReadonly, onBeforeUnmount } from "vue"
+import type { Ref, DeepReadonly } from "vue"
 import type { Router, LocationQueryRaw } from "vue-router"
 import type { SearchResult, PeerDBDocument } from "@/types"
 
-import { ref, watch, readonly } from "vue"
+import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { assert } from "@vue/compiler-core"
 

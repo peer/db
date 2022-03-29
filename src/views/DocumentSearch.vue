@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch } from "@/search"
+import { useVisibilityTracking } from "@/visibility"
 
 const router = useRouter()
 
@@ -15,6 +16,22 @@ const { docs, total, moreThanTotal, hasMore, loadMore } = useSearch(dataProgress
     name: "DocumentSearch",
     query,
   })
+})
+
+const idToIndex = computed(() => {
+  const map = new Map<string, number>()
+  for (const [i, doc] of docs.value.entries()) {
+    map.set(doc._id, i)
+  }
+  return map
+})
+
+const { track, visibles } = useVisibilityTracking()
+
+const topId = computed(() => {
+  const sorted = Array.from(visibles)
+  sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+  return sorted[0]
 })
 </script>
 

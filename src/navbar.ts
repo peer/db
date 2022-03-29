@@ -12,6 +12,10 @@ export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: 
   const supportPageOffset = window.pageYOffset !== undefined
 
   function onScroll() {
+    if (!navbar.value) {
+      return
+    }
+
     const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
     if (currentScrollPosition <= 0) {
       attrs.value.style.position = "absolute"
