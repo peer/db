@@ -108,7 +108,7 @@ onBeforeUnmount(() => {
         <div class="text-center text-sm">No results found.</div>
       </div>
     </div>
-    <template v-else>
+    <template v-else-if="total > 0">
       <template v-for="(doc, i) in docs" :key="doc._id">
         <div v-if="i === 0 && moreThanTotal" class="my-1 sm:my-4">
           <div class="text-center text-sm">Showing first {{ results.length }} of more than {{ total }} results found.</div>
@@ -131,16 +131,16 @@ onBeforeUnmount(() => {
         </div>
         <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
       </template>
-    </template>
-    <Button v-if="hasMore" ref="moreButton" :progress="dataProgress" class="w-1/4 self-center" @click="loadMore">Load more</Button>
-    <div v-else class="my-1 sm:my-4">
-      <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of more than {{ total }} results found.</div>
-      <div v-else-if="results.length < total && !moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of {{ total }} results found.</div>
-      <div v-else-if="results.length == total && !moreThanTotal" class="text-center text-sm">All of {{ results.length }} results found.</div>
-      <div class="relative h-1 w-full bg-slate-200">
-        <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: 100 + '%' }"></div>
+      <Button v-if="hasMore" ref="moreButton" :progress="dataProgress" class="w-1/4 self-center" @click="loadMore">Load more</Button>
+      <div v-else class="my-1 sm:my-4">
+        <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of more than {{ total }} results found.</div>
+        <div v-else-if="results.length < total && !moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of {{ total }} results found.</div>
+        <div v-else-if="results.length == total && !moreThanTotal" class="text-center text-sm">All of {{ results.length }} results found.</div>
+        <div class="relative h-1 w-full bg-slate-200">
+          <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: 100 + '%' }"></div>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
   <Teleport v-if="(total > 0 && !hasMore) || total === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
