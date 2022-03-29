@@ -83,7 +83,9 @@ export function useSearch(
   let limit = 0
 
   const _docs = ref<PeerDBDocument[]>([])
-  const _total = ref(0)
+  // We start with -1, so that until data is loaded the
+  // first time, we do not flash "no results found".
+  const _total = ref(-1)
   const _moreThanTotal = ref(false)
   const _hasMore = ref<"yes" | "limit" | "no">("no")
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs

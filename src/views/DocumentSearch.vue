@@ -42,9 +42,30 @@ const topId = computed(() => {
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
-    <SearchResult v-for="doc in docs" :key="doc._id" :doc="doc" />
+    <div v-if="total === 0">
+      <div class="my-1 sm:my-4">
+        <div class="text-center text-sm">No results found.</div>
+      </div>
+    </div>
+    <template v-for="(doc, i) in docs" :key="doc._id">
+      <div v-if="i === 0 && moreThanTotal" class="my-1 sm:my-4">
+        <div class="text-center text-sm">Found more than {{ total }} results.</div>
+        <div class="h-1 w-full bg-slate-200"></div>
+      </div>
+      <div v-else-if="i === 0" class="my-1 sm:my-4">
+        <div class="text-center text-sm">Found {{ total }} results.</div>
+        <div class="h-1 w-full bg-slate-200"></div>
+      </div>
+      <div v-else-if="i % 10 === 0" class="my-1 sm:my-4">
+        <div class="text-center text-sm">{{ i }} of {{ total }} results.</div>
+        <div class="relative h-1 w-full bg-slate-200">
+          <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / total) * 100 + '%' }"></div>
+        </div>
+      </div>
+      <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
+    </template>
   </div>
-  <Teleport to="footer">
+  <Teleport v-if="(total > 0 && !hasMore) || total === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>
