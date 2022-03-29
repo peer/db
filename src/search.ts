@@ -56,11 +56,11 @@ function updateHasMore(hasMore: Ref<"yes" | "limit" | "no">, limit: number, resu
   }
 }
 
-function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, results: SearchResult[], progress: Ref<number>, abortSignal: AbortSignal) {
-  assert(limit <= results.length, `${limit} <= ${results.length}`)
+function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, searchResults: SearchResult[], progress: Ref<number>, abortSignal: AbortSignal) {
+  assert(limit <= searchResults.length, `${limit} <= ${searchResults.length}`)
   for (let i = docs.value.length; i < limit; i++) {
-    docs.value.push(results[i])
-    getDocument(router, results[i]._id, progress, abortSignal).then((data) => {
+    docs.value.push(searchResults[i])
+    getDocument(router, searchResults[i]._id, progress, abortSignal).then((data) => {
       docs.value[i] = data
     })
   }
@@ -71,6 +71,7 @@ export function useSearch(
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  results: DeepReadonly<Ref<number>>
   total: DeepReadonly<Ref<number>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   hasMore: DeepReadonly<Ref<"yes" | "limit" | "no">>
@@ -79,16 +80,18 @@ export function useSearch(
   const router = useRouter()
   const route = useRoute()
 
-  let results = <SearchResult[]>[]
+  let searchResults = <SearchResult[]>[]
   let limit = 0
 
   const _docs = ref<PeerDBDocument[]>([])
   // We start with -1, so that until data is loaded the
   // first time, we do not flash "no results found".
+  const _results = ref(-1)
   const _total = ref(-1)
   const _moreThanTotal = ref(false)
   const _hasMore = ref<"yes" | "limit" | "no">("no")
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
+  const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
   const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
@@ -129,7 +132,8 @@ export function useSearch(
         await redirect(data)
         return
       }
-      results = data.results
+      searchResults = data.results
+      _results.value = searchResults.length
       if (data.total.endsWith("+")) {
         _moreThanTotal.value = true
         _total.value = parseInt(data.total.substring(0, data.total.length - 1))
@@ -138,9 +142,9 @@ export function useSearch(
         _total.value = parseInt(data.total)
       }
       _docs.value = []
-      limit = Math.min(INITIAL_LIMIT, results.length)
-      updateHasMore(_hasMore, limit, results.length, total.value, moreThanTotal.value)
-      updateDocs(router, _docs, limit, results, progress, controller.signal)
+      limit = Math.min(INITIAL_LIMIT, results.value)
+      updateHasMore(_hasMore, limit, results.value, total.value, moreThanTotal.value)
+      updateDocs(router, _docs, limit, searchResults, progress, controller.signal)
     },
     {
       immediate: true,
@@ -153,12 +157,13 @@ export function useSearch(
   return {
     docs,
     total,
+    results,
     moreThanTotal,
     hasMore,
     loadMore: () => {
-      limit = Math.min(limit + INCREASE, results.length)
-      updateHasMore(_hasMore, limit, results.length, total.value, moreThanTotal.value)
-      updateDocs(router, _docs, limit, results, progress, controller.signal)
+      limit = Math.min(limit + INCREASE, searchResults.length)
+      updateHasMore(_hasMore, limit, searchResults.length, total.value, moreThanTotal.value)
+      updateDocs(router, _docs, limit, searchResults, progress, controller.signal)
     },
   }
 }
