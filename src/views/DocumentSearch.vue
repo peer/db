@@ -111,22 +111,22 @@ onBeforeUnmount(() => {
     <template v-else>
       <template v-for="(doc, i) in docs" :key="doc._id">
         <div v-if="i === 0 && moreThanTotal" class="my-1 sm:my-4">
-          <div class="text-center text-sm">Showing first {{ results }} of more than {{ total }} results found.</div>
+          <div class="text-center text-sm">Showing first {{ results.length }} of more than {{ total }} results found.</div>
           <div class="h-1 w-full bg-slate-200"></div>
         </div>
-        <div v-if="i === 0 && results < total && !moreThanTotal" class="my-1 sm:my-4">
-          <div class="text-center text-sm">Showing first {{ results }} of {{ total }} results found.</div>
+        <div v-if="i === 0 && results.length < total && !moreThanTotal" class="my-1 sm:my-4">
+          <div class="text-center text-sm">Showing first {{ results.length }} of {{ total }} results found.</div>
           <div class="h-1 w-full bg-slate-200"></div>
         </div>
-        <div v-if="i === 0 && results == total && !moreThanTotal" class="my-1 sm:my-4">
+        <div v-if="i === 0 && results.length == total && !moreThanTotal" class="my-1 sm:my-4">
           <div class="text-center text-sm">Found {{ total }} results.</div>
           <div class="h-1 w-full bg-slate-200"></div>
         </div>
         <div v-else-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-          <div v-if="results < total" class="text-center text-sm">{{ i }} of {{ results }} shown results.</div>
-          <div v-else-if="results == total" class="text-center text-sm">{{ i }} of {{ results }} results.</div>
+          <div v-if="results.length < total" class="text-center text-sm">{{ i }} of {{ results.length }} shown results.</div>
+          <div v-else-if="results.length == total" class="text-center text-sm">{{ i }} of {{ results.length }} results.</div>
           <div class="relative h-1 w-full bg-slate-200">
-            <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / results) * 100 + '%' }"></div>
+            <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / results.length) * 100 + '%' }"></div>
           </div>
         </div>
         <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
@@ -134,9 +134,9 @@ onBeforeUnmount(() => {
     </template>
     <Button v-if="hasMore" ref="moreButton" :progress="dataProgress" class="w-1/4 self-center" @click="loadMore">Load more</Button>
     <div v-else class="my-1 sm:my-4">
-      <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of more than {{ total }} results found.</div>
-      <div v-else-if="results < total && !moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of {{ total }} results found.</div>
-      <div v-else-if="results == total && !moreThanTotal" class="text-center text-sm">All of {{ results }} results found.</div>
+      <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of more than {{ total }} results found.</div>
+      <div v-else-if="results.length < total && !moreThanTotal" class="text-center text-sm">All of first {{ results.length }} shown of {{ total }} results found.</div>
+      <div v-else-if="results.length == total && !moreThanTotal" class="text-center text-sm">All of {{ results.length }} results found.</div>
       <div class="relative h-1 w-full bg-slate-200">
         <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: 100 + '%' }"></div>
       </div>
