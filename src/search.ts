@@ -132,7 +132,7 @@ export function useSearch(
       results = data.results
       if (data.total.endsWith("+")) {
         _moreThanTotal.value = true
-        _total.value = parseInt(data.total.substring(0, data.total.length - 2))
+        _total.value = parseInt(data.total.substring(0, data.total.length - 1))
       } else {
         _moreThanTotal.value = false
         _total.value = parseInt(data.total)
