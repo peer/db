@@ -60,6 +60,7 @@ watch(
       hash: route.hash,
     })
   },
+  { immediate: true },
 )
 </script>
 

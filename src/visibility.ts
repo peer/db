@@ -50,6 +50,7 @@ export function useVisibilityTracking(): {
     idToElement.delete(id)
     elementToId.delete(old)
     observer.unobserve(old)
+    _visibles.delete(id)
   }
 
   return {
