@@ -7,6 +7,10 @@ import "./main.css"
 const router = createRouter({
   history: createWebHistory(),
   scrollBehavior(to, from, savedPosition) {
+    // DocumentSearch route handles its own scrolling through "at" query parameter.
+    if (to.name === "DocumentSearch") {
+      return false
+    }
     if (savedPosition) {
       return savedPosition
     } else {

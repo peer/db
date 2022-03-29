@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from "vue"
-import { useRouter } from "vue-router"
+import { ref, computed, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
@@ -9,6 +9,7 @@ import { useSearch } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 
 const router = useRouter()
+const route = useRoute()
 
 const dataProgress = ref(0)
 const { docs, total, moreThanTotal, hasMore, loadMore } = useSearch(dataProgress, async (query) => {
@@ -28,11 +29,38 @@ const idToIndex = computed(() => {
 
 const { track, visibles } = useVisibilityTracking()
 
-const topId = computed(() => {
-  const sorted = Array.from(visibles)
-  sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-  return sorted[0]
-})
+const initialRouteName = route.name
+watch(
+  () => {
+    const sorted = Array.from(visibles)
+    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+    return sorted[0]
+  },
+  async (topId) => {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+    // Initial data has not yet been loaded, so we wait.
+    if (!topId && total.value < 0) {
+      return
+    }
+    const query = { ...route.query }
+    if (!topId) {
+      if ("at" in query) {
+        delete query.at
+      }
+    } else {
+      query.at = topId
+    }
+    await router.replace({
+      name: route.name ?? undefined,
+      params: route.params,
+      query: query,
+      hash: route.hash,
+    })
+  },
+)
 </script>
 
 <template>
