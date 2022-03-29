@@ -19,8 +19,8 @@ async function onSubmit() {
 
 <template>
   <form ref="form" :disabled="progress > 0" class="flex flex-grow gap-x-1 sm:gap-x-4" @submit.prevent="onSubmit">
-    <input v-if="route.query.s" type="hidden" name="s" :value="route.query.s" />
     <InputText id="search-input-text" :progress="progress" name="q" class="max-w-xl flex-grow" :value="route.query.s ? route.query.q : null" />
+    <input v-if="route.query.s" type="hidden" name="s" :value="route.query.s" />
     <Button :progress="progress" type="submit" class="px-3.5">
       <SearchIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>

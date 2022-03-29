@@ -45,16 +45,15 @@ watch(
     if (!topId && total.value < 0) {
       return
     }
-    const query = { ...route.query }
+    // We set "s", "at", and "q" here to undefined so that we control their order in the query string.
+    const query: { s?: string; at?: string; q?: string } = { s: undefined, at: undefined, q: undefined, ...route.query }
     if (!topId) {
-      if ("at" in query) {
-        delete query.at
-      }
+      delete query.at
     } else {
       query.at = topId
     }
     await router.replace({
-      name: route.name ?? undefined,
+      name: route.name as string,
       params: route.params,
       query: query,
       hash: route.hash,

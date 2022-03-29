@@ -18,16 +18,16 @@ import (
 // search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
-	Text     string `json:"q"`
 	ID       string `json:"s"`
+	Text     string `json:"q"`
 	ParentID string `json:"-"`
 }
 
 // Values returns search state as values suitable for use in a query string.
 func (q *search) Values() url.Values {
 	v := url.Values{}
-	v.Set("q", q.Text)
 	v.Set("s", q.ID)
+	v.Set("q", q.Text)
 	return v
 }
 

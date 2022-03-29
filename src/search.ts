@@ -97,15 +97,6 @@ export function useSearch(
   watch(
     () => {
       const params = new URLSearchParams()
-      if (Array.isArray(route.query.q)) {
-        if (route.query.q[0] != null) {
-          params.set("q", route.query.q[0])
-        }
-      } else {
-        if (route.query.q != null) {
-          params.set("q", route.query.q)
-        }
-      }
       if (Array.isArray(route.query.s)) {
         if (route.query.s[0] != null) {
           params.set("s", route.query.s[0])
@@ -113,6 +104,15 @@ export function useSearch(
       } else {
         if (route.query.s != null) {
           params.set("s", route.query.s)
+        }
+      }
+      if (Array.isArray(route.query.q)) {
+        if (route.query.q[0] != null) {
+          params.set("q", route.query.q[0])
+        }
+      } else {
+        if (route.query.q != null) {
+          params.set("q", route.query.q)
         }
       }
       return params.toString()
@@ -253,13 +253,13 @@ export function useSearchState(
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
-  query: DeepReadonly<Ref<{ q?: string; s?: string }>>
+  query: DeepReadonly<Ref<{ s?: string; at?: string; q?: string }>>
 } {
   const router = useRouter()
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
-  const _query = ref<{ q?: string; s?: string }>({})
+  const _query = ref<{ s?: string; at?: string; q?: string }>({})
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const query = import.meta.env.DEV ? readonly(_query) : _query
 
@@ -294,8 +294,10 @@ export function useSearchState(
       _results.value = data.results
       // We know it is available because we the query is without "q" parameter.
       _query.value = {
-        q: decodeURIComponent(data.query as string),
         s,
+        // We set "at" here to undefined so that we control its order in the query string.
+        at: undefined,
+        q: decodeURIComponent(data.query as string),
       }
     },
     {

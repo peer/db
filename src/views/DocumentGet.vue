@@ -96,7 +96,7 @@ async function afterClick() {
         <RouterLink
           v-else
           class="max-w-xl flex-grow appearance-none rounded border-0 border-gray-500 bg-white px-3 py-2 text-left text-base shadow-sm outline-none ring-2 ring-neutral-300 hover:ring-neutral-400 focus:border-blue-600 focus:ring-2 focus:ring-primary-500"
-          :to="{ name: 'DocumentSearch', query: { ...query, ...{ at: id } } }"
+          :to="{ name: 'DocumentSearch', query: { ...query, at: id } }"
           :after-click="afterClick"
         >
           {{ query.q }}
