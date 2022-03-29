@@ -100,7 +100,7 @@ watch(
         <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
       </template>
     </template>
-    <Button v-if="hasMore" class="w-1/3 self-center" @click="loadMore">Load more</Button>
+    <Button v-if="hasMore" class="w-1/4 self-center" @click="loadMore">Load more</Button>
     <div v-else class="my-1 sm:my-4">
       <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of more than {{ total }} results found.</div>
       <div v-else-if="results < total && !moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of {{ total }} results found.</div>
