@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import NavBar from "@/components/NavBar.vue"
@@ -63,6 +63,37 @@ watch(
   },
   { immediate: true },
 )
+
+const moreButton = ref()
+const supportPageOffset = window.pageYOffset !== undefined
+
+function onScroll() {
+  if (!moreButton.value) {
+    return
+  }
+
+  const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
+  const scrollHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight,
+    document.body.offsetHeight,
+    document.documentElement.offsetHeight,
+    document.body.clientHeight,
+    document.documentElement.clientHeight,
+  )
+  const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
+  if (currentScrollPosition > scrollHeight - 2 * viewportHeight) {
+    moreButton.value.$el.click()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("scroll", onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScroll)
+})
 </script>
 
 <template>
@@ -101,7 +132,7 @@ watch(
         <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
       </template>
     </template>
-    <Button v-if="hasMore" :progress="dataProgress" class="w-1/4 self-center" @click="loadMore">Load more</Button>
+    <Button v-if="hasMore" ref="moreButton" :progress="dataProgress" class="w-1/4 self-center" @click="loadMore">Load more</Button>
     <div v-else class="my-1 sm:my-4">
       <div v-if="moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of more than {{ total }} results found.</div>
       <div v-else-if="results < total && !moreThanTotal" class="text-center text-sm">All of first {{ results }} shown of {{ total }} results found.</div>
