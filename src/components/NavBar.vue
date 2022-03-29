@@ -15,7 +15,7 @@ const { ref: navbar, attrs: navbarAttrs } = useNavbar()
 </script>
 
 <template>
-  <ProgressBar :progress="progress" class="fixed inset-x-0 top-0 z-50 will-change-transform" />
+  <ProgressBar :progress="progress" class="fixed inset-x-0 top-0 z-40 will-change-transform" />
   <div
     ref="navbar"
     class="z-30 flex w-full flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
