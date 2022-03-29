@@ -16,7 +16,8 @@ const dataProgress = ref(0)
 const { docs, total, results, moreThanTotal, hasMore, loadMore } = useSearch(dataProgress, async (query) => {
   await router.replace({
     name: "DocumentSearch",
-    query,
+    // Maybe route.query has "at" parameter which we want to keep.
+    query: { ...route.query, ...query },
   })
 })
 

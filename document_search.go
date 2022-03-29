@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	gddo "github.com/golang/gddo/httputil"
@@ -23,12 +24,41 @@ type search struct {
 	ParentID string `json:"-"`
 }
 
-// Values returns search state as values suitable for use in a query string.
-func (q *search) Values() url.Values {
-	v := url.Values{}
-	v.Set("s", q.ID)
-	v.Set("q", q.Text)
-	return v
+// Encode returns search state as a query string.
+// We want the order of parameters to be "s" and then "q" so that
+// if "q" is cut, URL still works.
+func (q *search) Encode() string {
+	var buf strings.Builder
+	buf.WriteString(url.QueryEscape("s"))
+	buf.WriteByte('=')
+	buf.WriteString(url.QueryEscape(q.ID))
+	buf.WriteByte('&')
+	buf.WriteString(url.QueryEscape("q"))
+	buf.WriteByte('=')
+	buf.WriteString(url.QueryEscape(q.Text))
+	return buf.String()
+}
+
+// Encode returns search state as a query string, with additional "at" parameter.
+// We want the order of parameters to be "s", "at", and then "q" so that
+// if "q" is cut, URL still works.
+func (q *search) EncodeWithAt(at string) string {
+	if at == "" {
+		return q.Encode()
+	}
+	var buf strings.Builder
+	buf.WriteString(url.QueryEscape("s"))
+	buf.WriteByte('=')
+	buf.WriteString(url.QueryEscape(q.ID))
+	buf.WriteByte('&')
+	buf.WriteString(url.QueryEscape("at"))
+	buf.WriteByte('=')
+	buf.WriteString(url.QueryEscape(at))
+	buf.WriteByte('&')
+	buf.WriteString(url.QueryEscape("q"))
+	buf.WriteByte('=')
+	buf.WriteString(url.QueryEscape(q.Text))
+	return buf.String()
 }
 
 // TODO: Use a database instead.
@@ -129,9 +159,21 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	m := timing.NewMetric("s").Start()
 	sh, ok := getOrMakeSearch(req.Form)
 	m.Stop()
-	if !ok || !req.Form.Has("q") {
-		// Something was not OK, or "q" is missing, so we redirect to the correct URL.
-		path, err := s.path("DocumentSearch", nil, sh.Values())
+	if !ok {
+		// Something was not OK, so we redirect to the correct URL.
+		path, err := s.path("DocumentSearch", nil, sh.Encode())
+		if err != nil {
+			s.internalServerError(w, req, err)
+			return
+		}
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		w.Header().Set("Location", path)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	} else if !req.Form.Has("q") {
+		// "q" is missing, so we redirect to the correct URL.
+		path, err := s.path("DocumentSearch", nil, sh.EncodeWithAt(req.Form.Get("at")))
 		if err != nil {
 			s.internalServerError(w, req, err)
 			return
@@ -238,7 +280,7 @@ func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Reques
 	m := timing.NewMetric("s").Start()
 	sh := makeSearch(req.Form)
 	m.Stop()
-	path, err := s.path("DocumentSearch", nil, sh.Values())
+	path, err := s.path("DocumentSearch", nil, sh.Encode())
 	if err != nil {
 		s.internalServerError(w, req, err)
 		return

@@ -40,7 +40,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
-			path, err := s.path("DocumentGet", url.Values{"id": {id}}, nil)
+			path, err := s.path("DocumentGet", url.Values{"id": {id}}, "")
 			if err != nil {
 				s.internalServerError(w, req, err)
 				return
@@ -52,7 +52,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 			return
 		} else if req.Form.Has("q") {
 			// We redirect to the URL without "q".
-			path, err := s.path("DocumentGet", url.Values{"id": {id}}, url.Values{"s": {sh.ID}})
+			path, err := s.path("DocumentGet", url.Values{"id": {id}}, url.Values{"s": {sh.ID}}.Encode())
 			if err != nil {
 				s.internalServerError(w, req, err)
 				return

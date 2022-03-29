@@ -479,7 +479,7 @@ func parsePath(path string) []pathSegment {
 	return segments
 }
 
-func (s *Service) path(name string, params url.Values, query url.Values) (string, errors.E) {
+func (s *Service) path(name string, params url.Values, query string) (string, errors.E) {
 	segments, ok := s.routes[name]
 	if !ok {
 		return "", errors.Errorf(`route with name "%s" does not exist`, name)
@@ -509,9 +509,9 @@ func (s *Service) path(name string, params url.Values, query url.Values) (string
 		res.WriteString("/")
 	}
 
-	if len(query) > 0 {
+	if query != "" {
 		res.WriteString("?")
-		res.WriteString(query.Encode())
+		res.WriteString(query)
 	}
 
 	return res.String(), nil
