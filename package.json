@@ -7,7 +7,7 @@
     "build": "vite build",
     "lint": "eslint --ext .js,.vue,.ts,.html --ignore-path .gitignore --fix src",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue.html}",
-    "lint-markup": "vue-tsc --noEmit",
+    "lint-vue": "vue-tsc --noEmit",
     "fmt": "prettier src --write"
   },
   "dependencies": {
