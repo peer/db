@@ -10,7 +10,7 @@ exposed as facets. The goal of the user interface is to allow users without tech
 easily find results they want, without having to write queries. The system also allows multiple data sources
 to be used and merged together.
 
-As a demonstration we provide a search service for Wikipedia articles and Wikidata data.
+As a demonstration we provide a search service for Wikipedia articles and Wikidata data at [https://wikipedia.peerdb.org:8080/](https://wikipedia.peerdb.org:8080/) (**work in progress**).
 
 ## Installation
 
@@ -31,14 +31,26 @@ make
 go install filippo.io/mkcert@latest
 mkcert -install
 mkcert localhost 127.0.0.1 ::1
-./search -c localhost+2.pem -k localhost+2-key.pem
+./search -d -c localhost+2.pem -k localhost+2-key.pem
 ```
 
-This will expose [https://localhost:8080/d](https://localhost:8080/d) search API endpoint.
+Open [https://localhost:8080/](https://localhost:8080/).
 
 [mkcert](https://github.com/FiloSottile/mkcert) is a tool to create a local CA
 keypair which is then used to create TLS certificates for development. PeerDB Search
 requires a TLS certificate because it uses HTTP2.
+
+`-d` CLI argument makes the backend proxy unknown requests to the frontend.
+
+### Frontend
+
+Frontend is implemented in TypeScript and Vue. To install all dependencies and run frontend
+for development:
+
+```sh
+npm install
+npm run serve
+```
 
 ### Wikipedia search
 
@@ -57,6 +69,7 @@ This will do multiple passes:
 - `wikipedia-file-descriptions` downloads Wikipedia files HTML dump (2 GB) and imports file descriptions (runtime 1 hour)
 - `wikipedia-articles` downloads Wikipedia articles HTML dump (100GB) and imports articles (runtime 1 day)
 - `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
+- `optimize` forces merging of ElasticSearch segments (few hours).
 
 The whole process requires substantial amount of disk space (at least 1 TB), bandwidth, and time.
 
