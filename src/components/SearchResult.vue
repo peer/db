@@ -28,6 +28,7 @@ const description = computed(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded">
       <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link text-lg">{{ doc.name.en }}</RouterLink>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <p v-if="description" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">

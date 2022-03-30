@@ -38,7 +38,7 @@ watch(
     sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
     return sorted[0]
   },
-  async (topId) => {
+  async (topId, oldTopId, onCleanup) => {
     // Watch can continue to run for some time after the route changes.
     if (initialRouteName !== route.name) {
       return

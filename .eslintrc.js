@@ -11,7 +11,13 @@ module.exports = {
     "vue/multi-word-component-names": [
       "error",
       {
-        ignores: ["Main"],
+        ignores: ["Main", "Footer"],
+      },
+    ],
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        args: "none",
       },
     ],
   },
