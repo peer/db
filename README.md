@@ -38,7 +38,7 @@ mkcert localhost 127.0.0.1 ::1
 ./search -d -c localhost+2.pem -k localhost+2-key.pem
 ```
 
-Open [https://localhost:8080/](https://localhost:8080/).
+Backend listens at [https://localhost:8080/](https://localhost:8080/).
 
 [mkcert](https://github.com/FiloSottile/mkcert) is a tool to create a local CA
 keypair which is then used to create TLS certificates for development. PeerDB Search
@@ -89,7 +89,7 @@ docker run -d --name peerdb-search -p 8080:8080 -v "$(pwd):/code" \
  --elastic=http://elasticsearch:9200 --logging.console.type=json --cert-file=/code/localhost+2.pem --key-file=/code/localhost+2-key.pem
 ```
 
-Open [https://localhost:8080/](https://localhost:8080/).
+Open [https://localhost:8080/](https://localhost:8080/) in your browser.
 
 ## GitHub mirror
 
