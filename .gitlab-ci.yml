@@ -27,7 +27,7 @@ test:
 
   script:
     - mkdir -p dist
-    - touch dist/.gitignore
+    - touch dist/dummy
     - make test-ci
 
   artifacts:
@@ -53,7 +53,7 @@ lint:
 
   script:
     - mkdir -p dist
-    - touch dist/.gitignore
+    - touch dist/dummy
     - make lint-ci
 
   artifacts:
