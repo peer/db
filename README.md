@@ -10,7 +10,9 @@ exposed as facets. The goal of the user interface is to allow users without tech
 easily find results they want, without having to write queries. The system also allows multiple data sources
 to be used and merged together.
 
-As a demonstration we provide a search service for Wikipedia articles and Wikidata data at [https://wikipedia.peerdb.org:8080/](https://wikipedia.peerdb.org:8080/) (**work in progress**).
+As a demonstration we provide a search service for Wikipedia articles and Wikidata data at
+[https://wikipedia.peerdb.org:8080/](https://wikipedia.peerdb.org:8080/)
+(**work in progress**).
 
 ## Installation
 
