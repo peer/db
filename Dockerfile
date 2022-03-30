@@ -31,6 +31,7 @@ COPY --from=go-build /etc/passwd /etc/passwd
 COPY --from=go-build /etc/group /etc/group
 COPY --from=go-build /go/bin/search /
 USER user:user
+EXPOSE 8080
 ENTRYPOINT ["/search"]
 
 FROM scratch AS production
@@ -44,4 +45,5 @@ COPY --from=go-build /etc/passwd /etc/passwd
 COPY --from=go-build /etc/group /etc/group
 COPY --from=go-build /go/bin/search /
 USER user:user
+EXPOSE 8080
 ENTRYPOINT ["/search"]

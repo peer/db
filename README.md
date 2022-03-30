@@ -23,7 +23,9 @@ Backend is implemented in Go and provides a HTTP2 API. It requires an ElasticSea
 To run backend locally first start an an ElasticSearch instance:
 
 ```sh
-docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" elasticsearch:7.16.3
+docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 \
+ -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
+ elasticsearch:7.16.3
 ```
 
 Then clone the repository and run:
@@ -74,6 +76,20 @@ This will do multiple passes:
 - `optimize` forces merging of ElasticSearch segments (few hours).
 
 The whole process requires substantial amount of disk space (at least 1 TB), bandwidth, and time.
+
+### Docker
+
+Instead of compiling backend and frontend yourself, you can use a Docker image, e.g., one
+build from the latest `main` branch. The following assumes a TLS certificate has been
+generated in the current directory as described above:
+
+```sh
+docker run -d --name peerdb-search -p 8080:8080 -c "$(pwd):/code" \
+ registry.gitlab.com/peerdb/search/branch/main:latest \
+ --elastic=http://elasticsearch:9200 --logging.console.type=json --cert-file=/code/localhost+2.pem --key-file=/code/localhost+2-key.pem
+```
+
+Open [https://localhost:8080/](https://localhost:8080/).
 
 ## GitHub mirror
 
