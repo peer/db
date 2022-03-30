@@ -84,7 +84,7 @@ build from the latest `main` branch. The following assumes a TLS certificate has
 generated in the current directory as described above:
 
 ```sh
-docker run -d --name peerdb-search -p 8080:8080 -c "$(pwd):/code" \
+docker run -d --name peerdb-search -p 8080:8080 -v "$(pwd):/code" \
  registry.gitlab.com/peerdb/search/branch/main:latest \
  --elastic=http://elasticsearch:9200 --logging.console.type=json --cert-file=/code/localhost+2.pem --key-file=/code/localhost+2-key.pem
 ```
