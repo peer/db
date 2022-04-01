@@ -56,6 +56,8 @@ npm install
 npm run serve
 ```
 
+Open [https://localhost:8080/](https://localhost:8080/) in your browser.
+
 ### Wikipedia search
 
 To populate search with Wikipedia articles and Wikidata data, run:
