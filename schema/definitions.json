@@ -96,9 +96,6 @@
         },
         "is": {
           "$ref": "#/$defs/isClaims"
-        },
-        "list": {
-          "$ref": "#/$defs/listClaims"
         }
       },
       "unevaluatedProperties": false
@@ -154,12 +151,6 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/fileClaim"
-      }
-    },
-    "listClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/listClaim"
       }
     },
     "relationClaims": {
@@ -309,58 +300,6 @@
         "prop",
         "type",
         "url"
-      ],
-      "unevaluatedProperties": false
-    },
-    "listClaim": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/documentReference"
-        },
-        "el": {
-          "$ref": "#/$defs/documentReference"
-        },
-        "list": {
-          "description": "A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
-          "$ref": "#/$defs/identifier"
-        },
-        "order": {
-          "description": "Order of an element inside its list. Smaller numbers are closer to the beginning of the list.",
-          "type": "number"
-        },
-        "children": {
-          "description": "List elements might have other lists as children.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "prop": {
-                "$ref": "#/$defs/documentReference"
-              },
-              "child": {
-                "description": "List ID of the child.",
-                "$ref": "#/$defs/identifier"
-              }
-            },
-            "required": [
-              "prop",
-              "child"
-            ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [
-        "prop",
-        "el",
-        "list",
-        "order"
       ],
       "unevaluatedProperties": false
     },

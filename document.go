@@ -45,7 +45,6 @@ type visitor interface {
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
 	VisitIs(claim *IsClaim) (VisitResult, errors.E)
-	VisitList(claim *ListClaim) (VisitResult, errors.E)
 }
 
 type Document struct {
@@ -492,33 +491,6 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 		return nil
 	}
 
-	stopping = false
-	k = 0
-	for i := range c.List {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitList(&c.List[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.List[k] = c.List[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.List) != k {
-		c.List = c.List[:k]
-	}
-	if stopping {
-		return nil
-	}
-
 	return nil
 }
 
@@ -543,7 +515,6 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.Time)
 	s += len(c.TimeRange)
 	s += len(c.Is)
-	s += len(c.List)
 	return s
 }
 
@@ -673,14 +644,6 @@ func (v *getByIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
 	return Keep, nil
 }
 
-func (v *getByIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
 func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
@@ -801,13 +764,6 @@ func (v *getByPropIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
 	return Keep, nil
 }
 
-func (v *getByPropIDVisitor) VisitList(claim *ListClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-	}
-	return Keep, nil
-}
-
 func (d *Document) Get(propID Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
@@ -881,8 +837,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.TimeRange = append(claimTypes.TimeRange, *c)
 	case *IsClaim:
 		claimTypes.Is = append(claimTypes.Is, *c)
-	case *ListClaim:
-		claimTypes.List = append(claimTypes.List, *c)
 	default:
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
@@ -985,7 +939,6 @@ type ClaimTypes struct {
 	Time         TimeClaims         `json:"time,omitempty"`
 	TimeRange    TimeRangeClaims    `json:"timeRange,omitempty"`
 	Is           IsClaims           `json:"is,omitempty"`
-	List         ListClaims         `json:"list,omitempty"`
 }
 
 type (
@@ -1004,7 +957,6 @@ type (
 	TimeClaims         = []TimeClaim
 	TimeRangeClaims    = []TimeRangeClaim
 	IsClaims           = []IsClaim
-	ListClaims         = []ListClaim
 )
 
 type CoreClaim struct {
@@ -1059,8 +1011,6 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
 	case *IsClaim:
 		cc.Meta.Is = append(cc.Meta.Is, *c)
-	case *ListClaim:
-		cc.Meta.List = append(cc.Meta.List, *c)
 	default:
 		return errors.Errorf(`meta claim of type %T is not supported`, claim)
 	}
@@ -1459,16 +1409,6 @@ type IsClaim struct {
 	CoreClaim
 
 	To DocumentReference `json:"to"`
-}
-
-type ListClaim struct {
-	CoreClaim
-
-	Prop     DocumentReference `json:"prop"`
-	Element  DocumentReference `json:"el"`
-	List     Identifier        `json:"list"`
-	Order    float64           `json:"order"`
-	Children []ListChild       `json:"children,omitempty"`
 }
 
 type ListChild struct {

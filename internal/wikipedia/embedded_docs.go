@@ -393,51 +393,6 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitList(claim *search.ListClaim) (search.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
-	}
-
-	if !reflect.DeepEqual(&claim.Prop, ref) {
-		claim.Prop = *ref
-		v.Changed = true
-	}
-
-	ref, err = v.getDocumentReference(claim.Element, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Element)
-	}
-
-	if !reflect.DeepEqual(&claim.Element, ref) {
-		claim.Element = *ref
-		v.Changed = true
-	}
-
-	for i := range claim.Children {
-		child := &claim.Children[i]
-		ref, err := v.getDocumentReference(child.Prop, claim.ID)
-		if err != nil {
-			// When error is referenceNotFoundError we might want just to remove a child, but because this
-			// codepath should not really happen with Wikidata data (we do not convert any Wikidata statements
-			// to PeerDB list claims, and this is about hierarchical lists) it is probably a reasonable simplification.
-			return v.handleError(err, child.Prop)
-		}
-
-		if !reflect.DeepEqual(&child.Prop, ref) {
-			child.Prop = *ref
-			v.Changed = true
-		}
-	}
-
-	return search.Keep, nil
-}
-
 func UpdateEmbeddedDocuments(
 	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
 ) (bool, errors.E) {
