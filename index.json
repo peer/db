@@ -97,14 +97,6 @@
           }
         }
       },
-      "otherNames": {
-        "properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "english_plain"
-          }
-        }
-      },
       "score": {
         "type": "double"
       },

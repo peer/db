@@ -11,9 +11,6 @@
         "name": {
           "$ref": "#/$defs/name"
         },
-        "otherNames": {
-          "$ref": "#/$defs/otherNames"
-        },
         "score": {
           "$ref": "#/$defs/score"
         },
@@ -120,20 +117,6 @@
     },
     "name": {
       "$ref": "#/$defs/translatablePlainString"
-    },
-    "otherNames": {
-      "type": "object",
-      "patternProperties": {
-        "^[a-z]{2}(-[A-Z]{2})?$": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "contentMediaType": "text/plain"
-          }
-        }
-      },
-      "minProperties": 1,
-      "additionalProperties": false
     },
     "mnemonic": {
       "type": "string",

@@ -127,10 +127,6 @@ async function afterClick() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="name in doc.otherNames?.en" :key="name">
-              <td class="border-t border-r border-slate-200 px-2 py-1">also known as</td>
-              <td class="border-t border-l border-slate-200 px-2 py-1">{{ name }}</td>
-            </tr>
             <PropertiesRows :properties="doc.active" />
           </tbody>
         </table>

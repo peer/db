@@ -870,31 +870,33 @@ func ConvertEntity(
 	}
 
 	englishAliases := getEnglishValuesSlice(entity.Aliases)
-	if len(englishAliases) > 0 {
-		englishLabels = append(englishLabels, englishAliases...)
-		englishLabels = deduplicate(englishLabels)
-	}
-
-	if len(englishLabels) > 0 {
-		document.CoreDocument.OtherNames = search.OtherNames{
-			"en": englishLabels,
-		}
+	englishLabels = append(englishLabels, englishAliases...)
+	englishLabels = deduplicate(englishLabels)
+	for i, label := range englishLabels {
+		document.Active.Text = append(document.Active.Text, search.TextClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ALSO_KNOWN_AS", i),
+				Confidence: highConfidence,
+			},
+			Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
+			HTML: search.TranslatableHTMLString{
+				"en": html.EscapeString(label),
+			},
+		})
 	}
 
 	englishDescriptions := getEnglishValues(entity.Descriptions)
-	if len(englishDescriptions) > 0 {
-		for i, description := range englishDescriptions {
-			document.Active.Text = append(document.Active.Text, search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
-					Confidence: highConfidence,
-				},
-				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				HTML: search.TranslatableHTMLString{
-					"en": html.EscapeString(description),
-				},
-			})
-		}
+	for i, description := range englishDescriptions {
+		document.Active.Text = append(document.Active.Text, search.TextClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
+				Confidence: highConfidence,
+			},
+			Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+			HTML: search.TranslatableHTMLString{
+				"en": html.EscapeString(description),
+			},
+		})
 	}
 
 	// Deterministic iteration over a map.

@@ -228,7 +228,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	} else {
 		boolQuery := elastic.NewBoolQuery()
 		// TODO: Check which analyzer is used.
-		boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").Field("otherNames.en").DefaultOperator("AND"))
+		boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
 		for _, field := range []field{
 			{"active.id", "id"},
 			{"active.ref", "iri"},

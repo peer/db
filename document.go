@@ -890,11 +890,10 @@ func (d *Document) Add(claim Claim) errors.E {
 }
 
 type CoreDocument struct {
-	ID         Identifier `json:"-"`
-	Name       Name       `json:"name"`
-	OtherNames OtherNames `json:"otherNames,omitempty"`
-	Score      Score      `json:"score"`
-	Scores     Scores     `json:"scores,omitempty"`
+	ID     Identifier `json:"-"`
+	Name   Name       `json:"name"`
+	Score  Score      `json:"score"`
+	Scores Scores     `json:"scores,omitempty"`
 }
 
 type Mnemonic string
@@ -966,9 +965,6 @@ type TranslatablePlainString map[string]string
 
 // Language to HTML string mapping.
 type TranslatableHTMLString map[string]string
-
-// Language to string slice mapping.
-type OtherNames map[string][]string
 
 // Score name to score mapping.
 type Scores map[string]Score

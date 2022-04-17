@@ -77,6 +77,11 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
+			"also known as",
+			"also known as",
+			[]string{`"text" claim type`},
+		},
+		{
 			"page count",
 			"number of pages the entity has",
 			[]string{`"amount" claim type`},
