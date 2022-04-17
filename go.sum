@@ -239,8 +239,8 @@ github.com/xanzy/ssh-agent v0.3.0 h1:wUMzuKtKilRgBAD1sUb8gOwwRr2FGoBVumcjoOACClI
 github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6eAcqrDh0=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686 h1:9/y1jNYf1ow356MDVEj1Y0mmAA+Lqt4LRIvSK9Nv63g=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
-gitlab.com/tozd/go/mediawiki v0.8.1 h1:oKq48mEnrbvXOmX4fw7EZYEsQpAwiL/opdLr2auQTSo=
-gitlab.com/tozd/go/mediawiki v0.8.1/go.mod h1:HvroiDcBPsIpN2CxPqZL6iiJk5Dip9JRMsmjqWUSFEU=
+gitlab.com/tozd/go/mediawiki v0.9.0 h1:+LDajWuJzqYwYleOD5FlfxaEjY+cIl7y76Kv5O6kiaU=
+gitlab.com/tozd/go/mediawiki v0.9.0/go.mod h1:N0y5ipCA+75FNksW0B7NSRYWIbi4N6GUPowsdwNkZyw=
 gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560 h1:loLTjSXn4MKOjwLZMQfn8x3skt/EfuYbUzoDAmUdHsA=
 gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560/go.mod h1:FovFeRAlfCK4SAP8agkHrx1WqVtjUiyLkJwHCpSMkj4=
 go.opencensus.io v0.23.0/go.mod h1:XItmlyltB5F7CS4xOC1DcqMoFqwtC6OG2xF7mCv7P7E=

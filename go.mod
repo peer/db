@@ -15,7 +15,7 @@ require (
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/tozd/go/mediawiki v0.8.1
+	gitlab.com/tozd/go/mediawiki v0.9.0
 	gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )

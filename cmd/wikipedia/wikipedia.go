@@ -53,21 +53,20 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 	defer processor.Close()
 
-	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig{
+	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig[wikipedia.Image]{
 		URL:                    config.URL,
 		Path:                   config.Path,
 		Client:                 config.Client,
 		DecompressionThreads:   config.DecompressionThreads,
 		DecodingThreads:        config.DecodingThreads,
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
-		Process: func(ctx context.Context, i interface{}) errors.E {
+		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
 			return processImage(
 				ctx, globals, httpClient, processor, wikipedia.ConvertWikipediaImage,
-				&skippedWikipediaFiles, &skippedWikipediaFilesCount, *i.(*wikipedia.Image),
+				&skippedWikipediaFiles, &skippedWikipediaFilesCount, i,
 			)
 		},
 		Progress:    config.Progress,
-		Item:        &wikipedia.Image{},
 		FileType:    mediawiki.SQLDump,
 		Compression: mediawiki.GZIP,
 	})
