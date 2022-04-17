@@ -18,11 +18,11 @@ variables:
 test:
   stage: test
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   before_script:
     - apk --update add make gcc musl-dev
-    - (cd /go; go install gotest.tools/gotestsum@v1.7.0)
+    - (cd /go; go install gotest.tools/gotestsum@v1.8.0)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.2.0)
 
   script:
@@ -45,11 +45,11 @@ test:
 lint:
   stage: test
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   before_script:
     - apk --update add make gcc musl-dev
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.43.0
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
 
   script:
     - mkdir -p dist
@@ -65,12 +65,12 @@ lint:
 fmt:
   stage: test
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   before_script:
     - apk --update add make git gcc musl-dev grep
-    - go install mvdan.cc/gofumpt@v0.2.0
-    - go install golang.org/x/tools/cmd/goimports@v0.1.7
+    - go install mvdan.cc/gofumpt@v0.3.1
+    - go install golang.org/x/tools/cmd/goimports@v0.1.10
 
   script:
     - make fmt-ci
@@ -89,11 +89,11 @@ lint_docs:
 audit:
   stage: test
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   before_script:
     - apk --update add make git gcc musl-dev
-    - go install github.com/sonatype-nexus-community/nancy@v1.0.29
+    - go install github.com/sonatype-nexus-community/nancy@v1.0.33
 
   script:
     - make audit
@@ -101,7 +101,7 @@ audit:
 commits:
   stage: test
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   variables:
     GIT_DEPTH: "0"
@@ -246,7 +246,7 @@ upload_binaries:
 publish:
   stage: deploy
 
-  image: golang:1.17-alpine3.14
+  image: golang:1.18-alpine3.14
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/search@$CI_COMMIT_REF_NAME"

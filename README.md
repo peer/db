@@ -18,7 +18,7 @@ As a demonstration we provide a search service for Wikipedia articles and Wikida
 
 ### Backend
 
-Backend is implemented in Go and provides a HTTP2 API. It requires an ElasticSearch instance.
+Backend is implemented in Go (requires 1.18 or newer) and provides a HTTP2 API. It requires an ElasticSearch instance.
 
 To run backend locally first start an an ElasticSearch instance:
 
