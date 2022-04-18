@@ -1410,8 +1410,3 @@ type IsClaim struct {
 
 	To DocumentReference `json:"to"`
 }
-
-type ListChild struct {
-	Prop  DocumentReference `json:"prop"`
-	Child Identifier        `json:"child"`
-}
