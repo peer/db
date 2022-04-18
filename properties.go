@@ -28,7 +28,6 @@ var (
 		"time",
 		"time range",
 		"is",
-		"list",
 	}
 
 	builtinProperties = []struct {
@@ -38,132 +37,148 @@ var (
 	}{
 		{
 			"property",
-			"the entity is a property",
+			"The entity is a property.",
 			[]string{`"is" claim type`},
 		},
 		{
 			"item",
-			"the entity is an item",
+			"The entity is an item.",
 			[]string{`"is" claim type`},
 		},
 		{
 			"file",
-			"the entity is a file",
+			"The entity is a file.",
 			[]string{`"is" claim type`},
 		},
 		{
 			"data",
-			"data of the file entity",
+			"Data of the file entity.",
 			[]string{`"file" claim type`},
 		},
 		{
 			"unit",
-			"unit associated with the amount",
+			"Unit associated with the amount.",
 			nil,
 		},
 		{
 			"claim type",
-			"the property maps to a supported claim type",
+			"The property maps to a supported claim type.",
 			nil,
 		},
 		{
 			"description",
-			"description",
+			"Description of the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
 			"article",
-			"article",
+			"Article about the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
 			"also known as",
-			"also known as",
+			"Entity is also known as.",
 			[]string{`"text" claim type`},
+		},
+		{
+			"list",
+			"A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
+			[]string{`"identifier" claim type`},
+		},
+		{
+			"order",
+			"Order of an element inside its list. Smaller numbers are closer to the beginning of the list.",
+			[]string{`"amount" claim type`},
+		},
+		{
+			// TODO: How to define a property (type of relation) between parent and child?
+			"child",
+			"List elements might have other lists as children. This is an ID of the child list.",
+			[]string{`"identifier" claim type`},
 		},
 		{
 			"page count",
-			"number of pages the entity has",
+			"Number of pages the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"size",
-			"the size the entity has",
+			"The size the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"length",
-			"the length the entity has",
+			"The length the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"width",
-			"the width the entity has",
+			"The width the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"height",
-			"the height the entity has",
+			"The height the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"media type",
-			"media (MIME) type of the file",
+			"Media (MIME) type of the file.",
 			[]string{`"string" claim type`},
 		},
 		{
 			"Wikidata property id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata property page",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI`,
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI.`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"Wikidata item id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>`,
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikidata item page",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI`,
+			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI.`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"English Wikipedia article title",
-			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article title`,
+			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article title.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"English Wikipedia article",
-			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article`,
+			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article.`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"English Wikipedia file name",
-			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file name`,
+			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file name.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"English Wikipedia file",
-			`reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file`,
+			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file.`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"Wikimedia Commons file name",
-			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name`,
+			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikimedia Commons file",
-			`reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file`,
+			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file.`,
 			[]string{`"reference" claim type`},
 		},
 		{
 			"Mediawiki media type",
-			`see possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase`,
+			`See possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase.`,
 			[]string{`"enumeration" claim type`},
 		},
 	}
@@ -281,7 +296,7 @@ func populateStandardProperties() {
 			name := fmt.Sprintf(`"%s" claim type`, claimType)
 			mnemonic := getMnemonic(name)
 			id := string(GetStandardPropertyID(mnemonic))
-			description := fmt.Sprintf(`the property is useful with the "%s" claim type`, claimType)
+			description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
 			StandardProperties[id] = Document{
 				CoreDocument: CoreDocument{
 					ID: Identifier(id),
