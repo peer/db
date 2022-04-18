@@ -134,7 +134,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, esDoc, err := wikipedia.GetWikipediaFile(ctx, globals.Log, httpClient, esClient, filename)
+	document, esDoc, err := wikipedia.GetWikipediaFile(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, filename)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = filename
@@ -214,7 +214,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
-		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", article.Name)
+		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", globals.Token, globals.APILimit, article.Name)
 		if err != nil {
 			details := errors.AllDetails(err)
 			details["title"] = article.Name
@@ -242,7 +242,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, article.MainEntity.Identifier)
+	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier

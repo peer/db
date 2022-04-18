@@ -22,8 +22,8 @@ var (
 	WikimediaCommonsFileError = errors.Base("file is from Wikimedia Commons error")
 )
 
-func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client, image Image) (*search.Document, errors.E) {
-	return convertImage(ctx, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", image)
+func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (*search.Document, errors.E) {
+	return convertImage(ctx, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }
 
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
@@ -89,7 +89,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 // with only a redirect tag to a document which has a proper article,
 // overwriting it (redirect pages also have articles).
 func GetWikipediaFile(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, name string,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, token string, apiLimit int, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
 	document, hit, errE := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, NotFoundError) {
@@ -121,7 +121,7 @@ func GetWikipediaFile(
 	}
 
 	// We could not find the file. Maybe there it is from Wikimedia Commons?
-	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", name)
+	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", token, apiLimit, name)
 	if errE != nil {
 		// Not found error here probably means that file has been deleted recently.
 		errE := errors.WithMessage(errE, "checking API") //nolint:govet

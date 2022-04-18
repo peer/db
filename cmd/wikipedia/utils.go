@@ -245,9 +245,9 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		URL:                    url,
 		Path:                   dumpPath,
 		Client:                 httpClient,
-		DecompressionThreads:   0,
-		DecodingThreads:        0,
-		ItemsProcessingThreads: 0,
+		DecompressionThreads:   globals.DecodingThreads,
+		DecodingThreads:        globals.DecodingThreads,
+		ItemsProcessingThreads: globals.ItemsProcessingThreads,
 		Progress: func(ctx context.Context, p x.Progress) {
 			stats := processor.Stats()
 			e := globals.Log.Info().

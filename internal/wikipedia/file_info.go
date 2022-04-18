@@ -19,12 +19,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const (
-	// A queue of up to (and including) 50 tasks.
-	// 50 is the limit per one API call (500 for clients allowed higher limits).
-	apiLimit = 50
-)
-
 type ImageInfo struct {
 	Mime                string  `json:"mime"`
 	Size                int     `json:"size"`
@@ -78,7 +72,7 @@ type apiTask struct {
 // apiWorkersPerSite is a map between a site and another map, which is a map between a context and a channel.
 var apiWorkersPerSite sync.Map
 
-func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site string, tasks []apiTask) errors.E {
+func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, token string, tasks []apiTask) errors.E {
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -113,6 +107,9 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(encodedData)))
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -242,7 +239,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site st
 
 // Returned apiTaskChan is never explicitly closed but it is left
 // to the garbage collector to clean it up when it is suitable.
-func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site string) chan<- apiTask {
+func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
 	if ctx.Err() != nil {
@@ -289,7 +286,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site st
 					}
 				}
 
-				errE := doAPIRequest(ctx, httpClient, site, tasks)
+				errE := doAPIRequest(ctx, httpClient, site, token, tasks)
 				if errE == nil {
 					// No error, we continue the outer loop.
 					continue
@@ -315,8 +312,8 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site st
 	return apiTaskChan
 }
 
-func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (<-chan ImageInfo, <-chan errors.E) {
-	apiTaskChan := getAPIWorker(ctx, httpClient, site)
+func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, title string) (<-chan ImageInfo, <-chan errors.E) {
+	apiTaskChan := getAPIWorker(ctx, httpClient, site, token, apiLimit)
 
 	imageInfoChan := make(chan ImageInfo)
 	errChan := make(chan errors.E)
@@ -353,22 +350,22 @@ func FirstUpperCase(str string) string {
 	return string(runes)
 }
 
-func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Client, site, filename string) (ImageInfo, errors.E) {
+func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, filename string) (ImageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
 	title = FirstUpperCase(title)
 	title = "File:" + title
 
-	ii, err := GetImageInfo(ctx, httpClient, site, title)
+	ii, err := GetImageInfo(ctx, httpClient, site, token, apiLimit, title)
 	if err != nil {
 		errors.Details(err)["file"] = filename
 	}
 	return ii, err
 }
 
-func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (ImageInfo, errors.E) {
-	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, title)
+func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, title string) (ImageInfo, errors.E) {
+	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, token, apiLimit, title)
 
 	for {
 		select {

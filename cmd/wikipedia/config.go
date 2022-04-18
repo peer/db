@@ -19,8 +19,13 @@ const (
 type Globals struct {
 	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
 	cli.LoggingConfig
-	CacheDir string `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to."`
-	Elastic  string `short:"e" placeholder:"URL" default:"http://127.0.0.1:9200" help:"URL of the ElasticSearch instance."`
+	CacheDir               string `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to."`
+	Elastic                string `short:"e" placeholder:"URL" default:"http://127.0.0.1:9200" help:"URL of the ElasticSearch instance."`
+	Token                  string `placeholder:"TOKEN" env:"MEDIAWIKI_TOKEN" help:"Access token for Mediawiki API. Not required. Environment variable: ${env}"`
+	APILimit               int    `placeholder:"INT" default:"50" help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits."` //nolint:lll
+	DecompressionThreads   int    `placeholder:"INT" default:"0" help:"The number of threads used for decompression. Defaults to the number of available cores."`
+	DecodingThreads        int    `placeholder:"INT" default:"0" help:"The number of threads used for decoding. Defaults to the number of available cores."`
+	ItemsProcessingThreads int    `placeholder:"INT" default:"0" help:"The number of threads used for items processing. Defaults to the number of available cores."`
 }
 
 // Config provides configuration.

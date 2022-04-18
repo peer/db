@@ -12,7 +12,7 @@ func TestGetImageInfoForFilename(t *testing.T) {
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 
-	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "Logo_Google_2013_Official.svg")
+	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "", 50, "Logo_Google_2013_Official.svg")
 	assert.NoError(t, err)
 	assert.Equal(t, ImageInfo{
 		Mime:                "image/svg+xml",

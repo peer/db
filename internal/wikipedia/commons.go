@@ -319,7 +319,7 @@ func getXMLPageCount(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, image Image) (int, errors.E) {
+func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (int, errors.E) {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
 		return count, nil
@@ -348,7 +348,7 @@ func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, image I
 	if count != 0 {
 		return count, nil
 	}
-	imageInfo, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", image.Name)
+	imageInfo, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", token, apiLimit, image.Name)
 	if err != nil {
 		return 0, errors.Errorf(`unable to get image info: %w`, err)
 	}
@@ -394,12 +394,12 @@ func fitBoxWidth(width, height float64) int {
 	return int(roundedUp)
 }
 
-func ConvertWikimediaCommonsImage(ctx context.Context, httpClient *retryablehttp.Client, image Image) (*search.Document, errors.E) {
-	return convertImage(ctx, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", image)
+func ConvertWikimediaCommonsImage(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (*search.Document, errors.E) {
+	return convertImage(ctx, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
 func convertImage(
-	ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix string, image Image,
+	ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix, token string, apiLimit int, image Image,
 ) (*search.Document, errors.E) {
 	id := search.GetID(namespace, image.Name)
 	prefix := getMediawikiFilePrefix(image.Name)
@@ -441,7 +441,7 @@ func convertImage(
 	var err errors.E
 	pageCount := 0
 	if hasPages[mediaType] {
-		pageCount, err = getPageCount(ctx, httpClient, image)
+		pageCount, err = getPageCount(ctx, httpClient, token, apiLimit, image)
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
 			return nil, errors.WithMessage(err, `error getting page count`)

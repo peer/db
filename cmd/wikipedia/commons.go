@@ -73,11 +73,11 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 
 func processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
-	convert func(context.Context, *retryablehttp.Client, wikipedia.Image) (*search.Document, errors.E),
+	convert func(context.Context, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 	skippedMap *sync.Map, count *int64,
 	image wikipedia.Image,
 ) errors.E {
-	document, err := convert(ctx, httpClient, image)
+	document, err := convert(ctx, httpClient, globals.Token, globals.APILimit, image)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			globals.Log.Debug().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Send()

@@ -66,7 +66,7 @@ func (c *WikidataCommand) processEntity(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client,
 	processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Log, httpClient, esClient, cache, &skippedCommonsFiles, entity)
+	document, err := wikipedia.ConvertEntity(ctx, globals.Log, httpClient, esClient, cache, &skippedCommonsFiles, globals.Token, globals.APILimit, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			globals.Log.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
