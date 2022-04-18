@@ -468,7 +468,7 @@ func convertImage(
 	if previewPages == 0 {
 		previewPages = 1
 	}
-	preview := []string{}
+	previews := []string{}
 	if !noPreview[mediaType] {
 		if image.Width == 0 || image.Height == 0 {
 			return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `expected width/height (%dx%d)`, image.Width, image.Height))
@@ -476,7 +476,7 @@ func convertImage(
 
 		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
 			// If the image is small, we link directly to the image.
-			preview = append(preview,
+			previews = append(previews,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 			)
 		} else {
@@ -520,7 +520,7 @@ func convertImage(
 						thumbName = "thumbnail" + ext
 					}
 				}
-				preview = append(preview,
+				previews = append(previews,
 					fmt.Sprintf(
 						"https://upload.wikimedia.org/wikipedia/%s/thumb/%s/%s/%s%dpx-%s%s%s",
 						fileSite, prefix, image.Name, pagePrefix, width, extraDash, thumbName, extraExtension,
@@ -563,6 +563,14 @@ func convertImage(
 					Prop: search.GetStandardPropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
 				},
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
+						Confidence: highConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("FILE_URL"),
+					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
+				},
 			},
 			Is: search.IsClaims{
 				{
@@ -571,18 +579,6 @@ func convertImage(
 						Confidence: highConfidence,
 					},
 					To: search.GetStandardPropertyReference("FILE"),
-				},
-			},
-			File: search.FileClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "DATA", 0),
-						Confidence: highConfidence,
-					},
-					Prop:    search.GetStandardPropertyReference("DATA"),
-					Type:    mediaType,
-					URL:     fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
-					Preview: preview,
 				},
 			},
 			String: search.StringClaims{
@@ -619,6 +615,42 @@ func convertImage(
 		},
 	}
 
+	if len(previews) > 0 {
+		previewsList := string(search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST"))
+		for i, preview := range previews {
+			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i),
+					Confidence: highConfidence,
+					Meta: &search.ClaimTypes{
+						Identifier: search.IdentifierClaims{
+							{
+								CoreClaim: search.CoreClaim{
+									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
+									Confidence: highConfidence,
+								},
+								Prop:       search.GetStandardPropertyReference("LIST"),
+								Identifier: previewsList,
+							},
+						},
+						Amount: search.AmountClaims{
+							{
+								CoreClaim: search.CoreClaim{
+									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
+									Confidence: highConfidence,
+								},
+								Prop:   search.GetStandardPropertyReference("ORDER"),
+								Amount: float64(i),
+								Unit:   search.AmountUnitNone,
+							},
+						},
+					},
+				},
+				Prop: search.GetStandardPropertyReference("PREVIEW_URL"),
+				IRI:  preview,
+			})
+		}
+	}
 	if pageCount > 0 {
 		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
 			CoreClaim: search.CoreClaim{

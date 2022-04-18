@@ -233,26 +233,52 @@ func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elast
 		return nil, err
 	}
 
-	for _, claim := range document.Get(search.GetStandardPropertyID("DATA")) {
-		if c, ok := claim.(*search.FileClaim); ok {
-			file := &wikimediaCommonsFile{
-				Reference: search.DocumentReference{
-					ID:     document.ID,
-					Name:   document.Name,
-					Score:  document.Score,
-					Scores: document.Scores,
-				},
-				Type:    c.Type,
-				URL:     c.URL,
-				Preview: c.Preview,
-			}
-			return file, nil
+	var mediaType string
+	for _, claim := range document.Get(search.GetStandardPropertyID("MEDIA_TYPE")) {
+		if c, ok := claim.(*search.StringClaim); ok {
+			mediaType = c.String
+			break
+		}
+	}
+	if mediaType == "" {
+		errE := errors.New("Wikimedia commons file document is missing a MEDIA_TYPE string claim")
+		errors.Details(errE)["file"] = name
+		return nil, errE
+	}
+
+	var fileURL string
+	for _, claim := range document.Get(search.GetStandardPropertyID("FILE_URL")) {
+		if c, ok := claim.(*search.ReferenceClaim); ok {
+			fileURL = c.IRI
+			break
+		}
+	}
+	if fileURL == "" {
+		errE := errors.New("Wikimedia commons file document is missing a FILE_URL reference claim")
+		errors.Details(errE)["file"] = name
+		return nil, errE
+	}
+
+	// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
+	var previews []string
+	for _, claim := range document.Get(search.GetStandardPropertyID("PREVIEW_URL")) {
+		if c, ok := claim.(*search.ReferenceClaim); ok {
+			previews = append(previews, c.IRI)
 		}
 	}
 
-	errE := errors.New("Wikimedia commons file document is missing a DATA file claim")
-	errors.Details(errE)["file"] = name
-	return nil, errE
+	file := &wikimediaCommonsFile{
+		Reference: search.DocumentReference{
+			ID:     document.ID,
+			Name:   document.Name,
+			Score:  document.Score,
+			Scores: document.Scores,
+		},
+		Type:    mediaType,
+		URL:     fileURL,
+		Preview: previews,
+	}
+	return file, nil
 }
 
 func getWikimediaCommonsFileReference(

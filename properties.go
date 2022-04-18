@@ -51,9 +51,14 @@ var (
 			[]string{`"is" claim type`},
 		},
 		{
-			"data",
-			"Data of the file entity.",
-			[]string{`"file" claim type`},
+			"file URL",
+			"URL of the file.",
+			[]string{`"reference" claim type`},
+		},
+		{
+			"preview URL",
+			"URL of the preview.",
+			[]string{`"reference" claim type`},
 		},
 		{
 			"unit",
