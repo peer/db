@@ -46,7 +46,9 @@ type page struct {
 }
 
 type apiResponse struct {
-	BatchComplete bool `json:"batchcomplete"`
+	Error         json.RawMessage `json:"error,omitempty"`
+	ServedBy      string          `json:"servedby,omitempty"`
+	BatchComplete bool            `json:"batchcomplete"`
 	Continue      struct {
 		IIStart  string `json:"iistart"`
 		Continue string `json:"continue"`
@@ -133,6 +135,12 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = debugURL
+		return errE
+	}
+	if apiResp.Error != nil {
+		errE := errors.New("response error")
+		errors.Details(errE)["url"] = debugURL
+		errors.Details(errE)["body"] = apiResp.Error
 		return errE
 	}
 
