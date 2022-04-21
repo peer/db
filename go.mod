@@ -71,6 +71,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686
+	gitlab.com/tozd/go/errors v0.4.1-0.20220421090138-64c8737df0c3
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )

@@ -308,7 +308,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 				// We report the error.
 				errE = errors.Errorf("API request failed: %w", errE)
 				for _, t := range tasks {
-					t.ErrChan <- errE
+					t.ErrChan <- errors.WithDetails(errE)
 				}
 			case <-ctx.Done():
 				// Context has been canceled.

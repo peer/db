@@ -239,6 +239,14 @@ github.com/xanzy/ssh-agent v0.3.0 h1:wUMzuKtKilRgBAD1sUb8gOwwRr2FGoBVumcjoOACClI
 github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6eAcqrDh0=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686 h1:9/y1jNYf1ow356MDVEj1Y0mmAA+Lqt4LRIvSK9Nv63g=
 gitlab.com/tozd/go/errors v0.3.1-0.20220220235405-731963c0e686/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
+gitlab.com/tozd/go/errors v0.4.0 h1:KVqXkNLqk9aath5ZG071esLpwfAd2BQYez9kh4Xu8YM=
+gitlab.com/tozd/go/errors v0.4.0/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421070834-17e136135d36 h1:XSIN0Jdh3RbEhUaXpnyqvwCePqP03+m5zJm76/Cpx/w=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421070834-17e136135d36/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421074913-4ccda1aa8a13 h1:Bo7eLJ61YJYwPzi7OIs2FGZfJWDqg3Ks+Wx8VeE+6lE=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421074913-4ccda1aa8a13/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421090138-64c8737df0c3 h1:bPF6SmQT07St35m025TGMpGxqAFTs4hEkHnz6uwEoKo=
+gitlab.com/tozd/go/errors v0.4.1-0.20220421090138-64c8737df0c3/go.mod h1:Zf+gInKu1RnhzKNslf637IxoCD5fKmCbrZ8ecGMZCQo=
 gitlab.com/tozd/go/mediawiki v0.9.0 h1:+LDajWuJzqYwYleOD5FlfxaEjY+cIl7y76Kv5O6kiaU=
 gitlab.com/tozd/go/mediawiki v0.9.0/go.mod h1:N0y5ipCA+75FNksW0B7NSRYWIbi4N6GUPowsdwNkZyw=
 gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560 h1:loLTjSXn4MKOjwLZMQfn8x3skt/EfuYbUzoDAmUdHsA=
