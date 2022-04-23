@@ -59,7 +59,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		claim := &search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: 1.0,
+				Confidence: highConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("ARTICLE"),
 			HTML: search.TranslatableHTMLString{

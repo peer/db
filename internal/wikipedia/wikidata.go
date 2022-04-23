@@ -171,7 +171,7 @@ func getDocumentReference(id string) search.DocumentReference {
 		Name: map[string]string{
 			"XX": id,
 		},
-		Score: 0.0,
+		Score: noConfidence,
 	}
 }
 
@@ -932,7 +932,7 @@ func ConvertEntity(
 		document.Active.Text = append(document.Active.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
-				Confidence: highConfidence,
+				Confidence: mediumConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 			HTML: search.TranslatableHTMLString{
