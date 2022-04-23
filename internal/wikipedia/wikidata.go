@@ -6,6 +6,7 @@ import (
 	"html"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -46,6 +47,41 @@ var (
 		"Draft:",
 		"TimedText:",
 		"Module:",
+	}
+
+	// Order matters. The first snak type which matches is used as a claim.
+	referencePrimaryProperties = []string{
+		"P248",  // Stated in.
+		"P123",  // Publisher.
+		"P1476", // Title.
+		"P3452", // Inferred from.
+		"P887",  // Based on heuristic.
+		"P528",  // Catalog code.
+		"P143",  // Imported from Wikimedia project.
+		"P854",  // Reference URL.
+		"P1065", // Archive URL.
+		"P4656", // Wikimedia import URL.
+		"P889",  // Mathematical Reviews ID.
+		"P6863", // Digital Prosopography of the Roman Republic ID.
+		"P3217", // Dictionary of Swedish National Biography ID.
+		"P5933", // Tweet ID.
+	}
+
+	referenceSecondaryProperties = []string{
+		"P813",  // Retrieved.
+		"P585",  // Point in time.
+		"P1810", // Named as.
+		"P1932", // Stated as.
+		"P2960", // Archive date.
+		"P577",  // Publication date.
+		"P1683", // Quotation.
+		"P407",  // Language of work or name.
+		"P5997", // Stated in reference as.
+		"P304",  // Page(s).
+		"P792",  // Chapter.
+		"P3865", // Type of reference.
+		"P518",  // Applies to part.
+		"P958",  // Section, verse, paragraph, or clause.
 	}
 )
 
@@ -697,17 +733,126 @@ func addQualifiers(
 	return nil
 }
 
-// addReference uses the first snak of a reference to construct a claim and all other snaks are added as meta claims of that first claim.
+// addReference operates in two modes. In the first mode, when there is only one snak type per reference, it just converts those snaks to claims.
+// In the second mode, when there are multiple snak types, it uses heuristics to determine the primary claim and puts other snaks as its meta claims.
 func addReference(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
 	token string, apiLimit int, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
+	// This is an important assertion for correctness of the code that follows.
+	if len(reference.Snaks) != len(reference.SnaksOrder) {
+		err := errors.New("snaks order does not match snaks")
+		errors.Details(err)["entity"] = entityID
+		errors.Details(err)["path"] = []string{prop, statementID, "reference", strconv.Itoa(i)}
+		return err
+	}
+
+	metaClaims := []search.Claim{}
+	foundSecondaryProperties := map[string]bool{}
+
+	for _, secondaryProperty := range referenceSecondaryProperties {
+		if len(reference.Snaks[secondaryProperty]) > 0 {
+			foundSecondaryProperties[secondaryProperty] = true
+		}
+
+		for j, snak := range reference.Snaks[secondaryProperty] {
+			c, err := processSnak(
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, secondaryProperty,
+				[]interface{}{entityID, prop, statementID, "reference", i, secondaryProperty, j}, mediumConfidence, snak,
+			)
+			if errors.Is(err, SilentSkippedError) {
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(secondaryProperty).Int(j)).
+					Err(err).Fields(errors.AllDetails(err)).Send()
+				continue
+			} else if err != nil {
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(secondaryProperty).Int(j)).
+					Err(err).Fields(errors.AllDetails(err)).Send()
+				continue
+			}
+			metaClaims = append(metaClaims, c)
+		}
+	}
+
+	// There might not be snaks to begin with or all snaks are known secondary properties.
+	if len(reference.SnaksOrder)-len(foundSecondaryProperties) == 0 {
+		for _, metaClaim := range metaClaims {
+			err := claim.AddMeta(metaClaim)
+			if err != nil {
+				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
+					Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+			}
+		}
+		return nil
+	}
+
+	var usedSnak string
+	var usedIndex int
 	var referenceClaim search.Claim
+	var snaksOrder []string
+
+	errorsCount := 0
+	silentErrorsCount := 0
+
+	if len(reference.SnaksOrder)-len(foundSecondaryProperties) == 1 {
+		snaksOrder = reference.SnaksOrder
+	} else {
+		snaksOrder = referencePrimaryProperties
+	}
+
+MAIN:
+	for _, property := range snaksOrder {
+		if foundSecondaryProperties[property] {
+			continue
+		}
+
+		for j, snak := range reference.Snaks[property] {
+			c, err := processSnak(
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, property,
+				[]interface{}{entityID, prop, statementID, "reference", i, property, j}, mediumConfidence, snak,
+			)
+			if errors.Is(err, SilentSkippedError) {
+				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
+					Err(err).Fields(errors.AllDetails(err)).Send()
+				silentErrorsCount++
+				continue
+			} else if err != nil {
+				log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
+					Err(err).Fields(errors.AllDetails(err)).Send()
+				errorsCount++
+				continue
+			}
+			usedSnak = property
+			usedIndex = j
+			referenceClaim = c
+			break MAIN
+		}
+	}
+
+	if referenceClaim == nil {
+		if errorsCount == 0 && silentErrorsCount > 0 {
+			log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
+				Strs("properties", reference.SnaksOrder).Msg("unable to determine primary property of a reference")
+		} else {
+			log.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
+				Strs("properties", reference.SnaksOrder).Msg("unable to determine primary property of a reference")
+		}
+		return nil
+	}
 
 	for _, p := range reference.SnaksOrder {
+		if foundSecondaryProperties[p] {
+			continue
+		}
+
 		for j, snak := range reference.Snaks[p] {
+			// We already used this snak.
+			if p == usedSnak && j == usedIndex {
+				continue
+			}
+
 			c, err := processSnak(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, p, []interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, p,
+				[]interface{}{entityID, prop, statementID, "reference", i, p, j}, mediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
@@ -718,20 +863,20 @@ func addReference(
 					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
-			if referenceClaim == nil {
-				referenceClaim = c
-			} else {
-				err = referenceClaim.AddMeta(c)
-				if err != nil {
-					log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
-						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
-				}
+			err = referenceClaim.AddMeta(c)
+			if err != nil {
+				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(p).Int(j)).
+					Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
 			}
 		}
 	}
 
-	if referenceClaim == nil {
-		return nil
+	for _, metaClaim := range metaClaims {
+		err := referenceClaim.AddMeta(metaClaim)
+		if err != nil {
+			log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
+				Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+		}
 	}
 
 	err := claim.AddMeta(referenceClaim)
