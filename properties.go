@@ -86,6 +86,11 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
+			"Wikidata reference",
+			"A temporary group of multiple Wikidata reference statements as meta claims for later processing.",
+			[]string{`"text" claim type`},
+		},
+		{
 			"list",
 			"A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
 			[]string{`"identifier" claim type`},
