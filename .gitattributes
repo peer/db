@@ -8,3 +8,5 @@ internal/wikipedia/testdata/belgium_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/communities_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/communities_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/jfk_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/woman_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/woman_out.html filter=lfs diff=lfs merge=lfs -text

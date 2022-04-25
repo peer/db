@@ -108,6 +108,9 @@ func ConvertArticle(input string) (string, errors.E) {
 		}
 		blockquote.AddSelection(cite).WrapAllHtml("<figure></figure>")
 	})
+	doc.Find("div.block-indent").Each(func(_ int, block *goquery.Selection) {
+		block.WrapAllHtml("<blockquote></blockquote>").Contents().Unwrap()
+	})
 	// Transform thumbimages into figures.
 	doc.Find(".thumbimage").Each(func(_ int, thumbimage *goquery.Selection) {
 		thumbcaption := thumbimage.SiblingsFiltered(".thumbcaption")
