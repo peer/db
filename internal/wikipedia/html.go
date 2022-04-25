@@ -162,6 +162,7 @@ func ConvertArticle(input string) (string, errors.E) {
 		}
 	})
 	// TODO: Sanitize using bluemonday.
+	doc.Find("*").RemoveAttr("data-mw")
 	output, err := doc.Find("body").Html()
 	if err != nil {
 		return "", errors.WithStack(err)
