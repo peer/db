@@ -19,7 +19,7 @@ import (
 var content embed.FS
 
 func TestConvertArticle(t *testing.T) {
-	entries, err := content.ReadDir("testdata")
+	entries, err := content.ReadDir("testdata/article")
 	require.NoError(t, err)
 
 	for _, entry := range entries {
@@ -31,11 +31,11 @@ func TestConvertArticle(t *testing.T) {
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
 		t.Run(base, func(t *testing.T) {
-			input, err := content.ReadFile(filepath.Join("testdata", entry.Name()))
+			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
 			output, err := wikipedia.ConvertArticle(string(input))
 			require.NoError(t, err)
-			expectedFilePath := filepath.Join("testdata", base+"_out.html")
+			expectedFilePath := filepath.Join("testdata", "article", base+"_out.html")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
 				f, err := os.Create(expectedFilePath)
