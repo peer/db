@@ -1,5 +1,6 @@
 internal/wikipedia/testdata/article/jfk_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/revolution_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/programme_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/belgium_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/jfk_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/woman_out.html filter=lfs diff=lfs merge=lfs -text
@@ -10,3 +11,11 @@ internal/wikipedia/testdata/article/communities_in.html filter=lfs diff=lfs merg
 internal/wikipedia/testdata/article/communities_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/listen_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/article/revolution_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/programme_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/tree_out.json filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/church_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/church_out.json filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/programme_out.json filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/tofu_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/tofu_out.json filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/file/tree_in.html filter=lfs diff=lfs merge=lfs -text

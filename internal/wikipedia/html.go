@@ -172,3 +172,47 @@ func ConvertArticle(input string) (string, errors.E) {
 	}
 	return output, nil
 }
+
+func ExtractFileDescriptions(input string) ([]string, errors.E) {
+	descriptions := []string{}
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return descriptions, errors.WithStack(err)
+	}
+	description := doc.Find("#fileinfotpl_desc + td")
+	english := description.Find("div.description[lang='en']")
+	if english.Length() > 0 {
+		english.Find("span.language").Remove()
+		html, err := english.Html()
+		if err != nil {
+			return descriptions, errors.WithStack(err)
+		}
+		descriptions = append(descriptions, html)
+	} else if description.Find("div.description[lang]").Length() == 0 {
+		html, err := description.Html()
+		if err != nil {
+			return descriptions, errors.WithStack(err)
+		}
+		descriptions = append(descriptions, html)
+	}
+	english = doc.Find("#template-picture-of-the-day .multilingual div.description[lang='en']")
+	if english.Length() > 0 {
+		english.Find("span.language").Remove()
+		html, err := english.Html()
+		if err != nil {
+			return descriptions, errors.WithStack(err)
+		}
+		descriptions = append(descriptions, html)
+	}
+	english = doc.Find("#template-media-of-the-day div.description[lang='en']")
+	if english.Length() > 0 {
+		english.Find("span.language").Remove()
+		html, err := english.Html()
+		if err != nil {
+			return descriptions, errors.WithStack(err)
+		}
+		descriptions = append(descriptions, html)
+	}
+	// TODO: Sanitize descriptions using bluemonday.
+	return descriptions, nil
+}
