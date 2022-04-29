@@ -237,7 +237,13 @@ func accessHandler(f func(req *http.Request, code int, size int64, duration time
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Trailer", servertiming.HeaderKey)
-			m := httpsnoop.CaptureMetrics(next, w, req)
+			// We initialize Metrics ourselves so that if Code is never set it is logged as zero.
+			// This allows one to detect calls which has been canceled early and websocket upgrades.
+			// See: https://github.com/felixge/httpsnoop/issues/17
+			m := httpsnoop.Metrics{}
+			m.CaptureMetrics(w, func(ww http.ResponseWriter) {
+				next.ServeHTTP(ww, req)
+			})
 			milliseconds := float64(m.Duration) / float64(time.Millisecond)
 			w.Header().Set(servertiming.HeaderKey, fmt.Sprintf("t;dur=%.1f", milliseconds))
 			f(req, m.Code, m.Written, m.Duration)
@@ -423,9 +429,11 @@ func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) 
 			metrics.Dur(metric.Name, metric.Duration)
 		}
 		metrics.Dur("t", duration)
-		zerolog.Ctx(req.Context()).WithLevel(level).
-			Int("code", code).
-			Int64("size", size).
+		l := zerolog.Ctx(req.Context()).WithLevel(level)
+		if code != 0 {
+			l = l.Int("code", code)
+		}
+		l.Int64("size", size).
 			Dict("metrics", metrics).
 			Send()
 	}))
