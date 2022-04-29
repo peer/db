@@ -10,6 +10,7 @@ import (
 
 const (
 	maximumSummarySize = 1500
+	https              = "https"
 )
 
 func ConvertArticle(input string) (string, errors.E) {
@@ -43,12 +44,12 @@ func ConvertArticle(input string) (string, errors.E) {
 			if !ok {
 				return
 			}
-			parsedValue, err := url.Parse(value)
+			parsedValue, err := url.Parse(value) //nolint:govet
 			if err != nil {
 				return
 			}
 			if parsedValue.Host != "" && parsedValue.Scheme == "" {
-				parsedValue.Scheme = "https"
+				parsedValue.Scheme = https
 				el.SetAttr(conf.Attribute, parsedValue.String())
 			}
 		})
@@ -62,17 +63,17 @@ func ConvertArticle(input string) (string, errors.E) {
 		newSrcsetArray := []string{}
 		for _, srcsetElement := range srcsetArray {
 			elementArray := strings.Split(strings.TrimSpace(srcsetElement), " ")
-			if len(elementArray) != 2 {
+			if len(elementArray) != 2 { //nolint:gomnd
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
 			}
-			parsedSrc, err := url.Parse(elementArray[0])
+			parsedSrc, err := url.Parse(elementArray[0]) //nolint:govet
 			if err != nil {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
 			}
 			if parsedSrc.Host != "" && parsedSrc.Scheme == "" {
-				parsedSrc.Scheme = "https"
+				parsedSrc.Scheme = https
 				newSrcsetArray = append(newSrcsetArray, strings.Join([]string{parsedSrc.String(), elementArray[1]}, " "))
 			} else {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
@@ -85,12 +86,12 @@ func ConvertArticle(input string) (string, errors.E) {
 		if !ok {
 			return
 		}
-		parsedHref, err := url.Parse(href)
+		parsedHref, err := url.Parse(href) //nolint:govet
 		if err != nil {
 			return
 		}
 		if parsedHref.Host != "" && parsedHref.Scheme == "" {
-			parsedHref.Scheme = "https"
+			parsedHref.Scheme = https
 			a.SetAttr("href", parsedHref.String())
 		}
 	})
@@ -136,7 +137,7 @@ func ConvertArticle(input string) (string, errors.E) {
 			children := haudio.Children()
 			title := children.Eq(0).Clone()
 			media := children.Eq(1).Clone()
-			description := children.Eq(2).Clone()
+			description := children.Eq(2).Clone() //nolint:gomnd
 			caption := header.AddSelection(title).AddSelection(description).WrapAllHtml("<figcaption></figcaption>").Parent()
 			figure := media.AddSelection(caption).WrapAllHtml("<figure></figure>").Parent()
 			appendAfter.AfterSelection(figure)
@@ -197,7 +198,7 @@ func ExtractArticleSummary(input string) (string, errors.E) {
 	}
 	ps := doc.Find("section").First().ChildrenFiltered("p")
 	if len(ps.Text()) < maximumSummarySize {
-		html, err := ps.WrapAllHtml("<div></div>").Parent().Html()
+		html, err := ps.WrapAllHtml("<div></div>").Parent().Html() //nolint:govet
 		if err != nil {
 			return "", errors.WithStack(err)
 		}

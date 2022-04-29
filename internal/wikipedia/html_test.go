@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search/internal/wikipedia"
-	"gitlab.com/tozd/go/x"
 )
 
 //go:embed testdata
@@ -41,7 +41,7 @@ func TestConvertArticle(t *testing.T) {
 			if errors.Is(err, fs.ErrNotExist) {
 				f, err := os.Create(expectedFilePath)
 				require.NoError(t, err)
-				f.WriteString(output)
+				_, _ = f.WriteString(output)
 			} else {
 				assert.Equal(t, string(expected), output)
 			}
@@ -73,7 +73,7 @@ func TestExtractArticleSummary(t *testing.T) {
 			if errors.Is(err, fs.ErrNotExist) {
 				f, err := os.Create(expectedFilePath)
 				require.NoError(t, err)
-				f.WriteString(output)
+				_, _ = f.WriteString(output)
 			} else {
 				assert.Equal(t, string(expected), output)
 			}
@@ -110,7 +110,7 @@ func TestExtractFileDescriptions(t *testing.T) {
 				require.NoError(t, err)
 				data, err := x.MarshalWithoutEscapeHTML(got)
 				require.NoError(t, err)
-				f.Write(data)
+				_, _ = f.Write(data)
 			} else {
 				var e outputStruct
 				err := x.UnmarshalWithoutUnknownFields(expected, &e)

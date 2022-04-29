@@ -282,7 +282,8 @@ func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elast
 }
 
 func getWikimediaCommonsFileReference(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, token string, apiLimit int, idArgs []interface{}, name string,
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
+	token string, apiLimit int, idArgs []interface{}, name string,
 ) (*wikimediaCommonsFile, errors.E) {
 	maybeFile, ok := cache.Get(name)
 	if ok {
@@ -958,7 +959,8 @@ func ConvertEntity(
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claim, err := processSnak(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, prop,
+				[]interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
@@ -969,7 +971,10 @@ func ConvertEntity(
 					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
-			err = addQualifiers(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder)
+			err = addQualifiers(
+				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit,
+				claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+			)
 			if err != nil {
 				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
 					Err(err).Fields(errors.AllDetails(err)).Send()

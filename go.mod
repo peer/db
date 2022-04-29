@@ -5,6 +5,7 @@ go 1.18
 require github.com/alecthomas/kong v0.2.22
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
@@ -23,10 +24,8 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
-	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
-	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cosnicolaou/pbzip2 v1.0.2-0.20211229030036-3ed02fdb7541 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/phpserialize v1.3.2 // indirect
@@ -35,7 +34,6 @@ require (
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
-	github.com/gorilla/css v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -43,7 +41,6 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/microcosm-cc/bluemonday v1.0.18 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
 	github.com/pingcap/log v0.0.0-20210625125904-98ed8e2eb1c7 // indirect
