@@ -788,12 +788,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
 	}
 	activeClaims := claim.GetConfidence() >= 0.0
-	switch c := claim.(type) {
-	case *AmountClaim:
-		activeClaims = activeClaims && c.Unit != AmountUnitCustom
-	case *AmountRangeClaim:
-		activeClaims = activeClaims && c.Unit != AmountUnitCustom
-	}
 	var claimTypes *ClaimTypes
 	if activeClaims {
 		if d.Active == nil {
