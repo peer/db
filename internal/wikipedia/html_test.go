@@ -49,6 +49,38 @@ func TestConvertArticle(t *testing.T) {
 	}
 }
 
+func TestExtractArticleSummary(t *testing.T) {
+	entries, err := content.ReadDir("testdata/article")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), "_in.html") {
+			continue
+		}
+		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		t.Run(base, func(t *testing.T) {
+			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
+			require.NoError(t, err)
+			output, err := wikipedia.ConvertArticle(string(input))
+			require.NoError(t, err)
+			output, err = wikipedia.ExtractArticleSummary(output)
+			require.NoError(t, err)
+			expectedFilePath := filepath.Join("testdata", "article", base+"_summary.html")
+			expected, err := content.ReadFile(expectedFilePath)
+			if errors.Is(err, fs.ErrNotExist) {
+				f, err := os.Create(expectedFilePath)
+				require.NoError(t, err)
+				f.WriteString(output)
+			} else {
+				assert.Equal(t, string(expected), output)
+			}
+		})
+	}
+}
+
 type outputStruct struct {
 	Output []string `json:"output"`
 }

@@ -19,3 +19,11 @@ internal/wikipedia/testdata/file/programme_out.json filter=lfs diff=lfs merge=lf
 internal/wikipedia/testdata/file/tofu_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/file/tofu_out.json filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/file/tree_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/communities_summary.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/jfk_summary.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/listen_summary.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/revolution_summary.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/woman_summary.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/category/disambiguation_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/category/not_suitable_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/article/belgium_summary.html filter=lfs diff=lfs merge=lfs -text

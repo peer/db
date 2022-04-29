@@ -8,6 +8,10 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+const (
+	maximumSummarySize = 1500
+)
+
 func ConvertArticle(input string) (string, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
@@ -164,6 +168,19 @@ func ConvertArticle(input string) (string, errors.E) {
 			}
 		}
 	})
+	// Remove any really empty paragraphs.
+	doc.Find("p").Each(func(_ int, p *goquery.Selection) {
+		// Is there some non-whitespace text? We do not remove it.
+		if len(strings.TrimSpace(p.Text())) > 0 {
+			return
+		}
+		clone := p.Clone()
+		for clone.Find("span:empty").Remove().Length() > 0 {
+		}
+		if clone.Is(":empty") {
+			p.Remove()
+		}
+	})
 	// TODO: Sanitize using bluemonday.
 	doc.Find("*").RemoveAttr("data-mw")
 	output, err := doc.Find("body").Html()
@@ -171,6 +188,26 @@ func ConvertArticle(input string) (string, errors.E) {
 		return "", errors.WithStack(err)
 	}
 	return output, nil
+}
+
+func ExtractArticleSummary(input string) (string, errors.E) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	ps := doc.Find("section").First().ChildrenFiltered("p")
+	if len(ps.Text()) < maximumSummarySize {
+		html, err := ps.WrapAllHtml("<div></div>").Parent().Html()
+		if err != nil {
+			return "", errors.WithStack(err)
+		}
+		return html, nil
+	}
+	html, err := ps.First().WrapAllHtml("<div></div>").Parent().Html()
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	return html, nil
 }
 
 func ExtractFileDescriptions(input string) ([]string, errors.E) {
