@@ -13,7 +13,7 @@ const (
 	https              = "https"
 )
 
-func ConvertArticle(input string) (string, errors.E) {
+func ExtractArticle(input string) (string, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
 		return "", errors.WithStack(err)

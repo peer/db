@@ -19,7 +19,7 @@ import (
 //go:embed testdata
 var content embed.FS
 
-func TestConvertArticle(t *testing.T) {
+func TestExtractArticle(t *testing.T) {
 	entries, err := content.ReadDir("testdata/article")
 	require.NoError(t, err)
 
@@ -34,7 +34,7 @@ func TestConvertArticle(t *testing.T) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
-			output, err := wikipedia.ConvertArticle(string(input))
+			output, err := wikipedia.ExtractArticle(string(input))
 			require.NoError(t, err)
 			expectedFilePath := filepath.Join("testdata", "article", base+"_out.html")
 			expected, err := content.ReadFile(expectedFilePath)
@@ -64,7 +64,7 @@ func TestExtractArticleSummary(t *testing.T) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
-			output, err := wikipedia.ConvertArticle(string(input))
+			output, err := wikipedia.ExtractArticle(string(input))
 			require.NoError(t, err)
 			output, err = wikipedia.ExtractArticleSummary(output)
 			require.NoError(t, err)
