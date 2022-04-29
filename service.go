@@ -368,7 +368,7 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 	return nil
 }
 
-func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) {
+func (s *Service) RouteWith(router *httprouter.Router, version string) (http.Handler, errors.E) {
 	if s.routes != nil {
 		panic(errors.New("RouteWith called more than once"))
 	}
@@ -430,6 +430,9 @@ func (s *Service) RouteWith(router *httprouter.Router) (http.Handler, errors.E) 
 		}
 		metrics.Dur("t", duration)
 		l := zerolog.Ctx(req.Context()).WithLevel(level)
+		if version != "" {
+			l = l.Str("version", version)
+		}
 		if code != 0 {
 			l = l.Int("code", code)
 		}

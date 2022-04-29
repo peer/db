@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/cli"
 )
 
 const (
@@ -33,7 +34,7 @@ func listen(config *Config) errors.E {
 	}
 
 	router := httprouter.New()
-	handler, err := s.RouteWith(router)
+	handler, err := s.RouteWith(router, cli.Version)
 	if err != nil {
 		return err
 	}
