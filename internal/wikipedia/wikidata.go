@@ -39,9 +39,7 @@ var (
 		"Wikipedia:",
 		"File:",
 		"MediaWiki:",
-		"Template:",
 		"Help:",
-		"Category:",
 		"Portal:",
 		"Draft:",
 		"TimedText:",
@@ -780,6 +778,10 @@ func ConvertEntity(
 	// We simply use the first label we have.
 	name := englishLabels[0]
 	englishLabels = englishLabels[1:]
+
+	// Remove prefix if it is a category or template entity.
+	name = strings.TrimPrefix(name, "Category:")
+	name = strings.TrimPrefix(name, "Template:")
 
 	// TODO: Set mnemonic if a property and the name is unique (it should be).
 	// TODO: Store last item revision and last modification time somewhere.

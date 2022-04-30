@@ -3,6 +3,7 @@ package wikipedia
 import (
 	"context"
 	"fmt"
+	"html"
 	"net/url"
 	"strings"
 
@@ -29,7 +30,6 @@ func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
 // TODO: Investigate how to make use of additional entities metadata.
 //       See: https://www.mediawiki.org/wiki/Topic:Wotwu75akwx2wnsb
-// TODO: Store categories and used templates into claims.
 // TODO: Make internal links to other articles work in HTML (link to PeerDB documents instead).
 // TODO: Remove links to other articles which do not exist, if there are any.
 // TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that.
@@ -223,4 +223,109 @@ func GetWikipediaFile(
 	errE = errors.WithStack(NotFoundError)
 	errors.Details(errE)["file"] = name
 	return nil, nil, errE
+}
+
+// TODO: How to remove categories which has previously been added but are later on removed?
+func ConvertWikipediaCategories(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id string, article mediawiki.Article,
+) errors.E {
+	for _, category := range article.Categories {
+		if !strings.HasPrefix(category.Name, "Category:") {
+			continue
+		}
+
+		convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", category.Name)
+	}
+
+	return nil
+}
+
+// TODO: How to remove templates which has previously been added but are later on removed?
+func ConvertWikipediaTemplates(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id string, article mediawiki.Article,
+) errors.E {
+	for _, template := range article.Templates {
+		if !strings.HasPrefix(template.Name, "Template:") {
+			continue
+		}
+
+		convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", template.Name)
+	}
+
+	return nil
+}
+
+func convertWikipediaLabel(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id string, article mediawiki.Article, typ, label string,
+) {
+	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", label)
+	if err != nil {
+		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", article.Name).Str(typ, label).
+			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find " + typ)
+		return
+	}
+
+	claimID := search.GetID(namespace, id, typ, string(document.ID), 0)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim == nil {
+		claim := &search.LabelClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop: search.DocumentReference{
+				ID:     document.ID,
+				Name:   document.Name,
+				Score:  document.Score,
+				Scores: document.Scores,
+			},
+		}
+		err := document.Add(claim)
+		if err != nil {
+			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", article.Name).
+				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+		}
+	}
+}
+
+// TODO: How to remove redirects which has previously been added but are later on removed?
+func ConvertRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+	for _, redirect := range article.Redirects {
+		claimID := search.GetID(namespace, id, "ALSO_KNOWN_AS", redirect.Name)
+		existingClaim := document.GetByID(claimID)
+		if existingClaim != nil {
+			continue
+		}
+		escapedName := html.EscapeString(redirect.Name)
+		found := false
+		for _, claim := range document.Get(search.GetStandardPropertyID("ALSO_KNOWN_AS")) {
+			if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		claim := &search.TextClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
+			HTML: search.TranslatableHTMLString{
+				"en": escapedName,
+			},
+		}
+		err := document.Add(claim)
+		if err != nil {
+			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", article.Name).
+				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+		}
+	}
+
+	return nil
 }

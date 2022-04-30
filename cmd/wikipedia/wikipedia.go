@@ -277,6 +277,36 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
+	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
 	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
 
