@@ -81,6 +81,11 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
+			"has article",
+			"The entity has an article.",
+			[]string{`"label" claim type`},
+		},
+		{
 			"also known as",
 			"Entity is also known as.",
 			[]string{`"text" claim type`},

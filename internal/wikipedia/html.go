@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	minimumSummarySize = 10
 	maximumSummarySize = 1500
 	https              = "https"
 )
@@ -197,12 +198,19 @@ func ExtractArticleSummary(input string) (string, errors.E) {
 		return "", errors.WithStack(err)
 	}
 	ps := doc.Find("section").First().ChildrenFiltered("p")
-	if len(ps.Text()) < maximumSummarySize {
+	text := strings.TrimSpace(ps.Text())
+	if len(text) < minimumSummarySize {
+		return "", nil
+	} else if len(text) < maximumSummarySize {
 		html, err := ps.WrapAllHtml("<div></div>").Parent().Html() //nolint:govet
 		if err != nil {
 			return "", errors.WithStack(err)
 		}
 		return html, nil
+	}
+	if len(strings.TrimSpace(ps.First().Text())) < minimumSummarySize {
+		// TODO: What to do in this case?
+		return "", nil
 	}
 	html, err := ps.First().WrapAllHtml("<div></div>").Parent().Html()
 	if err != nil {

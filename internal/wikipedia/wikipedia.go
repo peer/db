@@ -32,15 +32,19 @@ func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client
 // TODO: Store categories and used templates into claims.
 // TODO: Make internal links to other articles work in HTML (link to PeerDB documents instead).
 // TODO: Remove links to other articles which do not exist, if there are any.
-// TODO: Split article into summary and main part.
 // TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that.
 //       See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
-// TODO: Make // links/src into https:// links/src.
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
-// TODO: Remove rendered links to categories (they should be claims).
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
-// TODO: Keep only contents of <body>.
 func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+	body, err := ExtractArticle(article.ArticleBody.HTML)
+	if err != nil {
+		errE := errors.WithMessage(err, "article extraction failed")
+		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["title"] = article.Name
+		return errE
+	}
+
 	claimID := search.GetID(namespace, id, "ARTICLE", 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
@@ -54,7 +58,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 			errors.Details(errE)["title"] = article.Name
 			return errE
 		}
-		claim.HTML["en"] = article.ArticleBody.HTML
+		claim.HTML["en"] = body
 	} else {
 		claim := &search.TextClaim{
 			CoreClaim: search.CoreClaim{
@@ -63,7 +67,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 			},
 			Prop: search.GetStandardPropertyReference("ARTICLE"),
 			HTML: search.TranslatableHTMLString{
-				"en": article.ArticleBody.HTML,
+				"en": body,
 			},
 		}
 		err := document.Add(claim)
@@ -73,6 +77,72 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 			errors.Details(errE)["claim"] = string(claimID)
 			errors.Details(errE)["title"] = article.Name
 			return errE
+		}
+	}
+
+	claimID = search.GetID(namespace, id, "HAS_ARTICLE", 0)
+	existingClaim = document.GetByID(claimID)
+	if existingClaim == nil {
+		claim := &search.LabelClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop: search.GetStandardPropertyReference("HAS_ARTICLE"),
+		}
+		err := document.Add(claim)
+		if err != nil {
+			errE := errors.WithMessage(err, "claim cannot be added")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["title"] = article.Name
+			return errE
+		}
+	}
+
+	summary, err := ExtractArticleSummary(body)
+	if err != nil {
+		errE := errors.WithMessage(err, "summary extraction failed")
+		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["title"] = article.Name
+		return errE
+	}
+
+	if summary != "" {
+		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
+		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", 0)
+		existingClaim = document.GetByID(claimID)
+		if existingClaim != nil {
+			claim, ok := existingClaim.(*search.TextClaim)
+			if !ok {
+				errE := errors.New("unexpected description claim type")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+				errors.Details(errE)["title"] = article.Name
+				return errE
+			}
+			claim.HTML["en"] = summary
+		} else {
+			claim := &search.TextClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         claimID,
+					Confidence: highConfidence,
+				},
+				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+				HTML: search.TranslatableHTMLString{
+					"en": summary,
+				},
+			}
+			err := document.Add(claim)
+			if err != nil {
+				errE := errors.WithMessage(err, "claim cannot be added")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["title"] = article.Name
+				return errE
+			}
 		}
 	}
 
