@@ -167,6 +167,11 @@ var (
 			[]string{`"identifier" claim type`},
 		},
 		{
+			"English Wikipedia page id",
+			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page identifier.`,
+			[]string{`"identifier" claim type`},
+		},
+		{
 			"English Wikipedia article",
 			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article.`,
 			[]string{`"reference" claim type`},

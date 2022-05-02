@@ -34,6 +34,7 @@ var (
 	notSupportedDataTypeError      = errors.BaseWrap(SilentSkippedError, "not supported data type")
 	NotFoundError                  = errors.Base("not found")
 
+	// Besides main Wikipedia namespace we allow also templates and categories.
 	nonMainWikipediaNamespaces = []string{
 		"User:",
 		"Wikipedia:",
@@ -875,8 +876,9 @@ func ConvertEntity(
 		}
 		for _, namespace := range nonMainWikipediaNamespaces {
 			if strings.HasPrefix(siteLink.Title, namespace) {
-				// Only items have sitelinks. We want only items related to main Wikipedia articles (main namespace).
-				errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "`limited only to items related to main Wikipedia articles"))
+				// Only items have sitelinks. We want only items related to main Wikipedia articles (main namespace),
+				// templates, and categories.
+				errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "`limited only to items related to main Wikipedia articles, templates, and categories"))
 				errors.Details(errE)["title"] = siteLink.Title
 				return nil, errE
 			}

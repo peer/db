@@ -19,6 +19,22 @@ var (
 	skippedWikidataEntitiesCount int64
 )
 
+// WikidataCommand uses Wikidata entities dump as input and creates a document for each entity in the file, mapping Wikidata statements to PeerDB claims.
+//
+// It skips some entities: those without English label and those items which have a sitelink to Wikipedia, but it is not to an article, template, or category.
+//
+// Besides claims based on Wikipedia statements, it creates also claims with the following properties: WIKIDATA_PROPERTY_ID (P prefixed ID),
+// WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (is claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
+// (URL to item page on Wikidata), ITEM (is claim), ENGLISH_WIKIPEDIA_ARTICLE_TITLE (article title, without underscores), ENGLISH_WIKIPEDIA_ARTICLE
+// (URL to the article), ALSO_KNOWN_AS (fot any non-primary English labels), DESCRIPTION (for English Wikidata entity descriptions).
+//
+// When resolving Wikimedia Commons references it uses existing documents in ElasticSearch to find a corresponding file document and constructs
+// a file claim. If it cannot find one, it uses Wikimedia Commons API to determine if the file has been renamed and the reference should be updated.
+// These cases are not common so using Wikimedia Commons API should not slow down the overall processing.
+//
+// When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
+// for language XX. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
+// pass, checking all references and setting true document names for English language (ID for language XX is useful for debugging when reference is invalid).
 type WikidataCommand struct {
 	SkippedCommonsFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
 	SaveSkipped         string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`

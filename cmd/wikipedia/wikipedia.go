@@ -29,6 +29,32 @@ var (
 	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
 )
 
+// TODO: Files uploaded to Wikipedia are moved to Wikimedia Commons. We should make sure we do not have duplicate files.
+//       For example, if file exists in Wikipedia dump but was then moved to Wikimedia Commons and exists in its dump as well.
+
+// WikipediaFilesCommand uses English Wikipedia images (really files) table SQL dump as input and creates a document for each file in the table.
+//
+// It creates claims with the following properties (not necessary all of them): ENGLISH_WIKIPEDIA_FILE_NAME (just filename, without "File:"
+// prefix, but with underscores and file extension), ENGLISH_WIKIPEDIA_FILE (URL to file page), ENGLISH_WIKIPEDIA_FILE_URL (URL to full
+// resolution or raw file), FILE (is claim), MEDIA_TYPE, SIZE (in bytes), MEDIAWIKI_MEDIA_TYPE, multiple PREVIEW_URL (a list of URLs of previews),
+// PAGE_COUNT, LENGTH (in seconds), WIDTH, HEIGHT. Name of the document is filename without file extension and without underscores.
+// The idea is that these claims should be enough to populate a file claim (in other documents using these files).
+//
+// Files are skipped when metadata is invalid (e.g., unexpected media type, zero size, missing page count when it is expected, zero duration,
+// missing width/height when they are expected).
+//
+// Most files used on English Wikipedia are from Wikipedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
+// image on Wikipedia as fair use, but that is not acceptable on Wikipedia Commons). This command processes those files only on English Wikipedia.
+//
+// For some files (primarily PDFs and DJVU files) metadata is not stored in the SQL table but SQL table only contains a reference to additional
+// blob storage (see: https://phabricator.wikimedia.org/T301039). Because of that this command uses English Wikipedia API to obtain metadata
+// for those files. This introduces some issues. API is rate limited, so processing can be slower than pure offline processing would be (configuring
+// high ItemsProcessingThreads can mitigate this somewhat, so that while some threads are blocked on API, other threads can continue to process other
+// files which do not require API). There can be discrepancies between the table state and what is available through the API: files from the table might
+// be deleted since the table dump has been made. On the other hand, metadata rarely changes (only if metadata is re-extracted/re-computed, or if a new version
+// of a file has been uploaded) so the fact that metadata might be from a different file revision does not seem to be too problematic here. We anyway
+// want the latest information about files because we directly use files hosted on English Wikipedia by displaying them, so if they are changed or deleted,
+// we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type WikipediaFilesCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped files."`
 	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
@@ -82,6 +108,22 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
+// WikipediaFileDescriptionsCommand uses Wikipedia file descriptions HTML dump (namespace 6) as input and adds file's description
+// to a corresponding file document.
+//
+// It expects documents populated by WikipediaFilesCommand.
+//
+// File articles contain a lot of metadata which we do not yet extract, but extract only a HTML description. It is expected that the
+// rest of metadata will be available through Wikimedia Commons entities or similar structured data. Extracted HTML descriptions are processed
+// so that HTML can be directly displayed alongside other content. Use of Wikipedia's CSS nor Javascript is not needed after processing.
+//
+// Internal links inside HTML description are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+//
+// It access existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
+// following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
+// ALSO_KNOWN_AS (from redirects pointing to the file).
+//
+// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label claims.
 type WikipediaFileDescriptionsCommand struct {
 	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikipedia files."`
 	URL                   string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
@@ -153,7 +195,37 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticle(document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaFileDescription(document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikipediaFile, filename, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -169,6 +241,25 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	return nil
 }
 
+// WikipediaArticlesCommand uses Wikipedia articles HTML dump (namespace 0) as input and adds Wikipedia article's body to a
+// corresponding Wikidata entity.
+//
+// It expects documents populated by WikidataCommand.
+//
+// Most Wikidata entities do not have Wikipedia articles, but many do and this command adds a HTML body of the article to each of them,
+// serving as the main field to do full-text search on. It does some heavy processing of the HTML itself so that HTML can be directly displayed
+// alongside other content. Use of Wikipedia's CSS nor Javascript is not needed after processing. It removes infoboxes and banners as the
+// intend is that the same information is available through structured data (although this is not yet true). It removes references, citations,
+// and inline comments (e.g., "citation needed") as the intend is that they are exposed through annotations (pending as well). From the body of
+// the article it extracts also a summary (generally few paragraphs at the beginning of the article).
+//
+// Internal links inside HTML body are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+//
+// It access existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
+// following properties: ARTICLE (body of the article), HAS_ARTICLE (a label), ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article),
+// DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article).
+//
+// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label claims.
 type WikipediaArticlesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`

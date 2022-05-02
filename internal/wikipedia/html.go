@@ -14,11 +14,7 @@ const (
 	https              = "https"
 )
 
-func ExtractArticle(input string) (string, errors.E) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
+func cleanupDocument(doc *goquery.Document) {
 	doc.Find("style, script, noscript, iframe").Remove()
 	doc.Find(".noprint").Not("[role='presentation']").Remove()
 	// TODO: Extract links into metadata.
@@ -45,7 +41,7 @@ func ExtractArticle(input string) (string, errors.E) {
 			if !ok {
 				return
 			}
-			parsedValue, err := url.Parse(value) //nolint:govet
+			parsedValue, err := url.Parse(value) 
 			if err != nil {
 				return
 			}
@@ -68,7 +64,7 @@ func ExtractArticle(input string) (string, errors.E) {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
 			}
-			parsedSrc, err := url.Parse(elementArray[0]) //nolint:govet
+			parsedSrc, err := url.Parse(elementArray[0]) 
 			if err != nil {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
@@ -87,7 +83,7 @@ func ExtractArticle(input string) (string, errors.E) {
 		if !ok {
 			return
 		}
-		parsedHref, err := url.Parse(href) //nolint:govet
+		parsedHref, err := url.Parse(href) 
 		if err != nil {
 			return
 		}
@@ -125,7 +121,7 @@ func ExtractArticle(input string) (string, errors.E) {
 		}
 		figure := thumbimage.Clone().Contents().Unwrap().AddSelection(thumbcaption).WrapAllHtml("<figure></figure>").Parent()
 		thumbimage.ReplaceWithSelection(figure)
-		for figure.Parent().Not("body, section").Length() > 0 {
+		for figure.Parent().Not("body, section, td, th").Length() > 0 {
 			figure = figure.Unwrap().Parent()
 		}
 	})
@@ -156,20 +152,6 @@ func ExtractArticle(input string) (string, errors.E) {
 		link := audiolinkinfo.Find("[rel='mw:WikiLink']").Eq(0)
 		link.AddNodes(link.Nodes[0].NextSibling).Remove()
 	})
-	// Remove some sections.
-	// TODO: Extract to annotations and metadata.
-	doc.Find("section").Each(func(_ int, section *goquery.Selection) {
-	LEVEL:
-		for _, level := range []string{"h1", "h2", "h3", "h4", "h5", "h6"} {
-			heading := section.ChildrenFiltered(level).Text()
-			for _, h := range []string{"See also", "Online sources", "External links", "References", "Footnotes", "Notes", "Further reading"} {
-				if strings.Contains(heading, h) {
-					section.Remove()
-					break LEVEL
-				}
-			}
-		}
-	})
 	// Remove any really empty paragraphs.
 	doc.Find("p").Each(func(_ int, p *goquery.Selection) {
 		// Is there some non-whitespace text? We do not remove it.
@@ -185,6 +167,28 @@ func ExtractArticle(input string) (string, errors.E) {
 	})
 	// TODO: Sanitize using bluemonday.
 	doc.Find("*").RemoveAttr("data-mw")
+}
+
+func ExtractArticle(input string) (string, errors.E) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	cleanupDocument(doc)
+	// Remove some sections.
+	// TODO: Extract to annotations and metadata.
+	doc.Find("section").Each(func(_ int, section *goquery.Selection) {
+	LEVEL:
+		for _, level := range []string{"h1", "h2", "h3", "h4", "h5", "h6"} {
+			heading := section.ChildrenFiltered(level).Text()
+			for _, h := range []string{"See also", "Online sources", "External links", "References", "Footnotes", "Notes", "Further reading"} {
+				if strings.Contains(heading, h) {
+					section.Remove()
+					break LEVEL
+				}
+			}
+		}
+	})
 	output, err := doc.Find("body").Html()
 	if err != nil {
 		return "", errors.WithStack(err)
@@ -192,6 +196,9 @@ func ExtractArticle(input string) (string, errors.E) {
 	return output, nil
 }
 
+// TODO: Prevent double parsing by goquery (operate on doc itself).
+
+// ExtractArticleSummary should be called on the output of ExtractArticle.
 func ExtractArticleSummary(input string) (string, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
@@ -225,6 +232,7 @@ func ExtractFileDescriptions(input string) ([]string, errors.E) {
 	if err != nil {
 		return descriptions, errors.WithStack(err)
 	}
+	cleanupDocument(doc)
 	description := doc.Find("#fileinfotpl_desc + td")
 	english := description.Find("div.description[lang='en']")
 	if english.Length() > 0 {
