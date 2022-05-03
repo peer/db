@@ -34,7 +34,7 @@ func TestExtractArticle(t *testing.T) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
-			output, err := wikipedia.ExtractArticle(string(input))
+			output, _, err := wikipedia.ExtractArticle(string(input))
 			require.NoError(t, err)
 			expectedFilePath := filepath.Join("testdata", "article", base+"_out.html")
 			expected, err := content.ReadFile(expectedFilePath)
@@ -64,9 +64,9 @@ func TestExtractArticleSummary(t *testing.T) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
-			output, err := wikipedia.ExtractArticle(string(input))
+			_, doc, err := wikipedia.ExtractArticle(string(input))
 			require.NoError(t, err)
-			output, err = wikipedia.ExtractArticleSummary(output)
+			output, err := wikipedia.ExtractArticleSummary(doc)
 			require.NoError(t, err)
 			expectedFilePath := filepath.Join("testdata", "article", base+"_summary.html")
 			expected, err := content.ReadFile(expectedFilePath)
@@ -116,6 +116,35 @@ func TestExtractFileDescriptions(t *testing.T) {
 				err := x.UnmarshalWithoutUnknownFields(expected, &e)
 				require.NoError(t, err)
 				assert.Equal(t, e.Output, output)
+			}
+		})
+	}
+}
+
+func TestExtractCategoryDescriptions(t *testing.T) {
+	entries, err := content.ReadDir("testdata/category")
+	require.NoError(t, err)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), "_in.html") {
+			continue
+		}
+		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		t.Run(base, func(t *testing.T) {
+			input, err := content.ReadFile(filepath.Join("testdata", "category", entry.Name()))
+			require.NoError(t, err)
+			output, _, err := wikipedia.ExtractCategoryDescription(string(input))
+			require.NoError(t, err)
+			expectedFilePath := filepath.Join("testdata", "category", base+"_out.html")
+			expected, err := content.ReadFile(expectedFilePath)
+			if errors.Is(err, fs.ErrNotExist) {
+				f, err := os.Create(expectedFilePath)
+				require.NoError(t, err)
+				_, _ = f.WriteString(output)
+			} else {
+				assert.Equal(t, string(expected), output)
 			}
 		})
 	}

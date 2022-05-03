@@ -117,9 +117,9 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 // rest of metadata will be available through Wikimedia Commons entities or similar structured data. Extracted HTML descriptions are processed
 // so that HTML can be directly displayed alongside other content. Use of Wikipedia's CSS nor Javascript is not needed after processing.
 //
-// Internal links inside HTML description are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+// Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
 //
-// It access existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
+// It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
 // ALSO_KNOWN_AS (from redirects pointing to the file).
 //
@@ -253,9 +253,9 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 // and inline comments (e.g., "citation needed") as the intend is that they are exposed through annotations (pending as well). From the body of
 // the article it extracts also a summary (generally few paragraphs at the beginning of the article).
 //
-// Internal links inside HTML body are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+// Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
 //
-// It access existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
+// It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ARTICLE (body of the article), HAS_ARTICLE (a label), ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article),
 // DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article).
 //
@@ -359,6 +359,164 @@ func (c *WikipediaArticlesCommand) processArticle(
 		id = redirect
 	}
 	err = wikipedia.ConvertWikipediaArticle(document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+
+	return nil
+}
+
+// WikipediaCategoriesCommand uses Wikipedia categories HTML dump (namespace 14) as input and extracts descriptions from their Wikipedia articles and
+// adds category's description to a corresponding Wikidata entity.
+//
+// It expects documents populated by WikidataCommand.
+//
+// Category articles generally have a very short description of a category, if at all. This command extracts the HTML description
+// which is processed so that HTML can be directly displayed alongside other content. Use of Wikipedia's CSS nor Javascript is not
+// needed after processing.
+//
+// Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+//
+// It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
+// following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article), DESCRIPTION (extracted from Wikipedia's category article),
+// ALSO_KNOWN_AS (from redirects pointing to the article).
+//
+// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label claims.
+type WikipediaCategoriesCommand struct {
+	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+}
+
+func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
+	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	if c.URL != "" {
+		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+			return c.URL, nil
+		}
+	} else {
+		urlFunc = func(client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(client, "enwiki", articlesWikipediaNamespace)
+		}
+	}
+
+	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
+		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
+	})
+	if errE != nil {
+		return errE
+	}
+
+	return nil
+}
+
+func (c *WikipediaCategoriesCommand) processArticle(
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+) errors.E {
+	if article.MainEntity == nil {
+		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", globals.Token, globals.APILimit, article.Name)
+		if err != nil {
+			details := errors.AllDetails(err)
+			details["title"] = article.Name
+			if errors.Is(err, wikipedia.NotFoundError) {
+				globals.Log.Warn().Err(err).Fields(details).Msg("article does not have an associated entity")
+			} else {
+				globals.Log.Error().Err(err).Fields(details).Msg("article does not have an associated entity")
+			}
+		} else if ii.Redirect != "" {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
+		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
+		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
+		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
+		} else {
+			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
+		}
+		return nil
+	}
+
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier))); ok {
+		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
+		return nil
+	}
+
+	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["entity"] = article.MainEntity.Identifier
+		details["title"] = article.Name
+		if errors.Is(err, wikipedia.NotFoundError) {
+			redirectInterface, ok := details["redirect"]
+			if ok {
+				redirect = redirectInterface.(string) //nolint:errcheck
+			}
+			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
+				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
+			} else {
+				globals.Log.Warn().Err(err).Fields(details).Send()
+			}
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	id := article.MainEntity.Identifier
+	if redirect != "" {
+		id = redirect
+	}
+	err = wikipedia.ConvertWikipediaCategoryArticle(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

@@ -15,12 +15,12 @@ const (
 )
 
 func cleanupDocument(doc *goquery.Document) {
-	doc.Find("style, script, noscript, iframe").Remove()
+	doc.Find("style, script, noscript, iframe, meta").Remove()
 	doc.Find(".noprint").Not("[role='presentation']").Remove()
 	// TODO: Extract links into metadata.
 	doc.Find("link, [role='navigation']").Remove()
 	// TODO: Extract boxes into metadata.
-	doc.Find(".infobox, .ambox, .ombox, .vcard, [role='note'], .sistersitebox").Remove()
+	doc.Find(".infobox, .ambox, .ombox, .cmbox, .vcard, [role='note'], .sistersitebox, .toc").Remove()
 	doc.Find(".sidebar").Has(".sidebar-list").Remove()
 	// TODO: Extract coordinates into metadata.
 	doc.Find("#coordinates").Remove()
@@ -41,7 +41,7 @@ func cleanupDocument(doc *goquery.Document) {
 			if !ok {
 				return
 			}
-			parsedValue, err := url.Parse(value) 
+			parsedValue, err := url.Parse(value)
 			if err != nil {
 				return
 			}
@@ -64,7 +64,7 @@ func cleanupDocument(doc *goquery.Document) {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
 			}
-			parsedSrc, err := url.Parse(elementArray[0]) 
+			parsedSrc, err := url.Parse(elementArray[0])
 			if err != nil {
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
@@ -83,7 +83,7 @@ func cleanupDocument(doc *goquery.Document) {
 		if !ok {
 			return
 		}
-		parsedHref, err := url.Parse(href) 
+		parsedHref, err := url.Parse(href)
 		if err != nil {
 			return
 		}
@@ -169,10 +169,10 @@ func cleanupDocument(doc *goquery.Document) {
 	doc.Find("*").RemoveAttr("data-mw")
 }
 
-func ExtractArticle(input string) (string, errors.E) {
+func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 	cleanupDocument(doc)
 	// Remove some sections.
@@ -189,26 +189,24 @@ func ExtractArticle(input string) (string, errors.E) {
 			}
 		}
 	})
+	if len(strings.TrimSpace(doc.Find("body").Text())) < minimumSummarySize {
+		// TODO: What to do in this case?
+		return "", doc, nil
+	}
 	output, err := doc.Find("body").Html()
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", doc, errors.WithStack(err)
 	}
-	return output, nil
+	return output, doc, nil
 }
 
-// TODO: Prevent double parsing by goquery (operate on doc itself).
-
 // ExtractArticleSummary should be called on the output of ExtractArticle.
-func ExtractArticleSummary(input string) (string, errors.E) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
+func ExtractArticleSummary(doc *goquery.Document) (string, errors.E) {
 	ps := doc.Find("section").First().ChildrenFiltered("p")
 	text := strings.TrimSpace(ps.Text())
 	if len(text) < minimumSummarySize {
 		return "", nil
-	} else if len(text) < maximumSummarySize {
+	} else if len(text) <= maximumSummarySize {
 		html, err := ps.WrapAllHtml("<div></div>").Parent().Html() //nolint:govet
 		if err != nil {
 			return "", errors.WithStack(err)
@@ -224,6 +222,10 @@ func ExtractArticleSummary(input string) (string, errors.E) {
 		return "", errors.WithStack(err)
 	}
 	return html, nil
+}
+
+func ExtractCategoryDescription(input string) (string, *goquery.Document, errors.E) {
+	return ExtractArticle(input)
 }
 
 func ExtractFileDescriptions(input string) ([]string, errors.E) {

@@ -38,7 +38,7 @@ func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
 func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
-	body, err := ExtractArticle(article.ArticleBody.HTML)
+	body, doc, err := ExtractArticle(article.ArticleBody.HTML)
 	if err != nil {
 		errE := errors.WithMessage(err, "article extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
@@ -134,7 +134,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		}
 	}
 
-	summary, err := ExtractArticleSummary(body)
+	summary, err := ExtractArticleSummary(doc)
 	if err != nil {
 		errE := errors.WithMessage(err, "summary extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
@@ -142,6 +142,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		return errE
 	}
 
+	// TODO: Remove summary if is now empty, but before it was not.
 	if summary != "" {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
 		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", 0)
@@ -228,6 +229,94 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 	for i, description := range descriptions {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
 		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", i)
+		existingClaim = document.GetByID(claimID)
+		if existingClaim != nil {
+			claim, ok := existingClaim.(*search.TextClaim)
+			if !ok {
+				errE := errors.New("unexpected description claim type")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+				errors.Details(errE)["title"] = article.Name
+				return errE
+			}
+			claim.HTML["en"] = description
+		} else {
+			claim := &search.TextClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         claimID,
+					Confidence: highConfidence,
+				},
+				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+				HTML: search.TranslatableHTMLString{
+					"en": description,
+				},
+			}
+			err := document.Add(claim)
+			if err != nil {
+				errE := errors.WithMessage(err, "claim cannot be added")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["title"] = article.Name
+				return errE
+			}
+		}
+	}
+
+	return nil
+}
+
+func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+	description, doc, err := ExtractCategoryDescription(article.ArticleBody.HTML)
+	if err != nil {
+		errE := errors.WithMessage(err, "description extraction failed")
+		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["title"] = article.Name
+		return errE
+	}
+
+	if len(strings.TrimSpace(doc.Find("body").Text())) > maximumSummarySize {
+		log.Warn().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("large category description")
+	}
+
+	claimID := search.GetID(namespace, id, "ENGLISH_WIKIPEDIA_PAGE_ID", 0)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim != nil {
+		claim, ok := existingClaim.(*search.IdentifierClaim)
+		if !ok {
+			errE := errors.New("unexpected English Wikipedia page id claim type")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
+			errors.Details(errE)["title"] = article.Name
+			return errE
+		}
+		claim.Identifier = strconv.FormatInt(article.Identifier, 10)
+	} else {
+		claim := &search.IdentifierClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
+			Identifier: strconv.FormatInt(article.Identifier, 10),
+		}
+		err := document.Add(claim)
+		if err != nil {
+			errE := errors.WithMessage(err, "claim cannot be added")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["title"] = article.Name
+			return errE
+		}
+	}
+
+	// TODO: Remove description if is now empty, but before it was not.
+	if description != "" {
+		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
+		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", 0)
 		existingClaim = document.GetByID(claimID)
 		if existingClaim != nil {
 			claim, ok := existingClaim.(*search.TextClaim)
