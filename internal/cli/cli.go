@@ -429,6 +429,10 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 	}
 	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
 	zerolog.ErrorMarshalFunc = func(ee error) interface{} {
+		if ee == nil {
+			return json.RawMessage("null")
+		}
+
 		var j []byte
 		var err error
 		switch e := ee.(type) { //nolint:errorlint
