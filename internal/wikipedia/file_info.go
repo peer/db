@@ -33,7 +33,7 @@ type ImageInfo struct {
 	Redirect string `json:"-"`
 }
 
-type page struct {
+type fileInfoPage struct {
 	PageID          int         `json:"pageid"`
 	Namespace       int         `json:"ns"`
 	Title           string      `json:"title"`
@@ -45,7 +45,7 @@ type page struct {
 	ImageInfo       []ImageInfo `json:"imageinfo"`
 }
 
-type apiResponse struct {
+type fileInfoAPIResponse struct {
 	Error         json.RawMessage `json:"error,omitempty"`
 	ServedBy      string          `json:"servedby,omitempty"`
 	BatchComplete bool            `json:"batchcomplete"`
@@ -61,7 +61,7 @@ type apiResponse struct {
 			To         string `json:"to"`
 			ToFragment string `json:"tofragment,omitempty"`
 		} `json:"redirects"`
-		Pages []page `json:"pages"`
+		Pages []fileInfoPage `json:"pages"`
 	} `json:"query"`
 }
 
@@ -128,7 +128,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		return errE
 	}
 
-	var apiResp apiResponse
+	var apiResp fileInfoAPIResponse
 	decoder := json.NewDecoder(resp.Body)
 	decoder.DisallowUnknownFields()
 	err = decoder.Decode(&apiResp)
@@ -154,7 +154,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		redirectsReverse[redirect.To] = append(redirectsReverse[redirect.To], redirect.From)
 	}
 
-	pagesMap := map[string]page{}
+	pagesMap := map[string]fileInfoPage{}
 	for _, page := range apiResp.Query.Pages {
 		redirects, ok := redirectsReverse[page.Title]
 		if !ok {
