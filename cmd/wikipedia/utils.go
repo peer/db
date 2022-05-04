@@ -205,7 +205,7 @@ func initializeElasticSearch(globals *Globals) (
 	return ctx, cancel, httpClient, esClient, processor, cache, nil
 }
 
-func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
+func initializeRun(globals *Globals, urlFunc func(context.Context, *retryablehttp.Client) (
 	string, errors.E), count *int64) (context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
@@ -226,37 +226,41 @@ func initializeRun(globals *Globals, urlFunc func(*retryablehttp.Client) (
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
 	}
 
-	url, errE := urlFunc(httpClient)
-	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, nil, errE
+	if urlFunc != nil {
+		url, errE := urlFunc(ctx, httpClient)
+		if errE != nil {
+			return nil, nil, nil, nil, nil, nil, nil, errE
+		}
+
+		// Is URL in fact a path to a local file?
+		var dumpPath string
+		_, err := os.Stat(url)
+		if os.IsNotExist(err) {
+			dumpPath = filepath.Join(globals.CacheDir, path.Base(url))
+		} else {
+			dumpPath = url
+			url = ""
+		}
+
+		return ctx, cancel, httpClient, esClient, processor, cache, &mediawiki.ProcessDumpConfig{
+			URL:                    url,
+			Path:                   dumpPath,
+			Client:                 httpClient,
+			DecompressionThreads:   globals.DecodingThreads,
+			DecodingThreads:        globals.DecodingThreads,
+			ItemsProcessingThreads: globals.ItemsProcessingThreads,
+			Progress: func(ctx context.Context, p x.Progress) {
+				stats := processor.Stats()
+				e := globals.Log.Info().
+					Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
+					Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String())
+				if count != nil {
+					e = e.Int64("skipped", atomic.LoadInt64(count))
+				}
+				e.Msgf("progress %0.2f%%", p.Percent())
+			},
+		}, nil
 	}
 
-	// Is URL in fact a path to a local file?
-	var dumpPath string
-	_, err := os.Stat(url)
-	if os.IsNotExist(err) {
-		dumpPath = filepath.Join(globals.CacheDir, path.Base(url))
-	} else {
-		dumpPath = url
-		url = ""
-	}
-
-	return ctx, cancel, httpClient, esClient, processor, cache, &mediawiki.ProcessDumpConfig{
-		URL:                    url,
-		Path:                   dumpPath,
-		Client:                 httpClient,
-		DecompressionThreads:   globals.DecodingThreads,
-		DecodingThreads:        globals.DecodingThreads,
-		ItemsProcessingThreads: globals.ItemsProcessingThreads,
-		Progress: func(ctx context.Context, p x.Progress) {
-			stats := processor.Stats()
-			e := globals.Log.Info().
-				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
-				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String())
-			if count != nil {
-				e = e.Int64("skipped", atomic.LoadInt64(count))
-			}
-			e.Msgf("progress %0.2f%%", p.Percent())
-		},
-	}, nil
+	return ctx, cancel, httpClient, esClient, processor, cache, nil, nil
 }

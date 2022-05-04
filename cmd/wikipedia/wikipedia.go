@@ -61,14 +61,14 @@ type WikipediaFilesCommand struct {
 }
 
 func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
-	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaImageMetadataRun(client, "enwiki")
+		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaImageMetadataRun(ctx, client, "enwiki")
 		}
 	}
 
@@ -136,14 +136,14 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(client, "enwiki", filesWikipediaNamespace)
+		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", filesWikipediaNamespace)
 		}
 	}
 
@@ -272,14 +272,14 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(client, "enwiki", articlesWikipediaNamespace)
+		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", articlesWikipediaNamespace)
 		}
 	}
 
@@ -431,14 +431,14 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(client, "enwiki", articlesWikipediaNamespace)
+		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", articlesWikipediaNamespace)
 		}
 	}
 

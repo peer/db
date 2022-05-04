@@ -47,9 +47,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
