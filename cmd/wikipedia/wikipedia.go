@@ -5,18 +5,26 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/go/x"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
 const (
-	articlesWikipediaNamespace = 0
-	filesWikipediaNamespace    = 6
+	articlesWikipediaNamespace  = 0
+	filesWikipediaNamespace     = 6
+	templatesWikipediaNamespace = 10
+	modulesWikipediaNamespace   = 828
+
+	wikipediaRESTRateLimit = 50
 )
 
 var (
@@ -560,4 +568,84 @@ func (c *WikipediaCategoriesCommand) processArticle(
 	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
 
 	return nil
+}
+
+type WikipediaTemplatesCommand struct {
+	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+}
+
+func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
+	limiter := rate.NewLimiter(wikipediaRESTRateLimit, 1)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		defer close(pages)
+		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, pages)
+	})
+
+	var count x.Counter
+	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
+	defer ticker.Stop()
+	g.Go(func() error {
+		for p := range ticker.C {
+			stats := processor.Stats()
+			globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
+				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
+				Send()
+		}
+		return nil
+	})
+
+	for i := 0; i < wikipediaRESTRateLimit; i++ {
+		g.Go(func() error {
+			// Loop ends with pages is closed, which happens when context is cancelled, too.
+			for page := range pages {
+				if page.Properties["wikibase_item"] == "" {
+					globals.Log.Debug().Str("title", page.Title).Msg("template without Wikidata item")
+					continue
+				}
+
+				err := limiter.Wait(ctx)
+				if err != nil {
+					// Context has been canceled.
+					return errors.WithStack(err)
+				}
+
+				html, errE := wikipedia.GetPageHTML(ctx, httpClient, page.Title)
+				if errE != nil {
+					globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+					continue
+				}
+
+				count.Increment()
+
+				errE = c.processPage(ctx, globals, httpClient, esClient, processor, page, html)
+				if errE != nil {
+					return errE
+				}
+			}
+			return nil
+		})
+	}
+
+	return errors.WithStack(g.Wait())
+}
+
+func (c *WikipediaTemplatesCommand) processPage(
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+) errors.E {
 }
