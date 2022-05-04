@@ -453,11 +453,9 @@ func ConvertWikipediaTemplates(
 	namespace uuid.UUID, id string, article mediawiki.Article,
 ) errors.E {
 	for _, template := range article.Templates {
-		if !strings.HasPrefix(template.Name, "Template:") {
-			continue
+		if strings.HasPrefix(template.Name, "Template:") || strings.HasPrefix(template.Name, "Module:") {
+			convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", template.Name)
 		}
-
-		convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", template.Name)
 	}
 
 	return nil
