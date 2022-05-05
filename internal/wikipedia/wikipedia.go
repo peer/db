@@ -268,16 +268,12 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 }
 
 func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
-	description, doc, err := ExtractCategoryDescription(article.ArticleBody.HTML)
+	description, err := ExtractCategoryDescription(article.ArticleBody.HTML)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
 		errors.Details(errE)["title"] = article.Name
 		return errE
-	}
-
-	if len(strings.TrimSpace(doc.Find("body").Text())) > maximumSummarySize {
-		log.Warn().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("large category description")
 	}
 
 	claimID := search.GetID(namespace, id, "ENGLISH_WIKIPEDIA_PAGE_ID", 0)
