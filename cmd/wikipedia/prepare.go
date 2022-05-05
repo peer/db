@@ -84,7 +84,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
-	g.Go(func() error {
+	func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
 			globals.Log.Info().
@@ -92,8 +92,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String()).
 				Msgf("progress %0.2f%%", p.Percent())
 		}
-		return nil
-	})
+	}()
 
 	hits := make(chan *elastic.SearchHit, documentProcessingThreads)
 	g.Go(func() error {

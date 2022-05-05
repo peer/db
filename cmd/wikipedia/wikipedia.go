@@ -599,7 +599,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 	var count x.Counter
 	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
 	defer ticker.Stop()
-	g.Go(func() error {
+	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
 			globals.Log.Info().
@@ -607,8 +607,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
 				Send()
 		}
-		return nil
-	})
+	}()
 
 	for i := 0; i < wikipediaRESTRateLimit; i++ {
 		g.Go(func() error {
