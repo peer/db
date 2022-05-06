@@ -37,3 +37,17 @@ internal/wikipedia/testdata/category/artch_out.html filter=lfs diff=lfs merge=lf
 internal/wikipedia/testdata/category/cars_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/category/cars_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/category/not_suitable_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/exclamation_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/infobox_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/listen_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/bracket_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/exclamation_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/semicolon_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/hack_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/infobox_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/semicolon_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/listen_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/navbox_documentation_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/navbox_documentation_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/bracket_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/hack_out.html filter=lfs diff=lfs merge=lfs -text
