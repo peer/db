@@ -121,7 +121,7 @@ func TestExtractFileDescriptions(t *testing.T) {
 	}
 }
 
-func TestExtractCategoryDescriptions(t *testing.T) {
+func TestExtractCategoryDescription(t *testing.T) {
 	entries, err := content.ReadDir("testdata/category")
 	require.NoError(t, err)
 	for _, entry := range entries {
@@ -135,9 +135,38 @@ func TestExtractCategoryDescriptions(t *testing.T) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", "category", entry.Name()))
 			require.NoError(t, err)
-			output, _, err := wikipedia.ExtractCategoryDescription(string(input))
+			output, err := wikipedia.ExtractCategoryDescription(string(input))
 			require.NoError(t, err)
 			expectedFilePath := filepath.Join("testdata", "category", base+"_out.html")
+			expected, err := content.ReadFile(expectedFilePath)
+			if errors.Is(err, fs.ErrNotExist) {
+				f, err := os.Create(expectedFilePath)
+				require.NoError(t, err)
+				_, _ = f.WriteString(output)
+			} else {
+				assert.Equal(t, string(expected), output)
+			}
+		})
+	}
+}
+
+func TestExtractTemplateDescription(t *testing.T) {
+	entries, err := content.ReadDir("testdata/template")
+	require.NoError(t, err)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), "_in.html") {
+			continue
+		}
+		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		t.Run(base, func(t *testing.T) {
+			input, err := content.ReadFile(filepath.Join("testdata", "template", entry.Name()))
+			require.NoError(t, err)
+			output, err := wikipedia.ExtractTemplateDescription(string(input))
+			require.NoError(t, err)
+			expectedFilePath := filepath.Join("testdata", "template", base+"_out.html")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
 				f, err := os.Create(expectedFilePath)

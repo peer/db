@@ -10,7 +10,7 @@ import (
 
 const (
 	minimumSummarySize = 10
-	maximumSummarySize = 1500
+	maximumSummarySize = 1000
 	https              = "https"
 )
 
@@ -169,11 +169,7 @@ func cleanupDocument(doc *goquery.Document) {
 	doc.Find("*").RemoveAttr("data-mw")
 }
 
-func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
-	if err != nil {
-		return "", nil, errors.WithStack(err)
-	}
+func extractArticle(doc *goquery.Document) (*goquery.Document, errors.E) {
 	cleanupDocument(doc)
 	// Remove some sections.
 	// TODO: Extract to annotations and metadata.
@@ -189,6 +185,18 @@ func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
 			}
 		}
 	})
+	return doc, nil
+}
+
+func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+	doc, errE := extractArticle(doc)
+	if err != nil {
+		return "", doc, errE
+	}
 	if len(strings.TrimSpace(doc.Find("body").Text())) < minimumSummarySize {
 		// TODO: What to do in this case?
 		return "", doc, nil
@@ -202,7 +210,12 @@ func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
 
 // ExtractArticleSummary should be called on the output of ExtractArticle.
 func ExtractArticleSummary(doc *goquery.Document) (string, errors.E) {
-	ps := doc.Find("section").First().ChildrenFiltered("p")
+	return exctractSummary(doc.Find("section").First())
+}
+
+func exctractSummary(sel *goquery.Selection) (string, errors.E) {
+	p := sel.ChildrenFiltered("p").First()
+	ps := p.AddSelection(p.NextUntil(":not(p,ul,ol)"))
 	text := strings.TrimSpace(ps.Text())
 	if len(text) < minimumSummarySize {
 		return "", nil
@@ -224,8 +237,61 @@ func ExtractArticleSummary(doc *goquery.Document) (string, errors.E) {
 	return html, nil
 }
 
-func ExtractCategoryDescription(input string) (string, *goquery.Document, errors.E) {
-	return ExtractArticle(input)
+func ExtractCategoryDescription(input string) (string, errors.E) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	doc, errE := extractArticle(doc)
+	if err != nil {
+		return "", errE
+	}
+	return ExtractArticleSummary(doc)
+}
+
+func cleanupTemplateDocument(doc *goquery.Document) {
+	// Remove some sections.
+	doc.Find("section").Each(func(_ int, section *goquery.Selection) {
+	LEVEL:
+		for _, level := range []string{"h1", "h2", "h3", "h4", "h5", "h6"} {
+			heading := section.ChildrenFiltered(level).Text()
+			for _, h := range []string{"TemplateData"} {
+				if strings.Contains(heading, h) {
+					section.Remove()
+					break LEVEL
+				}
+			}
+		}
+	})
+	// Remove any really empty section.
+	doc.Find("section").Each(func(_ int, section *goquery.Selection) {
+		// Is there some non-whitespace text? We do not remove it.
+		if len(strings.TrimSpace(section.Text())) > 0 {
+			return
+		}
+		if section.Is(":empty") {
+			section.Remove()
+		}
+	})
+}
+
+func ExtractTemplateDescription(input string) (string, errors.E) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	if doc.Find(".documentation").Length() > 0 {
+		cleanupDocument(doc)
+		cleanupTemplateDocument(doc)
+		doc.Find(".documentation-startbox, .documentation section, .documentation-clear").Remove()
+		return exctractSummary(doc.Find(".documentation"))
+	}
+	doc, errE := extractArticle(doc)
+	if errE != nil {
+		return "", errE
+	}
+	cleanupTemplateDocument(doc)
+	return ExtractArticleSummary(doc)
 }
 
 func ExtractFileDescriptions(input string) ([]string, errors.E) {
