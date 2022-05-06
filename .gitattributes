@@ -51,3 +51,5 @@ internal/wikipedia/testdata/template/navbox_documentation_in.html filter=lfs dif
 internal/wikipedia/testdata/template/navbox_documentation_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/template/bracket_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/template/hack_out.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/semicolon2_in.html filter=lfs diff=lfs merge=lfs -text
+internal/wikipedia/testdata/template/semicolon2_out.html filter=lfs diff=lfs merge=lfs -text
