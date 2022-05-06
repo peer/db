@@ -45,15 +45,13 @@ type fileInfoPage struct {
 	ImageInfo       []ImageInfo `json:"imageinfo"`
 }
 
+// We do have "continue" field because the assumption here is that responses
+// to API requests we are making ("iilimit" is default 1) are never split.
 type fileInfoAPIResponse struct {
 	Error         json.RawMessage `json:"error,omitempty"`
 	ServedBy      string          `json:"servedby,omitempty"`
 	BatchComplete bool            `json:"batchcomplete"`
-	Continue      struct {
-		IIStart  string `json:"iistart"`
-		Continue string `json:"continue"`
-	} `json:"continue"`
-	Query struct {
+	Query         struct {
 		// We on purpose do not list "normalized" field and we want response parsing to fail
 		// if one is included: we want to always pass correctly normalized titles ourselves.
 		Redirects []struct {
@@ -141,6 +139,11 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		errE := errors.New("response error")
 		errors.Details(errE)["url"] = debugURL
 		errors.Details(errE)["body"] = apiResp.Error
+		return errE
+	}
+	if !apiResp.BatchComplete {
+		errE := errors.New("unexpected batch incomplete")
+		errors.Details(errE)["url"] = debugURL
 		return errE
 	}
 
