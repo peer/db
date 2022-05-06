@@ -146,11 +146,14 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 
 	redirects := map[string]string{}
 	redirectsReverse := map[string][]string{}
+	for title := range tasksMap {
+		// We populate with fake redirects. This allows us to share same logic when there are and are not redirects. Moreover, we can simply
+		// do redirectsReverse[page.Title]. This also handles the situation when inside same batch of tasks there is both the original
+		// and redirect title (we get only one page back, but have to send responses to two tasks).
+		redirectsReverse[title] = []string{title}
+	}
 	for _, redirect := range apiResp.Query.Redirects {
 		redirects[redirect.From] = redirect.To
-		if _, ok := redirectsReverse[redirect.To]; !ok {
-			redirectsReverse[redirect.To] = []string{}
-		}
 		redirectsReverse[redirect.To] = append(redirectsReverse[redirect.To], redirect.From)
 	}
 
@@ -158,8 +161,10 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	for _, page := range apiResp.Query.Pages {
 		redirects, ok := redirectsReverse[page.Title]
 		if !ok {
-			// Fake redirect.
-			redirects = []string{page.Title}
+			errE := errors.New("unexpected result page")
+			errors.Details(errE)["url"] = debugURL
+			errors.Details(errE)["extra"] = page.Title
+			return errE
 		}
 		for _, redirect := range redirects {
 			// Make a copy.
@@ -182,11 +187,31 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		}
 	}
 
-	if len(tasksMap) != len(pagesMap) {
+	if len(tasksMap) > len(pagesMap) {
+		extraTasks := []string{}
+		for key := range tasksMap {
+			if _, ok := pagesMap[key]; !ok {
+				extraTasks = append(extraTasks, key)
+			}
+		}
+		errE := errors.New("unexpected task(s)")
+		errors.Details(errE)["got"] = len(pagesMap)
+		errors.Details(errE)["expected"] = len(tasksMap)
+		errors.Details(errE)["url"] = debugURL
+		errors.Details(errE)["extra"] = extraTasks
+		return errE
+	} else if len(tasksMap) < len(pagesMap) {
+		extraPages := []string{}
+		for key := range pagesMap {
+			if _, ok := tasksMap[key]; !ok {
+				extraPages = append(extraPages, key)
+			}
+		}
 		errE := errors.New("unexpected result page(s)")
 		errors.Details(errE)["got"] = len(pagesMap)
 		errors.Details(errE)["expected"] = len(tasksMap)
 		errors.Details(errE)["url"] = debugURL
+		errors.Details(errE)["extra"] = extraPages
 		return errE
 	}
 
