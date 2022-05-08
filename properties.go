@@ -201,6 +201,11 @@ var (
 			`See possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase.`,
 			[]string{`"enumeration" claim type`},
 		},
+		{
+			"Uses Mediawiki template",
+			`Entity uses a <a href="https://www.mediawiki.org/wiki/Help:Templates">Mediawiki template</a> in the source of its article or description`,
+			[]string{`"relation" claim type`},
+		},
 	}
 
 	nameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")

@@ -608,15 +608,16 @@ func convertWikipediaTemplate(
 		return
 	}
 
-	claimID := search.GetID(namespace, id, "template", string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "USES_MEDIAWIKI_TEMPLATE", string(document.ID), 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
-		claim := &search.LabelClaim{
+		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
 				Confidence: highConfidence,
 			},
-			Prop: search.DocumentReference{
+			Prop: search.GetStandardPropertyReference("USES_MEDIAWIKI_TEMPLATE"),
+			To: search.DocumentReference{
 				ID:     document.ID,
 				Name:   document.Name,
 				Score:  document.Score,
