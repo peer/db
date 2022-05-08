@@ -34,7 +34,7 @@ type ImageInfo struct {
 }
 
 type fileInfoPage struct {
-	PageID          int         `json:"pageid"`
+	Identifier      int64       `json:"pageid"`
 	Namespace       int         `json:"ns"`
 	Title           string      `json:"title"`
 	Missing         bool        `json:"missing"`

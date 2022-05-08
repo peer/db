@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -24,6 +25,8 @@ const (
 	templatesWikipediaNamespace = 10
 	modulesWikipediaNamespace   = 828
 
+	// Not 200 but 50, because otherwise we hit the rate limit.
+	// See: https://phabricator.wikimedia.org/T307610
 	wikipediaRESTRateLimit = 50
 )
 
@@ -213,7 +216,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -223,7 +226,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -233,7 +236,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikipediaFile, filename, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -376,7 +379,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -386,7 +389,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -396,7 +399,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -534,7 +537,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -544,7 +547,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -554,7 +557,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -624,10 +627,26 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 					return errors.WithStack(err)
 				}
 
-				html, errE := wikipedia.GetPageHTML(ctx, httpClient, page.Title)
+				// First we try to get "/doc".
+				html, errE := wikipedia.GetPageHTML(ctx, httpClient, page.Title+"/doc")
 				if errE != nil {
-					globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
-					continue
+					if errors.AllDetails(errE)["code"] != http.StatusNotFound {
+						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						continue
+					}
+
+					err := limiter.Wait(ctx)
+					if err != nil {
+						// Context has been canceled.
+						return errors.WithStack(err)
+					}
+
+					// And if it does not exist, without "/doc".
+					html, errE = wikipedia.GetPageHTML(ctx, httpClient, page.Title)
+					if errE != nil {
+						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						continue
+					}
 				}
 
 				count.Increment()
@@ -647,4 +666,80 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 func (c *WikipediaTemplatesCommand) processPage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
 ) errors.E {
+	// We know this is available because we check before calling this method.
+	id := page.Properties["wikibase_item"]
+
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
+		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
+		return nil
+	}
+
+	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, id)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["entity"] = id
+		details["title"] = page.Title
+		if errors.Is(err, wikipedia.NotFoundError) {
+			redirectInterface, ok := details["redirect"]
+			if ok {
+				redirect = redirectInterface.(string) //nolint:errcheck
+			}
+			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
+				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
+			} else {
+				globals.Log.Warn().Err(err).Fields(details).Send()
+			}
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	if redirect != "" {
+		id = redirect
+	}
+	err = wikipedia.ConvertWikipediaTemplateArticle(globals.Log, document, wikipedia.NameSpaceWikidata, id, page, html)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaPageCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, page)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaPageTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, page)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertWikipediaPageRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, page)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+
+	return nil
 }

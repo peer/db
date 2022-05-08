@@ -40,6 +40,8 @@ type Config struct {
 	Wikidata                  WikidataCommand                  `cmd:"" help:"Populate search with Wikidata entities dump."`
 	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" name:"wikipedia-file-descriptions" help:"Populate search with Wikipedia file descriptions HTML dump."`
 	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`
+	WikipediaCategories       WikipediaCategoriesCommand       `cmd:"" name:"wikipedia-categories" help:"Populate search with Wikipedia categories HTML dump."`
+	WikipediaTemplates        WikipediaTemplatesCommand        `cmd:"" name:"wikipedia-templates" help:"Populate search with Wikipedia templates using API."`
 	Prepare                   PrepareCommand                   `cmd:"" help:"Prepare populated data for search."`
 	Optimize                  OptimizeCommand                  `cmd:"" help:"Optimize search data."`
 
@@ -59,6 +61,8 @@ func (c *AllCommand) Run(globals *Globals) errors.E {
 		&WikidataCommand{},
 		&WikipediaFileDescriptionsCommand{},
 		&WikipediaArticlesCommand{},
+		&WikipediaCategoriesCommand{},
+		&WikipediaTemplatesCommand{},
 		&PrepareCommand{},
 		&OptimizeCommand{},
 	}

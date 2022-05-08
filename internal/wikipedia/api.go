@@ -21,13 +21,13 @@ const (
 )
 
 type PageReference struct {
-	PageID    int    `json:"pageid,omitempty"`
-	Namespace int    `json:"ns"`
-	Title     string `json:"title"`
+	Identifier int64  `json:"pageid,omitempty"`
+	Namespace  int    `json:"ns"`
+	Title      string `json:"title"`
 }
 
 type AllPagesPage struct {
-	PageID     int               `json:"pageid"`
+	Identifier int64             `json:"pageid"`
 	Namespace  int               `json:"ns"`
 	Title      string            `json:"title"`
 	Properties map[string]string `json:"pageprops"`

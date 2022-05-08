@@ -351,6 +351,90 @@ func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Docume
 	return nil
 }
 
+func ConvertWikipediaTemplateArticle(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, page AllPagesPage, html string) errors.E {
+	description, err := ExtractTemplateDescription(html)
+	if err != nil {
+		errE := errors.WithMessage(err, "description extraction failed")
+		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["title"] = page.Title
+		return errE
+	}
+
+	claimID := search.GetID(namespace, id, "ENGLISH_WIKIPEDIA_PAGE_ID", 0)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim != nil {
+		claim, ok := existingClaim.(*search.IdentifierClaim)
+		if !ok {
+			errE := errors.New("unexpected English Wikipedia page id claim type")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
+			errors.Details(errE)["title"] = page.Title
+			return errE
+		}
+		claim.Identifier = strconv.FormatInt(page.Identifier, 10)
+	} else {
+		claim := &search.IdentifierClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
+			Identifier: strconv.FormatInt(page.Identifier, 10),
+		}
+		err := document.Add(claim)
+		if err != nil {
+			errE := errors.WithMessage(err, "claim cannot be added")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["title"] = page.Title
+			return errE
+		}
+	}
+
+	// TODO: Remove description if is now empty, but before it was not.
+	if description != "" {
+		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
+		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", 0)
+		existingClaim = document.GetByID(claimID)
+		if existingClaim != nil {
+			claim, ok := existingClaim.(*search.TextClaim)
+			if !ok {
+				errE := errors.New("unexpected description claim type")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+				errors.Details(errE)["title"] = page.Title
+				return errE
+			}
+			claim.HTML["en"] = description
+		} else {
+			claim := &search.TextClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         claimID,
+					Confidence: highConfidence,
+				},
+				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+				HTML: search.TranslatableHTMLString{
+					"en": description,
+				},
+			}
+			err := document.Add(claim)
+			if err != nil {
+				errE := errors.WithMessage(err, "claim cannot be added")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["title"] = page.Title
+				return errE
+			}
+		}
+	}
+
+	return nil
+}
+
 // TODO: Should we use cache for cases where file has not been found?
 //       Currently we use the function in the context where every file document is fetched
 //       only once, one after the other, so caching will not help.
@@ -428,47 +512,65 @@ func GetWikipediaFile(
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
-func ConvertWikipediaCategories(
+func ConvertWikipediaArticleCategories(
 	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
 	namespace uuid.UUID, id string, article mediawiki.Article,
 ) errors.E {
 	for _, category := range article.Categories {
-		if !strings.HasPrefix(category.Name, "Category:") {
-			continue
-		}
-
-		convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", category.Name)
+		convertWikipediaCategory(ctx, log, esClient, document, namespace, id, article.Name, category.Name)
 	}
-
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
-func ConvertWikipediaTemplates(
+func ConvertWikipediaArticleTemplates(
 	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
 	namespace uuid.UUID, id string, article mediawiki.Article,
 ) errors.E {
 	for _, template := range article.Templates {
-		if strings.HasPrefix(template.Name, "Template:") || strings.HasPrefix(template.Name, "Module:") {
-			convertWikipediaLabel(ctx, log, esClient, document, namespace, id, article, "template", template.Name)
-		}
+		convertWikipediaTemplate(ctx, log, esClient, document, namespace, id, article.Name, template.Name)
 	}
-
 	return nil
 }
 
-func convertWikipediaLabel(
+// TODO: How to remove categories which has previously been added but are later on removed?
+func ConvertWikipediaPageCategories(
 	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id string, article mediawiki.Article, typ, label string,
+	namespace uuid.UUID, id string, page AllPagesPage,
+) errors.E {
+	for _, category := range page.Categories {
+		convertWikipediaCategory(ctx, log, esClient, document, namespace, id, page.Title, category.Title)
+	}
+	return nil
+}
+
+// TODO: How to remove templates which has previously been added but are later on removed?
+func ConvertWikipediaPageTemplates(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id string, page AllPagesPage,
+) errors.E {
+	for _, template := range page.Templates {
+		convertWikipediaTemplate(ctx, log, esClient, document, namespace, id, page.Title, template.Title)
+	}
+	return nil
+}
+
+func convertWikipediaCategory(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id, title, category string,
 ) {
-	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", label)
-	if err != nil {
-		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", article.Name).Str(typ, label).
-			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find " + typ)
+	if !strings.HasPrefix(category, "Category:") {
 		return
 	}
 
-	claimID := search.GetID(namespace, id, typ, string(document.ID), 0)
+	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", category)
+	if err != nil {
+		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("category", category).
+			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find category")
+		return
+	}
+
+	claimID := search.GetID(namespace, id, "category", string(document.ID), 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &search.LabelClaim{
@@ -485,47 +587,96 @@ func convertWikipediaLabel(
 		}
 		err := document.Add(claim)
 		if err != nil {
-			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", article.Name).
+			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
+				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+		}
+	}
+}
+
+func convertWikipediaTemplate(
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
+	namespace uuid.UUID, id, title, template string,
+) {
+	if !strings.HasPrefix(template, "Template:") && !strings.HasPrefix(template, "Module:") {
+		return
+	}
+
+	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", template)
+	if err != nil {
+		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("template", template).
+			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find template")
+		return
+	}
+
+	claimID := search.GetID(namespace, id, "template", string(document.ID), 0)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim == nil {
+		claim := &search.LabelClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: highConfidence,
+			},
+			Prop: search.DocumentReference{
+				ID:     document.ID,
+				Name:   document.Name,
+				Score:  document.Score,
+				Scores: document.Scores,
+			},
+		}
+		err := document.Add(claim)
+		if err != nil {
+			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
 				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 		}
 	}
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+func ConvertWikipediaArticleRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
 	for _, redirect := range article.Redirects {
-		claimID := search.GetID(namespace, id, "ALSO_KNOWN_AS", redirect.Name)
-		existingClaim := document.GetByID(claimID)
-		if existingClaim != nil {
-			continue
-		}
-		escapedName := html.EscapeString(redirect.Name)
-		found := false
-		for _, claim := range document.Get(search.GetStandardPropertyID("ALSO_KNOWN_AS")) {
-			if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
-				found = true
-				break
-			}
-		}
-		if found {
-			continue
-		}
-		claim := &search.TextClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         claimID,
-				Confidence: highConfidence,
-			},
-			Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
-			HTML: search.TranslatableHTMLString{
-				"en": escapedName,
-			},
-		}
-		err := document.Add(claim)
-		if err != nil {
-			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", article.Name).
-				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+		convertWikipediaRedirect(log, document, namespace, id, article.Name, redirect.Name)
+	}
+	return nil
+}
+
+// TODO: How to remove redirects which has previously been added but are later on removed?
+func ConvertWikipediaPageRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, page AllPagesPage) errors.E {
+	for _, redirect := range page.Redirects {
+		convertWikipediaRedirect(log, document, namespace, id, page.Title, redirect.Title)
+	}
+	return nil
+}
+
+func convertWikipediaRedirect(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id, title, redirect string) {
+	claimID := search.GetID(namespace, id, "ALSO_KNOWN_AS", redirect)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim != nil {
+		return
+	}
+	escapedName := html.EscapeString(redirect)
+	found := false
+	for _, claim := range document.Get(search.GetStandardPropertyID("ALSO_KNOWN_AS")) {
+		if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
+			found = true
+			break
 		}
 	}
-
-	return nil
+	if found {
+		return
+	}
+	claim := &search.TextClaim{
+		CoreClaim: search.CoreClaim{
+			ID:         claimID,
+			Confidence: highConfidence,
+		},
+		Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
+		HTML: search.TranslatableHTMLString{
+			"en": escapedName,
+		},
+	}
+	err := document.Add(claim)
+	if err != nil {
+		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
+			Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+	}
 }
