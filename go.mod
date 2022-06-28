@@ -16,7 +16,7 @@ require (
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/tozd/go/mediawiki v0.10.0
+	gitlab.com/tozd/go/mediawiki v0.11.0
 	gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
@@ -57,7 +57,7 @@ require (
 	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

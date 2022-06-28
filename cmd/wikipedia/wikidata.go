@@ -19,34 +19,26 @@ var (
 	skippedWikidataEntitiesCount int64
 )
 
-// WikidataCommand uses Wikidata entities dump as input and creates a document for each entity in the file, mapping Wikidata statements to PeerDB claims.
+// WikidataCommand uses Wikidata entities dump as input and creates a document for each entity in the file, mapping statements to PeerDB claims.
 //
 // It skips some entities: those without English label and those items which have a sitelink to Wikipedia, but it is not to an article, template, or category.
 //
-// Besides claims based on Wikipedia statements, it creates also claims with the following properties: WIKIDATA_PROPERTY_ID (P prefixed ID),
-// WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (is claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
-// (URL to item page on Wikidata), ITEM (is claim), ENGLISH_WIKIPEDIA_ARTICLE_TITLE (article title, without underscores), ENGLISH_WIKIPEDIA_ARTICLE
-// (URL to the article), ALSO_KNOWN_AS (fot any non-primary English labels), DESCRIPTION (for English Wikidata entity descriptions).
-//
-// When resolving Wikimedia Commons references it uses existing documents in ElasticSearch to find a corresponding file document and constructs
-// a file claim. If it cannot find one, it uses Wikimedia Commons API to determine if the file has been renamed and the reference should be updated.
-// These cases are not common so using Wikimedia Commons API should not slow down the overall processing.
+// Besides claims based on statements, it creates also claims with the following properties: WIKIDATA_PROPERTY_ID (P prefixed ID),
+// WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (IS claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
+// (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_ARTICLE_TITLE (article title, without underscores), ENGLISH_WIKIPEDIA_ARTICLE
+// (URL to the article), ALSO_KNOWN_AS (for any non-first English labels), DESCRIPTION (for English entity descriptions).
+// Name of the document is the first English label.
 //
 // When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
 // for language XX. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
 // pass, checking all references and setting true document names for English language (ID for language XX is useful for debugging when reference is invalid).
+// References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type WikidataCommand struct {
-	SkippedCommonsFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
-	SaveSkipped         string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
-	URL                 string `placeholder:"URL" help:"URL of Wikidata Entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
+	URL         string `placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedCommonsFiles, &skippedCommonsFiles, &skippedCommonsFilesCount)
-	if errE != nil {
-		return errE
-	}
-
 	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
@@ -56,7 +48,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestWikidataEntitiesRun
 	}
 
-	ctx, cancel, httpClient, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
+	ctx, cancel, _, _, processor, _, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
 	if errE != nil {
 		return errE
 	}
@@ -64,7 +56,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikidataDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, httpClient, esClient, processor, cache, entity)
+		return c.processEntity(ctx, globals, processor, entity)
 	})
 	if errE != nil {
 		return errE
@@ -79,10 +71,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client,
-	processor *elastic.BulkProcessor, cache *wikipedia.Cache, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Log, httpClient, esClient, cache, &skippedCommonsFiles, globals.Token, globals.APILimit, entity)
+	document, err := wikipedia.ConvertEntity(ctx, globals.Log, wikipedia.NameSpaceWikidata, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			globals.Log.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()

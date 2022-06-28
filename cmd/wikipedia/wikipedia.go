@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"path"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -16,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
+	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -25,16 +27,13 @@ const (
 	templatesWikipediaNamespace = 10
 	modulesWikipediaNamespace   = 828
 
-	// Not 200 but 50, because otherwise we hit the rate limit.
 	// See: https://phabricator.wikimedia.org/T307610
-	wikipediaRESTRateLimit = 50
+	// TODO: Why we have to use 500 here instead of 1000 to not hit the rate limit?
+	wikipediaRESTRateLimit  = 500
+	wikipediaRESTRatePeriod = 10 * time.Second
 )
 
 var (
-	// Set of filenames.
-	skippedWikipediaFiles      = sync.Map{}
-	skippedWikipediaFilesCount int64
-
 	wiktionaryRegex       = regexp.MustCompile(`(?i)\{\{(wiktionary redirect|WiktionaryRedirect|Wiktionary-redirect|wi(\||\}\})|wtr(\||\}\}))`)
 	wikispeciesRegex      = regexp.MustCompile(`(?i)\{\{(wikispecies redirect)`)
 	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
@@ -47,12 +46,9 @@ var (
 //
 // It creates claims with the following properties (not necessary all of them): ENGLISH_WIKIPEDIA_FILE_NAME (just filename, without "File:"
 // prefix, but with underscores and file extension), ENGLISH_WIKIPEDIA_FILE (URL to file page), ENGLISH_WIKIPEDIA_FILE_URL (URL to full
-// resolution or raw file), FILE (is claim), MEDIA_TYPE, SIZE (in bytes), MEDIAWIKI_MEDIA_TYPE, multiple PREVIEW_URL (a list of URLs of previews),
-// PAGE_COUNT, LENGTH (in seconds), WIDTH, HEIGHT. Name of the document is filename without file extension and without underscores.
-// The idea is that these claims should be enough to populate a file claim (in other documents using these files).
-//
-// Files are skipped when metadata is invalid (e.g., unexpected media type, zero size, missing page count when it is expected, zero duration,
-// missing width/height when they are expected).
+// resolution or raw file), FILE (is claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, LENGTH (in seconds),
+// multiple PREVIEW_URL (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and
+// without underscores. The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
 // Most files used on English Wikipedia are from Wikipedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
 // image on Wikipedia as fair use, but that is not acceptable on Wikipedia Commons). This command processes those files only on English Wikipedia.
@@ -67,8 +63,7 @@ var (
 // want the latest information about files because we directly use files hosted on English Wikipedia by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type WikipediaFilesCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped files."`
-	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	URL string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
@@ -83,7 +78,7 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, &skippedWikipediaFilesCount)
+	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -98,9 +93,8 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 		DecodingThreads:        config.DecodingThreads,
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
-			return processImage(
-				ctx, globals, httpClient, processor, wikipedia.ConvertWikipediaImage,
-				&skippedWikipediaFiles, &skippedWikipediaFilesCount, i,
+			return c.processImage(
+				ctx, globals, httpClient, processor, i,
 			)
 		},
 		Progress:    config.Progress,
@@ -111,10 +105,88 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	errE = saveSkippedMap(c.SaveSkipped, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
-	if errE != nil {
-		return errE
+	return nil
+}
+
+func (c *WikipediaFilesCommand) processImage(
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
+) errors.E {
+	title := strings.ReplaceAll(image.Name, "_", " ")
+	title = wikipedia.FirstUpperCase(title)
+	title = "File:" + title
+
+	id := search.GetID(wikipedia.NameSpaceWikipediaFile, title)
+
+	name := strings.ReplaceAll(image.Name, "_", " ")
+	name = strings.TrimSuffix(name, path.Ext(name))
+
+	prefix := wikipedia.GetMediawikiFilePrefix(image.Name)
+
+	document := &search.Document{
+		CoreDocument: search.CoreDocument{
+			ID: id,
+			Name: search.Name{
+				"en": name,
+			},
+			Score: 0.0,
+		},
+		Active: &search.ClaimTypes{
+			Identifier: search.IdentifierClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "ENGLISH_WIKIPEDIA_FILE_NAME", 0),
+						Confidence: wikipedia.HighConfidence,
+					},
+					Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_FILE_NAME"),
+					Identifier: image.Name,
+				},
+			},
+			Reference: search.ReferenceClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "ENGLISH_WIKIPEDIA_FILE", 0),
+						Confidence: wikipedia.HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_FILE"),
+					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
+				},
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "FILE_URL", 0),
+						Confidence: wikipedia.HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("FILE_URL"),
+					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/en/%s/%s", prefix, image.Name),
+				},
+			},
+			Is: search.IsClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "FILE", 0),
+						Confidence: wikipedia.HighConfidence,
+					},
+					To: search.GetStandardPropertyReference("FILE"),
+				},
+			},
+		},
 	}
+
+	err := wikipedia.ConvertWikipediaImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["file"] = image.Name
+		if errors.Is(err, wikipedia.SilentSkippedError) {
+			globals.Log.Debug().Err(err).Fields(details).Send()
+		} else if errors.Is(err, wikipedia.SkippedError) {
+			globals.Log.Warn().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
+	saveDocument(processor, document)
 
 	return nil
 }
@@ -137,17 +209,11 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 // Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label
 // and relation claims, respectively.
 type WikipediaFileDescriptionsCommand struct {
-	SkippedWikipediaFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikipedia files."`
-	URL                   string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
+	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 //nolint:dupl
 func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedWikipediaFiles, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
-	if errE != nil {
-		return errE
-	}
-
 	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
@@ -188,7 +254,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, esDoc, err := wikipedia.GetWikipediaFile(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, filename)
+	document, hit, err := wikipedia.GetWikipediaFile(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, filename)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = filename
@@ -196,18 +262,14 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		if errors.Is(err, wikipedia.WikimediaCommonsFileError) {
 			globals.Log.Debug().Err(err).Fields(details).Send()
 		} else if errors.Is(err, wikipedia.NotFoundError) {
-			if _, ok := skippedWikipediaFiles.Load(filename); ok {
-				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped file")
-			} else {
-				globals.Log.Warn().Err(err).Fields(details).Send()
-			}
+			globals.Log.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Log.Error().Err(err).Fields(details).Send()
 		}
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaFileDescription(document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaFileDescription(wikipedia.NameSpaceWikipediaFile, filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -217,7 +279,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, wikipedia.NameSpaceWikipediaFile, filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -227,7 +289,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, wikipedia.NameSpaceWikipediaFile, filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -237,7 +299,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikipediaFile, filename, article)
+	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikipediaFile, filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -248,7 +310,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -318,6 +380,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
+		// We use GetImageInfo even if this is not an image, because the result information contains what we need.
 		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", globals.Token, globals.APILimit, article.Name)
 		if err != nil {
 			details := errors.AllDetails(err)
@@ -346,7 +409,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
+	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
@@ -371,7 +434,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 	if redirect != "" {
 		id = redirect
 	}
-	err = wikipedia.ConvertWikipediaArticle(document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticle(wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -381,7 +444,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -391,7 +454,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -401,7 +464,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -412,7 +475,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -505,7 +568,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
+	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
@@ -530,7 +593,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 	if redirect != "" {
 		id = redirect
 	}
-	err = wikipedia.ConvertWikipediaCategoryArticle(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaCategoryArticle(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -540,7 +603,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleCategories(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -550,7 +613,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertWikipediaArticleTemplates(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -560,7 +623,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticleRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, article)
+	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -571,7 +634,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -611,12 +674,13 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
-	limiter := rate.NewLimiter(wikipediaRESTRateLimit, 1)
+	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
+	limiter := rate.NewLimiter(rate.Limit(rateLimit), wikipediaRESTRateLimit)
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
 		defer close(pages)
-		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, pages)
+		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, "en.wikipedia.org", globals.Token, limiter, pages)
 	})
 
 	var count x.Counter
@@ -632,7 +696,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 		}
 	}()
 
-	for i := 0; i < wikipediaRESTRateLimit; i++ {
+	for i := 0; i < int(rateLimit); i++ {
 		g.Go(func() error {
 			// Loop ends with pages is closed, which happens when context is cancelled, too.
 			for page := range pages {
@@ -648,7 +712,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 				}
 
 				// First we try to get "/doc".
-				html, errE := wikipedia.GetPageHTML(ctx, httpClient, page.Title+"/doc")
+				html, errE := wikipedia.GetPageHTML(ctx, httpClient, "en.wikipedia.org", page.Title+"/doc")
 				if errE != nil {
 					if errors.AllDetails(errE)["code"] != http.StatusNotFound {
 						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
@@ -662,7 +726,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 					}
 
 					// And if it does not exist, without "/doc".
-					html, errE = wikipedia.GetPageHTML(ctx, httpClient, page.Title)
+					html, errE = wikipedia.GetPageHTML(ctx, httpClient, "en.wikipedia.org", page.Title)
 					if errE != nil {
 						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
 						continue
@@ -694,7 +758,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	document, esDoc, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, id)
+	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, id)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = id
@@ -718,7 +782,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 	if redirect != "" {
 		id = redirect
 	}
-	err = wikipedia.ConvertWikipediaTemplateArticle(globals.Log, document, wikipedia.NameSpaceWikidata, id, page, html)
+	err = wikipedia.ConvertWikipediaTemplateArticle(wikipedia.NameSpaceWikidata, id, page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -728,7 +792,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaPageCategories(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, page)
+	err = wikipedia.ConvertWikipediaPageCategories(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -738,7 +802,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaPageTemplates(ctx, globals.Log, esClient, document, wikipedia.NameSpaceWikidata, id, page)
+	err = wikipedia.ConvertWikipediaPageTemplates(ctx, globals.Log, esClient, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -748,7 +812,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaPageRedirects(globals.Log, document, wikipedia.NameSpaceWikidata, id, page)
+	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -759,7 +823,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, *esDoc.SeqNo, *esDoc.PrimaryTerm, document)
+	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }

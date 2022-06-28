@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"html"
 	"math"
+	"path"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	highConfidence   = 1.0
-	mediumConfidence = 0.5
-	lowConfidence    = 0.0
-	noConfidence     = -1.0
+	HighConfidence   = 1.0
+	MediumConfidence = 0.5
+	LowConfidence    = 0.0
+	NoConfidence     = -1.0
 )
 
 var (
@@ -153,31 +153,35 @@ func getPropertyClaimType(dataType mediawiki.DataType) string {
 func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementRank) search.Confidence {
 	switch rank {
 	case mediawiki.Preferred:
-		return highConfidence
+		return HighConfidence
 	case mediawiki.Normal:
-		return mediumConfidence
+		return MediumConfidence
 	case mediawiki.Deprecated:
-		return noConfidence
+		return NoConfidence
 	}
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
 // It does not return a valid reference: name is set to the ID itself for the language "XX".
+// This works correctly only for Wikidata references. If it is used with Wikimedia Commons reference,
+// it will generate a reference without ID.
 func getDocumentReference(id string) search.DocumentReference {
+	if strings.HasPrefix(id, "M") {
+		return search.DocumentReference{
+			Name: map[string]string{
+				"XX": id,
+			},
+			Score: NoConfidence,
+		}
+	}
+
 	return search.DocumentReference{
 		ID: GetWikidataDocumentID(id),
 		Name: map[string]string{
 			"XX": id,
 		},
-		Score: noConfidence,
+		Score: NoConfidence,
 	}
-}
-
-type wikimediaCommonsFile struct {
-	Reference search.DocumentReference
-	Type      string
-	URL       string
-	Preview   []string
 }
 
 func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
@@ -222,132 +226,6 @@ func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, 
 
 	// Caller should add details to the error.
 	return nil, nil, errors.WithStack(NotFoundError)
-}
-
-func getWikimediaCommonsFileReferenceFromES(ctx context.Context, esClient *elastic.Client, name string) (*wikimediaCommonsFile, errors.E) {
-	document, _, err := getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
-	if err != nil {
-		errors.Details(err)["file"] = name
-		return nil, err
-	}
-
-	var mediaType string
-	for _, claim := range document.Get(search.GetStandardPropertyID("MEDIA_TYPE")) {
-		if c, ok := claim.(*search.StringClaim); ok {
-			mediaType = c.String
-			break
-		}
-	}
-	if mediaType == "" {
-		errE := errors.New("Wikimedia commons file document is missing a MEDIA_TYPE string claim")
-		errors.Details(errE)["file"] = name
-		return nil, errE
-	}
-
-	var fileURL string
-	for _, claim := range document.Get(search.GetStandardPropertyID("FILE_URL")) {
-		if c, ok := claim.(*search.ReferenceClaim); ok {
-			fileURL = c.IRI
-			break
-		}
-	}
-	if fileURL == "" {
-		errE := errors.New("Wikimedia commons file document is missing a FILE_URL reference claim")
-		errors.Details(errE)["file"] = name
-		return nil, errE
-	}
-
-	// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
-	var previews []string
-	for _, claim := range document.Get(search.GetStandardPropertyID("PREVIEW_URL")) {
-		if c, ok := claim.(*search.ReferenceClaim); ok {
-			previews = append(previews, c.IRI)
-		}
-	}
-
-	file := &wikimediaCommonsFile{
-		Reference: search.DocumentReference{
-			ID:     document.ID,
-			Name:   document.Name,
-			Score:  document.Score,
-			Scores: document.Scores,
-		},
-		Type:    mediaType,
-		URL:     fileURL,
-		Preview: previews,
-	}
-	return file, nil
-}
-
-func getWikimediaCommonsFileReference(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
-	token string, apiLimit int, idArgs []interface{}, name string,
-) (*wikimediaCommonsFile, errors.E) {
-	maybeFile, ok := cache.Get(name)
-	if ok {
-		if maybeFile == nil {
-			errE := errors.WithStack(NotFoundError)
-			errors.Details(errE)["file"] = name
-			return nil, errE
-		}
-		return maybeFile.(*wikimediaCommonsFile), nil
-	}
-
-	file, err := getWikimediaCommonsFileReferenceFromES(ctx, esClient, name)
-	if errors.Is(err, NotFoundError) {
-		// Passthrough.
-	} else if err != nil {
-		return nil, err
-	} else {
-		cache.Add(name, file)
-		return file, nil
-	}
-
-	// We could not find the file. Maybe there is a redirect?
-	// We do not check DescriptionURL because all Wikimedia Commons
-	// files should be from Wikimedia Commons.
-	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", token, apiLimit, name)
-	if err != nil {
-		// Not found error here probably means that the file has been deleted recently.
-		errE := errors.WithMessage(err, "checking for redirect")
-		errors.Details(errE)["file"] = name
-		return nil, errE
-	} else if ii.Redirect == "" {
-		// No redirect.
-		cache.Add(name, nil)
-		errE := errors.WithStack(NotFoundError)
-		errors.Details(errE)["file"] = name
-		return nil, errE
-	}
-
-	maybeFile, ok = cache.Get(ii.Redirect)
-	if ok {
-		if maybeFile == nil {
-			errE := errors.WithStack(NotFoundError)
-			errors.Details(errE)["file"] = name
-			errors.Details(errE)["redirect"] = ii.Redirect
-			return nil, errE
-		}
-		return maybeFile.(*wikimediaCommonsFile), nil
-	}
-
-	file, err = getWikimediaCommonsFileReferenceFromES(ctx, esClient, ii.Redirect)
-	if err != nil {
-		if errors.Is(err, NotFoundError) {
-			cache.Add(name, nil)
-			cache.Add(ii.Redirect, nil)
-		}
-		errE := errors.WithMessage(err, "after redirect")
-		errors.Details(errE)["file"] = name
-		errors.Details(errE)["redirect"] = ii.Redirect
-		return nil, errE
-	}
-
-	log.Warn().Interface("entity", idArgs[0]).Interface("path", idArgs[1:]).Str("file", name).Str("redirect", ii.Redirect).Msg("referencing a file which redirects")
-
-	cache.Add(name, file)
-	cache.Add(ii.Redirect, file)
-	return file, nil
 }
 
 // TODO: Should we use cache for cases where item has not been found?
@@ -398,10 +276,9 @@ func GetWikidataItem(
 }
 
 func processSnak( //nolint:ireturn,nolintlint
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
-	token string, apiLimit int, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
+	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
-	id := search.GetID(NameSpaceWikidata, idArgs...)
+	id := search.GetID(namespace, idArgs...)
 
 	switch snak.SnakType {
 	case mediawiki.Value:
@@ -457,24 +334,17 @@ func processSnak( //nolint:ireturn,nolintlint
 			// The first letter has to be upper case.
 			filename = FirstUpperCase(filename)
 
-			file, err := getWikimediaCommonsFileReference(ctx, log, httpClient, esClient, cache, token, apiLimit, idArgs, filename)
-			if err != nil {
-				if errors.Is(err, NotFoundError) {
-					if _, ok := skippedCommonsFiles.Load(filename); ok {
-						errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "not found skipped file"))
-						errors.Details(errE)["file"] = filename
-						return nil, errE
-					}
-				}
-				return nil, err
-			}
-
-			// After here we should not be using "filename" anymore because we might figure out that
-			// it redirects to another file. So only "file" should be used.
+			// First we make sure we do not have underscores.
+			title := strings.ReplaceAll(filename, "_", " ")
+			// The first letter has to be upper case.
+			title = FirstUpperCase(title)
+			title = "File:" + title
 
 			args := append([]interface{}{}, idArgs...)
-			args = append(args, file.Reference.ID, 0)
-			claimID := search.GetID(NameSpaceWikidata, args...)
+			args = append(args, "IS", 0)
+			claimID := search.GetID(namespace, args...)
+
+			// An invalid reference we post-process later.
 			return &search.FileClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         id,
@@ -484,17 +354,22 @@ func processSnak( //nolint:ireturn,nolintlint
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         claimID,
-									Confidence: highConfidence,
+									Confidence: NoConfidence,
 								},
-								To: file.Reference,
+								To: search.DocumentReference{
+									ID: search.GetID(NameSpaceWikimediaCommonsFile, title),
+									Name: map[string]string{
+										"XX": filename,
+									},
+									Score: NoConfidence,
+								},
 							},
 						},
 					},
 				},
-				Prop:    getDocumentReference(prop),
-				Type:    file.Type,
-				URL:     file.URL,
-				Preview: file.Preview,
+				Prop: getDocumentReference(prop),
+				Type: "invalid/invalid",
+				URL:  "https://xx.invalid",
 			}, nil
 		case mediawiki.URL:
 			return &search.ReferenceClaim{
@@ -614,6 +489,7 @@ func processSnak( //nolint:ireturn,nolintlint
 			} else {
 				// For now we store the amount as-is and convert to the same unit later on
 				// using the unit we store into meta claims.
+				// TODO: Implement unit post-processing.
 				claim.Unit = search.AmountUnitCustom
 				args := append([]interface{}{}, idArgs...)
 				args = append(args, "UNIT", 0)
@@ -631,7 +507,7 @@ func processSnak( //nolint:ireturn,nolintlint
 						{
 							CoreClaim: search.CoreClaim{
 								ID:         claimID,
-								Confidence: highConfidence,
+								Confidence: HighConfidence,
 							},
 							Prop: search.GetStandardPropertyReference("UNIT"),
 							To:   getDocumentReference(unitID),
@@ -666,16 +542,13 @@ func processSnak( //nolint:ireturn,nolintlint
 }
 
 func addQualifiers(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
-	token string, apiLimit int, claim search.Claim, entityID, prop, statementID string,
+	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string,
 	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaim, err := processSnak(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, p,
-				[]interface{}{entityID, prop, statementID, "qualifier", p, i},
-				mediumConfidence, qualifier,
+				ctx, log, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, MediumConfidence, qualifier,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
@@ -698,9 +571,9 @@ func addQualifiers(
 
 // addReference operates in two modes. In the first mode, when there is only one snak type per reference, it just converts those snaks to claims.
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
+// TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache, skippedCommonsFiles *sync.Map,
-	token string, apiLimit int, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
+	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	// Edge case.
 	if len(reference.SnaksOrder) == 0 {
@@ -714,8 +587,8 @@ func addReference(
 	} else {
 		referenceClaim = &search.TextClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikidata, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
-				Confidence: noConfidence,
+				ID:         search.GetID(namespace, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
+				Confidence: NoConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("WIKIDATA_REFERENCE"),
 			HTML: search.TranslatableHTMLString{
@@ -727,8 +600,7 @@ func addReference(
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
 			c, err := processSnak(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, property,
-				[]interface{}{entityID, prop, statementID, "reference", i, property, j}, mediumConfidence, snak,
+				ctx, log, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, MediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
@@ -758,14 +630,15 @@ func addReference(
 	return nil
 }
 
-// Wikipedia entities can reference only Wikimedia Commons files and not Wikipedia files. So we need only skippedCommonsFiles.
+// ConvertEntity converts both Wikidata entities and Wikimedia Commons entities.
+// Entities can reference only Wikimedia Commons files and not Wikipedia files.
 func ConvertEntity(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, cache *Cache,
-	skippedCommonsFiles *sync.Map, token string, apiLimit int, entity mediawiki.Entity,
+	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, entity mediawiki.Entity,
 ) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
-	// We are processing just English content for now.
-	if len(englishLabels) == 0 {
+	// We are processing just English Wikidata entities for now.
+	// We do not require from Wikimedia Commons to have labels, so we skip the check for them.
+	if len(englishLabels) == 0 && entity.Type != mediawiki.MediaInfo {
 		if entity.Type == mediawiki.Property {
 			// But properties should all have English label, so we warn here.
 			log.Warn().Str("entity", entity.ID).Msg("property is missing a label in English")
@@ -773,19 +646,29 @@ func ConvertEntity(
 		return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
 	}
 
-	id := GetWikidataDocumentID(entity.ID)
+	var id search.Identifier
+	var name string
+	if entity.Type == mediawiki.MediaInfo {
+		id = search.GetID(NameSpaceWikimediaCommonsFile, entity.Title)
 
-	// We simply use the first label we have.
-	name := englishLabels[0]
-	englishLabels = englishLabels[1:]
+		// We make a name from the title by removing prefix and file extension.
+		name = strings.TrimPrefix(entity.Title, "File:")
+		name = strings.TrimSuffix(name, path.Ext(name))
+	} else {
+		id = GetWikidataDocumentID(entity.ID)
 
-	// Remove prefix if it is a template, module, or category entity.
-	name = strings.TrimPrefix(name, "Template:")
-	name = strings.TrimPrefix(name, "Module:")
-	name = strings.TrimPrefix(name, "Category:")
+		// We simply use the first label we have.
+		name = englishLabels[0]
+		englishLabels = englishLabels[1:]
+
+		// Remove prefix if it is a template, module, or category entity.
+		name = strings.TrimPrefix(name, "Template:")
+		name = strings.TrimPrefix(name, "Module:")
+		name = strings.TrimPrefix(name, "Category:")
+	}
 
 	// TODO: Set mnemonic if a property and the name is unique (it should be).
-	// TODO: Store last item revision and last modification time somewhere.
+	// TODO: Store last item revision and last modification time somewhere. To every claim from input entity?
 	document := search.Document{
 		CoreDocument: search.CoreDocument{
 			ID: id,
@@ -801,8 +684,8 @@ func ConvertEntity(
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
+						Confidence: HighConfidence,
 					},
 					Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
 					Identifier: entity.ID,
@@ -811,8 +694,8 @@ func ConvertEntity(
 			Reference: search.ReferenceClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
+						Confidence: HighConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
@@ -821,8 +704,8 @@ func ConvertEntity(
 			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "PROPERTY", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "PROPERTY", 0),
+						Confidence: HighConfidence,
 					},
 					To: search.GetStandardPropertyReference("PROPERTY"),
 				},
@@ -833,8 +716,8 @@ func ConvertEntity(
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_ID", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
+						Confidence: HighConfidence,
 					},
 					Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
 					Identifier: entity.ID,
@@ -843,8 +726,8 @@ func ConvertEntity(
 			Reference: search.ReferenceClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
+						Confidence: HighConfidence,
 					},
 					Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
@@ -853,10 +736,64 @@ func ConvertEntity(
 			Is: search.IsClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(NameSpaceWikidata, entity.ID, "ITEM", 0),
-						Confidence: highConfidence,
+						ID:         search.GetID(namespace, entity.ID, "ITEM", 0),
+						Confidence: HighConfidence,
 					},
 					To: search.GetStandardPropertyReference("ITEM"),
+				},
+			},
+		}
+	} else if entity.Type == mediawiki.MediaInfo {
+		filename := strings.TrimPrefix(entity.Title, "File:")
+		filename = strings.ReplaceAll(filename, " ", "_")
+		filename = FirstUpperCase(filename)
+
+		prefix := GetMediawikiFilePrefix(filename)
+
+		document.Active = &search.ClaimTypes{
+			Identifier: search.IdentifierClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
+						Confidence: HighConfidence,
+					},
+					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
+					Identifier: entity.ID,
+				},
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_FILE_NAME", 0),
+						Confidence: HighConfidence,
+					},
+					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE_NAME"),
+					Identifier: filename,
+				},
+			},
+			Reference: search.ReferenceClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_FILE", 0),
+						Confidence: HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
+					IRI:  fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
+				},
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, entity.ID, "FILE_URL", 0),
+						Confidence: HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("FILE_URL"),
+					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
+				},
+			},
+			Is: search.IsClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, entity.ID, "FILE", 0),
+						Confidence: HighConfidence,
+					},
+					To: search.GetStandardPropertyReference("FILE"),
 				},
 			},
 		}
@@ -864,6 +801,7 @@ func ConvertEntity(
 		return nil, errors.Errorf(`entity has invalid type: %d`, entity.Type)
 	}
 
+	// Exists for Wikidata entities.
 	siteLink, ok := entity.SiteLinks["enwiki"]
 	if ok {
 		url := siteLink.URL
@@ -885,16 +823,16 @@ func ConvertEntity(
 		}
 		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
-				Confidence: highConfidence,
+				ID:         search.GetID(namespace, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
+				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE_TITLE"),
 			Identifier: siteLink.Title,
 		})
 		document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
-				Confidence: highConfidence,
+				ID:         search.GetID(namespace, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
+				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE"),
 			IRI:  url,
@@ -902,14 +840,16 @@ func ConvertEntity(
 	}
 
 	if entity.DataType != nil {
+		// Which claim type should be used with this property?
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
 			document.Active.Is = append(document.Active.Is, search.IsClaim{
 				CoreClaim: search.CoreClaim{
-					ID: search.GetID(NameSpaceWikidata, entity.ID, claimTypeMnemonic, 0),
+					ID: search.GetID(namespace, entity.ID, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
-					Confidence: lowConfidence,
+					// TODO: Decide what should really be confidence here or implement "later on" part described above.
+					Confidence: LowConfidence,
 				},
 				To: search.GetStandardPropertyReference(claimTypeMnemonic),
 			})
@@ -922,8 +862,8 @@ func ConvertEntity(
 	for i, label := range englishLabels {
 		document.Active.Text = append(document.Active.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikidata, entity.ID, "ALSO_KNOWN_AS", i),
-				Confidence: highConfidence,
+				ID:         search.GetID(namespace, entity.ID, "ALSO_KNOWN_AS", i),
+				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
 			HTML: search.TranslatableHTMLString{
@@ -936,8 +876,8 @@ func ConvertEntity(
 	for i, description := range englishDescriptions {
 		document.Active.Text = append(document.Active.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(NameSpaceWikidata, entity.ID, "DESCRIPTION", i),
-				Confidence: mediumConfidence,
+				ID:         search.GetID(namespace, entity.ID, "DESCRIPTION", i),
+				Confidence: MediumConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 			HTML: search.TranslatableHTMLString{
@@ -963,8 +903,7 @@ func ConvertEntity(
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claim, err := processSnak(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, prop,
-				[]interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, log, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
@@ -976,8 +915,7 @@ func ConvertEntity(
 				continue
 			}
 			err = addQualifiers(
-				ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit,
-				claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+				ctx, log, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
 			)
 			if err != nil {
 				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
@@ -985,7 +923,7 @@ func ConvertEntity(
 				continue
 			}
 			for i, reference := range statement.References {
-				err = addReference(ctx, log, httpClient, esClient, cache, skippedCommonsFiles, token, apiLimit, claim, entity.ID, prop, statement.ID, i, reference)
+				err = addReference(ctx, log, namespace, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
 					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).
 						Err(err).Fields(errors.AllDetails(err)).Send()

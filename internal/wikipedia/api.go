@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	// All pages API has this limit and it does not depend on the token used.
 	APILimit = 500
 )
 
@@ -46,8 +47,10 @@ type allPagesAPIResponse struct {
 	} `json:"query"`
 }
 
-func ListAllPages(ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, output chan<- AllPagesPage) errors.E {
-	limiter := rate.NewLimiter(rate.Every(time.Second), 1)
+func ListAllPages(
+	ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, site, token string, limiter *rate.Limiter, output chan<- AllPagesPage,
+) errors.E {
+	localLimiter := rate.NewLimiter(rate.Every(time.Second), 1)
 
 	for _, namespace := range namespaces {
 		data := url.Values{}
@@ -66,19 +69,28 @@ func ListAllPages(ctx context.Context, httpClient *retryablehttp.Client, namespa
 		var batch []AllPagesPage
 
 		for {
-			err := limiter.Wait(ctx)
+			err := localLimiter.Wait(ctx)
+			if err != nil {
+				// Context has been canceled.
+				return errors.WithStack(err)
+			}
+
+			err = limiter.Wait(ctx)
 			if err != nil {
 				// Context has been canceled.
 				return errors.WithStack(err)
 			}
 
 			encodedData := data.Encode()
-			apiURL := fmt.Sprintf("https://en.wikipedia.org/w/api.php?%s", encodedData)
+			apiURL := fmt.Sprintf("https://%s/w/api.php?%s", site, encodedData)
 			req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 			if err != nil {
 				errE := errors.WithStack(err)
 				errors.Details(errE)["url"] = apiURL
 				return errE
+			}
+			if token != "" {
+				req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 			}
 			resp, err := httpClient.Do(req)
 			if err != nil {
@@ -164,9 +176,9 @@ func ListAllPages(ctx context.Context, httpClient *retryablehttp.Client, namespa
 	return nil
 }
 
-func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, title string) (string, errors.E) {
+func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (string, errors.E) {
 	title = strings.ReplaceAll(title, " ", "_")
-	htmlURL := fmt.Sprintf("https://en.wikipedia.org/api/rest_v1/page/html/%s", url.PathEscape(title))
+	htmlURL := fmt.Sprintf("https://%s/api/rest_v1/page/html/%s", site, url.PathEscape(title))
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, htmlURL, nil)
 	if err != nil {

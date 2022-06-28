@@ -14,6 +14,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
@@ -178,7 +180,7 @@ func (i *Image) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func getMediawikiFilePrefix(filename string) string {
+func GetMediawikiFilePrefix(filename string) string {
 	sum := md5.Sum([]byte(filename)) //nolint:gosec
 	digest := hex.EncodeToString(sum[:])
 	return fmt.Sprintf("%s/%s", digest[0:1], digest[0:2])
@@ -394,15 +396,18 @@ func fitBoxWidth(width, height float64) int {
 	return int(roundedUp)
 }
 
-func ConvertWikimediaCommonsImage(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (*search.Document, errors.E) {
-	return convertImage(ctx, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
+func ConvertWikimediaCommonsImage(
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image, document *search.Document,
+) errors.E {
+	return convertImage(ctx, log, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", token, apiLimit, image, document)
 }
 
 func convertImage(
-	ctx context.Context, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix, token string, apiLimit int, image Image,
-) (*search.Document, errors.E) {
-	id := search.GetID(namespace, image.Name)
-	prefix := getMediawikiFilePrefix(image.Name)
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain,
+	token string, apiLimit int, image Image, document *search.Document,
+) errors.E {
+	prefix := GetMediawikiFilePrefix(image.Name)
+
 	mediaType := fmt.Sprintf("%s/%s", image.MajorMIME, image.MinorMIME)
 	// Mediawiki uses "application/ogg" for both video and audio, but we find it more informative
 	// to tell if it is audio or video through the media type, if this information is already available.
@@ -429,38 +434,97 @@ func convertImage(
 		image.MediaType = ambiguous.MediaType
 	}
 	if !supportedMediaTypes[mediaType] {
-		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
+		return errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
 	}
 	if !supportedMediawikiMediaTypes[image.MediaType] {
-		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
-	}
-	if image.Size == 0 {
-		return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero size`))
+		return errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
 	}
 
-	var err errors.E
+	err := document.Add(&search.StringClaim{
+		CoreClaim: search.CoreClaim{
+			ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
+			Confidence: HighConfidence,
+		},
+		Prop:   search.GetStandardPropertyReference("MEDIA_TYPE"),
+		String: mediaType,
+	})
+	if err != nil {
+		return err
+	}
+	err = document.Add(&search.EnumerationClaim{
+		CoreClaim: search.CoreClaim{
+			ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
+			Confidence: HighConfidence,
+		},
+		Prop: search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+		Enum: []string{strings.ToLower(image.MediaType)},
+	})
+	if err != nil {
+		return err
+	}
+
+	if image.Size == 0 {
+		log.Warn().Str("file", image.Name).Msg("zero size")
+	}
+	err = document.Add(&search.AmountClaim{
+		CoreClaim: search.CoreClaim{
+			ID:         search.GetID(namespace, image.Name, "SIZE", 0),
+			Confidence: HighConfidence,
+		},
+		Prop:   search.GetStandardPropertyReference("SIZE"),
+		Amount: float64(image.Size),
+		Unit:   search.AmountUnitByte,
+	})
+	if err != nil {
+		return err
+	}
+
 	pageCount := 0
 	if hasPages[mediaType] {
 		pageCount, err = getPageCount(ctx, httpClient, token, apiLimit, image)
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
-			return nil, errors.WithMessage(err, `error getting page count`)
-		}
-		if pageCount == 0 {
-			return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero page count`))
+			log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting page count")
+		} else {
+			if pageCount == 0 {
+				log.Warn().Str("file", image.Name).Msg("zero page count")
+			}
+			err := document.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
+					Confidence: MediumConfidence,
+				},
+				Prop:   search.GetStandardPropertyReference("PAGE_COUNT"),
+				Amount: float64(pageCount),
+				Unit:   search.AmountUnitNone,
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	duration := 0.0
 	if hasDuration[mediaType] {
-		duration, err = getDuration(ctx, httpClient, image)
+		duration, err := getDuration(ctx, httpClient, image)
 		if err != nil {
-			// Error happens if there was a problem using the API. This could mean that the file
-			// does not exist anymore. In any case, we skip it.
-			return nil, errors.WithMessage(err, `error getting duration`)
-		}
-		if duration == 0.0 && !canHaveZeroDuration[mediaType] {
-			return nil, errors.WithStack(errors.BaseWrap(SkippedError, `zero duration`))
+			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
+			log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting duration")
+		} else {
+			if duration == 0.0 && !canHaveZeroDuration[mediaType] {
+				log.Warn().Str("file", image.Name).Msg("zero duration")
+			}
+			err := document.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
+					Confidence: MediumConfidence,
+				},
+				Prop:   search.GetStandardPropertyReference("LENGTH"),
+				Amount: duration,
+				Unit:   search.AmountUnitSecond,
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -471,10 +535,8 @@ func convertImage(
 	previews := []string{}
 	if !noPreview[mediaType] {
 		if image.Width == 0 || image.Height == 0 {
-			return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `expected width/height (%dx%d)`, image.Width, image.Height))
-		}
-
-		if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
+			log.Warn().Str("file", image.Name).Msgf("expected width/height (%dx%d)", image.Width, image.Height)
+		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
 			// If the image is small, we link directly to the image.
 			previews = append(previews,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
@@ -529,105 +591,22 @@ func convertImage(
 			}
 		}
 	} else if image.Width != 0 || image.Height != 0 {
-		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unexpected width/height (%dx%d)`, image.Width, image.Height))
-	}
-
-	name := strings.ReplaceAll(image.Name, "_", " ")
-	name = strings.TrimSuffix(name, path.Ext(name))
-
-	document := search.Document{
-		CoreDocument: search.CoreDocument{
-			ID: id,
-			Name: search.Name{
-				"en": name,
-			},
-			Score: 0.0,
-		},
-		Active: &search.ClaimTypes{
-			Identifier: search.IdentifierClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
-						Confidence: highConfidence,
-					},
-					Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_FILE_NAME"),
-					Identifier: image.Name,
-				},
-			},
-			Reference: search.ReferenceClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
-						Confidence: highConfidence,
-					},
-					Prop: search.GetStandardPropertyReference(mnemonicPrefix + "_FILE"),
-					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
-				},
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
-						Confidence: highConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("FILE_URL"),
-					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
-				},
-			},
-			Is: search.IsClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "FILE", 0),
-						Confidence: highConfidence,
-					},
-					To: search.GetStandardPropertyReference("FILE"),
-				},
-			},
-			String: search.StringClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
-						Confidence: highConfidence,
-					},
-					Prop:   search.GetStandardPropertyReference("MEDIA_TYPE"),
-					String: mediaType,
-				},
-			},
-			Amount: search.AmountClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "SIZE", 0),
-						Confidence: highConfidence,
-					},
-					Prop:   search.GetStandardPropertyReference("SIZE"),
-					Amount: float64(image.Size),
-					Unit:   search.AmountUnitByte,
-				},
-			},
-			Enumeration: search.EnumerationClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
-						Confidence: highConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
-					Enum: []string{strings.ToLower(image.MediaType)},
-				},
-			},
-		},
+		log.Warn().Str("file", image.Name).Msgf("unexpected width/height (%dx%d)", image.Width, image.Height)
 	}
 
 	if len(previews) > 0 {
 		previewsList := string(search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST"))
 		for i, preview := range previews {
-			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
+			err := document.Add(&search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i),
-					Confidence: highConfidence,
+					Confidence: HighConfidence,
 					Meta: &search.ClaimTypes{
 						Identifier: search.IdentifierClaims{
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
-									Confidence: highConfidence,
+									Confidence: HighConfidence,
 								},
 								Prop:       search.GetStandardPropertyReference("LIST"),
 								Identifier: previewsList,
@@ -637,7 +616,7 @@ func convertImage(
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
-									Confidence: highConfidence,
+									Confidence: HighConfidence,
 								},
 								Prop:   search.GetStandardPropertyReference("ORDER"),
 								Amount: float64(i),
@@ -649,49 +628,95 @@ func convertImage(
 				Prop: search.GetStandardPropertyReference("PREVIEW_URL"),
 				IRI:  preview,
 			})
+			if err != nil {
+				return err
+			}
 		}
 	}
-	if pageCount > 0 {
-		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
-				Confidence: mediumConfidence,
-			},
-			Prop:   search.GetStandardPropertyReference("PAGE_COUNT"),
-			Amount: float64(pageCount),
-			Unit:   search.AmountUnitNone,
-		})
-	}
-	if duration > 0.0 {
-		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
-				Confidence: mediumConfidence,
-			},
-			Prop:   search.GetStandardPropertyReference("LENGTH"),
-			Amount: duration,
-			Unit:   search.AmountUnitSecond,
-		})
-	}
-	if image.Width > 0 && image.Height > 0 {
-		document.Active.Amount = append(document.Active.Amount, search.AmountClaim{
+
+	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
+		err := document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
-				Confidence: mediumConfidence,
+				Confidence: MediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("WIDTH"),
 			Amount: float64(image.Width),
 			Unit:   search.AmountUnitPixel,
-		}, search.AmountClaim{
+		})
+		if err != nil {
+			return err
+		}
+		err = document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, image.Name, "HEIGHT", 0),
-				Confidence: mediumConfidence,
+				Confidence: MediumConfidence,
 			},
 			Prop:   search.GetStandardPropertyReference("HEIGHT"),
 			Amount: float64(image.Height),
 			Unit:   search.AmountUnitPixel,
 		})
+		if err != nil {
+			return err
+		}
 	}
 
-	return &document, nil
+	return nil
+}
+
+func GetWikimediaCommonsFile(
+	ctx context.Context, esClient *elastic.Client, name string,
+) (*search.Document, *elastic.SearchHit, errors.E) {
+	return getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+}
+
+func ConvertWikimediaCommonsFileDescription(namespace uuid.UUID, id string, page AllPagesPage, html string, document *search.Document) errors.E {
+	descriptions, err := ExtractFileDescriptions(html)
+	if err != nil {
+		errE := errors.WithMessage(err, "description extraction failed")
+		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["title"] = page.Title
+		return errE
+	}
+
+	// TODO: Remove old descriptions if there are now less of them then before.
+	for i, description := range descriptions {
+		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
+		claimID := search.GetID(namespace, id, "FILE", 0, "DESCRIPTION", i)
+		existingClaim := document.GetByID(claimID)
+		if existingClaim != nil {
+			claim, ok := existingClaim.(*search.TextClaim)
+			if !ok {
+				errE := errors.New("unexpected description claim type")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+				errors.Details(errE)["title"] = page.Title
+				return errE
+			}
+			claim.HTML["en"] = description
+		} else {
+			claim := &search.TextClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         claimID,
+					Confidence: HighConfidence,
+				},
+				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+				HTML: search.TranslatableHTMLString{
+					"en": description,
+				},
+			}
+			err := document.Add(claim)
+			if err != nil {
+				errE := errors.WithMessage(err, "claim cannot be added")
+				errors.Details(errE)["doc"] = string(document.ID)
+				errors.Details(errE)["claim"] = string(claimID)
+				errors.Details(errE)["title"] = page.Title
+				return errE
+			}
+		}
+	}
+
+	return nil
 }

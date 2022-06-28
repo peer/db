@@ -24,8 +24,10 @@ var (
 	WikimediaCommonsFileError = errors.Base("file is from Wikimedia Commons error")
 )
 
-func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (*search.Document, errors.E) {
-	return convertImage(ctx, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
+func ConvertWikipediaImage(
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image, document *search.Document,
+) errors.E {
+	return convertImage(ctx, log, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", token, apiLimit, image, document)
 }
 
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
@@ -37,7 +39,7 @@ func ConvertWikipediaImage(ctx context.Context, httpClient *retryablehttp.Client
 //       See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
-func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+func ConvertWikipediaArticle(namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document) errors.E {
 	body, doc, err := ExtractArticle(article.ArticleBody.HTML)
 	if err != nil {
 		errE := errors.WithMessage(err, "article extraction failed")
@@ -64,7 +66,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		claim := &search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("ARTICLE"),
 			HTML: search.TranslatableHTMLString{
@@ -87,7 +89,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		claim := &search.LabelClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("HAS_ARTICLE"),
 		}
@@ -119,7 +121,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
 			Identifier: strconv.FormatInt(article.Identifier, 10),
@@ -163,7 +165,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 			claim := &search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         claimID,
-					Confidence: highConfidence,
+					Confidence: HighConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{
@@ -184,7 +186,7 @@ func ConvertWikipediaArticle(document *search.Document, namespace uuid.UUID, id 
 	return nil
 }
 
-func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+func ConvertWikipediaFileDescription(namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document) errors.E {
 	descriptions, err := ExtractFileDescriptions(article.ArticleBody.HTML)
 	if err != nil {
 		errE := errors.WithMessage(err, "descriptions extraction failed")
@@ -211,7 +213,7 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
 			Identifier: strconv.FormatInt(article.Identifier, 10),
@@ -226,9 +228,10 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 		}
 	}
 
+	// TODO: Remove old descriptions if there are now less of them then before.
 	for i, description := range descriptions {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID = search.GetID(namespace, id, "ARTICLE", 0, "DESCRIPTION", i)
+		claimID = search.GetID(namespace, id, "FILE", 0, "DESCRIPTION", i)
 		existingClaim = document.GetByID(claimID)
 		if existingClaim != nil {
 			claim, ok := existingClaim.(*search.TextClaim)
@@ -246,7 +249,7 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 			claim := &search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         claimID,
-					Confidence: highConfidence,
+					Confidence: HighConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{
@@ -267,7 +270,7 @@ func ConvertWikipediaFileDescription(document *search.Document, namespace uuid.U
 	return nil
 }
 
-func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+func ConvertWikipediaCategoryArticle(log zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document) errors.E {
 	description, err := ExtractCategoryDescription(article.ArticleBody.HTML)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
@@ -294,7 +297,7 @@ func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Docume
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
 			Identifier: strconv.FormatInt(article.Identifier, 10),
@@ -330,7 +333,7 @@ func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Docume
 			claim := &search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         claimID,
-					Confidence: highConfidence,
+					Confidence: HighConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{
@@ -351,7 +354,7 @@ func ConvertWikipediaCategoryArticle(log zerolog.Logger, document *search.Docume
 	return nil
 }
 
-func ConvertWikipediaTemplateArticle(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, page AllPagesPage, html string) errors.E {
+func ConvertWikipediaTemplateArticle(namespace uuid.UUID, id string, page AllPagesPage, html string, document *search.Document) errors.E {
 	description, err := ExtractTemplateDescription(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
@@ -378,7 +381,7 @@ func ConvertWikipediaTemplateArticle(log zerolog.Logger, document *search.Docume
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
 			Identifier: strconv.FormatInt(page.Identifier, 10),
@@ -414,7 +417,7 @@ func ConvertWikipediaTemplateArticle(log zerolog.Logger, document *search.Docume
 			claim := &search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         claimID,
-					Confidence: highConfidence,
+					Confidence: HighConfidence,
 				},
 				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{
@@ -476,7 +479,7 @@ func GetWikipediaFile(
 		return nil, nil, errE
 	}
 
-	// We could not find the file. Maybe there it is from Wikimedia Commons?
+	// We could not find the file. Maybe it is from Wikimedia Commons?
 	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", token, apiLimit, name)
 	if errE != nil {
 		// Not found error here probably means that file has been deleted recently.
@@ -513,51 +516,51 @@ func GetWikipediaFile(
 
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertWikipediaArticleCategories(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id string, article mediawiki.Article,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document,
 ) errors.E {
 	for _, category := range article.Categories {
-		convertWikipediaCategory(ctx, log, esClient, document, namespace, id, article.Name, category.Name)
+		convertWikipediaCategory(ctx, log, esClient, namespace, id, article.Name, category.Name, document)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertWikipediaArticleTemplates(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id string, article mediawiki.Article,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document,
 ) errors.E {
 	for _, template := range article.Templates {
-		convertWikipediaTemplate(ctx, log, esClient, document, namespace, id, article.Name, template.Name)
+		convertWikipediaTemplate(ctx, log, esClient, namespace, id, article.Name, template.Name, document)
 	}
 	return nil
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertWikipediaPageCategories(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id string, page AllPagesPage,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id string, page AllPagesPage, document *search.Document,
 ) errors.E {
 	for _, category := range page.Categories {
-		convertWikipediaCategory(ctx, log, esClient, document, namespace, id, page.Title, category.Title)
+		convertWikipediaCategory(ctx, log, esClient, namespace, id, page.Title, category.Title, document)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertWikipediaPageTemplates(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id string, page AllPagesPage,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id string, page AllPagesPage, document *search.Document,
 ) errors.E {
 	for _, template := range page.Templates {
-		convertWikipediaTemplate(ctx, log, esClient, document, namespace, id, page.Title, template.Title)
+		convertWikipediaTemplate(ctx, log, esClient, namespace, id, page.Title, template.Title, document)
 	}
 	return nil
 }
 
 func convertWikipediaCategory(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id, title, category string,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id, title, category string, document *search.Document,
 ) {
 	if !strings.HasPrefix(category, "Category:") {
 		return
@@ -576,7 +579,7 @@ func convertWikipediaCategory(
 		claim := &search.LabelClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop: search.DocumentReference{
 				ID:     document.ID,
@@ -594,8 +597,8 @@ func convertWikipediaCategory(
 }
 
 func convertWikipediaTemplate(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, document *search.Document,
-	namespace uuid.UUID, id, title, template string,
+	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	namespace uuid.UUID, id, title, template string, document *search.Document,
 ) {
 	if !strings.HasPrefix(template, "Template:") && !strings.HasPrefix(template, "Module:") {
 		return
@@ -614,7 +617,7 @@ func convertWikipediaTemplate(
 		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: highConfidence,
+				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("USES_MEDIAWIKI_TEMPLATE"),
 			To: search.DocumentReference{
@@ -633,22 +636,22 @@ func convertWikipediaTemplate(
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertWikipediaArticleRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, article mediawiki.Article) errors.E {
+func ConvertArticleRedirects(log zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document) errors.E {
 	for _, redirect := range article.Redirects {
-		convertWikipediaRedirect(log, document, namespace, id, article.Name, redirect.Name)
+		convertRedirect(log, namespace, id, article.Name, redirect.Name, document)
 	}
 	return nil
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertWikipediaPageRedirects(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id string, page AllPagesPage) errors.E {
+func ConvertPageRedirects(log zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, document *search.Document) errors.E {
 	for _, redirect := range page.Redirects {
-		convertWikipediaRedirect(log, document, namespace, id, page.Title, redirect.Title)
+		convertRedirect(log, namespace, id, page.Title, redirect.Title, document)
 	}
 	return nil
 }
 
-func convertWikipediaRedirect(log zerolog.Logger, document *search.Document, namespace uuid.UUID, id, title, redirect string) {
+func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirect string, document *search.Document) {
 	claimID := search.GetID(namespace, id, "ALSO_KNOWN_AS", redirect)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
@@ -668,7 +671,7 @@ func convertWikipediaRedirect(log zerolog.Logger, document *search.Document, nam
 	claim := &search.TextClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         claimID,
-			Confidence: highConfidence,
+			Confidence: HighConfidence,
 		},
 		Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
 		HTML: search.TranslatableHTMLString{

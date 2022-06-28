@@ -187,6 +187,16 @@ var (
 			[]string{`"reference" claim type`},
 		},
 		{
+			"Wikimedia Commons entity id",
+			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> <a href="https://commons.wikimedia.org/wiki/Commons:Structured_data">structured data entity identifier</a>.`,
+			[]string{`"identifier" claim type`},
+		},
+		{
+			"Wikimedia Commons page id",
+			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page identifier.`,
+			[]string{`"identifier" claim type`},
+		},
+		{
 			"Wikimedia Commons file name",
 			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name.`,
 			[]string{`"identifier" claim type`},
