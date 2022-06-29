@@ -186,7 +186,7 @@ func (c *WikipediaFilesCommand) processImage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
-	saveDocument(processor, globals.Index, document)
+	insertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }

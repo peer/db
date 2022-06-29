@@ -90,7 +90,7 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
-	saveDocument(processor, globals.Index, document)
+	insertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }

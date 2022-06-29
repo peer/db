@@ -36,11 +36,13 @@ const (
 	lruCacheSize = 1000000
 )
 
-func saveDocument(processor *elastic.BulkProcessor, index string, doc *search.Document) {
+// insertOrReplaceDocument inserts or replaces the document based on its ID.
+func insertOrReplaceDocument(processor *elastic.BulkProcessor, index string, doc *search.Document) {
 	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).Doc(doc)
 	processor.Add(req)
 }
 
+// updateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on seqNo and primaryTerm).
 func updateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *search.Document) {
 	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
 	processor.Add(req)

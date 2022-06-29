@@ -51,7 +51,7 @@ func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Gl
 	for _, property := range search.StandardProperties {
 		property := property
 		globals.Log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
-		saveDocument(processor, globals.Index, &property)
+		insertOrReplaceDocument(processor, globals.Index, &property)
 	}
 
 	// Make sure all just added documents are available for search.
