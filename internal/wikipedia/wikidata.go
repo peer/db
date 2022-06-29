@@ -184,8 +184,8 @@ func getDocumentReference(id string) search.DocumentReference {
 	}
 }
 
-func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
-	searchResult, err := esClient.Search("docs").Query(elastic.NewNestedQuery("active.id",
+func getDocumentFromES(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
+	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
 			elastic.NewTermQuery("active.id.id", id),
@@ -235,9 +235,10 @@ func getDocumentFromES(ctx context.Context, esClient *elastic.Client, property, 
 // We do follow a redirect, because currently we use the function in
 // the context where we want the target document (to add its article).
 func GetWikidataItem(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, token string, apiLimit int, id string,
+	ctx context.Context, index string, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client,
+	token string, apiLimit int, id string,
 ) (*search.Document, *elastic.SearchHit, string, errors.E) {
-	document, hit, err := getDocumentFromES(ctx, esClient, "WIKIDATA_ITEM_ID", id)
+	document, hit, err := getDocumentFromES(ctx, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if errors.Is(err, NotFoundError) {
 		// Passthrough.
 	} else if err != nil {
@@ -261,7 +262,7 @@ func GetWikidataItem(
 		return nil, nil, "", errE
 	}
 
-	document, hit, err = getDocumentFromES(ctx, esClient, "WIKIDATA_ITEM_ID", ii.Redirect)
+	document, hit, err = getDocumentFromES(ctx, index, esClient, "WIKIDATA_ITEM_ID", ii.Redirect)
 	if err != nil {
 		errE := errors.WithMessage(err, "after redirect")
 		errors.Details(errE)["entity"] = id

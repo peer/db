@@ -448,9 +448,9 @@ func ConvertWikipediaTemplateArticle(namespace uuid.UUID, id string, page AllPag
 // with only a redirect tag to a document which has a proper article,
 // overwriting it (redirect pages also have articles).
 func GetWikipediaFile(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, token string, apiLimit int, name string,
+	ctx context.Context, index string, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, token string, apiLimit int, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
-	document, hit, errE := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
+	document, hit, errE := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
 	} else if errE != nil {
@@ -466,7 +466,7 @@ func GetWikipediaFile(
 	// Commons which have different names so this can have false negatives. False positives might also
 	// be possible but are probably harmless: we already did not find a Wikipedia file, so we are
 	// primarily trying to understand why not.
-	_, _, errE = getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	_, _, errE = getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
 	} else if errE != nil {
@@ -516,57 +516,57 @@ func GetWikipediaFile(
 
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertWikipediaArticleCategories(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document,
 ) errors.E {
 	for _, category := range article.Categories {
-		convertWikipediaCategory(ctx, log, esClient, namespace, id, article.Name, category.Name, document)
+		convertWikipediaCategory(ctx, index, log, esClient, namespace, id, article.Name, category.Name, document)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertWikipediaArticleTemplates(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id string, article mediawiki.Article, document *search.Document,
 ) errors.E {
 	for _, template := range article.Templates {
-		convertWikipediaTemplate(ctx, log, esClient, namespace, id, article.Name, template.Name, document)
+		convertWikipediaTemplate(ctx, index, log, esClient, namespace, id, article.Name, template.Name, document)
 	}
 	return nil
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertWikipediaPageCategories(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id string, page AllPagesPage, document *search.Document,
 ) errors.E {
 	for _, category := range page.Categories {
-		convertWikipediaCategory(ctx, log, esClient, namespace, id, page.Title, category.Title, document)
+		convertWikipediaCategory(ctx, index, log, esClient, namespace, id, page.Title, category.Title, document)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertWikipediaPageTemplates(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id string, page AllPagesPage, document *search.Document,
 ) errors.E {
 	for _, template := range page.Templates {
-		convertWikipediaTemplate(ctx, log, esClient, namespace, id, page.Title, template.Title, document)
+		convertWikipediaTemplate(ctx, index, log, esClient, namespace, id, page.Title, template.Title, document)
 	}
 	return nil
 }
 
 func convertWikipediaCategory(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id, title, category string, document *search.Document,
 ) {
 	if !strings.HasPrefix(category, "Category:") {
 		return
 	}
 
-	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", category)
+	document, _, err := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", category)
 	if err != nil {
 		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("category", category).
 			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find category")
@@ -597,14 +597,14 @@ func convertWikipediaCategory(
 }
 
 func convertWikipediaTemplate(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client,
 	namespace uuid.UUID, id, title, template string, document *search.Document,
 ) {
 	if !strings.HasPrefix(template, "Template:") && !strings.HasPrefix(template, "Module:") {
 		return
 	}
 
-	document, _, err := getDocumentFromES(ctx, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", template)
+	document, _, err := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", template)
 	if err != nil {
 		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("template", template).
 			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find template")

@@ -49,7 +49,9 @@ type fileInfoAPIResponse struct {
 	Error         json.RawMessage `json:"error,omitempty"`
 	ServedBy      string          `json:"servedby,omitempty"`
 	BatchComplete bool            `json:"batchcomplete"`
-	Continue      struct {
+	// Continue is needed even if we are interested only in the latest revision of the file.
+	// See: https://phabricator.wikimedia.org/T311633
+	Continue struct {
 		IIStart  string `json:"iistart"`
 		Continue string `json:"continue"`
 	} `json:"continue"`

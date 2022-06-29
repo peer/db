@@ -36,13 +36,13 @@ const (
 	lruCacheSize = 1000000
 )
 
-func saveDocument(processor *elastic.BulkProcessor, doc *search.Document) {
-	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(doc.ID)).Doc(doc)
+func saveDocument(processor *elastic.BulkProcessor, index string, doc *search.Document) {
+	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).Doc(doc)
 	processor.Add(req)
 }
 
-func updateDocument(processor *elastic.BulkProcessor, seqNo, primaryTerm int64, doc *search.Document) {
-	req := elastic.NewBulkIndexRequest().Index("docs").Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
+func updateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *search.Document) {
+	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
 	processor.Add(req)
 }
 
@@ -173,7 +173,7 @@ func initializeElasticSearch(globals *Globals) (
 
 	httpClient := cleanhttp.DefaultPooledClient()
 
-	esClient, errE := search.EnsureIndex(ctx, httpClient, globals.Log, globals.Elastic)
+	esClient, errE := search.EnsureIndex(ctx, httpClient, globals.Log, globals.Elastic, globals.Index)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}

@@ -43,19 +43,19 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 // the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
-func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
+func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url, index string) (*elastic.Client, errors.E) {
 	esClient, errE := GetClient(httpClient, logger, url)
 	if errE != nil {
 		return nil, errE
 	}
 
-	exists, err := esClient.IndexExists("docs").Do(ctx)
+	exists, err := esClient.IndexExists(index).Do(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	if !exists {
-		createIndex, err := esClient.CreateIndex("docs").BodyString(indexConfiguration).Do(ctx)
+		createIndex, err := esClient.CreateIndex(index).BodyString(indexConfiguration).Do(ctx)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

@@ -14,7 +14,7 @@ func (c *OptimizeCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 	defer processor.Close()
 
-	_, err := esClient.Forcemerge("docs").Do(ctx)
+	_, err := esClient.Forcemerge(globals.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}

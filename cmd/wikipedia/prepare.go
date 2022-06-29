@@ -51,7 +51,7 @@ func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Gl
 	for _, property := range search.StandardProperties {
 		property := property
 		globals.Log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
-		saveDocument(processor, &property)
+		saveDocument(processor, globals.Index, &property)
 	}
 
 	// Make sure all just added documents are available for search.
@@ -59,7 +59,7 @@ func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Gl
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	_, err = esClient.Refresh("docs").Do(ctx)
+	_, err = esClient.Refresh(globals.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -75,7 +75,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	var count x.Counter
 
-	total, err := esClient.Count("docs").Do(ctx)
+	total, err := esClient.Count(globals.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -98,7 +98,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	g.Go(func() error {
 		defer close(hits)
 
-		scroll := esClient.Scroll("docs").Size(documentProcessingThreads * scrollingMultiplier).SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
+		scroll := esClient.Scroll(globals.Index).Size(documentProcessingThreads * scrollingMultiplier).SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
 		for {
 			results, err := scroll.Do(ctx)
 			if errors.Is(err, io.EOF) {
@@ -125,7 +125,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.updateEmbeddedDocumentsOne(ctx, globals.Log, esClient, processor, cache, hit)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Log, esClient, processor, cache, hit)
 					if err != nil {
 						return err
 					}
@@ -141,7 +141,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
 ) errors.E {
 	var document search.Document
 	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
@@ -155,7 +155,7 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	// ID is not stored in the document, so we set it here ourselves.
 	document.ID = search.Identifier(hit.Id)
 
-	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, log, esClient, cache, &skippedWikidataEntities, &document)
+	changed, errE := wikipedia.UpdateEmbeddedDocuments(ctx, index, log, esClient, cache, &skippedWikidataEntities, &document)
 	if errE != nil {
 		details := errors.AllDetails(errE)
 		details["doc"] = string(document.ID)
@@ -165,7 +165,7 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 
 	if changed {
 		log.Debug().Str("doc", string(document.ID)).Msg("updating document")
-		updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, &document)
+		updateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &document)
 	}
 
 	return nil

@@ -665,9 +665,9 @@ func convertImage(
 }
 
 func GetWikimediaCommonsFile(
-	ctx context.Context, esClient *elastic.Client, name string,
+	ctx context.Context, index string, esClient *elastic.Client, name string,
 ) (*search.Document, *elastic.SearchHit, errors.E) {
-	return getDocumentFromES(ctx, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	return getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 }
 
 func ConvertWikimediaCommonsFileDescription(namespace uuid.UUID, id string, page AllPagesPage, html string, document *search.Document) errors.E {

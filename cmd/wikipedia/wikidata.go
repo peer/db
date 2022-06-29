@@ -91,7 +91,7 @@ func (c *WikidataCommand) processEntity(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
-	saveDocument(processor, document)
+	saveDocument(processor, globals.Index, document)
 
 	return nil
 }

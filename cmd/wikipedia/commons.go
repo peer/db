@@ -90,7 +90,7 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
-	saveDocument(processor, document)
+	saveDocument(processor, globals.Index, document)
 
 	return nil
 }
@@ -159,7 +159,7 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 func (c *CommonsFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
-	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, esClient, image.Name)
+	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, image.Name)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
@@ -182,7 +182,7 @@ func (c *CommonsFilesCommand) processImage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("updating document")
-	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
+	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -273,7 +273,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	// The first letter has to be upper case.
 	filename = wikipedia.FirstUpperCase(filename)
 
-	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, esClient, filename)
+	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = filename
@@ -306,7 +306,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, *hit.SeqNo, *hit.PrimaryTerm, document)
+	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }

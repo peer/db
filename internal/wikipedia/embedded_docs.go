@@ -19,6 +19,7 @@ var referenceNotFoundError = errors.Base("document reference to a nonexistent do
 type updateEmbeddedDocumentsVisitor struct {
 	Context                 context.Context
 	Log                     zerolog.Logger
+	Index                   string
 	Cache                   *Cache
 	SkippedWikidataEntities *sync.Map
 	ESClient                *elastic.Client
@@ -71,7 +72,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 		return maybeRef.(*search.DocumentReference), nil
 	}
 
-	esDoc, err := v.ESClient.Get().Index("docs").Id(string(id)).Do(v.Context)
+	esDoc, err := v.ESClient.Get().Index(v.Index).Id(string(id)).Do(v.Context)
 	if elastic.IsNotFound(err) {
 		v.Cache.Add(id, nil)
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
@@ -394,7 +395,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
 ) (bool, errors.E) {
 	wikidataIDClaims := []search.Claim{}
 	wikidataIDClaims = append(wikidataIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_ITEM_ID"))...)
@@ -425,6 +426,7 @@ func UpdateEmbeddedDocuments(
 	v := updateEmbeddedDocumentsVisitor{
 		Context:                 ctx,
 		Log:                     log,
+		Index:                   index,
 		Cache:                   cache,
 		SkippedWikidataEntities: skippedWikidataEntities,
 		ESClient:                esClient,
