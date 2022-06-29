@@ -58,7 +58,7 @@ type Config struct {
 	Prepare  PrepareCommand  `cmd:"" help:"Prepare populated data for search."`
 	Optimize OptimizeCommand `cmd:"" help:"Optimize search data."`
 
-	All AllCommand `cmd:"" default:"" help:"Run all passes in order. Default command."`
+	All AllCommand `cmd:"" default:"" help:"Run all passes in order using latest dumps. Default command."`
 }
 
 type runner interface {
