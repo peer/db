@@ -567,14 +567,7 @@ func convertWikipediaCategory(
 		return
 	}
 
-	document, _, err := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", category)
-	if err != nil {
-		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("category", category).
-			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find category")
-		return
-	}
-
-	claimID := search.GetID(namespace, id, "IN_ENGLISH_WIKIPEDIA_CATEGORY", 0, string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "IN_ENGLISH_WIKIPEDIA_CATEGORY", 0, category, 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &search.RelationClaim{
@@ -583,12 +576,7 @@ func convertWikipediaCategory(
 				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("IN_ENGLISH_WIKIPEDIA_CATEGORY"),
-			To: search.DocumentReference{
-				ID:     document.ID,
-				Name:   document.Name,
-				Score:  document.Score,
-				Scores: document.Scores,
-			},
+			To:   getDocumentReference(category),
 		}
 		err := document.Add(claim)
 		if err != nil {
@@ -606,14 +594,7 @@ func convertWikipediaTemplate(
 		return
 	}
 
-	document, _, err := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", template)
-	if err != nil {
-		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("title", title).Str("template", template).
-			Err(err).Fields(errors.AllDetails(err)).Msg("unable to find template")
-		return
-	}
-
-	claimID := search.GetID(namespace, id, "USES_ENGLISH_WIKIPEDIA_TEMPLATE", string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "USES_ENGLISH_WIKIPEDIA_TEMPLATE", template, 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &search.RelationClaim{
@@ -622,12 +603,7 @@ func convertWikipediaTemplate(
 				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("USES_ENGLISH_WIKIPEDIA_TEMPLATE"),
-			To: search.DocumentReference{
-				ID:     document.ID,
-				Name:   document.Name,
-				Score:  document.Score,
-				Scores: document.Scores,
-			},
+			To:   getDocumentReference(template),
 		}
 		err := document.Add(claim)
 		if err != nil {
@@ -659,6 +635,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	if existingClaim != nil {
 		return
 	}
+	// TODO: Construct better the name. E.g., remove underscores.
 	escapedName := html.EscapeString(redirect)
 	found := false
 	for _, claim := range document.Get(search.GetStandardPropertyID("ALSO_KNOWN_AS")) {

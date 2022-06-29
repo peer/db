@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/olivere/elastic/v7"
@@ -23,23 +24,26 @@ type updateEmbeddedDocumentsVisitor struct {
 	Cache                   *Cache
 	SkippedWikidataEntities *sync.Map
 	ESClient                *elastic.Client
-	Changed                 bool
+	Changed                 int
 	DocumentID              search.Identifier
-	WikidataIDs             []string
+	EntityIDs               []string
 }
 
 func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
-	name := ref.Name["en"]
-	if name == "" {
-		name = ref.Name["XX"]
+	name := ""
+	for _, field := range []string{"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference, CategoryReference, TemplateReference} {
+		if ref.Name[field] != "" {
+			name = ref.Name[field]
+			break
+		}
 	}
 	errE := errors.WithStack(err)
 	details := errors.Details(errE)
 	details["doc"] = string(v.DocumentID)
-	if len(v.WikidataIDs) == 1 {
-		details["entity"] = v.WikidataIDs[0]
-	} else if len(v.WikidataIDs) > 1 {
-		details["entity"] = v.WikidataIDs
+	if len(v.EntityIDs) == 1 {
+		details["entity"] = v.EntityIDs[0]
+	} else if len(v.EntityIDs) > 1 {
+		details["entity"] = v.EntityIDs
 	}
 	details["claim"] = string(claimID)
 	details["ref"] = string(ref.ID)
@@ -56,14 +60,71 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.Do
 		} else {
 			v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
 		}
-		v.Changed = true
+		v.Changed++
 		return search.Drop, nil
 	}
 	return search.Keep, err
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
+	if ref.ID != "" {
+		return v.getDocumentReferenceByID(ref, claimID)
+	}
+
+	if ref.Name[CategoryReference] != "" {
+		return v.getDocumentReferenceByTitle(ref, claimID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", ref.Name[CategoryReference])
+	} else if ref.Name[TemplateReference] != "" {
+		return v.getDocumentReferenceByTitle(ref, claimID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", ref.Name[TemplateReference])
+	} else if ref.Name[WikimediaCommonsFileReference] != "" {
+		filename := strings.TrimPrefix(ref.Name[WikimediaCommonsFileReference], "File:")
+		filename = strings.ReplaceAll(filename, " ", "_")
+		filename = FirstUpperCase(filename)
+		return v.getDocumentReferenceByTitle(ref, claimID, "WIKIMEDIA_COMMONS_FILE_NAME", filename)
+	}
+
+	errE := errors.Errorf("invalid reference")
+	body, err := x.MarshalWithoutEscapeHTML(ref)
+	if err == nil {
+		errors.Details(errE)["body"] = string(body)
+	}
+	return nil, errE
+}
+
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
+	ref search.DocumentReference, claimID search.Identifier, property, id string,
+) (*search.DocumentReference, errors.E) {
+	// Here we check cache with string type, so values cannot conflict with caching done
+	// by getDocumentReferenceByID, which uses Identifier type.
+	maybeRef, ok := v.Cache.Get(id)
+	if ok {
+		if maybeRef == nil {
+			return nil, v.makeError(referenceNotFoundError, ref, claimID)
+		}
+		return maybeRef.(*search.DocumentReference), nil
+	}
+
+	document, _, err := getDocumentFromES(v.Context, v.Index, v.ESClient, property, id)
+	if errors.Is(err, NotFoundError) {
+		v.Cache.Add(id, nil)
+		return nil, v.makeError(referenceNotFoundError, ref, claimID)
+	} else if err != nil {
+		return nil, v.makeError(err, ref, claimID)
+	}
+
+	res := &search.DocumentReference{
+		ID:     document.ID,
+		Name:   document.Name,
+		Score:  document.Score,
+		Scores: document.Scores,
+	}
+	v.Cache.Add(id, res)
+	return res, nil
+}
+
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
 	id := ref.ID
+	// Here we check cache with Identifier type, so values cannot conflict with caching done
+	// by getDocumentReferenceByTitle, which uses string type.
 	maybeRef, ok := v.Cache.Get(id)
 	if ok {
 		if maybeRef == nil {
@@ -90,7 +151,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	}
 
 	res := &search.DocumentReference{
-		ID:     id,
+		ID:     document.ID,
 		Name:   document.Name,
 		Score:  document.Score,
 		Scores: document.Scores,
@@ -112,7 +173,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -131,7 +192,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -150,7 +211,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (sea
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -169,7 +230,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -188,7 +249,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -207,7 +268,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -226,7 +287,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.Enumerat
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -245,7 +306,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	ref, err = v.getDocumentReference(claim.To, claim.ID)
@@ -255,7 +316,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 
 	if !reflect.DeepEqual(&claim.To, ref) {
 		claim.To = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -274,7 +335,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -293,7 +354,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -312,7 +373,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (sea
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -331,7 +392,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -350,7 +411,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
+		v.Changed++
 	}
 
 	return search.Keep, nil
@@ -359,22 +420,25 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 func UpdateEmbeddedDocuments(
 	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
 ) (bool, errors.E) {
-	wikidataIDClaims := []search.Claim{}
-	wikidataIDClaims = append(wikidataIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_ITEM_ID"))...)
-	wikidataIDClaims = append(wikidataIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_PROPERTY_ID"))...)
+	// We try to obtain unhashed document IDs to use in logging.
+	entityIDClaims := []search.Claim{}
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_ITEM_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_PROPERTY_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIMEDIA_COMMONS_ENTITY_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
-	wikidataIDs := []string{}
-	for _, wikidataIDClaim := range wikidataIDClaims {
-		idClaim, ok := wikidataIDClaim.(*search.IdentifierClaim)
+	entityIDs := []string{}
+	for _, entityIDClaim := range entityIDClaims {
+		idClaim, ok := entityIDClaim.(*search.IdentifierClaim)
 		if !ok {
-			errE := errors.New("unexpected Wikidata ID claim type")
+			errE := errors.New("unexpected ID claim type")
 			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(wikidataIDClaim.GetID())
-			errors.Details(errE)["got"] = fmt.Sprintf("%T", wikidataIDClaim)
+			errors.Details(errE)["claim"] = string(entityIDClaim.GetID())
+			errors.Details(errE)["got"] = fmt.Sprintf("%T", entityIDClaim)
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
 			return false, errE
 		}
-		wikidataIDs = append(wikidataIDs, idClaim.Identifier)
+		entityIDs = append(entityIDs, idClaim.Identifier)
 	}
 
 	ref := &search.DocumentReference{
@@ -392,14 +456,14 @@ func UpdateEmbeddedDocuments(
 		Cache:                   cache,
 		SkippedWikidataEntities: skippedWikidataEntities,
 		ESClient:                esClient,
-		Changed:                 false,
+		Changed:                 0,
 		DocumentID:              document.ID,
-		WikidataIDs:             wikidataIDs,
+		EntityIDs:               entityIDs,
 	}
 	errE := document.Visit(&v)
 	if errE != nil {
 		return false, errE
 	}
 
-	return v.Changed, nil
+	return v.Changed > 0, nil
 }

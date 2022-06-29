@@ -111,11 +111,7 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 func (c *WikipediaFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
-	title := strings.ReplaceAll(image.Name, "_", " ")
-	title = wikipedia.FirstUpperCase(title)
-	title = "File:" + title
-
-	id := search.GetID(wikipedia.NameSpaceWikipediaFile, title)
+	id := search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name)
 
 	name := strings.ReplaceAll(image.Name, "_", " ")
 	name = strings.TrimSuffix(name, path.Ext(name))
@@ -205,10 +201,8 @@ func (c *WikipediaFilesCommand) processImage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
-// ALSO_KNOWN_AS (from redirects pointing to the file).
-//
-// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label
-// and relation claims, respectively.
+// ALSO_KNOWN_AS (from redirects pointing to the file), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the file is in),
+// USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaFileDescriptionsCommand struct {
 	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
@@ -332,10 +326,8 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ARTICLE (body of the article), HAS_ARTICLE (a label), ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article),
-// DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article).
-//
-// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label
-// and relation claims, respectively.
+// DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article),
+// IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the article is in), USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaArticlesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
@@ -494,10 +486,8 @@ func (c *WikipediaArticlesCommand) processArticle(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article), DESCRIPTION (extracted from Wikipedia's category article),
-// ALSO_KNOWN_AS (from redirects pointing to the article).
-//
-// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label
-// and relation claims, respectively.
+// ALSO_KNOWN_AS (from redirects pointing to the article), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
+// USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaCategoriesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
@@ -653,10 +643,8 @@ func (c *WikipediaCategoriesCommand) processArticle(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to the template or module).
-//
-// Similarly, it uses ElasticSearch to obtains references for categories and used templates, which are added to the document as label
-// and relation claims, respectively.
+// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the template or module is in),
+// USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaTemplatesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 }

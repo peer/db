@@ -27,6 +27,14 @@ const (
 	NoConfidence     = -1.0
 )
 
+const (
+	WikidataReference               = "xx-Wikidata"
+	WikimediaCommonsEntityReference = "xx-CommonsEntity"
+	WikimediaCommonsFileReference   = "xx-CommonsFile"
+	CategoryReference               = "xx-Category"
+	TemplateReference               = "xx-Template"
+)
+
 var (
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
@@ -162,26 +170,51 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
-// It does not return a valid reference: name is set to the ID itself for the language "XX".
-// This works correctly only for Wikidata references. If it is used with Wikimedia Commons reference,
-// it will generate a reference without ID.
+// getDocumentReference does not return a valid reference: name is set to the ID itself for the language
+// "xx-Wikidata", "xx-CommonsEntity", "xx-CommonsFile", "xx-Category", or "xx-Template".
+// Wikidata and Wikimedia Commons entity references also have a valid ID field, others
+// have an empty ID field. It panics for unsupported IDs.
 func getDocumentReference(id string) search.DocumentReference {
 	if strings.HasPrefix(id, "M") {
 		return search.DocumentReference{
+			ID: search.GetID(NameSpaceWikimediaCommonsFile, id),
 			Name: map[string]string{
-				"XX": id,
+				WikimediaCommonsEntityReference: id,
+			},
+			Score: NoConfidence,
+		}
+	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
+		return search.DocumentReference{
+			ID: GetWikidataDocumentID(id),
+			Name: map[string]string{
+				WikidataReference: id,
+			},
+			Score: NoConfidence,
+		}
+	} else if strings.HasPrefix(id, "Category:") {
+		return search.DocumentReference{
+			Name: map[string]string{
+				CategoryReference: id,
+			},
+			Score: NoConfidence,
+		}
+	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
+		return search.DocumentReference{
+			Name: map[string]string{
+				TemplateReference: id,
+			},
+			Score: NoConfidence,
+		}
+	} else if strings.HasPrefix(id, "File:") {
+		return search.DocumentReference{
+			Name: map[string]string{
+				WikimediaCommonsFileReference: id,
 			},
 			Score: NoConfidence,
 		}
 	}
 
-	return search.DocumentReference{
-		ID: GetWikidataDocumentID(id),
-		Name: map[string]string{
-			"XX": id,
-		},
-		Score: NoConfidence,
-	}
+	panic(errors.Errorf("unsupported ID: %s", id))
 }
 
 func getDocumentFromES(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
@@ -330,22 +363,17 @@ func processSnak( //nolint:ireturn,nolintlint
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
-			// First we make sure we do not have spaces.
-			filename := strings.ReplaceAll(string(value), " ", "_")
-			// The first letter has to be upper case.
-			filename = FirstUpperCase(filename)
-
 			// First we make sure we do not have underscores.
-			title := strings.ReplaceAll(filename, "_", " ")
+			title := strings.ReplaceAll(string(value), "_", " ")
 			// The first letter has to be upper case.
 			title = FirstUpperCase(title)
 			title = "File:" + title
 
 			args := append([]interface{}{}, idArgs...)
-			args = append(args, "IS", 0)
+			args = append(args, "IS", 0, title, 0)
 			claimID := search.GetID(namespace, args...)
 
-			// An invalid reference we post-process later.
+			// An invalid claim we post-process later.
 			return &search.FileClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         id,
@@ -355,16 +383,10 @@ func processSnak( //nolint:ireturn,nolintlint
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         claimID,
-									Confidence: NoConfidence,
+									Confidence: HighConfidence,
 								},
 								Prop: search.GetStandardPropertyReference("IS"),
-								To: search.DocumentReference{
-									ID: search.GetID(NameSpaceWikimediaCommonsFile, title),
-									Name: map[string]string{
-										"XX": filename,
-									},
-									Score: NoConfidence,
-								},
+								To:   getDocumentReference(title),
 							},
 						},
 					},
@@ -651,7 +673,7 @@ func ConvertEntity(
 	var id search.Identifier
 	var name string
 	if entity.Type == mediawiki.MediaInfo {
-		id = search.GetID(NameSpaceWikimediaCommonsFile, entity.Title)
+		id = search.GetID(NameSpaceWikimediaCommonsFile, entity.ID)
 
 		// We make a name from the title by removing prefix and file extension.
 		name = strings.TrimPrefix(entity.Title, "File:")
