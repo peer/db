@@ -83,15 +83,16 @@ func ConvertWikipediaArticle(namespace uuid.UUID, id string, article mediawiki.A
 		}
 	}
 
-	claimID = search.GetID(namespace, id, "HAS_ARTICLE", 0)
+	claimID = search.GetID(namespace, id, "LABEL", 0, "HAS_ARTICLE", 0)
 	existingClaim = document.GetByID(claimID)
 	if existingClaim == nil {
-		claim := &search.LabelClaim{
+		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("HAS_ARTICLE"),
+			Prop: search.GetStandardPropertyReference("LABEL"),
+			To:   search.GetStandardPropertyReference("HAS_ARTICLE"),
 		}
 		err := document.Add(claim)
 		if err != nil {
@@ -573,15 +574,16 @@ func convertWikipediaCategory(
 		return
 	}
 
-	claimID := search.GetID(namespace, id, "category", string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "LABEL", 0, string(document.ID), 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
-		claim := &search.LabelClaim{
+		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.DocumentReference{
+			Prop: search.GetStandardPropertyReference("LABEL"),
+			To: search.DocumentReference{
 				ID:     document.ID,
 				Name:   document.Name,
 				Score:  document.Score,

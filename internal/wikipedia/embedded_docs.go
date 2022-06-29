@@ -175,25 +175,6 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitLabel(claim *search.LabelClaim) (search.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
-	}
-
-	if !reflect.DeepEqual(&claim.Prop, ref) {
-		claim.Prop = *ref
-		v.Changed = true
-	}
-
-	return search.Keep, nil
-}
-
 func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
@@ -350,25 +331,6 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
-		v.Changed = true
-	}
-
-	return search.Keep, nil
-}
-
-func (v *updateEmbeddedDocumentsVisitor) VisitIs(claim *search.IsClaim) (search.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	ref, err := v.getDocumentReference(claim.To, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.To)
-	}
-
-	if !reflect.DeepEqual(&claim.To, ref) {
-		claim.To = *ref
 		v.Changed = true
 	}
 

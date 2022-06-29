@@ -131,23 +131,6 @@ var claimTypes = []claimType{
 		},
 	},
 	{
-		"label",
-		[]field{
-			{
-				"prop",
-				"_id",
-				`{
-					"properties": {
-						"_id": {
-							"type": "keyword",
-							"doc_values": false
-						}
-					}
-				}`,
-			},
-		},
-	},
-	{
 		"amount",
 		[]field{
 			{
@@ -406,23 +389,6 @@ var claimTypes = []claimType{
 				"",
 				`{
 					"type": "keyword"
-				}`,
-			},
-		},
-	},
-	{
-		"is",
-		[]field{
-			{
-				"to",
-				"_id",
-				`{
-					"properties": {
-						"_id": {
-							"type": "keyword",
-							"doc_values": false
-						}
-					}
 				}`,
 			},
 		},

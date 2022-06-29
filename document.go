@@ -34,7 +34,6 @@ type visitor interface {
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
 	VisitText(claim *TextClaim) (VisitResult, errors.E)
 	VisitString(claim *StringClaim) (VisitResult, errors.E)
-	VisitLabel(claim *LabelClaim) (VisitResult, errors.E)
 	VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 	VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E)
 	VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E)
@@ -44,7 +43,6 @@ type visitor interface {
 	VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E)
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
-	VisitIs(claim *IsClaim) (VisitResult, errors.E)
 }
 
 type Document struct {
@@ -189,33 +187,6 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 	}
 	if len(c.String) != k {
 		c.String = c.String[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.Label {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitLabel(&c.Label[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Label[k] = c.Label[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Label) != k {
-		c.Label = c.Label[:k]
 	}
 	if stopping {
 		return nil
@@ -464,33 +435,6 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 		return nil
 	}
 
-	stopping = false
-	k = 0
-	for i := range c.Is {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitIs(&c.Is[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Is[k] = c.Is[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Is) != k {
-		c.Is = c.Is[:k]
-	}
-	if stopping {
-		return nil
-	}
-
 	return nil
 }
 
@@ -504,7 +448,6 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.Reference)
 	s += len(c.Text)
 	s += len(c.String)
-	s += len(c.Label)
 	s += len(c.Amount)
 	s += len(c.AmountRange)
 	s += len(c.Enumeration)
@@ -514,7 +457,6 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.UnknownValue)
 	s += len(c.Time)
 	s += len(c.TimeRange)
-	s += len(c.Is)
 	return s
 }
 
@@ -549,14 +491,6 @@ func (v *getByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 }
 
 func (v *getByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-func (v *getByIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -636,14 +570,6 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 	return Keep, nil
 }
 
-func (v *getByIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
 func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
@@ -681,13 +607,6 @@ func (v *getByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E)
 }
 
 func (v *getByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-	}
-	return Keep, nil
-}
-
-func (v *getByPropIDVisitor) VisitLabel(claim *LabelClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 	}
@@ -757,13 +676,6 @@ func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 	return Keep, nil
 }
 
-func (v *getByPropIDVisitor) VisitIs(claim *IsClaim) (VisitResult, errors.E) {
-	if claim.To.ID == v.ID {
-		v.Result = append(v.Result, claim)
-	}
-	return Keep, nil
-}
-
 func (d *Document) Get(propID Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
@@ -809,8 +721,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Text = append(claimTypes.Text, *c)
 	case *StringClaim:
 		claimTypes.String = append(claimTypes.String, *c)
-	case *LabelClaim:
-		claimTypes.Label = append(claimTypes.Label, *c)
 	case *AmountClaim:
 		claimTypes.Amount = append(claimTypes.Amount, *c)
 	case *AmountRangeClaim:
@@ -829,8 +739,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Time = append(claimTypes.Time, *c)
 	case *TimeRangeClaim:
 		claimTypes.TimeRange = append(claimTypes.TimeRange, *c)
-	case *IsClaim:
-		claimTypes.Is = append(claimTypes.Is, *c)
 	default:
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
@@ -922,7 +830,6 @@ type ClaimTypes struct {
 	Reference    ReferenceClaims    `json:"ref,omitempty"`
 	Text         TextClaims         `json:"text,omitempty"`
 	String       StringClaims       `json:"string,omitempty"`
-	Label        LabelClaims        `json:"label,omitempty"`
 	Amount       AmountClaims       `json:"amount,omitempty"`
 	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
 	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
@@ -932,7 +839,6 @@ type ClaimTypes struct {
 	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
 	Time         TimeClaims         `json:"time,omitempty"`
 	TimeRange    TimeRangeClaims    `json:"timeRange,omitempty"`
-	Is           IsClaims           `json:"is,omitempty"`
 }
 
 type (
@@ -940,7 +846,6 @@ type (
 	ReferenceClaims    = []ReferenceClaim
 	TextClaims         = []TextClaim
 	StringClaims       = []StringClaim
-	LabelClaims        = []LabelClaim
 	AmountClaims       = []AmountClaim
 	AmountRangeClaims  = []AmountRangeClaim
 	EnumerationClaims  = []EnumerationClaim
@@ -950,7 +855,6 @@ type (
 	UnknownValueClaims = []UnknownValueClaim
 	TimeClaims         = []TimeClaim
 	TimeRangeClaims    = []TimeRangeClaim
-	IsClaims           = []IsClaim
 )
 
 type CoreClaim struct {
@@ -983,8 +887,6 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.Text = append(cc.Meta.Text, *c)
 	case *StringClaim:
 		cc.Meta.String = append(cc.Meta.String, *c)
-	case *LabelClaim:
-		cc.Meta.Label = append(cc.Meta.Label, *c)
 	case *AmountClaim:
 		cc.Meta.Amount = append(cc.Meta.Amount, *c)
 	case *AmountRangeClaim:
@@ -1003,8 +905,6 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.Time = append(cc.Meta.Time, *c)
 	case *TimeRangeClaim:
 		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
-	case *IsClaim:
-		cc.Meta.Is = append(cc.Meta.Is, *c)
 	default:
 		return errors.Errorf(`meta claim of type %T is not supported`, claim)
 	}
@@ -1082,12 +982,6 @@ type StringClaim struct {
 
 	Prop   DocumentReference `json:"prop"`
 	String string            `json:"string"`
-}
-
-type LabelClaim struct {
-	CoreClaim
-
-	Prop DocumentReference `json:"prop"`
 }
 
 type AmountUnit int
@@ -1397,10 +1291,4 @@ type TimeRangeClaim struct {
 	UncertaintyLower *Timestamp        `json:"uncertaintyLower,omitempty"`
 	UncertaintyUpper *Timestamp        `json:"uncertaintyUpper,omitempty"`
 	Precision        TimePrecision     `json:"precision"`
-}
-
-type IsClaim struct {
-	CoreClaim
-
-	To DocumentReference `json:"to"`
 }

@@ -18,11 +18,7 @@
           "$ref": "#/$defs/scores"
         }
       },
-      "required": [
-        "_id",
-        "name",
-        "score"
-      ]
+      "required": ["_id", "name", "score"]
     },
     "coreClaimProperties": {
       "type": "object",
@@ -44,10 +40,7 @@
           "unevaluatedProperties": false
         }
       },
-      "required": [
-        "_id",
-        "confidence"
-      ]
+      "required": ["_id", "confidence"]
     },
     "claimTypes": {
       "type": "object",
@@ -63,9 +56,6 @@
         },
         "string": {
           "$ref": "#/$defs/stringClaims"
-        },
-        "label": {
-          "$ref": "#/$defs/labelClaims"
         },
         "amount": {
           "$ref": "#/$defs/amountClaims"
@@ -93,9 +83,6 @@
         },
         "timeRange": {
           "$ref": "#/$defs/timeRangeClaims"
-        },
-        "is": {
-          "$ref": "#/$defs/isClaims"
         }
       },
       "unevaluatedProperties": false
@@ -171,12 +158,6 @@
         "$ref": "#/$defs/referenceClaim"
       }
     },
-    "labelClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/labelClaim"
-      }
-    },
     "noValueClaims": {
       "type": "array",
       "items": {
@@ -217,12 +198,6 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/timeRangeClaim"
-      }
-    },
-    "isClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/isClaim"
       }
     },
     "textClaim": {
@@ -365,23 +340,6 @@
       "required": [
         "prop",
         "iri"
-      ],
-      "unevaluatedProperties": false
-    },
-    "labelClaim": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/documentReference"
-        }
-      },
-      "required": [
-        "prop"
       ],
       "unevaluatedProperties": false
     },
@@ -585,23 +543,6 @@
         "prop",
         "lower",
         "upper"
-      ],
-      "unevaluatedProperties": false
-    },
-    "isClaim": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "to": {
-          "$ref": "#/$defs/documentReference"
-        }
-      },
-      "required": [
-        "to"
       ],
       "unevaluatedProperties": false
     },

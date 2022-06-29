@@ -351,12 +351,13 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 					Meta: &search.ClaimTypes{
-						Is: search.IsClaims{
+						Relation: search.RelationClaims{
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         claimID,
 									Confidence: NoConfidence,
 								},
+								Prop: search.GetStandardPropertyReference("IS"),
 								To: search.DocumentReference{
 									ID: search.GetID(NameSpaceWikimediaCommonsFile, title),
 									Name: map[string]string{
@@ -702,13 +703,14 @@ func ConvertEntity(
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
 				},
 			},
-			Is: search.IsClaims{
+			Relation: search.RelationClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "PROPERTY", 0),
+						ID:         search.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
 						Confidence: HighConfidence,
 					},
-					To: search.GetStandardPropertyReference("PROPERTY"),
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("PROPERTY"),
 				},
 			},
 		}
@@ -734,13 +736,14 @@ func ConvertEntity(
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
 				},
 			},
-			Is: search.IsClaims{
+			Relation: search.RelationClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "ITEM", 0),
+						ID:         search.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
 						Confidence: HighConfidence,
 					},
-					To: search.GetStandardPropertyReference("ITEM"),
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("ITEM"),
 				},
 			},
 		}
@@ -788,13 +791,14 @@ func ConvertEntity(
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
 				},
 			},
-			Is: search.IsClaims{
+			Relation: search.RelationClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "FILE", 0),
+						ID:         search.GetID(namespace, entity.ID, "IS", 0, "FILE", 0),
 						Confidence: HighConfidence,
 					},
-					To: search.GetStandardPropertyReference("FILE"),
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("FILE"),
 				},
 			},
 		}
@@ -844,15 +848,16 @@ func ConvertEntity(
 		// Which claim type should be used with this property?
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
-			document.Active.Is = append(document.Active.Is, search.IsClaim{
+			document.Active.Relation = append(document.Active.Relation, search.RelationClaim{
 				CoreClaim: search.CoreClaim{
-					ID: search.GetID(namespace, entity.ID, claimTypeMnemonic, 0),
+					ID: search.GetID(namespace, entity.ID, "IS", 0, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					// TODO: Decide what should really be confidence here or implement "later on" part described above.
 					Confidence: LowConfidence,
 				},
-				To: search.GetStandardPropertyReference(claimTypeMnemonic),
+				Prop: search.GetStandardPropertyReference("IS"),
+				To:   search.GetStandardPropertyReference(claimTypeMnemonic),
 			})
 		}
 	}

@@ -159,13 +159,14 @@ func (c *WikipediaFilesCommand) processImage(
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/en/%s/%s", prefix, image.Name),
 				},
 			},
-			Is: search.IsClaims{
+			Relation: search.RelationClaims{
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "FILE", 0),
+						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "IS", 0, "FILE", 0),
 						Confidence: wikipedia.HighConfidence,
 					},
-					To: search.GetStandardPropertyReference("FILE"),
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("FILE"),
 				},
 			},
 		},
