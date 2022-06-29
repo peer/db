@@ -50,8 +50,8 @@ var (
 // multiple PREVIEW_URL (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and
 // without underscores. The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
-// Most files used on English Wikipedia are from Wikipedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
-// image on Wikipedia as fair use, but that is not acceptable on Wikipedia Commons). This command processes those files only on English Wikipedia.
+// Most files used on English Wikipedia are from Wikimedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
+// image on Wikipedia as fair use, but that is not acceptable on Wikimedia Commons). This command processes those files only on English Wikipedia.
 //
 // For some files (primarily PDFs and DJVU files) metadata is not stored in the SQL table but SQL table only contains a reference to additional
 // blob storage (see: https://phabricator.wikimedia.org/T301039). Because of that this command uses English Wikipedia API to obtain metadata
