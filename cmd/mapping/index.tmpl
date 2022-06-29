@@ -108,6 +108,10 @@
         "type": "keyword",
         "doc_values": false
       },
+      "metaEmbeddedIds": {
+        "type": "keyword",
+        "doc_values": false
+      },
       "active": {
         "properties": {
           {{range $i, $claimType := $}}
@@ -121,10 +125,6 @@
                 },
                 "confidence": {
                   "type": "double"
-                },
-                "metaEmbeddedIds": {
-                  "type": "keyword",
-                  "doc_values": false
                 },
                 "meta": {
                   "properties": {
@@ -149,7 +149,7 @@
                                               "index": false,
                                               "doc_values": false,
                                               "type": "keyword",
-                                              "copy_to": "active.{{$claimType.Name}}.metaEmbeddedIds"
+                                              "copy_to": "metaEmbeddedIds"
                                             }
                                           }
                                         }
@@ -169,7 +169,7 @@
                                     "index": false,
                                     "doc_values": false,
                                     "type": "keyword",
-                                    "copy_to": "active.{{$claimType.Name}}.metaEmbeddedIds"
+                                    "copy_to": "metaEmbeddedIds"
                                   }
                                 }
                               }
