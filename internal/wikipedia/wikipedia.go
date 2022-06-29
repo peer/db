@@ -574,7 +574,7 @@ func convertWikipediaCategory(
 		return
 	}
 
-	claimID := search.GetID(namespace, id, "LABEL", 0, string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "IN_ENGLISH_WIKIPEDIA_CATEGORY", 0, string(document.ID), 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &search.RelationClaim{
@@ -582,7 +582,7 @@ func convertWikipediaCategory(
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("LABEL"),
+			Prop: search.GetStandardPropertyReference("IN_ENGLISH_WIKIPEDIA_CATEGORY"),
 			To: search.DocumentReference{
 				ID:     document.ID,
 				Name:   document.Name,
@@ -613,7 +613,7 @@ func convertWikipediaTemplate(
 		return
 	}
 
-	claimID := search.GetID(namespace, id, "USES_MEDIAWIKI_TEMPLATE", string(document.ID), 0)
+	claimID := search.GetID(namespace, id, "USES_ENGLISH_WIKIPEDIA_TEMPLATE", string(document.ID), 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &search.RelationClaim{
@@ -621,7 +621,7 @@ func convertWikipediaTemplate(
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("USES_MEDIAWIKI_TEMPLATE"),
+			Prop: search.GetStandardPropertyReference("USES_ENGLISH_WIKIPEDIA_TEMPLATE"),
 			To: search.DocumentReference{
 				ID:     document.ID,
 				Name:   document.Name,

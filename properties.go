@@ -220,8 +220,23 @@ var (
 			[]string{`"enumeration" claim type`},
 		},
 		{
-			"Uses Mediawiki template",
-			`Entity uses a <a href="https://www.mediawiki.org/wiki/Help:Templates">Mediawiki template</a> in the source of its article or description`,
+			"Uses English Wikipedia template",
+			`Entity uses a <a href="https://en.wikipedia.org/wiki/Help:Templates">English Wikipedia template</a> in the source of its article or description.`,
+			[]string{`"relation" claim type`},
+		},
+		{
+			"Uses Wikimedia Commons template",
+			`Entity uses a <a href="https://commons.wikimedia.org/wiki/Help:Templates">Wikimedia Commons template</a> in the source of its article or description.`,
+			[]string{`"relation" claim type`},
+		},
+		{
+			"In English Wikipedia category",
+			`Entity is in <a href="https://en.wikipedia.org/wiki/Help:Category">English Wikipedia category</a>.`,
+			[]string{`"relation" claim type`},
+		},
+		{
+			"In Wikimedia Commons category",
+			`Entity is in <a href="https://commons.wikimedia.org/wiki/Commons:Categories">Wikimedia Commons category</a>.`,
 			[]string{`"relation" claim type`},
 		},
 	}
