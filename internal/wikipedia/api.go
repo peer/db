@@ -50,6 +50,7 @@ type allPagesAPIResponse struct {
 func ListAllPages(
 	ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, site, token string, limiter *rate.Limiter, output chan<- AllPagesPage,
 ) errors.E {
+	// We still want to make sure we are contacting query API only once every second.
 	localLimiter := rate.NewLimiter(rate.Every(time.Second), 1)
 
 	for _, namespace := range namespaces {

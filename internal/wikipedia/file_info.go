@@ -297,6 +297,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	go func() {
 		defer apiWorkers.Delete(ctx)
 
+		// We want to make sure we are contacting query API only once every second.
 		limiter := rate.NewLimiter(rate.Every(time.Second), 1)
 
 		for {
