@@ -156,30 +156,21 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.Doc
 		return maybeRef.(*search.DocumentReference), nil
 	}
 
-	esDoc, err := v.ESClient.Get().Index(v.Index).Id(string(id)).Do(v.Context)
-	if elastic.IsNotFound(err) {
+	document, _, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
+	if errors.Is(err, NotFoundError) {
 		v.Cache.Add(id, nil)
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {
 		return nil, v.makeError(err, ref, claimID)
-	} else if !esDoc.Found {
-		v.Cache.Add(id, nil)
-		return nil, v.makeError(referenceNotFoundError, ref, claimID)
-	}
-
-	var document search.Document
-	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-	if err != nil {
-		return nil, v.makeError(err, ref, claimID)
 	}
 
 	res := &search.DocumentReference{
-		ID:     id,
+		ID:     document.ID,
 		Name:   document.Name,
 		Score:  document.Score,
 		Scores: document.Scores,
 	}
-	v.Cache.Add(id, res)
+	v.Cache.Add(document.ID, res)
 	return res, nil
 }
 
@@ -440,22 +431,12 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	var fileDocument *search.Document
 	for _, cc := range claim.GetMeta(search.GetStandardPropertyID("IS")) {
 		if c, ok := cc.(*search.RelationClaim); ok {
-			esDoc, err := v.ESClient.Get().Index(v.Index).Id(string(c.To.ID)).Do(v.Context)
-			if elastic.IsNotFound(err) {
+			fileDocument, _, err = getDocumentFromESByID(v.Context, v.Index, v.ESClient, c.To.ID)
+			if errors.Is(err, NotFoundError) {
 				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
 			} else if err != nil {
 				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
-			} else if !esDoc.Found {
-				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
 			}
-
-			var document search.Document
-			err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
-			if err != nil {
-				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
-			}
-
-			fileDocument = &document
 
 			break
 		}

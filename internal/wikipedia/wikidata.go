@@ -261,6 +261,32 @@ func getDocumentFromES(ctx context.Context, index string, esClient *elastic.Clie
 	return nil, nil, errors.WithStack(NotFoundError)
 }
 
+func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id search.Identifier) (*search.Document, *elastic.GetResult, errors.E) {
+	esDoc, err := esClient.Get().Index(index).Id(string(id)).Do(ctx)
+	if elastic.IsNotFound(err) {
+		// Caller should add details to the error.
+		return nil, nil, errors.WithStack(NotFoundError)
+	} else if err != nil {
+		// Caller should add details to the error.
+		return nil, nil, errors.WithStack(err)
+	} else if !esDoc.Found {
+		// Caller should add details to the error.
+		return nil, nil, errors.WithStack(NotFoundError)
+	}
+
+	var document search.Document
+	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
+	if err != nil {
+		// Caller should add details to the error.
+		return nil, nil, errors.WithStack(err)
+	}
+
+	// ID is not stored in the document, so we set it here ourselves.
+	document.ID = id
+
+	return &document, esDoc, nil
+}
+
 // TODO: Should we use cache for cases where item has not been found?
 //       Currently we use the function in the context where every item document is fetched
 //       only once, one after the other, so caching will not help.
