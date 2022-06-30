@@ -53,6 +53,28 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 	return errE
 }
 
+func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID search.Identifier, msg string) {
+	name := ""
+	for _, field := range []string{"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference, CategoryReference, TemplateReference} {
+		if fileDoc.Name[field] != "" {
+			name = fileDoc.Name[field]
+			break
+		}
+	}
+	l := v.Log.Warn().Str("doc", string(v.DocumentID))
+	if len(v.EntityIDs) == 1 {
+		l = l.Str("entity", v.EntityIDs[0])
+	} else if len(v.EntityIDs) > 1 {
+		l = l.Strs("entity", v.EntityIDs)
+	}
+	l = l.Str("claim", string(claimID))
+	l = l.Str("ref", string(fileDoc.ID))
+	if name != "" {
+		l = l.Str("name", name)
+	}
+	l.Msg(msg)
+}
+
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
 	if errors.Is(err, referenceNotFoundError) {
 		if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
@@ -91,11 +113,11 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
-	ref search.DocumentReference, claimID search.Identifier, property, id string,
+	ref search.DocumentReference, claimID search.Identifier, property, title string,
 ) (*search.DocumentReference, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
 	// by getDocumentReferenceByID, which uses Identifier type.
-	maybeRef, ok := v.Cache.Get(id)
+	maybeRef, ok := v.Cache.Get(title)
 	if ok {
 		if maybeRef == nil {
 			return nil, v.makeError(referenceNotFoundError, ref, claimID)
@@ -103,9 +125,9 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
 		return maybeRef.(*search.DocumentReference), nil
 	}
 
-	document, _, err := getDocumentFromES(v.Context, v.Index, v.ESClient, property, id)
+	document, _, err := getDocumentFromES(v.Context, v.Index, v.ESClient, property, title)
 	if errors.Is(err, NotFoundError) {
-		v.Cache.Add(id, nil)
+		v.Cache.Add(title, nil)
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {
 		return nil, v.makeError(err, ref, claimID)
@@ -117,7 +139,8 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
 		Score:  document.Score,
 		Scores: document.Scores,
 	}
-	v.Cache.Add(id, res)
+	v.Cache.Add(title, res)
+	v.Cache.Add(document.ID, res)
 	return res, nil
 }
 
@@ -151,7 +174,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.Doc
 	}
 
 	res := &search.DocumentReference{
-		ID:     document.ID,
+		ID:     id,
 		Name:   document.Name,
 		Score:  document.Score,
 		Scores: document.Scores,
@@ -412,6 +435,81 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	if !reflect.DeepEqual(&claim.Prop, ref) {
 		claim.Prop = *ref
 		v.Changed++
+	}
+
+	var fileDocument *search.Document
+	for _, cc := range claim.GetMeta(search.GetStandardPropertyID("IS")) {
+		if c, ok := cc.(*search.RelationClaim); ok {
+			esDoc, err := v.ESClient.Get().Index(v.Index).Id(string(c.To.ID)).Do(v.Context)
+			if elastic.IsNotFound(err) {
+				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
+			} else if err != nil {
+				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
+			} else if !esDoc.Found {
+				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
+			}
+
+			var document search.Document
+			err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &document)
+			if err != nil {
+				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
+			}
+
+			fileDocument = &document
+
+			break
+		}
+	}
+
+	if fileDocument != nil {
+		var mediaType string
+		for _, cc := range fileDocument.Get(search.GetStandardPropertyID("MEDIA_TYPE")) {
+			if c, ok := cc.(*search.StringClaim); ok {
+				mediaType = c.String
+				break
+			}
+		}
+		if mediaType == "" {
+			v.logWarning(fileDocument, claim.ID, "referenced Wikimedia commons file document is missing a MEDIA_TYPE string claim")
+			v.Changed++
+			return search.Drop, nil
+		}
+
+		if !reflect.DeepEqual(claim.Type, mediaType) {
+			claim.Type = mediaType
+			v.Changed++
+		}
+
+		var fileURL string
+		for _, cc := range fileDocument.Get(search.GetStandardPropertyID("FILE_URL")) {
+			if c, ok := cc.(*search.ReferenceClaim); ok {
+				fileURL = c.IRI
+				break
+			}
+		}
+		if fileURL == "" {
+			v.logWarning(fileDocument, claim.ID, "referenced Wikimedia commons file document is missing a FILE_URL reference claim")
+			v.Changed++
+			return search.Drop, nil
+		}
+
+		if !reflect.DeepEqual(claim.URL, fileURL) {
+			claim.URL = fileURL
+			v.Changed++
+		}
+
+		// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
+		var previews []string
+		for _, cc := range fileDocument.Get(search.GetStandardPropertyID("PREVIEW_URL")) {
+			if c, ok := cc.(*search.ReferenceClaim); ok {
+				previews = append(previews, c.IRI)
+			}
+		}
+
+		if !reflect.DeepEqual(claim.Preview, previews) {
+			claim.Preview = previews
+			v.Changed++
+		}
 	}
 
 	return search.Keep, nil

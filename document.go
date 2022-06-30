@@ -935,6 +935,15 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
+func (cc *CoreClaim) GetMeta(propID Identifier) []Claim {
+	v := getByPropIDVisitor{
+		ID:     propID,
+		Result: []Claim{},
+	}
+	_ = cc.VisitMeta(&v)
+	return v.Result
+}
+
 func (cc *CoreClaim) RemoveMetaByID(id Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
