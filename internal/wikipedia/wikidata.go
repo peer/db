@@ -22,9 +22,9 @@ import (
 
 const (
 	HighConfidence   = 1.0
-	MediumConfidence = 0.5
-	LowConfidence    = 0.0
-	NoConfidence     = -1.0
+	MediumConfidence = 0.75
+	LowConfidence    = 0.5
+	NoConfidence     = 0.0
 )
 
 const (
@@ -181,7 +181,6 @@ func getDocumentReference(id string) search.DocumentReference {
 			Name: map[string]string{
 				WikimediaCommonsEntityReference: id,
 			},
-			Score: NoConfidence,
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return search.DocumentReference{
@@ -189,28 +188,24 @@ func getDocumentReference(id string) search.DocumentReference {
 			Name: map[string]string{
 				WikidataReference: id,
 			},
-			Score: NoConfidence,
 		}
 	} else if strings.HasPrefix(id, "Category:") {
 		return search.DocumentReference{
 			Name: map[string]string{
 				CategoryReference: id,
 			},
-			Score: NoConfidence,
 		}
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
 		return search.DocumentReference{
 			Name: map[string]string{
 				TemplateReference: id,
 			},
-			Score: NoConfidence,
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return search.DocumentReference{
 			Name: map[string]string{
 				WikimediaCommonsFileReference: id,
 			},
-			Score: NoConfidence,
 		}
 	}
 

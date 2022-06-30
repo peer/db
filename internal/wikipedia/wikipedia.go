@@ -650,7 +650,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	claim := &search.TextClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         claimID,
-			Confidence: HighConfidence,
+			Confidence: MediumConfidence,
 		},
 		Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
 		HTML: search.TranslatableHTMLString{

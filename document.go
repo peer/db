@@ -699,7 +699,7 @@ func (d *Document) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
 	}
-	activeClaims := claim.GetConfidence() >= 0.0
+	activeClaims := claim.GetConfidence() >= 0.5 || claim.GetConfidence() <= -0.5
 	var claimTypes *ClaimTypes
 	if activeClaims {
 		if d.Active == nil {
