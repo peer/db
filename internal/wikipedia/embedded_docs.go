@@ -112,53 +112,60 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	return nil, errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
-	ref search.DocumentReference, claimID search.Identifier, property, title string,
-) (*search.DocumentReference, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByTitle(property, title string) (*search.Document, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
-	// by getDocumentReferenceByID, which uses Identifier type.
-	maybeRef, ok := v.Cache.Get(title)
+	// by getDocumentByID, which uses Identifier type.
+	maybeDocument, ok := v.Cache.Get(title)
 	if ok {
-		if maybeRef == nil {
-			return nil, v.makeError(referenceNotFoundError, ref, claimID)
+		if maybeDocument == nil {
+			return nil, errors.WithStack(NotFoundError)
 		}
-		return maybeRef.(*search.DocumentReference), nil
+		return maybeDocument.(*search.Document), nil
 	}
 
 	document, _, err := getDocumentFromES(v.Context, v.Index, v.ESClient, property, title)
 	if errors.Is(err, NotFoundError) {
 		v.Cache.Add(title, nil)
-		return nil, v.makeError(referenceNotFoundError, ref, claimID)
+		return nil, err
 	} else if err != nil {
-		return nil, v.makeError(err, ref, claimID)
+		return nil, err
 	}
 
-	res := &search.DocumentReference{
-		ID:     document.ID,
-		Name:   document.Name,
-		Score:  document.Score,
-		Scores: document.Scores,
-	}
-	v.Cache.Add(title, res)
-	v.Cache.Add(document.ID, res)
-	return res, nil
+	v.Cache.Add(title, document)
+	v.Cache.Add(document.ID, document)
+
+	return document, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
-	id := ref.ID
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id search.Identifier) (*search.Document, errors.E) {
 	// Here we check cache with Identifier type, so values cannot conflict with caching done
-	// by getDocumentReferenceByTitle, which uses string type.
-	maybeRef, ok := v.Cache.Get(id)
+	// by getDocumentByTitle, which uses string type.
+	maybeDocument, ok := v.Cache.Get(id)
 	if ok {
-		if maybeRef == nil {
-			return nil, v.makeError(referenceNotFoundError, ref, claimID)
+		if maybeDocument == nil {
+			return nil, errors.WithStack(NotFoundError)
 		}
-		return maybeRef.(*search.DocumentReference), nil
+		return maybeDocument.(*search.Document), nil
 	}
 
 	document, _, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
 	if errors.Is(err, NotFoundError) {
 		v.Cache.Add(id, nil)
+		return nil, err
+	} else if err != nil {
+		return nil, err
+	}
+
+	v.Cache.Add(document.ID, document)
+
+	return document, nil
+}
+
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
+	ref search.DocumentReference, claimID search.Identifier, property, title string,
+) (*search.DocumentReference, errors.E) {
+	document, err := v.getDocumentByTitle(property, title)
+	if errors.Is(err, NotFoundError) {
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {
 		return nil, v.makeError(err, ref, claimID)
@@ -170,7 +177,25 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.Doc
 		Score:  document.Score,
 		Scores: document.Scores,
 	}
-	v.Cache.Add(document.ID, res)
+
+	return res, nil
+}
+
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
+	document, err := v.getDocumentByID(ref.ID)
+	if errors.Is(err, NotFoundError) {
+		return nil, v.makeError(referenceNotFoundError, ref, claimID)
+	} else if err != nil {
+		return nil, v.makeError(err, ref, claimID)
+	}
+
+	res := &search.DocumentReference{
+		ID:     document.ID,
+		Name:   document.Name,
+		Score:  document.Score,
+		Scores: document.Scores,
+	}
+
 	return res, nil
 }
 
@@ -431,7 +456,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	var fileDocument *search.Document
 	for _, cc := range claim.GetMeta(search.GetStandardPropertyID("IS")) {
 		if c, ok := cc.(*search.RelationClaim); ok {
-			fileDocument, _, err = getDocumentFromESByID(v.Context, v.Index, v.ESClient, c.To.ID)
+			fileDocument, err = v.getDocumentByID(c.To.ID)
 			if errors.Is(err, NotFoundError) {
 				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
 			} else if err != nil {
@@ -520,13 +545,7 @@ func UpdateEmbeddedDocuments(
 		entityIDs = append(entityIDs, idClaim.Identifier)
 	}
 
-	ref := &search.DocumentReference{
-		ID:     document.ID,
-		Name:   document.Name,
-		Score:  document.Score,
-		Scores: document.Scores,
-	}
-	cache.Add(document.ID, ref)
+	cache.Add(document.ID, document)
 
 	v := updateEmbeddedDocumentsVisitor{
 		Context:                 ctx,
