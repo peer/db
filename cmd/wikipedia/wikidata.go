@@ -30,8 +30,8 @@ var (
 // Name of the document is the first English label.
 //
 // When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
-// for language XX. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
-// pass, checking all references and setting true document names for English language (ID for language XX is useful for debugging when reference is invalid).
+// for language xx-*. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
+// pass, checking all references and setting true document names for English language (ID for language xx-* is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type WikidataCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
