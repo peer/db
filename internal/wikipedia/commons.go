@@ -664,10 +664,14 @@ func convertImage(
 	return nil
 }
 
-func GetWikimediaCommonsFile(
-	ctx context.Context, index string, esClient *elastic.Client, name string,
-) (*search.Document, *elastic.SearchHit, errors.E) {
-	return getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
+	document, hit, err := getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	if err != nil {
+		errors.Details(err)["file"] = name
+		return nil, nil, err
+	}
+
+	return document, hit, nil
 }
 
 func ConvertWikimediaCommonsFileDescription(namespace uuid.UUID, id string, page AllPagesPage, html string, document *search.Document) errors.E {

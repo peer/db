@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -282,52 +281,14 @@ func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.
 	return &document, esDoc, nil
 }
 
-// TODO: Should we use cache for cases where item has not been found?
-//       Currently we use the function in the context where every item document is fetched
-//       only once, one after the other, so caching will not help.
-
-// We do follow a redirect, because currently we use the function in
-// the context where we want the target document (to add its article).
-func GetWikidataItem(
-	ctx context.Context, index string, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client,
-	token string, apiLimit int, id string,
-) (*search.Document, *elastic.SearchHit, string, errors.E) {
+func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client, id string) (*search.Document, *elastic.SearchHit, errors.E) {
 	document, hit, err := getDocumentFromES(ctx, index, esClient, "WIKIDATA_ITEM_ID", id)
-	if errors.Is(err, NotFoundError) {
-		// Passthrough.
-	} else if err != nil {
+	if err != nil {
 		errors.Details(err)["entity"] = id
-		return nil, nil, "", err
-	} else {
-		return document, hit, "", nil
+		return nil, nil, err
 	}
 
-	// We could not find the item. Maybe there is a redirect?
-	ii, err := GetImageInfo(ctx, httpClient, "www.wikidata.org", token, apiLimit, id)
-	if err != nil {
-		// Not found error here probably means that the item has been deleted recently.
-		errE := errors.WithMessage(err, "checking for redirect")
-		errors.Details(errE)["entity"] = id
-		return nil, nil, "", errE
-	} else if ii.Redirect == "" {
-		// No redirect.
-		errE := errors.WithStack(NotFoundError)
-		errors.Details(errE)["entity"] = id
-		return nil, nil, "", errE
-	}
-
-	document, hit, err = getDocumentFromES(ctx, index, esClient, "WIKIDATA_ITEM_ID", ii.Redirect)
-	if err != nil {
-		errE := errors.WithMessage(err, "after redirect")
-		errors.Details(errE)["entity"] = id
-		errors.Details(errE)["redirect"] = ii.Redirect
-		return nil, nil, "", errE
-	}
-
-	// There is nothing to do about it. This is an artifact of items being merged.
-	log.Debug().Str("entity", id).Str("redirect", ii.Redirect).Msg("item redirects")
-
-	return document, hit, ii.Redirect, nil
+	return document, hit, nil
 }
 
 func processSnak( //nolint:ireturn,nolintlint

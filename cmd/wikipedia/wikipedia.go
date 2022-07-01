@@ -34,6 +34,7 @@ const (
 )
 
 var (
+	redirectRegex         = regexp.MustCompile(`(?i)#REDIRECT\s+\[\[`)
 	wiktionaryRegex       = regexp.MustCompile(`(?i)\{\{(wiktionary redirect|WiktionaryRedirect|Wiktionary-redirect|wi(\||\}\})|wtr(\||\}\}))`)
 	wikispeciesRegex      = regexp.MustCompile(`(?i)\{\{(wikispecies redirect)`)
 	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
@@ -220,7 +221,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -228,7 +229,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
+		return c.processArticle(ctx, globals, esClient, processor, article)
 	})
 	if errE != nil {
 		return errE
@@ -238,7 +239,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaFileDescriptionsCommand) processArticle(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
 	// First we make sure we do not have spaces.
@@ -249,7 +250,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, hit, err := wikipedia.GetWikipediaFile(ctx, globals.Index, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, filename)
+	document, hit, err := wikipedia.GetWikipediaFile(ctx, globals.Index, esClient, filename)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = filename
@@ -351,7 +352,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -359,7 +360,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
+		return c.processArticle(ctx, globals, esClient, processor, article)
 	})
 	if errE != nil {
 		return errE
@@ -370,20 +371,10 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 
 // TODO: Skip disambiguation pages (remove corresponding document if we already have it).
 func (c *WikipediaArticlesCommand) processArticle(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
-		// We use GetImageInfo even if this is not an image, because the result information contains what we need.
-		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", globals.Token, globals.APILimit, article.Name)
-		if err != nil {
-			details := errors.AllDetails(err)
-			details["title"] = article.Name
-			if errors.Is(err, wikipedia.NotFoundError) {
-				globals.Log.Warn().Err(err).Fields(details).Msg("article does not have an associated entity")
-			} else {
-				globals.Log.Error().Err(err).Fields(details).Msg("article does not have an associated entity")
-			}
-		} else if ii.Redirect != "" {
+		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
 		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
@@ -402,21 +393,13 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Index, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
 		if errors.Is(err, wikipedia.NotFoundError) {
-			redirectInterface, ok := details["redirect"]
-			if ok {
-				redirect = redirectInterface.(string) //nolint:errcheck
-			}
-			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
-				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
-			} else {
-				globals.Log.Warn().Err(err).Fields(details).Send()
-			}
+			globals.Log.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Log.Error().Err(err).Fields(details).Send()
 		}
@@ -424,9 +407,6 @@ func (c *WikipediaArticlesCommand) processArticle(
 	}
 
 	id := article.MainEntity.Identifier
-	if redirect != "" {
-		id = redirect
-	}
 	err = wikipedia.ConvertWikipediaArticle(wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
@@ -510,7 +490,7 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -518,7 +498,7 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, httpClient, esClient, processor, article)
+		return c.processArticle(ctx, globals, esClient, processor, article)
 	})
 	if errE != nil {
 		return errE
@@ -528,19 +508,10 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaCategoriesCommand) processArticle(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	if article.MainEntity == nil {
-		ii, err := wikipedia.GetImageInfo(ctx, httpClient, "en.wikipedia.org", globals.Token, globals.APILimit, article.Name)
-		if err != nil {
-			details := errors.AllDetails(err)
-			details["title"] = article.Name
-			if errors.Is(err, wikipedia.NotFoundError) {
-				globals.Log.Warn().Err(err).Fields(details).Msg("article does not have an associated entity")
-			} else {
-				globals.Log.Error().Err(err).Fields(details).Msg("article does not have an associated entity")
-			}
-		} else if ii.Redirect != "" {
+		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
 		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
 			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
@@ -559,21 +530,13 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Index, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, article.MainEntity.Identifier)
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
 		if errors.Is(err, wikipedia.NotFoundError) {
-			redirectInterface, ok := details["redirect"]
-			if ok {
-				redirect = redirectInterface.(string) //nolint:errcheck
-			}
-			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
-				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
-			} else {
-				globals.Log.Warn().Err(err).Fields(details).Send()
-			}
+			globals.Log.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Log.Error().Err(err).Fields(details).Send()
 		}
@@ -581,9 +544,6 @@ func (c *WikipediaCategoriesCommand) processArticle(
 	}
 
 	id := article.MainEntity.Identifier
-	if redirect != "" {
-		id = redirect
-	}
 	err = wikipedia.ConvertWikipediaCategoryArticle(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
@@ -724,7 +684,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 
 				count.Increment()
 
-				errE = c.processPage(ctx, globals, httpClient, esClient, processor, page, html)
+				errE = c.processPage(ctx, globals, esClient, processor, page, html)
 				if errE != nil {
 					return errE
 				}
@@ -737,7 +697,7 @@ func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaTemplatesCommand) processPage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
 ) errors.E {
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -747,30 +707,19 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	document, hit, redirect, err := wikipedia.GetWikidataItem(ctx, globals.Index, globals.Log, httpClient, esClient, globals.Token, globals.APILimit, id)
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["entity"] = id
 		details["title"] = page.Title
 		if errors.Is(err, wikipedia.NotFoundError) {
-			redirectInterface, ok := details["redirect"]
-			if ok {
-				redirect = redirectInterface.(string) //nolint:errcheck
-			}
-			if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(redirect))); redirect != "" && ok {
-				globals.Log.Debug().Err(err).Fields(details).Msg("not found skipped entity")
-			} else {
-				globals.Log.Warn().Err(err).Fields(details).Send()
-			}
+			globals.Log.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Log.Error().Err(err).Fields(details).Send()
 		}
 		return nil
 	}
 
-	if redirect != "" {
-		id = redirect
-	}
 	err = wikipedia.ConvertWikipediaTemplateArticle(wikipedia.NameSpaceWikidata, id, page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)

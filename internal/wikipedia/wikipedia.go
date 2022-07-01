@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -439,18 +438,7 @@ func ConvertWikipediaTemplateArticle(namespace uuid.UUID, id string, page AllPag
 	return nil
 }
 
-// TODO: Should we use cache for cases where file has not been found?
-//       Currently we use the function in the context where every file document is fetched
-//       only once, one after the other, so caching will not help.
-
-// We do not follow a redirect, because currently we use the function in
-// the context where we want the document exactly under that name
-// (to add its article). Otherwise it could happen that we add an article
-// with only a redirect tag to a document which has a proper article,
-// overwriting it (redirect pages also have articles).
-func GetWikipediaFile(
-	ctx context.Context, index string, log zerolog.Logger, httpClient *retryablehttp.Client, esClient *elastic.Client, token string, apiLimit int, name string,
-) (*search.Document, *elastic.SearchHit, errors.E) {
+func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
 	document, hit, errE := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
@@ -462,56 +450,24 @@ func GetWikipediaFile(
 	}
 
 	// Is there a Wikimedia Commons file under that name? Most files with article on Wikipedia
-	// are in fact from Wikimedia Commons and have the same name. We check it here this way so that we
-	// do not have to hit Wikipedia API too often. There can also be files on Wikipedia from Wikimedia
-	// Commons which have different names so this can have false negatives. False positives might also
-	// be possible but are probably harmless: we already did not find a Wikipedia file, so we are
-	// primarily trying to understand why not.
-	_, _, errE = getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
-	if errors.Is(errE, NotFoundError) {
-		// Passthrough.
-	} else if errE != nil {
-		errors.Details(errE)["file"] = name
-		return nil, nil, errors.WithMessage(errE, "checking for Wikimedia Commons")
-	} else {
-		errE := errors.WithStack(WikimediaCommonsFileError) //nolint:govet
-		errors.Details(errE)["file"] = name
-		errors.Details(errE)["url"] = fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", name)
-		return nil, nil, errE
-	}
-
-	// We could not find the file. Maybe it is from Wikimedia Commons?
-	ii, errE := getImageInfoForFilename(ctx, httpClient, "en.wikipedia.org", token, apiLimit, name)
-	if errE != nil {
-		// Not found error here probably means that file has been deleted recently.
-		errE := errors.WithMessage(errE, "checking API") //nolint:govet
+	// are in fact from Wikimedia Commons and have the same name. There can also be files on Wikipedia
+	// from Wikimedia Commons which have different names so this can have false negatives.
+	// False positives might also be possible but are probably harmless: we already did not
+	// find a Wikipedia file, so we are primarily trying to understand why not.
+	_, _, errE2 := getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	if errors.Is(errE2, NotFoundError) {
+		// We have not found a Wikimedia Commons file. Return the original error.
 		errors.Details(errE)["file"] = name
 		return nil, nil, errE
+	} else if errE2 != nil {
+		errors.Details(errE2)["file"] = name
+		return nil, nil, errors.WithMessage(errE2, "checking for Wikimedia Commons")
 	}
 
-	descriptionURL, err := url.Parse(ii.DescriptionURL)
-	if err != nil {
-		errE := errors.WithMessage(err, "checking API") //nolint:govet
-		errors.Details(errE)["file"] = name
-		errors.Details(errE)["url"] = ii.DescriptionURL
-		return nil, nil, errE
-	}
-
-	if descriptionURL.Host != "en.wikipedia.org" {
-		descriptionFilename := strings.TrimPrefix(descriptionURL.Path, "/wiki/File:")
-		if descriptionFilename != name {
-			log.Warn().Str("file", name).Str("commons", descriptionFilename).Msg("Wikipedia file name mismatch with Mediawiki Commons")
-		}
-
-		errE := errors.WithStack(WikimediaCommonsFileError) //nolint:govet
-		errors.Details(errE)["file"] = name
-		errors.Details(errE)["url"] = ii.DescriptionURL
-		return nil, nil, errE
-	}
-
-	// File exists through API but we do not have it. Probably it is too new.
-	errE = errors.WithStack(NotFoundError)
+	// We found a Wikimedia Commons file.
+	errE = errors.WithStack(WikimediaCommonsFileError)
 	errors.Details(errE)["file"] = name
+	errors.Details(errE)["url"] = fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", name)
 	return nil, nil, errE
 }
 
