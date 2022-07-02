@@ -570,24 +570,16 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 	return Keep, nil
 }
 
-func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
-	v := getByIDVisitor{
-		ID:     id,
-		Action: KeepAndStop,
-		Result: nil,
-	}
-	_ = d.Visit(&v)
-	return v.Result
-}
-
 type getByPropIDVisitor struct {
 	ID     Identifier
+	Action VisitResult
 	Result []Claim
 }
 
 func (v *getByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -595,6 +587,7 @@ func (v *getByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResul
 func (v *getByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -602,6 +595,7 @@ func (v *getByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult,
 func (v *getByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -609,6 +603,7 @@ func (v *getByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E)
 func (v *getByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -616,6 +611,7 @@ func (v *getByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, error
 func (v *getByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -623,6 +619,7 @@ func (v *getByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, error
 func (v *getByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -630,6 +627,7 @@ func (v *getByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitRes
 func (v *getByPropIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -637,6 +635,7 @@ func (v *getByPropIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitRes
 func (v *getByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -644,6 +643,7 @@ func (v *getByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, e
 func (v *getByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -651,6 +651,7 @@ func (v *getByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E)
 func (v *getByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -658,6 +659,7 @@ func (v *getByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, err
 func (v *getByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -665,6 +667,7 @@ func (v *getByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitR
 func (v *getByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -672,6 +675,7 @@ func (v *getByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
+		return v.Action, nil
 	}
 	return Keep, nil
 }
@@ -679,7 +683,28 @@ func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 func (d *Document) Get(propID Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
+		Action: Keep,
 		Result: []Claim{},
+	}
+	_ = d.Visit(&v)
+	return v.Result
+}
+
+func (d *Document) Remove(propID Identifier) []Claim {
+	v := getByPropIDVisitor{
+		ID:     propID,
+		Action: Drop,
+		Result: []Claim{},
+	}
+	_ = d.Visit(&v)
+	return v.Result
+}
+
+func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
+	v := getByIDVisitor{
+		ID:     id,
+		Action: KeepAndStop,
+		Result: nil,
 	}
 	_ = d.Visit(&v)
 	return v.Result
@@ -938,6 +963,7 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim { //nolint:ireturn
 func (cc *CoreClaim) GetMeta(propID Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
+		Action: Keep,
 		Result: []Claim{},
 	}
 	_ = cc.VisitMeta(&v)

@@ -89,6 +89,10 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
+	// We remove media type property claims because we populate them ourselves from the image table SQL dump
+	// (alongside more metadata). We also determine more detailed media types than what is available here.
+	_ = document.Remove(wikipedia.GetWikidataDocumentID("P1163"))
+
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
 	insertOrReplaceDocument(processor, globals.Index, document)
 
