@@ -466,6 +466,7 @@ func convertImage(
 	if image.Size == 0 {
 		log.Warn().Str("file", image.Name).Msg("zero size")
 	}
+	// We set size even if it is zero.
 	err = document.Add(&search.AmountClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         search.GetID(namespace, image.Name, "SIZE", 0),
@@ -489,6 +490,7 @@ func convertImage(
 			if pageCount == 0 {
 				log.Warn().Str("file", image.Name).Msg("zero page count")
 			}
+			// We set page count even if it is zero, if the media type should have a page count.
 			err := document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
@@ -513,6 +515,7 @@ func convertImage(
 			if duration == 0.0 && !canHaveZeroDuration[mediaType] {
 				log.Warn().Str("file", image.Name).Msg("zero duration")
 			}
+			// We set duration even if it is zero, if the media type should have a duration.
 			err := document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
@@ -634,6 +637,7 @@ func convertImage(
 		}
 	}
 
+	// We set width and height even if it is zero, if the media type should have a preview (and thus width and height).
 	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
 		err := document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
