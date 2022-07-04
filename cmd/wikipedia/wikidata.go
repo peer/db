@@ -48,7 +48,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestWikidataEntitiesRun
 	}
 
-	ctx, cancel, _, _, processor, _, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
+	ctx, cancel, _, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
 	if errE != nil {
 		return errE
 	}
@@ -56,7 +56,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessWikidataDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, processor, entity)
+		return c.processEntity(ctx, globals, esClient, cache, processor, entity)
 	})
 	if errE != nil {
 		return errE
@@ -71,9 +71,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *wikipedia.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Log, wikipedia.NameSpaceWikidata, entity)
+	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Log, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			globals.Log.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()

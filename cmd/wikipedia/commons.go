@@ -44,7 +44,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestCommonsEntitiesRun
 	}
 
-	ctx, cancel, _, _, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, _, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
@@ -52,7 +52,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 	defer processor.Close()
 
 	errE = mediawiki.ProcessCommonsEntitiesDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, processor, entity)
+		return c.processEntity(ctx, globals, esClient, cache, processor, entity)
 	})
 	if errE != nil {
 		return errE
@@ -62,9 +62,9 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *wikipedia.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Log, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
 			globals.Log.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
@@ -101,6 +101,9 @@ func (c *CommonsCommand) processEntity(
 
 // CommonsFilesCommand uses Wikimedia Commons images (really files) table SQL dump as input and adds metadata for
 // each file in the table to the corresponding document.
+//
+// It expects documents populated by WikidataCommand because it might need properties to resolve the data type used
+// with the claim's value. It uses ElasticSearch to obtain documents of those properties.
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
 // following properties (not necessary all of them): MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, LENGTH (in seconds),

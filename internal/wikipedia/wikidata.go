@@ -52,7 +52,47 @@ var (
 		"Draft:",
 		"TimedText:",
 	}
+
+	dataTypeToClaimTypeMap = map[mediawiki.DataType]string{
+		mediawiki.WikiBaseItem: "RELATION_CLAIM_TYPE",
+		mediawiki.ExternalID:   "IDENTIFIER_CLAIM_TYPE",
+		mediawiki.String:       "STRING_CLAIM_TYPE",
+		mediawiki.Quantity:     "AMOUNT_CLAIM_TYPE",
+		mediawiki.Time:         "TIME_CLAIM_TYPE",
+		// Not supported.
+		mediawiki.GlobeCoordinate: "",
+		mediawiki.CommonsMedia:    "FILE_CLAIM_TYPE",
+		mediawiki.MonolingualText: "TEXT_CLAIM_TYPE",
+		mediawiki.URL:             "REFERENCE_CLAIM_TYPE",
+		// Not supported.
+		mediawiki.GeoShape: "",
+		// Not supported.
+		mediawiki.WikiBaseLexeme: "",
+		// Not supported.
+		mediawiki.WikiBaseSense:    "",
+		mediawiki.WikiBaseProperty: "RELATION_CLAIM_TYPE",
+		// Not supported.
+		mediawiki.Math: "",
+		// Not supported.
+		mediawiki.MusicalNotation: "",
+		// Not supported.
+		mediawiki.WikiBaseForm: "",
+		// Not supported.
+		mediawiki.TabularData: "",
+	}
+
+	claimTypeToDataTypesMap = map[string][]mediawiki.DataType{}
 )
+
+func init() {
+	for dataType, claimType := range dataTypeToClaimTypeMap {
+		// We skip if not supported.
+		if claimType == "" {
+			continue
+		}
+		claimTypeToDataTypesMap[claimType] = append(claimTypeToDataTypesMap[claimType], dataType)
+	}
+}
 
 func GetWikidataDocumentID(id string) search.Identifier {
 	return search.GetID(NameSpaceWikidata, id)
@@ -110,51 +150,11 @@ func getEnglishValuesSlice(values map[string][]mediawiki.LanguageValue) []string
 // TODO: Really collect statistics and augment claims about claim types.
 // TODO: Determine automatically mnemonics.
 func getPropertyClaimType(dataType mediawiki.DataType) string {
-	switch dataType {
-	case mediawiki.WikiBaseItem:
-		return "RELATION_CLAIM_TYPE"
-	case mediawiki.ExternalID:
-		return "IDENTIFIER_CLAIM_TYPE"
-	case mediawiki.String:
-		return "STRING_CLAIM_TYPE"
-	case mediawiki.Quantity:
-		return "AMOUNT_CLAIM_TYPE"
-	case mediawiki.Time:
-		return "TIME_CLAIM_TYPE"
-	case mediawiki.GlobeCoordinate:
-		// Not supported.
-		return ""
-	case mediawiki.CommonsMedia:
-		return "FILE_CLAIM_TYPE"
-	case mediawiki.MonolingualText:
-		return "TEXT_CLAIM_TYPE"
-	case mediawiki.URL:
-		return "REFERENCE_CLAIM_TYPE"
-	case mediawiki.GeoShape:
-		// Not supported.
-		return ""
-	case mediawiki.WikiBaseLexeme:
-		// Not supported.
-		return ""
-	case mediawiki.WikiBaseSense:
-		// Not supported.
-		return ""
-	case mediawiki.WikiBaseProperty:
-		return "RELATION_CLAIM_TYPE"
-	case mediawiki.Math:
-		// Not supported.
-		return ""
-	case mediawiki.MusicalNotation:
-		// Not supported.
-		return ""
-	case mediawiki.WikiBaseForm:
-		// Not supported.
-		return ""
-	case mediawiki.TabularData:
-		// Not supported.
-		return ""
+	claimType, ok := dataTypeToClaimTypeMap[dataType]
+	if !ok {
+		panic(errors.Errorf(`invalid data type: %d`, dataType))
 	}
-	panic(errors.Errorf(`invalid data type: %d`, dataType))
+	return claimType
 }
 
 func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementRank) search.Confidence {
@@ -291,8 +291,84 @@ func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client
 	return document, hit, nil
 }
 
+func resolveDataTypeFromPropertyDocument(document *search.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
+	for _, claim := range document.Get(search.GetStandardPropertyID("IS")) {
+		if c, ok := claim.(*search.RelationClaim); ok {
+			for claimType, dataTypes := range claimTypeToDataTypesMap {
+				if c.To.ID == search.GetStandardPropertyID(claimType) {
+					if len(dataTypes) == 1 {
+						return dataTypes[0], nil
+					} else if claimType == "RELATION_CLAIM_TYPE" && valueType != nil {
+						switch *valueType {
+						case mediawiki.PropertyType:
+							return mediawiki.WikiBaseProperty, nil
+						case mediawiki.ItemType:
+							return mediawiki.WikiBaseItem, nil
+						default:
+							err := errors.Errorf("%w: not supported value type", notSupportedDataTypeError)
+							errors.Details(err)["prop"] = prop
+							return 0, err
+						}
+					} else {
+						err := errors.New("multiple data types, but not RELATION_CLAIM_TYPE")
+						errors.Details(err)["prop"] = prop
+						return 0, err
+					}
+				}
+			}
+		} else {
+			err := errors.New("IS claim which is not relation claim")
+			errors.Details(err)["prop"] = prop
+			return 0, err
+		}
+	}
+	err := errors.Errorf("%w: no suitable IS claim found", notSupportedDataTypeError)
+	errors.Details(err)["prop"] = prop
+	return 0, err
+}
+
+func getDataTypeForProperty(
+	ctx context.Context, index string, esClient *elastic.Client, cache *Cache,
+	prop string, valueType *mediawiki.WikiBaseEntityType,
+) (mediawiki.DataType, errors.E) {
+	id := GetWikidataDocumentID(prop)
+
+	maybeDocument, ok := cache.Get(id)
+	if ok {
+		if maybeDocument == nil {
+			err := errors.WithStack(NotFoundError)
+			errors.Details(err)["prop"] = prop
+			return 0, errors.WithStack(NotFoundError)
+		}
+		return resolveDataTypeFromPropertyDocument(maybeDocument.(*search.Document), prop, valueType)
+	}
+
+	document, _, err := getDocumentFromESByID(ctx, index, esClient, id)
+	if errors.Is(err, NotFoundError) {
+		cache.Add(id, nil)
+		errors.Details(err)["prop"] = prop
+		return 0, err
+	} else if err != nil {
+		errors.Details(err)["prop"] = prop
+		return 0, err
+	}
+
+	cache.Add(document.ID, document)
+
+	return resolveDataTypeFromPropertyDocument(document, prop, valueType)
+}
+
+func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
+	wikiBaseEntityValue, ok := value.(mediawiki.WikiBaseEntityIDValue)
+	if !ok {
+		return nil
+	}
+	return &wikiBaseEntityValue.Type
+}
+
 func processSnak( //nolint:ireturn,nolintlint
-	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache,
+	namespace uuid.UUID, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
 ) (search.Claim, errors.E) {
 	id := search.GetID(namespace, idArgs...)
 
@@ -321,11 +397,24 @@ func processSnak( //nolint:ireturn,nolintlint
 		return nil, errors.New("nil data value")
 	}
 
+	var dataType mediawiki.DataType
+	if snak.DataType == nil {
+		// Wikimedia Commons might not have the datatype field set, so we have to fetch it ourselves.
+		// See: https://phabricator.wikimedia.org/T311977
+		var err errors.E
+		dataType, err = getDataTypeForProperty(ctx, index, esClient, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
+		if err != nil {
+			return nil, errors.WithMessage(err, "unable to resolve data type for property")
+		}
+	} else {
+		dataType = *snak.DataType
+	}
+
 	switch value := snak.DataValue.Value.(type) {
 	case mediawiki.ErrorValue:
 		return nil, errors.New(string(value))
 	case mediawiki.StringValue:
-		switch snak.DataType { //nolint:exhaustive
+		switch dataType { //nolint:exhaustive
 		case mediawiki.ExternalID:
 			return &search.IdentifierClaim{
 				CoreClaim: search.CoreClaim{
@@ -395,10 +484,10 @@ func processSnak( //nolint:ireturn,nolintlint
 		case mediawiki.TabularData:
 			return nil, errors.Errorf("%w: TabularData", notSupportedDataTypeError)
 		default:
-			return nil, errors.Errorf("unexpected data type for StringValue: %d", snak.DataType)
+			return nil, errors.Errorf("unexpected data type for StringValue: %d", dataType)
 		}
 	case mediawiki.WikiBaseEntityIDValue:
-		switch snak.DataType { //nolint:exhaustive
+		switch dataType { //nolint:exhaustive
 		case mediawiki.WikiBaseItem:
 			if value.Type != mediawiki.ItemType {
 				return nil, errors.Errorf("WikiBaseItem data type, but WikiBaseEntityIDValue has type %d, not ItemType", value.Type)
@@ -430,12 +519,12 @@ func processSnak( //nolint:ireturn,nolintlint
 		case mediawiki.WikiBaseForm:
 			return nil, errors.Errorf("%w: WikiBaseForm", notSupportedDataTypeError)
 		default:
-			return nil, errors.Errorf("unexpected data type for WikiBaseEntityIDValue: %d", snak.DataType)
+			return nil, errors.Errorf("unexpected data type for WikiBaseEntityIDValue: %d", dataType)
 		}
 	case mediawiki.GlobeCoordinateValue:
 		return nil, errors.Errorf("%w: GlobeCoordinateValue", notSupportedDataValueTypeError)
 	case mediawiki.MonolingualTextValue:
-		switch snak.DataType { //nolint:exhaustive
+		switch dataType { //nolint:exhaustive
 		case mediawiki.MonolingualText:
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
 				return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
@@ -449,10 +538,10 @@ func processSnak( //nolint:ireturn,nolintlint
 				HTML: search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 			}, nil
 		default:
-			return nil, errors.Errorf("unexpected data type for MonolingualTextValue: %d", snak.DataType)
+			return nil, errors.Errorf("unexpected data type for MonolingualTextValue: %d", dataType)
 		}
 	case mediawiki.QuantityValue:
-		switch snak.DataType { //nolint:exhaustive
+		switch dataType { //nolint:exhaustive
 		case mediawiki.Quantity:
 			amount, exact := value.Amount.Float64()
 			if !exact && math.IsInf(amount, 0) {
@@ -524,10 +613,10 @@ func processSnak( //nolint:ireturn,nolintlint
 
 			return &claim, nil
 		default:
-			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", snak.DataType)
+			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", dataType)
 		}
 	case mediawiki.TimeValue:
-		switch snak.DataType { //nolint:exhaustive
+		switch dataType { //nolint:exhaustive
 		case mediawiki.Time:
 			// TODO: Convert timestamps in Julian calendar to ones in Gregorian calendar.
 			return &search.TimeClaim{
@@ -540,7 +629,7 @@ func processSnak( //nolint:ireturn,nolintlint
 				Precision: search.TimePrecision(value.Precision),
 			}, nil
 		default:
-			return nil, errors.Errorf("unexpected data type for TimeValue: %d", snak.DataType)
+			return nil, errors.Errorf("unexpected data type for TimeValue: %d", dataType)
 		}
 	}
 
@@ -548,13 +637,13 @@ func processSnak( //nolint:ireturn,nolintlint
 }
 
 func addQualifiers(
-	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string,
 	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaim, err := processSnak(
-				ctx, log, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, MediumConfidence, qualifier,
+				ctx, index, log, esClient, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, MediumConfidence, qualifier,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
@@ -579,7 +668,7 @@ func addQualifiers(
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
 // TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	// Edge case.
 	if len(reference.SnaksOrder) == 0 {
@@ -606,7 +695,7 @@ func addReference(
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
 			c, err := processSnak(
-				ctx, log, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, MediumConfidence, snak,
+				ctx, index, log, esClient, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, MediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
@@ -639,7 +728,8 @@ func addReference(
 // ConvertEntity converts both Wikidata entities and Wikimedia Commons entities.
 // Entities can reference only Wikimedia Commons files and not Wikipedia files.
 func ConvertEntity(
-	ctx context.Context, log zerolog.Logger, namespace uuid.UUID, entity mediawiki.Entity,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache,
+	namespace uuid.UUID, entity mediawiki.Entity,
 ) (*search.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English Wikidata entities for now.
@@ -850,6 +940,7 @@ func ConvertEntity(
 
 	if entity.DataType != nil {
 		// Which claim type should be used with this property?
+		// We use this in resolveDataTypeFromPropertyDocument, too.
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
 			document.Active.Relation = append(document.Active.Relation, search.RelationClaim{
@@ -913,7 +1004,7 @@ func ConvertEntity(
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claim, err := processSnak(
-				ctx, log, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, index, log, esClient, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
 				log.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
@@ -925,7 +1016,7 @@ func ConvertEntity(
 				continue
 			}
 			err = addQualifiers(
-				ctx, log, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+				ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
 			)
 			if err != nil {
 				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
@@ -933,7 +1024,7 @@ func ConvertEntity(
 				continue
 			}
 			for i, reference := range statement.References {
-				err = addReference(ctx, log, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+				err = addReference(ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
 				if err != nil {
 					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).
 						Err(err).Fields(errors.AllDetails(err)).Send()
