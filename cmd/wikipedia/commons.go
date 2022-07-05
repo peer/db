@@ -170,7 +170,13 @@ func (c *CommonsFilesCommand) processImage(
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
-		globals.Log.Error().Err(err).Fields(details).Msg("file not found")
+		if errors.Is(err, wikipedia.NotFoundError) {
+			// TODO: Make a warning, once entities dump will contain all files.
+			//       See: https://phabricator.wikimedia.org/T312112
+			globals.Log.Debug().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
 		return nil
 	}
 
@@ -285,7 +291,13 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		details := errors.AllDetails(err)
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Msg("file not found")
+		if errors.Is(err, wikipedia.NotFoundError) {
+			// TODO: Make a warning, once entities dump will contain all files.
+			//       See: https://phabricator.wikimedia.org/T312112
+			globals.Log.Debug().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
 		return nil
 	}
 
