@@ -49,10 +49,10 @@ type Config struct {
 	WikipediaCategories       WikipediaCategoriesCommand       `cmd:"" name:"wikipedia-categories" help:"Populate search with Wikipedia categories HTML dump."`
 
 	// Not everything is available as dumps, so we fetch using API.
-	WikipediaTemplates WikipediaTemplatesCommand `cmd:"" name:"wikipedia-templates" help:"Populate search with Wikipedia templates using API."`
-	// TODO: CommonsCategoriesCommand
-	// TODO: CommonsTemplatesCommand
+	WikipediaTemplates      WikipediaTemplatesCommand      `cmd:"" name:"wikipedia-templates" help:"Populate search with Wikipedia templates using API."`
 	CommonsFileDescriptions CommonsFileDescriptionsCommand `cmd:"" name:"commons-file-descriptions" help:"Populate search with Wikimedia Commons file descriptions using API."`
+	// TODO: CommonsCategoriesCommand
+	CommonsTemplates CommonsTemplatesCommand `cmd:"" name:"commons-templates" help:"Populate search with Wikimedia Commons templates using API."`
 
 	Prepare  PrepareCommand  `cmd:"" help:"Prepare populated data for search."`
 	Optimize OptimizeCommand `cmd:"" help:"Optimize search data."`
