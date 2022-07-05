@@ -7,6 +7,7 @@ import (
 	"math"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -744,8 +745,13 @@ func ConvertEntity(
 
 	var id search.Identifier
 	var name string
+	var filename string
 	if entity.Type == mediawiki.MediaInfo {
-		id = search.GetID(NameSpaceWikimediaCommonsFile, entity.ID)
+		filename = strings.TrimPrefix(entity.Title, "File:")
+		filename = strings.ReplaceAll(filename, " ", "_")
+		filename = FirstUpperCase(filename)
+
+		id = search.GetID(NameSpaceWikimediaCommonsFile, filename)
 
 		// We make a name from the title by removing prefix and file extension.
 		name = strings.TrimPrefix(entity.Title, "File:")
@@ -842,12 +848,9 @@ func ConvertEntity(
 			},
 		}
 	} else if entity.Type == mediawiki.MediaInfo {
-		filename := strings.TrimPrefix(entity.Title, "File:")
-		filename = strings.ReplaceAll(filename, " ", "_")
-		filename = FirstUpperCase(filename)
-
-		prefix := GetMediawikiFilePrefix(filename)
-
+		// It is expected that this document will be merged with another document with standard
+		// file claims, so the claims here are just a set of additional claims to be added and
+		// are missing standard file claims.
 		document.Active = &search.ClaimTypes{
 			Identifier: search.IdentifierClaims{
 				{
@@ -860,39 +863,11 @@ func ConvertEntity(
 				},
 				{
 					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_FILE_NAME", 0),
+						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_PAGE_ID", 0),
 						Confidence: HighConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE_NAME"),
-					Identifier: filename,
-				},
-			},
-			Reference: search.ReferenceClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_FILE", 0),
-						Confidence: HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_FILE"),
-					IRI:  fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", filename),
-				},
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "FILE_URL", 0),
-						Confidence: HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("FILE_URL"),
-					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/commons/%s/%s", prefix, filename),
-				},
-			},
-			Relation: search.RelationClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "IS", 0, "FILE", 0),
-						Confidence: HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("FILE"),
+					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_PAGE_ID"),
+					Identifier: strconv.FormatInt(entity.PageID, 10),
 				},
 			},
 		}

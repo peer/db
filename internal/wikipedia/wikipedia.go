@@ -24,9 +24,9 @@ var (
 )
 
 func ConvertWikipediaImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image, document *search.Document,
-) errors.E {
-	return convertImage(ctx, log, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", token, apiLimit, image, document)
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+) (*search.Document, errors.E) {
+	return convertImage(ctx, log, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }
 
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.

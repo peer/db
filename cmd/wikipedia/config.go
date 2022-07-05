@@ -35,15 +35,13 @@ type Globals struct {
 type Config struct {
 	Globals
 
-	// First we create almost all documents we search for: Wikidata and Wikimedia Commons entities.
-	Wikidata WikidataCommand `cmd:"" help:"Populate search with Wikidata entities dump."`
-	Commons  CommonsCommand  `cmd:"" help:"Populate search with Wikimedia Commons entities dump."`
-
-	// There is no entities dump for Wikipedia files, so we use image table (really files) SQL dump to create documents for them.
+	// First we create all documents we search for: Wikidata entities and Wikimedia Commons and Wikipedia files.
+	Wikidata       WikidataCommand       `cmd:"" help:"Populate search with Wikidata entities dump."`
+	CommonsFiles   CommonsFilesCommand   `cmd:"" name:"commons-files" help:"Populate search with Wikimedia Commons files from image table SQL dump."`
 	WikipediaFiles WikipediaFilesCommand `cmd:"" name:"wikipedia-files" help:"Populate search with Wikipedia files from image table SQL dump."`
 
-	// Then we add file metadata for Wikimedia Commons files.
-	CommonsFiles CommonsFilesCommand `cmd:"" name:"commons-files" help:"Populate search with Wikimedia Commons files from image table SQL dump."`
+	// Then we add claims from entities of Wikimedia Commons files.
+	Commons CommonsCommand `cmd:"" help:"Populate search with Wikimedia Commons entities dump."`
 
 	// We add descriptions from HTML dumps.
 	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`

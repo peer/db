@@ -680,6 +680,75 @@ func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 	return Keep, nil
 }
 
+type allClaimsVisitor struct {
+	Result []Claim
+}
+
+func (v *allClaimsVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+func (v *allClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
 func (d *Document) Get(propID Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
@@ -768,6 +837,14 @@ func (d *Document) Add(claim Claim) errors.E {
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
 	return nil
+}
+
+func (d *Document) AllClaims() []Claim {
+	v := allClaimsVisitor{
+		Result: []Claim{},
+	}
+	_ = d.Visit(&v)
+	return v.Result
 }
 
 type CoreDocument struct {

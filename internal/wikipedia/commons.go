@@ -397,16 +397,71 @@ func fitBoxWidth(width, height float64) int {
 }
 
 func ConvertWikimediaCommonsImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image, document *search.Document,
-) errors.E {
-	return convertImage(ctx, log, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", token, apiLimit, image, document)
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+) (*search.Document, errors.E) {
+	return convertImage(ctx, log, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
 func convertImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain,
-	token string, apiLimit int, image Image, document *search.Document,
-) errors.E {
+	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
+	token string, apiLimit int, image Image,
+) (*search.Document, errors.E) {
+	id := search.GetID(namespace, image.Name)
+
+	name := strings.ReplaceAll(image.Name, "_", " ")
+	name = strings.TrimSuffix(name, path.Ext(name))
+
 	prefix := GetMediawikiFilePrefix(image.Name)
+
+	document := &search.Document{
+		CoreDocument: search.CoreDocument{
+			ID: id,
+			Name: search.Name{
+				"en": name,
+			},
+			Score: 0.0,
+		},
+		Active: &search.ClaimTypes{
+			Identifier: search.IdentifierClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
+						Confidence: HighConfidence,
+					},
+					Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_FILE_NAME"),
+					Identifier: image.Name,
+				},
+			},
+			Reference: search.ReferenceClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
+						Confidence: HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference(mnemonicPrefix + "_FILE"),
+					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
+				},
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
+						Confidence: HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("FILE_URL"),
+					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
+				},
+			},
+			Relation: search.RelationClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
+						Confidence: HighConfidence,
+					},
+					Prop: search.GetStandardPropertyReference("IS"),
+					To:   search.GetStandardPropertyReference("FILE"),
+				},
+			},
+		},
+	}
 
 	mediaType := fmt.Sprintf("%s/%s", image.MajorMIME, image.MinorMIME)
 	// Mediawiki uses "application/ogg" for both video and audio, but we find it more informative
@@ -434,10 +489,10 @@ func convertImage(
 		image.MediaType = ambiguous.MediaType
 	}
 	if !supportedMediaTypes[mediaType] {
-		return errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
+		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
 	}
 	if !supportedMediawikiMediaTypes[image.MediaType] {
-		return errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
+		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
 	}
 
 	err := document.Add(&search.StringClaim{
@@ -449,7 +504,7 @@ func convertImage(
 		String: mediaType,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = document.Add(&search.EnumerationClaim{
 		CoreClaim: search.CoreClaim{
@@ -460,7 +515,7 @@ func convertImage(
 		Enum: []string{strings.ToLower(image.MediaType)},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if image.Size == 0 {
@@ -477,7 +532,7 @@ func convertImage(
 		Unit:   search.AmountUnitByte,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pageCount := 0
@@ -501,7 +556,7 @@ func convertImage(
 				Unit:   search.AmountUnitNone,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -526,7 +581,7 @@ func convertImage(
 				Unit:   search.AmountUnitSecond,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -632,7 +687,7 @@ func convertImage(
 				IRI:  preview,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -649,7 +704,7 @@ func convertImage(
 			Unit:   search.AmountUnitPixel,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
@@ -661,11 +716,11 @@ func convertImage(
 			Unit:   search.AmountUnitPixel,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return document, err
 }
 
 func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {

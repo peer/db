@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -17,7 +15,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -46,13 +43,13 @@ var (
 // WikipediaFilesCommand uses English Wikipedia images (really files) table SQL dump as input and creates a document for each file in the table.
 //
 // It creates claims with the following properties (not necessary all of them): ENGLISH_WIKIPEDIA_FILE_NAME (just filename, without "File:"
-// prefix, but with underscores and file extension), ENGLISH_WIKIPEDIA_FILE (URL to file page), ENGLISH_WIKIPEDIA_FILE_URL (URL to full
-// resolution or raw file), FILE (is claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, LENGTH (in seconds),
-// multiple PREVIEW_URL (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and
-// without underscores. The idea is that these claims should be enough to populate a file claim (in other documents using these files).
+// prefix, but with underscores and file extension), ENGLISH_WIKIPEDIA_FILE (URL to file page), FILE_URL (URL to full resolution or raw file),
+// FILE (is claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, LENGTH (in seconds), multiple PREVIEW_URL
+// (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and without underscores.
+// The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
 // Most files used on English Wikipedia are from Wikimedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
-// image on Wikipedia as fair use, but that is not acceptable on Wikimedia Commons). This command processes those files only on English Wikipedia.
+// image on Wikipedia as fair use, but that is not acceptable on Wikimedia Commons). This command processes files only on English Wikipedia.
 //
 // For some files (primarily PDFs and DJVU files) metadata is not stored in the SQL table but SQL table only contains a reference to additional
 // blob storage (see: https://phabricator.wikimedia.org/T301039). Because of that this command uses English Wikipedia API to obtain metadata
@@ -112,64 +109,7 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 func (c *WikipediaFilesCommand) processImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
 ) errors.E {
-	id := search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name)
-
-	name := strings.ReplaceAll(image.Name, "_", " ")
-	name = strings.TrimSuffix(name, path.Ext(name))
-
-	prefix := wikipedia.GetMediawikiFilePrefix(image.Name)
-
-	document := &search.Document{
-		CoreDocument: search.CoreDocument{
-			ID: id,
-			Name: search.Name{
-				"en": name,
-			},
-			Score: 0.0,
-		},
-		Active: &search.ClaimTypes{
-			Identifier: search.IdentifierClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "ENGLISH_WIKIPEDIA_FILE_NAME", 0),
-						Confidence: wikipedia.HighConfidence,
-					},
-					Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_FILE_NAME"),
-					Identifier: image.Name,
-				},
-			},
-			Reference: search.ReferenceClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "ENGLISH_WIKIPEDIA_FILE", 0),
-						Confidence: wikipedia.HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_FILE"),
-					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
-				},
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "FILE_URL", 0),
-						Confidence: wikipedia.HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("FILE_URL"),
-					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/en/%s/%s", prefix, image.Name),
-				},
-			},
-			Relation: search.RelationClaims{
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(wikipedia.NameSpaceWikipediaFile, image.Name, "IS", 0, "FILE", 0),
-						Confidence: wikipedia.HighConfidence,
-					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("FILE"),
-				},
-			},
-		},
-	}
-
-	err := wikipedia.ConvertWikipediaImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image, document)
+	document, err := wikipedia.ConvertWikipediaImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
