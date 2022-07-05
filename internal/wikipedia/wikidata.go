@@ -42,8 +42,8 @@ var (
 	notSupportedDataTypeError      = errors.BaseWrap(SilentSkippedError, "not supported data type")
 	NotFoundError                  = errors.Base("not found")
 
-	// Besides main Wikipedia namespace we allow also templates, modules, and categories.
-	nonMainWikipediaNamespaces = []string{
+	// Besides main namespace we allow also templates, modules, and categories.
+	nonMainNamespaces = []string{
 		"User:",
 		"Wikipedia:",
 		"File:",
@@ -876,41 +876,59 @@ func ConvertEntity(
 	}
 
 	// Exists for Wikidata entities.
-	siteLink, ok := entity.SiteLinks["enwiki"]
-	if ok {
-		url := siteLink.URL
-		if url == "" {
-			// First we make sure we do not have spaces.
-			urlTitle := strings.ReplaceAll(siteLink.Title, " ", "_")
-			// The first letter has to be upper case.
-			urlTitle = FirstUpperCase(urlTitle)
-			url = fmt.Sprintf("https://en.wikipedia.org/wiki/%s", urlTitle)
-		}
-		for _, namespace := range nonMainWikipediaNamespaces {
-			if strings.HasPrefix(siteLink.Title, namespace) {
-				// Only items have sitelinks. We want only items related to main Wikipedia articles (main namespace),
-				// templates, modules, and categories.
-				errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "`limited only to items related to main Wikipedia articles, templates, and categories"))
-				errors.Details(errE)["title"] = siteLink.Title
-				return nil, errE
+	for _, site := range []struct {
+		Wiki           string
+		MnemonicPrefix string
+		Domain         string
+	}{
+		{
+			"enwiki",
+			"ENGLISH_WIKIPEDIA",
+			"en.wikipedia.org",
+		},
+		{
+			"commonswiki",
+			"WIKIMEDIA_COMMONS",
+			"commons.wikimedia.org",
+		},
+	} {
+		siteLink, ok := entity.SiteLinks[site.Wiki]
+		if ok {
+			url := siteLink.URL
+			if url == "" {
+				// First we make sure we do not have spaces.
+				urlTitle := strings.ReplaceAll(siteLink.Title, " ", "_")
+				// The first letter has to be upper case.
+				urlTitle = FirstUpperCase(urlTitle)
+				url = fmt.Sprintf("https://%s/wiki/%s", site.Domain, urlTitle)
 			}
+			for _, namespace := range nonMainNamespaces {
+				if strings.HasPrefix(siteLink.Title, namespace) {
+					// Only items have sitelinks. We want only items related to main articles (main namespace),
+					// templates, modules, and categories.
+					errE := errors.WithStack(errors.BaseWrap(SilentSkippedError, "`limited only to items related to main articles, templates, and categories"))
+					errors.Details(errE)["wiki"] = site.Wiki
+					errors.Details(errE)["title"] = siteLink.Title
+					return nil, errE
+				}
+			}
+			document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_ARTICLE_TITLE", 0),
+					Confidence: HighConfidence,
+				},
+				Prop:       search.GetStandardPropertyReference(site.MnemonicPrefix + "_ARTICLE_TITLE"),
+				Identifier: siteLink.Title,
+			})
+			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_ARTICLE", 0),
+					Confidence: HighConfidence,
+				},
+				Prop: search.GetStandardPropertyReference(site.MnemonicPrefix + "_ARTICLE"),
+				IRI:  url,
+			})
 		}
-		document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", 0),
-				Confidence: HighConfidence,
-			},
-			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE_TITLE"),
-			Identifier: siteLink.Title,
-		})
-		document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, entity.ID, "ENGLISH_WIKIPEDIA_ARTICLE", 0),
-				Confidence: HighConfidence,
-			},
-			Prop: search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_ARTICLE"),
-			IRI:  url,
-		})
 	}
 
 	if entity.DataType != nil {
