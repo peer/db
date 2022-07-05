@@ -208,6 +208,8 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
+	// For Wikimedia Commons files, their page IDs are populated from entities dump.
+	// For Wikipedia files, we add them here.
 	claimID := search.GetID(wikipedia.NameSpaceWikipediaFile, filename, "ENGLISH_WIKIPEDIA_PAGE_ID", 0)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
