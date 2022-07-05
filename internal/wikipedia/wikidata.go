@@ -338,7 +338,7 @@ func getDataTypeForProperty(
 		if maybeDocument == nil {
 			err := errors.WithStack(NotFoundError)
 			errors.Details(err)["prop"] = prop
-			return 0, errors.WithStack(NotFoundError)
+			return 0, err
 		}
 		return resolveDataTypeFromPropertyDocument(maybeDocument.(*search.Document), prop, valueType)
 	}
