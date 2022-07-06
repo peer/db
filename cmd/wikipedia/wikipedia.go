@@ -428,7 +428,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article), DESCRIPTION (extracted from Wikipedia's category article),
-// ALSO_KNOWN_AS (from redirects pointing to the article), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
+// ALSO_KNOWN_AS (from redirects pointing to the category), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaCategoriesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`

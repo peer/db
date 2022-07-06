@@ -366,7 +366,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the category), DESCRIPTION (extracted from Wikimedia Commons' category article),
-// ALSO_KNOWN_AS (from redirects pointing to the article), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
+// ALSO_KNOWN_AS (from redirects pointing to the category), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsCategoriesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
@@ -536,7 +536,7 @@ func (c *CommonsCategoriesCommand) processPage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to documentation), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
+// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsTemplatesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
