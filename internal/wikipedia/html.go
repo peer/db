@@ -220,7 +220,7 @@ func exctractSummary(sel *goquery.Selection) (string, errors.E) {
 	if len(text) < minimumSummarySize {
 		return "", nil
 	} else if len(text) <= maximumSummarySize {
-		html, err := ps.WrapAllHtml("<div></div>").Parent().Html() //nolint:govet
+		html, err := ps.WrapAllHtml("<div></div>").Parent().Html()
 		if err != nil {
 			return "", errors.WithStack(err)
 		}
