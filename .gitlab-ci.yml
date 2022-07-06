@@ -51,7 +51,7 @@ lint:
 
   before_script:
     - apk --update add make gcc musl-dev
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.46.2
 
   script:
     - mkdir -p dist
