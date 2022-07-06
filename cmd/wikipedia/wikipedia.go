@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	articlesWikipediaNamespace  = 0
-	filesWikipediaNamespace     = 6
-	templatesWikipediaNamespace = 10
-	modulesWikipediaNamespace   = 828
+	articlesWikipediaNamespace   = 0
+	filesWikipediaNamespace      = 6
+	templatesWikipediaNamespace  = 10
+	categoriesWikipediaNamespace = 14
+	modulesWikipediaNamespace    = 828
 
 	// See: https://phabricator.wikimedia.org/T307610
 	// TODO: Why we have to use 500 here instead of 1000 to not hit the rate limit?
@@ -702,7 +703,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateDescription(id, "FROM_ENGLISH_WIKIPEDIA", page, html, document)
+	err = wikipedia.ConvertTemplateDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

@@ -285,12 +285,11 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 	return nil
 }
 
-func ConvertTemplateDescription(id, from string, page AllPagesPage, html string, document *search.Document) errors.E {
+func ConvertTemplateDescription(id, from string, html string, document *search.Document) errors.E {
 	description, err := ExtractTemplateDescription(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
-		errors.Details(errE)["title"] = page.Title
 		return errE
 	}
 
@@ -307,7 +306,6 @@ func ConvertTemplateDescription(id, from string, page AllPagesPage, html string,
 				errors.Details(errE)["claim"] = string(claimID)
 				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
 				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-				errors.Details(errE)["title"] = page.Title
 				return errE
 			}
 			claim.HTML["en"] = description
@@ -327,7 +325,6 @@ func ConvertTemplateDescription(id, from string, page AllPagesPage, html string,
 				errE := errors.WithMessage(err, "claim cannot be added")
 				errors.Details(errE)["doc"] = string(document.ID)
 				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["title"] = page.Title
 				return errE
 			}
 		}
