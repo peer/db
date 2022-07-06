@@ -153,7 +153,7 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 	return nil
 }
 
-func ConvertFileDescription(namespace uuid.UUID, id, html string, document *search.Document) errors.E {
+func ConvertFileDescription(namespace uuid.UUID, id, from, html string, document *search.Document) errors.E {
 	descriptions, err := ExtractFileDescriptions(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "descriptions extraction failed")
@@ -164,7 +164,7 @@ func ConvertFileDescription(namespace uuid.UUID, id, html string, document *sear
 	// TODO: Remove old descriptions if there are now less of them then before.
 	for i, description := range descriptions {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(namespace, id, "FILE", 0, "DESCRIPTION", i)
+		claimID := search.GetID(namespace, id, from, 0, "DESCRIPTION", i)
 		existingClaim := document.GetByID(claimID)
 		if existingClaim != nil {
 			claim, ok := existingClaim.(*search.TextClaim)
@@ -201,7 +201,7 @@ func ConvertFileDescription(namespace uuid.UUID, id, html string, document *sear
 	return nil
 }
 
-func ConvertCategoryDescription(id, html string, document *search.Document) errors.E {
+func ConvertCategoryDescription(id, from, html string, document *search.Document) errors.E {
 	description, err := ExtractCategoryDescription(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
@@ -212,7 +212,7 @@ func ConvertCategoryDescription(id, html string, document *search.Document) erro
 	// TODO: Remove description if is now empty, but before it was not.
 	if description != "" {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(NameSpaceWikidata, id, "ARTICLE", 0, "DESCRIPTION", 0)
+		claimID := search.GetID(NameSpaceWikidata, id, from, 0, "DESCRIPTION", 0)
 		existingClaim := document.GetByID(claimID)
 		if existingClaim != nil {
 			claim, ok := existingClaim.(*search.TextClaim)
@@ -285,7 +285,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 	return nil
 }
 
-func ConvertTemplateDescription(id string, page AllPagesPage, html string, document *search.Document) errors.E {
+func ConvertTemplateDescription(id, from string, page AllPagesPage, html string, document *search.Document) errors.E {
 	description, err := ExtractTemplateDescription(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
@@ -297,7 +297,7 @@ func ConvertTemplateDescription(id string, page AllPagesPage, html string, docum
 	// TODO: Remove description if is now empty, but before it was not.
 	if description != "" {
 		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(NameSpaceWikidata, id, "ARTICLE", 0, "DESCRIPTION", 0)
+		claimID := search.GetID(NameSpaceWikidata, id, from, 0, "DESCRIPTION", 0)
 		existingClaim := document.GetByID(claimID)
 		if existingClaim != nil {
 			claim, ok := existingClaim.(*search.TextClaim)

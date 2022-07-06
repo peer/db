@@ -215,7 +215,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikipediaFile, filename, article.ArticleBody.HTML, document)
+	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikipediaFile, "FROM_ENGLISH_WIKIPEDIA", filename, article.ArticleBody.HTML, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -516,7 +516,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertCategoryDescription(id, article.ArticleBody.HTML, document)
+	err = wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", article.ArticleBody.HTML, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -702,7 +702,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateDescription(id, page, html, document)
+	err = wikipedia.ConvertTemplateDescription(id, "FROM_ENGLISH_WIKIPEDIA", page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

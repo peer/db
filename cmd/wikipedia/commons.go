@@ -307,7 +307,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, filename, html, document)
+	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, "FROM_WIKIMEDIA_COMMONS", filename, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -493,7 +493,7 @@ func (c *CommonsTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateDescription(id, page, html, document)
+	err = wikipedia.ConvertTemplateDescription(id, "FROM_WIKIMEDIA_COMMONS", page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
