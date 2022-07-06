@@ -528,7 +528,7 @@ func UpdateEmbeddedDocuments(
 	entityIDClaims := []search.Claim{}
 	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_ITEM_ID"))...)
 	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIDATA_PROPERTY_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIMEDIA_COMMONS_ENTITY_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
 	entityIDClaims = append(entityIDClaims, document.Get(search.GetStandardPropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
 	entityIDs := []string{}
