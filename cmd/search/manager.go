@@ -35,7 +35,7 @@ func (c *CertificateManager) Start() errors.E {
 			select {
 			case <-c.done:
 				return
-			case _ = <-c.ticker.C:
+			case <-c.ticker.C:
 				err := c.reloadCertificate()
 				if err != nil {
 					c.Log.Error().Err(err).Fields(errors.AllDetails(err)).Str("certFile", c.CertFile).Str("keyFile", c.KeyFile).Send()

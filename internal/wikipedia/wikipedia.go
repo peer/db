@@ -72,7 +72,7 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 				"en": body,
 			},
 		}
-		err := document.Add(claim)
+		err = document.Add(claim)
 		if err != nil {
 			errE := errors.WithMessage(err, "claim cannot be added")
 			errors.Details(errE)["doc"] = string(document.ID)
@@ -93,7 +93,7 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 			Prop: search.GetStandardPropertyReference("LABEL"),
 			To:   search.GetStandardPropertyReference("HAS_ARTICLE"),
 		}
-		err := document.Add(claim)
+		err = document.Add(claim)
 		if err != nil {
 			errE := errors.WithMessage(err, "claim cannot be added")
 			errors.Details(errE)["doc"] = string(document.ID)
@@ -263,7 +263,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
 			return errE
 		}
-		claim.Identifier = strconv.FormatInt(pageID, 10)
+		claim.Identifier = strconv.FormatInt(pageID, 10) //nolint:gomnd
 	} else {
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
@@ -271,7 +271,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 				Confidence: HighConfidence,
 			},
 			Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_PAGE_ID"),
-			Identifier: strconv.FormatInt(pageID, 10),
+			Identifier: strconv.FormatInt(pageID, 10), //nolint:gomnd
 		}
 		err := document.Add(claim)
 		if err != nil {

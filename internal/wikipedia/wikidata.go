@@ -321,6 +321,8 @@ func resolveDataTypeFromPropertyDocument(document *search.Document, prop string,
 							return mediawiki.WikiBaseProperty, nil
 						case mediawiki.ItemType:
 							return mediawiki.WikiBaseItem, nil
+						case mediawiki.LexemeType, mediawiki.FormType, mediawiki.SenseType:
+							fallthrough
 						default:
 							err := errors.Errorf("%w: not supported value type", notSupportedDataTypeError)
 							errors.Details(err)["prop"] = prop
@@ -654,8 +656,8 @@ func processSnak( //nolint:ireturn,nolintlint
 }
 
 func addQualifiers(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string,
-	qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID,
+	claim search.Claim, entityID, prop, statementID string, qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
@@ -685,7 +687,8 @@ func addQualifiers(
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
 // TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID, claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, namespace uuid.UUID,
+	claim search.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E {
 	// Edge case.
 	if len(reference.SnaksOrder) == 0 {

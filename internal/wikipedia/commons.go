@@ -546,7 +546,7 @@ func convertImage(
 				log.Warn().Str("file", image.Name).Msg("zero page count")
 			}
 			// We set page count even if it is zero, if the media type should have a page count.
-			err := document.Add(&search.AmountClaim{
+			err = document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 					Confidence: MediumConfidence,
@@ -562,7 +562,7 @@ func convertImage(
 	}
 
 	if hasDuration[mediaType] {
-		duration, err := getDuration(ctx, httpClient, image)
+		duration, err := getDuration(ctx, httpClient, image) //nolint:govet
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
 			log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting duration")
@@ -655,7 +655,7 @@ func convertImage(
 	if len(previews) > 0 {
 		previewsList := string(search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST"))
 		for i, preview := range previews {
-			err := document.Add(&search.ReferenceClaim{
+			err = document.Add(&search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i),
 					Confidence: HighConfidence,
@@ -694,7 +694,7 @@ func convertImage(
 
 	// We set width and height even if it is zero, if the media type should have a preview (and thus width and height).
 	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
-		err := document.Add(&search.AmountClaim{
+		err = document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: MediumConfidence,

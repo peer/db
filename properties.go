@@ -206,7 +206,8 @@ var (
 		},
 		{
 			"Wikimedia Commons entity id",
-			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> <a href="https://commons.wikimedia.org/wiki/Commons:Structured_data">structured data entity identifier</a>.`,
+			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> ` +
+				`<a href="https://commons.wikimedia.org/wiki/Commons:Structured_data">structured data entity identifier</a>.`,
 			[]string{`"identifier" claim type`},
 		},
 		{

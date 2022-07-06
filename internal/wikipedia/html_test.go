@@ -2,7 +2,6 @@ package wikipedia_test
 
 import (
 	"embed"
-	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search/internal/wikipedia"
@@ -121,59 +121,46 @@ func TestExtractFileDescriptions(t *testing.T) {
 	}
 }
 
-func TestExtractCategoryDescription(t *testing.T) {
-	entries, err := content.ReadDir("testdata/category")
-	require.NoError(t, err)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(entry.Name(), "_in.html") {
-			continue
-		}
-		base := strings.TrimSuffix(entry.Name(), "_in.html")
-		t.Run(base, func(t *testing.T) {
-			input, err := content.ReadFile(filepath.Join("testdata", "category", entry.Name()))
+func TestExtractCategoryAndTemplateDescription(t *testing.T) {
+	for _, conf := range []struct {
+		Dir  string
+		Func func(string) (string, errors.E)
+	}{
+		{
+			"category",
+			wikipedia.ExtractCategoryDescription,
+		},
+		{
+			"template",
+			wikipedia.ExtractTemplateDescription,
+		},
+	} {
+		t.Run(conf.Dir, func(t *testing.T) {
+			entries, err := content.ReadDir("testdata/" + conf.Dir)
 			require.NoError(t, err)
-			output, err := wikipedia.ExtractCategoryDescription(string(input))
-			require.NoError(t, err)
-			expectedFilePath := filepath.Join("testdata", "category", base+"_out.html")
-			expected, err := content.ReadFile(expectedFilePath)
-			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
-				require.NoError(t, err)
-				_, _ = f.WriteString(output)
-			} else {
-				assert.Equal(t, string(expected), output)
-			}
-		})
-	}
-}
-
-func TestExtractTemplateDescription(t *testing.T) {
-	entries, err := content.ReadDir("testdata/template")
-	require.NoError(t, err)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(entry.Name(), "_in.html") {
-			continue
-		}
-		base := strings.TrimSuffix(entry.Name(), "_in.html")
-		t.Run(base, func(t *testing.T) {
-			input, err := content.ReadFile(filepath.Join("testdata", "template", entry.Name()))
-			require.NoError(t, err)
-			output, err := wikipedia.ExtractTemplateDescription(string(input))
-			require.NoError(t, err)
-			expectedFilePath := filepath.Join("testdata", "template", base+"_out.html")
-			expected, err := content.ReadFile(expectedFilePath)
-			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
-				require.NoError(t, err)
-				_, _ = f.WriteString(output)
-			} else {
-				assert.Equal(t, string(expected), output)
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				if !strings.HasSuffix(entry.Name(), "_in.html") {
+					continue
+				}
+				base := strings.TrimSuffix(entry.Name(), "_in.html")
+				t.Run(base, func(t *testing.T) {
+					input, err := content.ReadFile(filepath.Join("testdata", conf.Dir, entry.Name()))
+					require.NoError(t, err)
+					output, err := conf.Func(string(input))
+					require.NoError(t, err)
+					expectedFilePath := filepath.Join("testdata", conf.Dir, base+"_out.html")
+					expected, err := content.ReadFile(expectedFilePath)
+					if errors.Is(err, fs.ErrNotExist) {
+						f, err := os.Create(expectedFilePath)
+						require.NoError(t, err)
+						_, _ = f.WriteString(output)
+					} else {
+						assert.Equal(t, string(expected), output)
+					}
+				})
 			}
 		})
 	}

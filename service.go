@@ -327,7 +327,7 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 			mux := contentTypeMux{}
 			vm := reflect.ValueOf(&mux)
 			for _, contentType := range []string{"HTML", "JSON"} {
-				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentType)
+				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentType) //nolint:staticcheck
 				m := v.MethodByName(handlerName)
 				if !m.IsValid() {
 					s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler not found")
