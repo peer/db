@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
@@ -265,4 +267,231 @@ func initializeRun(globals *Globals, urlFunc func(context.Context, *retryablehtt
 	}
 
 	return ctx, cancel, httpClient, esClient, processor, cache, nil, nil
+}
+
+func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mnemonicPrefix, from string) errors.E {
+	errE := populateSkippedMap(skippedWikidataEntitiesPath, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
+	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
+	limiter := rate.NewLimiter(rate.Limit(rateLimit), wikipediaRESTRateLimit)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		defer close(pages)
+		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, site, globals.Token, limiter, pages)
+	})
+
+	var count x.Counter
+	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			stats := processor.Stats()
+			globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
+				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
+				Send()
+		}
+	}()
+
+	for i := 0; i < int(rateLimit); i++ {
+		g.Go(func() error {
+			// Loop ends with pages is closed, which happens when context is cancelled, too.
+			for page := range pages {
+				if page.Properties["wikibase_item"] == "" {
+					globals.Log.Debug().Str("title", page.Title).Msg("template without Wikidata item")
+					continue
+				}
+
+				err := limiter.Wait(ctx)
+				if err != nil {
+					// Context has been canceled.
+					return errors.WithStack(err)
+				}
+
+				// First we try to get "/doc".
+				html, errE := wikipedia.GetPageHTML(ctx, httpClient, site, page.Title+"/doc")
+				if errE != nil {
+					if errors.AllDetails(errE)["code"] != http.StatusNotFound {
+						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						continue
+					}
+
+					err := limiter.Wait(ctx)
+					if err != nil {
+						// Context has been canceled.
+						return errors.WithStack(err)
+					}
+
+					// And if it does not exist, without "/doc".
+					html, errE = wikipedia.GetPageHTML(ctx, httpClient, site, page.Title)
+					if errE != nil {
+						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						continue
+					}
+				}
+
+				count.Increment()
+
+				errE = templatesCommandProcessPage(ctx, globals, esClient, processor, page, html, mnemonicPrefix, from)
+				if errE != nil {
+					return errE
+				}
+			}
+			return nil
+		})
+	}
+
+	return errors.WithStack(g.Wait())
+}
+
+func templatesCommandProcessPage(
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor,
+	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
+) errors.E {
+	// We know this is available because we check before calling this method.
+	id := page.Properties["wikibase_item"]
+
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
+		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
+		return nil
+	}
+
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["entity"] = id
+		details["title"] = page.Title
+		if errors.Is(err, wikipedia.NotFoundError) {
+			globals.Log.Warn().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page.Identifier, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertTemplateDescription(id, from, html, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+
+	return nil
+}
+
+func filesCommandRun(
+	globals *Globals,
+	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
+) errors.E {
+	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig[wikipedia.Image]{
+		URL:                    config.URL,
+		Path:                   config.Path,
+		Client:                 config.Client,
+		DecompressionThreads:   config.DecompressionThreads,
+		DecodingThreads:        config.DecodingThreads,
+		ItemsProcessingThreads: config.ItemsProcessingThreads,
+		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
+			return filesCommandProcessImage(
+				ctx, globals, httpClient, processor, i, convertImage,
+			)
+		},
+		Progress:    config.Progress,
+		FileType:    mediawiki.SQLDump,
+		Compression: mediawiki.GZIP,
+	})
+	if errE != nil {
+		return errE
+	}
+
+	return nil
+}
+
+func filesCommandProcessImage(
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
+) errors.E {
+	document, err := convertImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["file"] = image.Name
+		if errors.Is(err, wikipedia.SilentSkippedError) {
+			globals.Log.Debug().Err(err).Fields(details).Send()
+		} else if errors.Is(err, wikipedia.SkippedError) {
+			globals.Log.Warn().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
+	insertOrReplaceDocument(processor, globals.Index, document)
+
+	return nil
 }

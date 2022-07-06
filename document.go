@@ -11,6 +11,10 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+const (
+	ActiveClaimThreshold = 0.5
+)
+
 type VisitResult int
 
 const (
@@ -793,7 +797,7 @@ func (d *Document) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
 	}
-	activeClaims := claim.GetConfidence() >= 0.5 || claim.GetConfidence() <= -0.5
+	activeClaims := claim.GetConfidence() >= ActiveClaimThreshold || claim.GetConfidence() <= -ActiveClaimThreshold
 	var claimTypes *ClaimTypes
 	if activeClaims {
 		if d.Active == nil {
