@@ -10,7 +10,7 @@ RUN \
   npm install && \
   make dist
 
-FROM golang:1.17-alpine3.14 AS go-build
+FROM golang:1.18-alpine3.14 AS go-build
 
 RUN apk --update add make git gcc musl-dev ca-certificates tzdata && \
   adduser -D -H -g "" -s /sbin/nologin -u 1000 user
