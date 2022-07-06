@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
+	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -207,6 +208,138 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	return nil
 }
 
+func wikipediaArticlesRun(
+	globals *Globals, skippedWikidataEntitiesPath, url string, namespace int,
+	convertArticle func(string, string, *search.Document) errors.E,
+) errors.E {
+	errE := populateSkippedMap(skippedWikidataEntitiesPath, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
+	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	if url != "" {
+		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+			return url, nil
+		}
+	} else {
+		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", namespace)
+		}
+	}
+
+	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
+		return wikipediaArticlesProcessArticle(ctx, globals, esClient, processor, article, convertArticle)
+	})
+	if errE != nil {
+		return errE
+	}
+
+	return nil
+}
+
+func wikipediaArticlesProcessArticle(
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	convertArticle func(string, string, *search.Document) errors.E,
+) errors.E {
+	if article.MainEntity == nil {
+		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
+		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
+		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
+		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
+			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
+		} else {
+			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
+		}
+		return nil
+	}
+
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier))); ok {
+		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
+		return nil
+	}
+
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["entity"] = article.MainEntity.Identifier
+		details["title"] = article.Name
+		if errors.Is(err, wikipedia.NotFoundError) {
+			globals.Log.Warn().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	id := article.MainEntity.Identifier
+
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = convertArticle(id, article.ArticleBody.HTML, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
+	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+
+	return nil
+}
+
 // WikipediaArticlesCommand uses Wikipedia articles HTML dump (namespace 0) as input and adds Wikipedia article's body to a
 // corresponding Wikidata entity.
 //
@@ -230,134 +363,9 @@ type WikipediaArticlesCommand struct {
 	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
-//nolint:dupl
 func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
-	if errE != nil {
-		return errE
-	}
-
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
-	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
-			return c.URL, nil
-		}
-	} else {
-		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", articlesWikipediaNamespace)
-		}
-	}
-
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
-	if errE != nil {
-		return errE
-	}
-	defer cancel()
-	defer processor.Close()
-
-	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, esClient, processor, article)
-	})
-	if errE != nil {
-		return errE
-	}
-
-	return nil
-}
-
-// TODO: Skip disambiguation pages (remove corresponding document if we already have it).
-func (c *WikipediaArticlesCommand) processArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
-) errors.E {
-	if article.MainEntity == nil {
-		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
-		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
-		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
-		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
-		} else {
-			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
-		}
-		return nil
-	}
-
-	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier))); ok {
-		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
-		return nil
-	}
-
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["entity"] = article.MainEntity.Identifier
-		details["title"] = article.Name
-		if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
-		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
-		}
-		return nil
-	}
-
-	id := article.MainEntity.Identifier
-
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertWikipediaArticle(id, article.ArticleBody.HTML, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
-
-	return nil
+	// TODO: Skip disambiguation pages (remove corresponding document if we already have it).
+	return wikipediaArticlesRun(globals, c.SkippedWikidataEntities, c.URL, articlesWikipediaNamespace, wikipedia.ConvertWikipediaArticle)
 }
 
 // WikipediaCategoriesCommand uses Wikipedia categories HTML dump (namespace 14) as input and extracts descriptions from their Wikipedia articles and
@@ -381,131 +389,9 @@ type WikipediaCategoriesCommand struct {
 }
 
 func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
-	if errE != nil {
-		return errE
-	}
-
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
-	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
-			return c.URL, nil
-		}
-	} else {
-		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", categoriesWikipediaNamespace)
-		}
-	}
-
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
-	if errE != nil {
-		return errE
-	}
-	defer cancel()
-	defer processor.Close()
-
-	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, esClient, processor, article)
+	return wikipediaArticlesRun(globals, c.SkippedWikidataEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, document *search.Document) errors.E {
+		return wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, document)
 	})
-	if errE != nil {
-		return errE
-	}
-
-	return nil
-}
-
-func (c *WikipediaCategoriesCommand) processArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
-) errors.E {
-	if article.MainEntity == nil {
-		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
-		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
-		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
-		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
-		} else {
-			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
-		}
-		return nil
-	}
-
-	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier))); ok {
-		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
-		return nil
-	}
-
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["entity"] = article.MainEntity.Identifier
-		details["title"] = article.Name
-		if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
-		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
-		}
-		return nil
-	}
-
-	id := article.MainEntity.Identifier
-
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", article.ArticleBody.HTML, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
-
-	return nil
 }
 
 // WikipediaTemplatesCommand uses Wikipedia API as input to obtain and extract descriptions for templates (namespace 10) and modules (namespace 828)
