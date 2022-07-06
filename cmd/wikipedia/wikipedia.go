@@ -393,7 +393,7 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 		}
 	} else {
 		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", articlesWikipediaNamespace)
+			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", categoriesWikipediaNamespace)
 		}
 	}
 
