@@ -314,7 +314,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertWikipediaArticle(id, article, document)
+	err = wikipedia.ConvertWikipediaArticle(id, article.ArticleBody.HTML, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

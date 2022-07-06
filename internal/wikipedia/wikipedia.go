@@ -38,12 +38,11 @@ func ConvertWikipediaImage(
 //       See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
-func ConvertWikipediaArticle(id string, article mediawiki.Article, document *search.Document) errors.E {
-	body, doc, err := ExtractArticle(article.ArticleBody.HTML)
+func ConvertWikipediaArticle(id, html string, document *search.Document) errors.E {
+	body, doc, err := ExtractArticle(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "article extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
-		errors.Details(errE)["title"] = article.Name
 		return errE
 	}
 
@@ -57,7 +56,6 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 			errors.Details(errE)["claim"] = string(claimID)
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-			errors.Details(errE)["title"] = article.Name
 			return errE
 		}
 		claim.HTML["en"] = body
@@ -77,7 +75,6 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 			errE := errors.WithMessage(err, "claim cannot be added")
 			errors.Details(errE)["doc"] = string(document.ID)
 			errors.Details(errE)["claim"] = string(claimID)
-			errors.Details(errE)["title"] = article.Name
 			return errE
 		}
 	}
@@ -98,7 +95,6 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 			errE := errors.WithMessage(err, "claim cannot be added")
 			errors.Details(errE)["doc"] = string(document.ID)
 			errors.Details(errE)["claim"] = string(claimID)
-			errors.Details(errE)["title"] = article.Name
 			return errE
 		}
 	}
@@ -107,7 +103,6 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 	if err != nil {
 		errE := errors.WithMessage(err, "summary extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
-		errors.Details(errE)["title"] = article.Name
 		return errE
 	}
 
@@ -115,7 +110,6 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 	if summary != "" {
 		err := updateDescription(NameSpaceWikidata, id, "ARTICLE", 0, summary, document)
 		if err != nil {
-			errors.Details(err)["title"] = article.Name
 			return err
 		}
 	}
