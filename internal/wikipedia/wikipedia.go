@@ -113,40 +113,10 @@ func ConvertWikipediaArticle(id string, article mediawiki.Article, document *sea
 
 	// TODO: Remove summary if is now empty, but before it was not.
 	if summary != "" {
-		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID = search.GetID(NameSpaceWikidata, id, "ARTICLE", 0, "DESCRIPTION", 0)
-		existingClaim = document.GetByID(claimID)
-		if existingClaim != nil {
-			claim, ok := existingClaim.(*search.TextClaim)
-			if !ok {
-				errE := errors.New("unexpected description claim type")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-				errors.Details(errE)["title"] = article.Name
-				return errE
-			}
-			claim.HTML["en"] = summary
-		} else {
-			claim := &search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         claimID,
-					Confidence: HighConfidence,
-				},
-				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				HTML: search.TranslatableHTMLString{
-					"en": summary,
-				},
-			}
-			err := document.Add(claim)
-			if err != nil {
-				errE := errors.WithMessage(err, "claim cannot be added")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["title"] = article.Name
-				return errE
-			}
+		err := updateDescription(NameSpaceWikidata, id, "ARTICLE", 0, summary, document)
+		if err != nil {
+			errors.Details(err)["title"] = article.Name
+			return err
 		}
 	}
 
@@ -163,38 +133,9 @@ func ConvertFileDescription(namespace uuid.UUID, id, from, html string, document
 
 	// TODO: Remove old descriptions if there are now less of them then before.
 	for i, description := range descriptions {
-		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(namespace, id, from, 0, "DESCRIPTION", i)
-		existingClaim := document.GetByID(claimID)
-		if existingClaim != nil {
-			claim, ok := existingClaim.(*search.TextClaim)
-			if !ok {
-				errE := errors.New("unexpected description claim type")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-				return errE
-			}
-			claim.HTML["en"] = description
-		} else {
-			claim := &search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         claimID,
-					Confidence: HighConfidence,
-				},
-				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				HTML: search.TranslatableHTMLString{
-					"en": description,
-				},
-			}
-			err := document.Add(claim)
-			if err != nil {
-				errE := errors.WithMessage(err, "claim cannot be added")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				return errE
-			}
+		err := updateDescription(namespace, id, from, i, description, document)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -202,7 +143,49 @@ func ConvertFileDescription(namespace uuid.UUID, id, from, html string, document
 }
 
 func ConvertCategoryDescription(id, from, html string, document *search.Document) errors.E {
-	description, err := ExtractCategoryDescription(html)
+	return convertDescription(NameSpaceWikidata, id, from, html, document, ExtractCategoryDescription)
+}
+
+func updateDescription(namespace uuid.UUID, id, from string, i int, description string, document *search.Document) errors.E {
+	// A slightly different construction for claimID so that it does not overlap with any other descriptions.
+	claimID := search.GetID(namespace, id, from, 0, "DESCRIPTION", i)
+	existingClaim := document.GetByID(claimID)
+	if existingClaim != nil {
+		claim, ok := existingClaim.(*search.TextClaim)
+		if !ok {
+			errE := errors.New("unexpected description claim type")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
+			return errE
+		}
+		claim.HTML["en"] = description
+	} else {
+		claim := &search.TextClaim{
+			CoreClaim: search.CoreClaim{
+				ID:         claimID,
+				Confidence: HighConfidence,
+			},
+			Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+			HTML: search.TranslatableHTMLString{
+				"en": description,
+			},
+		}
+		err := document.Add(claim)
+		if err != nil {
+			errE := errors.WithMessage(err, "claim cannot be added")
+			errors.Details(errE)["doc"] = string(document.ID)
+			errors.Details(errE)["claim"] = string(claimID)
+			return errE
+		}
+	}
+
+	return nil
+}
+
+func convertDescription(namespace uuid.UUID, id, from, html string, document *search.Document, extract func(string) (string, errors.E)) errors.E {
+	description, err := extract(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
 		errors.Details(errE)["doc"] = string(document.ID)
@@ -211,38 +194,9 @@ func ConvertCategoryDescription(id, from, html string, document *search.Document
 
 	// TODO: Remove description if is now empty, but before it was not.
 	if description != "" {
-		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(NameSpaceWikidata, id, from, 0, "DESCRIPTION", 0)
-		existingClaim := document.GetByID(claimID)
-		if existingClaim != nil {
-			claim, ok := existingClaim.(*search.TextClaim)
-			if !ok {
-				errE := errors.New("unexpected description claim type")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-				return errE
-			}
-			claim.HTML["en"] = description
-		} else {
-			claim := &search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         claimID,
-					Confidence: HighConfidence,
-				},
-				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				HTML: search.TranslatableHTMLString{
-					"en": description,
-				},
-			}
-			err := document.Add(claim)
-			if err != nil {
-				errE := errors.WithMessage(err, "claim cannot be added")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				return errE
-			}
+		err := updateDescription(namespace, id, from, 0, description, document)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -286,51 +240,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 }
 
 func ConvertTemplateDescription(id, from string, html string, document *search.Document) errors.E {
-	description, err := ExtractTemplateDescription(html)
-	if err != nil {
-		errE := errors.WithMessage(err, "description extraction failed")
-		errors.Details(errE)["doc"] = string(document.ID)
-		return errE
-	}
-
-	// TODO: Remove description if is now empty, but before it was not.
-	if description != "" {
-		// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-		claimID := search.GetID(NameSpaceWikidata, id, from, 0, "DESCRIPTION", 0)
-		existingClaim := document.GetByID(claimID)
-		if existingClaim != nil {
-			claim, ok := existingClaim.(*search.TextClaim)
-			if !ok {
-				errE := errors.New("unexpected description claim type")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-				errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
-				return errE
-			}
-			claim.HTML["en"] = description
-		} else {
-			claim := &search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         claimID,
-					Confidence: HighConfidence,
-				},
-				Prop: search.GetStandardPropertyReference("DESCRIPTION"),
-				HTML: search.TranslatableHTMLString{
-					"en": description,
-				},
-			}
-			err := document.Add(claim)
-			if err != nil {
-				errE := errors.WithMessage(err, "claim cannot be added")
-				errors.Details(errE)["doc"] = string(document.ID)
-				errors.Details(errE)["claim"] = string(claimID)
-				return errE
-			}
-		}
-	}
-
-	return nil
+	return convertDescription(NameSpaceWikidata, id, from, html, document, ExtractTemplateDescription)
 }
 
 func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
