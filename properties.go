@@ -170,13 +170,13 @@ var (
 			[]string{`"reference" claim type`},
 		},
 		{
-			"English Wikipedia article title",
-			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article title.`,
+			"English Wikipedia page title",
+			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page title.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
-			"English Wikipedia article",
-			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> article.`,
+			"English Wikipedia page",
+			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page.`,
 			[]string{`"reference" claim type`},
 		},
 		{
@@ -185,13 +185,13 @@ var (
 			[]string{`"identifier" claim type`},
 		},
 		{
-			"Wikimedia Commons article title",
-			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> article title.`,
+			"Wikimedia Commons page title",
+			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page title.`,
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"Wikimedia Commons article",
-			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> article.`,
+			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page.`,
 			[]string{`"reference" claim type`},
 		},
 		{

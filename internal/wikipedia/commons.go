@@ -724,7 +724,7 @@ func convertImage(
 }
 
 func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
-	document, hit, err := getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	document, hit, err := getDocumentFromESByProp(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name
 		return nil, nil, err

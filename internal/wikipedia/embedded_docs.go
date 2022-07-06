@@ -31,7 +31,10 @@ type updateEmbeddedDocumentsVisitor struct {
 
 func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
 	name := ""
-	for _, field := range []string{"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference, CategoryReference, TemplateReference} {
+	for _, field := range []string{
+		"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference,
+		WikipediaCategoryReference, WikipediaTemplateReference, WikimediaCommonsCategoryReference, WikimediaCommonsTemplateReference,
+	} {
 		if ref.Name[field] != "" {
 			name = ref.Name[field]
 			break
@@ -55,7 +58,10 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 
 func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID search.Identifier, msg string) {
 	name := ""
-	for _, field := range []string{"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference, CategoryReference, TemplateReference} {
+	for _, field := range []string{
+		"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference,
+		WikipediaCategoryReference, WikipediaTemplateReference, WikimediaCommonsCategoryReference, WikimediaCommonsTemplateReference,
+	} {
 		if fileDoc.Name[field] != "" {
 			name = fileDoc.Name[field]
 			break
@@ -93,15 +99,21 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 		return v.getDocumentReferenceByID(ref, claimID)
 	}
 
-	if ref.Name[CategoryReference] != "" {
-		return v.getDocumentReferenceByTitle(ref, claimID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", ref.Name[CategoryReference])
-	} else if ref.Name[TemplateReference] != "" {
-		return v.getDocumentReferenceByTitle(ref, claimID, "ENGLISH_WIKIPEDIA_ARTICLE_TITLE", ref.Name[TemplateReference])
+	if ref.Name[WikipediaCategoryReference] != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, "ENGLISH_WIKIPEDIA_PAGE_TITLE", ref.Name[WikipediaCategoryReference])
+	} else if ref.Name[WikipediaTemplateReference] != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, "ENGLISH_WIKIPEDIA_PAGE_TITLE", ref.Name[WikipediaTemplateReference])
+	} else if ref.Name[WikimediaCommonsCategoryReference] != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_PAGE_TITLE", ref.Name[WikimediaCommonsCategoryReference])
+	} else if ref.Name[WikimediaCommonsTemplateReference] != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_PAGE_TITLE", ref.Name[WikimediaCommonsTemplateReference])
 	} else if ref.Name[WikimediaCommonsFileReference] != "" {
 		filename := strings.TrimPrefix(ref.Name[WikimediaCommonsFileReference], "File:")
 		filename = strings.ReplaceAll(filename, " ", "_")
 		filename = FirstUpperCase(filename)
-		return v.getDocumentReferenceByTitle(ref, claimID, "WIKIMEDIA_COMMONS_FILE_NAME", filename)
+		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_FILE_NAME", filename)
+	} else if ref.Name[WikimediaCommonsEntityReference] != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_ENTITY_ID", ref.Name[WikimediaCommonsEntityReference])
 	}
 
 	errE := errors.Errorf("invalid reference")
@@ -112,7 +124,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	return nil, errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByTitle(property, title string) (*search.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*search.Document, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
 	// by getDocumentByID, which uses Identifier type.
 	maybeDocument, ok := v.Cache.Get(title)
@@ -123,7 +135,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByTitle(property, title stri
 		return maybeDocument.(*search.Document), nil
 	}
 
-	document, _, err := getDocumentFromES(v.Context, v.Index, v.ESClient, property, title)
+	document, _, err := getDocumentFromESByProp(v.Context, v.Index, v.ESClient, property, title)
 	if errors.Is(err, NotFoundError) {
 		v.Cache.Add(title, nil)
 		return nil, err
@@ -161,10 +173,10 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id search.Identifier) (
 	return document, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByTitle(
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
 	ref search.DocumentReference, claimID search.Identifier, property, title string,
 ) (*search.DocumentReference, errors.E) {
-	document, err := v.getDocumentByTitle(property, title)
+	document, err := v.getDocumentByProp(property, title)
 	if errors.Is(err, NotFoundError) {
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {

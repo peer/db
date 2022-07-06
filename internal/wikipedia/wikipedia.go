@@ -334,7 +334,7 @@ func ConvertTemplateDescription(id, from string, html string, document *search.D
 }
 
 func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
-	document, hit, errE := getDocumentFromES(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
+	document, hit, errE := getDocumentFromESByProp(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, NotFoundError) {
 		// Passthrough.
 	} else if errE != nil {
@@ -349,7 +349,7 @@ func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Clien
 	// from Wikimedia Commons which have different names so this can have false negatives.
 	// False positives might also be possible but are probably harmless: we already did not
 	// find a Wikipedia file, so we are primarily trying to understand why not.
-	_, _, errE2 := getDocumentFromES(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	_, _, errE2 := getDocumentFromESByProp(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if errors.Is(errE2, NotFoundError) {
 		// We have not found a Wikimedia Commons file. Return the original error.
 		errors.Details(errE)["file"] = name
@@ -412,7 +412,7 @@ func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, 
 				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
-			To:   getDocumentReference(category),
+			To:   getDocumentReference(category, mnemonicPrefix),
 		}
 		err := document.Add(claim)
 		if err != nil {
@@ -436,7 +436,7 @@ func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix
 				Confidence: HighConfidence,
 			},
 			Prop: search.GetStandardPropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
-			To:   getDocumentReference(template),
+			To:   getDocumentReference(template, mnemonicPrefix),
 		}
 		err := document.Add(claim)
 		if err != nil {

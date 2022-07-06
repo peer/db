@@ -27,11 +27,13 @@ const (
 )
 
 const (
-	WikidataReference               = "xx-Wikidata"
-	WikimediaCommonsEntityReference = "xx-CommonsEntity"
-	WikimediaCommonsFileReference   = "xx-CommonsFile"
-	CategoryReference               = "xx-Category"
-	TemplateReference               = "xx-Template"
+	WikidataReference                 = "xx-Wikidata"
+	WikimediaCommonsEntityReference   = "xx-CommonsEntity"
+	WikimediaCommonsFileReference     = "xx-CommonsFile"
+	WikipediaCategoryReference        = "xx-WikipediaCategory"
+	WikipediaTemplateReference        = "xx-WikipediaTemplate"
+	WikimediaCommonsCategoryReference = "xx-CommonsCategory"
+	WikimediaCommonsTemplateReference = "xx-CommonsTemplate"
 )
 
 var (
@@ -169,14 +171,11 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
-// getDocumentReference does not return a valid reference: name is set to the ID itself for the language
-// "xx-Wikidata", "xx-CommonsEntity", "xx-CommonsFile", "xx-Category", or "xx-Template".
-// Wikidata and Wikimedia Commons entity references also have a valid ID field, others
-// have an empty ID field. It panics for unsupported IDs.
-func getDocumentReference(id string) search.DocumentReference {
+// getDocumentReference does not return a valid reference: name is set to the ID itself for language xx-*.
+// Wikidata entity references also have a valid ID field, others have an empty ID field. It panics for unsupported IDs.
+func getDocumentReference(id, source string) search.DocumentReference {
 	if strings.HasPrefix(id, "M") {
 		return search.DocumentReference{
-			ID: search.GetID(NameSpaceWikimediaCommonsFile, id),
 			Name: map[string]string{
 				WikimediaCommonsEntityReference: id,
 			},
@@ -189,16 +188,34 @@ func getDocumentReference(id string) search.DocumentReference {
 			},
 		}
 	} else if strings.HasPrefix(id, "Category:") {
-		return search.DocumentReference{
-			Name: map[string]string{
-				CategoryReference: id,
-			},
+		switch source {
+		case "ENGLISH_WIKIPEDIA":
+			return search.DocumentReference{
+				Name: map[string]string{
+					WikipediaCategoryReference: id,
+				},
+			}
+		case "WIKIMEDIA_COMMONS":
+			return search.DocumentReference{
+				Name: map[string]string{
+					WikimediaCommonsCategoryReference: id,
+				},
+			}
 		}
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
-		return search.DocumentReference{
-			Name: map[string]string{
-				TemplateReference: id,
-			},
+		switch source {
+		case "ENGLISH_WIKIPEDIA":
+			return search.DocumentReference{
+				Name: map[string]string{
+					WikipediaTemplateReference: id,
+				},
+			}
+		case "WIKIMEDIA_COMMONS":
+			return search.DocumentReference{
+				Name: map[string]string{
+					WikimediaCommonsTemplateReference: id,
+				},
+			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return search.DocumentReference{
@@ -208,10 +225,10 @@ func getDocumentReference(id string) search.DocumentReference {
 		}
 	}
 
-	panic(errors.Errorf("unsupported ID: %s", id))
+	panic(errors.Errorf("unsupported ID for source \"%s\": %s", source, id))
 }
 
-func getDocumentFromES(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
+func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
 	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
@@ -282,7 +299,7 @@ func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.
 }
 
 func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client, id string) (*search.Document, *elastic.SearchHit, errors.E) {
-	document, hit, err := getDocumentFromES(ctx, index, esClient, "WIKIDATA_ITEM_ID", id)
+	document, hit, err := getDocumentFromESByProp(ctx, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if err != nil {
 		errors.Details(err)["entity"] = id
 		return nil, nil, err
@@ -381,7 +398,7 @@ func processSnak( //nolint:ireturn,nolintlint
 				ID:         id,
 				Confidence: confidence,
 			},
-			Prop: getDocumentReference(prop),
+			Prop: getDocumentReference(prop, ""),
 		}, nil
 	case mediawiki.NoValue:
 		return &search.NoValueClaim{
@@ -389,7 +406,7 @@ func processSnak( //nolint:ireturn,nolintlint
 				ID:         id,
 				Confidence: confidence,
 			},
-			Prop: getDocumentReference(prop),
+			Prop: getDocumentReference(prop, ""),
 		}, nil
 	}
 
@@ -421,7 +438,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:       getDocumentReference(prop),
+				Prop:       getDocumentReference(prop, ""),
 				Identifier: string(value),
 			}, nil
 		case mediawiki.String:
@@ -430,7 +447,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:   getDocumentReference(prop),
+				Prop:   getDocumentReference(prop, ""),
 				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
@@ -457,12 +474,12 @@ func processSnak( //nolint:ireturn,nolintlint
 									Confidence: HighConfidence,
 								},
 								Prop: search.GetStandardPropertyReference("IS"),
-								To:   getDocumentReference(title),
+								To:   getDocumentReference(title, ""),
 							},
 						},
 					},
 				},
-				Prop: getDocumentReference(prop),
+				Prop: getDocumentReference(prop, ""),
 				Type: "invalid/invalid",
 				URL:  "https://xx.invalid",
 			}, nil
@@ -472,7 +489,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getDocumentReference(prop),
+				Prop: getDocumentReference(prop, ""),
 				IRI:  string(value),
 			}, nil
 		case mediawiki.GeoShape:
@@ -497,8 +514,8 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getDocumentReference(prop),
-				To:   getDocumentReference(value.ID),
+				Prop: getDocumentReference(prop, ""),
+				To:   getDocumentReference(value.ID, ""),
 			}, nil
 		case mediawiki.WikiBaseProperty:
 			if value.Type != mediawiki.PropertyType {
@@ -509,8 +526,8 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getDocumentReference(prop),
-				To:   getDocumentReference(value.ID),
+				Prop: getDocumentReference(prop, ""),
+				To:   getDocumentReference(value.ID, ""),
 			}, nil
 		case mediawiki.WikiBaseLexeme:
 			return nil, errors.Errorf("%w: WikiBaseLexeme", notSupportedDataTypeError)
@@ -534,7 +551,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop: getDocumentReference(prop),
+				Prop: getDocumentReference(prop, ""),
 				HTML: search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 			}, nil
 		default:
@@ -573,7 +590,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:             getDocumentReference(prop),
+				Prop:             getDocumentReference(prop, ""),
 				Amount:           amount,
 				UncertaintyLower: uncertaintyLower,
 				UncertaintyUpper: uncertaintyUpper,
@@ -605,7 +622,7 @@ func processSnak( //nolint:ireturn,nolintlint
 								Confidence: HighConfidence,
 							},
 							Prop: search.GetStandardPropertyReference("UNIT"),
-							To:   getDocumentReference(unitID),
+							To:   getDocumentReference(unitID, ""),
 						},
 					},
 				}
@@ -624,7 +641,7 @@ func processSnak( //nolint:ireturn,nolintlint
 					ID:         id,
 					Confidence: confidence,
 				},
-				Prop:      getDocumentReference(prop),
+				Prop:      getDocumentReference(prop, ""),
 				Timestamp: search.Timestamp(value.Time),
 				Precision: search.TimePrecision(value.Precision),
 			}, nil
@@ -905,18 +922,18 @@ func ConvertEntity(
 			}
 			document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
 				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_ARTICLE_TITLE", 0),
+					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
 					Confidence: HighConfidence,
 				},
-				Prop:       search.GetStandardPropertyReference(site.MnemonicPrefix + "_ARTICLE_TITLE"),
+				Prop:       search.GetStandardPropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
 				Identifier: siteLink.Title,
 			})
 			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_ARTICLE", 0),
+					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
 					Confidence: HighConfidence,
 				},
-				Prop: search.GetStandardPropertyReference(site.MnemonicPrefix + "_ARTICLE"),
+				Prop: search.GetStandardPropertyReference(site.MnemonicPrefix + "_PAGE"),
 				IRI:  url,
 			})
 		}

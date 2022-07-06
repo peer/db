@@ -26,7 +26,7 @@ import (
 // with the claim's value. It uses ElasticSearch to obtain documents of those properties.
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims based on
-// statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (Q prefixed ID),
+// statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (M prefixed ID),
 // ALSO_KNOWN_AS (for any English labels), DESCRIPTION (for English entity descriptions).
 //
 // When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name

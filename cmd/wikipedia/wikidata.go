@@ -25,8 +25,9 @@ var (
 //
 // Besides claims based on statements, it creates also claims with the following properties: WIKIDATA_PROPERTY_ID (P prefixed ID),
 // WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (IS claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
-// (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_ARTICLE_TITLE (article title, without underscores), ENGLISH_WIKIPEDIA_ARTICLE
-// (URL to the article), ALSO_KNOWN_AS (for any non-first English labels), DESCRIPTION (for English entity descriptions).
+// (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_PAGE_TITLE (Wikipedia page title, without underscores), ENGLISH_WIKIPEDIA_PAGE
+// (URL to the Wikipedia page), WIKIMEDIA_COMMONS_PAGE_TITLE (Wikimedia Commons page title, without underscores), WIKIMEDIA_COMMONS_PAGE
+// (URL to the Wikimedia Commons page), ALSO_KNOWN_AS (for any non-first English labels), DESCRIPTION (for English entity descriptions).
 // Name of the document is the first English label.
 //
 // When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
