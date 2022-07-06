@@ -21,7 +21,8 @@ test:
   image: golang:1.18-alpine3.14
 
   before_script:
-    - apk --update add make gcc musl-dev
+    - apk --update add make gcc musl-dev git-lfs
+    - git lfs fetch
     - (cd /go; go install gotest.tools/gotestsum@v1.8.0)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.2.0)
 
@@ -70,7 +71,8 @@ fmt:
   image: golang:1.18-alpine3.14
 
   before_script:
-    - apk --update add make git gcc musl-dev grep
+    - apk --update add make git gcc musl-dev grep git-lfs
+    - git lfs fetch
     - go install mvdan.cc/gofumpt@v0.3.1
     - go install golang.org/x/tools/cmd/goimports@v0.1.10
 
@@ -94,7 +96,8 @@ audit:
   image: golang:1.18-alpine3.14
 
   before_script:
-    - apk --update add make git gcc musl-dev
+    - apk --update add make git gcc musl-dev git-lfs
+    - git lfs fetch
     - go install github.com/sonatype-nexus-community/nancy@v1.0.33
 
   script:
