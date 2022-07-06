@@ -50,7 +50,7 @@ type Config struct {
 
 	// Not everything is available as dumps, so we fetch using API.
 	WikipediaTemplates      WikipediaTemplatesCommand      `cmd:"" name:"wikipedia-templates" help:"Populate search with Wikipedia templates using API."`
-	CommonsFileDescriptions CommonsFileDescriptionsCommand `cmd:"" name:"commons-file-descriptions" help:"Populate search with Wikimedia Commons file descriptions using API."`
+	CommonsFileDescriptions CommonsFileDescriptionsCommand `cmd:"" name:"commons-file-descriptions" help:"Populate search with Wikimedia Commons file descriptions using API."` //nolint:lll
 	CommonsCategories       CommonsCategoriesCommand       `cmd:"" name:"commons-categories" help:"Populate search with Wikimedia Commons categories using API."`
 	CommonsTemplates        CommonsTemplatesCommand        `cmd:"" name:"commons-templates" help:"Populate search with Wikimedia Commons templates using API."`
 

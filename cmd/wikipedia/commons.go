@@ -353,6 +353,176 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	return nil
 }
 
+// CommonsCategoriesCommand uses Wikimedia Commons API as input to obtain and extract descriptions for categories (namespace 14) from their
+// Wikimedia Commons articles and adds category's description to a corresponding Wikidata entity.
+//
+// It expects documents populated by WikidataCommand.
+//
+// Category articles generally have a very short description of a category, if at all. This command extracts the HTML description
+// which is processed so that HTML can be directly displayed alongside other content. Use of Wikipedia's CSS nor Javascript is not
+// needed after processing.
+//
+// Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
+//
+// It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
+// following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the category), DESCRIPTION (extracted from Wikimedia Commons' category article),
+// ALSO_KNOWN_AS (from redirects pointing to the article), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
+// USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
+type CommonsCategoriesCommand struct {
+	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+}
+
+func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	if errE != nil {
+		return errE
+	}
+	defer cancel()
+	defer processor.Close()
+
+	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
+	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
+	limiter := rate.NewLimiter(rate.Limit(rateLimit), wikipediaRESTRateLimit)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		defer close(pages)
+		return wikipedia.ListAllPages(ctx, httpClient, []int{categoriesWikipediaNamespace}, "commons.wikimedia.org", globals.Token, limiter, pages)
+	})
+
+	var count x.Counter
+	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			stats := processor.Stats()
+			globals.Log.Info().
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
+				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
+				Send()
+		}
+	}()
+
+	for i := 0; i < int(rateLimit); i++ {
+		g.Go(func() error {
+			// Loop ends with pages is closed, which happens when context is cancelled, too.
+			for page := range pages {
+				if page.Properties["wikibase_item"] == "" {
+					globals.Log.Debug().Str("title", page.Title).Msg("category without Wikidata item")
+					continue
+				}
+
+				err := limiter.Wait(ctx)
+				if err != nil {
+					// Context has been canceled.
+					return errors.WithStack(err)
+				}
+
+				html, errE := wikipedia.GetPageHTML(ctx, httpClient, "commons.wikimedia.org", page.Title)
+				if errE != nil {
+					globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+					continue
+				}
+
+				count.Increment()
+
+				errE = c.processPage(ctx, globals, esClient, processor, page, html)
+				if errE != nil {
+					return errE
+				}
+			}
+			return nil
+		})
+	}
+
+	return errors.WithStack(g.Wait())
+}
+
+func (c *CommonsCategoriesCommand) processPage(
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+) errors.E {
+	// We know this is available because we check before calling this method.
+	id := page.Properties["wikibase_item"]
+
+	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
+		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
+		return nil
+	}
+
+	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["entity"] = id
+		details["title"] = page.Title
+		if errors.Is(err, wikipedia.NotFoundError) {
+			globals.Log.Warn().Err(err).Fields(details).Send()
+		} else {
+			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		return nil
+	}
+
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+
+	return nil
+}
+
 // CommonsTemplatesCommand uses Wikimedia Commons API as input to obtain and extract descriptions for templates (namespace 10) and modules
 // (namespace 828) from their documentation and adds template's or module's description to a corresponding Wikidata entity.
 //
@@ -366,7 +536,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
+// ALSO_KNOWN_AS (from redirects pointing to documentation), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsTemplatesCommand struct {
 	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
@@ -494,176 +664,6 @@ func (c *CommonsTemplatesCommand) processPage(
 	}
 
 	err = wikipedia.ConvertTemplateDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
-
-	return nil
-}
-
-// CommonsTemplatesCommand uses Wikimedia Commons API as input to obtain and extract descriptions for templates (namespace 10) and modules
-// (namespace 828) from their documentation and adds template's or module's description to a corresponding Wikidata entity.
-//
-// It expects documents populated by WikidataCommand.
-//
-// Documentation is obtained from template's or module's documentation subpage, if it exists, otherwise from the template's or modules page itself.
-// Documentation generally has a very short description of a template, if at all. This command extracts the HTML description which is processed so
-// that HTML can be directly displayed alongside other content. Use of Wikipedia's CSS nor Javascript is not needed after processing.
-//
-// Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
-//
-// It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
-// following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
-// USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
-type CommonsCategoriesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
-}
-
-func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
-	if errE != nil {
-		return errE
-	}
-
-	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
-	if errE != nil {
-		return errE
-	}
-	defer cancel()
-	defer processor.Close()
-
-	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
-	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
-	limiter := rate.NewLimiter(rate.Limit(rateLimit), wikipediaRESTRateLimit)
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		defer close(pages)
-		return wikipedia.ListAllPages(ctx, httpClient, []int{categoriesWikipediaNamespace}, "commons.wikimedia.org", globals.Token, limiter, pages)
-	})
-
-	var count x.Counter
-	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
-	defer ticker.Stop()
-	go func() {
-		for p := range ticker.C {
-			stats := processor.Stats()
-			globals.Log.Info().
-				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
-				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
-				Send()
-		}
-	}()
-
-	for i := 0; i < int(rateLimit); i++ {
-		g.Go(func() error {
-			// Loop ends with pages is closed, which happens when context is cancelled, too.
-			for page := range pages {
-				if page.Properties["wikibase_item"] == "" {
-					globals.Log.Debug().Str("title", page.Title).Msg("category without Wikidata item")
-					continue
-				}
-
-				err := limiter.Wait(ctx)
-				if err != nil {
-					// Context has been canceled.
-					return errors.WithStack(err)
-				}
-
-				html, errE := wikipedia.GetPageHTML(ctx, httpClient, "commons.wikimedia.org", page.Title)
-				if errE != nil {
-					globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
-					continue
-				}
-
-				count.Increment()
-
-				errE = c.processPage(ctx, globals, esClient, processor, page, html)
-				if errE != nil {
-					return errE
-				}
-			}
-			return nil
-		})
-	}
-
-	return errors.WithStack(g.Wait())
-}
-
-func (c *CommonsCategoriesCommand) processPage(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
-) errors.E {
-	// We know this is available because we check before calling this method.
-	id := page.Properties["wikibase_item"]
-
-	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
-		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
-		return nil
-	}
-
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["entity"] = id
-		details["title"] = page.Title
-		if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
-		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
-		}
-		return nil
-	}
-
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
-		details["entity"] = id
-		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
-		return nil
-	}
-
-	err = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
