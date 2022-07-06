@@ -190,7 +190,7 @@ var (
 			[]string{`"identifier" claim type`},
 		},
 		{
-			"Wikimedia Commons article",
+			"Wikimedia Commons page",
 			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page.`,
 			[]string{`"reference" claim type`},
 		},
