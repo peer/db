@@ -149,7 +149,6 @@ type WikipediaFileDescriptionsCommand struct {
 	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
-//nolint:dupl
 func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
