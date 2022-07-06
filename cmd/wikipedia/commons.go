@@ -26,8 +26,8 @@ import (
 // with the claim's value. It uses ElasticSearch to obtain documents of those properties.
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims based on
-// statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (Q prefixed ID), WIKIMEDIA_COMMONS_PAGE_ID
-// (internal page ID of the file), ALSO_KNOWN_AS (for any English labels), DESCRIPTION (for English entity descriptions).
+// statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (Q prefixed ID),
+// ALSO_KNOWN_AS (for any English labels), DESCRIPTION (for English entity descriptions).
 //
 // When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
 // for language xx-*. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
@@ -213,7 +213,8 @@ func (c *CommonsFilesCommand) processImage(
 // Internal links inside HTML are not yet converted to links to PeerDB documents. This is done in PrepareCommand.
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikimedia Commons entity's document which is then updated with
-// claims with the following properties: DESCRIPTION (potentially multiple), ALSO_KNOWN_AS (from redirects pointing to the file).
+// claims with the following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
+// ALSO_KNOWN_AS (from redirects pointing to the file).
 type CommonsFileDescriptionsCommand struct{}
 
 func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
@@ -296,6 +297,16 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page.Identifier, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["file"] = filename
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
 	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, filename, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
@@ -306,7 +317,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
+	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -316,7 +327,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
+	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -472,7 +483,7 @@ func (c *CommonsTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateArticle("WIKIMEDIA_COMMONS", id, page, html, document)
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -482,7 +493,7 @@ func (c *CommonsTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	err = wikipedia.ConvertTemplateDescription(id, page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -492,7 +503,17 @@ func (c *CommonsTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

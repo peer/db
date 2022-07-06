@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +15,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -208,43 +205,14 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	// For Wikimedia Commons files, their page IDs are populated from entities dump.
-	// For Wikipedia files, we add them here.
-	claimID := search.GetID(wikipedia.NameSpaceWikipediaFile, filename, "ENGLISH_WIKIPEDIA_PAGE_ID", 0)
-	existingClaim := document.GetByID(claimID)
-	if existingClaim != nil {
-		claim, ok := existingClaim.(*search.IdentifierClaim)
-		if !ok {
-			errE := errors.New("unexpected page id claim type")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
-			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
-			errors.Details(errE)["title"] = article.Name
-			errors.Details(errE)["file"] = filename
-			globals.Log.Error().Err(err).Fields(errors.Details(errE)).Send()
-			return nil
-		}
-		claim.Identifier = strconv.FormatInt(article.Identifier, 10)
-	} else {
-		claim := &search.IdentifierClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         claimID,
-				Confidence: wikipedia.HighConfidence,
-			},
-			Prop:       search.GetStandardPropertyReference("ENGLISH_WIKIPEDIA_PAGE_ID"),
-			Identifier: strconv.FormatInt(article.Identifier, 10),
-		}
-		err := document.Add(claim)
-		if err != nil {
-			errE := errors.WithMessage(err, "claim cannot be added")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
-			errors.Details(errE)["title"] = article.Name
-			errors.Details(errE)["file"] = filename
-			globals.Log.Error().Err(err).Fields(errors.Details(errE)).Send()
-			return nil
-		}
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article.Identifier, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
 	}
 
 	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikipediaFile, filename, article.ArticleBody.HTML, document)
@@ -257,7 +225,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -267,7 +235,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -389,7 +357,8 @@ func (c *WikipediaArticlesCommand) processArticle(
 	}
 
 	id := article.MainEntity.Identifier
-	err = wikipedia.ConvertWikipediaArticle(wikipedia.NameSpaceWikidata, id, article, document)
+
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -399,7 +368,7 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertWikipediaArticle(id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -409,7 +378,17 @@ func (c *WikipediaArticlesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -526,7 +505,8 @@ func (c *WikipediaCategoriesCommand) processArticle(
 	}
 
 	id := article.MainEntity.Identifier
-	err = wikipedia.ConvertWikipediaCategoryArticle(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
+
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -536,7 +516,7 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertCategoryDescription(id, article.ArticleBody.HTML, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -546,7 +526,17 @@ func (c *WikipediaCategoriesCommand) processArticle(
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -702,7 +692,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateArticle("ENGLISH_WIKIPEDIA", id, page, html, document)
+	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -712,7 +702,7 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageCategories(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, page, document)
+	err = wikipedia.ConvertTemplateDescription(id, page, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)
@@ -722,7 +712,17 @@ func (c *WikipediaTemplatesCommand) processPage(
 		return nil
 	}
 
-	err = wikipedia.ConvertPageTemplates(ctx, globals.Index, globals.Log, esClient, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, page, document)
+	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, page, document)
+	if err != nil {
+		details := errors.AllDetails(err)
+		details["doc"] = string(document.ID)
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Log.Error().Err(err).Fields(details).Send()
+		return nil
+	}
+
+	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = string(document.ID)

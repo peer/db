@@ -7,7 +7,6 @@ import (
 	"math"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -860,14 +859,6 @@ func ConvertEntity(
 					},
 					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
 					Identifier: entity.ID,
-				},
-				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_PAGE_ID", 0),
-						Confidence: HighConfidence,
-					},
-					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_PAGE_ID"),
-					Identifier: strconv.FormatInt(entity.PageID, 10),
 				},
 			},
 		}
