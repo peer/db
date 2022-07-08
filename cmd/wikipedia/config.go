@@ -64,17 +64,42 @@ type runner interface {
 	Run(*Globals) errors.E
 }
 
-type AllCommand struct{}
+//nolint:lll
+type AllCommand struct {
+	SaveSkipped                  string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
+	WikidataURL                  string `name:"wikidata" placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	CommonsFilesURL              string `name:"commons-files" placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	WikipediaFilesURL            string `name:"wikipedia-files" placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	CommonsURL                   string `name:"commons" placeholder:"URL" help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	WikipediaArticlesURL         string `name:"wikipedia-articles" placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	WikipediaFileDescriptionsURL string `name:"wikipedia-file-descriptions" placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
+	WikipediaCategoriesURL       string `name:"wikipedia-categories" placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+}
 
 func (c *AllCommand) Run(globals *Globals) errors.E {
 	allCommands := []runner{
-		&WikidataCommand{},
-		&CommonsFilesCommand{},
-		&WikipediaFilesCommand{},
-		&CommonsCommand{},
-		&WikipediaArticlesCommand{},
-		&WikipediaFileDescriptionsCommand{},
-		&WikipediaCategoriesCommand{},
+		&WikidataCommand{
+			SaveSkipped: c.SaveSkipped,
+			URL:         c.WikidataURL,
+		},
+		&CommonsFilesCommand{
+			URL: c.CommonsFilesURL,
+		},
+		&WikipediaFilesCommand{
+			URL: c.WikipediaFilesURL,
+		},
+		&CommonsCommand{
+			URL: c.CommonsURL,
+		},
+		&WikipediaArticlesCommand{
+			URL: c.WikipediaArticlesURL,
+		},
+		&WikipediaFileDescriptionsCommand{
+			URL: c.WikipediaFileDescriptionsURL,
+		},
+		&WikipediaCategoriesCommand{
+			URL: c.WikipediaCategoriesURL,
+		},
 		&WikipediaTemplatesCommand{},
 		&CommonsFileDescriptionsCommand{},
 		&CommonsCategoriesCommand{},

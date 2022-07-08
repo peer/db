@@ -35,7 +35,7 @@ var (
 // pass, checking all references and setting true document names for English language (ID for language xx-* is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type WikidataCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped entities."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
 	URL         string `placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 }
 
