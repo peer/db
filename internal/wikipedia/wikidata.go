@@ -423,7 +423,7 @@ func processSnak( //nolint:ireturn,nolintlint
 		var err errors.E
 		dataType, err = getDataTypeForProperty(ctx, index, esClient, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
 		if err != nil {
-			return nil, errors.WithMessage(err, "unable to resolve data type for property")
+			return nil, errors.WithMessagef(err, "unable to resolve data type for property with value %T", snak.DataValue.Value)
 		}
 	} else {
 		dataType = *snak.DataType
