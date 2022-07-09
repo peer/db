@@ -106,8 +106,10 @@ func (c *CommonsCommand) processEntity(
 
 	for _, claim := range additionalDocument.AllClaims() {
 		err := document.Add(claim)
-		globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
-		return nil
+		if err != nil {
+			globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			return nil
+		}
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
