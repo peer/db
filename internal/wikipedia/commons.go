@@ -26,6 +26,7 @@ import (
 const (
 	previewSize  = 256
 	longFilename = 160
+	maxPreviews  = 100
 )
 
 var (
@@ -653,6 +654,15 @@ func convertImage(
 	}
 
 	if len(previews) > 0 {
+		// If there are too many previews, we select just a subset.
+		if len(previews) > maxPreviews {
+			ratio := float64(len(previews)) / float64(maxPreviews)
+			previewsSubset := make([]string, maxPreviews)
+			for i := 0; i < maxPreviews; i++ {
+				previewsSubset[i] = previews[int(float64(i)*ratio)]
+			}
+			previews = previewsSubset
+		}
 		previewsList := string(search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST"))
 		for i, preview := range previews {
 			err = document.Add(&search.ReferenceClaim{
