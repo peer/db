@@ -18,15 +18,16 @@ import (
 var referenceNotFoundError = errors.Base("document reference to a nonexistent document")
 
 type updateEmbeddedDocumentsVisitor struct {
-	Context                 context.Context
-	Log                     zerolog.Logger
-	Index                   string
-	Cache                   *Cache
-	SkippedWikidataEntities *sync.Map
-	ESClient                *elastic.Client
-	Changed                 int
-	DocumentID              search.Identifier
-	EntityIDs               []string
+	Context                      context.Context
+	Log                          zerolog.Logger
+	Index                        string
+	Cache                        *Cache
+	SkippedWikidataEntities      *sync.Map
+	SkippedWikimediaCommonsFiles *sync.Map
+	ESClient                     *elastic.Client
+	Changed                      int
+	DocumentID                   search.Identifier
+	EntityIDs                    []string
 }
 
 func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
@@ -83,8 +84,21 @@ func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, cl
 
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
 	if errors.Is(err, referenceNotFoundError) {
-		if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
-			v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
+		if ref.ID != "" {
+			if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
+				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
+			} else {
+				v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
+			}
+		} else if ref.Name[WikimediaCommonsFileReference] != "" {
+			filename := strings.TrimPrefix(ref.Name[WikimediaCommonsFileReference], "File:")
+			filename = strings.ReplaceAll(filename, " ", "_")
+			filename = FirstUpperCase(filename)
+			if _, ok := v.SkippedWikimediaCommonsFiles.Load(filename); ok {
+				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
+			} else {
+				v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
+			}
 		} else {
 			v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
 		}
@@ -534,7 +548,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache, skippedWikidataEntities *sync.Map, document *search.Document,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache,
+	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, document *search.Document,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []search.Claim{}
@@ -560,15 +575,16 @@ func UpdateEmbeddedDocuments(
 	cache.Add(document.ID, document)
 
 	v := updateEmbeddedDocumentsVisitor{
-		Context:                 ctx,
-		Log:                     log,
-		Index:                   index,
-		Cache:                   cache,
-		SkippedWikidataEntities: skippedWikidataEntities,
-		ESClient:                esClient,
-		Changed:                 0,
-		DocumentID:              document.ID,
-		EntityIDs:               entityIDs,
+		Context:                      ctx,
+		Log:                          log,
+		Index:                        index,
+		Cache:                        cache,
+		SkippedWikidataEntities:      skippedWikidataEntities,
+		SkippedWikimediaCommonsFiles: skippedWikimediaCommonsFiles,
+		ESClient:                     esClient,
+		Changed:                      0,
+		DocumentID:                   document.ID,
+		EntityIDs:                    entityIDs,
 	}
 	errE := document.Visit(&v)
 	if errE != nil {

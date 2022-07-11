@@ -209,8 +209,12 @@ func initializeElasticSearch(globals *Globals) (
 	return ctx, cancel, httpClient, esClient, processor, cache, nil
 }
 
-func initializeRun(globals *Globals, urlFunc func(context.Context, *retryablehttp.Client) (
-	string, errors.E), count *int64) (context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
+func initializeRun(
+	globals *Globals,
+	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
+	count *int64,
+) (
+	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
 	ctx, cancel, simpleHTTPClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
@@ -440,9 +444,10 @@ func templatesCommandProcessPage(
 func filesCommandRun(
 	globals *Globals,
 	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
+	saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 ) errors.E {
-	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
 	if errE != nil {
 		return errE
 	}
@@ -458,7 +463,7 @@ func filesCommandRun(
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
 			return filesCommandProcessImage(
-				ctx, globals, httpClient, processor, i, convertImage,
+				ctx, globals, httpClient, processor, skippedMap, skippedCount, i, convertImage,
 			)
 		},
 		Progress:    config.Progress,
@@ -469,11 +474,17 @@ func filesCommandRun(
 		return errE
 	}
 
+	errE = saveSkippedMap(saveSkipped, skippedMap, skippedCount)
+	if errE != nil {
+		return errE
+	}
+
 	return nil
 }
 
 func filesCommandProcessImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor, image wikipedia.Image,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
+	skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 ) errors.E {
 	document, err := convertImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image)
@@ -486,6 +497,10 @@ func filesCommandProcessImage(
 			globals.Log.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Log.Error().Err(err).Fields(details).Send()
+		}
+		_, loaded := skippedMap.LoadOrStore(image.Name, true)
+		if !loaded {
+			atomic.AddInt64(skippedCount, 1)
 		}
 		return nil
 	}

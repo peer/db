@@ -4,6 +4,7 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -35,6 +36,12 @@ var (
 	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
 )
 
+var (
+	// Set of filenames.
+	skippedWikipediaFiles      = sync.Map{}
+	skippedWikipediaFilesCount int64
+)
+
 // TODO: Files uploaded to Wikipedia are moved to Wikimedia Commons. We should make sure we do not have duplicate files.
 //       For example, if file exists in Wikipedia dump but was then moved to Wikimedia Commons and exists in its dump as well.
 
@@ -59,7 +66,8 @@ var (
 // want the latest information about files because we directly use files hosted on English Wikipedia by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type WikipediaFilesCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikipedia files."`
+	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
@@ -74,7 +82,10 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	return filesCommandRun(globals, urlFunc, wikipedia.ConvertWikipediaImage)
+	return filesCommandRun(
+		globals, urlFunc,
+		c.SaveSkipped, &skippedWikipediaFiles, &skippedWikipediaFilesCount,
+		wikipedia.ConvertWikipediaImage)
 }
 
 // WikipediaFileDescriptionsCommand uses Wikipedia file descriptions HTML dump (namespace 6) as input and adds file's description
@@ -93,10 +104,16 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 // ALSO_KNOWN_AS (from redirects pointing to the file), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the file is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaFileDescriptionsCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikipedia files."`
+	URL          string `placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedFiles, &skippedWikipediaFiles, &skippedWikipediaFilesCount)
+	if errE != nil {
+		return errE
+	}
+
 	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
@@ -133,6 +150,11 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	filename = strings.ReplaceAll(filename, " ", "_")
 	// The first letter has to be upper case.
 	filename = wikipedia.FirstUpperCase(filename)
+
+	if _, ok := skippedWikipediaFiles.Load(filename); ok {
+		globals.Log.Debug().Str("file", filename).Str("title", article.Name).Msg("skipped file")
+		return nil
+	}
 
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
@@ -359,13 +381,13 @@ func wikipediaArticlesProcessArticle(
 // DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article),
 // IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the article is in), USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaArticlesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
-	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	URL             string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 	// TODO: Skip disambiguation pages (remove corresponding document if we already have it).
-	return wikipediaArticlesRun(globals, c.SkippedWikidataEntities, c.URL, articlesWikipediaNamespace, wikipedia.ConvertWikipediaArticle)
+	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, articlesWikipediaNamespace, wikipedia.ConvertWikipediaArticle)
 }
 
 // WikipediaCategoriesCommand uses Wikipedia categories HTML dump (namespace 14) as input and extracts descriptions from their Wikipedia articles and
@@ -384,12 +406,12 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 // ALSO_KNOWN_AS (from redirects pointing to the category), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaCategoriesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
-	URL                     string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	URL             string `placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
-	return wikipediaArticlesRun(globals, c.SkippedWikidataEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, document *search.Document) errors.E {
+	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, document *search.Document) errors.E {
 		return wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, document)
 	})
 }
@@ -410,9 +432,9 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 // ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the template or module is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaTemplatesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 }
 
 func (c *WikipediaTemplatesCommand) Run(globals *Globals) errors.E {
-	return templatesCommandRun(globals, "en.wikipedia.org", c.SkippedWikidataEntities, "ENGLISH_WIKIPEDIA", "FROM_ENGLISH_WIKIPEDIA")
+	return templatesCommandRun(globals, "en.wikipedia.org", c.SkippedEntities, "ENGLISH_WIKIPEDIA", "FROM_ENGLISH_WIKIPEDIA")
 }

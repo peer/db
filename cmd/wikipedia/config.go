@@ -66,7 +66,9 @@ type runner interface {
 
 //nolint:lll
 type AllCommand struct {
-	SaveSkipped                  string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
+	WikidataSaveSkipped          string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
+	CommonsSaveSkipped           string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikimedia Commons files."`
+	WikipediaSaveSkipped         string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikipedia files."`
 	WikidataURL                  string `name:"wikidata" placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 	CommonsFilesURL              string `name:"commons-files" placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 	WikipediaFilesURL            string `name:"wikipedia-files" placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
@@ -79,14 +81,16 @@ type AllCommand struct {
 func (c *AllCommand) Run(globals *Globals) errors.E {
 	allCommands := []runner{
 		&WikidataCommand{
-			SaveSkipped: c.SaveSkipped,
+			SaveSkipped: c.WikidataSaveSkipped,
 			URL:         c.WikidataURL,
 		},
 		&CommonsFilesCommand{
-			URL: c.CommonsFilesURL,
+			SaveSkipped: c.CommonsSaveSkipped,
+			URL:         c.CommonsFilesURL,
 		},
 		&WikipediaFilesCommand{
-			URL: c.WikipediaFilesURL,
+			SaveSkipped: c.WikidataSaveSkipped,
+			URL:         c.WikipediaFilesURL,
 		},
 		&CommonsCommand{
 			URL: c.CommonsURL,

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -14,6 +15,12 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/peerdb/search/internal/wikipedia"
+)
+
+var (
+	// Set of filenames.
+	skippedWikimediaCommonsFiles      = sync.Map{}
+	skippedWikimediaCommonsFilesCount int64
 )
 
 // CommonsCommand uses Wikimedia Commons entities dump as input and updates corresponding documents for each entity in the dump,
@@ -33,10 +40,16 @@ import (
 // pass, checking all references and setting true document names for English language (ID for language xx-* is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type CommonsCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
+	URL          string `placeholder:"URL" help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *CommonsCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedFiles, &skippedWikimediaCommonsFiles, &skippedWikimediaCommonsFilesCount)
+	if errE != nil {
+		return errE
+	}
+
 	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
 	if c.URL != "" {
 		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
@@ -69,6 +82,11 @@ func (c *CommonsCommand) processEntity(
 	filename := strings.TrimPrefix(entity.Title, "File:")
 	filename = strings.ReplaceAll(filename, " ", "_")
 	filename = wikipedia.FirstUpperCase(filename)
+
+	if _, ok := skippedWikimediaCommonsFiles.Load(filename); ok {
+		globals.Log.Debug().Str("file", filename).Str("entity", entity.ID).Msg("skipped file")
+		return nil
+	}
 
 	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
 	if err != nil {
@@ -136,7 +154,8 @@ func (c *CommonsCommand) processEntity(
 // want the latest information about files because we directly use files hosted on Wikimedia Commons by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type CommonsFilesCommand struct {
-	URL string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikimedia Commons files."`
+	URL         string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }
 
 func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
@@ -149,7 +168,11 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestCommonsImageMetadataRun
 	}
 
-	return filesCommandRun(globals, urlFunc, wikipedia.ConvertWikimediaCommonsImage)
+	return filesCommandRun(
+		globals, urlFunc,
+		c.SaveSkipped, &skippedWikimediaCommonsFiles, &skippedWikimediaCommonsFilesCount,
+		wikipedia.ConvertWikimediaCommonsImage,
+	)
 }
 
 // CommonsFileDescriptionsCommand uses Wikimedia Commons API as input to obtain and extract descriptions for files (namespace 6)
@@ -166,9 +189,16 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 // It accesses existing documents in ElasticSearch to load corresponding Wikimedia Commons entity's document which is then updated with
 // claims with the following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
 // ALSO_KNOWN_AS (from redirects pointing to the file).
-type CommonsFileDescriptionsCommand struct{}
+type CommonsFileDescriptionsCommand struct {
+	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
+}
 
 func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
+	errE := populateSkippedMap(c.SkippedFiles, &skippedWikimediaCommonsFiles, &skippedWikimediaCommonsFilesCount)
+	if errE != nil {
+		return errE
+	}
+
 	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
 	if errE != nil {
 		return errE
@@ -238,6 +268,11 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	filename = strings.ReplaceAll(filename, " ", "_")
 	// The first letter has to be upper case.
 	filename = wikipedia.FirstUpperCase(filename)
+
+	if _, ok := skippedWikimediaCommonsFiles.Load(filename); ok {
+		globals.Log.Debug().Str("file", filename).Str("title", page.Title).Msg("skipped file")
+		return nil
+	}
 
 	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
 	if err != nil {
@@ -320,11 +355,11 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 // ALSO_KNOWN_AS (from redirects pointing to the category), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsCategoriesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 }
 
 func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
-	errE := populateSkippedMap(c.SkippedWikidataEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
+	errE := populateSkippedMap(c.SkippedEntities, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
 	if errE != nil {
 		return errE
 	}
@@ -490,9 +525,9 @@ func (c *CommonsCategoriesCommand) processPage(
 // ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsTemplatesCommand struct {
-	SkippedWikidataEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
 }
 
 func (c *CommonsTemplatesCommand) Run(globals *Globals) errors.E {
-	return templatesCommandRun(globals, "commons.wikimedia.org", c.SkippedWikidataEntities, "WIKIMEDIA_COMMONS", "FROM_WIKIMEDIA_COMMONS")
+	return templatesCommandRun(globals, "commons.wikimedia.org", c.SkippedEntities, "WIKIMEDIA_COMMONS", "FROM_WIKIMEDIA_COMMONS")
 }
