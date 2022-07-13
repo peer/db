@@ -293,7 +293,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 
 	g.Go(func() error {
 		defer close(pages)
-		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, site, globals.Token, limiter, pages)
+		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, site, limiter, pages)
 	})
 
 	var count x.Counter
@@ -444,7 +444,7 @@ func templatesCommandProcessPage(
 func filesCommandRun(
 	globals *Globals,
 	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
-	saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
+	token string, apiLimit int, saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 ) errors.E {
 	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
@@ -463,7 +463,7 @@ func filesCommandRun(
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
 			return filesCommandProcessImage(
-				ctx, globals, httpClient, processor, skippedMap, skippedCount, i, convertImage,
+				ctx, globals, httpClient, processor, token, apiLimit, skippedMap, skippedCount, i, convertImage,
 			)
 		},
 		Progress:    config.Progress,
@@ -484,10 +484,10 @@ func filesCommandRun(
 
 func filesCommandProcessImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
-	skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
+	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 ) errors.E {
-	document, err := convertImage(ctx, globals.Log, httpClient, globals.Token, globals.APILimit, image)
+	document, err := convertImage(ctx, globals.Log, httpClient, token, apiLimit, image)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
