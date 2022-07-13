@@ -190,7 +190,8 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikimedia Commons entity's document which is then updated with
 // claims with the following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
-// ALSO_KNOWN_AS (from redirects pointing to the file).
+// ALSO_KNOWN_AS (from redirects pointing to the file), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the file is in),
+// USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsFileDescriptionsCommand struct {
 	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
 }
