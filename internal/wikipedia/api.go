@@ -47,6 +47,16 @@ type allPagesAPIResponse struct {
 	} `json:"query"`
 }
 
+func shallowCopy(in url.Values) url.Values {
+	out := url.Values{}
+
+	for key, value := range in {
+		out[key] = value
+	}
+
+	return out
+}
+
 func ListAllPages(
 	ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, site string, limiter *rate.Limiter, output chan<- AllPagesPage,
 ) errors.E {
@@ -54,20 +64,26 @@ func ListAllPages(
 	localLimiter := rate.NewLimiter(rate.Every(time.Second), 1)
 
 	for _, namespace := range namespaces {
-		data := url.Values{}
-		data.Set("action", "query")
-		data.Set("format", "json")
-		data.Set("formatversion", "2")
-		data.Set("generator", "allpages")
-		data.Set("gapnamespace", strconv.Itoa(namespace))
-		data.Set("gapfilterredir", "nonredirects")
-		data.Set("prop", "pageprops|categories|templates|redirects")
-		data.Set("gaplimit", strconv.Itoa(APILimit))
-		data.Set("cllimit", strconv.Itoa(APILimit))
-		data.Set("tllimit", strconv.Itoa(APILimit))
-		data.Set("rdlimit", strconv.Itoa(APILimit))
+		baseData := url.Values{}
+		baseData.Set("action", "query")
+		baseData.Set("format", "json")
+		baseData.Set("formatversion", "2")
+		baseData.Set("generator", "allpages")
+		baseData.Set("gapnamespace", strconv.Itoa(namespace))
+		baseData.Set("gapfilterredir", "nonredirects")
+		baseData.Set("prop", "pageprops|categories|templates|redirects")
+		baseData.Set("gaplimit", strconv.Itoa(APILimit))
+		baseData.Set("cllimit", strconv.Itoa(APILimit))
+		baseData.Set("tllimit", strconv.Itoa(APILimit))
+		baseData.Set("rdlimit", strconv.Itoa(APILimit))
+
+		// Make a copy.
+		data := shallowCopy(baseData)
 
 		var batch []AllPagesPage
+
+		// Used for debugging.
+		previousURL := ""
 
 		for {
 			err := localLimiter.Wait(ctx)
@@ -88,12 +104,18 @@ func ListAllPages(
 			if err != nil {
 				errE := errors.WithStack(err)
 				errors.Details(errE)["url"] = apiURL
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			}
 			resp, err := httpClient.Do(req)
 			if err != nil {
 				errE := errors.WithStack(err)
 				errors.Details(errE)["url"] = apiURL
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			}
 			defer resp.Body.Close()
@@ -103,6 +125,9 @@ func ListAllPages(
 				errors.Details(errE)["url"] = apiURL
 				errors.Details(errE)["code"] = resp.StatusCode
 				errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			}
 
@@ -113,12 +138,18 @@ func ListAllPages(
 			if err != nil {
 				errE := errors.WithStack(err)
 				errors.Details(errE)["url"] = apiURL
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			}
 			if apiResp.Error != nil {
 				errE := errors.New("response error")
 				errors.Details(errE)["url"] = apiURL
 				errors.Details(errE)["body"] = apiResp.Error
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			}
 
@@ -129,6 +160,9 @@ func ListAllPages(
 				errors.Details(errE)["url"] = apiURL
 				errors.Details(errE)["got"] = len(apiResp.Query.Pages)
 				errors.Details(errE)["expected"] = len(batch)
+				if previousURL != "" {
+					errors.Details(errE)["previous"] = previousURL
+				}
 				return errE
 			} else {
 				for i, page := range apiResp.Query.Pages {
@@ -160,12 +194,20 @@ func ListAllPages(
 				if !apiResp.BatchComplete {
 					errE := errors.New("batch incomplete without continue")
 					errors.Details(errE)["url"] = apiURL
+					if previousURL != "" {
+						errors.Details(errE)["previous"] = previousURL
+					}
 					return errE
 				}
 				break
 			}
 
+			previousURL = apiURL
+
 			for key, value := range apiResp.Continue {
+				// Make a copy.
+				data := shallowCopy(baseData)
+				// Because we are calling Set and not Add, the shallow copy above is enough.
 				data.Set(key, value)
 			}
 		}
