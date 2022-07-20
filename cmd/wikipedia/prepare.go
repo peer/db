@@ -104,7 +104,10 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	g.Go(func() error {
 		defer close(hits)
 
-		scroll := esClient.Scroll(globals.Index).Size(documentProcessingThreads * scrollingMultiplier).SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
+		scroll := esClient.Scroll(globals.Index).
+			Size(documentProcessingThreads*scrollingMultiplier).
+			Sort("_doc", true).
+			SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
 		for {
 			results, err := scroll.Do(ctx)
 			if errors.Is(err, io.EOF) {
