@@ -90,7 +90,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
-	func() {
+	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
 			globals.Log.Info().
