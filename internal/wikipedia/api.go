@@ -204,9 +204,9 @@ func ListAllPages(
 
 			previousURL = apiURL
 
+			// Make a copy.
+			data = shallowCopy(baseData)
 			for key, value := range apiResp.Continue {
-				// Make a copy.
-				data = shallowCopy(baseData)
 				// Because we are calling Set and not Add, the shallow copy above is enough.
 				data.Set(key, value)
 			}
