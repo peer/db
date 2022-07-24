@@ -36,8 +36,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -61,8 +60,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -86,8 +84,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -115,8 +112,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -139,8 +135,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -170,8 +165,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -208,8 +202,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -232,8 +225,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -244,8 +236,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -261,8 +252,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -293,8 +283,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -310,8 +299,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -327,8 +315,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -360,8 +347,7 @@ var claimTypes = []claimType{
 				`{
 					"properties": {
 						"_id": {
-							"type": "keyword",
-							"doc_values": false
+							"type": "keyword"
 						}
 					}
 				}`,
@@ -389,43 +375,6 @@ var claimTypes = []claimType{
 				"",
 				`{
 					"type": "keyword"
-				}`,
-			},
-		},
-	},
-	{
-		"list",
-		[]field{
-			{
-				"prop",
-				"_id",
-				`{
-					"properties": {
-						"_id": {
-							"type": "keyword",
-							"doc_values": false
-						}
-					}
-				}`,
-			},
-			{
-				"el",
-				"_id",
-				`{
-					"properties": {
-						"_id": {
-							"type": "keyword",
-							"doc_values": false
-						}
-					}
-				}`,
-			},
-			{
-				"list",
-				"",
-				`{
-					"type": "keyword",
-					"doc_values": false
 				}`,
 			},
 		},
