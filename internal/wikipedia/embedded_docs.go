@@ -50,7 +50,9 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 		details["entity"] = v.EntityIDs
 	}
 	details["claim"] = string(claimID)
-	details["ref"] = string(ref.ID)
+	if ref.ID != "" {
+		details["ref"] = string(ref.ID)
+	}
 	if name != "" {
 		details["name"] = name
 	}
