@@ -53,9 +53,11 @@ defineProps({
       >
         <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
       </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <iframe :srcdoc="claim.html?.en" class="w-full"></iframe>
-      </td>
+      <td
+        class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top"
+        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        v-html="claim.html?.en"
+      ></td>
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
@@ -70,21 +72,6 @@ defineProps({
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.string }}
-      </td>
-    </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
-  </template>
-  <template v-for="claim in properties.label" :key="claim._id">
-    <tr>
-      <td
-        class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-      >
-        label
-      </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.prop?.name?.en }}
       </td>
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
@@ -218,21 +205,6 @@ defineProps({
         <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
-    </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
-  </template>
-  <template v-for="claim in properties.is" :key="claim._id">
-    <tr>
-      <td
-        class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-      >
-        is
-      </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.to?._id } }" class="link">{{ claim.to?.name?.en }}</RouterLink>
-      </td>
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
