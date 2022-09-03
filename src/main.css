@@ -90,4 +90,12 @@
       right: -8%;
     }
   }
+
+  .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)) {
+    margin-top: 0;
+  }
+
+  .prose :where(.prose > section:last-child > :last-child):not(:where([class~="not-prose"] *)) {
+    margin-bottom: 0;
+  }
 }
