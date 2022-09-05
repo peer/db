@@ -219,7 +219,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	// TODO: Determine which operator should be the default?
 	// TODO: Make sure right analyzers are used for all fields.
 	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-	searchService := s.ESClient.Search("docs").FetchSource(false).Preference(getHost(req.RemoteAddr)).
+	searchService := s.ESClient.Search(s.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", idFromRequest(req)).From(0).Size(1000).TrackTotalHits(true) //nolint:gomnd
 	if sh.Text == "" {
 		matchQuery := elastic.NewMatchAllQuery()

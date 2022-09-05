@@ -30,6 +30,7 @@ func listen(config *Config) errors.E {
 	s := &search.Service{
 		ESClient:    esClient,
 		Log:         config.Log,
+		Index:       config.Index,
 		Development: development,
 	}
 

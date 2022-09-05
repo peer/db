@@ -49,6 +49,7 @@ type routes struct {
 type Service struct {
 	ESClient     *elastic.Client
 	Log          zerolog.Logger
+	Index        string
 	Development  string
 	Router       *Router
 	reverseProxy *httputil.ReverseProxy
