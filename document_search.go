@@ -191,6 +191,35 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	}
 }
 
+func (s *Service) getSearchService(req *http.Request) *elastic.SearchService {
+	return s.ESClient.Search(s.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
+		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true)
+}
+
+// TODO: Determine which operator should be the default?
+// TODO: Make sure right analyzers are used for all fields.
+// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
+func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
+	if sh.Text == "" {
+		return elastic.NewMatchAllQuery()
+	}
+
+	boolQuery := elastic.NewBoolQuery()
+	// TODO: Check which analyzer is used.
+	boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
+	for _, field := range []field{
+		{"active.id", "id"},
+		{"active.ref", "iri"},
+		{"active.text", "html.en"},
+		{"active.string", "string"},
+	} {
+		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
+		q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+		boolQuery = boolQuery.Should(elastic.NewNestedQuery(field.Prefix, q))
+	}
+	return boolQuery
+}
+
 // DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
@@ -216,30 +245,8 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	// TODO: Determine which operator should be the default?
-	// TODO: Make sure right analyzers are used for all fields.
-	// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-	searchService := s.ESClient.Search(s.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", idFromRequest(req)).From(0).Size(1000).TrackTotalHits(true) //nolint:gomnd
-	if sh.Text == "" {
-		matchQuery := elastic.NewMatchAllQuery()
-		searchService = searchService.Query(matchQuery)
-	} else {
-		boolQuery := elastic.NewBoolQuery()
-		// TODO: Check which analyzer is used.
-		boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
-		for _, field := range []field{
-			{"active.id", "id"},
-			{"active.ref", "iri"},
-			{"active.text", "html.en"},
-			{"active.string", "string"},
-		} {
-			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
-			boolQuery = boolQuery.Should(elastic.NewNestedQuery(field.Prefix, q))
-		}
-		searchService = searchService.Query(boolQuery)
-	}
+	searchService := s.getSearchService(req).From(0).Size(1000).Query(s.getSearchQuery(sh)) //nolint:gomnd
+
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
@@ -262,7 +269,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		"Total": {total},
 	}
 
-	// A special case. If reqest had only "s" parameter, we expose the query in the response.
+	// A special case. If request had only "s" parameter, we expose the query in the response.
 	if !req.Form.Has("q") {
 		metadata.Set("Query", url.PathEscape(sh.Text))
 	}
