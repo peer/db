@@ -69,11 +69,17 @@ make
 
 This will do multiple passes:
 
-- `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 0.5 days).
+- `wikidata` downloads Wikidata dump and imports data into search (70 GB download, runtime 2 days).
+- `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 1 day).
 - `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
-- `wikidata` downloads Wikidata dump (70GB) and imports data into search (runtime 2 days).
-- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump (2 GB) and imports file descriptions (runtime 1 hour)
-- `wikipedia-articles` downloads Wikipedia articles HTML dump (100GB) and imports articles (runtime 1 day)
+- `commons` (20 GB download, runtime 3 days)
+- `wikipedia-articles` downloads Wikipedia articles HTML dump and imports articles (100 GB download, runtime 0.5 days)
+- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions (2 GB download, runtime 1 hour)
+- `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions (2 GB download, runtime 1 hour)
+- `wikipedia-templates` uses API to fetch data about templates Wikipedia (runtime 0.5 days)
+- `commons-file-descriptions` uses API to fetch descriptions of Wikimedia Commons files (runtime 35 days)
+- `commons-categories` uses API to fetch data about categories Wikimedia Commons (runtime 4 days)
+- `commons-templates` uses API to fetch data about templates Wikimedia Commons (runtime 2.5 hours)
 - `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
 - `optimize` forces merging of ElasticSearch segments (few hours).
 
