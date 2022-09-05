@@ -22,7 +22,6 @@ import (
 	"github.com/andybalholm/brotli"
 	gddo "github.com/golang/gddo/httputil"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -73,8 +72,22 @@ func getHost(hostPort string) string {
 }
 
 // NotFound is a HTTP request handler which returns a 404 error to the client.
-func (s *Service) NotFound(w http.ResponseWriter, req *http.Request) {
-	http.NotFound(w, req)
+func (s *Service) NotFound(w http.ResponseWriter, req *http.Request, _ Params) {
+	// We do not use http.NotFound because http.StatusText(http.StatusNotFound)
+	// is different from what http.NotFound uses, and we want to use the same pattern.
+	s.error(w, req, http.StatusNotFound)
+}
+
+func (s *Service) MethodNotAllowed(w http.ResponseWriter, req *http.Request, _ Params) {
+	s.error(w, req, http.StatusMethodNotAllowed)
+}
+
+func (s *Service) NotAcceptable(w http.ResponseWriter, req *http.Request, _ Params) {
+	s.error(w, req, http.StatusNotAcceptable)
+}
+
+func (s *Service) error(w http.ResponseWriter, req *http.Request, code int) {
+	s.Router.Error(w, req, code)
 }
 
 func (s *Service) makeReverseProxy() errors.E {
@@ -99,19 +112,20 @@ func (s *Service) makeReverseProxy() errors.E {
 	return nil
 }
 
-func (s *Service) Proxy(w http.ResponseWriter, req *http.Request) {
+func (s *Service) Proxy(w http.ResponseWriter, req *http.Request, _ Params) {
 	s.reverseProxy.ServeHTTP(w, req)
 }
 
-func (s *Service) serveStaticFiles(router *httprouter.Router) errors.E {
+func (s *Service) serveStaticFiles(router *Router) errors.E {
 	for path := range compressedFiles[compressionIdentity] {
 		if path == "/index.html" {
 			continue
 		}
 
-		h := logHandlerAutoName(s.StaticFile)
-		router.Handle(http.MethodGet, path, h)
-		router.Handle(http.MethodHead, path, h)
+		name := autoName(s.StaticFile)
+		h := logHandlerName(name, s.StaticFile)
+		router.Handle(name, http.MethodGet, "", path, h)
+		router.Handle(name, http.MethodHead, "", path, h)
 	}
 
 	return nil
@@ -134,7 +148,7 @@ func (s *Service) internalServerError(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	http.Error(w, "500 internal server error", http.StatusInternalServerError)
+	s.error(w, req, http.StatusInternalServerError)
 }
 
 func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err interface{}) {
@@ -153,7 +167,7 @@ func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err inte
 		return c.Interface("panic", err)
 	})
 
-	http.Error(w, "500 internal server error", http.StatusInternalServerError)
+	s.error(w, req, http.StatusInternalServerError)
 }
 
 func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err errors.E) {
@@ -162,7 +176,7 @@ func (s *Service) badRequest(w http.ResponseWriter, req *http.Request, err error
 		return c.Err(err).Fields(errors.AllDetails(err))
 	})
 
-	http.Error(w, "400 bad request", http.StatusBadRequest)
+	s.error(w, req, http.StatusBadRequest)
 }
 
 // TODO: Use a pool of compression workers?
@@ -278,7 +292,7 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(encoded))
 }
 
-func (s *Service) StaticFile(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) StaticFile(w http.ResponseWriter, req *http.Request, _ Params) {
 	s.staticFile(w, req, req.URL.Path, true)
 }
 
@@ -401,34 +415,4 @@ func (c *metricsConn) Write(b []byte) (int, error) {
 	n, err := c.Conn.Write(b)
 	atomic.AddInt64(c.written, int64(n))
 	return n, err
-}
-
-type contentTypeMux struct {
-	HTML func(http.ResponseWriter, *http.Request, httprouter.Params)
-	JSON func(http.ResponseWriter, *http.Request, httprouter.Params)
-}
-
-func (m contentTypeMux) IsEmpty() bool {
-	return m.HTML == nil && m.JSON == nil
-}
-
-func (m contentTypeMux) Handle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	offers := []string{}
-	if m.HTML != nil {
-		offers = append(offers, "text/html")
-	}
-	if m.JSON != nil {
-		offers = append(offers, "application/json")
-	}
-
-	contentType := gddo.NegotiateContentType(req, offers, offers[0])
-
-	w.Header().Add("Vary", "Accept")
-
-	switch contentType {
-	case "text/html":
-		m.HTML(w, req, ps)
-	case "application/json":
-		m.JSON(w, req, ps)
-	}
 }

@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	gddo "github.com/golang/gddo/httputil"
-	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
@@ -152,7 +151,7 @@ type searchResult struct {
 
 // DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
 // If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -161,7 +160,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.path("DocumentSearch", nil, sh.Encode())
+		path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
 		if err != nil {
 			s.internalServerError(w, req, err)
 			return
@@ -173,7 +172,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 		return
 	} else if !req.Form.Has("q") {
 		// "q" is missing, so we redirect to the correct URL.
-		path, err := s.path("DocumentSearch", nil, sh.EncodeWithAt(req.Form.Get("at")))
+		path, err := s.Router.Path("DocumentSearch", nil, sh.EncodeWithAt(req.Form.Get("at")))
 		if err != nil {
 			s.internalServerError(w, req, err)
 			return
@@ -186,7 +185,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	}
 
 	if s.Development != "" {
-		s.Proxy(w, req)
+		s.Proxy(w, req, nil)
 	} else {
 		s.staticFile(w, req, "/index.html", false)
 	}
@@ -196,7 +195,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
@@ -273,14 +272,14 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 
 // DocumentSearchPostHTML is a POST HTTP request handler which stores the search state and redirect to
 // the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Request, _ Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
 	sh := makeSearch(req.Form)
 	m.Stop()
-	path, err := s.path("DocumentSearch", nil, sh.Encode())
+	path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
 	if err != nil {
 		s.internalServerError(w, req, err)
 		return
@@ -295,7 +294,7 @@ func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Reques
 
 // DocumentSearchPostJSON is a POST HTTP request handler which stores the search state and returns
 // query parameters for the GET endpoint as JSON.
-func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)

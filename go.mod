@@ -9,7 +9,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.3-0.20220424144836-ef9fc62cdc3c
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/julienschmidt/httprouter v1.3.0
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-colorable v0.1.12
 	github.com/mitchellh/go-server-timing v1.0.1

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	gddo "github.com/golang/gddo/httputil"
-	"github.com/julienschmidt/httprouter"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
@@ -23,11 +22,11 @@ import (
 
 // DocumentGetGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
-func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, params Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := ps.ByName("id")
+	id := params["id"]
 	if !identifier.Valid(id) {
 		http.Error(w, "400 bad request", http.StatusBadRequest)
 		return
@@ -40,7 +39,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
-			path, err := s.path("DocumentGet", url.Values{"id": {id}}, "")
+			path, err := s.Router.Path("DocumentGet", Params{"id": id}, "")
 			if err != nil {
 				s.internalServerError(w, req, err)
 				return
@@ -52,7 +51,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 			return
 		} else if req.Form.Has("q") {
 			// We redirect to the URL without "q".
-			path, err := s.path("DocumentGet", url.Values{"id": {id}}, url.Values{"s": {sh.ID}}.Encode())
+			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"s": {sh.ID}}.Encode())
 			if err != nil {
 				s.internalServerError(w, req, err)
 				return
@@ -78,7 +77,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 	})
 	m.Stop()
 	if elastic.IsNotFound(err) {
-		s.NotFound(w, req)
+		s.NotFound(w, req, nil)
 		return
 	} else if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))
@@ -86,7 +85,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 	}
 
 	if s.Development != "" {
-		s.Proxy(w, req)
+		s.Proxy(w, req, nil)
 	} else {
 		s.staticFile(w, req, "/index.html", false)
 	}
@@ -94,7 +93,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 
 // DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
 	if contentEncoding == "" {
 		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
@@ -104,7 +103,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := ps.ByName("id")
+	id := params["id"]
 	if !identifier.Valid(id) {
 		http.Error(w, "400 bad request", http.StatusBadRequest)
 		return
@@ -124,7 +123,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 	})
 	m.Stop()
 	if elastic.IsNotFound(err) {
-		s.NotFound(w, req)
+		s.NotFound(w, req, nil)
 		return
 	} else if err != nil {
 		s.internalServerError(w, req, errors.WithStack(err))

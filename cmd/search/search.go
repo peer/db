@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/julienschmidt/httprouter"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search"
@@ -34,7 +33,7 @@ func listen(config *Config) errors.E {
 		Development: development,
 	}
 
-	router := httprouter.New()
+	router := search.NewRouter()
 	handler, err := s.RouteWith(router, cli.Version)
 	if err != nil {
 		return err

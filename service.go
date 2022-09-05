@@ -11,14 +11,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/felixge/httpsnoop"
-	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
@@ -52,8 +50,8 @@ type Service struct {
 	ESClient     *elastic.Client
 	Log          zerolog.Logger
 	Development  string
+	Router       *Router
 	reverseProxy *httputil.ReverseProxy
-	routes       map[string][]pathSegment
 }
 
 func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {
@@ -174,60 +172,32 @@ func contentEncodingHandler(fieldKey string) func(next http.Handler) http.Handle
 	}
 }
 
-func logHandlerName(name string, h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+func logHandlerName(name string, h Handler) Handler {
 	if name == "" {
 		return h
 	}
 
-	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	return func(w http.ResponseWriter, req *http.Request, params Params) {
 		log := zerolog.Ctx(req.Context())
 		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 			return c.Str(zerolog.MessageFieldName, name)
 		})
-		h(w, req, ps)
+		h(w, req, params)
 	}
 }
 
-func logHandlerAutoName(h func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
-	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
+func autoName(h Handler) string {
+	fn := runtime.FuncForPC(reflect.ValueOf(h).Pointer())
+	if fn == nil {
+		return ""
+	}
+	name := fn.Name()
 	i := strings.LastIndex(name, ".")
 	if i != -1 {
 		name = name[i+1:]
 	}
 	name = strings.TrimSuffix(name, "-fm")
-
-	if name == "" {
-		return h
-	}
-
-	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		log := zerolog.Ctx(req.Context())
-		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-			return c.Str(zerolog.MessageFieldName, name)
-		})
-		h(w, req, ps)
-	}
-}
-
-func logHandlerAutoNameNoParams(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
-	i := strings.LastIndex(name, ".")
-	if i != -1 {
-		name = name[i+1:]
-	}
-	name = strings.TrimSuffix(name, "-fm")
-
-	if name == "" {
-		return h
-	}
-
-	return func(w http.ResponseWriter, req *http.Request) {
-		log := zerolog.Ctx(req.Context())
-		log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-			return c.Str(zerolog.MessageFieldName, name)
-		})
-		h(w, req)
-	}
+	return name
 }
 
 // accessHandler is similar to hlog.accessHandler, but it uses github.com/felixge/httpsnoop.
@@ -312,7 +282,9 @@ func websocketHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
+// TODO: Move to Router struct, accepting interface{} as an object on which to search for handlers.
+
+func (s *Service) configureRoutes(router *Router) errors.E {
 	var rs routes
 	errE := x.UnmarshalWithoutUnknownFields(routesConfiguration, &rs)
 	if errE != nil {
@@ -323,18 +295,18 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 
 	for _, route := range rs.Routes {
 		foundGet := false
+		foundAnyHandler := false
 		for _, method := range []string{http.MethodGet, http.MethodPost} {
-			mux := contentTypeMux{}
-			vm := reflect.ValueOf(&mux)
-			for _, contentType := range []string{"HTML", "JSON"} {
-				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentType) //nolint:staticcheck
+			for contentTypeSuffix, contentType := range map[string]string{"HTML": "text/html", "JSON": "application/json"} {
+				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentTypeSuffix) //nolint:staticcheck
 				m := v.MethodByName(handlerName)
 				if !m.IsValid() {
 					s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler not found")
 					continue
 				}
 				s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler found")
-				h, ok := m.Interface().(func(http.ResponseWriter, *http.Request, httprouter.Params))
+				// We cannot use Handler here because it is a named type.
+				h, ok := m.Interface().(func(http.ResponseWriter, *http.Request, Params))
 				if !ok {
 					errE := errors.Errorf("invalid route handler type: %T", m.Interface())
 					errors.Details(errE)["handler"] = handlerName
@@ -343,16 +315,24 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 					return errE
 				}
 				h = logHandlerName(handlerName, h)
-				vf := vm.Elem().FieldByName(contentType)
-				vf.Set(reflect.ValueOf(h))
-			}
-			if mux.IsEmpty() {
-				continue
-			}
-			router.Handle(method, route.Path, mux.Handle)
-			if method == http.MethodGet {
-				foundGet = true
-				router.Handle(http.MethodHead, route.Path, mux.Handle)
+				errE := router.Handle(route.Name, method, contentType, route.Path, h)
+				if errE != nil {
+					errors.Details(errE)["handler"] = handlerName
+					errors.Details(errE)["name"] = route.Name
+					errors.Details(errE)["path"] = route.Path
+					return errE
+				}
+				foundAnyHandler = true
+				if method == http.MethodGet {
+					foundGet = true
+					errE := router.Handle(route.Name, http.MethodHead, contentType, route.Path, h)
+					if errE != nil {
+						errors.Details(errE)["handler"] = handlerName
+						errors.Details(errE)["name"] = route.Name
+						errors.Details(errE)["path"] = route.Path
+						return errE
+					}
+				}
 			}
 		}
 		if !foundGet {
@@ -361,23 +341,22 @@ func (s *Service) configureRoutes(router *httprouter.Router) errors.E {
 			errors.Details(errE)["path"] = route.Path
 			return errE
 		}
-
-		s.routes[route.Name] = parsePath(route.Path)
+		if !foundAnyHandler {
+			errE := errors.Errorf("no route handler found")
+			errors.Details(errE)["name"] = route.Name
+			errors.Details(errE)["path"] = route.Path
+			return errE
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) RouteWith(router *httprouter.Router, version string) (http.Handler, errors.E) {
-	if s.routes != nil {
+func (s *Service) RouteWith(router *Router, version string) (http.Handler, errors.E) {
+	if s.Router != nil {
 		panic(errors.New("RouteWith called more than once"))
 	}
-
-	s.routes = make(map[string][]pathSegment)
-
-	router.RedirectTrailingSlash = true
-	router.RedirectFixedPath = true
-	router.HandleMethodNotAllowed = true
+	s.Router = router
 
 	errE := s.configureRoutes(router)
 	if errE != nil {
@@ -389,7 +368,9 @@ func (s *Service) RouteWith(router *httprouter.Router, version string) (http.Han
 		if errE != nil {
 			return nil, errE
 		}
-		router.NotFound = http.HandlerFunc(logHandlerAutoNameNoParams(s.Proxy))
+		router.NotFound = logHandlerName(autoName(s.Proxy), s.Proxy)
+		router.MethodNotAllowed = logHandlerName(autoName(s.Proxy), s.Proxy)
+		router.NotAcceptable = logHandlerName(autoName(s.Proxy), s.Proxy)
 	} else {
 		// TODO: Convert index.html into a template to be able to inject data it.
 		errE := compressFiles()
@@ -404,9 +385,11 @@ func (s *Service) RouteWith(router *httprouter.Router, version string) (http.Han
 		if errE != nil {
 			return nil, errE
 		}
-		router.NotFound = http.HandlerFunc(logHandlerAutoNameNoParams(s.NotFound))
+		router.NotFound = logHandlerName(autoName(s.NotFound), s.NotFound)
+		router.MethodNotAllowed = logHandlerName(autoName(s.MethodNotAllowed), s.MethodNotAllowed)
+		router.NotAcceptable = logHandlerName(autoName(s.NotAcceptable), s.NotAcceptable)
 	}
-	router.PanicHandler = s.handlePanic
+	router.Panic = s.handlePanic
 
 	c := alice.New()
 
@@ -458,74 +441,6 @@ func (s *Service) RouteWith(router *httprouter.Router, version string) (http.Han
 	c = c.Append(urlHandler("path", "query"))
 
 	return c.Then(router), nil
-}
-
-type pathSegment struct {
-	Value     string
-	Parameter bool
-	Optional  bool
-}
-
-func parsePath(path string) []pathSegment {
-	parts := strings.Split(path, "/")
-	segments := []pathSegment{}
-	for _, part := range parts {
-		if part == "" {
-			continue
-		}
-		var segment pathSegment
-		if strings.HasPrefix(part, ":") {
-			segment.Value = strings.TrimPrefix(part, ":")
-			segment.Parameter = true
-			segment.Optional = false
-		} else if strings.HasPrefix(part, "*") {
-			segment.Value = strings.TrimPrefix(part, "*")
-			segment.Parameter = true
-			segment.Optional = true
-		} else {
-			segment.Value = part
-		}
-		segments = append(segments, segment)
-	}
-	return segments
-}
-
-func (s *Service) path(name string, params url.Values, query string) (string, errors.E) {
-	segments, ok := s.routes[name]
-	if !ok {
-		return "", errors.Errorf(`route with name "%s" does not exist`, name)
-	}
-
-	var res strings.Builder
-	for _, segment := range segments {
-		if !segment.Parameter {
-			res.WriteString("/")
-			res.WriteString(segment.Value)
-			continue
-		}
-
-		val := params.Get(segment.Value)
-		if val != "" {
-			res.WriteString("/")
-			res.WriteString(val)
-			continue
-		}
-
-		if !segment.Optional {
-			return "", errors.Errorf(`parameter "%s" for route "%s" is required`, segment.Value, name)
-		}
-	}
-
-	if res.Len() == 0 {
-		res.WriteString("/")
-	}
-
-	if query != "" {
-		res.WriteString("?")
-		res.WriteString(query)
-	}
-
-	return res.String(), nil
 }
 
 func compressFiles() errors.E {
