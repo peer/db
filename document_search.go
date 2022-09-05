@@ -205,6 +205,7 @@ func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
 	}
 
 	boolQuery := elastic.NewBoolQuery()
+	boolQuery = boolQuery.Should(elastic.NewTermQuery("_id", sh.Text))
 	// TODO: Check which analyzer is used.
 	boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
 	for _, field := range []field{
