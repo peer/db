@@ -28,7 +28,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 
 	id := params["id"]
 	if !identifier.Valid(id) {
-		http.Error(w, "400 bad request", http.StatusBadRequest)
+		s.BadRequest(w, req, nil)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
 			path, err := s.Router.Path("DocumentGet", Params{"id": id}, "")
 			if err != nil {
-				s.internalServerError(w, req, err)
+				s.internalServerErrorWithError(w, req, err)
 				return
 			}
 			// TODO: Should we already do the query, to warm up ES cache?
@@ -53,7 +53,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 			// We redirect to the URL without "q".
 			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"s": {sh.ID}}.Encode())
 			if err != nil {
-				s.internalServerError(w, req, err)
+				s.internalServerErrorWithError(w, req, err)
 				return
 			}
 			// TODO: Should we already do the query, to warm up ES cache?
@@ -80,7 +80,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		s.NotFound(w, req, nil)
 		return
 	} else if err != nil {
-		s.internalServerError(w, req, errors.WithStack(err))
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -96,7 +96,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
 	if contentEncoding == "" {
-		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		s.NotAcceptable(w, req, nil)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 
 	id := params["id"]
 	if !identifier.Valid(id) {
-		http.Error(w, "400 bad request", http.StatusBadRequest)
+		s.BadRequest(w, req, nil)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 		s.NotFound(w, req, nil)
 		return
 	} else if err != nil {
-		s.internalServerError(w, req, errors.WithStack(err))
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 

@@ -162,7 +162,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 		// Something was not OK, so we redirect to the correct URL.
 		path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
 		if err != nil {
-			s.internalServerError(w, req, err)
+			s.internalServerErrorWithError(w, req, err)
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
@@ -174,7 +174,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 		// "q" is missing, so we redirect to the correct URL.
 		path, err := s.Router.Path("DocumentSearch", nil, sh.EncodeWithAt(req.Form.Get("at")))
 		if err != nil {
-			s.internalServerError(w, req, err)
+			s.internalServerErrorWithError(w, req, err)
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
@@ -198,7 +198,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
-		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		s.NotAcceptable(w, req, nil)
 		return
 	}
 
@@ -244,7 +244,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerError(w, req, errors.WithStack(err))
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -281,7 +281,7 @@ func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Reques
 	m.Stop()
 	path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
 	if err != nil {
-		s.internalServerError(w, req, err)
+		s.internalServerErrorWithError(w, req, err)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Reques
 func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
-		http.Error(w, "406 not acceptable", http.StatusNotAcceptable)
+		s.NotAcceptable(w, req, nil)
 		return
 	}
 
