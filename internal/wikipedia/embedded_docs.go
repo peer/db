@@ -199,14 +199,9 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
 		return nil, v.makeError(err, ref, claimID)
 	}
 
-	res := &search.DocumentReference{
-		ID:     document.ID,
-		Name:   document.Name,
-		Score:  document.Score,
-		Scores: document.Scores,
-	}
+	res := document.Reference()
 
-	return res, nil
+	return &res, nil
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {

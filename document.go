@@ -57,6 +57,15 @@ type Document struct {
 	Inactive *ClaimTypes `json:"inactive,omitempty"`
 }
 
+func (d Document) Reference() DocumentReference {
+	return DocumentReference{
+		ID:     d.ID,
+		Name:   d.Name,
+		Score:  d.Score,
+		Scores: d.Scores,
+	}
+}
+
 func (d *Document) Visit(visitor visitor) errors.E {
 	if d.Active != nil {
 		err := d.Active.Visit(visitor)

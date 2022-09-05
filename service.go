@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net"
@@ -47,12 +48,30 @@ type routes struct {
 }
 
 type Service struct {
-	ESClient     *elastic.Client
-	Log          zerolog.Logger
-	Index        string
-	Development  string
-	Router       *Router
-	reverseProxy *httputil.ReverseProxy
+	ESClient        *elastic.Client
+	Log             zerolog.Logger
+	Index           string
+	Development     string
+	Router          *Router
+	reverseProxy    *httputil.ReverseProxy
+	properties      json.RawMessage
+	propertiesTotal string
+}
+
+func NewService(esClient *elastic.Client, log zerolog.Logger, index, development string) (*Service, errors.E) {
+	s := &Service{
+		ESClient:    esClient,
+		Log:         log,
+		Index:       index,
+		Development: development,
+	}
+
+	err := s.populateProperties(context.Background())
+	if err != nil {
+		return s, err
+	}
+
+	return s, nil
 }
 
 func connectionIDHandler(fieldKey string) func(next http.Handler) http.Handler {

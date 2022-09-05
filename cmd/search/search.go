@@ -27,11 +27,9 @@ func listen(config *Config) errors.E {
 		development = ""
 	}
 
-	s := &search.Service{
-		ESClient:    esClient,
-		Log:         config.Log,
-		Index:       config.Index,
-		Development: development,
+	s, err := search.NewService(esClient, config.Log, config.Index, development)
+	if err != nil {
+		return err
 	}
 
 	router := search.NewRouter()
