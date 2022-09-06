@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
@@ -255,6 +256,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	results := make([]searchResult, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {
