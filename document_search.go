@@ -16,6 +16,10 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
+const (
+	maxResultsCount = 1000
+)
+
 // search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
@@ -247,7 +251,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	searchService := s.getSearchService(req).From(0).Size(1000).Query(s.getSearchQuery(sh)) //nolint:gomnd
+	searchService := s.getSearchService(req).From(0).Size(maxResultsCount).Query(s.getSearchQuery(sh))
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
