@@ -12,6 +12,8 @@ import (
 	"gitlab.com/tozd/go/x"
 )
 
+// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange").
+
 func (s *Service) populateProperties(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
 		elastic.NewTermQuery("active.rel.prop._id", "2fjzZyP7rv8E4aHnBc6KAa"),
