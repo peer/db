@@ -10,7 +10,11 @@
     },
     {
       "name": "DocumentSearchFilters",
-      "path": "/d/filters/:id"
+      "path": "/d/filters/:s"
+    },
+    {
+      "name": "DocumentSearchFilterGet",
+      "path": "/d/filters/:s/:prop"
     },
     {
       "name": "DocumentGet",
