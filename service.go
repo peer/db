@@ -48,14 +48,15 @@ type routes struct {
 }
 
 type Service struct {
-	ESClient        *elastic.Client
-	Log             zerolog.Logger
-	Index           string
-	Development     string
-	Router          *Router
-	reverseProxy    *httputil.ReverseProxy
-	properties      json.RawMessage
-	propertiesTotal string
+	ESClient           *elastic.Client
+	Log                zerolog.Logger
+	Index              string
+	Development        string
+	Router             *Router
+	reverseProxy       *httputil.ReverseProxy
+	properties         json.RawMessage
+	propertiesTotal    string
+	propertiesTotalInt int
 }
 
 func NewService(esClient *elastic.Client, log zerolog.Logger, index, development string) (*Service, errors.E) {

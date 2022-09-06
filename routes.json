@@ -5,6 +5,10 @@
       "path": "/d"
     },
     {
+      "name": "DocumentSearchFilters",
+      "path": "/d/filters/:id"
+    },
+    {
       "name": "DocumentGet",
       "path": "/d/:id"
     },

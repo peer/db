@@ -57,6 +57,7 @@ func (s *Service) populateProperties(ctx context.Context) errors.E {
 
 	s.properties = encoded
 	s.propertiesTotal = total
+	s.propertiesTotalInt = len(results)
 
 	return nil
 }
