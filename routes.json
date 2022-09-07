@@ -5,10 +5,6 @@
       "path": "/d"
     },
     {
-      "name": "DocumentSearchProperties",
-      "path": "/d/properties"
-    },
-    {
       "name": "DocumentSearchFilters",
       "path": "/d/filters/:s"
     },

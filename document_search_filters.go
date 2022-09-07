@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -13,6 +14,25 @@ import (
 
 	"gitlab.com/peerdb/search/identifier"
 )
+
+// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
+
+func (s *Service) populateProperties(ctx context.Context) errors.E {
+	boolQuery := elastic.NewBoolQuery().Must(
+		elastic.NewTermQuery("active.rel.prop._id", "2fjzZyP7rv8E4aHnBc6KAa"),
+		elastic.NewTermQuery("active.rel.to._id", "HohteEmv2o7gPRnJ5wukVe"),
+	)
+	query := elastic.NewNestedQuery("active.rel", boolQuery)
+
+	total, err := s.ESClient.Count(s.Index).Query(query).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	s.propertiesTotal = total
+
+	return nil
+}
 
 type propsAggregations struct {
 	Props struct {
@@ -65,7 +85,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotalInt,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*int64(s.propertiesTotalInt)),
+		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*s.propertiesTotal),
 	)
 	searchService := s.getSearchService(req).Size(0).Query(query).Aggregation("rel", aggregation)
 

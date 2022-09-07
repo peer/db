@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net"
@@ -48,15 +47,13 @@ type routes struct {
 }
 
 type Service struct {
-	ESClient           *elastic.Client
-	Log                zerolog.Logger
-	Index              string
-	Development        string
-	Router             *Router
-	reverseProxy       *httputil.ReverseProxy
-	properties         json.RawMessage
-	propertiesTotal    string
-	propertiesTotalInt int
+	ESClient        *elastic.Client
+	Log             zerolog.Logger
+	Index           string
+	Development     string
+	Router          *Router
+	reverseProxy    *httputil.ReverseProxy
+	propertiesTotal int64
 }
 
 func NewService(esClient *elastic.Client, log zerolog.Logger, index, development string) (*Service, errors.E) {
