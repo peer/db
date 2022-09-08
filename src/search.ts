@@ -48,15 +48,95 @@ function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, 
   assert(limit <= results.length, `${limit} <= ${results.length}`)
   for (let i = docs.value.length; i < limit; i++) {
     docs.value.push(results[i])
-    getDocument(router, results[i]._id, progress, abortSignal).then((data) => {
+    getDocument(router, results[i], progress, abortSignal).then((data) => {
       docs.value[i] = data
     })
   }
 }
 
+function getSearchPath(params: string): string {
+  const router = useRouter()
+
+  return router.resolve({ name: "DocumentSearch" }).href + "?" + params
+}
+
 export function useSearch(
   progress: Ref<number>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+): {
+  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  results: DeepReadonly<Ref<SearchResult[]>>
+  total: DeepReadonly<Ref<number>>
+  moreThanTotal: DeepReadonly<Ref<boolean>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const route = useRoute()
+
+  return useResults(
+    progress,
+    () => {
+      const params = new URLSearchParams()
+      if (Array.isArray(route.query.s)) {
+        if (route.query.s[0] != null) {
+          params.set("s", route.query.s[0])
+        }
+      } else if (route.query.s != null) {
+        params.set("s", route.query.s)
+      }
+      if (Array.isArray(route.query.q)) {
+        if (route.query.q[0] != null) {
+          params.set("q", route.query.q[0])
+        }
+      } else if (route.query.q != null) {
+        params.set("q", route.query.q)
+      }
+      return params.toString()
+    },
+    getSearchPath,
+    redirect,
+  )
+}
+
+export function useFilters(progress: Ref<number>): {
+  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  results: DeepReadonly<Ref<SearchResult[]>>
+  total: DeepReadonly<Ref<number>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  return useResults(
+    progress,
+    () => {
+      if (Array.isArray(route.query.s)) {
+        if (route.query.s[0] != null) {
+          return route.query.s[0]
+        }
+      } else if (route.query.s != null) {
+        return route.query.s
+      }
+      return ""
+    },
+    (params) => {
+      return router.resolve({
+        name: "DocumentSearchFilters",
+        params: {
+          s: params,
+        },
+      }).href
+    },
+    null,
+  )
+}
+
+function useResults(
+  progress: Ref<number>,
+  getParams: () => string,
+  getPath: (params: string) => string,
+  redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
@@ -85,38 +165,19 @@ export function useSearch(
 
   const initialRouteName = route.name
   watch(
-    () => {
-      const params = new URLSearchParams()
-      if (Array.isArray(route.query.s)) {
-        if (route.query.s[0] != null) {
-          params.set("s", route.query.s[0])
-        }
-      } else {
-        if (route.query.s != null) {
-          params.set("s", route.query.s)
-        }
-      }
-      if (Array.isArray(route.query.q)) {
-        if (route.query.q[0] != null) {
-          params.set("q", route.query.q[0])
-        }
-      } else {
-        if (route.query.q != null) {
-          params.set("q", route.query.q)
-        }
-      }
-      return params.toString()
-    },
-    async (query, oldQuery, onCleanup) => {
+    getParams,
+    async (params, oldParams, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearch(router, query, progress, controller.signal)
+      const data = await getResults(getPath, params, progress, controller.signal)
       if (!("results" in data)) {
-        await redirect(data)
+        if (redirect) {
+          await redirect(data)
+        }
         return
       }
       _results.value = data.results
@@ -154,33 +215,26 @@ export function useSearch(
   }
 }
 
-async function getSearch(
-  router: Router,
-  query: string,
+async function getResults(
+  getPath: (query: string) => string,
+  params: string,
   progress: Ref<number>,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
   progress.value += 1
   try {
-    const response = await fetch(
-      router.resolve({
-        name: "DocumentSearch",
-      }).href +
-        "?" +
-        query,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-        mode: "same-origin",
-        credentials: "omit",
-        redirect: "error",
-        referrer: document.location.href,
-        referrerPolicy: "strict-origin-when-cross-origin",
-        signal: abortSignal,
+    const response = await fetch(getPath(params), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
       },
-    )
+      mode: "same-origin",
+      credentials: "omit",
+      redirect: "error",
+      referrer: document.location.href,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
+    })
     if (!response.ok) {
       throw new Error(`fetch error ${response.status}: ${await response.text()}`)
     }
@@ -204,14 +258,14 @@ async function getSearch(
   }
 }
 
-export async function getDocument(router: Router, id: string, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
+export async function getDocument(router: Router, result: SearchResult, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
   progress.value += 1
   try {
     const response = await fetch(
       router.resolve({
         name: "DocumentGet",
         params: {
-          id,
+          id: result._id,
         },
       }).href,
       {
@@ -231,8 +285,9 @@ export async function getDocument(router: Router, id: string, progress: Ref<numb
       throw new Error(`fetch error ${response.status}: ${await response.text()}`)
     }
     const doc = await response.json()
-    // TODO: JSON response should include _id field, but until then we add it here.
-    doc._id = id
+    // We add any extra fields from the result (e.g., _count).
+    // This also adds _id if it is not already present.
+    Object.assign(doc, result)
     return doc
   } finally {
     progress.value -= 1
@@ -246,7 +301,6 @@ export function useSearchState(
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<{ s?: string; at?: string; q?: string }>>
 } {
-  const router = useRouter()
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
@@ -277,13 +331,13 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearch(router, params.toString(), progress, controller.signal)
+      const data = await getResults(getSearchPath, params.toString(), progress, controller.signal)
       if (!("results" in data)) {
         await redirect(data)
         return
       }
       _results.value = data.results
-      // We know it is available because we the query is without "q" parameter.
+      // We know it is available because the query is without "q" parameter.
       _query.value = {
         s,
         // We set "at" here to undefined so that we control its order in the query string.
