@@ -34,7 +34,7 @@ watch(
     const controller = new AbortController()
     onCleanup(() => controller.abort())
 
-    getDocument(router, id, dataProgress, controller.signal).then((data) => {
+    getDocument(router, { _id: id }, dataProgress, controller.signal).then((data) => {
       _doc.value = data
     })
   },

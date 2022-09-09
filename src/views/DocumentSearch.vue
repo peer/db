@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
       </div>
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <FiltersResult v-for="doc in filtersDocs" :key="doc._id" :doc="doc" />
+        <FiltersResult v-for="doc in filtersDocs" :key="doc._id" :property="doc" />
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersDataProgress" class="self-center" @click="filtersLoadMore">More filters</Button>
       </template>
     </div>

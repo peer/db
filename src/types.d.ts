@@ -1,5 +1,6 @@
 export type SearchResult = {
   _id: string
+  _count?: number
 }
 
 // TODO: Define the document better.

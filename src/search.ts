@@ -54,9 +54,7 @@ function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, 
   }
 }
 
-function getSearchPath(params: string): string {
-  const router = useRouter()
-
+function getSearchURL(router: Router, params: string): string {
   return router.resolve({ name: "DocumentSearch" }).href + "?" + params
 }
 
@@ -71,6 +69,7 @@ export function useSearch(
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
 } {
+  const router = useRouter()
   const route = useRoute()
 
   return useResults(
@@ -91,9 +90,8 @@ export function useSearch(
       } else if (route.query.q != null) {
         params.set("q", route.query.q)
       }
-      return params.toString()
+      return getSearchURL(router, params.toString())
     },
-    getSearchPath,
     redirect,
   )
 }
@@ -111,20 +109,19 @@ export function useFilters(progress: Ref<number>): {
   return useResults(
     progress,
     () => {
+      let s
       if (Array.isArray(route.query.s)) {
-        if (route.query.s[0] != null) {
-          return route.query.s[0]
-        }
-      } else if (route.query.s != null) {
-        return route.query.s
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
       }
-      return ""
-    },
-    (params) => {
+      if (!s) {
+        return null
+      }
       return router.resolve({
         name: "DocumentSearchFilters",
         params: {
-          s: params,
+          s,
         },
       }).href
     },
@@ -134,8 +131,7 @@ export function useFilters(progress: Ref<number>): {
 
 function useResults(
   progress: Ref<number>,
-  getParams: () => string,
-  getPath: (params: string) => string,
+  getURL: () => string | null,
   redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
@@ -165,16 +161,29 @@ function useResults(
 
   const initialRouteName = route.name
   watch(
-    getParams,
-    async (params, oldParams, onCleanup) => {
+    getURL,
+    async (url, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
+      if (!url) {
+        _docs.value = []
+        _results.value = []
+        _total.value = -1
+        _moreThanTotal.value = false
+        _hasMore.value = false
+        return
+      }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(getPath, params, progress, controller.signal)
+      const data = await getResults(url, progress, controller.signal)
       if (!("results" in data)) {
+        _docs.value = []
+        _results.value = []
+        _total.value = -1
+        _moreThanTotal.value = false
+        _hasMore.value = false
         if (redirect) {
           await redirect(data)
         }
@@ -216,14 +225,13 @@ function useResults(
 }
 
 async function getResults(
-  getPath: (query: string) => string,
-  params: string,
+  url: string,
   progress: Ref<number>,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
   progress.value += 1
   try {
-    const response = await fetch(getPath(params), {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -250,9 +258,8 @@ async function getResults(
         res.query = query
       }
       return res
-    } else {
-      return data
     }
+    return data
   } finally {
     progress.value -= 1
   }
@@ -294,6 +301,43 @@ export async function getDocument(router: Router, result: SearchResult, progress
   }
 }
 
+export function useFilterValues(
+  property: PeerDBDocument,
+  progress: Ref<number>,
+): {
+  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  results: DeepReadonly<Ref<SearchResult[]>>
+  total: DeepReadonly<Ref<number>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  return useResults(
+    progress,
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s || !property._id) {
+        return null
+      }
+      return router.resolve({
+        name: "DocumentSearchFilterGet",
+        params: {
+          s,
+          prop: property._id,
+        },
+      }).href
+    },
+    null,
+  )
+}
+
 export function useSearchState(
   progress: Ref<number>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
@@ -301,6 +345,7 @@ export function useSearchState(
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<{ s?: string; at?: string; q?: string }>>
 } {
+  const router = useRouter()
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
@@ -313,16 +358,15 @@ export function useSearchState(
     () => {
       if (Array.isArray(route.query.s)) {
         return route.query.s[0]
-      } else {
-        return route.query.s
       }
+      return route.query.s
     },
     async (s, oldS, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (s == null) {
+      if (!s) {
         _results.value = []
         _query.value = {}
         return
@@ -331,8 +375,10 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(getSearchPath, params.toString(), progress, controller.signal)
+      const data = await getResults(getSearchURL(router, params.toString()), progress, controller.signal)
       if (!("results" in data)) {
+        _results.value = []
+        _query.value = {}
         await redirect(data)
         return
       }
