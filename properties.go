@@ -231,22 +231,22 @@ var (
 			[]string{`"enumeration" claim type`},
 		},
 		{
-			"Uses English Wikipedia template",
+			"uses English Wikipedia template",
 			`Entity uses a <a href="https://en.wikipedia.org/wiki/Help:Templates">English Wikipedia template</a> in the source of its article or description.`,
 			[]string{`"relation" claim type`},
 		},
 		{
-			"Uses Wikimedia Commons template",
+			"uses Wikimedia Commons template",
 			`Entity uses a <a href="https://commons.wikimedia.org/wiki/Help:Templates">Wikimedia Commons template</a> in the source of its article or description.`,
 			[]string{`"relation" claim type`},
 		},
 		{
-			"In English Wikipedia category",
+			"in English Wikipedia category",
 			`Entity is in <a href="https://en.wikipedia.org/wiki/Help:Category">English Wikipedia category</a>.`,
 			[]string{`"relation" claim type`},
 		},
 		{
-			"In Wikimedia Commons category",
+			"in Wikimedia Commons category",
 			`Entity is in <a href="https://commons.wikimedia.org/wiki/Commons:Categories">Wikimedia Commons category</a>.`,
 			[]string{`"relation" claim type`},
 		},

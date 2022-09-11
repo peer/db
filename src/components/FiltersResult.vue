@@ -18,7 +18,7 @@ const hasLoaded = computed(() => "name" in props.property)
 <template>
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded">
-      <div class="first-letter:capitalize">
+      <div>
         <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link text-lg">{{ property.name.en }}</RouterLink>
         ({{ property._count }})
       </div>
