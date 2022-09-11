@@ -5,43 +5,23 @@ import type { SearchResult, PeerDBDocument } from "@/types"
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { assert } from "@vue/compiler-core"
+import { getURL, postURL } from "@/api"
 
 const INITIAL_LIMIT = 50
 const INCREASE = 50
 
 export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
-  progress.value += 1
-  try {
-    const response = await fetch(
-      router.resolve({
-        name: "DocumentSearch",
-      }).href,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        },
-        // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        body: new URLSearchParams(new FormData(form) as any),
-        mode: "same-origin",
-        credentials: "omit",
-        redirect: "error",
-        referrer: document.location.href,
-        referrerPolicy: "strict-origin-when-cross-origin",
-      },
-    )
-    if (!response.ok) {
-      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
-    }
-    await router.push({
+  const query = await postURL(
+    router.resolve({
       name: "DocumentSearch",
-      query: await response.json(),
-    })
-  } finally {
-    progress.value -= 1
-  }
+    }).href,
+    form,
+    progress,
+  )
+  await router.push({
+    name: "DocumentSearch",
+    query: query as LocationQueryRaw,
+  })
 }
 
 function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, results: readonly SearchResult[], progress: Ref<number>, abortSignal: AbortSignal) {
@@ -229,76 +209,39 @@ async function getResults(
   progress: Ref<number>,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
-  progress.value += 1
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      mode: "same-origin",
-      credentials: "omit",
-      redirect: "error",
-      referrer: document.location.href,
-      referrerPolicy: "strict-origin-when-cross-origin",
-      signal: abortSignal,
-    })
-    if (!response.ok) {
-      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
+  const { doc, headers } = await getURL(url, 0, progress, abortSignal)
+
+  if (Array.isArray(doc)) {
+    const total = headers.get("Peerdb-Total")
+    if (total === null) {
+      throw new Error("Peerdb-Total header is null")
     }
-    const data = await response.json()
-    if (Array.isArray(data)) {
-      const total = response.headers.get("Peerdb-Total")
-      if (total === null) {
-        throw new Error("Peerdb-Total header is null")
-      }
-      const res = { results: data, total } as { results: SearchResult[]; total: string; query?: string }
-      const query = response.headers.get("Peerdb-Query")
-      if (query !== null) {
-        res.query = query
-      }
-      return res
+    const res = { results: doc, total } as { results: SearchResult[]; total: string; query?: string }
+    const query = headers.get("Peerdb-Query")
+    if (query !== null) {
+      res.query = query
     }
-    return data
-  } finally {
-    progress.value -= 1
+    return res
   }
+
+  return doc as { q: string; s: string }
 }
 
 export async function getDocument(router: Router, result: SearchResult, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
-  progress.value += 1
-  try {
-    const response = await fetch(
-      router.resolve({
-        name: "DocumentGet",
-        params: {
-          id: result._id,
-        },
-      }).href,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-        mode: "same-origin",
-        credentials: "omit",
-        redirect: "error",
-        referrer: document.location.href,
-        referrerPolicy: "strict-origin-when-cross-origin",
-        signal: abortSignal,
+  const { doc } = await getURL(
+    router.resolve({
+      name: "DocumentGet",
+      params: {
+        id: result._id,
       },
-    )
-    if (!response.ok) {
-      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
-    }
-    const doc = await response.json()
-    // We add any extra fields from the result (e.g., _count).
-    // This also adds _id if it is not already present.
-    Object.assign(doc, result)
-    return doc
-  } finally {
-    progress.value -= 1
-  }
+    }).href,
+    0,
+    progress,
+    abortSignal,
+  )
+  // We add any extra fields from the result (e.g., _count).
+  // This also adds _id if it is not already present.
+  return Object.assign({}, doc, result)
 }
 
 export function useFilterValues(
