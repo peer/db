@@ -24,11 +24,19 @@ export async function postSearch(router: Router, form: HTMLFormElement, progress
   })
 }
 
-function updateDocs(router: Router, docs: Ref<PeerDBDocument[]>, limit: number, results: readonly SearchResult[], progress: Ref<number>, abortSignal: AbortSignal) {
+function updateDocs(
+  router: Router,
+  docs: Ref<PeerDBDocument[]>,
+  limit: number,
+  results: readonly SearchResult[],
+  priority: number,
+  progress: Ref<number>,
+  abortSignal: AbortSignal,
+) {
   assert(limit <= results.length, `${limit} <= ${results.length}`)
   for (let i = docs.value.length; i < limit; i++) {
     docs.value.push(results[i])
-    getDocument(router, results[i], progress, abortSignal).then((data) => {
+    getDocument(router, results[i], priority, progress, abortSignal).then((data) => {
       docs.value[i] = data
     })
   }
@@ -53,6 +61,7 @@ export function useSearch(
   const route = useRoute()
 
   return useResults(
+    0,
     progress,
     () => {
       const params = new URLSearchParams()
@@ -87,6 +96,7 @@ export function useFilters(progress: Ref<number>): {
   const route = useRoute()
 
   return useResults(
+    -1,
     progress,
     () => {
       let s
@@ -110,6 +120,7 @@ export function useFilters(progress: Ref<number>): {
 }
 
 function useResults(
+  priority: number,
   progress: Ref<number>,
   getURL: () => string | null,
   redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
@@ -157,7 +168,7 @@ function useResults(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(url, progress, controller.signal)
+      const data = await getResults(url, priority, progress, controller.signal)
       if (!("results" in data)) {
         _docs.value = []
         _results.value = []
@@ -180,7 +191,7 @@ function useResults(
       _docs.value = []
       limit = Math.min(INITIAL_LIMIT, results.value.length)
       _hasMore.value = limit < results.value.length
-      updateDocs(router, _docs, limit, results.value, progress, controller.signal)
+      updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
     },
     {
       immediate: true,
@@ -199,17 +210,18 @@ function useResults(
     loadMore: () => {
       limit = Math.min(limit + INCREASE, results.value.length)
       _hasMore.value = limit < results.value.length
-      updateDocs(router, _docs, limit, results.value, progress, controller.signal)
+      updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
     },
   }
 }
 
 async function getResults(
   url: string,
+  priority: number,
   progress: Ref<number>,
   abortSignal: AbortSignal,
 ): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
-  const { doc, headers } = await getURL(url, 0, progress, abortSignal)
+  const { doc, headers } = await getURL(url, priority, progress, abortSignal)
 
   if (Array.isArray(doc)) {
     const total = headers.get("Peerdb-Total")
@@ -227,7 +239,7 @@ async function getResults(
   return doc as { q: string; s: string }
 }
 
-export async function getDocument(router: Router, result: SearchResult, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
+export async function getDocument(router: Router, result: SearchResult, priority: number, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
   const { doc } = await getURL(
     router.resolve({
       name: "DocumentGet",
@@ -235,7 +247,7 @@ export async function getDocument(router: Router, result: SearchResult, progress
         id: result._id,
       },
     }).href,
-    0,
+    priority,
     progress,
     abortSignal,
   )
@@ -258,6 +270,7 @@ export function useFilterValues(
   const route = useRoute()
 
   return useResults(
+    -2,
     progress,
     () => {
       let s
@@ -318,7 +331,7 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(getSearchURL(router, params.toString()), progress, controller.signal)
+      const data = await getResults(getSearchURL(router, params.toString()), 0, progress, controller.signal)
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}
