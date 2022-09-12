@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
-    <div class="flex flex-1 flex-col gap-y-1 sm:gap-y-4">
+    <div class="flex flex-auto basis-3/4 flex-col gap-y-1 sm:gap-y-4">
       <div v-if="searchTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No results found.</div>
@@ -153,7 +153,7 @@ onBeforeUnmount(() => {
           </div>
           <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
         </template>
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchDataProgress" class="w-1/4 self-center" @click="searchLoadMore">Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchDataProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">
           <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
           <div v-else-if="searchResults.length < searchTotal && !searchMoreThanTotal" class="text-center text-sm">
@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
         </div>
       </template>
     </div>
-    <div class="flex flex-col gap-y-1 sm:gap-y-4">
+    <div class="flex flex-auto basis-1/4 flex-col gap-y-1 sm:gap-y-4">
       <div v-if="filtersTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No filters available.</div>
@@ -175,7 +175,10 @@ onBeforeUnmount(() => {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
         <FiltersResult v-for="doc in filtersDocs" :key="doc._id" :search-total="searchTotal" :property="doc" />
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersDataProgress" class="self-center" @click="filtersLoadMore">More filters</Button>
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersDataProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
+          >More filters</Button
+        >
+        <div v-else-if="filtersTotal > filtersDocs.length" class="text-center text-sm">{{ filtersTotal - filtersDocs.length }} filters not shown.</div>
       </template>
     </div>
   </div>

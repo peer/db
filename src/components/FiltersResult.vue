@@ -2,7 +2,9 @@
 import type { PeerDBDocument } from "@/types"
 
 import { ref, computed } from "vue"
+import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import RouterLink from "@/components/RouterLink.vue"
+import Button from "@/components/Button.vue"
 import { useFilterValues } from "@/search"
 
 const props = defineProps<{
@@ -11,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const progress = ref(0)
-const { docs, total } = useFilterValues(props.property, progress)
+const { docs, total, hasMore, loadMore } = useFilterValues(props.property, progress)
 
 const hasLoaded = computed(() => props.property?.name?.en)
 const docsWithNone = computed(() => {
@@ -28,18 +30,26 @@ const docsWithNone = computed(() => {
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded">
+    <div v-if="hasLoaded" class="flex flex-col">
       <div>
         <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link text-lg">{{ property.name.en }}</RouterLink>
         ({{ property._count }})
       </div>
-      <div>({{ total }})</div>
       <ul>
-        <li v-for="doc in docsWithNone" :key="doc._id">
+        <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
           <template v-if="doc.name?.en">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link">{{ doc.name.en }}</RouterLink> ({{ doc._count }})
+            <input :id="property._id + '/' + doc._id" type="checkbox" class="my-1" />
+            <label :for="property._id + '/' + doc._id" class="my-1 leading-none">{{ doc.name.en }}</label>
+            <label :for="property._id + '/' + doc._id" class="my-1 leading-none">({{ doc._count }})</label>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
+              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
+            /></RouterLink>
           </template>
-          <template v-else-if="!doc._id"><i>none</i> ({{ doc._count }})</template>
+          <template v-else-if="!doc._id">
+            <input :id="property._id + '/none'" type="checkbox" class="my-1" />
+            <label :for="property._id + '/none'" class="my-1 leading-none"><i>none</i></label>
+            <label :for="property._id + '/none'" class="my-1 leading-none">({{ doc._count }})</label>
+          </template>
           <div v-else class="flex animate-pulse">
             <div class="flex-1 space-y-4">
               <div class="my-2 h-2 w-52 rounded bg-slate-200"></div>
@@ -47,6 +57,8 @@ const docsWithNone = computed(() => {
           </div>
         </li>
       </ul>
+      <Button v-if="hasMore" :progress="progress" class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - docs.length }} more</Button>
+      <div v-else-if="total > docs.length" class="mt-2 text-center text-sm">{{ total - docs.length }} values not shown.</div>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">
