@@ -26,7 +26,14 @@ const hasLoaded = computed(() => props.property?.name?.en)
       <div>({{ total }})</div>
       <ul>
         <li v-for="doc in docs" :key="doc._id">
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link">{{ doc.name?.en || doc._id }}</RouterLink> ({{ doc._count }})
+          <template v-if="doc.name?.en">
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link">{{ doc.name.en }}</RouterLink> ({{ doc._count }})
+          </template>
+          <div v-else class="flex animate-pulse">
+            <div class="flex-1 space-y-4">
+              <div class="my-2 h-2 w-52 rounded bg-slate-200"></div>
+            </div>
+          </div>
         </li>
         <li v-if="property._count < searchTotal"><i>none</i> ({{ searchTotal - property._count }})</li>
       </ul>
