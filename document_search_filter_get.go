@@ -58,10 +58,6 @@ func (s *Service) DocumentSearchFilterGetGetJSON(w http.ResponseWriter, req *htt
 			elastic.NewTermsAggregation().Field("active.rel.to._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
-			).SubAggregation(
-				"doc",
-				// TODO: Should including this in the response be configurable (opt-in) through a query string parameter in API request?
-				elastic.NewTopHitsAggregation().Size(1).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("active.rel.to")),
 			),
 		).SubAggregation(
 			"total",
@@ -92,7 +88,7 @@ func (s *Service) DocumentSearchFilterGetGetJSON(w http.ResponseWriter, req *htt
 
 	results := make([]searchResult, len(props.Filter.Props.Buckets))
 	for i, bucket := range props.Filter.Props.Buckets {
-		results[i] = searchResult{DocumentReference: bucket.Doc.Hits.Hits[0].Source.To, Count: bucket.Docs.Count}
+		results[i] = searchResult{ID: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.

@@ -41,16 +41,6 @@ type propsAggregations struct {
 			Docs struct {
 				Count int64 `json:"doc_count"`
 			} `json:"docs"`
-			Doc struct {
-				Hits struct {
-					Hits []struct {
-						Source struct {
-							Prop DocumentReference `json:"prop"`
-							To   DocumentReference `json:"to"`
-						} `json:"_source"`
-					} `json:"hits"`
-				} `json:"hits"`
-			} `json:"doc"`
 		} `json:"buckets"`
 	} `json:"props"`
 	Total struct {
@@ -90,10 +80,6 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		elastic.NewTermsAggregation().Field("active.rel.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
-		).SubAggregation(
-			"doc",
-			// TODO: Should including this in the response be configurable (opt-in) through a query string parameter in API request?
-			elastic.NewTopHitsAggregation().Size(1).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("active.rel.prop")),
 		),
 	).SubAggregation(
 		"total",
@@ -123,7 +109,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 
 	results := make([]searchResult, len(props.Props.Buckets))
 	for i, bucket := range props.Props.Buckets {
-		results[i] = searchResult{DocumentReference: bucket.Doc.Hits.Hits[0].Source.Prop, Count: bucket.Docs.Count}
+		results[i] = searchResult{ID: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.
