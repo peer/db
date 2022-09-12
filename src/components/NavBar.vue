@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GlobeIcon } from "@heroicons/vue/outline"
+import { GlobeAltIcon } from "@heroicons/vue/24/outline"
 import ProgressBar from "@/components/ProgressBar.vue"
 import RouterLink from "@/components/RouterLink.vue"
 import { useNavbar } from "@/navbar"
@@ -22,7 +22,7 @@ const { ref: navbar, attrs: navbarAttrs } = useNavbar()
     v-bind="navbarAttrs"
   >
     <RouterLink :to="{ name: 'HomeGet' }" class="group -my-4 hidden border-r border-slate-400 outline-none hover:bg-slate-400 active:bg-slate-200 sm:block">
-      <GlobeIcon class="m-4 h-10 w-10 rounded group-focus:ring-2 group-focus:ring-primary-500" />
+      <GlobeAltIcon class="m-4 h-10 w-10 rounded group-focus:ring-2 group-focus:ring-primary-500" />
     </RouterLink>
     <slot />
   </div>

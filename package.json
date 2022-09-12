@@ -11,7 +11,7 @@
     "fmt": "prettier src --write"
   },
   "dependencies": {
-    "@heroicons/vue": "^1.0.6",
+    "@heroicons/vue": "^2.0.11",
     "p-queue": "^7.3.0",
     "vue": "^3.2.25",
     "vue-router": "^4.0.14"

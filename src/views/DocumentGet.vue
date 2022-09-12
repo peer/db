@@ -3,7 +3,7 @@ import type { PeerDBDocument } from "@/types"
 
 import { ref, computed, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/solid"
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import RouterLink from "@/components/RouterLink.vue"
 import InputText from "@/components/InputText.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
