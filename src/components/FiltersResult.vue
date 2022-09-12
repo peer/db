@@ -38,7 +38,7 @@ const docsWithNone = computed(() => {
       <ul>
         <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
           <template v-if="doc.name?.en">
-            <input :id="property._id + '/' + doc._id" type="checkbox" class="my-1" />
+            <input :id="property._id + '/' + doc._id" type="checkbox" class="my-1 rounded text-primary-600 focus:ring-primary-500" />
             <label :for="property._id + '/' + doc._id" class="my-1 leading-none">{{ doc.name.en }}</label>
             <label :for="property._id + '/' + doc._id" class="my-1 leading-none">({{ doc._count }})</label>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
@@ -46,7 +46,7 @@ const docsWithNone = computed(() => {
             /></RouterLink>
           </template>
           <template v-else-if="!doc._id">
-            <input :id="property._id + '/none'" type="checkbox" class="my-1" />
+            <input :id="property._id + '/none'" type="checkbox" class="my-1 rounded text-primary-600 focus:ring-primary-500" />
             <label :for="property._id + '/none'" class="my-1 leading-none"><i>none</i></label>
             <label :for="property._id + '/none'" class="my-1 leading-none">({{ doc._count }})</label>
           </template>
