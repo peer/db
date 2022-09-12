@@ -6,6 +6,7 @@ import RouterLink from "@/components/RouterLink.vue"
 import { useFilterValues } from "@/search"
 
 const props = defineProps<{
+  searchTotal: number
   property: PeerDBDocument
 }>()
 
@@ -27,6 +28,7 @@ const hasLoaded = computed(() => "name" in props.property)
         <li v-for="doc in docs" :key="doc._id">
           <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link">{{ doc.name?.en || doc._id }}</RouterLink> ({{ doc._count }})
         </li>
+        <li v-if="property._count < searchTotal"><i>none</i> ({{ searchTotal - property._count }})</li>
       </ul>
     </div>
     <div v-else class="flex animate-pulse">
