@@ -13,7 +13,7 @@ const props = defineProps<{
 const progress = ref(0)
 const { docs, total } = useFilterValues(props.property, progress)
 
-const hasLoaded = computed(() => "name" in props.property)
+const hasLoaded = computed(() => props.property?.name?.en)
 </script>
 
 <template>

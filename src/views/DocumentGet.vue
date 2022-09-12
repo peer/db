@@ -43,7 +43,7 @@ watch(
   },
 )
 
-const hasLoaded = computed(() => "name" in doc.value)
+const hasLoaded = computed(() => doc.value?.name?.en)
 
 const { results, query } = useSearchState(dataProgress, async (query) => {
   // Something was not OK, so we redirect to the URL without "s".

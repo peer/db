@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const route = useRoute()
 
-const hasLoaded = computed(() => "name" in props.doc)
+const hasLoaded = computed(() => props.doc?.name?.en)
 // TODO: Do not hard-code description property ID.
 const description = computed(() => {
   for (const claim of props.doc.active?.text || []) {
