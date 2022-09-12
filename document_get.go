@@ -141,7 +141,8 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 		//       See: https://github.com/golang/go/pull/50904
 		w.Header().Set("Content-Length", resp.Header.Get("Content-Length"))
 	}
-	w.Header().Set("Cache-Control", "no-cache")
+	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
+	w.Header().Set("Cache-Control", "max-age=604800")
 	w.Header().Add("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
