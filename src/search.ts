@@ -7,8 +7,10 @@ import { useRoute, useRouter } from "vue-router"
 import { assert } from "@vue/compiler-core"
 import { getURL, postURL } from "@/api"
 
-const INITIAL_LIMIT = 50
-const INCREASE = 50
+const SEARCH_INITIAL_LIMIT = 50
+const SEARCH_INCREASE = 50
+const FILTERS_INITIAL_LIMIT = 10
+const FILTERS_INCREASE = 10
 
 export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
   const query = await postURL(
@@ -81,6 +83,8 @@ export function useSearch(
       }
       return getSearchURL(router, params.toString())
     },
+    SEARCH_INITIAL_LIMIT,
+    SEARCH_INCREASE,
     redirect,
   )
 }
@@ -115,6 +119,8 @@ export function useFilters(progress: Ref<number>): {
         },
       }).href
     },
+    FILTERS_INITIAL_LIMIT,
+    FILTERS_INCREASE,
     null,
   )
 }
@@ -123,6 +129,8 @@ function useResults(
   priority: number,
   progress: Ref<number>,
   getURL: () => string | null,
+  initialLimit: number,
+  increase: number,
   redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
@@ -189,7 +197,7 @@ function useResults(
         _total.value = parseInt(data.total)
       }
       _docs.value = []
-      limit = Math.min(INITIAL_LIMIT, results.value.length)
+      limit = Math.min(initialLimit, results.value.length)
       _hasMore.value = limit < results.value.length
       updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
     },
@@ -208,7 +216,7 @@ function useResults(
     moreThanTotal,
     hasMore,
     loadMore: () => {
-      limit = Math.min(limit + INCREASE, results.value.length)
+      limit = Math.min(limit + increase, results.value.length)
       _hasMore.value = limit < results.value.length
       updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
     },
@@ -290,6 +298,8 @@ export function useFilterValues(
         },
       }).href
     },
+    FILTERS_INITIAL_LIMIT,
+    FILTERS_INCREASE,
     null,
   )
 }
