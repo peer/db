@@ -1,15 +1,16 @@
 import type { Ref } from "vue"
 
-import { ref } from "vue"
+import { ref, readonly } from "vue"
 import PQueue from "p-queue"
 
 const queue = new PQueue({ concurrency: 100 })
 
 const localGetCache = new Map<string, WeakRef<{ doc: object; headers: Headers }>>()
 
-const globalProgress = ref(0)
+const _globalProgress = ref(0)
+export const globalProgress = import.meta.env.DEV ? readonly(_globalProgress) : _globalProgress
 
-export async function getURL(url: string, priority: number, progress: Ref<number>, abortSignal: AbortSignal): Promise<{ doc: object; headers: Headers }> {
+export async function getURL(url: string, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<{ doc: object; headers: Headers }> {
   const weakRef = localGetCache.get(url)
   if (weakRef) {
     const cached = weakRef.deref()
@@ -21,8 +22,10 @@ export async function getURL(url: string, priority: number, progress: Ref<number
     }
   }
 
-  progress.value += 1
-  globalProgress.value += 1
+  if (progress) {
+    progress.value += 1
+  }
+  _globalProgress.value += 1
   try {
     const res = await queue.add(
       async ({ signal }) => {
@@ -51,14 +54,16 @@ export async function getURL(url: string, priority: number, progress: Ref<number
     localGetCache.set(url, new WeakRef(res))
     return res
   } finally {
-    globalProgress.value -= 1
-    progress.value -= 1
+    _globalProgress.value -= 1
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }
 
 export async function postURL(url: string, form: HTMLFormElement, progress: Ref<number>): Promise<object> {
   progress.value += 1
-  globalProgress.value += 1
+  _globalProgress.value += 1
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -80,7 +85,7 @@ export async function postURL(url: string, form: HTMLFormElement, progress: Ref<
     }
     return await response.json()
   } finally {
-    globalProgress.value -= 1
+    _globalProgress.value -= 1
     progress.value -= 1
   }
 }

@@ -12,6 +12,7 @@ import Footer from "@/components/Footer.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
 import { getDocument, useSearchState } from "@/search"
+import { globalProgress } from "@/api"
 
 const props = defineProps({
   id: {
@@ -23,8 +24,6 @@ const props = defineProps({
 const route = useRoute()
 const router = useRouter()
 
-const dataProgress = ref(0)
-
 const _doc = ref<PeerDBDocument>({})
 const doc = import.meta.env.DEV ? readonly(_doc) : _doc
 
@@ -34,7 +33,7 @@ watch(
     const controller = new AbortController()
     onCleanup(() => controller.abort())
 
-    getDocument(router, { _id: id }, 0, dataProgress, controller.signal).then((data) => {
+    getDocument(router, { _id: id }, 0, controller.signal).then((data) => {
       _doc.value = data
     })
   },
@@ -45,7 +44,7 @@ watch(
 
 const hasLoaded = computed(() => doc.value?.name?.en)
 
-const { results, query } = useSearchState(dataProgress, async (query) => {
+const { results, query } = useSearchState(async (query) => {
   // Something was not OK, so we redirect to the URL without "s".
   // TODO: This has still created a new search state on the server, we should not do that.
   await router.replace({
@@ -90,7 +89,7 @@ async function afterClick() {
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="dataProgress">
+    <NavBar :progress="globalProgress">
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputText v-if="!query.s" :progress="1" class="max-w-xl flex-grow" :value="query.q" />
         <RouterLink

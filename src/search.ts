@@ -32,15 +32,20 @@ function updateDocs(
   limit: number,
   results: readonly SearchResult[],
   priority: number,
-  progress: Ref<number>,
   abortSignal: AbortSignal,
+  progress: Ref<number>,
 ) {
   assert(limit <= results.length, `${limit} <= ${results.length}`)
   for (let i = docs.value.length; i < limit; i++) {
+    progress.value += 1
     docs.value.push(results[i])
-    getDocument(router, results[i], priority, progress, abortSignal).then((data) => {
-      docs.value[i] = data
-    })
+    getDocument(router, results[i], priority, abortSignal, progress)
+      .then((data) => {
+        docs.value[i] = data
+      })
+      .finally(() => {
+        progress.value -= 1
+      })
   }
 }
 
@@ -176,7 +181,7 @@ function useResults(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(url, priority, progress, controller.signal)
+      const data = await getResults(url, priority, controller.signal, progress)
       if (!("results" in data)) {
         _docs.value = []
         _results.value = []
@@ -199,7 +204,7 @@ function useResults(
       _docs.value = []
       limit = Math.min(initialLimit, results.value.length)
       _hasMore.value = limit < results.value.length
-      updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
+      updateDocs(router, _docs, limit, results.value, priority, controller.signal, progress)
     },
     {
       immediate: true,
@@ -218,7 +223,7 @@ function useResults(
     loadMore: () => {
       limit = Math.min(limit + increase, results.value.length)
       _hasMore.value = limit < results.value.length
-      updateDocs(router, _docs, limit, results.value, priority, progress, controller.signal)
+      updateDocs(router, _docs, limit, results.value, priority, controller.signal, progress)
     },
   }
 }
@@ -226,10 +231,10 @@ function useResults(
 async function getResults(
   url: string,
   priority: number,
-  progress: Ref<number>,
   abortSignal: AbortSignal,
+  progress?: Ref<number>,
 ): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
-  const { doc, headers } = await getURL(url, priority, progress, abortSignal)
+  const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   if (Array.isArray(doc)) {
     const total = headers.get("Peerdb-Total")
@@ -247,7 +252,7 @@ async function getResults(
   return doc as { q: string; s: string }
 }
 
-export async function getDocument(router: Router, result: SearchResult, priority: number, progress: Ref<number>, abortSignal: AbortSignal): Promise<PeerDBDocument> {
+export async function getDocument(router: Router, result: SearchResult, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
   const { doc } = await getURL(
     router.resolve({
       name: "DocumentGet",
@@ -256,8 +261,8 @@ export async function getDocument(router: Router, result: SearchResult, priority
       },
     }).href,
     priority,
-    progress,
     abortSignal,
+    progress,
   )
   // We add any extra fields from the result (e.g., _count).
   // This also adds _id if it is not already present.
@@ -305,8 +310,8 @@ export function useFilterValues(
 }
 
 export function useSearchState(
-  progress: Ref<number>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+  progress?: Ref<number>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<{ s?: string; at?: string; q?: string }>>
@@ -341,7 +346,7 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(getSearchURL(router, params.toString()), 0, progress, controller.signal)
+      const data = await getResults(getSearchURL(router, params.toString()), 0, controller.signal, progress)
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}

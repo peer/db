@@ -9,11 +9,12 @@ import Button from "@/components/Button.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch, useFilters } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
+import { globalProgress } from "@/api"
 
 const router = useRouter()
 const route = useRoute()
 
-const searchDataProgress = ref(0)
+const searchProgress = ref(0)
 const {
   docs: searchDocs,
   total: searchTotal,
@@ -21,7 +22,7 @@ const {
   moreThanTotal: searchMoreThanTotal,
   hasMore: searchHasMore,
   loadMore: searchLoadMore,
-} = useSearch(searchDataProgress, async (query) => {
+} = useSearch(searchProgress, async (query) => {
   await router.replace({
     name: "DocumentSearch",
     // Maybe route.query has "at" parameter which we want to keep.
@@ -29,12 +30,8 @@ const {
   })
 })
 
-const filtersDataProgress = ref(0)
-const { docs: filtersDocs, total: filtersTotal, hasMore: filtersHasMore, loadMore: filtersLoadMore } = useFilters(filtersDataProgress)
-
-const dataProgress = computed(() => {
-  return searchDataProgress.value + filtersDataProgress.value
-})
+const filtersProgress = ref(0)
+const { docs: filtersDocs, total: filtersTotal, hasMore: filtersHasMore, loadMore: filtersLoadMore } = useFilters(filtersProgress)
 
 const idToIndex = computed(() => {
   const map = new Map<string, number>()
@@ -119,7 +116,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="dataProgress">
+    <NavBar :progress="globalProgress">
       <NavBarSearch />
     </NavBar>
   </Teleport>
@@ -153,7 +150,7 @@ onBeforeUnmount(() => {
           </div>
           <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
         </template>
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchDataProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">
           <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
           <div v-else-if="searchResults.length < searchTotal && !searchMoreThanTotal" class="text-center text-sm">
@@ -175,7 +172,7 @@ onBeforeUnmount(() => {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
         <FiltersResult v-for="doc in filtersDocs" :key="doc._id" :search-total="searchTotal" :property="doc" />
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersDataProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
           >More filters</Button
         >
         <div v-else-if="filtersTotal > filtersDocs.length" class="text-center text-sm">{{ filtersTotal - filtersDocs.length }} filters not shown.</div>
