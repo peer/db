@@ -38,17 +38,17 @@ const docsWithNone = computed(() => {
       <ul>
         <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
           <template v-if="doc.name?.en">
-            <input :id="property._id + '/' + doc._id" type="checkbox" class="my-1 rounded text-primary-600 focus:ring-primary-500" />
-            <label :for="property._id + '/' + doc._id" class="my-1 leading-none">{{ doc.name.en }}</label>
-            <label :for="property._id + '/' + doc._id" class="my-1 leading-none">({{ doc._count }})</label>
+            <input :id="property._id + '/' + doc._id" type="checkbox" class="my-1 cursor-pointer rounded text-primary-600 focus:ring-primary-500" />
+            <label :for="property._id + '/' + doc._id" class="my-1 cursor-pointer leading-none">{{ doc.name.en }}</label>
+            <label :for="property._id + '/' + doc._id" class="my-1 cursor-pointer leading-none">({{ doc._count }})</label>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
           <template v-else-if="!doc._id">
-            <input :id="property._id + '/none'" type="checkbox" class="my-1 rounded text-primary-600 focus:ring-primary-500" />
-            <label :for="property._id + '/none'" class="my-1 leading-none"><i>none</i></label>
-            <label :for="property._id + '/none'" class="my-1 leading-none">({{ doc._count }})</label>
+            <input :id="property._id + '/none'" type="checkbox" class="my-1 cursor-pointer rounded text-primary-600 focus:ring-primary-500" />
+            <label :for="property._id + '/none'" class="my-1 cursor-pointer leading-none"><i>none</i></label>
+            <label :for="property._id + '/none'" class="my-1 cursor-pointer leading-none">({{ doc._count }})</label>
           </template>
           <div v-else class="flex animate-pulse">
             <div class="flex-1 space-y-4">
