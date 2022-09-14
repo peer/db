@@ -61,7 +61,7 @@ export async function getURL(url: string, priority: number, abortSignal: AbortSi
   }
 }
 
-export async function postURL(url: string, form: HTMLFormElement, progress: Ref<number>): Promise<object> {
+export async function postURL(url: string, form: FormData, progress: Ref<number>): Promise<object> {
   progress.value += 1
   _globalProgress.value += 1
   try {
@@ -73,7 +73,7 @@ export async function postURL(url: string, form: HTMLFormElement, progress: Ref<
       },
       // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: new URLSearchParams(new FormData(form) as any),
+      body: new URLSearchParams(form as any),
       mode: "same-origin",
       credentials: "omit",
       redirect: "error",

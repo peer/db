@@ -1,6 +1,6 @@
 import type { Ref, DeepReadonly } from "vue"
-import type { Router, LocationQueryRaw } from "vue-router"
-import type { SearchResult, PeerDBDocument } from "@/types"
+import type { Router, RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
+import type { SearchResult, PeerDBDocument, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -12,18 +12,78 @@ const SEARCH_INCREASE = 50
 const FILTERS_INITIAL_LIMIT = 10
 const FILTERS_INCREASE = 10
 
+function queryToData(route: RouteLocationNormalizedLoaded, data: FormData | URLSearchParams) {
+  if (Array.isArray(route.query.s)) {
+    if (route.query.s[0] != null) {
+      data.set("s", route.query.s[0])
+    }
+  } else if (route.query.s != null) {
+    data.set("s", route.query.s)
+  }
+  if (Array.isArray(route.query.q)) {
+    if (route.query.q[0] != null) {
+      data.set("q", route.query.q[0])
+    }
+  } else if (route.query.q != null) {
+    data.set("q", route.query.q)
+  }
+}
+
 export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
-  const query = await postURL(
+  const query: ServerQuery = await postURL(
+    router.resolve({
+      name: "DocumentSearch",
+    }).href,
+    new FormData(form),
+    progress,
+  )
+  await router.push({
+    name: "DocumentSearch",
+    query: {
+      s: query.s,
+      q: query.q,
+    },
+  })
+}
+
+export async function postFilters(router: Router, route: RouteLocationNormalizedLoaded, updatedState: FiltersState, progress: Ref<number>) {
+  const filters: Filters = {
+    and: [],
+  }
+  for (const [prop, values] of Object.entries(updatedState)) {
+    if (!values.length) {
+      continue
+    }
+    // TODO: Support also OR between values for the same property.
+    const propFilters: Filters = { and: [] }
+    filters.and.push(propFilters)
+    for (const value of values) {
+      if (value === "none") {
+        propFilters.and.push({ prop: prop, none: true })
+      } else {
+        propFilters.and.push({ prop: prop, value: value })
+      }
+    }
+  }
+  const form = new FormData()
+  queryToData(route, form)
+  form.set("filters", JSON.stringify(filters))
+  const updatedQuery: ServerQuery = await postURL(
     router.resolve({
       name: "DocumentSearch",
     }).href,
     form,
     progress,
   )
-  await router.push({
-    name: "DocumentSearch",
-    query: query as LocationQueryRaw,
-  })
+  if (route.query.s !== updatedQuery.s || route.query.q !== updatedQuery.q) {
+    await router.push({
+      name: "DocumentSearch",
+      query: {
+        s: updatedQuery.s,
+        q: updatedQuery.q,
+      },
+    })
+  }
 }
 
 function updateDocs(
@@ -60,6 +120,7 @@ export function useSearch(
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number>>
+  filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
@@ -72,20 +133,7 @@ export function useSearch(
     progress,
     () => {
       const params = new URLSearchParams()
-      if (Array.isArray(route.query.s)) {
-        if (route.query.s[0] != null) {
-          params.set("s", route.query.s[0])
-        }
-      } else if (route.query.s != null) {
-        params.set("s", route.query.s)
-      }
-      if (Array.isArray(route.query.q)) {
-        if (route.query.q[0] != null) {
-          params.set("q", route.query.q[0])
-        }
-      } else if (route.query.q != null) {
-        params.set("q", route.query.q)
-      }
+      queryToData(route, params)
       return getSearchURL(router, params.toString())
     },
     SEARCH_INITIAL_LIMIT,
@@ -130,6 +178,38 @@ export function useFilters(progress: Ref<number>): {
   )
 }
 
+function filtersToFiltersState(filters: Filters): FiltersState {
+  if ("not" in filters) {
+    throw new Error(`not filter unsupported`)
+  }
+  if ("or" in filters) {
+    throw new Error(`or filter unsupported`)
+  }
+  if ("and" in filters) {
+    const state: FiltersState = {}
+    for (const filter of filters.and) {
+      const s = filtersToFiltersState(filter)
+      for (const [prop, values] of Object.entries(s)) {
+        for (const v of values) {
+          if (!state[prop]) {
+            state[prop] = [v]
+          } else if (!state[prop].includes(v)) {
+            state[prop].push(v)
+          }
+        }
+      }
+    }
+    return state
+  }
+  if ("prop" in filters && "value" in filters) {
+    return { [filters.prop]: [filters.value] }
+  }
+  if ("prop" in filters && "none" in filters) {
+    return { [filters.prop]: ["none"] }
+  }
+  throw new Error(`invalid filter`)
+}
+
 function useResults(
   priority: number,
   progress: Ref<number>,
@@ -141,6 +221,7 @@ function useResults(
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number>>
+  filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
@@ -155,11 +236,13 @@ function useResults(
   // We start with -1, so that until data is loaded the
   // first time, we do not flash "no results found".
   const _total = ref(-1)
+  const _filters = ref<FiltersState>({})
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
+  const filters = import.meta.env.DEV ? readonly(_filters) : _filters
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
   const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
 
@@ -175,6 +258,7 @@ function useResults(
         _docs.value = []
         _results.value = []
         _total.value = -1
+        _filters.value = {}
         _moreThanTotal.value = false
         _hasMore.value = false
         return
@@ -186,6 +270,7 @@ function useResults(
         _docs.value = []
         _results.value = []
         _total.value = -1
+        _filters.value = {}
         _moreThanTotal.value = false
         _hasMore.value = false
         if (redirect) {
@@ -202,6 +287,11 @@ function useResults(
         _total.value = parseInt(data.total)
       }
       _docs.value = []
+      if (data.filters) {
+        _filters.value = filtersToFiltersState(data.filters)
+      } else {
+        _filters.value = {}
+      }
       limit = Math.min(initialLimit, results.value.length)
       _hasMore.value = limit < results.value.length
       updateDocs(router, _docs, limit, results.value, priority, controller.signal, progress)
@@ -216,8 +306,9 @@ function useResults(
 
   return {
     docs,
-    total,
     results,
+    total,
+    filters,
     moreThanTotal,
     hasMore,
     loadMore: () => {
@@ -233,7 +324,7 @@ async function getResults(
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
-): Promise<{ results: SearchResult[]; total: string; query?: string } | { q: string; s: string }> {
+): Promise<{ results: SearchResult[]; total: string; query?: string; filters?: Filters } | { q: string; s: string }> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   if (Array.isArray(doc)) {
@@ -241,10 +332,14 @@ async function getResults(
     if (total === null) {
       throw new Error("Peerdb-Total header is null")
     }
-    const res = { results: doc, total } as { results: SearchResult[]; total: string; query?: string }
+    const res = { results: doc, total } as { results: SearchResult[]; total: string; query?: string; filters?: Filters }
     const query = headers.get("Peerdb-Query")
     if (query !== null) {
-      res.query = query
+      res.query = decodeURIComponent(query)
+    }
+    const filters = headers.get("Peerdb-Filters")
+    if (filters !== null) {
+      res.filters = JSON.parse(decodeURIComponent(filters))
     }
     return res
   }
@@ -314,13 +409,13 @@ export function useSearchState(
   progress?: Ref<number>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
-  query: DeepReadonly<Ref<{ s?: string; at?: string; q?: string }>>
+  query: DeepReadonly<Ref<ClientQuery>>
 } {
   const router = useRouter()
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
-  const _query = ref<{ s?: string; at?: string; q?: string }>({})
+  const _query = ref<ClientQuery>({})
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const query = import.meta.env.DEV ? readonly(_query) : _query
 
@@ -359,7 +454,7 @@ export function useSearchState(
         s,
         // We set "at" here to undefined so that we control its order in the query string.
         at: undefined,
-        q: decodeURIComponent(data.query as string),
+        q: data.query,
       }
     },
     {

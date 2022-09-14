@@ -3,6 +3,7 @@ package search
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search/identifier"
 )
@@ -20,12 +22,109 @@ const (
 	maxResultsCount = 1000
 )
 
+type filters struct {
+	And   []filters `json:"and,omitempty"`
+	Or    []filters `json:"or,omitempty"`
+	Not   *filters  `json:"not,omitempty"`
+	Prop  string    `json:"prop,omitempty"`
+	Value string    `json:"value,omitempty"`
+	None  bool      `json:"none,omitempty"`
+}
+
+func (f filters) Valid() errors.E {
+	nonEmpty := 0
+	if len(f.And) > 0 {
+		nonEmpty++
+	}
+	if len(f.Or) > 0 {
+		nonEmpty++
+	}
+	if f.Not != nil {
+		nonEmpty++
+	}
+	if f.Prop != "" {
+		nonEmpty++
+		if f.Value == "" && !f.None {
+			return errors.New("value or none has to be set if prop is set")
+		}
+		if f.Value != "" && f.None {
+			return errors.New("value and none cannot be both set")
+		}
+		if !identifier.Valid(f.Prop) {
+			return errors.New("invalid prop")
+		}
+		if f.Value != "" && !identifier.Valid(f.Value) {
+			return errors.New("invalid value")
+		}
+	} else {
+		if f.Value != "" {
+			return errors.New("value can be set only if prop is set as well")
+		}
+		if f.None {
+			return errors.New("none can be set only if prop is set as well")
+		}
+	}
+	if nonEmpty > 1 {
+		return errors.New("only one clause can be set")
+	} else if nonEmpty == 0 {
+		return errors.New("no clause is set")
+	}
+	for _, c := range f.And {
+		err := c.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	for _, c := range f.Or {
+		err := c.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f filters) ToQuery() elastic.Query { //nolint:ireturn
+	if len(f.And) > 0 {
+		boolQuery := elastic.NewBoolQuery()
+		for _, filter := range f.And {
+			boolQuery.Must(filter.ToQuery())
+		}
+		return boolQuery
+	}
+	if len(f.Or) > 0 {
+		boolQuery := elastic.NewBoolQuery()
+		for _, filter := range f.Or {
+			boolQuery.Should(filter.ToQuery())
+		}
+		return boolQuery
+	}
+	if f.Not != nil {
+		boolQuery := elastic.NewBoolQuery()
+		boolQuery.MustNot(f.Not.ToQuery())
+		return boolQuery
+	}
+	if f.Prop != "" && f.None {
+		boolQuery := elastic.NewBoolQuery()
+		boolQuery.MustNot(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
+		return elastic.NewNestedQuery("active.rel", boolQuery)
+	}
+	if f.Prop != "" && f.Value != "" {
+		boolQuery := elastic.NewBoolQuery()
+		boolQuery.Must(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
+		boolQuery.Must(elastic.NewTermQuery("active.rel.to._id", f.Value))
+		return elastic.NewNestedQuery("active.rel", boolQuery)
+	}
+	panic(errors.New("invalid filters"))
+}
+
 // search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
-	ID       string `json:"s"`
-	Text     string `json:"q"`
-	ParentID string `json:"-"`
+	ID       string   `json:"s"`
+	Text     string   `json:"q"`
+	Filters  *filters `json:"filters"`
+	ParentID string   `json:"-"`
 }
 
 // Encode returns search state as a query string.
@@ -74,19 +173,32 @@ type field struct {
 	Field  string
 }
 
+// TODO: Return (and log) and error on invalid search requests (e.g., filters).
+
 // makeSearch creates a new search state given optional existing state and new queries.
 func makeSearch(form url.Values) *search {
 	parentSearchID := form.Get("s")
 	if !identifier.Valid(parentSearchID) {
 		parentSearchID = ""
 	}
+
 	textQuery := form.Get("q")
+
+	var fs *filters
+	fsJSON := form.Get("filters")
+	if fsJSON != "" {
+		var f filters
+		if x.UnmarshalWithoutUnknownFields([]byte(fsJSON), &f) == nil && f.Valid() == nil {
+			fs = &f
+		}
+	}
+
 	if parentSearchID != "" {
 		ps, ok := searches.Load(parentSearchID)
 		if ok {
 			parentSearch := ps.(*search) //nolint:errcheck
 			// There was no change.
-			if parentSearch.Text == textQuery {
+			if parentSearch.Text == textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
 			}
 		} else {
@@ -94,12 +206,15 @@ func makeSearch(form url.Values) *search {
 			parentSearchID = ""
 		}
 	}
+
 	sh := &search{
 		ID:       identifier.NewRandom(),
 		ParentID: parentSearchID,
 		Text:     textQuery,
+		Filters:  fs,
 	}
 	searches.Store(sh.ID, sh)
+
 	return sh
 }
 
@@ -110,23 +225,37 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 	if !identifier.Valid(searchID) {
 		return makeSearch(form), false
 	}
+
 	sh, ok := searches.Load(searchID)
 	if !ok {
 		return makeSearch(form), false
 	}
+
 	textQuery := form.Get("q")
+
+	var fs *filters
+	fsJSON := form.Get("filters")
+	if fsJSON != "" {
+		var f filters
+		if x.UnmarshalWithoutUnknownFields([]byte(fsJSON), &f) == nil && f.Valid() == nil {
+			fs = &f
+		}
+	}
+
 	ss := sh.(*search) //nolint:errcheck
 	// There was a change, we make current search a parent search to a new search.
-	// We allow there to not be "q" so that it is easier to use as an API.
-	if form.Has("q") && ss.Text != textQuery {
+	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
+	if (form.Has("q") && ss.Text != textQuery) || (form.Has("filters") && !reflect.DeepEqual(ss.Filters, fs)) {
 		ss = &search{
 			ID:       identifier.NewRandom(),
 			ParentID: searchID,
 			Text:     textQuery,
+			Filters:  fs,
 		}
 		searches.Store(ss.ID, ss)
 		return ss, false
 	}
+
 	return ss, true
 }
 
@@ -206,24 +335,30 @@ func (s *Service) getSearchService(req *http.Request) *elastic.SearchService {
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
-	if sh.Text == "" {
-		return elastic.NewMatchAllQuery()
+	boolQuery := elastic.NewBoolQuery()
+
+	if sh.Text != "" {
+		bq := elastic.NewBoolQuery()
+		bq.Should(elastic.NewTermQuery("_id", sh.Text))
+		// TODO: Check which analyzer is used.
+		bq.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
+		for _, field := range []field{
+			{"active.id", "id"},
+			{"active.ref", "iri"},
+			{"active.text", "html.en"},
+			{"active.string", "string"},
+		} {
+			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
+			q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
+		}
+		boolQuery.Must(bq)
 	}
 
-	boolQuery := elastic.NewBoolQuery()
-	boolQuery = boolQuery.Should(elastic.NewTermQuery("_id", sh.Text))
-	// TODO: Check which analyzer is used.
-	boolQuery = boolQuery.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
-	for _, field := range []field{
-		{"active.id", "id"},
-		{"active.ref", "iri"},
-		{"active.text", "html.en"},
-		{"active.string", "string"},
-	} {
-		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-		q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
-		boolQuery = boolQuery.Should(elastic.NewNestedQuery(field.Prefix, q))
+	if sh.Filters != nil {
+		boolQuery.Must(sh.Filters.ToQuery())
 	}
+
 	return boolQuery
 }
 
@@ -277,10 +412,14 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		"Total": {total},
 	}
 
-	// A special case. If request had only "s" parameter, we expose the query in the response.
-	if !req.Form.Has("q") {
-		metadata.Set("Query", url.PathEscape(sh.Text))
+	// TODO: Move this to a separate API endpoint.
+	filters, err := x.MarshalWithoutEscapeHTML(sh.Filters)
+	if err != nil {
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
 	}
+	metadata.Set("Query", url.PathEscape(sh.Text))
+	metadata.Set("Filters", url.PathEscape(string(filters)))
 
 	s.writeJSON(w, req, contentEncoding, results, metadata)
 }

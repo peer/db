@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { FilterState, FiltersState, ClientQuery } from "@/types"
+
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
@@ -7,7 +9,7 @@ import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import Button from "@/components/Button.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
-import { useSearch, useFilters } from "@/search"
+import { useSearch, useFilters, postFilters } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { globalProgress } from "@/api"
 
@@ -19,6 +21,7 @@ const {
   docs: searchDocs,
   total: searchTotal,
   results: searchResults,
+  filters: searchFilters,
   moreThanTotal: searchMoreThanTotal,
   hasMore: searchHasMore,
   loadMore: searchLoadMore,
@@ -60,7 +63,7 @@ watch(
       return
     }
     // We set "s", "at", and "q" here to undefined so that we control their order in the query string.
-    const query: { s?: string; at?: string; q?: string } = { s: undefined, at: undefined, q: undefined, ...route.query }
+    const query: ClientQuery = { s: undefined, at: undefined, q: undefined, ...route.query }
     if (!topId) {
       delete query.at
     } else {
@@ -112,6 +115,21 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll)
 })
+
+const updateFiltersProgress = ref(0)
+// TODO: Is it OK that we modify this computed reference later on (when initializing arrays for new properties).
+const filtersState = computed(() => Object.assign({}, searchFilters.value as FiltersState))
+
+async function onFiltersStateUpdate(id: string, s: FilterState) {
+  updateFiltersProgress.value += 1
+  try {
+    const updatedState = Object.assign({}, filtersState.value)
+    updatedState[id] = s
+    await postFilters(router, route, updatedState, updateFiltersProgress)
+  } finally {
+    updateFiltersProgress.value -= 1
+  }
+}
 </script>
 
 <template>
@@ -171,7 +189,15 @@ onBeforeUnmount(() => {
       </div>
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <FiltersResult v-for="doc in filtersDocs" :key="doc._id" :search-total="searchTotal" :property="doc" />
+        <FiltersResult
+          v-for="doc in filtersDocs"
+          :key="doc._id"
+          :search-total="searchTotal"
+          :property="doc"
+          :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
+          :update-progress="updateFiltersProgress"
+          @update:state="onFiltersStateUpdate(doc._id, $event)"
+        />
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
           >More filters</Button
         >
