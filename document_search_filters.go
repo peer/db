@@ -85,7 +85,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotalInt,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*s.propertiesTotal),
+		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
 	)
 	searchService := s.getSearchService(req).Size(0).Query(query).Aggregation("rel", aggregation)
 

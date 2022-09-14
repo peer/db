@@ -3,8 +3,9 @@ package main
 import (
 	"github.com/alecthomas/kong"
 
-	"gitlab.com/peerdb/search/internal/cli"
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/search/internal/cli"
 )
 
 // Config provides configuration.

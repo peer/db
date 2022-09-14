@@ -16,7 +16,7 @@ type pathSegment struct {
 
 func parsePath(path string) ([]pathSegment, errors.E) {
 	if !strings.HasPrefix(path, "/") {
-		return nil, errors.Errorf(`path does not start with "/"`, path)
+		return nil, errors.Errorf(`path does not start with "/": %s`, path)
 	}
 	p := strings.TrimPrefix(path, "/")
 	segments := []pathSegment{}
@@ -98,7 +98,7 @@ type Params map[string]string
 type Handler func(http.ResponseWriter, *http.Request, Params)
 
 // TODO: Implement RedirectTrailingSlash = true
-// TODO: Implement RedirectFixedPath = true
+// TODO: Implement RedirectFixedPath = true.
 
 type Router struct {
 	NotFound         Handler
