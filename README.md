@@ -74,8 +74,10 @@ This will do multiple passes:
 - `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
 - `commons` (20 GB download, runtime 3 days)
 - `wikipedia-articles` downloads Wikipedia articles HTML dump and imports articles (100 GB download, runtime 0.5 days)
-- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions (2 GB download, runtime 1 hour)
-- `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions (2 GB download, runtime 1 hour)
+- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions
+  (2 GB download, runtime 1 hour)
+- `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions
+  (2 GB download, runtime 1 hour)
 - `wikipedia-templates` uses API to fetch data about templates Wikipedia (runtime 0.5 days)
 - `commons-file-descriptions` uses API to fetch descriptions of Wikimedia Commons files (runtime 35 days)
 - `commons-categories` uses API to fetch data about categories Wikimedia Commons (runtime 4 days)
