@@ -11,7 +11,7 @@ easily find results they want, without having to write queries. The system also 
 to be used and merged together.
 
 As a demonstration we provide a search service for Wikipedia articles and Wikidata data at
-[https://wikipedia.peerdb.org:8080/](https://wikipedia.peerdb.org:8080/)
+[https://wikipedia.peerdb.org/](https://wikipedia.peerdb.org/)
 (**work in progress**).
 
 ## Installation
