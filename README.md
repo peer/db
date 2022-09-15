@@ -24,9 +24,13 @@ To run backend locally first start an an ElasticSearch instance:
 
 ```sh
 docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 \
+ -e network.bind_host=0.0.0.0 -e network.publish_host=127.0.0.1 -e ES_JAVA_OPTS="-Xmx1000m" \
  -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
  elasticsearch:7.16.3
 ```
+
+Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
+The parameters above are primarily meant for development on a local machine.
 
 Then clone the repository and run:
 
@@ -85,7 +89,7 @@ This will do multiple passes:
 - `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
 - `optimize` forces merging of ElasticSearch segments (few hours).
 
-The whole process requires substantial amount of disk space (at least 1 TB), bandwidth, and time.
+The whole process requires substantial amount of disk space (at least 1.5 TB), bandwidth, and time.
 
 ### Docker
 
