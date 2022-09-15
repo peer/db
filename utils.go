@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"mime"
 	"net"
@@ -125,18 +126,21 @@ func (s *Service) Proxy(w http.ResponseWriter, req *http.Request, _ Params) {
 }
 
 func (s *Service) serveStaticFiles(router *Router) errors.E {
+	name := autoName(s.StaticFile)
+	h := logHandlerName(name, s.StaticFile)
+
 	for path := range compressedFiles[compressionIdentity] {
 		if path == "/index.html" {
 			continue
 		}
 
-		name := autoName(s.StaticFile)
-		h := logHandlerName(name, s.StaticFile)
-		err := router.Handle(name, http.MethodGet, "", path, h)
+		n := fmt.Sprintf("%s:%s", name, path)
+
+		err := router.Handle(n, http.MethodGet, "", path, h)
 		if err != nil {
 			return err
 		}
-		err = router.Handle(name, http.MethodHead, "", path, h)
+		err = router.Handle(n, http.MethodHead, "", path, h)
 		if err != nil {
 			return err
 		}
