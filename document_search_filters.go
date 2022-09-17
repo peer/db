@@ -190,5 +190,5 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		"Total": {total},
 	}
 
-	s.writeJSON(w, req, contentEncoding, results[:maxResultsCount], metadata)
+	s.writeJSON(w, req, contentEncoding, results, metadata)
 }
