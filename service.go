@@ -47,12 +47,13 @@ type routes struct {
 }
 
 type Service struct {
-	ESClient        *elastic.Client
-	Log             zerolog.Logger
-	Index           string
-	Development     string
-	Router          *Router
-	reverseProxy    *httputil.ReverseProxy
+	ESClient     *elastic.Client
+	Log          zerolog.Logger
+	Index        string
+	Development  string
+	Router       *Router
+	reverseProxy *httputil.ReverseProxy
+	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64
 }
 

@@ -14,8 +14,8 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-type filteredPropsAggregations struct {
-	Filter propsAggregations `json:"filter"`
+type filteredRelAggregations struct {
+	Filter relAggregations `json:"filter"`
 }
 
 func (s *Service) DocumentSearchFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
@@ -78,25 +78,25 @@ func (s *Service) DocumentSearchFilterGetGetJSON(w http.ResponseWriter, req *htt
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	m = timing.NewMetric("d").Start()
-	var props filteredPropsAggregations
-	err = json.Unmarshal(res.Aggregations["rel"], &props)
+	var rel filteredRelAggregations
+	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()
 	if err != nil {
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
-	results := make([]searchResult, len(props.Filter.Props.Buckets))
-	for i, bucket := range props.Filter.Props.Buckets {
+	results := make([]searchResult, len(rel.Filter.Props.Buckets))
+	for i, bucket := range rel.Filter.Props.Buckets {
 		results[i] = searchResult{ID: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	if int64(len(props.Filter.Props.Buckets)) > props.Filter.Total.Value {
-		props.Filter.Total.Value = int64(len(props.Filter.Props.Buckets))
+	if int64(len(rel.Filter.Props.Buckets)) > rel.Filter.Total.Value {
+		rel.Filter.Total.Value = int64(len(rel.Filter.Props.Buckets))
 	}
-	total := strconv.FormatInt(props.Filter.Total.Value, 10) //nolint:gomnd
+	total := strconv.FormatInt(rel.Filter.Total.Value, 10) //nolint:gomnd
 
 	metadata := http.Header{
 		"Total": {total},

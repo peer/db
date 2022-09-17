@@ -234,7 +234,7 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
 			elastic.NewTermQuery("active.id.id", id),
 		),
-	)).SeqNoPrimaryTerm(true).Do(ctx)
+	)).SeqNoAndPrimaryTerm(true).Do(ctx)
 	if err != nil {
 		// Caller should add details to the error.
 		return nil, nil, errors.WithStack(err)

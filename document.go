@@ -1133,6 +1133,9 @@ const (
 	AmountUnitByte
 	AmountUnitPixel
 	AmountUnitSecond
+
+	// Count of the number of possible values.
+	amountUnitsTotal
 )
 
 func (u AmountUnit) MarshalJSON() ([]byte, error) {
