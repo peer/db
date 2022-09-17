@@ -391,7 +391,7 @@ export function useFilterValues(
         return null
       }
       return router.resolve({
-        name: "DocumentSearchFilterGet",
+        name: "DocumentSearchRelFilterGet",
         params: {
           s,
           prop: property._id,

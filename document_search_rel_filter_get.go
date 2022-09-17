@@ -18,7 +18,7 @@ type filteredRelAggregations struct {
 	Filter relAggregations `json:"filter"`
 }
 
-func (s *Service) DocumentSearchFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

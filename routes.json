@@ -9,8 +9,9 @@
       "path": "/d/filters/:s"
     },
     {
-      "name": "DocumentSearchFilterGet",
-      "path": "/d/filters/:s/:prop"
+      "name": "DocumentSearchRelFilterGet",
+      "path": "/d/filters/:s/rel/:prop"
+    },
     },
     {
       "name": "DocumentGet",
