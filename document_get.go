@@ -28,7 +28,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 
 	id := params["id"]
 	if !identifier.Valid(id) {
-		s.BadRequest(w, req, nil)
+		s.badRequestWithError(w, req, errors.New(`"id" parameter is not a valid identifier`))
 		return
 	}
 
@@ -105,7 +105,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 
 	id := params["id"]
 	if !identifier.Valid(id) {
-		s.BadRequest(w, req, nil)
+		s.badRequestWithError(w, req, errors.New(`"id" parameter is not a valid identifier`))
 		return
 	}
 

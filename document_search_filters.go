@@ -57,12 +57,6 @@ type amountAggregations struct {
 				Docs struct {
 					Count int64 `json:"doc_count"`
 				} `json:"docs"`
-				Min struct {
-					Value float64 `json:"value"`
-				}
-				Max struct {
-					Value float64 `json:"value"`
-				}
 			} `json:"buckets"`
 		} `json:"props"`
 		Total struct {
@@ -83,7 +77,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 
 	id := params["s"]
 	if !identifier.Valid(id) {
-		s.BadRequest(w, req, nil)
+		s.badRequestWithError(w, req, errors.New(`"s" parameter is not a valid identifier`))
 		return
 	}
 
@@ -119,12 +113,6 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 			elastic.NewMultiTermsAggregation().Terms("active.amount.prop._id", "active.amount.unit").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
-			).SubAggregation(
-				"min",
-				elastic.NewMinAggregation().Field("active.amount.amount"),
-			).SubAggregation(
-				"max",
-				elastic.NewMaxAggregation().Field("active.amount.amount"),
 			),
 		).SubAggregation(
 			"total",
@@ -174,15 +162,11 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
-		min := bucket.Min.Value
-		max := bucket.Max.Value
 		results[len(rel.Props.Buckets)+i] = searchResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
 			Type:  "amount",
 			Unit:  bucket.Key[1],
-			Min:   &min,
-			Max:   &max,
 		}
 	}
 

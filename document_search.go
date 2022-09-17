@@ -280,12 +280,10 @@ func getSearch(form url.Values) *search {
 
 // searchResult is returned from the searchGet API endpoint.
 type searchResult struct {
-	ID    string   `json:"_id"`
-	Count int64    `json:"_count,omitempty"`
-	Type  string   `json:"_type,omitempty"`
-	Unit  string   `json:"_unit,omitempty"`
-	Min   *float64 `json:"_min,omitempty"`
-	Max   *float64 `json:"_max,omitempty"`
+	ID    string `json:"_id"`
+	Count int64  `json:"_count,omitempty"`
+	Type  string `json:"_type,omitempty"`
+	Unit  string `json:"_unit,omitempty"`
 }
 
 // DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.

@@ -30,13 +30,13 @@ func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *
 
 	id := params["s"]
 	if !identifier.Valid(id) {
-		s.BadRequest(w, req, nil)
+		s.badRequestWithError(w, req, errors.New(`"s" parameter is not a valid identifier`))
 		return
 	}
 
 	prop := params["prop"]
 	if !identifier.Valid(prop) {
-		s.BadRequest(w, req, nil)
+		s.badRequestWithError(w, req, errors.New(`"prop" parameter is not a valid identifier`))
 		return
 	}
 
@@ -53,7 +53,9 @@ func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *
 	query := s.getSearchQuery(sh)
 	aggregation := elastic.NewNestedAggregation().Path("active.rel").SubAggregation(
 		"filter",
-		elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("active.rel.prop._id", prop)).SubAggregation(
+		elastic.NewFilterAggregation().Filter(
+			elastic.NewTermQuery("active.rel.prop._id", prop),
+		).SubAggregation(
 			"props",
 			elastic.NewTermsAggregation().Field("active.rel.to._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",

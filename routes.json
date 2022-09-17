@@ -12,6 +12,9 @@
       "name": "DocumentSearchRelFilterGet",
       "path": "/d/filters/:s/rel/:prop"
     },
+    {
+      "name": "DocumentSearchAmountFilterGet",
+      "path": "/d/filters/:s/amount/:prop/:unit"
     },
     {
       "name": "DocumentGet",

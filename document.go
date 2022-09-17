@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 )
 
 const (
@@ -1241,6 +1242,12 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		return errors.Errorf("unknown amount unit: %s", s)
 	}
 	return nil
+}
+
+func ValidAmountUnit(unit string) bool {
+	var u AmountUnit
+	err := x.UnmarshalWithoutUnknownFields([]byte(`"`+unit+`"`), &u)
+	return err == nil
 }
 
 type AmountClaim struct {
