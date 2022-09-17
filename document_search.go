@@ -282,7 +282,7 @@ func getSearch(form url.Values) *search {
 type searchResult struct {
 	ID    string   `json:"_id"`
 	Count int64    `json:"_count,omitempty"`
-	Field string   `json:"_field,omitempty"`
+	Type  string   `json:"_type,omitempty"`
 	Unit  string   `json:"_unit,omitempty"`
 	Min   *float64 `json:"_min,omitempty"`
 	Max   *float64 `json:"_max,omitempty"`

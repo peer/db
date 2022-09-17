@@ -168,7 +168,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		results[i] = searchResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
-			Field: "rel",
+			Type:  "rel",
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
@@ -177,7 +177,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		results[len(rel.Props.Buckets)+i] = searchResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
-			Field: "amount",
+			Type:  "amount",
 			Unit:  bucket.Key[1],
 			Min:   &min,
 			Max:   &max,
