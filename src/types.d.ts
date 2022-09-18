@@ -1,6 +1,13 @@
 export type SearchResult = {
   _id: string
   _count?: number
+  _type?: string
+  _unit?: string
+}
+
+export type HistogramResult = {
+  min: number
+  count: number
 }
 
 // TODO: Define the document better.

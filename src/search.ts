@@ -1,6 +1,6 @@
 import type { Ref, DeepReadonly } from "vue"
 import type { Router, RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
-import type { SearchResult, PeerDBDocument, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
+import type { SearchResult, HistogramResult, PeerDBDocument, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -119,7 +119,7 @@ export function useSearch(
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
-  total: DeepReadonly<Ref<number>>
+  total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   hasMore: DeepReadonly<Ref<boolean>>
@@ -128,7 +128,7 @@ export function useSearch(
   const router = useRouter()
   const route = useRoute()
 
-  return useResults(
+  return useSearchResults(
     0,
     progress,
     () => {
@@ -145,14 +145,14 @@ export function useSearch(
 export function useFilters(progress: Ref<number>): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
-  total: DeepReadonly<Ref<number>>
+  total: DeepReadonly<Ref<number | null>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
-  return useResults(
+  return useSearchResults(
     -1,
     progress,
     () => {
@@ -210,7 +210,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
   throw new Error(`invalid filter`)
 }
 
-function useResults(
+function useSearchResults(
   priority: number,
   progress: Ref<number>,
   getURL: () => string | null,
@@ -220,7 +220,7 @@ function useResults(
 ): {
   docs: DeepReadonly<Ref<PeerDBDocument[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
-  total: DeepReadonly<Ref<number>>
+  total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   hasMore: DeepReadonly<Ref<boolean>>
@@ -233,9 +233,7 @@ function useResults(
 
   const _docs = ref<PeerDBDocument[]>([])
   const _results = ref<SearchResult[]>([])
-  // We start with -1, so that until data is loaded the
-  // first time, we do not flash "no results found".
-  const _total = ref(-1)
+  const _total = ref<number | null>(null)
   const _filters = ref<FiltersState>({})
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
@@ -257,7 +255,7 @@ function useResults(
       if (!url) {
         _docs.value = []
         _results.value = []
-        _total.value = -1
+        _total.value = null
         _filters.value = {}
         _moreThanTotal.value = false
         _hasMore.value = false
@@ -265,11 +263,11 @@ function useResults(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(url, priority, controller.signal, progress)
+      const data = await getSearchResults(url, priority, controller.signal, progress)
       if (!("results" in data)) {
         _docs.value = []
         _results.value = []
-        _total.value = -1
+        _total.value = null
         _filters.value = {}
         _moreThanTotal.value = false
         _hasMore.value = false
@@ -319,7 +317,139 @@ function useResults(
   }
 }
 
-async function getResults(
+export function useRelFilterValues(
+  property: PeerDBDocument,
+  progress: Ref<number>,
+): {
+  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  results: DeepReadonly<Ref<SearchResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  return useSearchResults(
+    -2,
+    progress,
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s || !property._id || !property._type) {
+        return null
+      }
+      if (property._type === "rel") {
+        return router.resolve({
+          name: "DocumentSearchRelFilterGet",
+          params: {
+            s,
+            prop: property._id,
+          },
+        }).href
+      } else {
+        throw new Error(`Unexpected type "${property._type}" for property "${property._id}".`)
+      }
+    },
+    FILTERS_INITIAL_LIMIT,
+    FILTERS_INCREASE,
+    null,
+  )
+}
+
+export function useHistogramValues(
+  property: PeerDBDocument,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<HistogramResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  min: DeepReadonly<Ref<number | null>>
+  max: DeepReadonly<Ref<number | null>>
+  interval: DeepReadonly<Ref<number | null>>
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  const _results = ref<HistogramResult[]>([])
+  const _total = ref<number | null>(null)
+  const _min = ref<number | null>(null)
+  const _max = ref<number | null>(null)
+  const _interval = ref<number | null>(null)
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const total = import.meta.env.DEV ? readonly(_total) : _total
+  const min = import.meta.env.DEV ? readonly(_min) : _min
+  const max = import.meta.env.DEV ? readonly(_max) : _max
+  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s || !property._id || !property._type) {
+        return null
+      }
+      if (property._type === "amount") {
+        if (!property._unit) {
+          throw new Error(`Property "${property._id}" is missing unit.`)
+        }
+        return router.resolve({
+          name: "DocumentSearchAmountFilterGet",
+          params: {
+            s,
+            prop: property._id,
+            unit: property._unit,
+          },
+        }).href
+      } else {
+        throw new Error(`Unexpected type "${property._type}" for property "${property._id}".`)
+      }
+    },
+    async (url, oldURL, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (!url) {
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        return
+      }
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      _results.value = data.results
+      _total.value = data.total
+      _min.value = data.min ?? null
+      _max.value = data.max ?? null
+      _interval.value = data.interval ?? null
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    results,
+    total,
+    min,
+    max,
+    interval,
+  }
+}
+
+async function getSearchResults(
   url: string,
   priority: number,
   abortSignal: AbortSignal,
@@ -347,6 +477,35 @@ async function getResults(
   return doc as { q: string; s: string }
 }
 
+async function getHistogramValues(
+  url: string,
+  priority: number,
+  abortSignal: AbortSignal,
+  progress?: Ref<number>,
+): Promise<{ results: HistogramResult[]; total: number; min?: number; max?: number; interval?: number }> {
+  const { doc, headers } = await getURL(url, priority, abortSignal, progress)
+
+  const total = headers.get("Peerdb-Total")
+  if (total === null) {
+    throw new Error("Peerdb-Total header is null")
+  }
+  const res = { results: doc, total: parseInt(total) } as { results: HistogramResult[]; total: number; min?: number; max?: number; interval?: number }
+  const min = headers.get("Peerdb-Min")
+  if (min !== null) {
+    res.min = parseFloat(min)
+  }
+  const max = headers.get("Peerdb-Max")
+  if (max !== null) {
+    res.max = parseFloat(max)
+  }
+  const interval = headers.get("Peerdb-Interval")
+  if (interval !== null) {
+    res.interval = parseFloat(interval)
+  }
+
+  return res
+}
+
 export async function getDocument(router: Router, result: SearchResult, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
   const { doc } = await getURL(
     router.resolve({
@@ -362,46 +521,6 @@ export async function getDocument(router: Router, result: SearchResult, priority
   // We add any extra fields from the result (e.g., _count).
   // This also adds _id if it is not already present.
   return Object.assign({}, doc, result)
-}
-
-export function useFilterValues(
-  property: PeerDBDocument,
-  progress: Ref<number>,
-): {
-  docs: DeepReadonly<Ref<PeerDBDocument[]>>
-  results: DeepReadonly<Ref<SearchResult[]>>
-  total: DeepReadonly<Ref<number>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
-} {
-  const router = useRouter()
-  const route = useRoute()
-
-  return useResults(
-    -2,
-    progress,
-    () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s || !property._id) {
-        return null
-      }
-      return router.resolve({
-        name: "DocumentSearchRelFilterGet",
-        params: {
-          s,
-          prop: property._id,
-        },
-      }).href
-    },
-    FILTERS_INITIAL_LIMIT,
-    FILTERS_INCREASE,
-    null,
-  )
 }
 
 export function useSearchState(
@@ -441,7 +560,7 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getResults(getSearchURL(router, params.toString()), 0, controller.signal, progress)
+      const data = await getSearchResults(getSearchURL(router, params.toString()), 0, controller.signal, progress)
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}

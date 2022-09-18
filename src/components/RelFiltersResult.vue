@@ -5,7 +5,7 @@ import { ref, computed } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
-import { useFilterValues } from "@/search"
+import { useRelFilterValues } from "@/search"
 
 const props = defineProps<{
   searchTotal: number
@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const progress = ref(0)
-const { docs, total, hasMore, loadMore } = useFilterValues(props.property, progress)
+const { docs, total, hasMore, loadMore } = useRelFilterValues(props.property, progress)
 
 const hasLoaded = computed(() => props.property?.name?.en)
 const docsWithNone = computed(() => {
@@ -105,8 +105,8 @@ function onChange(event: Event, id: string) {
           </div>
         </li>
       </ul>
-      <Button v-if="hasMore" :progress="progress" class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - docs.length }} more</Button>
-      <div v-else-if="total > docs.length" class="mt-2 text-center text-sm">{{ total - docs.length }} values not shown.</div>
+      <Button v-if="total !== null && hasMore" :progress="progress" class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - docs.length }} more</Button>
+      <div v-else-if="total !== null && total > docs.length" class="mt-2 text-center text-sm">{{ total - docs.length }} values not shown.</div>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">

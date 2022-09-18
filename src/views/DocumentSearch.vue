@@ -4,7 +4,8 @@ import type { FilterState, FiltersState, ClientQuery } from "@/types"
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
-import FiltersResult from "@/components/FiltersResult.vue"
+import RelFiltersResult from "@/components/RelFiltersResult.vue"
+import AmountFiltersResult from "@/components/AmountFiltersResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import Button from "@/components/Button.vue"
@@ -59,7 +60,7 @@ watch(
       return
     }
     // Initial data has not yet been loaded, so we wait.
-    if (!topId && searchTotal.value < 0) {
+    if (!topId && searchTotal === null) {
       return
     }
     // We set "s", "at", and "q" here to undefined so that we control their order in the query string.
@@ -145,7 +146,7 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
           <div class="text-center text-sm">No results found.</div>
         </div>
       </div>
-      <template v-else-if="searchTotal > 0">
+      <template v-else-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(doc, i) in searchDocs" :key="doc._id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
@@ -187,17 +188,26 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
           <div class="text-center text-sm">No filters available.</div>
         </div>
       </div>
-      <template v-else-if="filtersTotal > 0">
+      <template v-else-if="searchTotal !== null && filtersTotal !== null && filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <FiltersResult
-          v-for="doc in filtersDocs"
-          :key="doc._id"
-          :search-total="searchTotal"
-          :property="doc"
-          :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
-          :update-progress="updateFiltersProgress"
-          @update:state="onFiltersStateUpdate(doc._id, $event)"
-        />
+        <template v-for="doc in filtersDocs" :key="doc._id">
+          <RelFiltersResult
+            v-if="doc._type === 'rel'"
+            :search-total="searchTotal"
+            :property="doc"
+            :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
+            :update-progress="updateFiltersProgress"
+            @update:state="onFiltersStateUpdate(doc._id, $event)"
+          />
+          <AmountFiltersResult
+            v-if="doc._type === 'amount'"
+            :search-total="searchTotal"
+            :property="doc"
+            :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
+            :update-progress="updateFiltersProgress"
+            @update:state="onFiltersStateUpdate(doc._id, $event)"
+          />
+        </template>
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
           >More filters</Button
         >
@@ -205,7 +215,7 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
       </template>
     </div>
   </div>
-  <Teleport v-if="(searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
+  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>
