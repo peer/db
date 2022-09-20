@@ -4,6 +4,7 @@ import type { PeerDBDocument, FilterState } from "@/types"
 import { ref, computed } from "vue"
 import RouterLink from "@/components/RouterLink.vue"
 import { useHistogramValues } from "@/search"
+import { formatValue } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -17,7 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const progress = ref(0)
-const { results, total, min, max, interval } = useHistogramValues(props.property, progress)
+const { results, min, max } = useHistogramValues(props.property, progress)
 
 const hasLoaded = computed(() => props.property?.name?.en)
 
@@ -34,6 +35,13 @@ function onChange(event: Event, id: string) {
     emit("update:state", updatedState)
   }
 }
+
+const barWidth = computed(() => {
+  return 100 / results.value.length
+})
+const maxCount = computed(() => {
+  return Math.max(...results.value.map((r) => r.count))
+})
 </script>
 
 <template>
@@ -43,6 +51,53 @@ function onChange(event: Event, id: string) {
         <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name.en }}</RouterLink>
         ({{ property._count }})
       </div>
+      <ul>
+        <li v-if="min !== null && max !== null && min !== max">
+          <svg viewBox="0 0 100 30">
+            <rect
+              v-for="(res, i) in results"
+              :key="i"
+              :height="Math.ceil((30 * res.count) / maxCount)"
+              :width="barWidth * 0.5"
+              :y="30 - Math.ceil((30 * res.count) / maxCount)"
+              :x="i * barWidth"
+            ></rect>
+          </svg>
+          <div class="flex flex-row justify-between gap-x-1">
+            <div>
+              {{ formatValue(min, property._unit) }}
+            </div>
+            <div>
+              {{ formatValue(max, property._unit) }}
+            </div>
+          </div>
+        </li>
+        <li v-if="property._count < searchTotal" class="flex gap-x-1">
+          <input
+            :id="property._id + '/' + property._unit + '/none'"
+            :disabled="updateProgress > 0"
+            :checked="state.includes('none')"
+            :class="
+              updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
+            "
+            type="checkbox"
+            class="my-1 rounded"
+            @change="onChange($event, 'none')"
+          />
+          <label
+            :for="property._id + '/' + property._unit + '/none'"
+            class="my-1 leading-none"
+            :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>none</i></label
+          >
+          <label
+            :for="property._id + '/' + property._unit + '/none'"
+            class="my-1 leading-none"
+            :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ searchTotal - property._count }})</label
+          >
+        </li>
+      </ul>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">
