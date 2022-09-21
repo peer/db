@@ -164,7 +164,7 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
             <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
             <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} results.</div>
             <div class="relative h-1 w-full bg-slate-200">
-              <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
+              <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
           <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
@@ -177,7 +177,7 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
           </div>
           <div v-else-if="searchResults.length == searchTotal && !searchMoreThanTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
           <div class="relative h-1 w-full bg-slate-200">
-            <div class="absolute inset-y-0 bg-secondary-400 opacity-60" style="left: 0" :style="{ width: 100 + '%' }"></div>
+            <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
           </div>
         </div>
       </template>
