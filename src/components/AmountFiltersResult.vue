@@ -36,8 +36,11 @@ function onChange(event: Event, id: string) {
   }
 }
 
+const chartWidth = 200
+const chartHeight = 30
 const barWidth = computed(() => {
-  return 100 / results.value.length
+  // We assume here that there are at most 100 results so that returns at least 2.
+  return chartWidth / results.value.length
 })
 const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
@@ -53,13 +56,15 @@ const maxCount = computed(() => {
       </div>
       <ul>
         <li v-if="min !== null && max !== null && min !== max">
-          <svg viewBox="0 0 100 30">
+          <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
+          <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
+            <!-- We subtract 1 from bar width to have a gap between bars. -->
             <rect
               v-for="(res, i) in results"
               :key="i"
-              :height="Math.ceil((30 * res.count) / maxCount)"
-              :width="barWidth * 0.5"
-              :y="30 - Math.ceil((30 * res.count) / maxCount)"
+              :height="Math.ceil((chartHeight * res.count) / maxCount)"
+              :width="barWidth - 1"
+              :y="chartHeight - Math.ceil((chartHeight * res.count) / maxCount)"
               :x="i * barWidth"
             ></rect>
           </svg>
