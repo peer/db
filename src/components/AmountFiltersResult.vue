@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { API } from "nouislider"
 import type { PeerDBDocument, FilterState } from "@/types"
 
-import { ref, computed } from "vue"
+import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
+import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
 import { useHistogramValues } from "@/search"
 import { formatValue } from "@/utils"
@@ -45,6 +47,58 @@ const barWidth = computed(() => {
 const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
 })
+
+let slider: API | null = null
+const sliderEl = ref()
+
+watchEffect((onCleanup) => {
+  if (slider && slider.target != sliderEl.value) {
+    slider.destroy()
+    slider = null
+  }
+  // When sliderEl exists we know that min and max is set as well, and that min != max.
+  // Still, we check it here to satisfy type checking.
+  if (min.value === null || max.value === null || min.value === max.value) {
+    return
+  }
+  if (!slider && sliderEl.value) {
+    slider = noUiSlider.create(sliderEl.value, {
+      start: [min.value, max.value],
+      range: {
+        min: [min.value],
+        max: [max.value],
+      },
+      margin: (max.value - min.value) / results.value.length,
+      connect: [false, true, false],
+      // Range is divided by this number to get the keyboard step.
+      keyboardDefaultStep: results.value.length,
+      keyboardPageMultiplier: 10,
+      animate: false,
+      behaviour: "snap",
+    })
+  } else if (slider) {
+    slider.updateOptions(
+      {
+        start: [min.value, max.value],
+        range: {
+          min: [min.value],
+          max: [max.value],
+        },
+        margin: (max.value - min.value) / results.value.length,
+        // TODO: Uncomment when supported. See: https://github.com/leongersen/noUiSlider/issues/1226
+        // keyboardDefaultStep: results.value.length,
+      },
+      true,
+    )
+  }
+})
+
+onBeforeUnmount(() => {
+  if (slider) {
+    slider.destroy()
+    slider = null
+  }
+})
 </script>
 
 <template>
@@ -76,6 +130,7 @@ const maxCount = computed(() => {
               {{ formatValue(max, property._unit) }}
             </div>
           </div>
+          <div ref="sliderEl"></div>
         </li>
         <li v-if="property._count < searchTotal" class="flex gap-x-1">
           <input

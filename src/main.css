@@ -1,7 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-@tailwind variants;
+@import "tailwindcss/base";
+@import "nouislider/dist/nouislider.css";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+@import "tailwindcss/variants";
 
 @layer components {
   .link {
@@ -98,4 +99,28 @@
   .prose :where(.prose > section:last-child > :last-child):not(:where([class~="not-prose"] *)) {
     margin-bottom: 0;
   }
+}
+
+.noUi-connect {
+  @apply bg-secondary-400 h-2 cursor-pointer;
+}
+
+.noUi-connects {
+  @apply rounded-none cursor-pointer;
+}
+
+.noUi-horizontal {
+  @apply bg-slate-200 h-2 border-none rounded-none shadow-none my-2;
+}
+
+.noUi-horizontal .noUi-handle {
+  @apply cursor-pointer border-none rounded-full h-6 w-6 -top-2 -right-3 shadow outline-none focus:ring-2 focus:ring-offset-1 bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500;
+}
+
+.noUi-state-drag .noUi-handle {
+  @apply cursor-grabbing !important;
+}
+
+.noUi-handle::before, .noUi-handle::after {
+  @apply hidden;
 }
