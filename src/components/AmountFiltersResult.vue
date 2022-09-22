@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
           </div>
           <div ref="sliderEl"></div>
         </li>
-        <li v-if="property._count < searchTotal" class="flex gap-x-1">
+        <li v-if="property._count < searchTotal" class="mt-4 flex gap-x-1">
           <input
             :id="property._id + '/' + property._unit + '/none'"
             :disabled="updateProgress > 0"
