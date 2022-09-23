@@ -23,12 +23,15 @@ const (
 )
 
 type filters struct {
-	And   []filters `json:"and,omitempty"`
-	Or    []filters `json:"or,omitempty"`
-	Not   *filters  `json:"not,omitempty"`
-	Prop  string    `json:"prop,omitempty"`
-	Value string    `json:"value,omitempty"`
-	None  bool      `json:"none,omitempty"`
+	And   []filters   `json:"and,omitempty"`
+	Or    []filters   `json:"or,omitempty"`
+	Not   *filters    `json:"not,omitempty"`
+	Prop  string      `json:"prop,omitempty"`
+	Unit  *AmountUnit `json:"unit,omitempty"`
+	Value string      `json:"value,omitempty"`
+	None  bool        `json:"none,omitempty"`
+	Gte   *float64    `json:"gte,omitempty"`
+	Lte   *float64    `json:"lte,omitempty"`
 }
 
 func (f filters) Valid() errors.E {
@@ -44,11 +47,38 @@ func (f filters) Valid() errors.E {
 	}
 	if f.Prop != "" {
 		nonEmpty++
-		if f.Value == "" && !f.None {
-			return errors.New("value or none has to be set if prop is set")
+		if f.Value == "" && !f.None && f.Gte == nil && f.Lte == nil {
+			return errors.New("value, none, or lte and gte has to be set if prop is set")
 		}
 		if f.Value != "" && f.None {
 			return errors.New("value and none cannot be both set")
+		}
+		if f.Value != "" && f.Unit != nil {
+			return errors.New("value and unit cannot be both set")
+		}
+		if f.Gte != nil && f.None {
+			return errors.New("gte and none cannot be both set")
+		}
+		if f.Lte != nil && f.None {
+			return errors.New("lte and none cannot be both set")
+		}
+		if f.Gte != nil && f.Value != "" {
+			return errors.New("gte and value cannot be both set")
+		}
+		if f.Lte != nil && f.Value != "" {
+			return errors.New("lte and value cannot be both set")
+		}
+		if f.Lte != nil && f.Gte == nil {
+			return errors.New("gte has to be set if lte is set")
+		}
+		if f.Lte == nil && f.Gte != nil {
+			return errors.New("lte has to be set if gte is set")
+		}
+		if f.Lte != nil && f.Unit == nil {
+			return errors.New("unit has to be set if lte is set")
+		}
+		if f.Unit == nil && f.Gte != nil {
+			return errors.New("unit has to be set if gte is set")
 		}
 		if !identifier.Valid(f.Prop) {
 			return errors.New("invalid prop")
@@ -62,6 +92,12 @@ func (f filters) Valid() errors.E {
 		}
 		if f.None {
 			return errors.New("none can be set only if prop is set as well")
+		}
+		if f.Lte != nil {
+			return errors.New("lte can be set only if prop is set as well")
+		}
+		if f.Gte != nil {
+			return errors.New("gte can be set only if prop is set as well")
 		}
 	}
 	if nonEmpty > 1 {
@@ -104,6 +140,15 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		boolQuery.MustNot(f.Not.ToQuery())
 		return boolQuery
 	}
+	if f.Prop != "" && f.None && f.Unit != nil {
+		boolQuery := elastic.NewBoolQuery()
+		boolQuery.MustNot(elastic.NewBoolQuery().Must(
+			elastic.NewTermQuery("active.amount.prop._id", f.Prop),
+		).Must(
+			elastic.NewTermQuery("active.amount.unit", *f.Unit),
+		))
+		return elastic.NewNestedQuery("active.amount", boolQuery)
+	}
 	if f.Prop != "" && f.None {
 		boolQuery := elastic.NewBoolQuery()
 		boolQuery.MustNot(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
@@ -114,6 +159,13 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		boolQuery.Must(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
 		boolQuery.Must(elastic.NewTermQuery("active.rel.to._id", f.Value))
 		return elastic.NewNestedQuery("active.rel", boolQuery)
+	}
+	if f.Prop != "" && f.Lte != nil && f.Gte != nil && f.Unit != nil {
+		boolQuery := elastic.NewBoolQuery()
+		boolQuery.Must(elastic.NewTermQuery("active.amount.prop._id", f.Prop))
+		boolQuery.Must(elastic.NewTermQuery("active.amount.unit", *f.Unit))
+		boolQuery.Must(elastic.NewRangeQuery("active.amount.amount").Lte(*f.Lte).Gte(*f.Gte))
+		return elastic.NewNestedQuery("active.amount", boolQuery)
 	}
 	panic(errors.New("invalid filters"))
 }

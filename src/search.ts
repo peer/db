@@ -51,18 +51,37 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
     and: [],
   }
   for (const [prop, values] of Object.entries(updatedState)) {
-    if (!values.length) {
+    if (values === null || (Array.isArray(values) && !values.length)) {
       continue
     }
     // TODO: Support also OR between values for the same property.
     const propFilters: Filters = { and: [] }
     filters.and.push(propFilters)
-    for (const value of values) {
-      if (value === "none") {
-        propFilters.and.push({ prop: prop, none: true })
-      } else {
-        propFilters.and.push({ prop: prop, value: value })
+    if (Array.isArray(values)) {
+      for (const value of values) {
+        if (value === "none") {
+          const segments = prop.split("/")
+          if (segments.length === 2) {
+            if (values.length !== 1) {
+              throw new Error(`invalid amount filter none value: ${values}`)
+            }
+            propFilters.and.push({ prop: segments[0], unit: segments[1], none: true })
+          } else if (segments.length === 1) {
+            propFilters.and.push({ prop: segments[0], none: true })
+          } else {
+            throw new Error(`invalid filter ID: ${prop}`)
+          }
+        } else {
+          propFilters.and.push({ prop: prop, value: value })
+        }
       }
+    } else {
+      // Property ID and unit are combined for amount filters.
+      const segments = prop.split("/")
+      if (segments.length !== 2) {
+        throw new Error(`invalid amount filter ID: ${prop}`)
+      }
+      propFilters.and.push({ prop: segments[0], unit: segments[1], ...values })
     }
   }
   const form = new FormData()
@@ -190,11 +209,23 @@ function filtersToFiltersState(filters: Filters): FiltersState {
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
       for (const [prop, values] of Object.entries(s)) {
-        for (const v of values) {
+        if (Array.isArray(values)) {
+          for (const v of values) {
+            if (!state[prop]) {
+              state[prop] = [v]
+            } else if (Array.isArray(state[prop])) {
+              if (!state[prop].includes(v)) {
+                state[prop].push(v)
+              }
+            } else {
+              throw new Error(`cannot mix range filter with other filters for the same property "${prop}"`)
+            }
+          }
+        } else {
           if (!state[prop]) {
-            state[prop] = [v]
-          } else if (!state[prop].includes(v)) {
-            state[prop].push(v)
+            state[prop] = values
+          } else {
+            throw new Error(`duplicate filter for the same property "${prop}"`)
           }
         }
       }
@@ -203,6 +234,12 @@ function filtersToFiltersState(filters: Filters): FiltersState {
   }
   if ("prop" in filters && "value" in filters) {
     return { [filters.prop]: [filters.value] }
+  }
+  if ("prop" in filters && "gte" in filters && "lte" in filters && "unit" in filters) {
+    return { [`${filters.prop}/${filters.unit}`]: { gte: filters.gte, lte: filters.lte } }
+  }
+  if ("prop" in filters && "none" in filters && "unit" in filters) {
+    return { [`${filters.prop}/${filters.unit}`]: ["none"] }
   }
   if ("prop" in filters && "none" in filters) {
     return { [filters.prop]: ["none"] }
@@ -352,7 +389,7 @@ export function useRelFilterValues(
           },
         }).href
       } else {
-        throw new Error(`Unexpected type "${property._type}" for property "${property._id}".`)
+        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
       }
     },
     FILTERS_INITIAL_LIMIT,
@@ -399,7 +436,7 @@ export function useHistogramValues(
       }
       if (property._type === "amount") {
         if (!property._unit) {
-          throw new Error(`Property "${property._id}" is missing unit.`)
+          throw new Error(`property "${property._id}" is missing unit`)
         }
         return router.resolve({
           name: "DocumentSearchAmountFilterGet",
@@ -410,7 +447,7 @@ export function useHistogramValues(
           },
         }).href
       } else {
-        throw new Error(`Unexpected type "${property._type}" for property "${property._id}".`)
+        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
       }
     },
     async (url, oldURL, onCleanup) => {

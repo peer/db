@@ -30,12 +30,21 @@ export type Filters =
     }
   | {
       prop: string
+      unit?: string
       none: true
     }
+  | {
+      prop: string
+      unit: string
+      gte: number
+      lte: number
+    }
 
-export type FilterState = string[]
+export type RelFilterState = string[]
 
-export type FiltersState = Record<string, FilterState>
+export type AmountFilterState = null | ["none"] | { gte: number; lte: number }
+
+export type FiltersState = Record<string, RelFilterState | AmountFilterState>
 
 export type ServerQuery = { s?: string; q?: string; filters?: Filters }
 

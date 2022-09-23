@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { PeerDBDocument, FilterState } from "@/types"
+import type { PeerDBDocument, AmountFilterState } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
@@ -11,12 +11,12 @@ import { formatValue } from "@/utils"
 const props = defineProps<{
   searchTotal: number
   property: PeerDBDocument
-  state: FilterState
+  state: AmountFilterState
   updateProgress: number
 }>()
 
 const emit = defineEmits<{
-  (e: "update:state", state: FilterState): void
+  (e: "update:state", state: AmountFilterState): void
 }>()
 
 const progress = ref(0)
@@ -24,18 +24,30 @@ const { results, min, max } = useHistogramValues(props.property, progress)
 
 const hasLoaded = computed(() => props.property?.name?.en)
 
-function onChange(event: Event, id: string) {
-  let updatedState = [...props.state]
-  if ((event.target as HTMLInputElement).checked) {
-    if (!updatedState.includes(id)) {
-      updatedState.push(id)
-    }
-  } else {
-    updatedState = updatedState.filter((x) => x !== id)
+function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
+  const updatedState = {
+    gte: unencoded[0],
+    lte: unencoded[1],
   }
   if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
     emit("update:state", updatedState)
   }
+}
+
+function onNoneChange(event: Event) {
+  let updatedState: ["none"] | null
+  if ((event.target as HTMLInputElement).checked) {
+    updatedState = ["none"]
+  } else {
+    updatedState = null
+  }
+  if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
+    emit("update:state", updatedState)
+  }
+}
+
+function isStateNone(s: AmountFilterState) {
+  return Array.isArray(s) && s.length === 1 && s[0] === "none"
 }
 
 const chartWidth = 200
@@ -61,14 +73,18 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
+  const rangeMin = props.state === null || isStateNone(props.state) ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
+  const rangeMax = props.state === null || isStateNone(props.state) ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
+  const rangeStart = props.state === null || isStateNone(props.state) ? min.value : (props.state as { gte: number; lte: number }).gte
+  const rangeEnd = props.state === null || isStateNone(props.state) ? max.value : (props.state as { gte: number; lte: number }).lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
-      start: [min.value, max.value],
+      start: [rangeStart, rangeEnd],
       range: {
-        min: [min.value],
-        max: [max.value],
+        min: [rangeMin],
+        max: [rangeMax],
       },
-      margin: (max.value - min.value) / results.value.length,
+      margin: (rangeMax - rangeMin) / results.value.length,
       connect: [false, true, false],
       // Range is divided by this number to get the keyboard step.
       keyboardDefaultStep: results.value.length,
@@ -76,15 +92,16 @@ watchEffect((onCleanup) => {
       animate: false,
       behaviour: "snap",
     })
+    slider.on("change", onSliderChange)
   } else if (slider) {
     slider.updateOptions(
       {
-        start: [min.value, max.value],
+        start: [rangeStart, rangeEnd],
         range: {
-          min: [min.value],
-          max: [max.value],
+          min: [rangeMin],
+          max: [rangeMax],
         },
-        margin: (max.value - min.value) / results.value.length,
+        margin: (rangeMax - rangeMin) / results.value.length,
         // TODO: Uncomment when supported. See: https://github.com/leongersen/noUiSlider/issues/1226
         // keyboardDefaultStep: results.value.length,
       },
@@ -136,13 +153,13 @@ onBeforeUnmount(() => {
           <input
             :id="property._id + '/' + property._unit + '/none'"
             :disabled="updateProgress > 0"
-            :checked="state.includes('none')"
+            :checked="isStateNone(state)"
             :class="
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "
             type="checkbox"
             class="my-1 rounded"
-            @change="onChange($event, 'none')"
+            @change="onNoneChange($event)"
           />
           <label
             :for="property._id + '/' + property._unit + '/none'"

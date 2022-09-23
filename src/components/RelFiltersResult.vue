@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PeerDBDocument, FilterState } from "@/types"
+import type { PeerDBDocument, RelFilterState } from "@/types"
 
 import { ref, computed } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
@@ -10,12 +10,12 @@ import { useRelFilterValues } from "@/search"
 const props = defineProps<{
   searchTotal: number
   property: PeerDBDocument
-  state: FilterState
+  state: RelFilterState
   updateProgress: number
 }>()
 
 const emit = defineEmits<{
-  (e: "update:state", state: FilterState): void
+  (e: "update:state", state: RelFilterState): void
 }>()
 
 const progress = ref(0)

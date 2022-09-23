@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FilterState, FiltersState, ClientQuery } from "@/types"
+import type { RelFilterState, AmountFilterState, FiltersState, ClientQuery } from "@/types"
 
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -121,11 +121,22 @@ const updateFiltersProgress = ref(0)
 // TODO: Is it OK that we modify this computed reference later on (when initializing arrays for new properties).
 const filtersState = computed(() => Object.assign({}, searchFilters.value as FiltersState))
 
-async function onFiltersStateUpdate(id: string, s: FilterState) {
+async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
   updateFiltersProgress.value += 1
   try {
     const updatedState = Object.assign({}, filtersState.value)
     updatedState[id] = s
+    await postFilters(router, route, updatedState, updateFiltersProgress)
+  } finally {
+    updateFiltersProgress.value -= 1
+  }
+}
+
+async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFilterState) {
+  updateFiltersProgress.value += 1
+  try {
+    const updatedState = Object.assign({}, filtersState.value)
+    updatedState[`${id}/${unit}`] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
   } finally {
     updateFiltersProgress.value -= 1
@@ -150,15 +161,15 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
         <template v-for="(doc, i) in searchDocs" :key="doc._id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
-            <div class="h-1 w-full bg-slate-200"></div>
+            <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-if="i === 0 && searchResults.length < searchTotal && !searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of {{ searchTotal }} results found.</div>
-            <div class="h-1 w-full bg-slate-200"></div>
+            <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-if="i === 0 && searchResults.length == searchTotal && !searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Found {{ searchTotal }} results.</div>
-            <div class="h-1 w-full bg-slate-200"></div>
+            <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-else-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
             <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
@@ -195,17 +206,17 @@ async function onFiltersStateUpdate(id: string, s: FilterState) {
             v-if="doc._type === 'rel'"
             :search-total="searchTotal"
             :property="doc"
-            :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
+            :state="filtersState[doc._id] as RelFilterState || (filtersState[doc._id] = [])"
             :update-progress="updateFiltersProgress"
-            @update:state="onFiltersStateUpdate(doc._id, $event)"
+            @update:state="onRelFiltersStateUpdate(doc._id, $event)"
           />
           <AmountFiltersResult
             v-if="doc._type === 'amount'"
             :search-total="searchTotal"
             :property="doc"
-            :state="filtersState[doc._id] || (filtersState[doc._id] = [])"
+            :state="filtersState[`${doc._id}/${doc._unit}`] as AmountFilterState || (filtersState[`${doc._id}/${doc._unit}`] = null)"
             :update-progress="updateFiltersProgress"
-            @update:state="onFiltersStateUpdate(doc._id, $event)"
+            @update:state="onAmountFiltersStateUpdate(doc._id, doc._unit, $event)"
           />
         </template>
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
