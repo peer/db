@@ -117,7 +117,11 @@ watchEffect((onCleanup) => {
 
   // TODO: Handles should not be focused when disabled.
   //       See: https://github.com/leongersen/noUiSlider/issues/1227
-  sliderEl.value.setAttribute("disabled", props.updateProgress > 0)
+  if (props.updateProgress > 0) {
+    sliderEl.value.setAttribute("disabled", true)
+  } else {
+    sliderEl.value.removeAttribute("disabled")
+  }
 })
 
 onBeforeUnmount(() => {
