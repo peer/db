@@ -163,6 +163,11 @@ onBeforeUnmount(() => {
           </div>
           <div ref="sliderEl"></div>
         </li>
+        <li v-else-if="results.length === 1" class="flex gap-x-1">
+          <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
+          <div class="my-1 leading-none">{{ formatValue(results[0].min, property._unit) }}</div>
+          <div class="my-1 leading-none">({{ results[0].count }})</div>
+        </li>
         <li v-if="property._count < searchTotal" class="mt-4 flex gap-x-1">
           <input
             :id="property._id + '/' + property._unit + '/none'"

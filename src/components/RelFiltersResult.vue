@@ -57,7 +57,7 @@ function onChange(event: Event, id: string) {
       </div>
       <ul>
         <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
-          <template v-if="doc.name?.en">
+          <template v-if="doc.name?.en && doc._count != props.searchTotal">
             <input
               :id="property._id + '/' + doc._id"
               :disabled="updateProgress > 0"
@@ -75,6 +75,14 @@ function onChange(event: Event, id: string) {
             <label :for="property._id + '/' + doc._id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ doc._count }})</label
             >
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
+              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
+            /></RouterLink>
+          </template>
+          <template v-else-if="doc.name?.en && doc._count == props.searchTotal">
+            <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
+            <div class="my-1 leading-none">{{ doc.name.en }}</div>
+            <div class="my-1 leading-none">({{ doc._count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
