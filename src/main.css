@@ -105,12 +105,24 @@
   @apply bg-secondary-400 h-2 cursor-pointer;
 }
 
+[disabled] .noUi-connect {
+  @apply bg-secondary-100
+}
+
 .noUi-connects {
   @apply rounded-none cursor-pointer;
 }
 
+[disabled] .noUi-connects, [disabled] .noUi-connect {
+  @apply cursor-not-allowed
+}
+
 .noUi-horizontal {
   @apply bg-slate-200 h-2 border-none rounded-none shadow-none my-2;
+}
+
+[disabled].noUi-horizontal {
+  @apply bg-gray-100
 }
 
 .noUi-horizontal .noUi-handle {
@@ -123,4 +135,8 @@
 
 .noUi-handle::before, .noUi-handle::after {
   @apply hidden;
+}
+
+[disabled] .noUi-handle {
+  @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300
 }
