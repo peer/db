@@ -14,8 +14,8 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-type filteredRelAggregations struct {
-	Filter relAggregations `json:"filter"`
+type filteredTermAggregations struct {
+	Filter termAggregations `json:"filter"`
 }
 
 func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
@@ -80,7 +80,7 @@ func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	m = timing.NewMetric("d").Start()
-	var rel filteredRelAggregations
+	var rel filteredTermAggregations
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()
 	if err != nil {

@@ -877,13 +877,21 @@ type Timestamp time.Time
 var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
 
 func (t Timestamp) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	b.WriteString(`"`)
+	b.WriteString(t.String())
+	b.WriteString(`"`)
+	return b.Bytes(), nil
+}
+
+func (t Timestamp) String() string {
 	x := time.Time(t).UTC()
 	w := 4
 	if x.Year() < 0 {
 		// An extra character for the minus sign.
 		w = 5
 	}
-	return []byte(fmt.Sprintf(`"%0*d-%02d-%02dT%02d:%02d:%02dZ"`, w, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())), nil
+	return fmt.Sprintf(`%0*d-%02d-%02dT%02d:%02d:%02dZ`, w, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())
 }
 
 // We cannot use standard time.Time implementation.

@@ -2,7 +2,7 @@ package search
 
 import (
 	"encoding/json"
-	"math"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,30 +15,23 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-const (
-	histogramBins = 100
-)
-
-type minMaxAmountAggregations struct {
+type minMaxTimeAggregations struct {
 	Filter struct {
 		Count int64 `json:"doc_count"`
 		Min   struct {
-			Value float64 `json:"value"`
+			Value Timestamp `json:"value_as_string"`
 		} `json:"min"`
 		Max struct {
-			Value float64 `json:"value"`
+			Value Timestamp `json:"value_as_string"`
 		} `json:"max"`
-		Discrete struct {
-			Value float64 `json:"value"`
-		} `json:"discrete"`
 	} `json:"filter"`
 }
 
-type histogramAmountAggregations struct {
+type histogramTimeAggregations struct {
 	Filter struct {
 		Hist struct {
 			Buckets []struct {
-				Key  float64 `json:"key"`
+				Key  Timestamp `json:"key_as_string"`
 				Docs struct {
 					Count int64 `json:"doc_count"`
 				} `json:"docs"`
@@ -47,12 +40,12 @@ type histogramAmountAggregations struct {
 	} `json:"filter"`
 }
 
-type histogramAmountResult struct {
-	Min   float64 `json:"min"`
-	Count int64   `json:"count"`
+type histogramTimeResult struct {
+	Min   Timestamp `json:"min"`
+	Count int64     `json:"count"`
 }
 
-func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)
@@ -74,16 +67,6 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 		return
 	}
 
-	unit := params["unit"]
-	if !ValidAmountUnit(unit) {
-		s.badRequestWithError(w, req, errors.New(`"unit" parameter is not a valid unit`))
-		return
-	}
-	if unit == "@" {
-		s.badRequestWithError(w, req, errors.New(`"unit" parameter cannot be "@"`))
-		return
-	}
-
 	m := timing.NewMetric("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
@@ -95,28 +78,16 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 	sh := ss.(*search) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
-	minMaxAggregation := elastic.NewNestedAggregation().Path("active.amount").SubAggregation(
+	minMaxAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", prop),
-			).Must(
-				elastic.NewTermQuery("active.amount.unit", unit),
-			),
+			elastic.NewTermQuery("active.time.prop._id", prop),
 		).SubAggregation(
 			"min",
-			elastic.NewMinAggregation().Field("active.amount.amount"),
+			elastic.NewMinAggregation().Field("active.time.timestamp"),
 		).SubAggregation(
 			"max",
-			elastic.NewMaxAggregation().Field("active.amount.amount"),
-		).SubAggregation(
-			"discrete",
-			// We want to know if all values are discrete (integers). They are if the sum is zero.
-			elastic.NewSumAggregation().Script(
-				// TODO: Use a runtime field.
-				//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
-				elastic.NewScript("return Math.abs(doc['active.amount.amount'].value - Math.floor(doc['active.amount.amount'].value))"),
-			),
+			elastic.NewMaxAggregation().Field("active.time.timestamp"),
 		),
 	)
 	minMaxSearchService := s.getSearchService(req).Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
@@ -131,7 +102,7 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 	timing.NewMetric("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	m = timing.NewMetric("d1").Start()
-	var minMax minMaxAmountAggregations
+	var minMax minMaxTimeAggregations
 	err = json.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
 	if err != nil {
@@ -139,41 +110,38 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 		return
 	}
 
-	var min, interval float64
+	// We use int64 and not time.Duration because it cannot hold durations we need.
+	// time.Duration stores durations as nanosecond, but we need milliseconds here,
+	// or ideally even just seconds.
+	// See: https://github.com/elastic/elasticsearch/issues/83101
+	var min, interval int64
 	if minMax.Filter.Count == 0 {
-		s.writeJSON(w, req, contentEncoding, make([]histogramAmountResult, 0), http.Header{
+		s.writeJSON(w, req, contentEncoding, make([]histogramTimeResult, 0), http.Header{
 			"Total": {"0"},
 		})
 		return
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		min = minMax.Filter.Min.Value
-		interval = math.Nextafter(minMax.Filter.Min.Value, minMax.Filter.Min.Value+1)
-	} else if minMax.Filter.Discrete.Value == 0 && minMax.Filter.Max.Value-minMax.Filter.Min.Value < histogramBins {
-		// A special case when there is less than histogramBins of discrete values. In this case we do
-		// not want to sample empty bins between values (but prefer to draw wider lines in a histogram).
-		min = minMax.Filter.Min.Value
+		min = time.Time(minMax.Filter.Min.Value).UnixMilli()
 		interval = 1
 	} else {
-		min = minMax.Filter.Min.Value
-		max := math.Nextafter(minMax.Filter.Max.Value, minMax.Filter.Max.Value+1)
+		min = time.Time(minMax.Filter.Min.Value).UnixMilli()
+		max := time.Time(minMax.Filter.Max.Value).UnixMilli() + 1
 		interval = (max - min) / histogramBins
-		interval2 := (minMax.Filter.Max.Value - minMax.Filter.Min.Value) / float64(histogramBins)
+		interval2 := (time.Time(minMax.Filter.Max.Value).UnixMilli() - min) / histogramBins
 		if interval == interval2 {
-			interval = math.Nextafter(interval2, interval2+1)
+			interval = interval2 + 1
 		}
 	}
 
-	histogramAggregation := elastic.NewNestedAggregation().Path("active.amount").SubAggregation(
+	offsetString := fmt.Sprintf("%dms", min)
+	intervalString := fmt.Sprintf("%dms", interval)
+	histogramAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", prop),
-			).Must(
-				elastic.NewTermQuery("active.amount.unit", unit),
-			),
+			elastic.NewTermQuery("active.time.prop._id", prop),
 		).SubAggregation(
 			"hist",
-			elastic.NewHistogramAggregation().Field("active.amount.amount").Offset(min).Interval(interval).SubAggregation(
+			elastic.NewDateHistogramAggregation().Field("active.time.timestamp").Offset(offsetString).FixedInterval(intervalString).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
@@ -191,7 +159,7 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 	timing.NewMetric("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	m = timing.NewMetric("d2").Start()
-	var histogram histogramAmountAggregations
+	var histogram histogramTimeAggregations
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if err != nil {
@@ -199,23 +167,21 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 		return
 	}
 
-	results := make([]histogramAmountResult, len(histogram.Filter.Hist.Buckets))
+	results := make([]histogramTimeResult, len(histogram.Filter.Hist.Buckets))
 	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = histogramAmountResult{
+		results[i] = histogramTimeResult{
 			Min:   bucket.Key,
 			Count: bucket.Docs.Count,
 		}
 	}
 
+	fmt.Println(minMax.Filter.Min.Value)
 	total := strconv.Itoa(len(results))
-	intervalString := strconv.FormatFloat(interval, 'f', -1, 64)           //nolint:gomnd
-	minString := strconv.FormatFloat(minMax.Filter.Min.Value, 'f', -1, 64) //nolint:gomnd
-	maxString := strconv.FormatFloat(minMax.Filter.Max.Value, 'f', -1, 64) //nolint:gomnd
 
 	metadata := http.Header{
 		"Total": {total},
-		"Min":   {minString},
-		"Max":   {maxString},
+		"Min":   {minMax.Filter.Min.Value.String()},
+		"Max":   {minMax.Filter.Max.Value.String()},
 	}
 
 	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {

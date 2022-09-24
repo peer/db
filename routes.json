@@ -17,6 +17,10 @@
       "path": "/d/filters/:s/amount/:prop/:unit"
     },
     {
+      "name": "DocumentSearchTimeFilterGet",
+      "path": "/d/filters/:s/time/:prop"
+    },
+    {
       "name": "DocumentGet",
       "path": "/d/:id"
     },
