@@ -46,10 +46,6 @@ function onNoneChange(event: Event) {
   }
 }
 
-function isStateNone(s: AmountFilterState) {
-  return Array.isArray(s) && s.length === 1 && s[0] === "none"
-}
-
 const chartWidth = 200
 const chartHeight = 30
 const barWidth = computed(() => {
@@ -73,10 +69,10 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const rangeMin = props.state === null || isStateNone(props.state) ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
-  const rangeMax = props.state === null || isStateNone(props.state) ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
-  const rangeStart = props.state === null || isStateNone(props.state) ? min.value : (props.state as { gte: number; lte: number }).gte
-  const rangeEnd = props.state === null || isStateNone(props.state) ? max.value : (props.state as { gte: number; lte: number }).lte
+  const rangeMin = props.state === null || props.state === "none" ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
+  const rangeMax = props.state === null || props.state === "none" ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
+  const rangeStart = props.state === null || props.state === "none" ? min.value : (props.state as { gte: number; lte: number }).gte
+  const rangeEnd = props.state === null || props.state === "none" ? max.value : (props.state as { gte: number; lte: number }).lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -172,7 +168,7 @@ onBeforeUnmount(() => {
           <input
             :id="property._id + '/' + property._unit + '/none'"
             :disabled="updateProgress > 0"
-            :checked="isStateNone(state)"
+            :checked="state === 'none'"
             :class="
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "
