@@ -57,7 +57,7 @@ function onChange(event: Event, id: string) {
       </div>
       <ul>
         <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
-          <template v-if="doc.name?.en && doc._count != props.searchTotal">
+          <template v-if="doc.name?.en && (doc._count != props.searchTotal || state.includes(doc._id))">
             <input
               :id="property._id + '/' + doc._id"
               :disabled="updateProgress > 0"
