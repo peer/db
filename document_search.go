@@ -192,39 +192,56 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		return boolQuery
 	}
 	if f.Rel != nil {
-		boolQuery := elastic.NewBoolQuery()
 		if f.Rel.None {
-			boolQuery.MustNot(elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop))
+			return elastic.NewBoolQuery().MustNot(
+				elastic.NewNestedQuery("active.rel",
+					elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
+				),
+			)
 		} else {
-			boolQuery.Must(elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop))
-			boolQuery.Must(elastic.NewTermQuery("active.rel.to._id", f.Rel.Value))
+			return elastic.NewNestedQuery("active.rel",
+				elastic.NewBoolQuery().Must(
+					elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
+					elastic.NewTermQuery("active.rel.to._id", f.Rel.Value),
+				),
+			)
 		}
-		return elastic.NewNestedQuery("active.rel", boolQuery)
 	}
 	if f.Amount != nil {
-		boolQuery := elastic.NewBoolQuery()
 		if f.Amount.None {
-			boolQuery.MustNot(elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
-			).Must(
-				elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
-			))
+			return elastic.NewBoolQuery().MustNot(
+				elastic.NewNestedQuery("active.amount",
+					elastic.NewBoolQuery().Must(
+						elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
+						elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
+					),
+				),
+			)
 		} else {
-			boolQuery.Must(elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop))
-			boolQuery.Must(elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit))
-			boolQuery.Must(elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte))
+			return elastic.NewNestedQuery("active.amount",
+				elastic.NewBoolQuery().Must(
+					elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
+					elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
+					elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
+				),
+			)
 		}
-		return elastic.NewNestedQuery("active.amount", boolQuery)
 	}
 	if f.Time != nil {
-		boolQuery := elastic.NewBoolQuery()
 		if f.Amount.None {
-			boolQuery.MustNot(elastic.NewTermQuery("active.time.prop._id", f.Time.Prop))
+			return elastic.NewBoolQuery().MustNot(
+				elastic.NewNestedQuery("active.time",
+					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
+				),
+			)
 		} else {
-			boolQuery.Must(elastic.NewTermQuery("active.time.prop._id", f.Time.Prop))
-			boolQuery.Must(elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()))
+			elastic.NewNestedQuery("active.time",
+				elastic.NewBoolQuery().Must(
+					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
+					elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
+				),
+			)
 		}
-		return elastic.NewNestedQuery("active.time", boolQuery)
 	}
 	panic(errors.New("invalid filters"))
 }
