@@ -1,6 +1,6 @@
 import type { Ref, DeepReadonly } from "vue"
 import type { Router, RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
-import type { SearchResult, HistogramResult, PeerDBDocument, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
+import type { SearchResult, AmountHistogramResult, PeerDBDocument, RelFilter, AmountFilter, TimeFilter, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -50,38 +50,41 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   const filters: Filters = {
     and: [],
   }
-  for (const [prop, values] of Object.entries(updatedState)) {
-    if (values === null || (Array.isArray(values) && !values.length)) {
+  for (const [prop, values] of Object.entries(updatedState.rel)) {
+    // TODO: Support also OR between values.
+    for (const value of values) {
+      if (value === "none") {
+        filters.and.push({ rel: { prop, none: true } })
+      } else {
+        filters.and.push({ rel: { prop, value } })
+      }
+    }
+  }
+  for (const [path, value] of Object.entries(updatedState.amount)) {
+    if (!value) {
       continue
     }
-    // TODO: Support also OR between values for the same property.
-    const propFilters: Filters = { and: [] }
-    filters.and.push(propFilters)
-    if (Array.isArray(values)) {
-      for (const value of values) {
-        if (value === "none") {
-          const segments = prop.split("/")
-          if (segments.length === 2) {
-            if (values.length !== 1) {
-              throw new Error(`invalid amount filter none value: ${values}`)
-            }
-            propFilters.and.push({ prop: segments[0], unit: segments[1], none: true })
-          } else if (segments.length === 1) {
-            propFilters.and.push({ prop: segments[0], none: true })
-          } else {
-            throw new Error(`invalid filter ID: ${prop}`)
-          }
-        } else {
-          propFilters.and.push({ prop: prop, value: value })
-        }
-      }
+    const segments = path.split("/")
+    if (segments.length !== 2) {
+      throw new Error(`invalid amount filter path: ${path}`)
+    }
+    const [prop, unit] = segments
+    // TODO: Support also OR between value and none.
+    if (value === "none") {
+      filters.and.push({ amount: { prop, unit, none: true } })
     } else {
-      // Property ID and unit are combined for amount filters.
-      const segments = prop.split("/")
-      if (segments.length !== 2) {
-        throw new Error(`invalid amount filter ID: ${prop}`)
-      }
-      propFilters.and.push({ prop: segments[0], unit: segments[1], ...values })
+      filters.and.push({ amount: { prop, unit, ...value } })
+    }
+  }
+  for (const [prop, value] of Object.entries(updatedState.time)) {
+    if (!value) {
+      continue
+    }
+    // TODO: Support also OR between value and none.
+    if (value === "none") {
+      filters.and.push({ time: { prop, none: true } })
+    } else {
+      filters.and.push({ time: { prop, ...value } })
     }
   }
   const form = new FormData()
@@ -198,51 +201,104 @@ export function useFilters(progress: Ref<number>): {
 }
 
 function filtersToFiltersState(filters: Filters): FiltersState {
+  if ("and" in filters) {
+    const state: FiltersState = { rel: {}, amount: {}, time: {} }
+    for (const filter of filters.and) {
+      const s = filtersToFiltersState(filter)
+      for (const [prop, values] of Object.entries(s.rel)) {
+        for (const v of values) {
+          if (!state.rel[prop]) {
+            state.rel[prop] = [v]
+          } else if (!state.rel[prop].includes(v)) {
+            state.rel[prop].push(v)
+          }
+        }
+      }
+      for (const [prop, value] of Object.entries(s.amount)) {
+        if (!state.amount[prop]) {
+          state.amount[prop] = value
+        } else {
+          throw new Error(`duplicate filter for the same amount property "${prop}"`)
+        }
+      }
+      for (const [prop, value] of Object.entries(s.time)) {
+        if (!state.time[prop]) {
+          state.time[prop] = value
+        } else {
+          throw new Error(`duplicate filter for the same time property "${prop}"`)
+        }
+      }
+    }
+    return state
+  }
   if ("not" in filters) {
     throw new Error(`not filter unsupported`)
   }
   if ("or" in filters) {
     throw new Error(`or filter unsupported`)
   }
-  if ("and" in filters) {
-    const state: FiltersState = {}
-    for (const filter of filters.and) {
-      const s = filtersToFiltersState(filter)
-      for (const [prop, values] of Object.entries(s)) {
-        if (Array.isArray(values)) {
-          for (const v of values) {
-            if (!state[prop]) {
-              state[prop] = [v]
-            } else if (Array.isArray(state[prop])) {
-              if (!state[prop].includes(v)) {
-                state[prop].push(v)
-              }
-            } else {
-              throw new Error(`cannot mix range filter with other filters for the same property "${prop}"`)
-            }
-          }
-        } else {
-          if (!state[prop]) {
-            state[prop] = values
-          } else {
-            throw new Error(`duplicate filter for the same property "${prop}"`)
-          }
-        }
+  if ("rel" in filters) {
+    if ("none" in filters.rel && filters.rel.none) {
+      return {
+        rel: {
+          [filters.rel.prop]: ["none"],
+        },
+        amount: {},
+        time: {},
+      }
+    } else {
+      return {
+        rel: {
+          [filters.rel.prop]: [(filters.rel as RelFilter).value],
+        },
+        amount: {},
+        time: {},
       }
     }
-    return state
   }
-  if ("prop" in filters && "value" in filters) {
-    return { [filters.prop]: [filters.value] }
+  if ("amount" in filters) {
+    if ("none" in filters.amount && filters.amount.none) {
+      return {
+        rel: {},
+        amount: {
+          [`${filters.amount.prop}/${filters.amount.unit}`]: "none",
+        },
+        time: {},
+      }
+    } else {
+      return {
+        rel: {},
+        amount: {
+          [`${filters.amount.prop}/${filters.amount.unit}`]: {
+            gte: (filters.amount as AmountFilter).gte,
+            lte: (filters.amount as AmountFilter).lte,
+          },
+        },
+        time: {},
+      }
+    }
   }
-  if ("prop" in filters && "gte" in filters && "lte" in filters && "unit" in filters) {
-    return { [`${filters.prop}/${filters.unit}`]: { gte: filters.gte, lte: filters.lte } }
-  }
-  if ("prop" in filters && "none" in filters && "unit" in filters) {
-    return { [`${filters.prop}/${filters.unit}`]: ["none"] }
-  }
-  if ("prop" in filters && "none" in filters) {
-    return { [filters.prop]: ["none"] }
+  if ("time" in filters) {
+    if ("none" in filters.time && filters.time.none) {
+      return {
+        rel: {},
+        amount: {},
+        time: {
+          [filters.time.prop]: "none",
+        },
+      }
+    } else {
+      return {
+        rel: {},
+        amount: {},
+        time: {
+          [filters.time.prop]: {
+            gte: (filters.time as TimeFilter).gte,
+            lte: (filters.time as TimeFilter).lte,
+          },
+        },
+      }
+    }
   }
   throw new Error(`invalid filter`)
 }
@@ -271,7 +327,7 @@ function useSearchResults(
   const _docs = ref<PeerDBDocument[]>([])
   const _results = ref<SearchResult[]>([])
   const _total = ref<number | null>(null)
-  const _filters = ref<FiltersState>({})
+  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {} })
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
@@ -293,7 +349,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = {}
+        _filters.value = { rel: {}, amount: {}, time: {} }
         _moreThanTotal.value = false
         _hasMore.value = false
         return
@@ -305,7 +361,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = {}
+        _filters.value = { rel: {}, amount: {}, time: {} }
         _moreThanTotal.value = false
         _hasMore.value = false
         if (redirect) {
@@ -325,7 +381,7 @@ function useSearchResults(
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
       } else {
-        _filters.value = {}
+        _filters.value = { rel: {}, amount: {}, time: {} }
       }
       limit = Math.min(initialLimit, results.value.length)
       _hasMore.value = limit < results.value.length
@@ -402,7 +458,7 @@ export function useHistogramValues(
   property: PeerDBDocument,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<HistogramResult[]>>
+  results: DeepReadonly<Ref<AmountHistogramResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<number | null>>
   max: DeepReadonly<Ref<number | null>>
@@ -411,7 +467,7 @@ export function useHistogramValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<HistogramResult[]>([])
+  const _results = ref<AmountHistogramResult[]>([])
   const _total = ref<number | null>(null)
   const _min = ref<number | null>(null)
   const _max = ref<number | null>(null)
@@ -519,14 +575,14 @@ async function getHistogramValues(
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
-): Promise<{ results: HistogramResult[]; total: number; min?: number; max?: number; interval?: number }> {
+): Promise<{ results: AmountHistogramResult[]; total: number; min?: number; max?: number; interval?: number }> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
   if (total === null) {
     throw new Error("Peerdb-Total header is null")
   }
-  const res = { results: doc, total: parseInt(total) } as { results: HistogramResult[]; total: number; min?: number; max?: number; interval?: number }
+  const res = { results: doc, total: parseInt(total) } as { results: AmountHistogramResult[]; total: number; min?: number; max?: number; interval?: number }
   const min = headers.get("Peerdb-Min")
   if (min !== null) {
     res.min = parseFloat(min)
@@ -557,7 +613,7 @@ export async function getDocument(router: Router, result: SearchResult, priority
   )
   // We add any extra fields from the result (e.g., _count).
   // This also adds _id if it is not already present.
-  return Object.assign({}, doc, result)
+  return { ...doc, ...result }
 }
 
 export function useSearchState(

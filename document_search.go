@@ -22,100 +22,151 @@ const (
 	maxResultsCount = 1000
 )
 
+type relFilter struct {
+	Prop  string `json:"prop"`
+	Value string `json:"value,omitempty"`
+	None  bool   `json:"none,omitempty"`
+}
+
+func (f relFilter) Valid() errors.E {
+	if !identifier.Valid(f.Prop) {
+		return errors.New("invalid prop")
+	}
+	if f.Value == "" && !f.None {
+		return errors.New("value or none has to be set")
+	}
+	if f.Value != "" && f.None {
+		return errors.New("value and none cannot be both set")
+	}
+	if f.Value != "" && !identifier.Valid(f.Value) {
+		return errors.New("invalid value")
+	}
+	return nil
+}
+
+type amountFilter struct {
+	Prop string      `json:"prop"`
+	Unit *AmountUnit `json:"unit,omitempty"`
+	Gte  *float64    `json:"gte,omitempty"`
+	Lte  *float64    `json:"lte,omitempty"`
+	None bool        `json:"none,omitempty"`
+}
+
+func (f amountFilter) Valid() errors.E {
+	if !identifier.Valid(f.Prop) {
+		return errors.New("invalid prop")
+	}
+	if f.Unit == nil {
+		return errors.New("unit has to be set")
+	}
+	if f.Gte == nil && f.Lte == nil && !f.None {
+		return errors.New("gte and lte, or none has to be set")
+	}
+	if f.Lte != nil && f.Gte == nil {
+		return errors.New("gte has to be set if lte is set")
+	}
+	if f.Lte == nil && f.Gte != nil {
+		return errors.New("lte has to be set if gte is set")
+	}
+	if f.Gte != nil && f.None {
+		return errors.New("gte and none cannot be both set")
+	}
+	if f.Lte != nil && f.None {
+		return errors.New("lte and none cannot be both set")
+	}
+	return nil
+}
+
+type timeFilter struct {
+	Prop string     `json:"prop"`
+	Gte  *Timestamp `json:"gte,omitempty"`
+	Lte  *Timestamp `json:"lte,omitempty"`
+	None bool       `json:"none,omitempty"`
+}
+
+func (f timeFilter) Valid() errors.E {
+	if !identifier.Valid(f.Prop) {
+		return errors.New("invalid prop")
+	}
+	if f.Gte == nil && f.Lte == nil && !f.None {
+		return errors.New("gte and lte, or none has to be set")
+	}
+	if f.Lte != nil && f.Gte == nil {
+		return errors.New("gte has to be set if lte is set")
+	}
+	if f.Lte == nil && f.Gte != nil {
+		return errors.New("lte has to be set if gte is set")
+	}
+	if f.Gte != nil && f.None {
+		return errors.New("gte and none cannot be both set")
+	}
+	if f.Lte != nil && f.None {
+		return errors.New("lte and none cannot be both set")
+	}
+	return nil
+}
+
 type filters struct {
-	And   []filters   `json:"and,omitempty"`
-	Or    []filters   `json:"or,omitempty"`
-	Not   *filters    `json:"not,omitempty"`
-	Prop  string      `json:"prop,omitempty"`
-	Unit  *AmountUnit `json:"unit,omitempty"`
-	Value string      `json:"value,omitempty"`
-	None  bool        `json:"none,omitempty"`
-	Gte   *float64    `json:"gte,omitempty"`
-	Lte   *float64    `json:"lte,omitempty"`
+	And    []filters     `json:"and,omitempty"`
+	Or     []filters     `json:"or,omitempty"`
+	Not    *filters      `json:"not,omitempty"`
+	Rel    *relFilter    `json:"rel,omitempty"`
+	Amount *amountFilter `json:"amount,omitempty"`
+	Time   *timeFilter   `json:"time,omitempty"`
 }
 
 func (f filters) Valid() errors.E {
 	nonEmpty := 0
 	if len(f.And) > 0 {
 		nonEmpty++
+		for _, c := range f.And {
+			err := c.Valid()
+			if err != nil {
+				return err
+			}
+		}
 	}
 	if len(f.Or) > 0 {
 		nonEmpty++
+		for _, c := range f.Or {
+			err := c.Valid()
+			if err != nil {
+				return err
+			}
+		}
 	}
 	if f.Not != nil {
 		nonEmpty++
+		err := f.Not.Valid()
+		if err != nil {
+			return err
+		}
 	}
-	if f.Prop != "" {
+	if f.Rel != nil {
 		nonEmpty++
-		if f.Value == "" && !f.None && f.Gte == nil && f.Lte == nil {
-			return errors.New("value, none, or lte and gte has to be set if prop is set")
+		err := f.Rel.Valid()
+		if err != nil {
+			return err
 		}
-		if f.Value != "" && f.None {
-			return errors.New("value and none cannot be both set")
+	}
+	if f.Amount != nil {
+		nonEmpty++
+		err := f.Amount.Valid()
+		if err != nil {
+			return err
 		}
-		if f.Value != "" && f.Unit != nil {
-			return errors.New("value and unit cannot be both set")
-		}
-		if f.Gte != nil && f.None {
-			return errors.New("gte and none cannot be both set")
-		}
-		if f.Lte != nil && f.None {
-			return errors.New("lte and none cannot be both set")
-		}
-		if f.Gte != nil && f.Value != "" {
-			return errors.New("gte and value cannot be both set")
-		}
-		if f.Lte != nil && f.Value != "" {
-			return errors.New("lte and value cannot be both set")
-		}
-		if f.Lte != nil && f.Gte == nil {
-			return errors.New("gte has to be set if lte is set")
-		}
-		if f.Lte == nil && f.Gte != nil {
-			return errors.New("lte has to be set if gte is set")
-		}
-		if f.Lte != nil && f.Unit == nil {
-			return errors.New("unit has to be set if lte is set")
-		}
-		if f.Unit == nil && f.Gte != nil {
-			return errors.New("unit has to be set if gte is set")
-		}
-		if !identifier.Valid(f.Prop) {
-			return errors.New("invalid prop")
-		}
-		if f.Value != "" && !identifier.Valid(f.Value) {
-			return errors.New("invalid value")
-		}
-	} else {
-		if f.Value != "" {
-			return errors.New("value can be set only if prop is set as well")
-		}
-		if f.None {
-			return errors.New("none can be set only if prop is set as well")
-		}
-		if f.Lte != nil {
-			return errors.New("lte can be set only if prop is set as well")
-		}
-		if f.Gte != nil {
-			return errors.New("gte can be set only if prop is set as well")
+	}
+	if f.Time != nil {
+		nonEmpty++
+		err := f.Time.Valid()
+		if err != nil {
+			return err
 		}
 	}
 	if nonEmpty > 1 {
 		return errors.New("only one clause can be set")
 	} else if nonEmpty == 0 {
 		return errors.New("no clause is set")
-	}
-	for _, c := range f.And {
-		err := c.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	for _, c := range f.Or {
-		err := c.Valid()
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -140,32 +191,40 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		boolQuery.MustNot(f.Not.ToQuery())
 		return boolQuery
 	}
-	if f.Prop != "" && f.None && f.Unit != nil {
+	if f.Rel != nil {
 		boolQuery := elastic.NewBoolQuery()
-		boolQuery.MustNot(elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("active.amount.prop._id", f.Prop),
-		).Must(
-			elastic.NewTermQuery("active.amount.unit", *f.Unit),
-		))
-		return elastic.NewNestedQuery("active.amount", boolQuery)
-	}
-	if f.Prop != "" && f.None {
-		boolQuery := elastic.NewBoolQuery()
-		boolQuery.MustNot(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
+		if f.Rel.None {
+			boolQuery.MustNot(elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop))
+		} else {
+			boolQuery.Must(elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop))
+			boolQuery.Must(elastic.NewTermQuery("active.rel.to._id", f.Rel.Value))
+		}
 		return elastic.NewNestedQuery("active.rel", boolQuery)
 	}
-	if f.Prop != "" && f.Value != "" {
+	if f.Amount != nil {
 		boolQuery := elastic.NewBoolQuery()
-		boolQuery.Must(elastic.NewTermQuery("active.rel.prop._id", f.Prop))
-		boolQuery.Must(elastic.NewTermQuery("active.rel.to._id", f.Value))
-		return elastic.NewNestedQuery("active.rel", boolQuery)
-	}
-	if f.Prop != "" && f.Lte != nil && f.Gte != nil && f.Unit != nil {
-		boolQuery := elastic.NewBoolQuery()
-		boolQuery.Must(elastic.NewTermQuery("active.amount.prop._id", f.Prop))
-		boolQuery.Must(elastic.NewTermQuery("active.amount.unit", *f.Unit))
-		boolQuery.Must(elastic.NewRangeQuery("active.amount.amount").Lte(*f.Lte).Gte(*f.Gte))
+		if f.Amount.None {
+			boolQuery.MustNot(elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
+			).Must(
+				elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
+			))
+		} else {
+			boolQuery.Must(elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop))
+			boolQuery.Must(elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit))
+			boolQuery.Must(elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte))
+		}
 		return elastic.NewNestedQuery("active.amount", boolQuery)
+	}
+	if f.Time != nil {
+		boolQuery := elastic.NewBoolQuery()
+		if f.Amount.None {
+			boolQuery.MustNot(elastic.NewTermQuery("active.time.prop._id", f.Time.Prop))
+		} else {
+			boolQuery.Must(elastic.NewTermQuery("active.time.prop._id", f.Time.Prop))
+			boolQuery.Must(elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()))
+		}
+		return elastic.NewNestedQuery("active.time", boolQuery)
 	}
 	panic(errors.New("invalid filters"))
 }

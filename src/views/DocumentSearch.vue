@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RelFilterState, AmountFilterState, FiltersState, ClientQuery } from "@/types"
 
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
+import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import RelFiltersResult from "@/components/RelFiltersResult.vue"
@@ -118,14 +118,22 @@ onBeforeUnmount(() => {
 })
 
 const updateFiltersProgress = ref(0)
-// TODO: Is it OK that we modify this computed reference later on (when initializing arrays for new properties).
-const filtersState = computed(() => Object.assign({}, searchFilters.value as FiltersState))
+// A non-read-only version of filters state so that we can modify it as necessary.
+const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {} })
+// We keep it in sync with upstream version.
+watchEffect((onCleanup) => {
+  // We copy to make a read-only value mutable.
+  // TODO: Is there a better way than using JSON?
+  //       See: https://forum.vuejs.org/t/the-opposite-of-readonly/132774
+  filtersState.value = JSON.parse(JSON.stringify(searchFilters.value))
+})
 
 async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
   updateFiltersProgress.value += 1
   try {
-    const updatedState = Object.assign({}, filtersState.value)
-    updatedState[id] = s
+    const updatedState = { ...filtersState.value }
+    updatedState.rel = { ...updatedState.rel }
+    updatedState.rel[id] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
   } finally {
     updateFiltersProgress.value -= 1
@@ -135,8 +143,9 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
 async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFilterState) {
   updateFiltersProgress.value += 1
   try {
-    const updatedState = Object.assign({}, filtersState.value)
-    updatedState[`${id}/${unit}`] = s
+    const updatedState = { ...filtersState.value }
+    updatedState.amount = { ...updatedState.amount }
+    updatedState.amount[`${id}/${unit}`] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
   } finally {
     updateFiltersProgress.value -= 1
@@ -206,7 +215,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
             v-if="doc._type === 'rel'"
             :search-total="searchTotal"
             :property="doc"
-            :state="filtersState[doc._id] as RelFilterState || (filtersState[doc._id] = [])"
+            :state="filtersState.rel[doc._id] || (filtersState.rel[doc._id] = [])"
             :update-progress="updateFiltersProgress"
             @update:state="onRelFiltersStateUpdate(doc._id, $event)"
           />
@@ -214,7 +223,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
             v-if="doc._type === 'amount'"
             :search-total="searchTotal"
             :property="doc"
-            :state="filtersState[`${doc._id}/${doc._unit}`] as AmountFilterState || (filtersState[`${doc._id}/${doc._unit}`] = null)"
+            :state="filtersState.amount[`${doc._id}/${doc._unit}`] || (filtersState.amount[`${doc._id}/${doc._unit}`] = null)"
             :update-progress="updateFiltersProgress"
             @update:state="onAmountFiltersStateUpdate(doc._id, doc._unit, $event)"
           />

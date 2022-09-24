@@ -35,9 +35,9 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
 }
 
 function onNoneChange(event: Event) {
-  let updatedState: ["none"] | null
+  let updatedState: "none" | null
   if ((event.target as HTMLInputElement).checked) {
-    updatedState = ["none"]
+    updatedState = "none"
   } else {
     updatedState = null
   }
