@@ -3,6 +3,7 @@ package search_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -11,25 +12,29 @@ import (
 )
 
 func TestTimestampMarshal(t *testing.T) {
-	tests := []string{
-		`"2006-12-04T12:34:45Z"`,
-		`"0206-12-04T12:34:45Z"`,
-		`"0001-12-04T12:34:45Z"`,
-		`"20006-12-04T12:34:45Z"`,
-		`"0000-12-04T12:34:45Z"`,
-		`"-0001-12-04T12:34:45Z"`,
-		`"-0206-12-04T12:34:45Z"`,
-		`"-2006-12-04T12:34:45Z"`,
-		`"-20006-12-04T12:34:45Z"`,
-		`"-239999999-01-01T00:00:00Z"`,
+	tests := []struct {
+		timestamp string
+		unix      int64
+	}{
+		{`"2006-12-04T12:34:45Z"`, 1165235685},
+		{`"0206-12-04T12:34:45Z"`, -55637321115},
+		{`"0001-12-04T12:34:45Z"`, -62106434715},
+		{`"20006-12-04T12:34:45Z"`, 569190371685},
+		{`"0000-12-04T12:34:45Z"`, -62137970715},
+		{`"-0001-12-04T12:34:45Z"`, -62169593115},
+		{`"-0206-12-04T12:34:45Z"`, -68638706715},
+		{`"-2006-12-04T12:34:45Z"`, -125441263515},
+		{`"-20006-12-04T12:34:45Z"`, -693466399515},
+		{`"-239999999-01-01T00:00:00Z"`, -7573730615596800},
 	}
 	for _, test := range tests {
-		t.Run(test, func(t *testing.T) {
-			var time search.Timestamp
-			in := []byte(test)
-			err := json.Unmarshal(in, &time)
+		t.Run(test.timestamp, func(t *testing.T) {
+			var timestamp search.Timestamp
+			in := []byte(test.timestamp)
+			err := json.Unmarshal(in, &timestamp)
 			assert.NoError(t, err)
-			out, err := json.Marshal(time)
+			assert.Equal(t, test.unix, time.Time(timestamp).Unix())
+			out, err := json.Marshal(timestamp)
 			assert.NoError(t, err)
 			assert.Equal(t, in, out)
 		})
