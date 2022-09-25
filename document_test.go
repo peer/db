@@ -21,6 +21,7 @@ func TestTimestampMarshal(t *testing.T) {
 		`"-0206-12-04T12:34:45Z"`,
 		`"-2006-12-04T12:34:45Z"`,
 		`"-20006-12-04T12:34:45Z"`,
+		`"-239999999-01-01T00:00:00Z"`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
