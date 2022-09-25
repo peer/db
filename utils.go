@@ -186,7 +186,7 @@ func (s *Service) handlePanic(w http.ResponseWriter, req *http.Request, err inte
 	var e error
 	switch ee := err.(type) {
 	case error:
-		e = ee
+		e = errors.WithStack(ee)
 	case string:
 		e = errors.New(ee)
 	}
