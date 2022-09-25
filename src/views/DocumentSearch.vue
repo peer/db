@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { RelFilterState, AmountFilterState, FiltersState, ClientQuery } from "@/types"
+import type { RelFilterState, AmountFilterState, TimeFilterState, FiltersState, ClientQuery } from "@/types"
 
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import RelFiltersResult from "@/components/RelFiltersResult.vue"
 import AmountFiltersResult from "@/components/AmountFiltersResult.vue"
+import TimeFiltersResult from "@/components/TimeFiltersResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import Button from "@/components/Button.vue"
@@ -13,6 +14,7 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch, useFilters, postFilters } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { globalProgress } from "@/api"
+import { clone } from "@/utils"
 
 const router = useRouter()
 const route = useRoute()
@@ -123,9 +125,7 @@ const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {} })
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
-  // TODO: Is there a better way than using JSON?
-  //       See: https://forum.vuejs.org/t/the-opposite-of-readonly/132774
-  filtersState.value = JSON.parse(JSON.stringify(searchFilters.value))
+  filtersState.value = clone(searchFilters.value)
 })
 
 async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
@@ -146,6 +146,18 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
     const updatedState = { ...filtersState.value }
     updatedState.amount = { ...updatedState.amount }
     updatedState.amount[`${id}/${unit}`] = s
+    await postFilters(router, route, updatedState, updateFiltersProgress)
+  } finally {
+    updateFiltersProgress.value -= 1
+  }
+}
+
+async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
+  updateFiltersProgress.value += 1
+  try {
+    const updatedState = { ...filtersState.value }
+    updatedState.time = { ...updatedState.time }
+    updatedState.time[id] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
   } finally {
     updateFiltersProgress.value -= 1
@@ -226,6 +238,14 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
             :state="filtersState.amount[`${doc._id}/${doc._unit}`] || (filtersState.amount[`${doc._id}/${doc._unit}`] = null)"
             :update-progress="updateFiltersProgress"
             @update:state="onAmountFiltersStateUpdate(doc._id, doc._unit, $event)"
+          />
+          <TimeFiltersResult
+            v-if="doc._type === 'time'"
+            :search-total="searchTotal"
+            :property="doc"
+            :state="filtersState.time[`${doc._id}`] || (filtersState.time[`${doc._id}`] = null)"
+            :update-progress="updateFiltersProgress"
+            @update:state="onTimeFiltersStateUpdate(doc._id, $event)"
           />
         </template>
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"

@@ -78,3 +78,7 @@ export type FiltersState = { rel: Record<string, RelFilterState>; amount: Record
 export type ServerQuery = { s?: string; q?: string; filters?: Filters }
 
 export type ClientQuery = { s?: string; at?: string; q?: string }
+
+export type Mutable<T> = {
+  -readonly [k in keyof T]: Mutable<T[k]>
+}

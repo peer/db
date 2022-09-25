@@ -1,33 +1,33 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { PeerDBDocument, AmountFilterState } from "@/types"
+import type { PeerDBDocument, TimeFilterState } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
-import { useAmountHistogramValues } from "@/search"
-import { formatValue } from "@/utils"
+import { useTimeHistogramValues } from "@/search"
+import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
   property: PeerDBDocument
-  state: AmountFilterState
+  state: TimeFilterState
   updateProgress: number
 }>()
 
 const emit = defineEmits<{
-  (e: "update:state", state: AmountFilterState): void
+  (e: "update:state", state: TimeFilterState): void
 }>()
 
 const progress = ref(0)
-const { results, min, max } = useAmountHistogramValues(props.property, progress)
+const { results, min, max } = useTimeHistogramValues(props.property, progress)
 
 const hasLoaded = computed(() => props.property?.name?.en)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
-    gte: unencoded[0],
-    lte: unencoded[1],
+    gte: values[0] as string,
+    lte: values[1] as string,
   }
   if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
     emit("update:state", updatedState)
@@ -56,7 +56,11 @@ const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
 })
 
+const maxSafeInteger = BigInt(Number.MAX_SAFE_INTEGER)
+const scale = 1024n
+
 let slider: API | null = null
+let scaledRange = false
 const sliderEl = ref()
 
 watchEffect((onCleanup) => {
@@ -69,10 +73,34 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const rangeMin = props.state === null || props.state === "none" ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
-  const rangeMax = props.state === null || props.state === "none" ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
-  const rangeStart = props.state === null || props.state === "none" ? min.value : (props.state as { gte: number; lte: number }).gte
-  const rangeEnd = props.state === null || props.state === "none" ? max.value : (props.state as { gte: number; lte: number }).lte
+  const bigIntRangeMin =
+    props.state === null || props.state === "none" ? min.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).gte), min.value)
+  const bigIntRangeMax =
+    props.state === null || props.state === "none" ? max.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).lte), max.value)
+  let rangeMin, rangeMax
+  if (bigIntRangeMax - bigIntRangeMin > maxSafeInteger) {
+    const scaledMin = bigIntRangeMin / scale
+    const scaledMax = bigIntRangeMax / scale
+    if (scaledMax - scaledMin > maxSafeInteger) {
+      throw new Error(`scaling not enough for range [${bigIntRangeMin}, ${bigIntRangeMax}]`)
+    }
+    rangeMin = Number(scaledMin)
+    rangeMax = Number(scaledMax)
+    if (bigIntRangeMax % scale !== 0n) {
+      // We round up.
+      rangeMax++
+    }
+    scaledRange = true
+  } else {
+    rangeMin = Number(bigIntRangeMin)
+    rangeMax = Number(bigIntRangeMax)
+    scaledRange = false
+  }
+  // rangeStart and rangeEnd are strings because noUiSlider otherwise converts the number
+  // to a string using String and tries to parse it with timestampToSeconds.
+  // Now it just tries to parse it with timestampToSeconds.
+  const rangeStart = props.state === null || props.state === "none" ? secondsToTimestamp(min.value) : (props.state as { gte: string; lte: string }).gte
+  const rangeEnd = props.state === null || props.state === "none" ? secondsToTimestamp(max.value) : (props.state as { gte: string; lte: string }).lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -89,10 +117,21 @@ watchEffect((onCleanup) => {
       behaviour: "snap",
       format: {
         to: (value: number): string => {
-          return formatValue(value, props.property._unit)
+          let v = BigInt(Math.round(value))
+          if (scaledRange) {
+            v *= scale
+          }
+          return secondsToTimestamp(v)
         },
         from: (value: string): number => {
-          return parseFloat(value)
+          let s = timestampToSeconds(value)
+          if (scaledRange) {
+            s /= scale
+            if (s > maxSafeInteger) {
+              throw new Error(`scaling not enough for timestamp "${value}"`)
+            }
+          }
+          return Number(s)
         },
       },
     })
@@ -159,17 +198,17 @@ onBeforeUnmount(() => {
           </svg>
           <div class="flex flex-row justify-between gap-x-1">
             <div>
-              {{ formatValue(min, property._unit) }}
+              {{ formatTime(min) }}
             </div>
             <div>
-              {{ formatValue(max, property._unit) }}
+              {{ formatTime(max) }}
             </div>
           </div>
           <div ref="sliderEl"></div>
         </li>
         <li v-else-if="results.length === 1" class="flex gap-x-1">
           <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
-          <div class="my-1 leading-none">{{ formatValue(results[0].min, property._unit) }}</div>
+          <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
           <div class="my-1 leading-none">({{ results[0].count }})</div>
         </li>
         <li v-if="property._count < searchTotal" class="mt-4 flex gap-x-1">

@@ -1,11 +1,24 @@
 import type { Ref, DeepReadonly } from "vue"
 import type { Router, RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
-import type { SearchResult, AmountHistogramResult, PeerDBDocument, RelFilter, AmountFilter, TimeFilter, Filters, FiltersState, ClientQuery, ServerQuery } from "@/types"
+import type {
+  SearchResult,
+  AmountHistogramResult,
+  TimeHistogramResult,
+  PeerDBDocument,
+  RelFilter,
+  AmountFilter,
+  TimeFilter,
+  Filters,
+  FiltersState,
+  ClientQuery,
+  ServerQuery,
+} from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { assert } from "@vue/compiler-core"
 import { getURL, postURL } from "@/api"
+import { timestampToSeconds } from "@/utils"
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
@@ -454,7 +467,7 @@ export function useRelFilterValues(
   )
 }
 
-export function useHistogramValues(
+export function useAmountHistogramValues(
   property: PeerDBDocument,
   progress: Ref<number>,
 ): {
@@ -522,11 +535,95 @@ export function useHistogramValues(
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       const data = await getHistogramValues(url, -2, controller.signal, progress)
-      _results.value = data.results
+      _results.value = data.results as AmountHistogramResult[]
       _total.value = data.total
-      _min.value = data.min ?? null
-      _max.value = data.max ?? null
-      _interval.value = data.interval ?? null
+      _min.value = data.min != null ? parseFloat(data.min) : null
+      _max.value = data.max != null ? parseFloat(data.max) : null
+      _interval.value = data.interval != null ? parseFloat(data.interval) : null
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    results,
+    total,
+    min,
+    max,
+    interval,
+  }
+}
+
+export function useTimeHistogramValues(
+  property: PeerDBDocument,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<TimeHistogramResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  min: DeepReadonly<Ref<bigint | null>>
+  max: DeepReadonly<Ref<bigint | null>>
+  interval: DeepReadonly<Ref<number | null>>
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  const _results = ref<TimeHistogramResult[]>([])
+  const _total = ref<number | null>(null)
+  const _min = ref<bigint | null>(null)
+  const _max = ref<bigint | null>(null)
+  const _interval = ref<number | null>(null)
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const total = import.meta.env.DEV ? readonly(_total) : _total
+  const min = import.meta.env.DEV ? readonly(_min) : _min
+  const max = import.meta.env.DEV ? readonly(_max) : _max
+  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s || !property._id || !property._type) {
+        return null
+      }
+      if (property._type === "time") {
+        return router.resolve({
+          name: "DocumentSearchTimeFilterGet",
+          params: {
+            s,
+            prop: property._id,
+          },
+        }).href
+      } else {
+        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+      }
+    },
+    async (url, oldURL, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (!url) {
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        return
+      }
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      _results.value = data.results as TimeHistogramResult[]
+      _total.value = data.total
+      _min.value = data.min != null ? timestampToSeconds(data.min) : null
+      _max.value = data.max != null ? timestampToSeconds(data.max) : null
+      _interval.value = data.interval != null ? parseFloat(data.interval) : null
     },
     {
       immediate: true,
@@ -575,25 +672,31 @@ async function getHistogramValues(
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
-): Promise<{ results: AmountHistogramResult[]; total: number; min?: number; max?: number; interval?: number }> {
+): Promise<{ results: AmountHistogramResult[] | TimeHistogramResult[]; total: number; min?: string; max?: string; interval?: string }> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
   if (total === null) {
     throw new Error("Peerdb-Total header is null")
   }
-  const res = { results: doc, total: parseInt(total) } as { results: AmountHistogramResult[]; total: number; min?: number; max?: number; interval?: number }
+  const res = { results: doc, total: parseInt(total) } as {
+    results: AmountHistogramResult[] | TimeHistogramResult[]
+    total: number
+    min?: string
+    max?: string
+    interval?: string
+  }
   const min = headers.get("Peerdb-Min")
   if (min !== null) {
-    res.min = parseFloat(min)
+    res.min = min
   }
   const max = headers.get("Peerdb-Max")
   if (max !== null) {
-    res.max = parseFloat(max)
+    res.max = max
   }
   const interval = headers.get("Peerdb-Interval")
   if (interval !== null) {
-    res.interval = parseFloat(interval)
+    res.interval = interval
   }
 
   return res
