@@ -891,7 +891,8 @@ func (t Timestamp) String() string {
 		// An extra character for the minus sign.
 		w = 5
 	}
-	return fmt.Sprintf(`%0*d-%02d-%02dT%02d:%02d:%02dZ`, w, x.Year(), x.Month(), x.Day(), x.Hour(), x.Minute(), x.Second())
+	year, month, day := x.Date()
+	return fmt.Sprintf(`%0*d-%02d-%02dT%02d:%02d:%02dZ`, w, year, month, day, x.Hour(), x.Minute(), x.Second())
 }
 
 // We cannot use standard time.Time implementation.
