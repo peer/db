@@ -111,8 +111,7 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 	}
 
 	// We use int64 and not time.Duration because it cannot hold durations we need.
-	// time.Duration stores durations as nanosecond, but we need milliseconds here,
-	// or ideally even just seconds.
+	// time.Duration stores durations as nanosecond, but we want seconds here.
 	// See: https://github.com/elastic/elasticsearch/issues/83101
 	var min, interval int64
 	if minMax.Filter.Count == 0 {
@@ -121,20 +120,20 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 		})
 		return
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		min = time.Time(minMax.Filter.Min.Value).UnixMilli()
+		min = time.Time(minMax.Filter.Min.Value).Unix()
 		interval = 1
 	} else {
-		min = time.Time(minMax.Filter.Min.Value).UnixMilli()
-		max := time.Time(minMax.Filter.Max.Value).UnixMilli() + 1
+		min = time.Time(minMax.Filter.Min.Value).Unix()
+		max := time.Time(minMax.Filter.Max.Value).Unix() + 1
 		interval = (max - min) / histogramBins
-		interval2 := (time.Time(minMax.Filter.Max.Value).UnixMilli() - min) / histogramBins
+		interval2 := (time.Time(minMax.Filter.Max.Value).Unix() - min) / histogramBins
 		if interval == interval2 {
 			interval = interval2 + 1
 		}
 	}
 
-	offsetString := fmt.Sprintf("%dms", min)
-	intervalString := fmt.Sprintf("%dms", interval)
+	offsetString := fmt.Sprintf("%ds", min)
+	intervalString := fmt.Sprintf("%ds", interval)
 	histogramAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
@@ -175,7 +174,6 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 		}
 	}
 
-	fmt.Println(minMax.Filter.Min.Value)
 	total := strconv.Itoa(len(results))
 
 	metadata := http.Header{
