@@ -228,14 +228,14 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		}
 	}
 	if f.Time != nil {
-		if f.Amount.None {
+		if f.Time.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("active.time",
 					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
 				),
 			)
 		} else {
-			elastic.NewNestedQuery("active.time",
+			return elastic.NewNestedQuery("active.time",
 				elastic.NewBoolQuery().Must(
 					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
 					elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
