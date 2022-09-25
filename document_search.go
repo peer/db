@@ -198,14 +198,13 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 					elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
 				),
 			)
-		} else {
-			return elastic.NewNestedQuery("active.rel",
-				elastic.NewBoolQuery().Must(
-					elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
-					elastic.NewTermQuery("active.rel.to._id", f.Rel.Value),
-				),
-			)
 		}
+		return elastic.NewNestedQuery("active.rel",
+			elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
+				elastic.NewTermQuery("active.rel.to._id", f.Rel.Value),
+			),
+		)
 	}
 	if f.Amount != nil {
 		if f.Amount.None {
@@ -217,15 +216,14 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 					),
 				),
 			)
-		} else {
-			return elastic.NewNestedQuery("active.amount",
-				elastic.NewBoolQuery().Must(
-					elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
-					elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
-					elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
-				),
-			)
 		}
+		return elastic.NewNestedQuery("active.amount",
+			elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
+				elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
+				elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
+			),
+		)
 	}
 	if f.Time != nil {
 		if f.Time.None {
@@ -234,14 +232,13 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
 				),
 			)
-		} else {
-			return elastic.NewNestedQuery("active.time",
-				elastic.NewBoolQuery().Must(
-					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
-					elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
-				),
-			)
 		}
+		return elastic.NewNestedQuery("active.time",
+			elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
+				elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
+			),
+		)
 	}
 	panic(errors.New("invalid filters"))
 }

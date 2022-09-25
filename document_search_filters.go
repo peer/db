@@ -122,7 +122,7 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			elastic.NewCardinalityAggregation().Script(
 				elastic.NewScript("return [doc['active.amount.prop._id'], doc['active.amount.unit']]"),
-			).PrecisionThreshold(2*s.propertiesTotal*int64(amountUnitsTotal)), //nolint:gomnd
+			).PrecisionThreshold(2*s.propertiesTotal*int64(amountUnitsTotal)),
 		),
 	)
 	timeAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(

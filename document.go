@@ -1193,6 +1193,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("px")
 	case AmountUnitSecond:
 		buffer.WriteString("s")
+	case amountUnitsTotal:
+		panic(errors.New("invalid AmountUnit value"))
 	}
 	buffer.WriteString(`"`)
 	return buffer.Bytes(), nil
