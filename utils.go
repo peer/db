@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"mime"
@@ -24,6 +25,7 @@ import (
 	gddo "github.com/golang/gddo/httputil"
 	"github.com/hashicorp/go-cleanhttp"
 	servertiming "github.com/mitchellh/go-server-timing"
+	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/tozd/go/errors"
@@ -150,6 +152,16 @@ func (s *Service) serveStaticFiles(router *Router) errors.E {
 }
 
 func (s *Service) internalServerErrorWithError(w http.ResponseWriter, req *http.Request, err errors.E) {
+	var e *elastic.Error
+	if errors.As(err, &e) {
+		j, errJ := x.MarshalWithoutEscapeHTML(e)
+		if errJ != nil {
+			s.Log.Err(errJ).Fields(errors.AllDetails(err)).Msg("json marshal ElasticSearch error failure")
+		} else {
+			errors.Details(err)["elastic"] = json.RawMessage(j)
+		}
+	}
+
 	log := hlog.FromRequest(req)
 	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 		return c.Err(err).Fields(errors.AllDetails(err))

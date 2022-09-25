@@ -458,7 +458,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 
 func (s *Service) getSearchService(req *http.Request) *elastic.SearchService {
 	return s.ESClient.Search(s.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true)
+		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true).AllowPartialSearchResults(false)
 }
 
 // TODO: Determine which operator should be the default?
