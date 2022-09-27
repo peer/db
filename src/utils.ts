@@ -1,5 +1,6 @@
 import type { Mutable } from "@/types"
 
+import { toRaw } from "vue"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
@@ -65,8 +66,11 @@ export function secondsToTimestamp(value: bigint): string {
 }
 
 export function clone<T>(input: T): Mutable<T> {
-  // TODO: Improve. See: https://forum.vuejs.org/t/the-opposite-of-readonly/132774
-  return JSON.parse(JSON.stringify(input))
+  if (typeof structuredClone !== "undefined") {
+    return structuredClone(toRaw(input))
+  } else {
+    return JSON.parse(JSON.stringify(input))
+  }
 }
 
 export function bigIntMax(a: bigint, b: bigint): bigint {
