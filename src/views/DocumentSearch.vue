@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import type { RelFilterState, AmountFilterState, TimeFilterState, FiltersState, ClientQuery } from "@/types"
+import type {
+  RelFilterState,
+  AmountFilterState,
+  TimeFilterState,
+  FiltersState,
+  ClientQuery,
+  RelSearchResult,
+  PeerDBDocument,
+  AmountSearchResult,
+  TimeSearchResult,
+} from "@/types"
 
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -199,7 +209,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="(track(doc._id) as any)" :doc="doc" />
+          <SearchResult :ref="(track(doc._id) as any)" :doc="doc as PeerDBDocument" />
         </template>
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">
@@ -226,7 +236,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
           <RelFiltersResult
             v-if="doc._type === 'rel'"
             :search-total="searchTotal"
-            :property="doc"
+            :property="doc as PeerDBDocument & RelSearchResult"
             :state="filtersState.rel[doc._id] || (filtersState.rel[doc._id] = [])"
             :update-progress="updateFiltersProgress"
             @update:state="onRelFiltersStateUpdate(doc._id, $event)"
@@ -234,7 +244,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
           <AmountFiltersResult
             v-if="doc._type === 'amount'"
             :search-total="searchTotal"
-            :property="doc"
+            :property="doc as PeerDBDocument & AmountSearchResult"
             :state="filtersState.amount[`${doc._id}/${doc._unit}`] || (filtersState.amount[`${doc._id}/${doc._unit}`] = null)"
             :update-progress="updateFiltersProgress"
             @update:state="onAmountFiltersStateUpdate(doc._id, doc._unit, $event)"
@@ -242,7 +252,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
           <TimeFiltersResult
             v-if="doc._type === 'time'"
             :search-total="searchTotal"
-            :property="doc"
+            :property="doc as PeerDBDocument & TimeSearchResult"
             :state="filtersState.time[`${doc._id}`] || (filtersState.time[`${doc._id}`] = null)"
             :update-progress="updateFiltersProgress"
             @update:state="onTimeFiltersStateUpdate(doc._id, $event)"
