@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PeerDBDocument, RelFilterState } from "@/types"
+import type { PeerDBDocument, RelFilterState, RelSearchResult } from "@/types"
 
 import { ref, computed } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
@@ -9,7 +9,7 @@ import { useRelFilterValues } from "@/search"
 
 const props = defineProps<{
   searchTotal: number
-  property: PeerDBDocument
+  property: PeerDBDocument & RelSearchResult
   state: RelFilterState
   updateProgress: number
 }>()
@@ -52,14 +52,14 @@ function onChange(event: Event, id: string) {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name?.en }}</RouterLink>
         ({{ property._count }})
       </div>
       <ul>
-        <li v-for="doc in docsWithNone" :key="doc._id" class="flex gap-x-1">
-          <template v-if="doc.name?.en && (doc._count != props.searchTotal || state.includes(doc._id))">
+        <li v-for="doc in docsWithNone" :key="'_id' in doc ? doc._id : 'none'" class="flex gap-x-1">
+          <template v-if="'_id' in doc && doc.name?.en && (doc._count != props.searchTotal || state.includes(doc._id))">
             <input
-              :id="property._id + '/' + doc._id"
+              :id="'rel/' + property._id + '/' + doc._id"
               :disabled="updateProgress > 0"
               :checked="state.includes(doc._id)"
               :class="
@@ -69,17 +69,23 @@ function onChange(event: Event, id: string) {
               class="my-1 rounded"
               @change="onChange($event, doc._id)"
             />
-            <label :for="property._id + '/' + doc._id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">{{
-              doc.name.en
-            }}</label>
-            <label :for="property._id + '/' + doc._id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label
+              :for="'rel/' + property._id + '/' + doc._id"
+              class="my-1 leading-none"
+              :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >{{ doc.name.en }}</label
+            >
+            <label
+              :for="'rel/' + property._id + '/' + doc._id"
+              class="my-1 leading-none"
+              :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ doc._count }})</label
             >
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="doc.name?.en && doc._count == props.searchTotal">
+          <template v-else-if="'_id' in doc && doc.name?.en && doc._count == props.searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
             <div class="my-1 leading-none">{{ doc.name.en }}</div>
             <div class="my-1 leading-none">({{ doc._count }})</div>
@@ -87,9 +93,9 @@ function onChange(event: Event, id: string) {
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="!doc._id">
+          <template v-else-if="!('_id' in doc)">
             <input
-              :id="property._id + '/none'"
+              :id="'rel/' + property._id + '/none'"
               :disabled="updateProgress > 0"
               :checked="state.includes('none')"
               :class="
@@ -99,10 +105,10 @@ function onChange(event: Event, id: string) {
               class="my-1 rounded"
               @change="onChange($event, 'none')"
             />
-            <label :for="property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'rel/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >
-            <label :for="property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'rel/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ doc._count }})</label
             >
           </template>

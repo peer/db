@@ -24,7 +24,7 @@ const props = defineProps({
 const route = useRoute()
 const router = useRouter()
 
-const _doc = ref<PeerDBDocument>({})
+const _doc = ref<PeerDBDocument | Record<string, never>>({})
 const doc = import.meta.env.DEV ? readonly(_doc) : _doc
 
 watch(
@@ -117,7 +117,7 @@ async function afterClick() {
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
       <div v-if="hasLoaded">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name.en }}</h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name?.en }}</h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>

@@ -12,6 +12,9 @@ import type {
   FiltersState,
   ClientQuery,
   ServerQuery,
+  RelSearchResult,
+  AmountSearchResult,
+  TimeSearchResult,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
@@ -152,7 +155,7 @@ export function useSearch(
   progress: Ref<number>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
 ): {
-  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  docs: DeepReadonly<Ref<(PeerDBDocument & SearchResult)[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
@@ -178,7 +181,7 @@ export function useSearch(
 }
 
 export function useFilters(progress: Ref<number>): {
-  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  docs: DeepReadonly<Ref<(PeerDBDocument & SearchResult)[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
   hasMore: DeepReadonly<Ref<boolean>>
@@ -324,7 +327,7 @@ function useSearchResults(
   increase: number,
   redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
 ): {
-  docs: DeepReadonly<Ref<PeerDBDocument[]>>
+  docs: DeepReadonly<Ref<(PeerDBDocument & SearchResult)[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
@@ -337,7 +340,7 @@ function useSearchResults(
 
   let limit = 0
 
-  const _docs = ref<PeerDBDocument[]>([])
+  const _docs = ref<(PeerDBDocument & SearchResult)[]>([])
   const _results = ref<SearchResult[]>([])
   const _total = ref<number | null>(null)
   const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {} })
@@ -424,11 +427,11 @@ function useSearchResults(
 }
 
 export function useRelFilterValues(
-  property: PeerDBDocument,
+  property: PeerDBDocument & RelSearchResult,
   progress: Ref<number>,
 ): {
-  docs: DeepReadonly<Ref<PeerDBDocument[]>>
-  results: DeepReadonly<Ref<SearchResult[]>>
+  docs: DeepReadonly<Ref<(PeerDBDocument & RelSearchResult)[]>>
+  results: DeepReadonly<Ref<RelSearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
@@ -436,7 +439,7 @@ export function useRelFilterValues(
   const router = useRouter()
   const route = useRoute()
 
-  return useSearchResults(
+  const data = useSearchResults(
     -2,
     progress,
     () => {
@@ -465,10 +468,17 @@ export function useRelFilterValues(
     FILTERS_INCREASE,
     null,
   )
+  return {
+    docs: data.docs as DeepReadonly<Ref<(PeerDBDocument & RelSearchResult)[]>>,
+    results: data.results as DeepReadonly<Ref<RelSearchResult[]>>,
+    total: data.total,
+    hasMore: data.hasMore,
+    loadMore: data.loadMore,
+  }
 }
 
 export function useAmountHistogramValues(
-  property: PeerDBDocument,
+  property: PeerDBDocument & AmountSearchResult,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<AmountHistogramResult[]>>
@@ -556,7 +566,7 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  property: PeerDBDocument,
+  property: PeerDBDocument & TimeSearchResult,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<TimeHistogramResult[]>>
@@ -702,7 +712,7 @@ async function getHistogramValues(
   return res
 }
 
-export async function getDocument(router: Router, result: SearchResult, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
+export async function getDocument(router: Router, result: { _id: string }, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
   const { doc } = await getURL(
     router.resolve({
       name: "DocumentGet",

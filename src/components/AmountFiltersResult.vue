@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { PeerDBDocument, AmountFilterState } from "@/types"
+import type { PeerDBDocument, AmountFilterState, AmountSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
@@ -10,7 +10,7 @@ import { formatValue } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
-  property: PeerDBDocument
+  property: PeerDBDocument & AmountSearchResult
   state: AmountFilterState
   updateProgress: number
 }>()
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name?.en }}</RouterLink>
         ({{ property._count }})
       </div>
       <ul>
@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
         </li>
         <li v-if="property._count < searchTotal" class="mt-4 flex gap-x-1">
           <input
-            :id="property._id + '/' + property._unit + '/none'"
+            :id="'amount/' + property._id + '/' + property._unit + '/none'"
             :disabled="updateProgress > 0"
             :checked="state === 'none'"
             :class="
@@ -185,13 +185,13 @@ onBeforeUnmount(() => {
             @change="onNoneChange($event)"
           />
           <label
-            :for="property._id + '/' + property._unit + '/none'"
+            :for="'amount/' + property._id + '/' + property._unit + '/none'"
             class="my-1 leading-none"
             :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>none</i></label
           >
           <label
-            :for="property._id + '/' + property._unit + '/none'"
+            :for="'amount/' + property._id + '/' + property._unit + '/none'"
             class="my-1 leading-none"
             :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ searchTotal - property._count }})</label
