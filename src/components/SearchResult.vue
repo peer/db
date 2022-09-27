@@ -4,6 +4,9 @@ import type { PeerDBDocument } from "@/types"
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import RouterLink from "@/components/RouterLink.vue"
+import { getStandardPropertyID } from "@/utils"
+
+const DESCRIPTION = getStandardPropertyID("MEDIAWIKI_MEDIA_TYPE")
 
 const props = defineProps<{
   doc: PeerDBDocument
@@ -12,10 +15,9 @@ const props = defineProps<{
 const route = useRoute()
 
 const hasLoaded = computed(() => props.doc?.name?.en)
-// TODO: Do not hard-code description property ID.
 const description = computed(() => {
   for (const claim of props.doc.active?.text || []) {
-    if (claim.prop._id === "E7DXhBtz9UuoSG9V3uYeYF") {
+    if (claim.prop._id === DESCRIPTION) {
       return claim.html.en
     }
   }
