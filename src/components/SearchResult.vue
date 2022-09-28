@@ -4,7 +4,7 @@ import type { PeerDBDocument } from "@/types"
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import RouterLink from "@/components/RouterLink.vue"
-import { getStandardPropertyID, getBestClaimOfType, getClaimsOfType, getWikidataDocumentID } from "@/utils"
+import { getStandardPropertyID, getBestClaimOfType, getClaimsOfType, getWikidataDocumentID, getClaimsListsOfType } from "@/utils"
 
 const DESCRIPTION = getStandardPropertyID("DESCRIPTION")
 const ORIGINAL_CATALOG_DESCRIPTION = getWikidataDocumentID("P10358")
@@ -16,6 +16,7 @@ const SUBCLASS_OF = getWikidataDocumentID("P279")
 const MEDIAWIKI_MEDIA_TYPE = getStandardPropertyID("MEDIAWIKI_MEDIA_TYPE")
 const MEDIA_TYPE = getStandardPropertyID("MEDIA_TYPE")
 const COPYRIGHT_STATUS = getWikidataDocumentID("P6216")
+const PREVIEW_URL = getStandardPropertyID("PREVIEW_URL")
 
 const props = defineProps<{
   doc: PeerDBDocument
@@ -25,34 +26,46 @@ const route = useRoute()
 
 const hasLoaded = computed(() => props.doc?.name?.en)
 const description = computed(() => {
-  return getBestClaimOfType(props.doc, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
+  return getBestClaimOfType(props.doc.active, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
 })
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(props.doc, "rel", IS).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc, "rel", INSTANCE_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc, "rel", LABEL).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc, "enum", MEDIAWIKI_MEDIA_TYPE)
-      .map((c) => c.enum)
-      .flat(1),
-    ...getClaimsOfType(props.doc, "string", MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "rel", IS).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "rel", INSTANCE_OF).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "rel", LABEL).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "enum", MEDIAWIKI_MEDIA_TYPE).flatMap((c) => c.enum),
+    ...getClaimsOfType(props.doc.active, "string", MEDIA_TYPE).map((c) => c.string),
+    ...getClaimsOfType(props.doc.active, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
+  ]
+})
+const previewFiles = computed(() => {
+  // TODO: Sort files by group by properties (e.g., "image" first) and then sort inside groups by confidence.
+  return [
+    ...getClaimsListsOfType(props.doc.active, "ref", PREVIEW_URL)
+      .flat(1)
+      .map((c) => c.iri),
+    ...[...(props.doc.active?.file || [])].flatMap((c) => c.preview ?? []),
   ]
 })
 </script>
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded">
-      <h2 class="text-xl">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
-      </h2>
-      <ul v-if="tags.length" class="flex flex-row flex-wrap items-start gap-1 text-sm">
-        <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow">{{ tag }}</li>
-      </ul>
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <p v-if="description" class="prose prose-slate mt-4 max-w-none" v-html="description"></p>
+    <div v-if="hasLoaded" class="flex flex-row gap-x-4">
+      <div v-if="previewFiles.length">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link"><img :src="previewFiles[0]" /></RouterLink>
+      </div>
+      <div>
+        <h2 class="text-xl">
+          <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
+        </h2>
+        <ul v-if="tags.length" class="flex flex-row flex-wrap items-start gap-1 text-sm">
+          <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow">{{ tag }}</li>
+        </ul>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <p v-if="description" class="prose prose-slate mt-4 max-w-none" v-html="description"></p>
+      </div>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">

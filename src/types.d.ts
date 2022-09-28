@@ -134,19 +134,19 @@ type TimeRangeClaim = CoreClaim & {
 }
 
 type ClaimTypes = {
-  id: IdentifierClaim[]
-  ref: ReferenceClaim[]
-  text: TextClaim[]
-  string: StringClaim[]
-  amount: AmountClaim[]
-  amountRange: AmountRangeClaim[]
-  enum: EnumerationClaim[]
-  rel: RelationClaim[]
-  file: FileClaim[]
-  none: NoValueClaim[]
-  unknown: UnknownValueClaim[]
-  time: TimeClaim[]
-  timeRange: TimeRangeClaim[]
+  id?: IdentifierClaim[]
+  ref?: ReferenceClaim[]
+  text?: TextClaim[]
+  string?: StringClaim[]
+  amount?: AmountClaim[]
+  amountRange?: AmountRangeClaim[]
+  enum?: EnumerationClaim[]
+  rel?: RelationClaim[]
+  file?: FileClaim[]
+  none?: NoValueClaim[]
+  unknown?: UnknownValueClaim[]
+  time?: TimeClaim[]
+  timeRange?: TimeRangeClaim[]
 }
 
 type Claim =

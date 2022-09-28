@@ -1,4 +1,4 @@
-import type { Mutable, PeerDBDocument, Claim, ClaimTypes } from "@/types"
+import type { Mutable, Claim, ClaimTypes } from "@/types"
 
 import { toRaw } from "vue"
 import { v5 as uuidv5, parse as uuidParse } from "uuid"
@@ -9,6 +9,9 @@ const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 const idLength = 22
 const nameSpaceStandardProperties = "34cd10b4-5731-46b8-a6dd-45444680ca62"
 const nameSpaceWikidata = "8f8ba777-bcce-4e45-8dd4-a328e6722c82"
+
+const LIST = getStandardPropertyID("LIST")
+const ORDER = getStandardPropertyID("ORDER")
 
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
@@ -109,42 +112,75 @@ export function getWikidataDocumentID(id: string): string {
   return getID(nameSpaceWikidata, id)
 }
 
-export function getClaim(doc: PeerDBDocument, propertyId: string): Claim | null {
+export function getBestClaim(claimTypes: ClaimTypes | undefined | null, propertyId: string | string[]): Claim | null {
+  if (typeof propertyId === "string") {
+    propertyId = [propertyId]
+  }
   const claims: Claim[] = []
-  for (const claims of Object.values(doc.active ?? {})) {
+  for (const claims of Object.values(claimTypes ?? {})) {
     for (const claim of claims || []) {
-      if (claim.prop._id === propertyId) {
+      if (propertyId.includes(claim.prop._id)) {
         claims.push(claim)
       }
     }
   }
-  if (claims.length === 1) {
+  claims.sort((a, b) => b.confidence - a.confidence)
+  if (claims.length > 0) {
     return claims[0]
-  } else if (claims.length > 1) {
-    return claims.sort((a, b) => b.confidence - a.confidence)[0]
   }
   return null
 }
 
-export function getClaimsOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string | string[]): ClaimTypes[K][number][] {
+export function getClaimsOfType<K extends keyof ClaimTypes>(
+  claimTypes: ClaimTypes | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+): ClaimTypes[K][number][] {
   if (typeof propertyId === "string") {
     propertyId = [propertyId]
   }
   const claims = []
-  for (const claim of doc.active?.[claimType] || []) {
+  for (const claim of claimTypes?.[claimType] || []) {
     if (propertyId.includes(claim.prop._id)) {
       claims.push(claim)
     }
   }
+  claims.sort((a, b) => b.confidence - a.confidence)
   return claims
 }
 
-export function getBestClaimOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string | string[]): ClaimTypes[K][number] | null {
-  const claims = getClaimsOfType(doc, claimType, propertyId)
-  if (claims.length === 1) {
+export function getBestClaimOfType<K extends keyof ClaimTypes>(
+  claimTypes: ClaimTypes | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+): ClaimTypes[K][number] | null {
+  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  if (claims.length > 0) {
     return claims[0]
-  } else if (claims.length > 1) {
-    return claims.sort((a, b) => b.confidence - a.confidence)[0]
   }
   return null
+}
+
+// TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
+// TODO: Sort lists between themselves by (average) confidence?
+export function getClaimsListsOfType<K extends keyof ClaimTypes>(
+  claimTypes: ClaimTypes | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+): ClaimTypes[K][number][][] {
+  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  const claimsPerList: Record<string, [ClaimTypes[K][number], number][]> = {}
+  for (const claim of claims) {
+    const list = getBestClaimOfType(claim.meta, "id", LIST)?.id || "none"
+    const order = getBestClaimOfType(claim.meta, "amount", ORDER)?.amount ?? Number.MAX_VALUE
+    if (!(list in claimsPerList)) {
+      claimsPerList[list] = []
+    }
+    claimsPerList[list].push([claim, order])
+  }
+  const res = []
+  for (const c of Object.values(claimsPerList)) {
+    res.push(c.sort(([c1, o1], [c2, o2]) => o1 - o2).map(([c, o]) => c))
+  }
+  return res
 }
