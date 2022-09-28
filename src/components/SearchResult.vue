@@ -53,10 +53,12 @@ const previewFiles = computed(() => {
 <template>
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-row gap-x-4">
-      <div v-if="previewFiles.length">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link"><img :src="previewFiles[0]" /></RouterLink>
+      <div v-if="previewFiles.length" class="w-[256px] flex-none">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
+          ><img :src="previewFiles[0]" class="mx-auto bg-white"
+        /></RouterLink>
       </div>
-      <div>
+      <div class="flex-1">
         <h2 class="text-xl">
           <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
         </h2>
