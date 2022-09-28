@@ -8,6 +8,7 @@ import { fromDate, toDate, hour, minute, second } from "@/time"
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 const idLength = 22
 const nameSpaceStandardProperties = "34cd10b4-5731-46b8-a6dd-45444680ca62"
+const nameSpaceWikidata = "8f8ba777-bcce-4e45-8dd4-a328e6722c82"
 
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
@@ -104,6 +105,10 @@ export function getStandardPropertyID(mnemonic: string): string {
   return getID(nameSpaceStandardProperties, mnemonic)
 }
 
+export function getWikidataDocumentID(id: string): string {
+  return getID(nameSpaceWikidata, id)
+}
+
 export function getClaim(doc: PeerDBDocument, propertyId: string): Claim | null {
   const claims: Claim[] = []
   for (const claims of Object.values(doc.active ?? {})) {
@@ -121,13 +126,21 @@ export function getClaim(doc: PeerDBDocument, propertyId: string): Claim | null 
   return null
 }
 
-export function getClaimOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string): ClaimTypes[K][number] | null {
+export function getClaimsOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string | string[]): ClaimTypes[K][number][] {
+  if (typeof propertyId === "string") {
+    propertyId = [propertyId]
+  }
   const claims = []
   for (const claim of doc.active?.[claimType] || []) {
-    if (claim.prop._id === propertyId) {
+    if (propertyId.includes(claim.prop._id)) {
       claims.push(claim)
     }
   }
+  return claims
+}
+
+export function getBestClaimOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string | string[]): ClaimTypes[K][number] | null {
+  const claims = getClaimsOfType(doc, claimType, propertyId)
   if (claims.length === 1) {
     return claims[0]
   } else if (claims.length > 1) {
