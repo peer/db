@@ -92,12 +92,53 @@
     }
   }
 
-  .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)) {
-    margin-top: 0;
+  .prose img {
+    display: unset;
+    margin: unset;
   }
 
-  .prose :where(.prose > section:last-child > :last-child):not(:where([class~="not-prose"] *)) {
-    margin-bottom: 0;
+  .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)),
+  .prose * > p:first-child {
+    @apply mt-0;
+  }
+
+  .prose :where(.prose > section:last-child > :last-child):not(:where([class~="not-prose"] *)),
+  .prose * > p:last-child {
+    @apply mb-0;
+  }
+
+  .prose figure {
+    @apply float-right m-2 clear-right table w-auto;
+  }
+
+  .prose .thumb, .prose .sidebar, .prose .barbox {
+    @apply float-right m-2 clear-right w-auto;
+  }
+
+  .prose figure figcaption {
+    @apply mt-1 table-caption;
+
+    caption-side: bottom;
+  }
+
+  .prose figure:has(blockquote) {
+    @apply float-none clear-none mx-0 my-5;
+  }
+
+  .prose ul ol, .prose ol ol, .prose ol ul, .prose ul ul, .prose li {
+    @apply my-0;
+  }
+
+  .prose td > ol, .prose td > ul {
+    @apply my-0;
+  }
+
+  .prose ul + ul, .prose ol + ol {
+    @apply mt-5;
+  }
+
+  .prose table {
+    @apply my-5;
   }
 }
 

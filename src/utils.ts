@@ -1,4 +1,4 @@
-import type { Mutable, PeerDBDocument } from "@/types"
+import type { Mutable, PeerDBDocument, Claim, ClaimTypes } from "@/types"
 
 import { toRaw } from "vue"
 import { v5 as uuidv5, parse as uuidParse } from "uuid"
@@ -104,11 +104,34 @@ export function getStandardPropertyID(mnemonic: string): string {
   return getID(nameSpaceStandardProperties, mnemonic)
 }
 
-export function getClaim(doc: PeerDBDocument, propertyId: string): any {
-  for (const claim of doc.active?.text || []) {
-    if (claim.prop._id === propertyId) {
-      return claim.html.en
+export function getClaim(doc: PeerDBDocument, propertyId: string): Claim | null {
+  const claims: Claim[] = []
+  for (const claims of Object.values(doc.active ?? {})) {
+    for (const claim of claims || []) {
+      if (claim.prop._id === propertyId) {
+        claims.push(claim)
+      }
     }
+  }
+  if (claims.length === 1) {
+    return claims[0]
+  } else if (claims.length > 1) {
+    return claims.sort((a, b) => b.confidence - a.confidence)[0]
+  }
+  return null
+}
+
+export function getClaimOfType<K extends keyof ClaimTypes>(doc: PeerDBDocument, claimType: K, propertyId: string): ClaimTypes[K][number] | null {
+  const claims = []
+  for (const claim of doc.active?.[claimType] || []) {
+    if (claim.prop._id === propertyId) {
+      claims.push(claim)
+    }
+  }
+  if (claims.length === 1) {
+    return claims[0]
+  } else if (claims.length > 1) {
+    return claims.sort((a, b) => b.confidence - a.confidence)[0]
   }
   return null
 }

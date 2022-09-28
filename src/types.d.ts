@@ -149,6 +149,21 @@ type ClaimTypes = {
   timeRange: TimeRangeClaim[]
 }
 
+type Claim =
+  | IdentifierClaim
+  | ReferenceClaim
+  | TextClaim
+  | StringClaim
+  | AmountClaim
+  | AmountRangeClaim
+  | EnumerationClaim
+  | RelationClaim
+  | FileClaim
+  | NoValueClaim
+  | UnknownValueClaim
+  | TimeClaim
+  | TimeRangeClaim
+
 export type PeerDBDocument = {
   _id: string
   // Name and score are optional on the frontend because

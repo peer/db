@@ -53,11 +53,13 @@ defineProps({
       >
         <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
       </td>
+      <!-- eslint-disable vue/no-v-html -->
       <td
         class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         v-html="claim.html?.en"
       ></td>
+      <!-- eslint-enable vue/no-v-html -->
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>

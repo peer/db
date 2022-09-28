@@ -4,9 +4,9 @@ import type { PeerDBDocument } from "@/types"
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import RouterLink from "@/components/RouterLink.vue"
-import { getStandardPropertyID } from "@/utils"
+import { getStandardPropertyID, getClaimOfType } from "@/utils"
 
-const DESCRIPTION = getStandardPropertyID("MEDIAWIKI_MEDIA_TYPE")
+const DESCRIPTION = getStandardPropertyID("DESCRIPTION")
 
 const props = defineProps<{
   doc: PeerDBDocument
@@ -16,13 +16,7 @@ const route = useRoute()
 
 const hasLoaded = computed(() => props.doc?.name?.en)
 const description = computed(() => {
-  for (const claim of props.doc.active?.text || []) {
-    if (claim.prop._id === DESCRIPTION) {
-      return claim.html.en
-    }
-  }
-
-  return ""
+  return getClaimOfType(props.doc, "text", DESCRIPTION)?.html.en || ""
 })
 </script>
 
@@ -31,7 +25,7 @@ const description = computed(() => {
     <div v-if="hasLoaded">
       <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link text-lg">{{ doc.name?.en }}</RouterLink>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <p v-if="description" v-html="description"></p>
+      <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">
