@@ -1,4 +1,4 @@
-import type { Mutable, Claim, ClaimTypes } from "@/types"
+import type { Mutable, Claim, ClaimTypes, Required } from "@/types"
 
 import { toRaw } from "vue"
 import { v5 as uuidv5, parse as uuidParse } from "uuid"
@@ -135,7 +135,7 @@ export function getClaimsOfType<K extends keyof ClaimTypes>(
   claimTypes: ClaimTypes | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): ClaimTypes[K][number][] {
+): Required<ClaimTypes>[K][number][] {
   if (typeof propertyId === "string") {
     propertyId = [propertyId]
   }
@@ -153,7 +153,7 @@ export function getBestClaimOfType<K extends keyof ClaimTypes>(
   claimTypes: ClaimTypes | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): ClaimTypes[K][number] | null {
+): Required<ClaimTypes>[K][number] | null {
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
   if (claims.length > 0) {
     return claims[0]
@@ -167,9 +167,9 @@ export function getClaimsListsOfType<K extends keyof ClaimTypes>(
   claimTypes: ClaimTypes | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): ClaimTypes[K][number][][] {
+): Required<ClaimTypes>[K][number][][] {
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
-  const claimsPerList: Record<string, [ClaimTypes[K][number], number][]> = {}
+  const claimsPerList: Record<string, [Required<ClaimTypes>[K][number], number][]> = {}
   for (const claim of claims) {
     const list = getBestClaimOfType(claim.meta, "id", LIST)?.id || "none"
     const order = getBestClaimOfType(claim.meta, "amount", ORDER)?.amount ?? Number.MAX_VALUE
