@@ -1,17 +1,10 @@
 import type { Mutable, Claim, ClaimTypes, Required } from "@/types"
 
 import { toRaw } from "vue"
-import { v5 as uuidv5, parse as uuidParse } from "uuid"
-import bs58 from "bs58"
 import { fromDate, toDate, hour, minute, second } from "@/time"
+import { LIST, ORDER } from "@/props"
 
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
-const idLength = 22
-const nameSpaceStandardProperties = "34cd10b4-5731-46b8-a6dd-45444680ca62"
-const nameSpaceWikidata = "8f8ba777-bcce-4e45-8dd4-a328e6722c82"
-
-const LIST = getStandardPropertyID("LIST")
-const ORDER = getStandardPropertyID("ORDER")
 
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
@@ -86,30 +79,6 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
     return a
   }
   return b
-}
-
-function identifierFromUUID(uuid: string): string {
-  const res = bs58.encode(uuidParse(uuid) as Uint8Array)
-  if (res.length < idLength) {
-    return "1".repeat(idLength - res.length) + res
-  }
-  return res
-}
-
-function getID(namespace: string, ...args: string[]): string {
-  let res = namespace
-  for (const arg of args) {
-    res = uuidv5(arg, res)
-  }
-  return identifierFromUUID(res)
-}
-
-export function getStandardPropertyID(mnemonic: string): string {
-  return getID(nameSpaceStandardProperties, mnemonic)
-}
-
-export function getWikidataDocumentID(id: string): string {
-  return getID(nameSpaceWikidata, id)
 }
 
 export function getBestClaim(claimTypes: ClaimTypes | undefined | null, propertyId: string | string[]): Claim | null {

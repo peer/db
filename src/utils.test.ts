@@ -1,6 +1,6 @@
 import { assert, test } from "vitest"
 
-import { timestampToSeconds, secondsToTimestamp, getStandardPropertyID } from "@/utils"
+import { timestampToSeconds, secondsToTimestamp } from "@/utils"
 
 test.each([
   ["2006-12-04T12:34:45Z", 1165235685n],
@@ -17,15 +17,4 @@ test.each([
   const s = timestampToSeconds(t)
   assert.equal(s, u)
   assert.equal(secondsToTimestamp(s), t)
-})
-
-test.each([
-  ["MEDIAWIKI_MEDIA_TYPE", "BfSBAS8qXcBgFkc7TmDuxK"],
-  ["HAS_ARTICLE", "MQYs7JmAR3tge25eTPS8XT"],
-  ["DESCRIPTION", "E7DXhBtz9UuoSG9V3uYeYF"],
-  ["ARTICLE", "FJJLydayUgDuqFsRK2ZtbR"],
-  ["LABEL", "5SoFeEFk5aWXUYFC1EZFec"],
-  ["IS", "2fjzZyP7rv8E4aHnBc6KAa"],
-])("getStandardPropertyID(%s)", (m, u) => {
-  assert.equal(getStandardPropertyID(m), u)
 })
