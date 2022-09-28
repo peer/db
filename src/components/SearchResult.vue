@@ -4,19 +4,20 @@ import type { PeerDBDocument } from "@/types"
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import RouterLink from "@/components/RouterLink.vue"
-import { getStandardPropertyID, getBestClaimOfType, getClaimsOfType, getWikidataDocumentID, getClaimsListsOfType } from "@/utils"
-
-const DESCRIPTION = getStandardPropertyID("DESCRIPTION")
-const ORIGINAL_CATALOG_DESCRIPTION = getWikidataDocumentID("P10358")
-const TITLE = getWikidataDocumentID("P1476")
-const LABEL = getStandardPropertyID("LABEL")
-const IS = getStandardPropertyID("IS")
-const INSTANCE_OF = getWikidataDocumentID("P31")
-const SUBCLASS_OF = getWikidataDocumentID("P279")
-const MEDIAWIKI_MEDIA_TYPE = getStandardPropertyID("MEDIAWIKI_MEDIA_TYPE")
-const MEDIA_TYPE = getStandardPropertyID("MEDIA_TYPE")
-const COPYRIGHT_STATUS = getWikidataDocumentID("P6216")
-const PREVIEW_URL = getStandardPropertyID("PREVIEW_URL")
+import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType } from "@/utils"
+import {
+  DESCRIPTION,
+  ORIGINAL_CATALOG_DESCRIPTION,
+  TITLE,
+  LABEL,
+  IS,
+  INSTANCE_OF,
+  SUBCLASS_OF,
+  MEDIAWIKI_MEDIA_TYPE,
+  MEDIA_TYPE,
+  COPYRIGHT_STATUS,
+  PREVIEW_URL,
+} from "@/props"
 
 const props = defineProps<{
   doc: PeerDBDocument
