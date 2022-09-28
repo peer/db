@@ -5,23 +5,25 @@
 @import "tailwindcss/variants";
 
 @layer components {
-  .link {
+  .link, .prose a {
     @apply rounded-sm font-medium text-primary-600 outline-none drop-shadow-sm;
+
+    text-decoration: unset;
   }
 
-  .link:focus {
+  .link:focus, .prose a:focus {
     @apply focus:ring-2 focus:ring-primary-500 focus:ring-offset-1;
   }
 
-  .link:visited {
+  .link:visited, .prose a:visited {
     @apply text-primary-500;
   }
 
-  .link:hover {
+  .link:hover, .prose a:hover {
     @apply text-primary-700 underline underline-offset-2;
   }
 
-  .link:active {
+  .link:active, .prose a:active {
     @apply text-primary-500;
   }
 
