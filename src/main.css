@@ -19,6 +19,11 @@
     @apply drop-shadow-sm rounded-sm;
   }
 
+  .prose img {
+    display: unset;
+    margin: unset;
+  }
+
   .link:focus, .prose a:focus, a:focus > img {
     @apply ring-2 ring-primary-500 ring-offset-1;
   }
@@ -100,11 +105,6 @@
       left: 107%;
       right: -8%;
     }
-  }
-
-  .prose img {
-    display: unset;
-    margin: unset;
   }
 
   .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)),
