@@ -283,10 +283,9 @@ nix:
     - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }'
 
   artifacts:
-    expose_as: nix
     name: nix
     paths:
-      - *.nix
+      - "*.nix"
     expire_in: never
 
   # We want to run it as soon as possible and do not wait for test stage to finish.
