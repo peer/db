@@ -1,3 +1,4 @@
+import type { DeepReadonly } from "vue"
 import type { Mutable, Claim, ClaimTypes, Required } from "@/types"
 
 import { toRaw } from "vue"
@@ -81,13 +82,13 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
   return b
 }
 
-export function getBestClaim(claimTypes: ClaimTypes | undefined | null, propertyId: string | string[]): Claim | null {
+export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | null, propertyId: string | string[]): DeepReadonly<Claim> | null {
   if (typeof propertyId === "string") {
     propertyId = [propertyId]
   }
-  const claims: Claim[] = []
-  for (const claims of Object.values(claimTypes ?? {})) {
-    for (const claim of claims || []) {
+  const claims: DeepReadonly<Claim>[] = []
+  for (const cs of Object.values(claimTypes ?? {})) {
+    for (const claim of cs || []) {
       if (propertyId.includes(claim.prop._id)) {
         claims.push(claim)
       }
@@ -101,10 +102,10 @@ export function getBestClaim(claimTypes: ClaimTypes | undefined | null, property
 }
 
 export function getClaimsOfType<K extends keyof ClaimTypes>(
-  claimTypes: ClaimTypes | undefined | null,
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): Required<ClaimTypes>[K][number][] {
+): Required<DeepReadonly<ClaimTypes>>[K][number][] {
   if (typeof propertyId === "string") {
     propertyId = [propertyId]
   }
@@ -119,10 +120,10 @@ export function getClaimsOfType<K extends keyof ClaimTypes>(
 }
 
 export function getBestClaimOfType<K extends keyof ClaimTypes>(
-  claimTypes: ClaimTypes | undefined | null,
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): Required<ClaimTypes>[K][number] | null {
+): Required<DeepReadonly<ClaimTypes>>[K][number] | null {
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
   if (claims.length > 0) {
     return claims[0]
@@ -133,12 +134,12 @@ export function getBestClaimOfType<K extends keyof ClaimTypes>(
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
 export function getClaimsListsOfType<K extends keyof ClaimTypes>(
-  claimTypes: ClaimTypes | undefined | null,
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
-): Required<ClaimTypes>[K][number][][] {
+): Required<DeepReadonly<ClaimTypes>>[K][number][][] {
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
-  const claimsPerList: Record<string, [Required<ClaimTypes>[K][number], number][]> = {}
+  const claimsPerList: Record<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]> = {}
   for (const claim of claims) {
     const list = getBestClaimOfType(claim.meta, "id", LIST)?.id || "none"
     const order = getBestClaimOfType(claim.meta, "amount", ORDER)?.amount ?? Number.MAX_VALUE

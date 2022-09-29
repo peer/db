@@ -4,6 +4,7 @@ import type { PeerDBDocument } from "@/types"
 import { ref, computed, watch, readonly } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import RouterLink from "@/components/RouterLink.vue"
 import InputText from "@/components/InputText.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -13,6 +14,8 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
 import { getDocument, useSearchState } from "@/search"
 import { globalProgress } from "@/api"
+import { getBestClaimOfType } from "@/utils"
+import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps({
   id: {
@@ -41,8 +44,6 @@ watch(
     immediate: true,
   },
 )
-
-const hasLoaded = computed(() => doc.value?.name?.en)
 
 const { results, query } = useSearchState(async (query) => {
   // Something was not OK, so we redirect to the URL without "s".
@@ -85,6 +86,19 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
 async function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
+
+const hasLoaded = computed(() => doc.value?.name?.en)
+const article = computed(() => getBestClaimOfType(doc.value?.active, "text", ARTICLE))
+const file = computed(() => {
+  const f = {
+    url: getBestClaimOfType(doc.value?.active, "ref", FILE_URL)?.iri,
+    mediaType: getBestClaimOfType(doc.value?.active, "string", MEDIA_TYPE)?.string,
+  }
+  if (f.url && f.mediaType) {
+    return f
+  }
+  return null
+})
 </script>
 
 <template>
@@ -117,18 +131,56 @@ async function afterClick() {
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
       <div v-if="hasLoaded">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name?.en }}</h1>
-        <table class="w-full table-auto border-collapse">
-          <thead>
-            <tr>
-              <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
-              <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <PropertiesRows :properties="doc.active" />
-          </tbody>
-        </table>
+        <!--
+          TODO: Consider using manual mode and draw ring only around the focused Tab component.
+          See: https://github.com/tailwindlabs/headlessui/issues/1881
+        -->
+        <TabGroup>
+          <TabList
+            class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1"
+          >
+            <Tab
+              v-if="article"
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Article</Tab
+            >
+            <Tab
+              v-if="file"
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl-md ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >File</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >All properties</Tab
+            >
+          </TabList>
+          <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name?.en }}</h1>
+          <TabPanels>
+            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+            <TabPanel v-if="article" tabindex="-1">
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div class="prose prose-slate max-w-none" v-html="article.html.en"></div>
+            </TabPanel>
+            <TabPanel v-if="file" tabindex="-1">
+              <template v-if="file.mediaType?.startsWith('image/')">
+                <a :href="file.url"><img :src="file.url" /></a>
+              </template>
+            </TabPanel>
+            <TabPanel tabindex="-1">
+              <table class="w-full table-auto border-collapse">
+                <thead>
+                  <tr>
+                    <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
+                    <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <PropertiesRows :properties="doc.active" />
+                </tbody>
+              </table>
+            </TabPanel>
+          </TabPanels>
+        </TabGroup>
       </div>
       <div v-else class="flex animate-pulse">
         <div class="flex-1 space-y-4">
