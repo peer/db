@@ -5,7 +5,8 @@
 @import "tailwindcss/variants";
 
 @layer components {
-  .link, .prose a {
+  .link,
+  .prose a {
     @apply rounded-sm font-medium text-primary-600 outline-none drop-shadow-sm;
 
     text-decoration: unset;
@@ -16,7 +17,7 @@
   }
 
   a > img {
-    @apply drop-shadow-sm rounded-sm;
+    @apply rounded-sm drop-shadow-sm;
   }
 
   .prose img {
@@ -24,19 +25,24 @@
     margin: unset;
   }
 
-  .link:focus, .prose a:focus, a:focus > img {
+  .link:focus,
+  .prose a:focus,
+  a:focus > img {
     @apply ring-2 ring-primary-500 ring-offset-1;
   }
 
-  .link:visited, .prose a:visited {
+  .link:visited,
+  .prose a:visited {
     @apply text-primary-500;
   }
 
-  .link:hover, .prose a:hover {
+  .link:hover,
+  .prose a:hover {
     @apply text-primary-700 underline underline-offset-2;
   }
 
-  .link:active, .prose a:active {
+  .link:active,
+  .prose a:active {
     @apply text-primary-500;
   }
 
@@ -118,11 +124,13 @@
   }
 
   .prose figure {
-    @apply float-right m-2 clear-right table w-auto;
+    @apply float-right clear-right m-2 table w-auto;
   }
 
-  .prose .thumb, .prose .sidebar, .prose .barbox {
-    @apply float-right m-2 clear-right w-auto;
+  .prose .thumb,
+  .prose .sidebar,
+  .prose .barbox {
+    @apply float-right clear-right m-2 w-auto;
   }
 
   .prose figure figcaption {
@@ -135,15 +143,21 @@
     @apply float-none clear-none mx-0 my-5;
   }
 
-  .prose ul ol, .prose ol ol, .prose ol ul, .prose ul ul, .prose li {
+  .prose ul ol,
+  .prose ol ol,
+  .prose ol ul,
+  .prose ul ul,
+  .prose li {
     @apply my-0;
   }
 
-  .prose td > ol, .prose td > ul {
+  .prose td > ol,
+  .prose td > ul {
     @apply my-0;
   }
 
-  .prose ul + ul, .prose ol + ol {
+  .prose ul + ul,
+  .prose ol + ol {
     @apply mt-5;
   }
 
@@ -154,37 +168,38 @@
 
 /* stylelint-disable-next-line selector-class-pattern */
 .noUi-connect {
-  @apply bg-secondary-400 h-2 cursor-pointer;
+  @apply h-2 cursor-pointer bg-secondary-400;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 [disabled] .noUi-connect {
-  @apply bg-secondary-100
+  @apply bg-secondary-100;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 .noUi-connects {
-  @apply rounded-none cursor-pointer;
+  @apply cursor-pointer rounded-none;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
-[disabled] .noUi-connects, [disabled] .noUi-connect {
-  @apply cursor-not-allowed
+[disabled] .noUi-connects,
+[disabled] .noUi-connect {
+  @apply cursor-not-allowed;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 .noUi-horizontal {
-  @apply bg-slate-200 h-2 border-none rounded-none shadow-none my-2;
+  @apply my-2 h-2 rounded-none border-none bg-slate-200 shadow-none;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 [disabled].noUi-horizontal {
-  @apply bg-gray-100
+  @apply bg-gray-100;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 .noUi-horizontal .noUi-handle {
-  @apply cursor-pointer border-none rounded-full h-6 w-6 -top-2 -right-3 shadow outline-none focus:ring-2 focus:ring-offset-1 bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500;
+  @apply -top-2 -right-3 h-6 w-6 cursor-pointer rounded-full border-none bg-primary-600 shadow outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
@@ -193,11 +208,12 @@
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
-.noUi-handle::before, .noUi-handle::after {
+.noUi-handle::before,
+.noUi-handle::after {
   @apply hidden;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
 [disabled] .noUi-handle {
-  @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300
+  @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300;
 }
