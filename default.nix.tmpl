@@ -1,0 +1,49 @@
+{ lib, pkgs, buildGo118Module, fetchFromGitLab }:
+
+let
+  nodeDependencies = (pkgs.callPackage ./node.nix {}).nodeDependencies;
+in
+
+with pkgs;
+
+buildGo118Module rec {
+  pname = "peerdb-search";
+  version = "__VERSION__";
+  revision = "__REVISION__";
+
+  src = fetchFromGitLab {
+    owner = "peerdb";
+    repo = "search";
+    rev = revision;
+    sha256 = lib.fakeSha256;
+  };
+
+  vendorSha256 = lib.fakeSha256;
+
+  meta = with lib; {
+    description = "Search for semantic and full-text data";
+    homepage    = "https://gitlab.com/peerdb/search";
+    license     = licenses.asl20;
+    maintainers = [ "Mitar <mitar.git@tnode.com>" ];
+  };
+
+  subPackages = ["cmd/search"];
+
+  nativeBuildInputs = [stdenv nodejs musl];
+
+  CGO_ENABLED = 0;
+
+  ldflags = [
+    "-linkmode external"
+    "-extldflags '-static -L${musl}/lib'"
+    "-X gitlab.com/peerdb/search/internal/cli.Version=${version}"
+    "-X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=nix"
+    "-X gitlab.com/peerdb/search/internal/cli.Revision=${revision}"
+  ];
+
+  preBuild = ''
+    ln -s ${nodeDependencies}/lib/node_modules ./node_modules
+    export PATH="${nodeDependencies}/bin:$PATH"
+    make dist
+  '';
+}
