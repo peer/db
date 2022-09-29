@@ -21,7 +21,7 @@ test_go:
   image: golang:1.18-alpine3.14
 
   before_script:
-    - apk --update add make gcc musl-dev git-lfs
+    - apk --update add make gcc musl-dev git git-lfs
     - git lfs fetch
     - (cd /go; go install gotest.tools/gotestsum@v1.8.2)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.2.0)
@@ -50,7 +50,8 @@ lint_go:
   image: golang:1.18-alpine3.14
 
   before_script:
-    - apk --update add make gcc musl-dev
+    - apk --update add make gcc musl-dev git git-lfs
+    - git lfs fetch
     - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.46.2
 
   script:
@@ -69,6 +70,10 @@ lint_node:
 
   image: node:16.17-alpine3.14
 
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
+
   script:
     - npm ci --audit=false --audit=false
     - npm run lint
@@ -78,6 +83,10 @@ lint_vue:
 
   image: node:16.17-alpine3.14
 
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
+
   script:
     - npm ci --audit=false --audit=false
     - npm run lint-vue
@@ -86,6 +95,10 @@ lint_style:
   stage: test
 
   image: node:16.17-alpine3.14
+
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false --audit=false
@@ -105,13 +118,28 @@ fmt_go:
   script:
     - make fmt-ci
 
+fmt_node:
+  stage: test
+
+  image: node:16.17-alpine3.14
+
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
+
+  script:
+    - npm ci --audit=false --audit=false
+    - npm run fmt
+    - git diff --exit-code --color=always
+
 lint_docs:
   stage: test
 
   image: node:16-alpine3.14
 
   before_script:
-    - apk --update add make
+    - apk --update add make git git-lfs
+    - git lfs fetch
 
   script:
     - make lint-docs
@@ -134,6 +162,10 @@ audit_node:
   stage: test
 
   image: node:16.17-alpine3.14
+
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   # Signatures audit is done during install in Dockerfile.
   script:
@@ -164,6 +196,8 @@ docker:
   before_script:
     - docker info
     - echo "$CI_JOB_TOKEN" | docker login --username gitlab-ci-token --password-stdin "$CI_REGISTRY"
+    - apk --update add git-lfs
+    - git lfs fetch
 
   script:
     - export BUILD_TIMESTAMP="$(date -u +%FT%TZ)"
