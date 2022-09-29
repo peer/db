@@ -18,7 +18,7 @@ As a demonstration we provide a search service for Wikipedia articles and Wikida
 
 ### Backend
 
-Backend is implemented in Go (requires 1.18 or newer) and provides a HTTP2 API. It requires an ElasticSearch instance.
+Backend is implemented in Go (requires 1.19 or newer) and provides a HTTP2 API. It requires an ElasticSearch instance.
 
 To run backend locally first start an an ElasticSearch instance:
 
@@ -52,8 +52,8 @@ requires a TLS certificate because it uses HTTP2.
 
 ### Frontend
 
-Frontend is implemented in TypeScript and Vue. To install all dependencies and run frontend
-for development:
+Frontend is implemented in TypeScript and Vue. Node 16 or newer is required.
+To install all dependencies and run frontend for development:
 
 ```sh
 npm install
