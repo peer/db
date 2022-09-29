@@ -10,7 +10,8 @@
     "lint-vue": "vue-tsc --noEmit",
     "fmt": "prettier src --write",
     "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest --coverage",
+    "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.2",

@@ -44,6 +44,34 @@ test_go:
 
   coverage: '/coverage: \d+\.\d+% of statements/'
 
+test_node:
+  stage: test
+
+  image: node:16.17-alpine3.15
+
+  before_script:
+    - apk --update add git git-lfs
+    - git lfs fetch
+
+  script:
+    - npm ci --audit=false --audit=false
+    - npm run test-ci
+
+  artifacts:
+    when: always
+    reports:
+      junit: tests.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    exclude:
+      - coverage/tmp/
+    expire_in: never
+
+  coverage: '/^All files\s+\|\s+\S+\s+\|\s+\S+\s+\|\s+\S+\s+\|\s+\S+\s+\|/'
+
 lint_go:
   stage: test
 

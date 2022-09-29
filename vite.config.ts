@@ -23,4 +23,10 @@ export default defineConfig({
   build: {
     target: ["es2020"],
   },
+  test: {
+    coverage: {
+      reporter: ["text", "cobertura", "html"],
+      all: true,
+    },
+  },
 })
