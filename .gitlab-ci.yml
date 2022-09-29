@@ -274,7 +274,7 @@ nix:
   image: nixos/nix:2.11.1
 
   before_script:
-    - nix-env -f '<nixpkgs>' -iA nodePackages.node2nix git-lfs
+    - nix-env -f '<nixpkgs>' -iA nodePackages.node2nix git-lfs gnused
     - git lfs fetch
 
   script:
