@@ -15,7 +15,7 @@ variables:
   DOCKER_BUILDKIT: "1"
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic"
 
-test:
+test-go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -45,7 +45,7 @@ test:
   # This has to be set in project's settings (CI/CD -> General pipelines section) as well.
   coverage: '/coverage: \d+\.\d+% of statements/'
 
-lint:
+lint-go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -65,7 +65,7 @@ lint:
       codequality: codeclimate.json
     expire_in: never
 
-fmt:
+fmt-go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -82,7 +82,7 @@ fmt:
 lint_docs:
   stage: test
 
-  image: node:17-alpine3.14
+  image: node:16-alpine3.14
 
   before_script:
     - apk --update add make
@@ -90,7 +90,8 @@ lint_docs:
   script:
     - make lint-docs
 
-audit:
+
+audit-go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -102,6 +103,15 @@ audit:
 
   script:
     - make audit
+
+audit-node:
+  stage: test
+
+  image: node:16.17-alpine3.14
+
+  # Signatures audit is done during install in Dockerfile.
+  script:
+    - npm audit
 
 commits:
   stage: test
