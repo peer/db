@@ -166,7 +166,9 @@
   }
 }
 
-/* stylelint-disable selector-class-pattern
+/* stylelint-disable selector-class-pattern */
+
+/*
 Fixing the style would need https://github.com/vitejs/vite/pull/4679 so that we could run
 https://github.com/gridonic/postcss-replace to replace variable in
 https://github.com/leongersen/noUiSlider/blob/master/src/nouislider.core.less without having
