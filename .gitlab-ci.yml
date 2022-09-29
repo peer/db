@@ -15,7 +15,7 @@ variables:
   DOCKER_BUILDKIT: "1"
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic"
 
-test-go:
+test_go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -42,10 +42,9 @@ test-go:
       - coverage.html
     expire_in: never
 
-  # This has to be set in project's settings (CI/CD -> General pipelines section) as well.
   coverage: '/coverage: \d+\.\d+% of statements/'
 
-lint-go:
+lint_go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -65,7 +64,34 @@ lint-go:
       codequality: codeclimate.json
     expire_in: never
 
-fmt-go:
+lint_node:
+  stage: test
+
+  image: node:16.17-alpine3.14
+
+  script:
+    - npm ci --audit=false --audit=false
+    - npm run lint
+
+lint_vue:
+  stage: test
+
+  image: node:16.17-alpine3.14
+
+  script:
+    - npm ci --audit=false --audit=false
+    - npm run lint-vue
+
+lint_style:
+  stage: test
+
+  image: node:16.17-alpine3.14
+
+  script:
+    - npm ci --audit=false --audit=false
+    - npm run lint-style
+
+fmt_go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -91,7 +117,7 @@ lint_docs:
     - make lint-docs
 
 
-audit-go:
+audit_go:
   stage: test
 
   image: golang:1.18-alpine3.14
@@ -104,7 +130,7 @@ audit-go:
   script:
     - make audit
 
-audit-node:
+audit_node:
   stage: test
 
   image: node:16.17-alpine3.14
