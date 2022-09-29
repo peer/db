@@ -18,7 +18,7 @@ variables:
 test_go:
   stage: test
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   before_script:
     - apk --update add make gcc musl-dev git git-lfs
@@ -47,7 +47,7 @@ test_go:
 lint_go:
   stage: test
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   before_script:
     - apk --update add make gcc musl-dev git git-lfs
@@ -68,7 +68,7 @@ lint_go:
 lint_node:
   stage: test
 
-  image: node:16.17-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add git git-lfs
@@ -81,7 +81,7 @@ lint_node:
 lint_vue:
   stage: test
 
-  image: node:16.17-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add git git-lfs
@@ -94,7 +94,7 @@ lint_vue:
 lint_style:
   stage: test
 
-  image: node:16.17-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add git git-lfs
@@ -107,7 +107,7 @@ lint_style:
 fmt_go:
   stage: test
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   before_script:
     - apk --update add make git gcc musl-dev grep git-lfs
@@ -121,7 +121,7 @@ fmt_go:
 fmt_node:
   stage: test
 
-  image: node:16.17-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add git git-lfs
@@ -135,7 +135,7 @@ fmt_node:
 lint_docs:
   stage: test
 
-  image: node:16-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add make git git-lfs
@@ -148,7 +148,7 @@ lint_docs:
 audit_go:
   stage: test
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   before_script:
     - apk --update add make git gcc musl-dev git-lfs
@@ -161,7 +161,7 @@ audit_go:
 audit_node:
   stage: test
 
-  image: node:16.17-alpine3.14
+  image: node:16.17-alpine3.15
 
   before_script:
     - apk --update add git git-lfs
@@ -174,7 +174,7 @@ audit_node:
 commits:
   stage: test
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   variables:
     GIT_DEPTH: "0"
@@ -321,7 +321,7 @@ upload_binaries:
 publish:
   stage: deploy
 
-  image: golang:1.18-alpine3.14
+  image: golang:1.19.1-alpine3.15
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/search@$CI_COMMIT_REF_NAME"

@@ -1,7 +1,7 @@
 # This Dockerfile requires DOCKER_BUILDKIT=1 to be build.
 # We do not use syntax header so that we do not have to wait
 # for the Dockerfile frontend image to be pulled.
-FROM node:16.17-alpine3.14 as node-build
+FROM node:16.17-alpine3.15 as node-build
 
 RUN apk --update add make
 COPY . /src/peerdb-search
@@ -11,7 +11,7 @@ RUN \
   npm audit signatures && \
   make dist
 
-FROM golang:1.18-alpine3.14 AS go-build
+FROM golang:1.19.1-alpine3.15 AS go-build
 
 RUN apk --update add make git gcc musl-dev ca-certificates tzdata && \
   adduser -D -H -g "" -s /sbin/nologin -u 1000 user
