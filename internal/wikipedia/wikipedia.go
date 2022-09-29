@@ -30,12 +30,10 @@ func ConvertWikipediaImage(
 }
 
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
-// TODO: Investigate how to make use of additional entities metadata.
-//       See: https://www.mediawiki.org/wiki/Topic:Wotwu75akwx2wnsb
+// TODO: Investigate how to make use of additional entities metadata. See: https://www.mediawiki.org/wiki/Topic:Wotwu75akwx2wnsb
 // TODO: Make internal links to other articles work in HTML (link to PeerDB documents instead).
 // TODO: Remove links to other articles which do not exist, if there are any.
-// TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that.
-//       See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
+// TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that. See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
 func ConvertWikipediaArticle(id, html string, document *search.Document) errors.E {
