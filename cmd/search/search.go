@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"gitlab.com/tozd/go/errors"
@@ -42,10 +43,11 @@ func listen(config *Config) errors.E {
 
 	// TODO: Implement graceful shutdown.
 	server := &http.Server{
-		Addr:        listenAddr,
-		Handler:     handler,
-		ErrorLog:    log.New(config.Log, "", 0),
-		ConnContext: s.ConnContext,
+		Addr:              listenAddr,
+		Handler:           handler,
+		ErrorLog:          log.New(config.Log, "", 0),
+		ConnContext:       s.ConnContext,
+		ReadHeaderTimeout: time.Minute,
 		TLSConfig: &tls.Config{
 			MinVersion:       tls.VersionTLS12,
 			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
