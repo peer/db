@@ -280,7 +280,7 @@ nix:
   script:
     - node2nix --lock package-lock.json --nodejs-16 --composition node.nix --development
     - ./nix-update.sh
-    - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }/$f"'
+    - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }'
     - tar czf nix.tgz package.json *.nix
 
   artifacts:
