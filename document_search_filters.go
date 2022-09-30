@@ -26,7 +26,7 @@ func (s *Service) populateProperties(ctx context.Context) errors.E {
 	query := elastic.NewNestedQuery("active.rel", boolQuery)
 
 	total, err := s.ESClient.Count(s.Index).Query(query).Do(ctx)
-	if err != nil {
+	if err != nil && !elastic.IsNotFound(err) {
 		return errors.WithStack(err)
 	}
 
