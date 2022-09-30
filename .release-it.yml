@@ -22,8 +22,7 @@ plugins:
       unreleasedUrl: "{repositoryUrl}/-/compare/{tagName}...{head}"
       versionUrl: "{repositoryUrl}/-/compare/{previousTag}...{tagName}"
       firstVersionUrl: "{repositoryUrl}/-/tags/{tagName}"
-npm:
-  publish: true
+npm: false
 github:
   release: false
 gitlab:
