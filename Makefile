@@ -10,7 +10,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build search wikipedia mapping build-static test test-ci lint lint-ci fmt fmt-ci clean lint-docs audit serve watch
+.PHONY: build search wikipedia mapping build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit serve watch
 
 build: search wikipedia mapping
 
@@ -53,7 +53,9 @@ fmt-ci: fmt
 	git diff --exit-code --color=always
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml dist search wikipedia mapping
+	rm -rf coverage.* codeclimate.json tests.xml *.nix coverage dist search wikipedia mapping
+release:
+	npx --yes --package 'release-it@14.14.2' --package '@release-it/keep-a-changelog@2.5.0' -- release-it
 
 lint-docs:
 	npx --yes --package 'markdownlint-cli@~0.30.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ '**/*.md'
