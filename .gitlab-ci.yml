@@ -280,12 +280,14 @@ nix:
   script:
     - node2nix --lock package-lock.json --nodejs-16 --composition node.nix --development
     - ./nix-update.sh
-    - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }'
+    - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }/$f"'
+    - tar czf nix.tgz package.json *.nix
 
   artifacts:
+    expose_as: nix
     name: nix
     paths:
-      - "*.nix"
+      - nix.tgz
     expire_in: never
 
   # We want to run it as soon as possible and do not wait for test stage to finish.
