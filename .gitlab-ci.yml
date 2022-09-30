@@ -283,7 +283,10 @@ nix:
     - mkdir nix
     - cp package.json *.nix nix
     - tar czf nix.tgz nix
-    - nix-build -E 'with import <nixpkgs> { }; callPackage ./default.nix { }'
+    - mkdir /tmp/test
+    - cp nix.tgz /tmp/test
+    - cd /tmp/test
+    - nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball file://$(pwd)/nix.tgz)) { }"
 
   artifacts:
     expose_as: nix
