@@ -435,7 +435,8 @@ sync_config:
     - /gitlab-config set
 
   rules:
-    - if: '$GITLAB_API_TOKEN && $SOPS_AGE_KEY_FILE && $CI_COMMIT_BRANCH == "main"'
+    # TODO: Fix. Temporary disabled until MAC verification issues are resolved.
+    - if: 'false && $GITLAB_API_TOKEN && $SOPS_AGE_KEY_FILE && $CI_COMMIT_BRANCH == "main"'
       changes:
         - .gitlab-conf.yml
 
