@@ -382,8 +382,7 @@ upload_nix:
   image: curlimages/curl:7.80.0
 
   script:
-    - cd nix
-    - 'for f in *; do curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$f" "$PACKAGE_REGISTRY_URL/nix/${CI_COMMIT_REF_NAME#v}/$f"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file nix.tgz "$PACKAGE_REGISTRY_URL/nix/${CI_COMMIT_REF_NAME#v}/nix.tgz"'
 
   rules:
     # Only on protected tags. Protected tags start with "v".
