@@ -49,26 +49,61 @@ const previewFiles = computed(() => {
     ...[...(props.doc.active?.file || [])].flatMap((c) => c.preview ?? []),
   ]
 })
+const rowsCount = computed(() => {
+  let r = 1
+  if (tags.value.length) {
+    r++
+  }
+  if (description.value) {
+    r++
+  }
+  return r
+})
+// We have to use complete class names for Tailwind to detect used classes and generating the
+// corresponding CSS and do not do string interpolation or concatenation of partial class names.
+// See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
+const gridRows = computed(() => {
+  switch (rowsCount.value) {
+    case 1:
+      return "sm:grid-rows-[100%]"
+    case 2:
+      return "sm:grid-rows-[auto_100%]"
+    case 3:
+      return "sm:grid-rows-[auto_auto_100%]"
+    default:
+      throw new Error(`unexpected count of rows: ${rowsCount.value}`)
+  }
+})
+const rowSpan = computed(() => {
+  switch (rowsCount.value) {
+    case 1:
+      return "sm:row-span-1"
+    case 2:
+      return "sm:row-span-2"
+    case 3:
+      return "sm:row-span-3"
+    default:
+      throw new Error(`unexpected count of rows: ${rowsCount.value}`)
+  }
+})
 </script>
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded" class="flex flex-row gap-x-4">
-      <div v-if="previewFiles.length" class="w-[256px] flex-none">
+    <div v-if="hasLoaded" class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
+      <h2 class="text-xl leading-none">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
+      </h2>
+      <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap items-start gap-1 text-sm">
+        <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow">{{ tag }}</li>
+      </ul>
+      <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
         <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
           ><img :src="previewFiles[0]" class="mx-auto bg-white"
         /></RouterLink>
       </div>
-      <div class="flex-1">
-        <h2 class="text-xl">
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
-        </h2>
-        <ul v-if="tags.length" class="flex flex-row flex-wrap items-start gap-1 text-sm">
-          <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow">{{ tag }}</li>
-        </ul>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <p v-if="description" class="prose prose-slate mt-4 max-w-none" v-html="description"></p>
-      </div>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
     </div>
     <div v-else class="flex animate-pulse">
       <div class="flex-1 space-y-4">

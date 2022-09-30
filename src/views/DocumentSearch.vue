@@ -224,7 +224,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
         </div>
       </template>
     </div>
-    <div class="flex flex-auto basis-1/4 flex-col gap-y-1 sm:gap-y-4">
+    <div class="hidden flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4">
       <div v-if="filtersTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No filters available.</div>
