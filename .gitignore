@@ -36,3 +36,4 @@ codeclimate.json
 /wikipedia
 /mapping
 *.pem
+/keys.txt
