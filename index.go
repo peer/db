@@ -35,6 +35,10 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 		// We use debug level here because logging at info level is too noisy.
 		elastic.SetInfoLog(loggerAdapter{logger, zerolog.DebugLevel}),
 		elastic.SetTraceLog(loggerAdapter{logger, zerolog.TraceLevel}),
+		// TODO: Should this be a CLI parameter?
+		// We disable sniffing and healthcheck so that Docker setup is easier.
+		elastic.SetSniff(false),
+		elastic.SetHealthcheck(false),
 	)
 	return esClient, errors.WithStack(err)
 }
