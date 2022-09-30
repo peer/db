@@ -55,7 +55,7 @@ fmt-ci: fmt
 clean:
 	rm -rf coverage.* codeclimate.json tests.xml *.nix coverage dist search wikipedia mapping
 release:
-	npx --yes --package 'release-it@14.14.2' --package '@release-it/keep-a-changelog@2.5.0' -- release-it
+	npx --yes --package 'release-it@15.4.2' --package '@release-it/keep-a-changelog@3.1.0' -- release-it
 
 lint-docs:
 	npx --yes --package 'markdownlint-cli@~0.30.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ '**/*.md'
