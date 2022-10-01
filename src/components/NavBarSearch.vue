@@ -7,12 +7,12 @@ import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
 
-const props = defineProps({
-  filtersEnabled: {
-    type: Boolean,
-    required: true,
-  },
-})
+const props = withDefaults(
+  defineProps<{
+    filtersEnabled?: boolean | null
+  }>(),
+  { filtersEnabled: null },
+)
 const emit = defineEmits<{
   (e: "update:filtersEnabled", value: boolean): void
 }>()
@@ -40,7 +40,7 @@ function onFilters() {
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>
-    <Button class="px-3.5 sm:hidden" type="button" @click="onFilters">
+    <Button v-if="filtersEnabled != null" class="px-3.5 sm:hidden" type="button" @click="onFilters">
       <FunnelIcon class="h-5 w-5" alt="Filters" />
     </Button>
   </form>
