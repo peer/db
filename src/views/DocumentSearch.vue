@@ -173,16 +173,18 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
     updateFiltersProgress.value -= 1
   }
 }
+
+const filtersEnabled = ref(false)
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar :progress="globalProgress">
-      <NavBarSearch />
+      <NavBarSearch v-model:filtersEnabled="filtersEnabled" />
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
-    <div class="flex flex-auto basis-3/4 flex-col gap-y-1 sm:gap-y-4">
+    <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <div v-if="searchTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No results found.</div>
@@ -224,7 +226,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
         </div>
       </template>
     </div>
-    <div class="hidden flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4">
+    <div class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'">
       <div v-if="filtersTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No filters available.</div>

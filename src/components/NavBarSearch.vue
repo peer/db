@@ -2,9 +2,20 @@
 import { ref } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
+import { FunnelIcon } from "@heroicons/vue/20/solid"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
+
+const props = defineProps({
+  filtersEnabled: {
+    type: Boolean,
+    required: true,
+  },
+})
+const emit = defineEmits<{
+  (e: "update:filtersEnabled", value: boolean): void
+}>()
 
 const route = useRoute()
 
@@ -15,6 +26,10 @@ const progress = ref(0)
 async function onSubmit() {
   await postSearch(router, form.value, progress)
 }
+
+function onFilters() {
+  emit("update:filtersEnabled", !props.filtersEnabled)
+}
 </script>
 
 <template>
@@ -24,6 +39,9 @@ async function onSubmit() {
     <Button :progress="progress" type="submit" class="px-3.5">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
+    </Button>
+    <Button class="px-3.5 sm:hidden" type="button" @click="onFilters">
+      <FunnelIcon class="h-5 w-5" alt="Filters" />
     </Button>
   </form>
 </template>
