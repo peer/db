@@ -507,13 +507,13 @@ func convertImage(
 	if err != nil {
 		return nil, err
 	}
-	err = document.Add(&search.EnumerationClaim{
+	err = document.Add(&search.StringClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 			Confidence: HighConfidence,
 		},
-		Prop: search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
-		Enum: []string{strings.ToLower(image.MediaType)},
+		Prop:   search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+		String: strings.ToLower(image.MediaType),
 	})
 	if err != nil {
 		return nil, err

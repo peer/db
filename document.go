@@ -41,7 +41,6 @@ type visitor interface {
 	VisitString(claim *StringClaim) (VisitResult, errors.E)
 	VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 	VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E)
-	VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E)
 	VisitRelation(claim *RelationClaim) (VisitResult, errors.E)
 	VisitFile(claim *FileClaim) (VisitResult, errors.E)
 	VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E)
@@ -262,33 +261,6 @@ func (c *ClaimTypes) Visit(visitor visitor) errors.E {
 
 	stopping = false
 	k = 0
-	for i := range c.Enumeration {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitEnumeration(&c.Enumeration[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Enumeration[k] = c.Enumeration[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Enumeration) != k {
-		c.Enumeration = c.Enumeration[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
 	for i := range c.Relation {
 		var keep VisitResult
 		if !stopping {
@@ -464,7 +436,6 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.String)
 	s += len(c.Amount)
 	s += len(c.AmountRange)
-	s += len(c.Enumeration)
 	s += len(c.Relation)
 	s += len(c.File)
 	s += len(c.NoValue)
@@ -521,14 +492,6 @@ func (v *getByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 }
 
 func (v *getByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-func (v *getByIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -638,14 +601,6 @@ func (v *getByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitRes
 	return Keep, nil
 }
 
-func (v *getByPropIDVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
 func (v *getByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -724,11 +679,6 @@ func (v *allClaimsVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.
 }
 
 func (v *allClaimsVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-func (v *allClaimsVisitor) VisitEnumeration(claim *EnumerationClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
@@ -833,8 +783,6 @@ func (d *Document) Add(claim Claim) errors.E {
 		claimTypes.Amount = append(claimTypes.Amount, *c)
 	case *AmountRangeClaim:
 		claimTypes.AmountRange = append(claimTypes.AmountRange, *c)
-	case *EnumerationClaim:
-		claimTypes.Enumeration = append(claimTypes.Enumeration, *c)
 	case *RelationClaim:
 		claimTypes.Relation = append(claimTypes.Relation, *c)
 	case *FileClaim:
@@ -957,7 +905,6 @@ type ClaimTypes struct {
 	String       StringClaims       `json:"string,omitempty"`
 	Amount       AmountClaims       `json:"amount,omitempty"`
 	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
-	Enumeration  EnumerationClaims  `json:"enum,omitempty"`
 	Relation     RelationClaims     `json:"rel,omitempty"`
 	File         FileClaims         `json:"file,omitempty"`
 	NoValue      NoValueClaims      `json:"none,omitempty"`
@@ -973,7 +920,6 @@ type (
 	StringClaims       = []StringClaim
 	AmountClaims       = []AmountClaim
 	AmountRangeClaims  = []AmountRangeClaim
-	EnumerationClaims  = []EnumerationClaim
 	RelationClaims     = []RelationClaim
 	FileClaims         = []FileClaim
 	NoValueClaims      = []NoValueClaim
@@ -1016,8 +962,6 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		cc.Meta.Amount = append(cc.Meta.Amount, *c)
 	case *AmountRangeClaim:
 		cc.Meta.AmountRange = append(cc.Meta.AmountRange, *c)
-	case *EnumerationClaim:
-		cc.Meta.Enumeration = append(cc.Meta.Enumeration, *c)
 	case *RelationClaim:
 		cc.Meta.Relation = append(cc.Meta.Relation, *c)
 	case *FileClaim:
@@ -1280,13 +1224,6 @@ type AmountRangeClaim struct {
 	UncertaintyLower *float64          `json:"uncertaintyLower,omitempty"`
 	UncertaintyUpper *float64          `json:"uncertaintyUpper,omitempty"`
 	Unit             AmountUnit        `json:"unit"`
-}
-
-type EnumerationClaim struct {
-	CoreClaim
-
-	Prop DocumentReference `json:"prop"`
-	Enum []string          `json:"enum"`
 }
 
 type RelationClaim struct {

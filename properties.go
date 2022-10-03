@@ -21,7 +21,6 @@ var (
 		"string",
 		"amount",
 		"amount range",
-		"enumeration",
 		"relation",
 		"file",
 		"time",
@@ -228,7 +227,7 @@ var (
 		{
 			"Mediawiki media type",
 			`See possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase.`,
-			[]string{`"enumeration" claim type`},
+			[]string{`"string" claim type`},
 		},
 		{
 			"uses English Wikipedia template",

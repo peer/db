@@ -336,25 +336,6 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 	return search.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitEnumeration(claim *search.EnumerationClaim) (search.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return search.Keep, err
-	}
-
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
-	}
-
-	if !reflect.DeepEqual(&claim.Prop, ref) {
-		claim.Prop = *ref
-		v.Changed++
-	}
-
-	return search.Keep, nil
-}
-
 func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationClaim) (search.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {

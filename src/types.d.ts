@@ -91,11 +91,6 @@ type AmountRangeClaim = CoreClaim & {
   unit: AmountUnit
 }
 
-type EnumerationClaim = CoreClaim & {
-  prop: DocumentReference
-  enum: string[]
-}
-
 type RelationClaim = CoreClaim & {
   prop: DocumentReference
   to: DocumentReference
@@ -140,7 +135,6 @@ type ClaimTypes = {
   string?: StringClaim[]
   amount?: AmountClaim[]
   amountRange?: AmountRangeClaim[]
-  enum?: EnumerationClaim[]
   rel?: RelationClaim[]
   file?: FileClaim[]
   none?: NoValueClaim[]
@@ -156,7 +150,6 @@ type Claim =
   | StringClaim
   | AmountClaim
   | AmountRangeClaim
-  | EnumerationClaim
   | RelationClaim
   | FileClaim
   | NoValueClaim
