@@ -63,9 +63,6 @@
         "amountRange": {
           "$ref": "#/$defs/amountRangeClaims"
         },
-        "enum": {
-          "$ref": "#/$defs/enumerationClaims"
-        },
         "rel": {
           "$ref": "#/$defs/relationClaims"
         },
@@ -180,12 +177,6 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/amountRangeClaim"
-      }
-    },
-    "enumerationClaims": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/enumerationClaim"
       }
     },
     "timeClaims": {
@@ -448,31 +439,6 @@
         "lower",
         "upper",
         "unit"
-      ],
-      "unevaluatedProperties": false
-    },
-    "enumerationClaim": {
-      "description": "Used with properties which define one or more possible constant values to be used with them.",
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/coreClaimProperties"
-        }
-      ],
-      "properties": {
-        "prop": {
-          "$ref": "#/$defs/documentReference"
-        },
-        "enum": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "prop",
-        "enum"
       ],
       "unevaluatedProperties": false
     },
