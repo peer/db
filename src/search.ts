@@ -34,6 +34,8 @@ const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
 const FILTERS_INITIAL_LIMIT = 10
 const FILTERS_INCREASE = 10
+// If the last increase would be equal or less than this number, just skip to the end.
+const SKIP_TO_END = 2
 
 function queryToData(route: RouteLocationNormalizedLoaded, data: FormData | URLSearchParams) {
   if (Array.isArray(route.query.s)) {
@@ -453,6 +455,10 @@ function useSearchResults(
         _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
       }
       limit = Math.min(initialLimit, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
       _hasMore.value = limit < results.value.length
       updateDocs(router, _docs, limit, results.value, priority, controller.signal, progress)
     },
@@ -473,6 +479,10 @@ function useSearchResults(
     hasMore,
     loadMore: () => {
       limit = Math.min(limit + increase, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
       _hasMore.value = limit < results.value.length
       updateDocs(router, _docs, limit, results.value, priority, controller.signal, progress)
     },
@@ -768,6 +778,10 @@ export function useStringFilterValues(
       _results.value = data.results as StringValuesResult[]
       _total.value = data.total
       limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
       _hasMore.value = limit < results.value.length
       _limitedResults.value = results.value.slice(0, limit)
     },
@@ -783,6 +797,10 @@ export function useStringFilterValues(
     hasMore,
     loadMore: () => {
       limit = Math.min(limit + FILTERS_INCREASE, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
       _hasMore.value = limit < results.value.length
       _limitedResults.value = results.value.slice(0, limit)
     },
