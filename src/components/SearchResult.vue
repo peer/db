@@ -35,7 +35,7 @@ const tags = computed(() => {
     ...getClaimsOfType(props.doc.active, "rel", INSTANCE_OF).map((c) => c.to.name.en),
     ...getClaimsOfType(props.doc.active, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
     ...getClaimsOfType(props.doc.active, "rel", LABEL).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.active, "enum", MEDIAWIKI_MEDIA_TYPE).flatMap((c) => c.enum),
+    ...getClaimsOfType(props.doc.active, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
     ...getClaimsOfType(props.doc.active, "string", MEDIA_TYPE).map((c) => c.string),
     ...getClaimsOfType(props.doc.active, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
   ]

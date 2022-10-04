@@ -108,21 +108,6 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.enum" :key="claim._id">
-    <tr>
-      <td
-        class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-      >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
-      </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.enum.join(", ") }}
-      </td>
-    </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
-  </template>
   <template v-for="claim in properties.rel" :key="claim._id">
     <tr>
       <td
