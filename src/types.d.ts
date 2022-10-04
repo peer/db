@@ -1,14 +1,16 @@
-export type AmountSearchResult = {
-  _id: string
-  _count: number
-  _type: "amount"
-  _unit: AmountUnit
-}
+import type { NONE } from "@/symbols"
 
 export type RelSearchResult = {
   _id: string
   _count: number
   _type: "rel"
+}
+
+export type AmountSearchResult = {
+  _id: string
+  _count: number
+  _type: "amount"
+  _unit: AmountUnit
 }
 
 export type TimeSearchResult = {
@@ -17,15 +19,31 @@ export type TimeSearchResult = {
   _type: "time"
 }
 
-export type SearchResult = AmountSearchResult | RelSearchResult | TimeSearchResult
+export type StringSearchResult = {
+  _id: string
+  _count: number
+  _type: "string"
+}
 
-export type AmountHistogramResult = {
+export type SearchResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
+
+export type RelValuesResult = {
+  _id: string
+  _count: number
+}
+
+export type AmountValuesResult = {
   min: number
   count: number
 }
 
-export type TimeHistogramResult = {
+export type TimeValuesResult = {
   min: string
+  count: number
+}
+
+export type StringValuesResult = {
+  str: string
   count: number
 }
 
@@ -203,6 +221,16 @@ export type TimeNoneFilter = {
   none: true
 }
 
+export type StringFilter = {
+  prop: string
+  str: string
+}
+
+export type StringNoneFilter = {
+  prop: string
+  none: true
+}
+
 export type Filters =
   | {
       and: Filters[]
@@ -216,14 +244,22 @@ export type Filters =
   | { rel: RelFilter | RelNoneFilter }
   | { amount: AmountFilter | AmountNoneFilter }
   | { time: TimeFilter | TimeNoneFilter }
+  | { str: StringFilter | StringNoneFilter }
 
-export type RelFilterState = string[]
+export type RelFilterState = (string | typeof NONE)[]
 
-export type AmountFilterState = null | "none" | { gte: number; lte: number }
+export type AmountFilterState = null | typeof NONE | { gte: number; lte: number }
 
-export type TimeFilterState = null | "none" | { gte: string; lte: string }
+export type TimeFilterState = null | typeof NONE | { gte: string; lte: string }
 
-export type FiltersState = { rel: Record<string, RelFilterState>; amount: Record<string, AmountFilterState>; time: Record<string, TimeFilterState> }
+export type StringFilterState = (string | typeof NONE)[]
+
+export type FiltersState = {
+  rel: Record<string, RelFilterState>
+  amount: Record<string, AmountFilterState>
+  time: Record<string, TimeFilterState>
+  str: Record<string, StringFilterState>
+}
 
 export type ServerQuery = { s?: string; q?: string; filters?: Filters }
 

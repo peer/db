@@ -106,6 +106,25 @@ func (f timeFilter) Valid() errors.E {
 	return nil
 }
 
+type stringFilter struct {
+	Prop string `json:"prop"`
+	Str  string `json:"str,omitempty"`
+	None bool   `json:"none,omitempty"`
+}
+
+func (f stringFilter) Valid() errors.E {
+	if !identifier.Valid(f.Prop) {
+		return errors.New("invalid prop")
+	}
+	if f.Str == "" && !f.None {
+		return errors.New("str or none has to be set")
+	}
+	if f.Str != "" && f.None {
+		return errors.New("str and none cannot be both set")
+	}
+	return nil
+}
+
 type filters struct {
 	And    []filters     `json:"and,omitempty"`
 	Or     []filters     `json:"or,omitempty"`
@@ -113,6 +132,7 @@ type filters struct {
 	Rel    *relFilter    `json:"rel,omitempty"`
 	Amount *amountFilter `json:"amount,omitempty"`
 	Time   *timeFilter   `json:"time,omitempty"`
+	Str    *stringFilter `json:"str,omitempty"`
 }
 
 func (f filters) Valid() errors.E {
@@ -159,6 +179,13 @@ func (f filters) Valid() errors.E {
 	if f.Time != nil {
 		nonEmpty++
 		err := f.Time.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	if f.Str != nil {
+		nonEmpty++
+		err := f.Str.Valid()
 		if err != nil {
 			return err
 		}
@@ -237,6 +264,21 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 			elastic.NewBoolQuery().Must(
 				elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
 				elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
+			),
+		)
+	}
+	if f.Str != nil {
+		if f.Str.None {
+			return elastic.NewBoolQuery().MustNot(
+				elastic.NewNestedQuery("active.string",
+					elastic.NewTermQuery("active.string.prop._id", f.Str.Prop),
+				),
+			)
+		}
+		return elastic.NewNestedQuery("active.string",
+			elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("active.string.prop._id", f.Str.Prop),
+				elastic.NewTermQuery("active.string.string", f.Str.Str),
 			),
 		)
 	}

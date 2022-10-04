@@ -137,8 +137,20 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		// so we set precision threshold to twice as much to try to always get precise counts.
 		elastic.NewCardinalityAggregation().Field("active.time.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
 	)
+	stringAggregation := elastic.NewNestedAggregation().Path("active.string").SubAggregation(
+		"props",
+		elastic.NewTermsAggregation().Field("active.string.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			"docs",
+			elastic.NewReverseNestedAggregation(),
+		),
+	).SubAggregation(
+		"total",
+		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotal,
+		// so we set precision threshold to twice as much to try to always get precise counts.
+		elastic.NewCardinalityAggregation().Field("active.string.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
+	)
 	searchService := s.getSearchService(req).Size(0).Query(query).
-		Aggregation("rel", relAggregation).Aggregation("amount", amountAggregation).Aggregation("time", timeAggregation)
+		Aggregation("rel", relAggregation).Aggregation("amount", amountAggregation).Aggregation("time", timeAggregation).Aggregation("string", stringAggregation)
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -171,9 +183,16 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	var str termAggregations
+	err = json.Unmarshal(res.Aggregations["string"], &str)
+	if err != nil {
+		m.Stop()
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
+	}
 	m.Stop()
 
-	results := make([]searchResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets))
+	results := make([]searchResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets))
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = searchResult{
 			ID:    bucket.Key,
@@ -194,6 +213,13 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
+		}
+	}
+	for i, bucket := range str.Props.Buckets {
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+i] = searchResult{
+			ID:    bucket.Key,
+			Count: bucket.Docs.Count,
+			Type:  "string",
 		}
 	}
 
@@ -217,7 +243,10 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 	if int64(len(time.Props.Buckets)) > time.Total.Value {
 		time.Total.Value = int64(len(time.Props.Buckets))
 	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value, 10) //nolint:gomnd
+	if int64(len(str.Props.Buckets)) > str.Total.Value {
+		str.Total.Value = int64(len(str.Props.Buckets))
+	}
+	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value, 10) //nolint:gomnd
 
 	metadata := http.Header{
 		"Total": {total},

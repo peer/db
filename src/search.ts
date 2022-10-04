@@ -2,12 +2,15 @@ import type { Ref, DeepReadonly } from "vue"
 import type { Router, RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
 import type {
   SearchResult,
-  AmountHistogramResult,
-  TimeHistogramResult,
+  RelValuesResult,
+  AmountValuesResult,
+  TimeValuesResult,
+  StringValuesResult,
   PeerDBDocument,
   RelFilter,
   AmountFilter,
   TimeFilter,
+  StringFilter,
   Filters,
   FiltersState,
   ClientQuery,
@@ -15,6 +18,7 @@ import type {
   RelSearchResult,
   AmountSearchResult,
   TimeSearchResult,
+  StringSearchResult,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
@@ -22,6 +26,9 @@ import { useRoute, useRouter } from "vue-router"
 import { assert } from "@vue/compiler-core"
 import { getURL, postURL } from "@/api"
 import { timestampToSeconds } from "@/utils"
+import { NONE } from "@/symbols"
+
+export { NONE } from "@/symbols"
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
@@ -69,7 +76,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   for (const [prop, values] of Object.entries(updatedState.rel)) {
     // TODO: Support also OR between values.
     for (const value of values) {
-      if (value === "none") {
+      if (value === NONE) {
         filters.and.push({ rel: { prop, none: true } })
       } else {
         filters.and.push({ rel: { prop, value } })
@@ -86,7 +93,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
     }
     const [prop, unit] = segments
     // TODO: Support also OR between value and none.
-    if (value === "none") {
+    if (value === NONE) {
       filters.and.push({ amount: { prop, unit, none: true } })
     } else {
       filters.and.push({ amount: { prop, unit, ...value } })
@@ -97,10 +104,20 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
       continue
     }
     // TODO: Support also OR between value and none.
-    if (value === "none") {
+    if (value === NONE) {
       filters.and.push({ time: { prop, none: true } })
     } else {
       filters.and.push({ time: { prop, ...value } })
+    }
+  }
+  for (const [prop, strings] of Object.entries(updatedState.str)) {
+    // TODO: Support also OR between values.
+    for (const str of strings) {
+      if (str === NONE) {
+        filters.and.push({ str: { prop, none: true } })
+      } else {
+        filters.and.push({ str: { prop, str } })
+      }
     }
   }
   const form = new FormData()
@@ -218,7 +235,7 @@ export function useFilters(progress: Ref<number>): {
 
 function filtersToFiltersState(filters: Filters): FiltersState {
   if ("and" in filters) {
-    const state: FiltersState = { rel: {}, amount: {}, time: {} }
+    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {} }
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
       for (const [prop, values] of Object.entries(s.rel)) {
@@ -244,6 +261,15 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           throw new Error(`duplicate filter for the same time property "${prop}"`)
         }
       }
+      for (const [prop, strings] of Object.entries(s.str)) {
+        for (const str of strings) {
+          if (!state.str[prop]) {
+            state.str[prop] = [str]
+          } else if (!state.str[prop].includes(str)) {
+            state.str[prop].push(str)
+          }
+        }
+      }
     }
     return state
   }
@@ -257,10 +283,11 @@ function filtersToFiltersState(filters: Filters): FiltersState {
     if ("none" in filters.rel && filters.rel.none) {
       return {
         rel: {
-          [filters.rel.prop]: ["none"],
+          [filters.rel.prop]: [NONE],
         },
         amount: {},
         time: {},
+        str: {},
       }
     } else {
       return {
@@ -269,6 +296,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         amount: {},
         time: {},
+        str: {},
       }
     }
   }
@@ -277,9 +305,10 @@ function filtersToFiltersState(filters: Filters): FiltersState {
       return {
         rel: {},
         amount: {
-          [`${filters.amount.prop}/${filters.amount.unit}`]: "none",
+          [`${filters.amount.prop}/${filters.amount.unit}`]: NONE,
         },
         time: {},
+        str: {},
       }
     } else {
       return {
@@ -291,6 +320,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           },
         },
         time: {},
+        str: {},
       }
     }
   }
@@ -300,8 +330,9 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         rel: {},
         amount: {},
         time: {
-          [filters.time.prop]: "none",
+          [filters.time.prop]: NONE,
         },
+        str: {},
       }
     } else {
       return {
@@ -312,6 +343,28 @@ function filtersToFiltersState(filters: Filters): FiltersState {
             gte: (filters.time as TimeFilter).gte,
             lte: (filters.time as TimeFilter).lte,
           },
+        },
+        str: {},
+      }
+    }
+  }
+  if ("str" in filters) {
+    if ("none" in filters.str && filters.str.none) {
+      return {
+        rel: {},
+        amount: {},
+        time: {},
+        str: {
+          [filters.str.prop]: [NONE],
+        },
+      }
+    } else {
+      return {
+        rel: {},
+        amount: {},
+        time: {},
+        str: {
+          [filters.str.prop]: [(filters.str as StringFilter).str],
         },
       }
     }
@@ -343,7 +396,7 @@ function useSearchResults(
   const _docs = ref<(PeerDBDocument & SearchResult)[]>([])
   const _results = ref<SearchResult[]>([])
   const _total = ref<number | null>(null)
-  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {} })
+  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
@@ -365,7 +418,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
         _moreThanTotal.value = false
         _hasMore.value = false
         return
@@ -377,7 +430,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
         _moreThanTotal.value = false
         _hasMore.value = false
         if (redirect) {
@@ -397,7 +450,7 @@ function useSearchResults(
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
       } else {
-        _filters.value = { rel: {}, amount: {}, time: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
       }
       limit = Math.min(initialLimit, results.value.length)
       _hasMore.value = limit < results.value.length
@@ -430,8 +483,8 @@ export function useRelFilterValues(
   property: PeerDBDocument & RelSearchResult,
   progress: Ref<number>,
 ): {
-  docs: DeepReadonly<Ref<(PeerDBDocument & RelSearchResult)[]>>
-  results: DeepReadonly<Ref<RelSearchResult[]>>
+  docs: DeepReadonly<Ref<(PeerDBDocument & RelValuesResult)[]>>
+  results: DeepReadonly<Ref<RelValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
@@ -481,7 +534,7 @@ export function useAmountHistogramValues(
   property: PeerDBDocument & AmountSearchResult,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<AmountHistogramResult[]>>
+  results: DeepReadonly<Ref<AmountValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<number | null>>
   max: DeepReadonly<Ref<number | null>>
@@ -490,7 +543,7 @@ export function useAmountHistogramValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<AmountHistogramResult[]>([])
+  const _results = ref<AmountValuesResult[]>([])
   const _total = ref<number | null>(null)
   const _min = ref<number | null>(null)
   const _max = ref<number | null>(null)
@@ -545,7 +598,7 @@ export function useAmountHistogramValues(
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       const data = await getHistogramValues(url, -2, controller.signal, progress)
-      _results.value = data.results as AmountHistogramResult[]
+      _results.value = data.results as AmountValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseFloat(data.min) : null
       _max.value = data.max != null ? parseFloat(data.max) : null
@@ -569,7 +622,7 @@ export function useTimeHistogramValues(
   property: PeerDBDocument & TimeSearchResult,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<TimeHistogramResult[]>>
+  results: DeepReadonly<Ref<TimeValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<bigint | null>>
   max: DeepReadonly<Ref<bigint | null>>
@@ -578,7 +631,7 @@ export function useTimeHistogramValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<TimeHistogramResult[]>([])
+  const _results = ref<TimeValuesResult[]>([])
   const _total = ref<number | null>(null)
   const _min = ref<bigint | null>(null)
   const _max = ref<bigint | null>(null)
@@ -629,7 +682,7 @@ export function useTimeHistogramValues(
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       const data = await getHistogramValues(url, -2, controller.signal, progress)
-      _results.value = data.results as TimeHistogramResult[]
+      _results.value = data.results as TimeValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? timestampToSeconds(data.min) : null
       _max.value = data.max != null ? timestampToSeconds(data.max) : null
@@ -646,6 +699,93 @@ export function useTimeHistogramValues(
     min,
     max,
     interval,
+  }
+}
+
+export function useStringFilterValues(
+  property: PeerDBDocument & StringSearchResult,
+  progress: Ref<number>,
+): {
+  limitedResults: DeepReadonly<Ref<StringValuesResult[]>>
+  results: DeepReadonly<Ref<StringValuesResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  let limit = 0
+
+  const _limitedResults = ref<StringValuesResult[]>([])
+  const _results = ref<StringValuesResult[]>([])
+  const _total = ref<number | null>(null)
+  const _hasMore = ref(false)
+  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : _limitedResults
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const total = import.meta.env.DEV ? readonly(_total) : _total
+  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s || !property._id || !property._type) {
+        return null
+      }
+      if (property._type === "string") {
+        return router.resolve({
+          name: "DocumentSearchStringFilterGet",
+          params: {
+            s,
+            prop: property._id,
+          },
+        }).href
+      } else {
+        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+      }
+    },
+    async (url, oldURL, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (!url) {
+        _limitedResults.value = []
+        _results.value = []
+        _total.value = null
+        _hasMore.value = false
+        return
+      }
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      _results.value = data.results as StringValuesResult[]
+      _total.value = data.total
+      limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
+      _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit)
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    limitedResults,
+    results,
+    total,
+    hasMore,
+    loadMore: () => {
+      limit = Math.min(limit + FILTERS_INCREASE, results.value.length)
+      _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit)
+    },
   }
 }
 
@@ -682,7 +822,7 @@ async function getHistogramValues(
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
-): Promise<{ results: AmountHistogramResult[] | TimeHistogramResult[]; total: number; min?: string; max?: string; interval?: string }> {
+): Promise<{ results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[]; total: number; min?: string; max?: string; interval?: string }> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
@@ -690,7 +830,7 @@ async function getHistogramValues(
     throw new Error("Peerdb-Total header is null")
   }
   const res = { results: doc, total: parseInt(total) } as {
-    results: AmountHistogramResult[] | TimeHistogramResult[]
+    results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[]
     total: number
     min?: string
     max?: string

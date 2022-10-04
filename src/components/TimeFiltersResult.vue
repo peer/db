@@ -5,8 +5,8 @@ import type { PeerDBDocument, TimeFilterState, TimeSearchResult } from "@/types"
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
-import { useTimeHistogramValues } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax } from "@/utils"
+import { useTimeHistogramValues, NONE } from "@/search"
+import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -29,19 +29,19 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
     gte: values[0] as string,
     lte: values[1] as string,
   }
-  if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
+  if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
   }
 }
 
 function onNoneChange(event: Event) {
-  let updatedState: "none" | null
+  let updatedState: typeof NONE | null
   if ((event.target as HTMLInputElement).checked) {
-    updatedState = "none"
+    updatedState = NONE
   } else {
     updatedState = null
   }
-  if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
+  if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
   }
 }
@@ -74,9 +74,9 @@ watchEffect((onCleanup) => {
     return
   }
   const bigIntRangeMin =
-    props.state === null || props.state === "none" ? min.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).gte), min.value)
+    props.state === null || props.state === NONE ? min.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).gte), min.value)
   const bigIntRangeMax =
-    props.state === null || props.state === "none" ? max.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).lte), max.value)
+    props.state === null || props.state === NONE ? max.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).lte), max.value)
   let rangeMin, rangeMax
   if (bigIntRangeMax - bigIntRangeMin > maxSafeInteger) {
     const scaledMin = bigIntRangeMin / scale
@@ -99,8 +99,8 @@ watchEffect((onCleanup) => {
   // rangeStart and rangeEnd are strings because noUiSlider otherwise converts the number
   // to a string using String and tries to parse it with timestampToSeconds.
   // Now it just tries to parse it with timestampToSeconds.
-  const rangeStart = props.state === null || props.state === "none" ? secondsToTimestamp(min.value) : (props.state as { gte: string; lte: string }).gte
-  const rangeEnd = props.state === null || props.state === "none" ? secondsToTimestamp(max.value) : (props.state as { gte: string; lte: string }).lte
+  const rangeStart = props.state === null || props.state === NONE ? secondsToTimestamp(min.value) : (props.state as { gte: string; lte: string }).gte
+  const rangeEnd = props.state === null || props.state === NONE ? secondsToTimestamp(max.value) : (props.state as { gte: string; lte: string }).lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
           <input
             :id="'time/' + property._id + '/none'"
             :disabled="updateProgress > 0"
-            :checked="state === 'none'"
+            :checked="state === NONE"
             :class="
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "

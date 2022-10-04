@@ -21,6 +21,10 @@
       "path": "/d/filters/:s/time/:prop"
     },
     {
+      "name": "DocumentSearchStringFilterGet",
+      "path": "/d/filters/:s/string/:prop"
+    },
+    {
       "name": "DocumentGet",
       "path": "/d/:id"
     },

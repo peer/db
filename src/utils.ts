@@ -2,6 +2,7 @@ import type { DeepReadonly } from "vue"
 import type { Mutable, Claim, ClaimTypes, Required } from "@/types"
 
 import { toRaw } from "vue"
+import { cloneDeep, isEqual } from "lodash-es"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 import { LIST, ORDER } from "@/props"
 
@@ -68,11 +69,12 @@ export function secondsToTimestamp(value: bigint): string {
 }
 
 export function clone<T>(input: T): Mutable<T> {
-  if (typeof structuredClone !== "undefined") {
-    return structuredClone(toRaw(input))
-  } else {
-    return JSON.parse(JSON.stringify(input))
-  }
+  // We are using lodash cloneDeep which supports symbols.
+  return cloneDeep(toRaw(input))
+}
+
+export function equals<T>(a: T, b: T): boolean {
+  return isEqual(a, b)
 }
 
 export function bigIntMax(a: bigint, b: bigint): bigint {

@@ -5,8 +5,8 @@ import type { PeerDBDocument, AmountFilterState, AmountSearchResult } from "@/ty
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
-import { useAmountHistogramValues } from "@/search"
-import { formatValue } from "@/utils"
+import { useAmountHistogramValues, NONE } from "@/search"
+import { formatValue, equals } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -29,19 +29,19 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
     gte: unencoded[0],
     lte: unencoded[1],
   }
-  if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
+  if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
   }
 }
 
 function onNoneChange(event: Event) {
-  let updatedState: "none" | null
+  let updatedState: typeof NONE | null
   if ((event.target as HTMLInputElement).checked) {
-    updatedState = "none"
+    updatedState = NONE
   } else {
     updatedState = null
   }
-  if (JSON.stringify(props.state) !== JSON.stringify(updatedState)) {
+  if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
   }
 }
@@ -69,10 +69,10 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const rangeMin = props.state === null || props.state === "none" ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
-  const rangeMax = props.state === null || props.state === "none" ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
-  const rangeStart = props.state === null || props.state === "none" ? min.value : (props.state as { gte: number; lte: number }).gte
-  const rangeEnd = props.state === null || props.state === "none" ? max.value : (props.state as { gte: number; lte: number }).lte
+  const rangeMin = props.state === null || props.state === NONE ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
+  const rangeMax = props.state === null || props.state === NONE ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
+  const rangeStart = props.state === null || props.state === NONE ? min.value : (props.state as { gte: number; lte: number }).gte
+  const rangeEnd = props.state === null || props.state === NONE ? max.value : (props.state as { gte: number; lte: number }).lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
           <input
             :id="'amount/' + property._id + '/' + property._unit + '/none'"
             :disabled="updateProgress > 0"
-            :checked="state === 'none'"
+            :checked="state === NONE"
             :class="
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "
