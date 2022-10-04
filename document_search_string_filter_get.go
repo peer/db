@@ -19,6 +19,7 @@ type histogramStringResult struct {
 	Count int64  `json:"count"`
 }
 
+//nolint:dupl
 func (s *Service) DocumentSearchStringFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {

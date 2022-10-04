@@ -18,6 +18,7 @@ type filteredTermAggregations struct {
 	Filter termAggregations `json:"filter"`
 }
 
+//nolint:dupl
 func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
