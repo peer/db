@@ -292,6 +292,7 @@ type search struct {
 	Text     string   `json:"q"`
 	Filters  *filters `json:"filters"`
 	ParentID string   `json:"-"`
+	RootID   string   `json:"-"`
 }
 
 // Encode returns search state as a query string.
@@ -360,6 +361,8 @@ func makeSearch(form url.Values) *search {
 		}
 	}
 
+	id := identifier.NewRandom()
+	rootID := id
 	if parentSearchID != "" {
 		ps, ok := searches.Load(parentSearchID)
 		if ok {
@@ -368,6 +371,7 @@ func makeSearch(form url.Values) *search {
 			if parentSearch.Text == textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
 			}
+			rootID = parentSearch.RootID
 		} else {
 			// Unknown ID.
 			parentSearchID = ""
@@ -375,8 +379,9 @@ func makeSearch(form url.Values) *search {
 	}
 
 	sh := &search{
-		ID:       identifier.NewRandom(),
+		ID:       id,
 		ParentID: parentSearchID,
+		RootID:   rootID,
 		Text:     textQuery,
 		Filters:  fs,
 	}
@@ -415,7 +420,8 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 	if (form.Has("q") && ss.Text != textQuery) || (form.Has("filters") && !reflect.DeepEqual(ss.Filters, fs)) {
 		ss = &search{
 			ID:       identifier.NewRandom(),
-			ParentID: searchID,
+			ParentID: ss.ID,
+			RootID:   ss.RootID,
 			Text:     textQuery,
 			Filters:  fs,
 		}
