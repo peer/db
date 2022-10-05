@@ -129,7 +129,7 @@ obtain a HTTPS TLS certificate from [Let's Encrypt](https://letsencrypt.org) aut
 ```sh
 docker run -d --network peerdb --name peerdb-search -p 443:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
- -D public.domain.example.com --tls.letsencrypt.email=name@example.com --tls.letsencrypt.cache=/data/letsencrypt
+ -D public.domain.example.com -E name@example.com -C /data/letsencrypt
 ```
 
 PeerDB Search would then be available at `https://public.domain.example.com`.

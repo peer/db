@@ -20,14 +20,14 @@ type Config struct {
 		} `embed:"" prefix:"static."`
 		LetsEncrypt struct {
 			Domain []string `short:"D" sep:"none" placeholder:"STRING" help:"Domain name to request for Let's Encrypt's certificate. Can be provided multiple times."`
-			Email  string   `help:"Contact e-mail to use with Let's Encrypt."`
-			Cache  string   `type:"path" placeholder:"PATH" default:"letsencrypt" help:"Let's Encrypt's cache directory. Default: ${default}."`
+			Email  string   `short:"E" help:"Contact e-mail to use with Let's Encrypt."`
+			Cache  string   `short:"C" type:"path" placeholder:"PATH" default:"letsencrypt" help:"Let's Encrypt's cache directory. Default: ${default}."`
 		} `embed:"" prefix:"letsencrypt."`
 	} `embed:"" prefix:"tls."`
 	Elastic     string `short:"e" placeholder:"URL" default:"http://127.0.0.1:9200" help:"URL of the ElasticSearch instance. Default: ${default}"`
-	Index       string `placeholder:"NAME" default:"docs" help:"Name of ElasticSearch index to use. Default: ${default}."`
+	Index       string `short:"i" placeholder:"NAME" default:"docs" help:"Name of ElasticSearch index to use. Default: ${default}."`
 	Development bool   `short:"d" help:"Run in development mode and proxy unknown requests."`
-	ProxyTo     string `placeholder:"URL" default:"http://localhost:3000" help:"Base URL to proxy to in development mode. Default: ${default}"`
+	ProxyTo     string `short:"P" placeholder:"URL" default:"http://localhost:3000" help:"Base URL to proxy to in development mode. Default: ${default}"`
 }
 
 func (c Config) Validate() error {

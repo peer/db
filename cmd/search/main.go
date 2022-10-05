@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var config Config
-	cli.Run(&config, "Every request is logged once. ", func(_ *kong.Context) errors.E {
+	cli.Run(&config, "One log entry per request. ", func(_ *kong.Context) errors.E {
 		return listen(&config)
 	})
 }
