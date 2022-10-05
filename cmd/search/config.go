@@ -15,8 +15,8 @@ type Config struct {
 	cli.LoggingConfig
 	TLS struct {
 		Static struct {
-			CertFile string `short:"c" name:"cert" placeholder:"PATH" type:"existingfile" help:"A static certificate for TLS, when not using Let's Encrypt."`
-			KeyFile  string `short:"k" name:"key" placeholder:"PATH" type:"existingfile" help:"A static certificate's matching private key, when not using Let's Encrypt."`
+			CertFile string `short:"k" name:"cert" placeholder:"PATH" type:"existingfile" help:"A static certificate for TLS, when not using Let's Encrypt."`
+			KeyFile  string `short:"K" name:"key" placeholder:"PATH" type:"existingfile" help:"A static certificate's matching private key, when not using Let's Encrypt."`
 		} `embed:"" prefix:"static."`
 		LetsEncrypt struct {
 			Domain []string `short:"D" sep:"none" placeholder:"STRING" help:"Domain name to request for Let's Encrypt's certificate. Can be provided multiple times."`

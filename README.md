@@ -110,7 +110,7 @@ mkcert localhost 127.0.0.1 ::1
 This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you can provide to PeerDB Search as:
 
 ```sh
-./search -c localhost+2.pem -k localhost+2-key.pem
+./search -k localhost+2.pem -K localhost+2-key.pem
 ```
 
 When running using Docker, you have to provide them to the container through a volume, e.g.:
@@ -118,7 +118,7 @@ When running using Docker, you have to provide them to the container through a v
 ```sh
 docker run -d --network peerdb --name peerdb-search -p 8080:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
- -c /data/localhost+2.pem -k /data/localhost+2-key.pem
+ -k /data/localhost+2.pem -K /data/localhost+2-key.pem
 ```
 
 Open [https://localhost:8080/](https://localhost:8080/) in your browser to access the web interface.
@@ -208,7 +208,7 @@ Then clone the repository and run:
 
 ```sh
 make
-./search -d -c localhost+2.pem -k localhost+2-key.pem
+./search -d -k localhost+2.pem -K localhost+2-key.pem
 ```
 
 `localhost+2.pem` and `localhost+2-key.pem` are files of a TLS certificate
