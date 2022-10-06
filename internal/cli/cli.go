@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gopkg.in/yaml.v3"
 )
 
 // These variables should be set during build time using "-X" ldflags.
@@ -46,18 +47,69 @@ const (
 )
 
 //nolint:lll
+type console struct {
+	Type  string        `placeholder:"TYPE" enum:"color,nocolor,json,disable" default:"color" help:"Type of console logging. Possible: ${enum}. Default: ${default}." yaml:"type"`
+	Level zerolog.Level `short:"l" placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${default}." yaml:"level"`
+}
+
+func (c *console) UnmarshalYAML(value *yaml.Node) error {
+	var tmp struct {
+		Type  string `yaml:"type"`
+		Level string `yaml:"level"`
+	}
+
+	// TODO: Limit only to known fields.
+	//       See: https://github.com/go-yaml/yaml/issues/460
+	err := value.Decode(&tmp)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	level, err := zerolog.ParseLevel(tmp.Level)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	c.Type = tmp.Type
+	c.Level = level
+
+	return nil
+}
+
+//nolint:lll
+type file struct {
+	Path  string        `placeholder:"PATH" type:"path" help:"Append logs to a file (as well)." yaml:"path"`
+	Level zerolog.Level `placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${default}." yaml:"level"`
+}
+
+func (f *file) UnmarshalYAML(value *yaml.Node) error {
+	var tmp struct {
+		Path  string `yaml:"path"`
+		Level string `yaml:"level"`
+	}
+
+	// TODO: Limit only to known fields.
+	//       See: https://github.com/go-yaml/yaml/issues/460
+	err := value.Decode(&tmp)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	level, err := zerolog.ParseLevel(tmp.Level)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	f.Path = tmp.Path
+	f.Level = level
+
+	return nil
+}
+
 type LoggingConfig struct {
-	Log     zerolog.Logger `kong:"-"`
+	Log     zerolog.Logger `kong:"-" yaml:"-"`
 	Logging struct {
-		Console struct {
-			Type  string        `placeholder:"TYPE" enum:"color,nocolor,json,disable" default:"color" help:"Type of console logging. Possible: ${enum}. Default: ${default}."`
-			Level zerolog.Level `short:"l" placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${default}."`
-		} `embed:"" prefix:"console."`
-		File struct {
-			Path  string        `placeholder:"PATH" type:"path" help:"Log to a file (as well)."`
-			Level zerolog.Level `placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${default}."`
-		} `embed:"" prefix:"file."`
-	} `embed:"" prefix:"logging."`
+		Console console `embed:"" prefix:"console." yaml:"console"`
+		File    file    `embed:"" prefix:"file." yaml:"file"`
+	} `embed:"" prefix:"logging." yaml:"logging"`
 }
 
 // filteredWriter writes only logs at Level or above.

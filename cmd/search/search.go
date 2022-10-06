@@ -67,32 +67,109 @@ func listen(config *Config) errors.E {
 		},
 	}
 
-	if config.TLS.Static.CertFile != "" && config.TLS.Static.KeyFile != "" {
-		manager := CertificateManager{
-			CertFile: config.TLS.Static.CertFile,
-			KeyFile:  config.TLS.Static.KeyFile,
-			Log:      config.Log,
+	var fileGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	var letsEncryptGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	letsEncryptDomainsList := []string{}
+
+	if len(config.Sites) > 0 {
+		fileGetCertificateFunctions := map[string]func(*tls.ClientHelloInfo) (*tls.Certificate, error){}
+
+		for _, site := range config.Sites {
+			if site.CertFile != "" && site.KeyFile != "" {
+				manager := CertificateManager{
+					CertFile: site.CertFile,
+					KeyFile:  site.KeyFile,
+					Log:      config.Log,
+				}
+
+				err = manager.Start()
+				if err != nil {
+					return err
+				}
+				defer manager.Stop()
+
+				fileGetCertificateFunctions[site.Domain] = manager.GetCertificate
+			} else if config.TLS.Email != "" && config.TLS.Cache != "" {
+				letsEncryptDomainsList = append(letsEncryptDomainsList, site.Domain)
+			} else if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+				manager := CertificateManager{
+					CertFile: config.TLS.CertFile,
+					KeyFile:  config.TLS.KeyFile,
+					Log:      config.Log,
+				}
+
+				err = manager.Start()
+				if err != nil {
+					return err
+				}
+				defer manager.Stop()
+
+				fileGetCertificateFunctions[site.Domain] = manager.GetCertificate
+			} else {
+				return errors.Errorf(`missing file or Let's Encrypt's certificate configuration for site "%s"`, site.Domain)
+			}
 		}
 
-		err = manager.Start()
-		if err != nil {
-			return err
+		if len(fileGetCertificateFunctions) > 0 {
+			fileGetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				f, ok := fileGetCertificateFunctions[hello.ServerName]
+				if ok {
+					return f(hello)
+				}
+				return nil, nil
+			}
 		}
-		defer manager.Stop()
-
-		server.TLSConfig.GetCertificate = manager.GetCertificate
-	} else if len(config.TLS.LetsEncrypt.Domain) > 0 && config.TLS.LetsEncrypt.Email != "" && config.TLS.LetsEncrypt.Cache != "" {
-		manager := autocert.Manager{
-			Cache:      autocert.DirCache(config.TLS.LetsEncrypt.Cache),
-			Prompt:     autocert.AcceptTOS,
-			Email:      config.TLS.LetsEncrypt.Email,
-			HostPolicy: autocert.HostWhitelist(config.TLS.LetsEncrypt.Domain...),
-		}
-
-		server.TLSConfig.GetCertificate = manager.GetCertificate
-		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", acme.ALPNProto}
 	} else {
-		return errors.New("missing static certificate or Let's Encrypt's certificate configuration")
+		if config.TLS.Domain != "" && config.TLS.Email != "" && config.TLS.Cache != "" {
+			letsEncryptDomainsList = append(letsEncryptDomainsList, config.TLS.Domain)
+		} else if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+			manager := CertificateManager{
+				CertFile: config.TLS.CertFile,
+				KeyFile:  config.TLS.KeyFile,
+				Log:      config.Log,
+			}
+
+			err = manager.Start()
+			if err != nil {
+				return err
+			}
+			defer manager.Stop()
+
+			fileGetCertificate = manager.GetCertificate
+		} else {
+			return errors.New("missing file or Let's Encrypt's certificate configuration")
+		}
+	}
+
+	if len(letsEncryptDomainsList) > 0 {
+		manager := autocert.Manager{
+			Cache:      autocert.DirCache(config.TLS.Cache),
+			Prompt:     autocert.AcceptTOS,
+			Email:      config.TLS.Email,
+			HostPolicy: autocert.HostWhitelist(letsEncryptDomainsList...),
+		}
+
+		letsEncryptGetCertificate = manager.GetCertificate
+		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", acme.ALPNProto}
+	}
+
+	if fileGetCertificate != nil && letsEncryptGetCertificate != nil {
+		server.TLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			c, err := fileGetCertificate(hello)
+			if err != nil {
+				return c, err
+			} else if c != nil {
+				return c, nil
+			}
+
+			return letsEncryptGetCertificate(hello)
+		}
+	} else if fileGetCertificate != nil {
+		server.TLSConfig.GetCertificate = fileGetCertificate
+	} else if letsEncryptGetCertificate != nil {
+		server.TLSConfig.GetCertificate = letsEncryptGetCertificate
+	} else {
+		panic(errors.New("no GetCertificate"))
 	}
 
 	config.Log.Info().Msgf("starting on %s", listenAddr)
