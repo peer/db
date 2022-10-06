@@ -30,43 +30,6 @@ func listen(config *Config) errors.E {
 		development = ""
 	}
 
-	s, err := search.NewService(esClient, config.Log, config.Index, development)
-	if err != nil {
-		return err
-	}
-
-	router := search.NewRouter()
-	handler, err := s.RouteWith(router, cli.Version)
-	if err != nil {
-		return err
-	}
-
-	// TODO: Implement graceful shutdown.
-	server := &http.Server{
-		Addr:              listenAddr,
-		Handler:           handler,
-		ErrorLog:          log.New(config.Log, "", 0),
-		ConnContext:       s.ConnContext,
-		ReadHeaderTimeout: time.Minute,
-		TLSConfig: &tls.Config{
-			MinVersion:       tls.VersionTLS12,
-			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			CipherSuites: []uint16{
-				tls.TLS_AES_128_GCM_SHA256,
-				tls.TLS_AES_256_GCM_SHA384,
-				tls.TLS_CHACHA20_POLY1305_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-			},
-		},
-	}
-
 	var fileGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	var letsEncryptGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	letsEncryptDomainsList := []string{}
@@ -150,7 +113,43 @@ func listen(config *Config) errors.E {
 		}
 
 		letsEncryptGetCertificate = manager.GetCertificate
-		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", acme.ALPNProto}
+	}
+
+	s, err := search.NewService(esClient, config.Log, config.Index, development)
+	if err != nil {
+		return err
+	}
+
+	router := search.NewRouter()
+	handler, err := s.RouteWith(router, cli.Version)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Implement graceful shutdown.
+	server := &http.Server{
+		Addr:              listenAddr,
+		Handler:           handler,
+		ErrorLog:          log.New(config.Log, "", 0),
+		ConnContext:       s.ConnContext,
+		ReadHeaderTimeout: time.Minute,
+		TLSConfig: &tls.Config{
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_AES_128_GCM_SHA256,
+				tls.TLS_AES_256_GCM_SHA384,
+				tls.TLS_CHACHA20_POLY1305_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+			},
+		},
 	}
 
 	if fileGetCertificate != nil && letsEncryptGetCertificate != nil {
@@ -164,10 +163,12 @@ func listen(config *Config) errors.E {
 
 			return letsEncryptGetCertificate(hello)
 		}
+		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", acme.ALPNProto}
 	} else if fileGetCertificate != nil {
 		server.TLSConfig.GetCertificate = fileGetCertificate
 	} else if letsEncryptGetCertificate != nil {
 		server.TLSConfig.GetCertificate = letsEncryptGetCertificate
+		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", acme.ALPNProto}
 	} else {
 		panic(errors.New("no GetCertificate"))
 	}
