@@ -25,12 +25,17 @@ func (s *Service) populateProperties(ctx context.Context) errors.E {
 	)
 	query := elastic.NewNestedQuery("active.rel", boolQuery)
 
-	total, err := s.ESClient.Count(s.Index).Query(query).Do(ctx)
-	if err != nil && !elastic.IsNotFound(err) {
-		return errors.WithStack(err)
+	for domain, site := range s.Sites {
+		total, err := s.ESClient.Count(site.Index).Query(query).Do(ctx)
+		// TODO: Create missing indices and populate with base properties?
+		if err != nil && !elastic.IsNotFound(err) {
+			return errors.Errorf(`site "%s": %w`, site.Index, err)
+		}
+		// Map cannot be modified directly, so we modify the copy
+		// and store it back into the map.
+		site.propertiesTotal = total
+		s.Sites[domain] = site
 	}
-
-	s.propertiesTotal = total
 
 	return nil
 }
@@ -92,6 +97,11 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 	sh := ss.(*search) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
+	searchService, propertiesTotal, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
 	relAggregation := elastic.NewNestedAggregation().Path("active.rel").SubAggregation(
 		"props",
 		elastic.NewTermsAggregation().Field("active.rel.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
@@ -100,9 +110,9 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		),
 	).SubAggregation(
 		"total",
-		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotal,
+		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("active.rel.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
 	amountAggregation := elastic.NewNestedAggregation().Path("active.amount").SubAggregation(
 		"filter",
@@ -116,13 +126,13 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 			),
 		).SubAggregation(
 			"total",
-			// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotal*amountUnitsTotal,
+			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*amountUnitsTotal,
 			// so we set precision threshold to twice as much to try to always get precise counts.
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			elastic.NewCardinalityAggregation().Script(
 				elastic.NewScript("return [doc['active.amount.prop._id'], doc['active.amount.unit']]"),
-			).PrecisionThreshold(2*s.propertiesTotal*int64(amountUnitsTotal)),
+			).PrecisionThreshold(2*propertiesTotal*int64(amountUnitsTotal)),
 		),
 	)
 	timeAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
@@ -133,9 +143,9 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		),
 	).SubAggregation(
 		"total",
-		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotal,
+		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("active.time.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("active.time.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
 	stringAggregation := elastic.NewNestedAggregation().Path("active.string").SubAggregation(
 		"props",
@@ -145,11 +155,11 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 		),
 	).SubAggregation(
 		"total",
-		// Cardinality aggregation returns the count of all buckets. It can be at most s.propertiesTotal,
+		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("active.string.prop._id").PrecisionThreshold(2*s.propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("active.string.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
-	searchService := s.getSearchService(req).Size(0).Query(query).
+	searchService = searchService.Size(0).Query(query).
 		Aggregation("rel", relAggregation).Aggregation("amount", amountAggregation).Aggregation("time", timeAggregation).Aggregation("string", stringAggregation)
 
 	m = timing.NewMetric("es").Start()

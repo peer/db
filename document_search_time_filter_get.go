@@ -78,6 +78,11 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 	sh := ss.(*search) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
+	minMaxSearchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
 	minMaxAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
@@ -90,7 +95,7 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 			elastic.NewMaxAggregation().Field("active.time.timestamp"),
 		),
 	)
-	minMaxSearchService := s.getSearchService(req).Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
+	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
 
 	m = timing.NewMetric("es1").Start()
 	res, err := minMaxSearchService.Do(ctx)
@@ -134,6 +139,11 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 
 	offsetString := fmt.Sprintf("%ds", min)
 	intervalString := fmt.Sprintf("%ds", interval)
+	histogramSearchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
 	histogramAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
@@ -146,7 +156,7 @@ func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req 
 			),
 		),
 	)
-	histogramSearchService := s.getSearchService(req).Size(0).Query(query).Aggregation("histogram", histogramAggregation)
+	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
 	m = timing.NewMetric("es2").Start()
 	res, err = histogramSearchService.Do(ctx)

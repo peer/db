@@ -46,22 +46,27 @@ type routes struct {
 	} `json:"routes"`
 }
 
-type Service struct {
-	ESClient     *elastic.Client
-	Log          zerolog.Logger
-	Index        string
-	Development  string
-	Router       *Router
-	reverseProxy *httputil.ReverseProxy
+type Site struct {
+	Domain string
+	Index  string
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64
 }
 
-func NewService(esClient *elastic.Client, log zerolog.Logger, index, development string) (*Service, errors.E) {
+type Service struct {
+	ESClient     *elastic.Client
+	Log          zerolog.Logger
+	Sites        map[string]Site
+	Development  string
+	Router       *Router
+	reverseProxy *httputil.ReverseProxy
+}
+
+func NewService(esClient *elastic.Client, log zerolog.Logger, sites map[string]Site, development string) (*Service, errors.E) {
 	s := &Service{
 		ESClient:    esClient,
 		Log:         log,
-		Index:       index,
+		Sites:       sites,
 		Development: development,
 	}
 

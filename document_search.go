@@ -501,9 +501,18 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	}
 }
 
-func (s *Service) getSearchService(req *http.Request) *elastic.SearchService {
-	return s.ESClient.Search(s.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true).AllowPartialSearchResults(false)
+func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, errors.E) {
+	var site Site
+	if ss, ok := s.Sites[req.Host]; req.Host != "" && ok {
+		site = ss
+	} else if ss, ok := s.Sites[""]; len(s.Sites) == 1 && ok {
+		site = ss
+	} else {
+		return nil, 0, errors.Errorf(`site not found for host "%s"`, req.Host)
+	}
+
+	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
+		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, nil
 }
 
 // TODO: Determine which operator should be the default?
@@ -562,7 +571,12 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	searchService := s.getSearchService(req).From(0).Size(maxResultsCount).Query(s.getSearchQuery(sh))
+	searchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
+	searchService = searchService.From(0).Size(maxResultsCount).Query(s.getSearchQuery(sh))
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)

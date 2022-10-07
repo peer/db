@@ -33,11 +33,16 @@ func listen(config *Config) errors.E {
 	var fileGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	var letsEncryptGetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	letsEncryptDomainsList := []string{}
+	sites := map[string]search.Site{}
 
 	if len(config.Sites) > 0 {
 		fileGetCertificateFunctions := map[string]func(*tls.ClientHelloInfo) (*tls.Certificate, error){}
 
-		for _, site := range config.Sites {
+		for i, site := range config.Sites {
+			if site.Domain == "" {
+				return errors.Errorf(`domain is required for site at index %d`, i)
+			}
+
 			if site.CertFile != "" && site.KeyFile != "" {
 				manager := CertificateManager{
 					CertFile: site.CertFile,
@@ -71,6 +76,14 @@ func listen(config *Config) errors.E {
 			} else {
 				return errors.Errorf(`missing file or Let's Encrypt's certificate configuration for site "%s"`, site.Domain)
 			}
+
+			if _, ok := sites[site.Domain]; ok {
+				return errors.Errorf(`duplicate site for domain "%s"`, site.Domain)
+			}
+			sites[site.Domain] = search.Site{
+				Domain: site.Domain,
+				Index:  site.Index,
+			}
 		}
 
 		if len(fileGetCertificateFunctions) > 0 {
@@ -102,6 +115,11 @@ func listen(config *Config) errors.E {
 		} else {
 			return errors.New("missing file or Let's Encrypt's certificate configuration")
 		}
+
+		sites[""] = search.Site{
+			Domain: "",
+			Index:  config.Index,
+		}
 	}
 
 	if len(letsEncryptDomainsList) > 0 {
@@ -115,7 +133,7 @@ func listen(config *Config) errors.E {
 		letsEncryptGetCertificate = manager.GetCertificate
 	}
 
-	s, err := search.NewService(esClient, config.Log, config.Index, development)
+	s, err := search.NewService(esClient, config.Log, sites, development)
 	if err != nil {
 		return err
 	}

@@ -52,6 +52,11 @@ func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *
 	sh := ss.(*search) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
+	searchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
 	aggregation := elastic.NewNestedAggregation().Path("active.rel").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
@@ -69,7 +74,7 @@ func (s *Service) DocumentSearchRelFilterGetGetJSON(w http.ResponseWriter, req *
 			elastic.NewCardinalityAggregation().Field("active.rel.to._id").PrecisionThreshold(40000), //nolint:gomnd
 		),
 	)
-	searchService := s.getSearchService(req).Size(0).Query(query).Aggregation("rel", aggregation)
+	searchService = searchService.Size(0).Query(query).Aggregation("rel", aggregation)
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
