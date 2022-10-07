@@ -127,6 +127,9 @@ func listen(config *Config) errors.E {
 	}
 
 	// TODO: Implement graceful shutdown.
+	// TODO: Add request timeouts so that malicious client cannot make too slow requests or read too slowly the response.
+	//       Currently this is not possible, because ReadTimeout and WriteTimeout count in handler processing time as well.
+	//       Moreover, when they timeout, they do not cancel the handler itself. See: https://github.com/golang/go/issues/16100
 	server := &http.Server{
 		Addr:              listenAddr,
 		Handler:           handler,
