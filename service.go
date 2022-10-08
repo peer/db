@@ -121,6 +121,21 @@ func remoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
+func hostHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			host := getHost(req.Host)
+			if host != "" {
+				log := zerolog.Ctx(req.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, host)
+				})
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
 // requestIDHandler is similar to hlog.requestIDHandler, but uses identifier.NewRandom() for ID.
 func requestIDHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -454,6 +469,7 @@ func (s *Service) RouteWith(router *Router, version string) (http.Handler, error
 	c = c.Append(connectionIDHandler("connection"))
 	c = c.Append(requestIDHandler("request", "Request-ID"))
 	c = c.Append(protocolHandler("proto"))
+	c = c.Append(hostHandler("host"))
 	c = c.Append(etagHandler("etag"))
 	c = c.Append(contentEncodingHandler("encoding"))
 	// parseForm should be as late as possible because it can fail
