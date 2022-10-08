@@ -501,14 +501,19 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 	}
 }
 
+func (s *Service) getSite(req *http.Request) (Site, errors.E) {
+	if site, ok := s.Sites[req.Host]; req.Host != "" && ok {
+		return site, nil
+	} else if site, ok := s.Sites[""]; len(s.Sites) == 1 && ok {
+		return site, nil
+	}
+	return Site{}, errors.Errorf(`site not found for host "%s"`, req.Host)
+}
+
 func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, errors.E) {
-	var site Site
-	if ss, ok := s.Sites[req.Host]; req.Host != "" && ok {
-		site = ss
-	} else if ss, ok := s.Sites[""]; len(s.Sites) == 1 && ok {
-		site = ss
-	} else {
-		return nil, 0, errors.Errorf(`site not found for host "%s"`, req.Host)
+	site, err := s.getSite(req)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).

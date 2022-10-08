@@ -12,6 +12,7 @@ import (
 type site struct {
 	Domain   string `json:"domain" yaml:"domain"`
 	Index    string `json:"index" yaml:"index"`
+	Title    string `json:"title" yaml:"title"`
 	CertFile string `json:"cert,omitempty" yaml:"cert,omitempty"`
 	KeyFile  string `json:"key,omitempty" yaml:"key,omitempty"`
 }
@@ -44,7 +45,8 @@ type Config struct {
 		Cache    string `short:"C" group:"Let's Encrypt:" type:"path" placeholder:"PATH" default:"letsencrypt" help:"Let's Encrypt's cache directory. Default: ${default}." yaml:"cache"`
 	} `embed:"" prefix:"tls." yaml:"tls"`
 	Index string `short:"i" group:"Sites:" placeholder:"NAME" default:"docs" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}." yaml:"index"`
-	Sites []site `short:"s" group:"Sites:" name:"site" placeholder:"SITE" sep:"none" help:"Site configuration as JSON with fields \"domain\", \"index\", \"cert\", and \"key\". Can be provided multiple times." yaml:"sites"`
+	Title string `short:"T" group:"Sites:" placeholder:"NAME" default:"PeerDB Search" help:"Title to be shown to the users when sites are not configured. Default: ${default}." yaml:"title"`
+	Sites []site `short:"s" group:"Sites:" name:"site" placeholder:"SITE" sep:"none" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", and \"key\". Can be provided multiple times." yaml:"sites"`
 }
 
 func (c Config) Validate() error {
@@ -71,6 +73,9 @@ func (c Config) Validate() error {
 		}
 		if site.Index == "" {
 			site.Index = "docs"
+		}
+		if site.Title == "" {
+			site.Title = "PeerDB Search"
 		}
 
 		if domains[site.Domain] {

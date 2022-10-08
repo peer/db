@@ -34,11 +34,6 @@ var routesConfiguration []byte
 //go:embed dist
 var distFiles embed.FS
 
-var (
-	compressedFiles      map[string]map[string][]byte
-	compressedFilesEtags map[string]map[string]string
-)
-
 type routes struct {
 	Routes []struct {
 		Name string `json:"name"`
@@ -47,10 +42,14 @@ type routes struct {
 }
 
 type Site struct {
-	Domain string
-	Index  string
+	Domain string `json:"domain,omitempty"`
+	Index  string `json:"index"`
+	Title  string `json:"title"`
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64
+	// Maps between content types, paths, and content/etags.
+	compressedFiles      map[string]map[string][]byte
+	compressedFilesEtags map[string]map[string]string
 }
 
 type Service struct {
@@ -396,12 +395,11 @@ func (s *Service) RouteWith(router *Router, version string) (http.Handler, error
 		router.MethodNotAllowed = logHandlerName(autoName(s.Proxy), s.Proxy)
 		router.NotAcceptable = logHandlerName(autoName(s.Proxy), s.Proxy)
 	} else {
-		// TODO: Convert index.html into a template to be able to inject data it.
-		errE := compressFiles()
+		errE := s.renderAndCompressFiles()
 		if errE != nil {
 			return nil, errE
 		}
-		errE = computeEtags()
+		errE = s.computeEtags()
 		if errE != nil {
 			return nil, errE
 		}
@@ -467,62 +465,82 @@ func (s *Service) RouteWith(router *Router, version string) (http.Handler, error
 	return c.Then(router), nil
 }
 
-func compressFiles() errors.E {
-	if compressedFiles != nil {
-		return errors.New("compressFiles called more than once")
-	}
-
-	compressedFiles = make(map[string]map[string][]byte)
-
-	for _, compression := range allCompressions {
-		compressedFiles[compression] = make(map[string][]byte)
-
-		err := fs.WalkDir(distFiles, "dist", func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			if d.IsDir() {
-				return nil
-			}
-
-			data, err := distFiles.ReadFile(path)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			path = strings.TrimPrefix(path, "dist")
-
-			data, errE := compress(compression, data)
-			if errE != nil {
-				return errE
-			}
-
-			compressedFiles[compression][path] = data
-			return nil
-		})
-		if err != nil {
-			return errors.WithStack(err)
+func (s *Service) renderAndCompressFiles() errors.E {
+	for domain, site := range s.Sites {
+		if site.compressedFiles != nil {
+			return errors.New("renderAndCompressFiles called more than once")
 		}
+
+		site.compressedFiles = make(map[string]map[string][]byte)
+
+		for _, compression := range allCompressions {
+			site.compressedFiles[compression] = make(map[string][]byte)
+
+			err := fs.WalkDir(distFiles, "dist", func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				if d.IsDir() {
+					return nil
+				}
+
+				data, err := distFiles.ReadFile(path)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				path = strings.TrimPrefix(path, "dist")
+
+				var errE errors.E
+				if strings.HasSuffix(path, ".html") {
+					data, errE = render(path, data, site)
+					if errE != nil {
+						return errE
+					}
+				}
+
+				data, errE = compress(compression, data)
+				if errE != nil {
+					return errE
+				}
+
+				site.compressedFiles[compression][path] = data
+				return nil
+			})
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		// Map cannot be modified directly, so we modify the copy
+		// and store it back into the map.
+		s.Sites[domain] = site
 	}
 
 	return nil
 }
 
-func computeEtags() errors.E {
-	if compressedFilesEtags != nil {
-		return errors.New("computeEtags called more than once")
-	}
-
-	compressedFilesEtags = make(map[string]map[string]string)
-
-	for compression, files := range compressedFiles {
-		compressedFilesEtags[compression] = make(map[string]string)
-
-		for path, data := range files {
-			hash := sha256.New()
-			_, _ = hash.Write(data)
-			etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
-			compressedFilesEtags[compression][path] = etag
+func (s *Service) computeEtags() errors.E {
+	for domain, site := range s.Sites {
+		if site.compressedFilesEtags != nil {
+			return errors.New("computeEtags called more than once")
 		}
+
+		site.compressedFilesEtags = make(map[string]map[string]string)
+
+		for compression, files := range site.compressedFiles {
+			site.compressedFilesEtags[compression] = make(map[string]string)
+
+			for path, data := range files {
+				hash := sha256.New()
+				_, _ = hash.Write(data)
+				etag := `"` + base64.RawURLEncoding.EncodeToString(hash.Sum(nil)) + `"`
+				site.compressedFilesEtags[compression][path] = etag
+			}
+		}
+
+		// Map cannot be modified directly, so we modify the copy
+		// and store it back into the map.
+		s.Sites[domain] = site
 	}
 
 	return nil

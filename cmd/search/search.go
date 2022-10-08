@@ -83,6 +83,7 @@ func listen(config *Config) errors.E {
 			sites[site.Domain] = search.Site{
 				Domain: site.Domain,
 				Index:  site.Index,
+				Title:  site.Title,
 			}
 		}
 
@@ -119,6 +120,7 @@ func listen(config *Config) errors.E {
 		sites[""] = search.Site{
 			Domain: "",
 			Index:  config.Index,
+			Title:  config.Title,
 		}
 	}
 
