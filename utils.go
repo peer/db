@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"mime"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -128,24 +130,40 @@ func (s *Service) Proxy(w http.ResponseWriter, req *http.Request, _ Params) {
 }
 
 func (s *Service) serveStaticFiles(router *Router) errors.E {
-	name := autoName(s.StaticFile)
-	h := logHandlerName(name, s.StaticFile)
+	staticName := autoName(s.StaticFile)
+	staticH := logHandlerName(staticName, s.StaticFile)
+	immutableName := autoName(s.ImmutableFile)
+	immutableH := logHandlerName(staticName, s.ImmutableFile)
 
-	for path := range compressedFiles[compressionIdentity] {
-		if path == "/index.html" {
-			continue
+	for _, site := range s.Sites {
+		for path := range site.compressedFiles[compressionIdentity] {
+			if path == "/index.html" {
+				continue
+			}
+
+			var n string
+			var h Handler
+			if strings.HasPrefix(path, "/assets/") {
+				n = fmt.Sprintf("%s:%s", immutableName, path)
+				h = immutableH
+			} else {
+				n = fmt.Sprintf("%s:%s", staticName, path)
+				h = staticH
+			}
+
+			err := router.Handle(n, http.MethodGet, "", path, h)
+			if err != nil {
+				return err
+			}
+			err = router.Handle(n, http.MethodHead, "", path, h)
+			if err != nil {
+				return err
+			}
 		}
 
-		n := fmt.Sprintf("%s:%s", name, path)
-
-		err := router.Handle(n, http.MethodGet, "", path, h)
-		if err != nil {
-			return err
-		}
-		err = router.Handle(n, http.MethodHead, "", path, h)
-		if err != nil {
-			return err
-		}
+		// We can use any site to obtain all static paths,
+		// so we break here after the first site.
+		break
 	}
 
 	return nil
@@ -207,6 +225,34 @@ func (s *Service) badRequestWithError(w http.ResponseWriter, req *http.Request, 
 	})
 
 	s.BadRequest(w, req, nil)
+}
+
+func (s *Service) notFoundWithError(w http.ResponseWriter, req *http.Request, err errors.E) {
+	log := hlog.FromRequest(req)
+	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Err(err).Fields(errors.AllDetails(err))
+	})
+
+	s.NotFound(w, req, nil)
+}
+
+type renderContext struct {
+	Site Site `json:"site"`
+}
+
+func render(path string, data []byte, site Site) ([]byte, errors.E) {
+	t, err := template.New(path).Parse(string(data))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	var out bytes.Buffer
+	err = t.Execute(&out, renderContext{
+		Site: site,
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return out.Bytes(), nil
 }
 
 // TODO: Use a pool of compression workers?
@@ -323,6 +369,10 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 }
 
 func (s *Service) StaticFile(w http.ResponseWriter, req *http.Request, _ Params) {
+	s.staticFile(w, req, req.URL.Path, false)
+}
+
+func (s *Service) ImmutableFile(w http.ResponseWriter, req *http.Request, _ Params) {
 	s.staticFile(w, req, req.URL.Path, true)
 }
 
@@ -334,7 +384,13 @@ func (s *Service) staticFile(w http.ResponseWriter, req *http.Request, path stri
 		return
 	}
 
-	data, ok := compressedFiles[contentEncoding][path]
+	site, err := s.getSite(req)
+	if err != nil {
+		s.notFoundWithError(w, req, err)
+		return
+	}
+
+	data, ok := site.compressedFiles[contentEncoding][path]
 	if !ok {
 		s.internalServerErrorWithError(w, req, errors.Errorf(`no data for compression %s and file "%s"`, contentEncoding, path))
 		return
@@ -342,14 +398,14 @@ func (s *Service) staticFile(w http.ResponseWriter, req *http.Request, path stri
 
 	if len(data) <= minCompressionSize {
 		contentEncoding = compressionIdentity
-		data, ok = compressedFiles[contentEncoding][path]
+		data, ok = site.compressedFiles[contentEncoding][path]
 		if !ok {
 			s.internalServerErrorWithError(w, req, errors.Errorf(`no data for compression %s and file "%s"`, contentEncoding, path))
 			return
 		}
 	}
 
-	etag, ok := compressedFilesEtags[contentEncoding][path]
+	etag, ok := site.compressedFilesEtags[contentEncoding][path]
 	if !ok {
 		s.internalServerErrorWithError(w, req, errors.Errorf(`no etag for compression %s and file "%s"`, contentEncoding, path))
 		return
