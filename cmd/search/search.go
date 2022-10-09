@@ -148,7 +148,7 @@ func listen(config *Config) errors.E {
 		letsEncryptGetCertificate = manager.GetCertificate
 	}
 
-	s, err := search.NewService(esClient, config.Log, sites, development)
+	s, err := search.NewService(esClient, config.Log, cli.Version, cli.BuildTimestamp, cli.Revision, sites, development)
 	if err != nil {
 		return err
 	}

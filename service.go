@@ -53,20 +53,26 @@ type Site struct {
 }
 
 type Service struct {
-	ESClient     *elastic.Client
-	Log          zerolog.Logger
-	Sites        map[string]Site
-	Development  string
-	Router       *Router
-	reverseProxy *httputil.ReverseProxy
+	ESClient       *elastic.Client
+	Log            zerolog.Logger
+	Sites          map[string]Site
+	Development    string
+	Version        string
+	BuildTimestamp string
+	Revision       string
+	Router         *Router
+	reverseProxy   *httputil.ReverseProxy
 }
 
-func NewService(esClient *elastic.Client, log zerolog.Logger, sites map[string]Site, development string) (*Service, errors.E) {
+func NewService(esClient *elastic.Client, log zerolog.Logger, version, buildTimestamp, revision string, sites map[string]Site, development string) (*Service, errors.E) {
 	s := &Service{
-		ESClient:    esClient,
-		Log:         log,
-		Sites:       sites,
-		Development: development,
+		ESClient:       esClient,
+		Log:            log,
+		Sites:          sites,
+		Development:    development,
+		Version:        version,
+		BuildTimestamp: buildTimestamp,
+		Revision:       revision,
 	}
 
 	err := s.populateProperties(context.Background())
