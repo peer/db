@@ -46,10 +46,15 @@ const (
 	colorDarkGray = 90
 )
 
+const (
+	DefaultLoggingConsoleType  = "color"
+	DefaultLoggingConsoleLevel = "info"
+)
+
 //nolint:lll
 type console struct {
-	Type  string        `placeholder:"TYPE" enum:"color,nocolor,json,disable" default:"color" help:"Type of console logging. Possible: ${enum}. Default: ${default}." yaml:"type"`
-	Level zerolog.Level `short:"l" placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${default}." yaml:"level"`
+	Type  string        `placeholder:"TYPE" enum:"color,nocolor,json,disable" default:"${defaultLoggingConsoleType}" help:"Type of console logging. Possible: ${enum}. Default: ${defaultLoggingConsoleType}." yaml:"type"`
+	Level zerolog.Level `short:"l" placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"${defaultLoggingConsoleLevel}" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${defaultLoggingConsoleLevel}." yaml:"level"`
 }
 
 func (c *console) UnmarshalYAML(value *yaml.Node) error {
@@ -75,10 +80,14 @@ func (c *console) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+const (
+	DefaultLoggingFileLevel = "info"
+)
+
 //nolint:lll
 type file struct {
 	Path  string        `placeholder:"PATH" type:"path" help:"Append logs to a file (as well)." yaml:"path"`
-	Level zerolog.Level `placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"info" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${default}." yaml:"level"`
+	Level zerolog.Level `placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"${defaultLoggingFileLevel}" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${defaultLoggingFileLevel}." yaml:"level"`
 }
 
 func (f *file) UnmarshalYAML(value *yaml.Node) error {
@@ -380,7 +389,7 @@ func extractLoggingConfig(config interface{}) (*LoggingConfig, errors.E) {
 	return nil, errors.Errorf("logging config not found in struct %T", config)
 }
 
-func Run(config interface{}, description string, run func(*kong.Context) errors.E) {
+func Run(config interface{}, description string, defaults kong.Vars, run func(*kong.Context) errors.E) {
 	// Inside this function, panicking should be set to false before all regular returns from it.
 	panicking := true
 
@@ -399,6 +408,11 @@ func Run(config interface{}, description string, run func(*kong.Context) errors.
 			os.Stderr,
 			os.Stderr,
 		),
+		kong.Vars{
+			"defaultLoggingConsoleType":  DefaultLoggingConsoleType,
+			"defaultLoggingConsoleLevel": DefaultLoggingConsoleLevel,
+			"defaultLoggingFileLevel":    DefaultLoggingFileLevel,
+		}.CloneWith(defaults),
 		kong.TypeMapper(reflect.TypeOf(zerolog.Level(0)), kong.MapperFunc(func(ctx *kong.DecodeContext, target reflect.Value) error {
 			var l string
 			err := ctx.Scan.PopValueInto("level", &l)

@@ -16,13 +16,20 @@ const (
 	clientRetryMax       = 9
 )
 
+const (
+	DefaultAPILimit = "50"
+	DefaultCacheDir = ".cache"
+	DefaultElastic  = "http://127.0.0.1:9200"
+	DefaultIndex    = "docs"
+)
+
 // Globals describes top-level (global) flags.
 type Globals struct {
 	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
 	cli.LoggingConfig
-	CacheDir               string `name:"cache" placeholder:"DIR" default:".cache" type:"path" help:"Where to cache files to. Default: ${default}."`
-	Elastic                string `short:"e" placeholder:"URL" default:"http://127.0.0.1:9200" help:"URL of the ElasticSearch instance. Default: ${default}."`
-	Index                  string `placeholder:"NAME" default:"docs" help:"Name of ElasticSearch index to use. Default: ${default}."`
+	CacheDir               string `name:"cache" placeholder:"DIR" default:"${defaultCacheDir}" type:"path" help:"Where to cache files to. Default: ${defaultCacheDir}."`
+	Elastic                string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."`
+	Index                  string `placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
 	DecompressionThreads   int    `placeholder:"INT" default:"0" help:"The number of threads used for decompression. Defaults to the number of available cores."`
 	DecodingThreads        int    `placeholder:"INT" default:"0" help:"The number of threads used for decoding. Defaults to the number of available cores."`
 	ItemsProcessingThreads int    `placeholder:"INT" default:"0" help:"The number of threads used for items processing. Defaults to the number of available cores."`

@@ -67,7 +67,7 @@ var (
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type WikipediaFilesCommand struct {
 	Token       string `placeholder:"TOKEN" env:"WIKIPEDIA_TOKEN" help:"Access token for Wikipedia API. Not required. Environment variable: ${env}."`
-	APILimit    int    `placeholder:"INT" default:"50" help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${default}."` //nolint:lll
+	APILimit    int    `placeholder:"INT" default:"${defaultAPILimit}" help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${defaultAPILimit}."` //nolint:lll
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikipedia files."`
 	URL         string `placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
 }

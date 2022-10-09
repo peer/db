@@ -9,7 +9,12 @@ import (
 
 func main() {
 	var config Config
-	cli.Run(&config, "", func(ctx *kong.Context) errors.E {
+	cli.Run(&config, "", kong.Vars{
+		"defaultAPILimit": DefaultAPILimit,
+		"defaultCacheDir": DefaultCacheDir,
+		"defaultElastic":  DefaultElastic,
+		"defaultIndex":    DefaultIndex,
+	}, func(ctx *kong.Context) errors.E {
 		return errors.WithStack(ctx.Run(&config.Globals))
 	})
 }

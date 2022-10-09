@@ -9,7 +9,13 @@ import (
 
 func main() {
 	var config Config
-	cli.Run(&config, "One log entry per request. ", func(_ *kong.Context) errors.E {
+	cli.Run(&config, "One log entry per request. ", kong.Vars{
+		"defaultElastic":  DefaultElastic,
+		"defaultIndex":    DefaultIndex,
+		"defaultProxyTo":  DefaultProxyTo,
+		"defaultTLSCache": DefaultTLSCache,
+		"defaultTitle":    DefaultTitle,
+	}, func(_ *kong.Context) errors.E {
 		return listen(&config)
 	})
 }
