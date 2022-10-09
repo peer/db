@@ -231,7 +231,7 @@ func getDocumentReference(id, source string) search.DocumentReference {
 func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
 	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("active.id",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("active.id.prop._id", search.GetStandardPropertyID(property)),
+			elastic.NewTermQuery("active.id.prop._id", search.GetCorePropertyID(property)),
 			elastic.NewTermQuery("active.id.id", id),
 		),
 	)).SeqNoAndPrimaryTerm(true).Do(ctx)
@@ -253,7 +253,7 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 		document.ID = search.Identifier(hit.Id)
 
 		found := false
-		for _, claim := range document.Get(search.GetStandardPropertyID(property)) {
+		for _, claim := range document.Get(search.GetCorePropertyID(property)) {
 			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == id {
 				found = true
 				break
@@ -309,10 +309,10 @@ func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client
 }
 
 func resolveDataTypeFromPropertyDocument(document *search.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
-	for _, claim := range document.Get(search.GetStandardPropertyID("IS")) {
+	for _, claim := range document.Get(search.GetCorePropertyID("IS")) {
 		if c, ok := claim.(*search.RelationClaim); ok {
 			for claimType, dataTypes := range claimTypeToDataTypesMap {
-				if c.To.ID == search.GetStandardPropertyID(claimType) {
+				if c.To.ID == search.GetCorePropertyID(claimType) {
 					if len(dataTypes) == 1 {
 						return dataTypes[0], nil
 					} else if claimType == "RELATION_CLAIM_TYPE" && valueType != nil {
@@ -475,7 +475,7 @@ func processSnak( //nolint:ireturn,nolintlint
 									ID:         claimID,
 									Confidence: HighConfidence,
 								},
-								Prop: search.GetStandardPropertyReference("IS"),
+								Prop: search.GetCorePropertyReference("IS"),
 								To:   getDocumentReference(title, ""),
 							},
 						},
@@ -623,7 +623,7 @@ func processSnak( //nolint:ireturn,nolintlint
 								ID:         claimID,
 								Confidence: HighConfidence,
 							},
-							Prop: search.GetStandardPropertyReference("UNIT"),
+							Prop: search.GetCorePropertyReference("UNIT"),
 							To:   getDocumentReference(unitID, ""),
 						},
 					},
@@ -705,7 +705,7 @@ func addReference(
 				ID:         search.GetID(namespace, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
 				Confidence: NoConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("WIKIDATA_REFERENCE"),
+			Prop: search.GetCorePropertyReference("WIKIDATA_REFERENCE"),
 			HTML: search.TranslatableHTMLString{
 				"XX": html.EscapeString("A temporary group of multiple Wikidata reference statements for later processing."),
 			},
@@ -808,7 +808,7 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
 						Confidence: HighConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference("WIKIDATA_PROPERTY_ID"),
+					Prop:       search.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
 					Identifier: entity.ID,
 				},
 			},
@@ -818,7 +818,7 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("WIKIDATA_PROPERTY_PAGE"),
+					Prop: search.GetCorePropertyReference("WIKIDATA_PROPERTY_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
 				},
 			},
@@ -828,8 +828,8 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("PROPERTY"),
+					Prop: search.GetCorePropertyReference("IS"),
+					To:   search.GetCorePropertyReference("PROPERTY"),
 				},
 			},
 		}
@@ -841,7 +841,7 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
 						Confidence: HighConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference("WIKIDATA_ITEM_ID"),
+					Prop:       search.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
 					Identifier: entity.ID,
 				},
 			},
@@ -851,7 +851,7 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("WIKIDATA_ITEM_PAGE"),
+					Prop: search.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
 				},
 			},
@@ -861,8 +861,8 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("ITEM"),
+					Prop: search.GetCorePropertyReference("IS"),
+					To:   search.GetCorePropertyReference("ITEM"),
 				},
 			},
 		}
@@ -877,7 +877,7 @@ func ConvertEntity(
 						ID:         search.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
 						Confidence: HighConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
+					Prop:       search.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
 					Identifier: entity.ID,
 				},
 			},
@@ -928,7 +928,7 @@ func ConvertEntity(
 					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
 					Confidence: HighConfidence,
 				},
-				Prop:       search.GetStandardPropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
+				Prop:       search.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
 				Identifier: siteLink.Title,
 			})
 			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
@@ -936,7 +936,7 @@ func ConvertEntity(
 					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
 					Confidence: HighConfidence,
 				},
-				Prop: search.GetStandardPropertyReference(site.MnemonicPrefix + "_PAGE"),
+				Prop: search.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE"),
 				IRI:  url,
 			})
 		}
@@ -955,8 +955,8 @@ func ConvertEntity(
 					// TODO: Decide what should really be confidence here or implement "later on" part described above.
 					Confidence: LowConfidence,
 				},
-				Prop: search.GetStandardPropertyReference("IS"),
-				To:   search.GetStandardPropertyReference(claimTypeMnemonic),
+				Prop: search.GetCorePropertyReference("IS"),
+				To:   search.GetCorePropertyReference(claimTypeMnemonic),
 			})
 		}
 	}
@@ -970,7 +970,7 @@ func ConvertEntity(
 				ID:         search.GetID(namespace, entity.ID, "ALSO_KNOWN_AS", i),
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
+			Prop: search.GetCorePropertyReference("ALSO_KNOWN_AS"),
 			HTML: search.TranslatableHTMLString{
 				"en": html.EscapeString(label),
 			},
@@ -984,7 +984,7 @@ func ConvertEntity(
 				ID:         search.GetID(namespace, entity.ID, "DESCRIPTION", i),
 				Confidence: MediumConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("DESCRIPTION"),
+			Prop: search.GetCorePropertyReference("DESCRIPTION"),
 			HTML: search.TranslatableHTMLString{
 				"en": html.EscapeString(description),
 			},

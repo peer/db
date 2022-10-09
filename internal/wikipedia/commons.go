@@ -429,7 +429,7 @@ func convertImage(
 						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
 						Confidence: HighConfidence,
 					},
-					Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_FILE_NAME"),
+					Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
 				},
 			},
@@ -439,7 +439,7 @@ func convertImage(
 						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference(mnemonicPrefix + "_FILE"),
+					Prop: search.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
 				},
 				{
@@ -447,7 +447,7 @@ func convertImage(
 						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("FILE_URL"),
+					Prop: search.GetCorePropertyReference("FILE_URL"),
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 				},
 			},
@@ -457,8 +457,8 @@ func convertImage(
 						ID:         search.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
 						Confidence: HighConfidence,
 					},
-					Prop: search.GetStandardPropertyReference("IS"),
-					To:   search.GetStandardPropertyReference("FILE"),
+					Prop: search.GetCorePropertyReference("IS"),
+					To:   search.GetCorePropertyReference("FILE"),
 				},
 			},
 		},
@@ -501,7 +501,7 @@ func convertImage(
 			ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
 			Confidence: HighConfidence,
 		},
-		Prop:   search.GetStandardPropertyReference("MEDIA_TYPE"),
+		Prop:   search.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
 	})
 	if err != nil {
@@ -512,7 +512,7 @@ func convertImage(
 			ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 			Confidence: HighConfidence,
 		},
-		Prop:   search.GetStandardPropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+		Prop:   search.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
 	})
 	if err != nil {
@@ -528,7 +528,7 @@ func convertImage(
 			ID:         search.GetID(namespace, image.Name, "SIZE", 0),
 			Confidence: HighConfidence,
 		},
-		Prop:   search.GetStandardPropertyReference("SIZE"),
+		Prop:   search.GetCorePropertyReference("SIZE"),
 		Amount: float64(image.Size),
 		Unit:   search.AmountUnitByte,
 	})
@@ -552,7 +552,7 @@ func convertImage(
 					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 					Confidence: MediumConfidence,
 				},
-				Prop:   search.GetStandardPropertyReference("PAGE_COUNT"),
+				Prop:   search.GetCorePropertyReference("PAGE_COUNT"),
 				Amount: float64(pageCount),
 				Unit:   search.AmountUnitNone,
 			})
@@ -577,7 +577,7 @@ func convertImage(
 					ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
 					Confidence: MediumConfidence,
 				},
-				Prop:   search.GetStandardPropertyReference("LENGTH"),
+				Prop:   search.GetCorePropertyReference("LENGTH"),
 				Amount: duration,
 				Unit:   search.AmountUnitSecond,
 			})
@@ -676,7 +676,7 @@ func convertImage(
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
 									Confidence: HighConfidence,
 								},
-								Prop:       search.GetStandardPropertyReference("LIST"),
+								Prop:       search.GetCorePropertyReference("LIST"),
 								Identifier: previewsList,
 							},
 						},
@@ -686,14 +686,14 @@ func convertImage(
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
 									Confidence: HighConfidence,
 								},
-								Prop:   search.GetStandardPropertyReference("ORDER"),
+								Prop:   search.GetCorePropertyReference("ORDER"),
 								Amount: float64(i),
 								Unit:   search.AmountUnitNone,
 							},
 						},
 					},
 				},
-				Prop: search.GetStandardPropertyReference("PREVIEW_URL"),
+				Prop: search.GetCorePropertyReference("PREVIEW_URL"),
 				IRI:  preview,
 			})
 			if err != nil {
@@ -709,7 +709,7 @@ func convertImage(
 				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: MediumConfidence,
 			},
-			Prop:   search.GetStandardPropertyReference("WIDTH"),
+			Prop:   search.GetCorePropertyReference("WIDTH"),
 			Amount: float64(image.Width),
 			Unit:   search.AmountUnitPixel,
 		})
@@ -721,7 +721,7 @@ func convertImage(
 				ID:         search.GetID(namespace, image.Name, "HEIGHT", 0),
 				Confidence: MediumConfidence,
 			},
-			Prop:   search.GetStandardPropertyReference("HEIGHT"),
+			Prop:   search.GetCorePropertyReference("HEIGHT"),
 			Amount: float64(image.Height),
 			Unit:   search.AmountUnitPixel,
 		})

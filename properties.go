@@ -98,11 +98,6 @@ var (
 			[]string{`"text" claim type`},
 		},
 		{
-			"Wikidata reference",
-			"A temporary group of multiple Wikidata reference statements as meta claims for later processing.",
-			[]string{`"text" claim type`},
-		},
-		{
 			"list",
 			"A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
 			[]string{`"identifier" claim type`},
@@ -148,121 +143,20 @@ var (
 			"Media (MIME) type of the file.",
 			[]string{`"string" claim type`},
 		},
-		{
-			"Wikidata property id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikidata property page",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> property page IRI.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"Wikidata item id",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item <a href="https://www.wikidata.org/wiki/Wikidata:Identifiers">identifier</a>.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikidata item page",
-			`<a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> item page IRI.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"English Wikipedia page title",
-			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page title.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"English Wikipedia page",
-			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"English Wikipedia page id",
-			`<a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> page identifier.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikimedia Commons page title",
-			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page title.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikimedia Commons page",
-			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"English Wikipedia file name",
-			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file name.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"English Wikipedia file",
-			`Reference to <a href="https://en.wikipedia.org/wiki/Main_Page">English Wikipedia</a> file.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"Wikimedia Commons entity id",
-			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> ` +
-				`<a href="https://commons.wikimedia.org/wiki/Commons:Structured_data">structured data entity identifier</a>.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikimedia Commons page id",
-			`<a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> page identifier.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikimedia Commons file name",
-			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file name.`,
-			[]string{`"identifier" claim type`},
-		},
-		{
-			"Wikimedia Commons file",
-			`Reference to <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a> file.`,
-			[]string{`"reference" claim type`},
-		},
-		{
-			"Mediawiki media type",
-			`See possible <a href="https://www.mediawiki.org/wiki/Manual:Image_table#img_media_type">Mediawiki media types</a>, lowercase.`,
-			[]string{`"string" claim type`},
-		},
-		{
-			"uses English Wikipedia template",
-			`Entity uses a <a href="https://en.wikipedia.org/wiki/Help:Templates">English Wikipedia template</a> in the source of its article or description.`,
-			[]string{`"relation" claim type`},
-		},
-		{
-			"uses Wikimedia Commons template",
-			`Entity uses a <a href="https://commons.wikimedia.org/wiki/Help:Templates">Wikimedia Commons template</a> in the source of its article or description.`,
-			[]string{`"relation" claim type`},
-		},
-		{
-			"in English Wikipedia category",
-			`Entity is in <a href="https://en.wikipedia.org/wiki/Help:Category">English Wikipedia category</a>.`,
-			[]string{`"relation" claim type`},
-		},
-		{
-			"in Wikimedia Commons category",
-			`Entity is in <a href="https://commons.wikimedia.org/wiki/Commons:Categories">Wikimedia Commons category</a>.`,
-			[]string{`"relation" claim type`},
-		},
 	}
 
-	nameSpaceStandardProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
+	nameSpaceCoreProperties = uuid.MustParse("34cd10b4-5731-46b8-a6dd-45444680ca62")
 
 	// TODO: Use sync.Map?
 
-	// StandardProperties is a map from a standard property ID to a document describing it.
-	StandardProperties = map[string]Document{}
+	// CoreProperties is a map from a core property ID to a document describing it.
+	CoreProperties = map[string]Document{}
 )
 
-func GetStandardPropertyReference(mnemonic string) DocumentReference {
-	property, ok := StandardProperties[string(GetStandardPropertyID(mnemonic))]
+func GetCorePropertyReference(mnemonic string) DocumentReference {
+	property, ok := CoreProperties[string(GetCorePropertyID(mnemonic))]
 	if !ok {
-		panic(errors.Errorf(`standard property for mnemonic "%s" cannot be found`, mnemonic))
+		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
 	}
 	return DocumentReference{
 		ID:     property.ID,
@@ -284,26 +178,33 @@ func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
 	return Identifier(identifier.FromUUID(res))
 }
 
-func GetStandardPropertyID(mnemonic string) Identifier {
-	return GetID(nameSpaceStandardProperties, mnemonic)
+func GetCorePropertyID(mnemonic string) Identifier {
+	return GetID(nameSpaceCoreProperties, mnemonic)
 }
 
 func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...interface{}) Identifier {
 	a := []interface{}{}
 	a = append(a, propertyMnemonic, claimMnemonic, i)
 	a = append(a, args...)
-	return GetID(nameSpaceStandardProperties, a...)
+	return GetID(nameSpaceCoreProperties, a...)
 }
 
-func populateStandardProperties() {
-	for _, builtinProperty := range builtinProperties {
-		mnemonic := getMnemonic(builtinProperty.Name)
-		id := string(GetStandardPropertyID(mnemonic))
-		StandardProperties[id] = Document{
+func GenerateCoreProperties(properties []struct {
+	Name            string
+	DescriptionHTML string
+	Is              []string
+},
+) map[string]Document {
+	populatedProperties := make(map[string]Document)
+
+	for _, property := range properties {
+		mnemonic := getMnemonic(property.Name)
+		id := string(GetCorePropertyID(mnemonic))
+		populatedProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
 				Name: Name{
-					"en": builtinProperty.Name,
+					"en": property.Name,
 				},
 				Score: 0.0,
 			},
@@ -316,14 +217,14 @@ func populateStandardProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetStandardPropertyID("DESCRIPTION"),
+							ID: GetCorePropertyID("DESCRIPTION"),
 							Name: Name{
 								"en": "description",
 							},
 							Score: 0.0,
 						},
 						HTML: TranslatableHTMLString{
-							"en": builtinProperty.DescriptionHTML,
+							"en": property.DescriptionHTML,
 						},
 					},
 				},
@@ -334,14 +235,14 @@ func populateStandardProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetStandardPropertyID("IS"),
+							ID: GetCorePropertyID("IS"),
 							Name: Name{
 								"en": "is",
 							},
 							Score: 0.0,
 						},
 						To: DocumentReference{
-							ID: GetStandardPropertyID("PROPERTY"),
+							ID: GetCorePropertyID("PROPERTY"),
 							Name: Name{
 								"en": "property",
 							},
@@ -352,8 +253,8 @@ func populateStandardProperties() {
 			},
 		}
 
-		activeClaimTypes := StandardProperties[id].Active
-		for _, isClaim := range builtinProperty.Is {
+		activeClaimTypes := populatedProperties[id].Active
+		for _, isClaim := range property.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
 			activeClaimTypes.Relation = append(activeClaimTypes.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
@@ -361,14 +262,14 @@ func populateStandardProperties() {
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID: GetStandardPropertyID("IS"),
+					ID: GetCorePropertyID("IS"),
 					Name: Name{
 						"en": "is",
 					},
 					Score: 0.0,
 				},
 				To: DocumentReference{
-					ID: GetStandardPropertyID(isClaimMnemonic),
+					ID: GetCorePropertyID(isClaimMnemonic),
 					Name: Name{
 						"en": isClaim,
 					},
@@ -376,88 +277,96 @@ func populateStandardProperties() {
 				},
 			})
 		}
+	}
 
-		for _, claimType := range claimTypes {
-			name := fmt.Sprintf(`"%s" claim type`, claimType)
-			mnemonic := getMnemonic(name)
-			id := string(GetStandardPropertyID(mnemonic))
-			description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
-			StandardProperties[id] = Document{
-				CoreDocument: CoreDocument{
-					ID: Identifier(id),
-					Name: Name{
-						"en": name,
-					},
-					Score: 0.0,
+	return populatedProperties
+}
+
+func generateAllCoreProperties() {
+	for id, document := range GenerateCoreProperties(builtinProperties) {
+		CoreProperties[id] = document
+	}
+
+	for _, claimType := range claimTypes {
+		name := fmt.Sprintf(`"%s" claim type`, claimType)
+		mnemonic := getMnemonic(name)
+		id := string(GetCorePropertyID(mnemonic))
+		description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
+		CoreProperties[id] = Document{
+			CoreDocument: CoreDocument{
+				ID: Identifier(id),
+				Name: Name{
+					"en": name,
 				},
-				Mnemonic: Mnemonic(mnemonic),
-				Active: &ClaimTypes{
-					Text: TextClaims{
-						{
-							CoreClaim: CoreClaim{
-								ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
-								Confidence: 1.0,
-							},
-							Prop: DocumentReference{
-								ID: GetStandardPropertyID("DESCRIPTION"),
-								Name: Name{
-									"en": "description",
-								},
-								Score: 0.0,
-							},
-							HTML: TranslatableHTMLString{
-								"en": html.EscapeString(description),
-							},
+				Score: 0.0,
+			},
+			Mnemonic: Mnemonic(mnemonic),
+			Active: &ClaimTypes{
+				Text: TextClaims{
+					{
+						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
+							Confidence: 1.0,
 						},
-					},
-					Relation: RelationClaims{
-						{
-							CoreClaim: CoreClaim{
-								ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
-								Confidence: 1.0,
+						Prop: DocumentReference{
+							ID: GetCorePropertyID("DESCRIPTION"),
+							Name: Name{
+								"en": "description",
 							},
-							Prop: DocumentReference{
-								ID: GetStandardPropertyID("IS"),
-								Name: Name{
-									"en": "is",
-								},
-								Score: 0.0,
-							},
-							To: DocumentReference{
-								ID: GetStandardPropertyID("PROPERTY"),
-								Name: Name{
-									"en": "property",
-								},
-								Score: 0.0,
-							},
+							Score: 0.0,
 						},
-						{
-							CoreClaim: CoreClaim{
-								ID:         getPropertyClaimID(mnemonic, "IS", 0, "CLAIM_TYPE", 0),
-								Confidence: 1.0,
-							},
-							Prop: DocumentReference{
-								ID: GetStandardPropertyID("IS"),
-								Name: Name{
-									"en": "is",
-								},
-								Score: 0.0,
-							},
-							To: DocumentReference{
-								ID: GetStandardPropertyID("CLAIM_TYPE"),
-								Name: Name{
-									"en": "claim type",
-								},
-								Score: 0.0,
-							},
+						HTML: TranslatableHTMLString{
+							"en": html.EscapeString(description),
 						},
 					},
 				},
-			}
+				Relation: RelationClaims{
+					{
+						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID: GetCorePropertyID("IS"),
+							Name: Name{
+								"en": "is",
+							},
+							Score: 0.0,
+						},
+						To: DocumentReference{
+							ID: GetCorePropertyID("PROPERTY"),
+							Name: Name{
+								"en": "property",
+							},
+							Score: 0.0,
+						},
+					},
+					{
+						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "IS", 0, "CLAIM_TYPE", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID: GetCorePropertyID("IS"),
+							Name: Name{
+								"en": "is",
+							},
+							Score: 0.0,
+						},
+						To: DocumentReference{
+							ID: GetCorePropertyID("CLAIM_TYPE"),
+							Name: Name{
+								"en": "claim type",
+							},
+							Score: 0.0,
+						},
+					},
+				},
+			},
 		}
 	}
 }
 
 func init() {
-	populateStandardProperties()
+	generateAllCoreProperties()
 }

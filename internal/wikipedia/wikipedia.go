@@ -58,8 +58,8 @@ func ConvertWikipediaArticle(id, html string, document *search.Document) errors.
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("LABEL"),
-			To:   search.GetStandardPropertyReference("HAS_ARTICLE"),
+			Prop: search.GetCorePropertyReference("LABEL"),
+			To:   search.GetCorePropertyReference("HAS_ARTICLE"),
 		}
 		err = document.Add(claim)
 		if err != nil {
@@ -130,7 +130,7 @@ func updateTextClaim(claimID search.Identifier, document *search.Document, prop,
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference(prop),
+			Prop: search.GetCorePropertyReference(prop),
 			HTML: search.TranslatableHTMLString{
 				"en": value,
 			},
@@ -193,7 +193,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop:       search.GetStandardPropertyReference(mnemonicPrefix + "_PAGE_ID"),
+			Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
 			Identifier: strconv.FormatInt(pageID, 10), //nolint:gomnd
 		}
 		err := document.Add(claim)
@@ -290,7 +290,7 @@ func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, 
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
+			Prop: search.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
 			To:   getDocumentReference(category, mnemonicPrefix),
 		}
 		err := document.Add(claim)
@@ -314,7 +314,7 @@ func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix
 				ID:         claimID,
 				Confidence: HighConfidence,
 			},
-			Prop: search.GetStandardPropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
+			Prop: search.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
 			To:   getDocumentReference(template, mnemonicPrefix),
 		}
 		err := document.Add(claim)
@@ -350,7 +350,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	// TODO: Construct better the name. E.g., remove underscores.
 	escapedName := html.EscapeString(redirect)
 	found := false
-	for _, claim := range document.Get(search.GetStandardPropertyID("ALSO_KNOWN_AS")) {
+	for _, claim := range document.Get(search.GetCorePropertyID("ALSO_KNOWN_AS")) {
 		if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
 			found = true
 			break
@@ -364,7 +364,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 			ID:         claimID,
 			Confidence: MediumConfidence,
 		},
-		Prop: search.GetStandardPropertyReference("ALSO_KNOWN_AS"),
+		Prop: search.GetCorePropertyReference("ALSO_KNOWN_AS"),
 		HTML: search.TranslatableHTMLString{
 			"en": escapedName,
 		},

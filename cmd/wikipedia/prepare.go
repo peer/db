@@ -45,7 +45,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 	defer processor.Close()
 
-	errE = c.saveStandardProperties(ctx, globals, esClient, processor)
+	errE = c.saveCoreProperties(ctx, globals, esClient, processor)
 	if errE != nil {
 		return errE
 	}
@@ -53,8 +53,8 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 	return c.updateEmbeddedDocuments(ctx, globals, esClient, processor, cache)
 }
 
-func (c *PrepareCommand) saveStandardProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
-	for _, property := range search.StandardProperties {
+func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
+	for _, property := range search.CoreProperties {
 		property := property
 		globals.Log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
 		insertOrReplaceDocument(processor, globals.Index, &property)

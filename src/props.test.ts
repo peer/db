@@ -1,6 +1,6 @@
 import { assert, test } from "vitest"
 
-import { getStandardPropertyID, getWikidataDocumentID } from "@/props"
+import { getCorePropertyID, getWikidataDocumentID } from "@/props"
 
 test.each([
   ["MEDIAWIKI_MEDIA_TYPE", "BfSBAS8qXcBgFkc7TmDuxK"],
@@ -9,8 +9,8 @@ test.each([
   ["ARTICLE", "FJJLydayUgDuqFsRK2ZtbR"],
   ["LABEL", "5SoFeEFk5aWXUYFC1EZFec"],
   ["IS", "2fjzZyP7rv8E4aHnBc6KAa"],
-])("getStandardPropertyID(%s)", (m, u) => {
-  assert.equal(getStandardPropertyID(m), u)
+])("getCorePropertyID(%s)", (m, u) => {
+  assert.equal(getCorePropertyID(m), u)
 })
 
 test.each([

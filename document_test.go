@@ -52,7 +52,7 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, search.Document{
@@ -63,7 +63,7 @@ func TestDocument(t *testing.T) {
 						ID:         id,
 						Confidence: 1.0,
 					},
-					Prop: search.GetStandardPropertyReference("ARTICLE"),
+					Prop: search.GetCorePropertyReference("ARTICLE"),
 				},
 			},
 		},
@@ -74,16 +74,16 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	claims := doc.Get(search.GetStandardPropertyID("ARTICLE"))
+	claims := doc.Get(search.GetCorePropertyID("ARTICLE"))
 	assert.Equal(t, []search.Claim{
 		&search.NoValueClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         id,
 				Confidence: 1.0,
 			},
-			Prop: search.GetStandardPropertyReference("ARTICLE"),
+			Prop: search.GetCorePropertyReference("ARTICLE"),
 		},
 	}, claims)
 	claim = doc.RemoveByID(id)
@@ -92,7 +92,7 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 	assert.Equal(t, search.Document{}, doc)
 
@@ -103,7 +103,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, &search.NoValueClaim{
@@ -117,12 +117,12 @@ func TestDocument(t *testing.T) {
 							ID:         id2,
 							Confidence: 1.0,
 						},
-						Prop: search.GetStandardPropertyReference("ARTICLE"),
+						Prop: search.GetCorePropertyReference("ARTICLE"),
 					},
 				},
 			},
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 	metaClaim := claim.GetMetaByID(id2)
 	assert.Equal(t, &search.UnknownValueClaim{
@@ -130,7 +130,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
 	metaClaim = claim.RemoveMetaByID(id2)
 	assert.Equal(t, &search.UnknownValueClaim{
@@ -138,13 +138,13 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
 	assert.Equal(t, &search.NoValueClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetStandardPropertyReference("ARTICLE"),
+		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 }
