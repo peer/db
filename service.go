@@ -402,7 +402,15 @@ func (s *Service) RouteWith(router *Router, version string) (http.Handler, error
 	}
 
 	if s.Development != "" {
-		errE := s.makeReverseProxy()
+		errE := s.renderAndCompressContext()
+		if errE != nil {
+			return nil, errE
+		}
+		errE = s.computeEtags()
+		if errE != nil {
+			return nil, errE
+		}
+		errE = s.makeReverseProxy()
 		if errE != nil {
 			return nil, errE
 		}
@@ -411,6 +419,10 @@ func (s *Service) RouteWith(router *Router, version string) (http.Handler, error
 		router.NotAcceptable = logHandlerName(autoName(s.Proxy), s.Proxy)
 	} else {
 		errE := s.renderAndCompressFiles()
+		if errE != nil {
+			return nil, errE
+		}
+		errE = s.renderAndCompressContext()
 		if errE != nil {
 			return nil, errE
 		}
@@ -508,7 +520,7 @@ func (s *Service) renderAndCompressFiles() errors.E {
 
 				var errE errors.E
 				if strings.HasSuffix(path, ".html") {
-					data, errE = render(path, data, site)
+					data, errE = s.render(path, data, site)
 					if errE != nil {
 						return errE
 					}
@@ -525,6 +537,41 @@ func (s *Service) renderAndCompressFiles() errors.E {
 			if err != nil {
 				return errors.WithStack(err)
 			}
+		}
+
+		// Map cannot be modified directly, so we modify the copy
+		// and store it back into the map.
+		s.Sites[domain] = site
+	}
+
+	return nil
+}
+
+func (s *Service) renderAndCompressContext() errors.E {
+	for domain, site := range s.Sites {
+		// In development, this method could be called first and compressedFiles are not yet
+		// initialized (as requests for other files are proxied to Vite), while in production
+		// compressedFiles has already been initialized and populated by built static files.
+		if site.compressedFiles == nil {
+			site.compressedFiles = make(map[string]map[string][]byte)
+		}
+
+		for _, compression := range allCompressions {
+			if _, ok := site.compressedFiles[compression]; !ok {
+				site.compressedFiles[compression] = make(map[string][]byte)
+			}
+
+			data, errE := x.MarshalWithoutEscapeHTML(s.getSiteContext(site))
+			if errE != nil {
+				return errE
+			}
+
+			data, errE = compress(compression, data)
+			if errE != nil {
+				return errE
+			}
+
+			site.compressedFiles[compression]["/context.json"] = data
 		}
 
 		// Map cannot be modified directly, so we modify the copy

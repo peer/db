@@ -216,7 +216,7 @@ generated as described in the [Usage section](#usage).
 Backend listens at [https://localhost:8080/](https://localhost:8080/).
 
 `-d` CLI argument makes the backend proxy unknown requests (non-API requests)
-to the frontend.
+to the frontend. In this mode any placeholders in HTML files are not rendered.
 
 You can also run `make watch` to reload the backend on file changes. You have to install
 [CompileDaemon](https://github.com/githubnemo/CompileDaemon) first:

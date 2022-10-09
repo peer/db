@@ -3,6 +3,11 @@ import { createRouter, createWebHistory } from "vue-router"
 import Main from "@/Main.vue"
 import { routes } from "@/../routes.json"
 import "./main.css"
+import siteContext from "@/context"
+
+// During development when requests are proxied to Vite, placeholders
+// in HTML files are not rendered. So we set them here as well.
+document.title = siteContext.site.title
 
 const router = createRouter({
   history: createWebHistory(),

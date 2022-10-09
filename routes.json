@@ -29,6 +29,10 @@
       "path": "/d/:id"
     },
     {
+      "name": "ContextGet",
+      "path": "/context.json"
+    },
+    {
       "name": "HomeGet",
       "path": "/"
     }

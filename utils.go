@@ -137,7 +137,7 @@ func (s *Service) serveStaticFiles(router *Router) errors.E {
 
 	for _, site := range s.Sites {
 		for path := range site.compressedFiles[compressionIdentity] {
-			if path == "/index.html" {
+			if path == "/index.html" || path == "/context.json" {
 				continue
 			}
 
@@ -236,19 +236,13 @@ func (s *Service) notFoundWithError(w http.ResponseWriter, req *http.Request, er
 	s.NotFound(w, req, nil)
 }
 
-type renderContext struct {
-	Site Site `json:"site"`
-}
-
-func render(path string, data []byte, site Site) ([]byte, errors.E) {
+func (s *Service) render(path string, data []byte, site Site) ([]byte, errors.E) {
 	t, err := template.New(path).Parse(string(data))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	var out bytes.Buffer
-	err = t.Execute(&out, renderContext{
-		Site: site,
-	})
+	err = t.Execute(&out, s.getSiteContext(site))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

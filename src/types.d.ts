@@ -265,6 +265,13 @@ export type ServerQuery = { s?: string; q?: string; filters?: Filters }
 
 export type ClientQuery = { s?: string; at?: string; q?: string }
 
+export type SiteContext = {
+  site: {
+    index: string
+    title: string
+  }
+}
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>
