@@ -1,11 +1,14 @@
 package search
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/identifier"
@@ -365,6 +368,26 @@ func generateAllCoreProperties() {
 			},
 		}
 	}
+}
+
+func SaveCoreProperties(ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, index string) errors.E {
+	for _, property := range CoreProperties {
+		property := property
+		log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
+		InsertOrReplaceDocument(processor, index, &property)
+	}
+
+	// Make sure all just added documents are available for search.
+	err := processor.Flush()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	_, err = esClient.Refresh(index).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
 
 func init() {

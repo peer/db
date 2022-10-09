@@ -54,23 +54,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
-	for _, property := range search.CoreProperties {
-		property := property
-		globals.Log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
-		insertOrReplaceDocument(processor, globals.Index, &property)
-	}
-
-	// Make sure all just added documents are available for search.
-	err := processor.Flush()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	_, err = esClient.Refresh(globals.Index).Do(ctx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
+	return search.SaveCoreProperties(ctx, globals.Log, esClient, processor, globals.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
@@ -178,7 +162,7 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 
 	if changed {
 		log.Debug().Str("doc", string(document.ID)).Msg("updating document")
-		updateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &document)
+		search.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &document)
 	}
 
 	return nil

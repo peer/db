@@ -227,7 +227,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -359,7 +359,7 @@ func wikipediaArticlesProcessArticle(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }

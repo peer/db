@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
+	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -131,7 +132,7 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -337,7 +338,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -507,7 +508,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }

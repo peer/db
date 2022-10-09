@@ -10,6 +10,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
+	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -92,7 +93,7 @@ func (c *WikidataCommand) processEntity(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
-	insertOrReplaceDocument(processor, globals.Index, document)
+	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }

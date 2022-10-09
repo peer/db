@@ -496,3 +496,15 @@ func (c *metricsConn) Write(b []byte) (int, error) {
 	atomic.AddInt64(c.written, int64(n))
 	return n, err
 }
+
+// insertOrReplaceDocument inserts or replaces the document based on its ID.
+func InsertOrReplaceDocument(processor *elastic.BulkProcessor, index string, doc *Document) {
+	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).Doc(doc)
+	processor.Add(req)
+}
+
+// updateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on seqNo and primaryTerm).
+func UpdateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *Document) {
+	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
+	processor.Add(req)
+}

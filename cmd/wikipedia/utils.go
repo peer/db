@@ -38,18 +38,6 @@ const (
 	lruCacheSize = 1000000
 )
 
-// insertOrReplaceDocument inserts or replaces the document based on its ID.
-func insertOrReplaceDocument(processor *elastic.BulkProcessor, index string, doc *search.Document) {
-	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).Doc(doc)
-	processor.Add(req)
-}
-
-// updateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on seqNo and primaryTerm).
-func updateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *search.Document) {
-	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
-	processor.Add(req)
-}
-
 func populateSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	if path == "" {
 		return nil
@@ -436,7 +424,7 @@ func templatesCommandProcessPage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	updateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -506,7 +494,7 @@ func filesCommandProcessImage(
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
-	insertOrReplaceDocument(processor, globals.Index, document)
+	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }
