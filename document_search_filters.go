@@ -27,8 +27,7 @@ func (s *Service) populateProperties(ctx context.Context) errors.E {
 
 	for domain, site := range s.Sites {
 		total, err := s.ESClient.Count(site.Index).Query(query).Do(ctx)
-		// TODO: Create missing indices and populate with base properties?
-		if err != nil && !elastic.IsNotFound(err) {
+		if err != nil {
 			return errors.Errorf(`site "%s": %w`, site.Index, err)
 		}
 		// Map cannot be modified directly, so we modify the copy
