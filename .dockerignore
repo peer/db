@@ -35,5 +35,6 @@ codeclimate.json
 /search
 /wikipedia
 /mapping
+/moma
 *.pem
 /keys.txt
