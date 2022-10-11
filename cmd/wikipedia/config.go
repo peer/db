@@ -2,18 +2,11 @@ package main
 
 import (
 	"reflect"
-	"time"
 
 	"github.com/alecthomas/kong"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/search/internal/cli"
-)
-
-const (
-	bulkProcessorWorkers = 2
-	clientRetryWaitMax   = 10 * 60 * time.Second
-	clientRetryMax       = 9
 )
 
 const (

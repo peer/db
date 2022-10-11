@@ -6,19 +6,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -30,7 +26,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/cli"
+	"gitlab.com/peerdb/search/internal/es"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -101,71 +97,11 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	return nil
 }
 
-func prepareFields(keysAndValues []interface{}) {
-	for i, keyOrValue := range keysAndValues {
-		// We want URLs logged as strings.
-		u, ok := keyOrValue.(*url.URL)
-		if ok {
-			keysAndValues[i] = u.String()
-		}
-	}
-}
-
-type retryableHTTPLoggerAdapter struct {
-	log zerolog.Logger
-}
-
-func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.log.Error().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.log.Info().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.log.Debug().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.log.Warn().Fields(keysAndValues).Msg(msg)
-}
-
-var _ retryablehttp.LeveledLogger = (*retryableHTTPLoggerAdapter)(nil)
-
 func initializeElasticSearch(globals *Globals) (
-	context.Context, context.CancelFunc, *http.Client, *elastic.Client,
+	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *wikipedia.Cache, errors.E,
 ) {
-	ctx := context.Background()
-
-	// We call cancel on SIGINT or SIGTERM signal.
-	ctx, cancel := context.WithCancel(ctx)
-
-	// Call cancel on SIGINT or SIGTERM signal.
-	go func() {
-		c := make(chan os.Signal, 1)
-		defer close(c)
-
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		defer signal.Stop(c)
-
-		// We wait for a signal or that the context is canceled
-		// or that all goroutines are done.
-		select {
-		case <-c:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
-	httpClient := cleanhttp.DefaultPooledClient()
-
-	esClient, errE := search.EnsureIndex(ctx, httpClient, globals.Log, globals.Elastic, globals.Index)
+	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Log, globals.Elastic, globals.Index)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -175,26 +111,7 @@ func initializeElasticSearch(globals *Globals) (
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	// TODO: Make number of workers configurable.
-	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
-		func(executionId int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
-			if err != nil {
-				globals.Log.Error().Err(err).Msg("indexing error")
-			} else if failed := response.Failed(); len(failed) > 0 {
-				for _, f := range failed {
-					globals.Log.Error().
-						Str("id", f.Id).Int("code", f.Status).
-						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
-						Msg("indexing error")
-				}
-			}
-		},
-	).Do(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, errors.WithStack(err)
-	}
-
-	return ctx, cancel, httpClient, esClient, processor, cache, nil
+	return ctx, cancel, httpClient, esClient, processor, cache, errE
 }
 
 func initializeRun(
@@ -205,21 +122,9 @@ func initializeRun(
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
-	ctx, cancel, simpleHTTPClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
+	ctx, cancel, httpClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, nil, errE
-	}
-
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient = simpleHTTPClient
-	httpClient.RetryWaitMax = clientRetryWaitMax
-	httpClient.RetryMax = clientRetryMax
-	httpClient.Logger = retryableHTTPLoggerAdapter{globals.Log}
-
-	// Set User-Agent header.
-	httpClient.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
-		// TODO: Make contact e-mail into a CLI argument.
-		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
 	}
 
 	if urlFunc != nil {
