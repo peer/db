@@ -29,9 +29,11 @@ dist-ssr
 tests.xml
 coverage.*
 codeclimate.json
+/coverage
 /.cache
 /output
 /search
 /wikipedia
 /mapping
 *.pem
+/keys.txt
