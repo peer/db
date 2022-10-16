@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -119,6 +120,8 @@ func ListAllPages(
 				return errE
 			}
 			defer resp.Body.Close()
+			defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+
 			if resp.StatusCode != http.StatusOK {
 				body, _ := io.ReadAll(resp.Body)
 				errE := errors.New("bad response status")
@@ -235,6 +238,7 @@ func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, site, ti
 		return "", errE
 	}
 	defer resp.Body.Close()
+	defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {

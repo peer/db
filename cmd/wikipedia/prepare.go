@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -58,7 +59,7 @@ func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Global
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -134,7 +135,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *wikipedia.Cache, hit *elastic.SearchHit,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache, hit *elastic.SearchHit,
 ) errors.E {
 	var document search.Document
 	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &document)

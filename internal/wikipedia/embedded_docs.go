@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 )
 
 var referenceNotFoundError = errors.Base("document reference to a nonexistent document")
@@ -21,7 +22,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	Context                      context.Context
 	Log                          zerolog.Logger
 	Index                        string
-	Cache                        *Cache
+	Cache                        *es.Cache
 	SkippedWikidataEntities      *sync.Map
 	SkippedWikimediaCommonsFiles *sync.Map
 	ESClient                     *elastic.Client
@@ -526,7 +527,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *Cache,
+	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
 	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, document *search.Document,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.

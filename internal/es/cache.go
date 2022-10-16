@@ -1,4 +1,4 @@
-package wikipedia
+package es
 
 import (
 	"sync/atomic"

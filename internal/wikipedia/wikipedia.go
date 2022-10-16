@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 )
 
 var (
@@ -56,7 +57,7 @@ func ConvertWikipediaArticle(id, html string, document *search.Document) errors.
 		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: HighConfidence,
+				Confidence: es.HighConfidence,
 			},
 			Prop: search.GetCorePropertyReference("LABEL"),
 			To:   search.GetCorePropertyReference("HAS_ARTICLE"),
@@ -128,7 +129,7 @@ func updateTextClaim(claimID search.Identifier, document *search.Document, prop,
 		claim := &search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: HighConfidence,
+				Confidence: es.HighConfidence,
 			},
 			Prop: search.GetCorePropertyReference(prop),
 			HTML: search.TranslatableHTMLString{
@@ -191,7 +192,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: HighConfidence,
+				Confidence: es.HighConfidence,
 			},
 			Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
 			Identifier: strconv.FormatInt(pageID, 10), //nolint:gomnd
@@ -288,7 +289,7 @@ func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, 
 		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: HighConfidence,
+				Confidence: es.HighConfidence,
 			},
 			Prop: search.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
 			To:   getDocumentReference(category, mnemonicPrefix),
@@ -312,7 +313,7 @@ func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix
 		claim := &search.RelationClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         claimID,
-				Confidence: HighConfidence,
+				Confidence: es.HighConfidence,
 			},
 			Prop: search.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
 			To:   getDocumentReference(template, mnemonicPrefix),
@@ -362,7 +363,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	claim := &search.TextClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         claimID,
-			Confidence: MediumConfidence,
+			Confidence: es.MediumConfidence,
 		},
 		Prop: search.GetCorePropertyReference("ALSO_KNOWN_AS"),
 		HTML: search.TranslatableHTMLString{

@@ -21,10 +21,10 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 )
 
 const (
-	previewSize  = 256
 	longFilename = 160
 	maxPreviews  = 100
 )
@@ -388,7 +388,7 @@ func getDuration(ctx context.Context, httpClient *retryablehttp.Client, image Im
 
 // Implementation matches includes/media/MediaHandler.php's fitBoxWidth of Mediawiki.
 func fitBoxWidth(width, height float64) int {
-	previewSizeFloat := float64(previewSize)
+	previewSizeFloat := float64(es.PreviewSize)
 	idealWidth := width * previewSizeFloat / height
 	roundedUp := math.Ceil(idealWidth)
 	if math.Round(roundedUp*height/width) > previewSizeFloat {
@@ -427,7 +427,7 @@ func convertImage(
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
-						Confidence: HighConfidence,
+						Confidence: es.HighConfidence,
 					},
 					Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
@@ -437,7 +437,7 @@ func convertImage(
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
-						Confidence: HighConfidence,
+						Confidence: es.HighConfidence,
 					},
 					Prop: search.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
@@ -445,7 +445,7 @@ func convertImage(
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
-						Confidence: HighConfidence,
+						Confidence: es.HighConfidence,
 					},
 					Prop: search.GetCorePropertyReference("FILE_URL"),
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
@@ -455,7 +455,7 @@ func convertImage(
 				{
 					CoreClaim: search.CoreClaim{
 						ID:         search.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
-						Confidence: HighConfidence,
+						Confidence: es.HighConfidence,
 					},
 					Prop: search.GetCorePropertyReference("IS"),
 					To:   search.GetCorePropertyReference("FILE"),
@@ -499,7 +499,7 @@ func convertImage(
 	err := document.Add(&search.StringClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
-			Confidence: HighConfidence,
+			Confidence: es.HighConfidence,
 		},
 		Prop:   search.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
@@ -510,7 +510,7 @@ func convertImage(
 	err = document.Add(&search.StringClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
-			Confidence: HighConfidence,
+			Confidence: es.HighConfidence,
 		},
 		Prop:   search.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
@@ -526,7 +526,7 @@ func convertImage(
 	err = document.Add(&search.AmountClaim{
 		CoreClaim: search.CoreClaim{
 			ID:         search.GetID(namespace, image.Name, "SIZE", 0),
-			Confidence: HighConfidence,
+			Confidence: es.HighConfidence,
 		},
 		Prop:   search.GetCorePropertyReference("SIZE"),
 		Amount: float64(image.Size),
@@ -550,7 +550,7 @@ func convertImage(
 			err = document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
-					Confidence: MediumConfidence,
+					Confidence: es.MediumConfidence,
 				},
 				Prop:   search.GetCorePropertyReference("PAGE_COUNT"),
 				Amount: float64(pageCount),
@@ -575,7 +575,7 @@ func convertImage(
 			err := document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
-					Confidence: MediumConfidence,
+					Confidence: es.MediumConfidence,
 				},
 				Prop:   search.GetCorePropertyReference("LENGTH"),
 				Amount: duration,
@@ -595,13 +595,13 @@ func convertImage(
 	if !noPreview[mediaType] {
 		if image.Width == 0 || image.Height == 0 {
 			log.Warn().Str("file", image.Name).Msgf("expected width/height (%dx%d)", image.Width, image.Height)
-		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(previewSize) && image.Height <= int64(previewSize) {
+		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(es.PreviewSize) && image.Height <= int64(es.PreviewSize) {
 			// If the image is small, we link directly to the image.
 			previews = append(previews,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 			)
 		} else {
-			width := previewSize
+			width := es.PreviewSize
 			if image.Height > image.Width {
 				// Height is at least 1 here, because it is strictly larger than width, which can be at least 0.
 				width = fitBoxWidth(float64(image.Width), float64(image.Height))
@@ -668,13 +668,13 @@ func convertImage(
 			err = document.Add(&search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i),
-					Confidence: HighConfidence,
+					Confidence: es.HighConfidence,
 					Meta: &search.ClaimTypes{
 						Identifier: search.IdentifierClaims{
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
-									Confidence: HighConfidence,
+									Confidence: es.HighConfidence,
 								},
 								Prop:       search.GetCorePropertyReference("LIST"),
 								Identifier: previewsList,
@@ -684,7 +684,7 @@ func convertImage(
 							{
 								CoreClaim: search.CoreClaim{
 									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
-									Confidence: HighConfidence,
+									Confidence: es.HighConfidence,
 								},
 								Prop:   search.GetCorePropertyReference("ORDER"),
 								Amount: float64(i),
@@ -707,7 +707,7 @@ func convertImage(
 		err = document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
-				Confidence: MediumConfidence,
+				Confidence: es.MediumConfidence,
 			},
 			Prop:   search.GetCorePropertyReference("WIDTH"),
 			Amount: float64(image.Width),
@@ -719,7 +719,7 @@ func convertImage(
 		err = document.Add(&search.AmountClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, image.Name, "HEIGHT", 0),
-				Confidence: MediumConfidence,
+				Confidence: es.MediumConfidence,
 			},
 			Prop:   search.GetCorePropertyReference("HEIGHT"),
 			Amount: float64(image.Height),

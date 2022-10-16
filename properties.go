@@ -196,14 +196,11 @@ func GenerateCoreProperties(properties []struct {
 	Name            string
 	DescriptionHTML string
 	Is              []string
-},
-) map[string]Document {
-	populatedProperties := make(map[string]Document)
-
+}) {
 	for _, property := range properties {
 		mnemonic := getMnemonic(property.Name)
 		id := string(GetCorePropertyID(mnemonic))
-		populatedProperties[id] = Document{
+		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID: Identifier(id),
 				Name: Name{
@@ -256,7 +253,7 @@ func GenerateCoreProperties(properties []struct {
 			},
 		}
 
-		activeClaimTypes := populatedProperties[id].Active
+		activeClaimTypes := CoreProperties[id].Active
 		for _, isClaim := range property.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
 			activeClaimTypes.Relation = append(activeClaimTypes.Relation, RelationClaim{
@@ -281,14 +278,10 @@ func GenerateCoreProperties(properties []struct {
 			})
 		}
 	}
-
-	return populatedProperties
 }
 
 func generateAllCoreProperties() {
-	for id, document := range GenerateCoreProperties(builtinProperties) {
-		CoreProperties[id] = document
-	}
+	GenerateCoreProperties(builtinProperties)
 
 	for _, claimType := range claimTypes {
 		name := fmt.Sprintf(`"%s" claim type`, claimType)

@@ -99,14 +99,14 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 
 func initializeElasticSearch(globals *Globals) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
-	*elastic.BulkProcessor, *wikipedia.Cache, errors.E,
+	*elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
 	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Log, globals.Elastic, globals.Index)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	cache, errE := wikipedia.NewCache(lruCacheSize)
+	cache, errE := es.NewCache(lruCacheSize)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -120,7 +120,7 @@ func initializeRun(
 	count *int64,
 ) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
-	*elastic.BulkProcessor, *wikipedia.Cache, *mediawiki.ProcessDumpConfig, errors.E,
+	*elastic.BulkProcessor, *es.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
 	ctx, cancel, httpClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
 	if errE != nil {
@@ -150,16 +150,7 @@ func initializeRun(
 			DecompressionThreads:   globals.DecodingThreads,
 			DecodingThreads:        globals.DecodingThreads,
 			ItemsProcessingThreads: globals.ItemsProcessingThreads,
-			Progress: func(ctx context.Context, p x.Progress) {
-				stats := processor.Stats()
-				e := globals.Log.Info().
-					Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
-					Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String())
-				if count != nil {
-					e = e.Int64("skipped", atomic.LoadInt64(count))
-				}
-				e.Msgf("progress %0.2f%%", p.Percent())
-			},
+			Progress:               es.Progress(globals.Log, processor, cache, count, ""),
 		}, nil
 	}
 

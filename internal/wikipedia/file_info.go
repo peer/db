@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -121,6 +122,8 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		return errE
 	}
 	defer resp.Body.Close()
+	defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		errE := errors.New("bad response status")

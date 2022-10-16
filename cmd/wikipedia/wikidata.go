@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -73,7 +74,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *wikipedia.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
 	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Log, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {

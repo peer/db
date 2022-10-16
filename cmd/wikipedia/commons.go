@@ -15,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/internal/es"
 	"gitlab.com/peerdb/search/internal/wikipedia"
 )
 
@@ -78,7 +79,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *wikipedia.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
 	filename := strings.TrimPrefix(entity.Title, "File:")
 	filename = strings.ReplaceAll(filename, " ", "_")

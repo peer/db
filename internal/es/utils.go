@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/cli"
@@ -126,4 +128,27 @@ func Initialize(logger zerolog.Logger, url, index string) (
 	}
 
 	return ctx, cancel, httpClient, esClient, processor, nil
+}
+
+func Progress(logger zerolog.Logger, processor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
+	if description == "" {
+		description = "progress"
+	}
+	return func(ctx context.Context, p x.Progress) {
+		e := logger.Info()
+		if processor != nil {
+			stats := processor.Stats()
+			e = e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
+		} else {
+			e = e.Int64("count", p.Count)
+		}
+		if cache != nil {
+			e = e.Uint64("cacheMiss", cache.MissCount())
+		}
+		e = e.Str("eta", p.Remaining().Truncate(time.Second).String())
+		if skipped != nil {
+			e = e.Int64("skipped", atomic.LoadInt64(skipped))
+		}
+		e.Msgf("%s %0.2f%%", description, p.Percent())
+	}
 }
