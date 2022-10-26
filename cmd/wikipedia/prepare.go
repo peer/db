@@ -64,8 +64,6 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
 
-	var count x.Counter
-
 	total, err := esClient.Count(globals.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
@@ -73,15 +71,13 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	g, ctx := errgroup.WithContext(ctx)
 
+	count := x.Counter(0)
+	progress := es.Progress(globals.Log, processor, cache, nil, "")
 	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
-			stats := processor.Stats()
-			globals.Log.Info().
-				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("docs", count.Count()).
-				Uint64("cacheMiss", cache.MissCount()).Str("eta", p.Remaining().Truncate(time.Second).String()).
-				Msgf("progress %0.2f%%", p.Percent())
+			progress(ctx, p)
 		}
 	}()
 

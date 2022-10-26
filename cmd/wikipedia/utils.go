@@ -180,7 +180,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 		return wikipedia.ListAllPages(ctx, httpClient, []int{templatesWikipediaNamespace, modulesWikipediaNamespace}, site, limiter, pages)
 	})
 
-	var count x.Counter
+	count := x.Counter(0)
 	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
 	defer ticker.Stop()
 	go func() {

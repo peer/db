@@ -85,9 +85,39 @@ var momaProperties = []struct {
 		[]string{`"reference" claim type`},
 	},
 	{
+		"date",
+		`Date.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"medium",
+		`Medium.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"dimensions",
+		`Dimensions.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"credit",
+		`Credit.`,
+		[]string{`"string" claim type`},
+	},
+	{
 		"MoMA accession number",
 		`<a href="https://www.moma.org/">The Museum of Modern Art</a> (MoMA) accession number.`,
 		[]string{`"identifier" claim type`},
+	},
+	{
+		"classification",
+		`Classification.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"department",
+		`Department.`,
+		[]string{`"string" claim type`},
 	},
 	{
 		"date acquired",

@@ -574,10 +574,10 @@ func convertImage(
 			// We set duration even if it is zero, if the media type should have a duration.
 			err := document.Add(&search.AmountClaim{
 				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, image.Name, "LENGTH", 0),
+					ID:         search.GetID(namespace, image.Name, "DURATION", 0),
 					Confidence: es.MediumConfidence,
 				},
-				Prop:   search.GetCorePropertyReference("LENGTH"),
+				Prop:   search.GetCorePropertyReference("DURATION"),
 				Amount: duration,
 				Unit:   search.AmountUnitSecond,
 			})

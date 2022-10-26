@@ -169,7 +169,7 @@ func getArtistReference(artistsMap map[int]search.Document, constituentID int) (
 }
 
 func index(config *Config) errors.E {
-	ctx, _, httpClient, _, _, errE := es.Initialize(config.Log, config.Elastic, config.Index)
+	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Log, config.Elastic, config.Index)
 	if errE != nil {
 		return errE
 	}
@@ -184,20 +184,20 @@ func index(config *Config) errors.E {
 		return err
 	}
 
-	// err = search.SaveCoreProperties(ctx, config.Log, esClient, processor, config.Index)
-	// if err != nil {
-	// 	return err
-	// }
-
 	count := x.Counter(0)
-	progress := es.Progress(config.Log, nil, nil, nil, "converting")
-	ticker := x.NewTicker(ctx, &count, int64(len(artists))+int64(len(artworks)), progressPrintRate)
+	progress := es.Progress(config.Log, processor, nil, nil, "indexing")
+	ticker := x.NewTicker(ctx, &count, int64(len(search.CoreProperties))+int64(len(artists))+int64(len(artworks)), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
 			progress(ctx, p)
 		}
 	}()
+
+	err = search.SaveCoreProperties(ctx, config.Log, esClient, processor, config.Index)
+	if err != nil {
+		return err
+	}
 
 	artistsMap := map[int]search.Document{}
 
@@ -248,7 +248,7 @@ func index(config *Config) errors.E {
 			err := doc.Add(&search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DESCRIPTION", 0),
-					Confidence: es.HighConfidence,
+					Confidence: es.MediumConfidence,
 				},
 				Prop: search.GetCorePropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{"en": html.EscapeString(artist.ArtistBio)},
@@ -364,6 +364,9 @@ func index(config *Config) errors.E {
 		artistsMap[artist.ConstituentID] = doc
 
 		count.Increment()
+
+		config.Log.Debug().Str("doc", string(doc.ID)).Msg("saving document")
+		search.InsertOrReplaceDocument(processor, config.Index, &doc)
 	}
 
 	artworksMap := map[int]search.Document{}
@@ -395,7 +398,7 @@ func index(config *Config) errors.E {
 							Confidence: es.HighConfidence,
 						},
 						Prop: search.GetCorePropertyReference("MOMA_OBJECT_PAGE"),
-						IRI:  fmt.Sprintf("http://www.moma.org/collection/works/%d", artwork.ObjectID),
+						IRI:  fmt.Sprintf("https://www.moma.org/collection/works/%d", artwork.ObjectID),
 					},
 				},
 				Relation: search.RelationClaims{
@@ -436,11 +439,58 @@ func index(config *Config) errors.E {
 			}
 		}
 
-		// Date            string   `json:"Date"`
-		// Medium          string   `json:"Medium"`
-		// Dimensions      string   `json:"Dimensions"`
-		// CreditLine      string   `json:"CreditLine"`
-
+		if artwork.Date != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DATE"),
+				String: artwork.Date,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Medium != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MEDIUM", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("MEDIUM"),
+				String: artwork.Medium,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Dimensions != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIMENSIONS", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DIMENSIONS"),
+				String: artwork.Dimensions,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.CreditLine != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CREDIT", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("CREDIT"),
+				String: artwork.CreditLine,
+			})
+			if err != nil {
+				return err
+			}
+		}
 		if artwork.AccessionNumber != "" {
 			err := doc.Add(&search.IdentifierClaim{
 				CoreClaim: search.CoreClaim{
@@ -454,10 +504,32 @@ func index(config *Config) errors.E {
 				return err
 			}
 		}
-
-		// Classification  string   `json:"Classification"`
-		// Department      string   `json:"Department"`
-
+		if artwork.Classification != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CLASSIFICATION", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("CLASSIFICATION"),
+				String: artwork.Classification,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Department != "" {
+			err := doc.Add(&search.StringClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPARTMENT", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DEPARTMENT"),
+				String: artwork.Department,
+			})
+			if err != nil {
+				return err
+			}
+		}
 		if artwork.DateAcquired != "" {
 			timestamp, err := time.Parse("2006-01-02", artwork.DateAcquired)
 			if err != nil {
@@ -498,10 +570,125 @@ func index(config *Config) errors.E {
 				return err
 			}
 		}
+		if artwork.Depth != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPTH", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DEPTH"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Depth * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Height != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "HEIGHT", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("HEIGHT"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Height * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Width != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WIDTH", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("WIDTH"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Width * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Weight != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WEIGHT", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("WEIGHT"),
+				Unit:   search.AmountUnitKilogram,
+				Amount: artwork.Weight,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Diameter != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIAMETER", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DIAMETER"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Diameter * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Length != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LENGTH", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("LENGTH"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Length * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Circumference != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CIRCUMFERENCE", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("CIRCUMFERENCE"),
+				Unit:   search.AmountUnitMetre,
+				Amount: artwork.Circumference * 0.01,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if artwork.Duration != 0 {
+			err := doc.Add(&search.AmountClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DURATION", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:   search.GetCorePropertyReference("DURATION"),
+				Unit:   search.AmountUnitSecond,
+				Amount: artwork.Duration,
+			})
+			if err != nil {
+				return err
+			}
+		}
 
 		artworksMap[artwork.ObjectID] = doc
 
 		count.Increment()
+
+		config.Log.Debug().Str("doc", string(doc.ID)).Msg("saving document")
+		search.InsertOrReplaceDocument(processor, config.Index, &doc)
 	}
 
 	return nil

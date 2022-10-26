@@ -139,9 +139,8 @@ func Progress(logger zerolog.Logger, processor *elastic.BulkProcessor, cache *Ca
 		if processor != nil {
 			stats := processor.Stats()
 			e = e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
-		} else {
-			e = e.Int64("count", p.Count)
 		}
+		e = e.Int64("count", p.Count)
 		if cache != nil {
 			e = e.Uint64("cacheMiss", cache.MissCount())
 		}

@@ -142,6 +142,31 @@ var (
 			[]string{`"amount" claim type`},
 		},
 		{
+			"depth",
+			"The depth the entity has.",
+			[]string{`"amount" claim type`},
+		},
+		{
+			"weight",
+			"The weight the entity has.",
+			[]string{`"amount" claim type`},
+		},
+		{
+			"diameter",
+			"The diameter the entity has.",
+			[]string{`"amount" claim type`},
+		},
+		{
+			"circumference",
+			"The circumference the entity has.",
+			[]string{`"amount" claim type`},
+		},
+		{
+			"duration",
+			"The duration the entity has.",
+			[]string{`"amount" claim type`},
+		},
+		{
 			"media type",
 			"Media (MIME) type of the file.",
 			[]string{`"string" claim type`},
