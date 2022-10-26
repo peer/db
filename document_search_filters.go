@@ -130,7 +130,8 @@ func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			elastic.NewCardinalityAggregation().Script(
-				elastic.NewScript("return [doc['active.amount.prop._id'], doc['active.amount.unit']]"),
+				// We use "|" as separator because this is used by ElasticSearch in "key_as_string" as well.
+				elastic.NewScript("return doc['active.amount.prop._id'].value + '|' + doc['active.amount.unit'].value"),
 			).PrecisionThreshold(2*propertiesTotal*int64(amountUnitsTotal)),
 		),
 	)
