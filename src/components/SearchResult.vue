@@ -17,6 +17,11 @@ import {
   MEDIA_TYPE,
   COPYRIGHT_STATUS,
   PREVIEW_URL,
+  DEPARTMENT,
+  CLASSIFICATION,
+  MEDIUM,
+  NATIONALITY,
+  GENDER,
 } from "@/props"
 
 const props = defineProps<{
@@ -35,6 +40,11 @@ const tags = computed(() => {
     ...getClaimsOfType(props.doc.active, "rel", INSTANCE_OF).map((c) => c.to.name.en),
     ...getClaimsOfType(props.doc.active, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
     ...getClaimsOfType(props.doc.active, "rel", LABEL).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.active, "string", DEPARTMENT).map((c) => c.string),
+    ...getClaimsOfType(props.doc.active, "string", CLASSIFICATION).map((c) => c.string),
+    ...getClaimsOfType(props.doc.active, "string", MEDIUM).map((c) => c.string),
+    ...getClaimsOfType(props.doc.active, "string", NATIONALITY).map((c) => c.string),
+    ...getClaimsOfType(props.doc.active, "string", GENDER).map((c) => c.string),
     ...getClaimsOfType(props.doc.active, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
     ...getClaimsOfType(props.doc.active, "string", MEDIA_TYPE).map((c) => c.string),
     ...getClaimsOfType(props.doc.active, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
