@@ -53,3 +53,13 @@ internal/wikipedia/testdata/template/bracket_in.html filter=lfs diff=lfs merge=l
 internal/wikipedia/testdata/template/hack_out.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/template/semicolon2_in.html filter=lfs diff=lfs merge=lfs -text
 internal/wikipedia/testdata/template/semicolon2_out.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/6210_out.json filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/89_in.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/89_out.json filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/53_in.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/53_out.json filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/6210_in.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/cloudflare_in.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/cloudflare_out.json filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/41_in.html filter=lfs diff=lfs merge=lfs -text
+cmd/moma/testdata/artist/41_out.json filter=lfs diff=lfs merge=lfs -text

@@ -129,6 +129,11 @@ var momaProperties = []struct {
 		`Cataloged.`,
 		nil,
 	},
+	{
+		"image",
+		`Image.`,
+		[]string{`"file" claim type`},
+	},
 }
 
 func init() {

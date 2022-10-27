@@ -2,23 +2,29 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/foolin/pagser"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"golang.org/x/exp/slices"
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
@@ -30,7 +36,185 @@ const (
 
 var (
 	NameSpaceMoMA = uuid.MustParse("d1a7b133-7d73-4ff1-b4d1-0ac93b91cccd")
+
+	mediaRegex     = regexp.MustCompile(`^(?:/media|/d/assets)/([^./]+)(?:/.+)?.(jpg|png)(?:\?sha=\w+)?$`)
+	resizeRegex    = regexp.MustCompile(`-resize (\d+)x(\d+)`)
+	srcSetSepRegex = regexp.MustCompile(`,\s+`)
 )
+
+type picture struct {
+	Sources     []string `pagser:"source->eachAttr(srcset)" json:"sources,omitempty"`
+	ImageSrc    string   `pagser:"img->attr(src)" json:"imageSrc,omitempty"`
+	ImageSrcSet string   `pagser:"img->attr(srcset)" json:"imageSrcSet,omitempty"`
+}
+
+type imageSrc struct {
+	MediaType string
+	Path      string
+	Width     int
+	Height    int
+}
+
+type image struct {
+	URL       string
+	Preview   string
+	MediaType string
+}
+
+func parseMediaURL(path string) (string, int, int, errors.E) {
+	match := mediaRegex.FindStringSubmatch(path)
+	if match == nil {
+		return "", 0, 0, errors.Errorf(`unsupported path "%s"`, path)
+	}
+	matchData, err := base64.RawURLEncoding.DecodeString(match[1])
+	if err != nil {
+		return "", 0, 0, errors.WithStack(err)
+	}
+	var decodedData [][]string
+	err = json.Unmarshal(matchData, &decodedData)
+	if err != nil {
+		return "", 0, 0, errors.WithStack(err)
+	}
+
+	var mediaType string
+	switch match[2] {
+	case "jpg":
+		mediaType = "image/jpeg"
+	case "png":
+		mediaType = "image/png"
+	default:
+		return "", 0, 0, errors.Errorf(`unsupported file extension "%s"`, match[2])
+	}
+
+	match = resizeRegex.FindStringSubmatch(decodedData[1][2])
+	if match == nil {
+		return "", 0, 0, errors.Errorf(`unsupported resize argument "%s"`, decodedData[1][2])
+	}
+	width, err := strconv.Atoi(match[1])
+	if err != nil {
+		return "", 0, 0, errors.WithStack(err)
+	}
+	height, err := strconv.Atoi(match[2])
+	if err != nil {
+		return "", 0, 0, errors.WithStack(err)
+	}
+
+	return mediaType, width, height, nil
+}
+
+func parseSrcSet(srcSet string) []string {
+	result := []string{}
+	sets := srcSetSepRegex.Split(srcSet, -1)
+	for _, set := range sets {
+		if set == "" {
+			continue
+		}
+		i := strings.LastIndex(set, " ")
+		if i == -1 {
+			result = append(result, set)
+		} else {
+			result = append(result, set[:i])
+		}
+	}
+	return result
+}
+
+func (p picture) Image() (image, errors.E) {
+	images := []imageSrc{}
+
+	if p.ImageSrc != "" {
+		mediaType, width, height, err := parseMediaURL(p.ImageSrc)
+		if err != nil {
+			return image{}, err
+		}
+		images = append(images, imageSrc{
+			Path:      p.ImageSrc,
+			MediaType: mediaType,
+			Width:     width,
+			Height:    height,
+		})
+	}
+	for _, path := range parseSrcSet(p.ImageSrcSet) {
+		mediaType, width, height, err := parseMediaURL(path)
+		if err != nil {
+			return image{}, err
+		}
+		images = append(images, imageSrc{
+			Path:      path,
+			MediaType: mediaType,
+			Width:     width,
+			Height:    height,
+		})
+	}
+	for _, source := range p.Sources {
+		for _, path := range parseSrcSet(source) {
+			mediaType, width, height, err := parseMediaURL(path)
+			if err != nil {
+				return image{}, err
+			}
+			images = append(images, imageSrc{
+				Path:      path,
+				MediaType: mediaType,
+				Width:     width,
+				Height:    height,
+			})
+		}
+	}
+
+	if len(images) == 0 {
+		return image{}, errors.New("no images")
+	}
+
+	// Sorts so that the image with the largest area is the first.
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
+		return a.Width*a.Height > b.Width*a.Height
+	})
+	// There should be always at least one image at this point.
+	url := "https://www.moma.org" + images[0].Path
+	mediaType := images[0].MediaType
+
+	// Sorts so that the image with the smallest width is the first.
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
+		return a.Width < b.Width
+	})
+	for len(images) > 0 {
+		// Remove all images which are too small for preview by width.
+		if images[0].Width < es.PreviewSize {
+			images = images[1:]
+		} else {
+			break
+		}
+	}
+
+	// Sorts so that the image with the smallest height is the first.
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
+		return a.Height < b.Height
+	})
+	for len(images) > 0 {
+		// Remove all images which are too small for preview by height.
+		if images[0].Height < es.PreviewSize {
+			images = images[1:]
+		} else {
+			break
+		}
+	}
+
+	if len(images) == 0 {
+		return image{}, errors.New("no image suitable for preview")
+	}
+
+	return image{
+		URL:       url,
+		Preview:   "https://www.moma.org" + images[0].Path,
+		MediaType: mediaType,
+	}, nil
+}
+
+type momaArtist struct {
+	ChallengeRunning bool      `pagser:"#challenge-running->exists()" json:"challengeRunning"`
+	Pictures         []picture `pagser:"#main > div > section[role='banner'] picture" json:"pictures,omitempty"`
+	Article          string    `pagser:"#main > div > section.\\$typography\\/baseline\\:body section.typography\\/markdown->html()" json:"article,omitempty"`
+}
 
 type Artist struct {
 	ConstituentID int    `json:"ConstituentID"`
@@ -73,6 +257,24 @@ type Artwork struct {
 	Length          float64  `json:"Length (cm),omitempty"`
 	Circumference   float64  `json:"Circumference (cm),omitempty"`
 	Duration        float64  `json:"Duration (sec.),omitempty"`
+}
+
+func PagserExists(node *goquery.Selection, args ...string) (out interface{}, err error) {
+	return node.Length() > 0, nil
+}
+
+func extractArtist(in io.Reader) (momaArtist, errors.E) {
+	p := pagser.New()
+
+	p.RegisterFunc("exists", PagserExists)
+
+	var data momaArtist
+	err := p.ParseReader(&data, in)
+	if err != nil {
+		return momaArtist{}, errors.WithStack(err)
+	}
+
+	return data, nil
 }
 
 func getPathAndURL(cacheDir, url string) (string, string) {
@@ -168,6 +370,35 @@ func getArtistReference(artistsMap map[int]search.Document, constituentID int) (
 	return doc.Reference(), nil
 }
 
+func getArtist(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, constituentID int) (momaArtist, errors.E) {
+	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return momaArtist{}, errE
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return momaArtist{}, errE
+	}
+	defer resp.Body.Close()
+	defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		errE := errors.New("bad response status")
+		errors.Details(errE)["url"] = url
+		errors.Details(errE)["code"] = resp.StatusCode
+		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+		return momaArtist{}, errE
+	}
+
+	return extractArtist(resp.Body)
+}
+
 func index(config *Config) errors.E {
 	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Log, config.Elastic, config.Index)
 	if errE != nil {
@@ -202,6 +433,10 @@ func index(config *Config) errors.E {
 	artistsMap := map[int]search.Document{}
 
 	for _, artist := range artists {
+		if ctx.Err() != nil {
+			break
+		}
+
 		doc := search.Document{
 			CoreDocument: search.CoreDocument{
 				ID: search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
@@ -248,7 +483,7 @@ func index(config *Config) errors.E {
 			err := doc.Add(&search.TextClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DESCRIPTION", 0),
-					Confidence: es.MediumConfidence,
+					Confidence: es.HighConfidence,
 				},
 				Prop: search.GetCorePropertyReference("DESCRIPTION"),
 				HTML: search.TranslatableHTMLString{"en": html.EscapeString(artist.ArtistBio)},
@@ -361,6 +596,66 @@ func index(config *Config) errors.E {
 			}
 		}
 
+		if config.WebsiteData {
+			data, err := getArtist(ctx, httpClient, config.Log, artist.ConstituentID)
+			if err != nil {
+				if errors.AllDetails(err)["code"] == http.StatusNotFound {
+					config.Log.Warn().Str("doc", string(doc.ID)).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
+					count.Increment()
+					continue
+				}
+				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", string(doc.ID)).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
+			} else if data.ChallengeRunning {
+				config.Log.Warn().Str("doc", string(doc.ID)).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
+			} else {
+				for i, picture := range data.Pictures {
+					image, err := picture.Image()
+					if err != nil {
+						config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", string(doc.ID)).Int("constituentID", artist.ConstituentID).Send()
+					} else {
+						errE = doc.Add(&search.FileClaim{
+							CoreClaim: search.CoreClaim{
+								ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "IMAGE", i),
+								Confidence: es.HighConfidence,
+							},
+							Prop:    search.GetCorePropertyReference("IMAGE"),
+							Type:    "image/jpeg",
+							URL:     image.URL,
+							Preview: []string{image.Preview},
+						})
+						if errE != nil {
+							return errE
+						}
+					}
+				}
+				// TODO: Cleanup HTML.
+				if data.Article != "" {
+					errE = doc.Add(&search.TextClaim{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ARTICLE", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("ARTICLE"),
+						HTML: search.TranslatableHTMLString{"en": data.Article},
+					})
+					if errE != nil {
+						return errE
+					}
+					errE = doc.Add(&search.RelationClaim{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "LABEL", 0, "HAS_ARTICLE", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("LABEL"),
+						To:   search.GetCorePropertyReference("HAS_ARTICLE"),
+					})
+					if errE != nil {
+						return errE
+					}
+				}
+			}
+		}
+
 		artistsMap[artist.ConstituentID] = doc
 
 		count.Increment()
@@ -372,6 +667,10 @@ func index(config *Config) errors.E {
 	artworksMap := map[int]search.Document{}
 
 	for _, artwork := range artworks {
+		if ctx.Err() != nil {
+			break
+		}
+
 		doc := search.Document{
 			CoreDocument: search.CoreDocument{
 				ID: search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
@@ -691,5 +990,5 @@ func index(config *Config) errors.E {
 		search.InsertOrReplaceDocument(processor, config.Index, &doc)
 	}
 
-	return nil
+	return errors.WithStack(ctx.Err())
 }

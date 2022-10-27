@@ -26,4 +26,5 @@ type Config struct {
 	Index       string `short:"i" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
 	ArtistsURL  string `placeholder:"URL" name:"artists" default:"${defaultArtistsURL}" help:"URL of artists JSON to use. It can be a local file path, too. Default: ${defaultArtistsURL}."`
 	ArtworksURL string `placeholder:"URL" name:"artworks" default:"${defaultArtworksURL}" help:"URL of artworks JSON to use. It can be a local file path, too. Default: ${defaultArtworksURL}."`
+	WebsiteData bool   `help:"Fetch images and descriptions from MoMA website."`
 }

@@ -390,6 +390,10 @@ func generateAllCoreProperties() {
 
 func SaveCoreProperties(ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, index string) errors.E {
 	for _, property := range CoreProperties {
+		if ctx.Err() != nil {
+			break
+		}
+
 		property := property
 		log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
 		InsertOrReplaceDocument(processor, index, &property)
