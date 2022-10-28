@@ -17,6 +17,9 @@ RUN apk --update add make git gcc musl-dev ca-certificates tzdata && \
   adduser -D -H -g "" -s /sbin/nologin -u 1000 user
 COPY . /src/peerdb-search
 COPY --from=node-build /src/peerdb-search/dist /src/peerdb-search/dist
+# We make an empty node_modules so that Makefile does not try to run npm install
+# (dist files are already present).
+RUN mkdir /src/peerdb-search/node_modules
 WORKDIR /src/peerdb-search
 # We want Docker image for build timestamp label to match the one in
 # the binary so we take a timestamp once outside and pass it in.
