@@ -15,7 +15,7 @@ func main() {
 		"defaultProxyTo":  DefaultProxyTo,
 		"defaultTLSCache": DefaultTLSCache,
 		"defaultTitle":    DefaultTitle,
-	}, func(_ *kong.Context) errors.E {
-		return listen(&config)
+	}, func(ctx *kong.Context) errors.E {
+		return errors.WithStack(ctx.Run(&config.Globals))
 	})
 }

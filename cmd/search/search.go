@@ -20,14 +20,14 @@ const (
 	listenAddr = ":8080"
 )
 
-func listen(config *Config) errors.E {
-	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), config.Log, config.Elastic)
+func (c *ServeCommand) Run(globals *Globals) errors.E {
+	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Log, globals.Elastic)
 	if err != nil {
 		return err
 	}
 
-	development := config.ProxyTo
-	if !config.Development {
+	development := c.ProxyTo
+	if !c.Development {
 		development = ""
 	}
 
@@ -36,10 +36,10 @@ func listen(config *Config) errors.E {
 	letsEncryptDomainsList := []string{}
 	sites := map[string]search.Site{}
 
-	if len(config.Sites) > 0 {
+	if len(globals.Sites) > 0 {
 		fileGetCertificateFunctions := map[string]func(*tls.ClientHelloInfo) (*tls.Certificate, error){}
 
-		for i, site := range config.Sites {
+		for i, site := range globals.Sites {
 			if site.Domain == "" {
 				return errors.Errorf(`domain is required for site at index %d`, i)
 			}
@@ -48,7 +48,7 @@ func listen(config *Config) errors.E {
 				manager := CertificateManager{
 					CertFile: site.CertFile,
 					KeyFile:  site.KeyFile,
-					Log:      config.Log,
+					Log:      globals.Log,
 				}
 
 				err = manager.Start()
@@ -58,13 +58,13 @@ func listen(config *Config) errors.E {
 				defer manager.Stop()
 
 				fileGetCertificateFunctions[site.Domain] = manager.GetCertificate
-			} else if config.TLS.Email != "" && config.TLS.Cache != "" {
+			} else if c.TLS.Email != "" && c.TLS.Cache != "" {
 				letsEncryptDomainsList = append(letsEncryptDomainsList, site.Domain)
-			} else if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+			} else if c.TLS.CertFile != "" && c.TLS.KeyFile != "" {
 				manager := CertificateManager{
-					CertFile: config.TLS.CertFile,
-					KeyFile:  config.TLS.KeyFile,
-					Log:      config.Log,
+					CertFile: c.TLS.CertFile,
+					KeyFile:  c.TLS.KeyFile,
+					Log:      globals.Log,
 				}
 
 				err = manager.Start()
@@ -110,13 +110,13 @@ func listen(config *Config) errors.E {
 			}
 		}
 	} else {
-		if config.TLS.Domain != "" && config.TLS.Email != "" && config.TLS.Cache != "" {
-			letsEncryptDomainsList = append(letsEncryptDomainsList, config.TLS.Domain)
-		} else if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+		if c.TLS.Domain != "" && c.TLS.Email != "" && c.TLS.Cache != "" {
+			letsEncryptDomainsList = append(letsEncryptDomainsList, c.TLS.Domain)
+		} else if c.TLS.CertFile != "" && c.TLS.KeyFile != "" {
 			manager := CertificateManager{
-				CertFile: config.TLS.CertFile,
-				KeyFile:  config.TLS.KeyFile,
-				Log:      config.Log,
+				CertFile: c.TLS.CertFile,
+				KeyFile:  c.TLS.KeyFile,
+				Log:      globals.Log,
 			}
 
 			err = manager.Start()
@@ -132,23 +132,23 @@ func listen(config *Config) errors.E {
 
 		sites[""] = search.Site{
 			Domain: "",
-			Index:  config.Index,
-			Title:  config.Title,
+			Index:  globals.Index,
+			Title:  c.Title,
 		}
 	}
 
 	if len(letsEncryptDomainsList) > 0 {
 		manager := autocert.Manager{
-			Cache:      autocert.DirCache(config.TLS.Cache),
+			Cache:      autocert.DirCache(c.TLS.Cache),
 			Prompt:     autocert.AcceptTOS,
-			Email:      config.TLS.Email,
+			Email:      c.TLS.Email,
 			HostPolicy: autocert.HostWhitelist(letsEncryptDomainsList...),
 		}
 
 		letsEncryptGetCertificate = manager.GetCertificate
 	}
 
-	s, err := search.NewService(esClient, config.Log, cli.Version, cli.BuildTimestamp, cli.Revision, sites, development)
+	s, err := search.NewService(esClient, globals.Log, cli.Version, cli.BuildTimestamp, cli.Revision, sites, development)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func listen(config *Config) errors.E {
 	server := &http.Server{
 		Addr:              listenAddr,
 		Handler:           handler,
-		ErrorLog:          log.New(config.Log, "", 0),
+		ErrorLog:          log.New(globals.Log, "", 0),
 		ConnContext:       s.ConnContext,
 		ReadHeaderTimeout: time.Minute,
 		TLSConfig: &tls.Config{
@@ -209,7 +209,7 @@ func listen(config *Config) errors.E {
 		panic(errors.New("no GetCertificate"))
 	}
 
-	config.Log.Info().Msgf("starting on %s", listenAddr)
+	globals.Log.Info().Msgf("starting on %s", listenAddr)
 
 	return errors.WithStack(server.ListenAndServeTLS("", ""))
 }
