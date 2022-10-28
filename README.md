@@ -22,9 +22,9 @@ and they are served by the backend as well.
 [Releases page](https://gitlab.com/peerdb/search/-/releases)
 contains a list of stable versions. Each includes:
 
-* A statically compiled binary.
-* Docker images.
-* A nix package.
+- A statically compiled binary.
+- Docker images.
+- A nix package.
 
 ### Static binary
 
@@ -99,7 +99,7 @@ The parameters above are primarily meant for development on a local machine.
 
 Next, to run PeerDB Search you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
-keypair which is then used to create a TLS certificate.
+keypair which is then used to create a TLS certificate. Use Go 1.19 or newer.
 
 ```sh
 go install filippo.io/mkcert@latest
@@ -122,6 +122,11 @@ docker run -d --network peerdb --name peerdb-search -p 8080:8080 -v "$(pwd):/dat
 ```
 
 Open [https://localhost:8080/](https://localhost:8080/) in your browser to access the web interface.
+
+Temporary accepted self-signed certificates are not recommended because
+[not all browser features work](https://stackoverflow.com/questions/74161355/are-any-web-features-not-available-in-browsers-when-using-self-signed-certificat).
+If you want to use a self-signed certificate instead of `mkcert`, add the certificate to
+your browser's certificate store.
 
 When running it directly publicly on the Internet (it is safe to do so), PeerDB Search is able to
 obtain a HTTPS TLS certificate from [Let's Encrypt](https://letsencrypt.org) automatically:
@@ -150,21 +155,21 @@ make
 
 This will do multiple passes:
 
-* `wikidata` downloads Wikidata dump and imports data into search (70 GB download, runtime 2 days).
-* `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 1 day).
-* `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
-* `commons` (20 GB download, runtime 3 days)
-* `wikipedia-articles` downloads Wikipedia articles HTML dump and imports articles (100 GB download, runtime 0.5 days)
-* `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions
+- `wikidata` downloads Wikidata dump and imports data into search (70 GB download, runtime 2 days).
+- `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 1 day).
+- `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
+- `commons` (20 GB download, runtime 3 days)
+- `wikipedia-articles` downloads Wikipedia articles HTML dump and imports articles (100 GB download, runtime 0.5 days)
+- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions
   (2 GB download, runtime 1 hour)
-* `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions
+- `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions
   (2 GB download, runtime 1 hour)
-* `wikipedia-templates` uses API to fetch data about templates Wikipedia (runtime 0.5 days)
-* `commons-file-descriptions` uses API to fetch descriptions of Wikimedia Commons files (runtime 35 days)
-* `commons-categories` uses API to fetch data about categories Wikimedia Commons (runtime 4 days)
-* `commons-templates` uses API to fetch data about templates Wikimedia Commons (runtime 2.5 hours)
-* `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
-* `optimize` forces merging of ElasticSearch segments (runtime few hours).
+- `wikipedia-templates` uses API to fetch data about templates Wikipedia (runtime 0.5 days)
+- `commons-file-descriptions` uses API to fetch descriptions of Wikimedia Commons files (runtime 35 days)
+- `commons-categories` uses API to fetch data about categories Wikimedia Commons (runtime 4 days)
+- `commons-templates` uses API to fetch data about templates Wikimedia Commons (runtime 2.5 hours)
+- `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
+- `optimize` forces merging of ElasticSearch segments (runtime few hours).
 
 The whole process requires substantial amount of disk space (at least 1.5 TB), bandwidth, and time (weeks).
 Because of this you might want to run only a subset of passes.
@@ -202,7 +207,7 @@ the frontend as necessary.
 ### Backend
 
 The backend is implemented in [Go](https://golang.org/) (requires 1.19 or newer)
-and provides a HTTP2 API.
+and provides a HTTP2 API. Node 16 or newer is required as well.
 
 Then clone the repository and run:
 
