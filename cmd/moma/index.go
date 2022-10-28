@@ -31,6 +31,8 @@ import (
 
 const (
 	progressPrintRate = 30 * time.Second
+
+	centimetreToMetre = 0.01
 )
 
 var (
@@ -268,7 +270,7 @@ func PagserExists(node *goquery.Selection, args ...string) (out interface{}, err
 	return node.Length() > 0, nil
 }
 
-func extractData[T any](in io.Reader) (T, errors.E) {
+func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	p := pagser.New()
 
 	p.RegisterFunc("exists", PagserExists)
@@ -276,7 +278,7 @@ func extractData[T any](in io.Reader) (T, errors.E) {
 	var data T
 	err := p.ParseReader(&data, in)
 	if err != nil {
-		return *new(T), errors.WithStack(err)
+		return *new(T), errors.WithStack(err) //nolint:gocritic
 	}
 
 	return data, nil
@@ -322,7 +324,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 
 	if cachedReader == nil {
 		// File does not already exist. We download the file and optionally save it.
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil) //nolint:govet
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -347,7 +349,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T)))))
+	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T))))) //nolint:gocritic
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -377,18 +379,18 @@ func getArtistReference(artistsMap map[int]search.Document, constituentID int) (
 	return doc.Reference(), nil
 }
 
-func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) {
+func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) { //nolint:ireturn
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE
+		return *new(T), errE //nolint:gocritic
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE
+		return *new(T), errE //nolint:gocritic
 	}
 	defer resp.Body.Close()
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
@@ -399,7 +401,7 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		errors.Details(errE)["url"] = url
 		errors.Details(errE)["code"] = resp.StatusCode
 		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
-		return *new(T), errE
+		return *new(T), errE //nolint:gocritic
 	}
 
 	return extractData[T](resp.Body)
@@ -970,7 +972,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("DEPTH"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Depth * 0.01,
+				Amount: artwork.Depth * centimetreToMetre,
 			})
 			if err != nil {
 				return err
@@ -984,7 +986,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("HEIGHT"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Height * 0.01,
+				Amount: artwork.Height * centimetreToMetre,
 			})
 			if err != nil {
 				return err
@@ -998,7 +1000,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("WIDTH"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Width * 0.01,
+				Amount: artwork.Width * centimetreToMetre,
 			})
 			if err != nil {
 				return err
@@ -1026,7 +1028,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("DIAMETER"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Diameter * 0.01,
+				Amount: artwork.Diameter * centimetreToMetre,
 			})
 			if err != nil {
 				return err
@@ -1040,7 +1042,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("LENGTH"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Length * 0.01,
+				Amount: artwork.Length * centimetreToMetre,
 			})
 			if err != nil {
 				return err
@@ -1054,7 +1056,7 @@ func index(config *Config) errors.E {
 				},
 				Prop:   search.GetCorePropertyReference("CIRCUMFERENCE"),
 				Unit:   search.AmountUnitMetre,
-				Amount: artwork.Circumference * 0.01,
+				Amount: artwork.Circumference * centimetreToMetre,
 			})
 			if err != nil {
 				return err

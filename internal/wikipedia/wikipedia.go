@@ -187,7 +187,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
 			return errE
 		}
-		claim.Identifier = strconv.FormatInt(pageID, 10) //nolint:gomnd
+		claim.Identifier = strconv.FormatInt(pageID, 10) 
 	} else {
 		claim := &search.IdentifierClaim{
 			CoreClaim: search.CoreClaim{
@@ -195,7 +195,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 				Confidence: es.HighConfidence,
 			},
 			Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
-			Identifier: strconv.FormatInt(pageID, 10), //nolint:gomnd
+			Identifier: strconv.FormatInt(pageID, 10), 
 		}
 		err := document.Add(claim)
 		if err != nil {

@@ -105,7 +105,7 @@ func (s *Service) DocumentSearchStringFilterGetGetJSON(w http.ResponseWriter, re
 	if int64(len(str.Filter.Props.Buckets)) > str.Filter.Total.Value {
 		str.Filter.Total.Value = int64(len(str.Filter.Props.Buckets))
 	}
-	total := strconv.FormatInt(str.Filter.Total.Value, 10) //nolint:gomnd
+	total := strconv.FormatInt(str.Filter.Total.Value, 10) 
 
 	metadata := http.Header{
 		"Total": {total},

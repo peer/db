@@ -247,7 +247,7 @@ func getPathFloat(metadata map[string]interface{}, path []string) *float64 {
 				f := float64(d)
 				return &f
 			case string:
-				dataFloat, err := strconv.ParseFloat(d, 64) //nolint:gomnd
+				dataFloat, err := strconv.ParseFloat(d, 64) 
 				if err == nil {
 					return &dataFloat
 				}

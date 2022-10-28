@@ -219,9 +219,9 @@ func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, re
 	}
 
 	total := strconv.Itoa(len(results))
-	intervalString := strconv.FormatFloat(interval, 'f', -1, 64)           //nolint:gomnd
-	minString := strconv.FormatFloat(minMax.Filter.Min.Value, 'f', -1, 64) //nolint:gomnd
-	maxString := strconv.FormatFloat(minMax.Filter.Max.Value, 'f', -1, 64) //nolint:gomnd
+	intervalString := strconv.FormatFloat(interval, 'f', -1, 64)           
+	minString := strconv.FormatFloat(minMax.Filter.Min.Value, 'f', -1, 64) 
+	maxString := strconv.FormatFloat(minMax.Filter.Max.Value, 'f', -1, 64) 
 
 	metadata := http.Header{
 		"Total": {total},
