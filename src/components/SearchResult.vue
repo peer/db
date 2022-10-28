@@ -31,9 +31,11 @@ const props = defineProps<{
 const route = useRoute()
 
 const hasLoaded = computed(() => props.doc?.name?.en)
+// TODO: Do not hard-code properties?
 const description = computed(() => {
   return getBestClaimOfType(props.doc.active, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
 })
+// TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
     ...getClaimsOfType(props.doc.active, "rel", IS).map((c) => c.to.name.en),
