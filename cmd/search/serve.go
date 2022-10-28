@@ -20,6 +20,10 @@ const (
 	listenAddr = ":8080"
 )
 
+func (c *ServeCommand) Help() string {
+	return "One log entry per request."
+}
+
 func (c *ServeCommand) Run(globals *Globals) errors.E {
 	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Log, globals.Elastic)
 	if err != nil {
