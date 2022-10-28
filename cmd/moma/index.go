@@ -216,6 +216,12 @@ type momaArtist struct {
 	Article          string    `pagser:"#main > div > section.\\$typography\\/baseline\\:body section.typography\\/markdown->html()" json:"article,omitempty"`
 }
 
+type momaArtwork struct {
+	ChallengeRunning bool      `pagser:"#challenge-running->exists()" json:"challengeRunning"`
+	Pictures         []picture `pagser:"section.work *:not(button) > picture" json:"pictures,omitempty"`
+	Article          string    `pagser:"#text->html()" json:"article,omitempty"`
+}
+
 type Artist struct {
 	ConstituentID int    `json:"ConstituentID"`
 	DisplayName   string `json:"DisplayName"`
@@ -263,15 +269,15 @@ func PagserExists(node *goquery.Selection, args ...string) (out interface{}, err
 	return node.Length() > 0, nil
 }
 
-func extractArtist(in io.Reader) (momaArtist, errors.E) {
+func extractData[T any](in io.Reader) (T, errors.E) {
 	p := pagser.New()
 
 	p.RegisterFunc("exists", PagserExists)
 
-	var data momaArtist
+	var data T
 	err := p.ParseReader(&data, in)
 	if err != nil {
-		return momaArtist{}, errors.WithStack(err)
+		return *new(T), errors.WithStack(err)
 	}
 
 	return data, nil
@@ -365,24 +371,25 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 func getArtistReference(artistsMap map[int]search.Document, constituentID int) (search.DocumentReference, errors.E) {
 	doc, ok := artistsMap[constituentID]
 	if !ok {
-		return search.DocumentReference{}, errors.Errorf(`unknown artist "%d"`, constituentID)
+		errE := errors.New("unknown artist")
+		errors.Details(errE)["constituentID"] = constituentID
+		return search.DocumentReference{}, errE
 	}
 	return doc.Reference(), nil
 }
 
-func getArtist(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, constituentID int) (momaArtist, errors.E) {
-	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
+func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return momaArtist{}, errE
+		return *new(T), errE
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return momaArtist{}, errE
+		return *new(T), errE
 	}
 	defer resp.Body.Close()
 	defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
@@ -393,10 +400,20 @@ func getArtist(ctx context.Context, httpClient *retryablehttp.Client, logger zer
 		errors.Details(errE)["url"] = url
 		errors.Details(errE)["code"] = resp.StatusCode
 		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
-		return momaArtist{}, errE
+		return *new(T), errE
 	}
 
-	return extractArtist(resp.Body)
+	return extractData[T](resp.Body)
+}
+
+func getArtist(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, constituentID int) (momaArtist, errors.E) {
+	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
+	return getData[momaArtist](ctx, httpClient, logger, url)
+}
+
+func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, objectID int) (momaArtwork, errors.E) {
+	url := fmt.Sprintf("https://www.moma.org/collection/works/%d", objectID)
+	return getData[momaArtwork](ctx, httpClient, logger, url)
 }
 
 func index(config *Config) errors.E {
@@ -619,7 +636,7 @@ func index(config *Config) errors.E {
 								Confidence: es.HighConfidence,
 							},
 							Prop:    search.GetCorePropertyReference("IMAGE"),
-							Type:    "image/jpeg",
+							Type:    image.MediaType,
 							URL:     image.URL,
 							Preview: []string{image.Preview},
 						})
@@ -713,6 +730,82 @@ func index(config *Config) errors.E {
 			},
 		}
 
+		// We first check website data because for skipped artists (those artists which exist in the dataset
+		// but not on the website) also artworks are generally not on the website, too.
+		if config.WebsiteData {
+			data, err := getArtwork(ctx, httpClient, config.Log, artwork.ObjectID)
+			if err != nil {
+				if errors.AllDetails(err)["code"] == http.StatusNotFound {
+					config.Log.Warn().Str("doc", string(doc.ID)).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")
+					count.Increment()
+					continue
+				}
+				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", string(doc.ID)).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
+			} else if data.ChallengeRunning {
+				config.Log.Warn().Str("doc", string(doc.ID)).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
+			} else {
+				for i, picture := range data.Pictures {
+					image, err := picture.Image()
+					if err != nil {
+						config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", string(doc.ID)).Int("objectID", artwork.ObjectID).Send()
+					} else {
+						errE = doc.Add(&search.FileClaim{
+							CoreClaim: search.CoreClaim{
+								ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", i),
+								Confidence: es.HighConfidence,
+							},
+							Prop:    search.GetCorePropertyReference("IMAGE"),
+							Type:    image.MediaType,
+							URL:     image.URL,
+							Preview: []string{image.Preview},
+						})
+						if errE != nil {
+							return errE
+						}
+					}
+				}
+				// TODO: Cleanup HTML.
+				if data.Article != "" {
+					errE = doc.Add(&search.TextClaim{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "ARTICLE", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("ARTICLE"),
+						HTML: search.TranslatableHTMLString{"en": data.Article},
+					})
+					if errE != nil {
+						return errE
+					}
+					errE = doc.Add(&search.RelationClaim{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LABEL", 0, "HAS_ARTICLE", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("LABEL"),
+						To:   search.GetCorePropertyReference("HAS_ARTICLE"),
+					})
+					if errE != nil {
+						return errE
+					}
+				}
+			}
+		} else if artwork.ThumbnailURL != "" {
+			err := doc.Add(&search.FileClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", 0),
+					Confidence: es.HighConfidence,
+				},
+				Prop:    search.GetCorePropertyReference("IMAGE"),
+				Type:    "image/jpeg",
+				URL:     artwork.ThumbnailURL,
+				Preview: []string{artwork.ThumbnailURL},
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 		processedConstituentIDs := map[int]bool{}
 		for _, constituentID := range artwork.ConstituentID {
 			// Skip duplicate artists.
@@ -723,7 +816,8 @@ func index(config *Config) errors.E {
 			processedConstituentIDs[constituentID] = true
 			to, err := getArtistReference(artistsMap, constituentID)
 			if err != nil {
-				return err
+				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", string(doc.ID)).Int("objectID", artwork.ObjectID).Send()
+				continue
 			}
 			err = doc.Add(&search.RelationClaim{
 				CoreClaim: search.CoreClaim{
