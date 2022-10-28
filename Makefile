@@ -26,6 +26,7 @@ build-static: dist
 	go build -ldflags "-linkmode external -extldflags '-static' -X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/search/cmd/moma
 
 dist:
+	npm install
 	npm run build
 
 test:
