@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -392,7 +391,7 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		return *new(T), errE
 	}
 	defer resp.Body.Close()
-	defer io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
