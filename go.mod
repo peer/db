@@ -7,6 +7,7 @@ require github.com/alecthomas/kong v0.2.22
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/felixge/httpsnoop v1.0.3-0.20220424144836-ef9fc62cdc3c
+	github.com/foolin/pagser v0.1.5
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/justinas/alice v1.2.0
@@ -33,7 +34,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/phpserialize v1.3.2 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/foolin/pagser v0.1.5 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect

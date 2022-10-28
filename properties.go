@@ -221,7 +221,8 @@ func GenerateCoreProperties(properties []struct {
 	Name            string
 	DescriptionHTML string
 	Is              []string
-}) {
+},
+) {
 	for _, property := range properties {
 		mnemonic := getMnemonic(property.Name)
 		id := string(GetCorePropertyID(mnemonic))
