@@ -106,7 +106,7 @@ func listen(config *Config) errors.E {
 				if ok {
 					return f(hello)
 				}
-				return nil, nil
+				return nil, nil //nolint:nilnil
 			}
 		}
 	} else {

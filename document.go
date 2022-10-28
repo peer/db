@@ -859,27 +859,27 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	if match == nil {
 		return errors.Errorf(`unable to parse time "%s"`, s)
 	}
-	year, err := strconv.ParseInt(match[1], 10, 0) 
+	year, err := strconv.ParseInt(match[1], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse year "%s"`, s)
 	}
-	month, err := strconv.ParseInt(match[2], 10, 0) 
+	month, err := strconv.ParseInt(match[2], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse month "%s"`, s)
 	}
-	day, err := strconv.ParseInt(match[3], 10, 0) 
+	day, err := strconv.ParseInt(match[3], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse day "%s"`, s)
 	}
-	hour, err := strconv.ParseInt(match[4], 10, 0) 
+	hour, err := strconv.ParseInt(match[4], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse hour "%s"`, s)
 	}
-	minute, err := strconv.ParseInt(match[5], 10, 0) 
+	minute, err := strconv.ParseInt(match[5], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse minute "%s"`, s)
 	}
-	second, err := strconv.ParseInt(match[6], 10, 0) 
+	second, err := strconv.ParseInt(match[6], 10, 0)
 	if err != nil {
 		return errors.WithMessagef(err, `unable to parse second "%s"`, s)
 	}

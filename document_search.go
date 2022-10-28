@@ -597,7 +597,7 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 		results[i] = searchResult{ID: hit.Id}
 	}
 
-	total := strconv.FormatInt(res.Hits.TotalHits.Value, 10) 
+	total := strconv.FormatInt(res.Hits.TotalHits.Value, 10)
 	if res.Hits.TotalHits.Relation == "gte" {
 		total += "+"
 	}

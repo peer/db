@@ -455,7 +455,7 @@ func index(config *Config) errors.E {
 			break
 		}
 
-		doc := search.Document{
+		doc := search.Document{ //nolint:dupl
 			CoreDocument: search.CoreDocument{
 				ID: search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
 				Name: search.Name{
@@ -614,7 +614,7 @@ func index(config *Config) errors.E {
 			}
 		}
 
-		if config.WebsiteData {
+		if config.WebsiteData { //nolint:dupl
 			data, err := getArtist(ctx, httpClient, config.Log, artist.ConstituentID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
@@ -689,7 +689,7 @@ func index(config *Config) errors.E {
 			break
 		}
 
-		doc := search.Document{
+		doc := search.Document{ //nolint:dupl
 			CoreDocument: search.CoreDocument{
 				ID: search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
 				Name: search.Name{
@@ -733,7 +733,7 @@ func index(config *Config) errors.E {
 
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
-		if config.WebsiteData {
+		if config.WebsiteData { //nolint:dupl
 			data, err := getArtwork(ctx, httpClient, config.Log, artwork.ObjectID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
