@@ -1,9 +1,10 @@
 package main
 
 import (
+	"gitlab.com/tozd/go/errors"
+
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
-	"gitlab.com/tozd/go/errors"
 )
 
 func (c *PopulateCommand) runIndex(globals *Globals, index string) errors.E {
