@@ -15,7 +15,10 @@ endif
 build: search wikipedia mapping moma
 
 # dist is build only if it is missing. Use "make clean" to remove it to build it again.
-search wikipedia mapping moma: dist
+search: dist
+	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
+
+wikipedia mapping moma:
 	go build -ldflags "-X gitlab.com/peerdb/search/internal/cli.Version=${VERSION} -X gitlab.com/peerdb/search/internal/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/peerdb/search/internal/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
 
 # dist is build only if it is missing. Use "make clean" to remove it to build it again.

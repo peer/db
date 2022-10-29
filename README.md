@@ -149,7 +149,7 @@ To populate search with English Wikipedia articles, Wikimedia Commons files, and
 clone the repository and run (you need Go 1.19 or newer):
 
 ```sh
-make
+make wikipedia
 ./wikipedia
 ```
 
@@ -212,7 +212,7 @@ and provides a HTTP2 API. Node 16 or newer is required as well.
 Then clone the repository and run:
 
 ```sh
-make
+make search
 ./search -d -k localhost+2.pem -K localhost+2-key.pem
 ```
 
