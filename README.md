@@ -10,8 +10,11 @@ Its user interface automatically adapts to data and search results and provides 
 interface is to allow users without technical knowledge to easily find results they want, without having to write queries.
 The system also allows multiple data sources to be used and merged together.
 
-As a demonstration we provide a search service for English Wikipedia articles, Wikimedia Commons files,
-and Wikidata data at [https://wikipedia.peerdb.org/](https://wikipedia.peerdb.org/).
+Demos:
+
+- [https://wikipedia.peerdb.org/](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
+  Wikimedia Commons files, and Wikidata data.
+- [https://moma.peerdb.org/](https://moma.peerdb.org/): a search service for The Museum of Modern Art (MoMA) artists and artworks.
 
 ## Installation
 
@@ -196,6 +199,24 @@ Or maybe you also want English Wikipedia articles:
 ./wikipedia commons-files
 ./wikipedia wikipedia-articles
 ./wikipedia prepare
+```
+
+## Configuration
+
+PeerDB Search can be configured through CLI arguments and a config file. CLI arguments have precedence
+over the config file. Config file is a YAML file with the structure corresponding to the structure of
+CLI flags and commands. Run `./search --help` for list of available flags and commands. If no command is
+specified, `serve` command is the default.
+
+Each PeerDB Search instance can serve multiple sites and Let's Encrypt can be used to obtain
+HTTPS TLS certificates for them automatically. Example config file for all demos is available
+in [`demos.yml`](./demos.yml). It configures sites, their titles, and ElasticSearch indices
+for each site. To use the config file with Docker, you could do:
+
+```sh
+docker run -d --network peerdb --name peerdb-search -p 443:8080 -v "$(pwd):/data" \
+ registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
+ -E name@example.com -C /data/letsencrypt -c /data/demos.yml
 ```
 
 ## Development
