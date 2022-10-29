@@ -113,20 +113,6 @@ func (c Config) Validate() error {
 				return errors.Errorf(`missing file certificate's matching private key for site "%s"`, site.Domain)
 			}
 		}
-
-		if (c.Serve.TLS.CertFile != "" && c.Serve.TLS.KeyFile != "") || (site.CertFile != "" && site.KeyFile != "") || c.Serve.TLS.Email != "" {
-			continue
-		}
-
-		return errors.Errorf(`file or Let's Encrypt's certificate is required for site "%s"`, site.Domain)
-	}
-
-	if len(c.Sites) == 0 {
-		if (c.Serve.TLS.CertFile != "" && c.Serve.TLS.KeyFile != "") || c.Serve.TLS.Email != "" {
-			return nil
-		}
-
-		return errors.New("file or Let's Encrypt's certificate is required")
 	}
 
 	return nil
