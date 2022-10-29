@@ -19,7 +19,7 @@ You can run PeerDB Search behind a reverse proxy (which should support HTTP2), o
 (it is safe to do so). PeerDB Search is compiled into one backend binary which has frontend files embedded
 and they are served by the backend as well.
 
-[Releases page](https://gitlab.com/peerdb/search/-/releases)
+The [releases page](https://gitlab.com/peerdb/search/-/releases)
 contains a list of stable versions. Each includes:
 
 - A statically compiled binary.
@@ -32,7 +32,7 @@ The latest stable statically compiled binary for Linux (amd64) is available at:
 
 [`https://gitlab.com/peerdb/search/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search`](https://gitlab.com/peerdb/search/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search)
 
-You can also download older versions on [releases page](https://gitlab.com/peerdb/search/-/releases).
+You can also download older versions on the [releases page](https://gitlab.com/peerdb/search/-/releases).
 
 The latest successfully built development (`main` branch) binary is available at:
 
