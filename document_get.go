@@ -130,7 +130,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 	m := timing.NewMetric("es").Start()
 	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "GET",
-		Path:    fmt.Sprintf("/%s/_doc/%s", site.Index, id),
+		Path:    fmt.Sprintf("/%s/_source/%s", site.Index, id),
 		Headers: headers,
 	})
 	m.Stop()
