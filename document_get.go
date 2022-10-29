@@ -23,6 +23,12 @@ import (
 // DocumentGetGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
 func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, params Params) {
+	site, errE := s.getSite(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
+
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -72,7 +78,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 	m := timing.NewMetric("es").Start()
 	_, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "HEAD",
-		Path:    fmt.Sprintf("/docs/_doc/%s", id),
+		Path:    fmt.Sprintf("/%s/_doc/%s", site.Index, id),
 		Headers: headers,
 	})
 	m.Stop()
@@ -100,6 +106,12 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	site, errE := s.getSite(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
+		return
+	}
+
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -118,7 +130,7 @@ func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, p
 	m := timing.NewMetric("es").Start()
 	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
 		Method:  "GET",
-		Path:    fmt.Sprintf("/docs/_source/%s", id),
+		Path:    fmt.Sprintf("/%s/_doc/%s", site.Index, id),
 		Headers: headers,
 	})
 	m.Stop()
