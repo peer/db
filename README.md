@@ -238,8 +238,155 @@ To convert the blog post:
   used for. It is useful to create properties for user documents and blog post documents,
   which can in turn be more general (core) items.
 
-Assuming that only documents for core properties are in the index,
-you could convert the above blog post into the following PeerDB Search documents:
+Assuming that the author does not yet have its document, you could convert the above blog
+post into the following two PeerDB Search documents:
+
+```json
+{
+  "_id": "LcrxeiU9XjxosmX8kiPCx6",
+  "name": {
+    "en": "Foo Bar"
+  },
+  "score": 1.0,
+  "active": {
+    "id": [
+      {
+        "_id": "9TfczNe5aa4LrKqWQWfnFF",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "Hx5zknvxsmPRiLFbGMPeiZ",
+          "name": {
+            "en": "author username"
+          },
+          "score": 1.0
+        },
+        "id": "foobar"
+      }
+    ],
+    "rel": [
+      {
+        "_id": "sgpzxwxPyn51j5VfH992ZQ",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "6asppjBfRGSTt5Df7Zvomb",
+          "name": {
+            "en": "user"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "MpGZyd7grTBPYhMhETAuHV",
+  "name": {
+    "en": "Some title"
+  },
+  "score": 1.0,
+  "active": {
+    "id": [
+      {
+        "_id": "Ci3A1tLF6MHZ4y5zBibvGg",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "8mu7vrUK7zJ4Me2JwYUG6t",
+          "name": {
+            "en": "blog post ID"
+          },
+          "score": 1.0
+        },
+        "id": "123"
+      }
+    ],
+    "text": [
+      {
+        "_id": "VdX1HZm1ETw8K77nLTV6yt",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "FJJLydayUgDuqFsRK2ZtbR",
+          "name": {
+            "en": "article"
+          },
+          "score": 1.0
+        },
+        "html": {
+          "en": "Some <b>blog post</b> body HTML"
+        }
+      }
+    ],
+    "rel": [
+      {
+        "_id": "xbufQEChDXvtg3hh4i1PvT",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "fmUeT7JN8qPuFw28Vdredm",
+          "name": {
+            "en": "author"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "LcrxeiU9XjxosmX8kiPCx6",
+          "name": {
+            "en": "Foo Bar"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "LJNg7QaiMxE1crjMiijpaN",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "3APZXnK3uofpdEJV55Po18",
+          "name": {
+            "en": "blog post"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "UxhYEJY6mpA147eujZ489B",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "5SoFeEFk5aWXUYFC1EZFec",
+          "name": {
+            "en": "label"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "MQYs7JmAR3tge25eTPS8XT",
+          "name": {
+            "en": "has article"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+<details>
+<summary>Some additional documents are needed to exist in the index as well.</summary>
 
 ```json
 {
@@ -491,149 +638,7 @@ you could convert the above blog post into the following PeerDB Search documents
 }
 ```
 
-```json
-{
-  "_id": "LcrxeiU9XjxosmX8kiPCx6",
-  "name": {
-    "en": "Foo Bar"
-  },
-  "score": 1.0,
-  "active": {
-    "id": [
-      {
-        "_id": "9TfczNe5aa4LrKqWQWfnFF",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "Hx5zknvxsmPRiLFbGMPeiZ",
-          "name": {
-            "en": "author username"
-          },
-          "score": 1.0
-        },
-        "id": "foobar"
-      }
-    ],
-    "rel": [
-      {
-        "_id": "sgpzxwxPyn51j5VfH992ZQ",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
-          "name": {
-            "en": "is"
-          },
-          "score": 1.0
-        },
-        "to": {
-          "_id": "6asppjBfRGSTt5Df7Zvomb",
-          "name": {
-            "en": "user"
-          },
-          "score": 1.0
-        }
-      }
-    ]
-  }
-}
-```
-
-```json
-{
-  "_id": "MpGZyd7grTBPYhMhETAuHV",
-  "name": {
-    "en": "Some title"
-  },
-  "score": 1.0,
-  "active": {
-    "id": [
-      {
-        "_id": "Ci3A1tLF6MHZ4y5zBibvGg",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "8mu7vrUK7zJ4Me2JwYUG6t",
-          "name": {
-            "en": "blog post ID"
-          },
-          "score": 1.0
-        },
-        "id": "123"
-      }
-    ],
-    "text": [
-      {
-        "_id": "VdX1HZm1ETw8K77nLTV6yt",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "FJJLydayUgDuqFsRK2ZtbR",
-          "name": {
-            "en": "article"
-          },
-          "score": 1.0
-        },
-        "html": {
-          "en": "Some <b>blog post</b> body HTML"
-        }
-      }
-    ],
-    "rel": [
-      {
-        "_id": "xbufQEChDXvtg3hh4i1PvT",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "fmUeT7JN8qPuFw28Vdredm",
-          "name": {
-            "en": "author"
-          },
-          "score": 1.0
-        },
-        "to": {
-          "_id": "LcrxeiU9XjxosmX8kiPCx6",
-          "name": {
-            "en": "Foo Bar"
-          },
-          "score": 1.0
-        }
-      },
-      {
-        "_id": "LJNg7QaiMxE1crjMiijpaN",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
-          "name": {
-            "en": "is"
-          },
-          "score": 1.0
-        },
-        "to": {
-          "_id": "3APZXnK3uofpdEJV55Po18",
-          "name": {
-            "en": "blog post"
-          },
-          "score": 1.0
-        }
-      },
-      {
-        "_id": "UxhYEJY6mpA147eujZ489B",
-        "confidence": 1.0,
-        "prop": {
-          "_id": "5SoFeEFk5aWXUYFC1EZFec",
-          "name": {
-            "en": "label"
-          },
-          "score": 1.0
-        },
-        "to": {
-          "_id": "MQYs7JmAR3tge25eTPS8XT",
-          "name": {
-            "en": "has article"
-          },
-          "score": 1.0
-        }
-      }
-    ]
-  }
-}
-```
+</details>
 
 ### Wikipedia search
 
