@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var config Config
-	cli.Run(&config, "", kong.Vars{"defaultOutput": DefaultOutput}, func(_ *kong.Context) errors.E {
+	cli.Run(&config, kong.Vars{"defaultOutput": DefaultOutput}, func(_ *kong.Context) errors.E {
 		return generate(&config)
 	})
 }

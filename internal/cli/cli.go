@@ -389,26 +389,21 @@ func extractLoggingConfig(config interface{}) (*LoggingConfig, errors.E) {
 	return nil, errors.Errorf("logging config not found in struct %T", config)
 }
 
-func Run(config interface{}, description string, defaults kong.Vars, run func(*kong.Context) errors.E) {
+func Run(config interface{}, defaults kong.Vars, run func(*kong.Context) errors.E) {
 	// Inside this function, panicking should be set to false before all regular returns from it.
 	panicking := true
 
-	if description == "" {
-		description = "All logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
-	} else {
-		description += "All logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
-	}
-	ctx := kong.Parse(config,
+	description := "All logging goes to stdout. CLI parsing errors, logging errors, and unhandled panics go to stderr."
+
+	parser := kong.Must(config,
 		kong.Description(description),
-		kong.Vars{
-			"version": fmt.Sprintf("version %s (build on %s, git revision %s)", Version, BuildTimestamp, Revision),
-		},
 		kong.UsageOnError(),
 		kong.Writers(
 			os.Stderr,
 			os.Stderr,
 		),
 		kong.Vars{
+			"version":                    fmt.Sprintf("version %s (build on %s, git revision %s)", Version, BuildTimestamp, Revision),
 			"defaultLoggingConsoleType":  DefaultLoggingConsoleType,
 			"defaultLoggingConsoleLevel": DefaultLoggingConsoleLevel,
 			"defaultLoggingFileLevel":    DefaultLoggingFileLevel,
@@ -427,6 +422,9 @@ func Run(config interface{}, description string, defaults kong.Vars, run func(*k
 			return nil
 		})),
 	)
+
+	ctx, err := parser.Parse(os.Args[1:])
+	parser.FatalIfErrorf(err)
 
 	// Default exist code.
 	exitCode := 0

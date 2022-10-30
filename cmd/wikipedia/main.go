@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var config Config
-	cli.Run(&config, "", kong.Vars{
+	cli.Run(&config, kong.Vars{
 		"defaultAPILimit": DefaultAPILimit,
 		"defaultCacheDir": DefaultCacheDir,
 		"defaultElastic":  DefaultElastic,
