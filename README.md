@@ -386,7 +386,7 @@ post into the following two PeerDB Search documents:
 ```
 
 <details>
-<summary>Some additional documents are needed to exist in the index as well.</summary>
+<summary>Some additional documents need to exist in the index as well. Click to expand to see them.</summary>
 
 ```json
 {
