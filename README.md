@@ -13,7 +13,8 @@ Demos:
 
 - [https://wikipedia.peerdb.org/](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
   Wikimedia Commons files, and Wikidata data.
-- [https://moma.peerdb.org/](https://moma.peerdb.org/): a search service for The Museum of Modern Art (MoMA) artists and artworks.
+- [https://moma.peerdb.org/](https://moma.peerdb.org/): a search service for The
+  Museum of Modern Art (MoMA) artists and artworks.
 
 ## Installation
 

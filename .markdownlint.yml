@@ -10,3 +10,8 @@ line-length:
   line_length: 120
   # Allow longer lines for code blocks.
   code_block_line_length: 200
+
+no-inline-html:
+  allowed_elements:
+    - details
+    - summary
