@@ -384,14 +384,6 @@
         "amount": {
           "type": "number"
         },
-        "uncertaintyLower": {
-          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
         "unit": {
           "$ref": "#/$defs/amountUnit"
         }
@@ -422,14 +414,6 @@
           "description": "The upper bound of the range. Inclusive.",
           "type": "number"
         },
-        "uncertaintyLower": {
-          "description": "The lower bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the amount's uncertainty interval. Inclusive.",
-          "type": "number"
-        },
         "unit": {
           "$ref": "#/$defs/amountUnit"
         }
@@ -454,14 +438,6 @@
           "$ref": "#/$defs/documentReference"
         },
         "timestamp": {
-          "$ref": "#/$defs/timestamp"
-        },
-        "uncertaintyLower": {
-          "description": "The lower bound of the timestamp's uncertainty interval. Inclusive.",
-          "$ref": "#/$defs/timestamp"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the timestamp's uncertainty interval. Inclusive.",
           "$ref": "#/$defs/timestamp"
         },
         "precision": {
@@ -491,14 +467,6 @@
         },
         "upper": {
           "description": "The upper bound of the range. Inclusive.",
-          "$ref": "#/$defs/timestamp"
-        },
-        "uncertaintyLower": {
-          "description": "The lower bound of the timestamp's uncertainty interval. Inclusive.",
-          "$ref": "#/$defs/timestamp"
-        },
-        "uncertaintyUpper": {
-          "description": "The upper bound of the timestamp's uncertainty interval. Inclusive.",
           "$ref": "#/$defs/timestamp"
         },
         "precision": {

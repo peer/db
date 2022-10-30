@@ -1208,22 +1208,18 @@ func ValidAmountUnit(unit string) bool {
 type AmountClaim struct {
 	CoreClaim
 
-	Prop             DocumentReference `json:"prop"`
-	Amount           float64           `json:"amount"`
-	UncertaintyLower *float64          `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *float64          `json:"uncertaintyUpper,omitempty"`
-	Unit             AmountUnit        `json:"unit"`
+	Prop   DocumentReference `json:"prop"`
+	Amount float64           `json:"amount"`
+	Unit   AmountUnit        `json:"unit"`
 }
 
 type AmountRangeClaim struct {
 	CoreClaim
 
-	Prop             DocumentReference `json:"prop"`
-	Lower            float64           `json:"lower"`
-	Upper            float64           `json:"upper"`
-	UncertaintyLower *float64          `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *float64          `json:"uncertaintyUpper,omitempty"`
-	Unit             AmountUnit        `json:"unit"`
+	Prop  DocumentReference `json:"prop"`
+	Lower float64           `json:"lower"`
+	Upper float64           `json:"upper"`
+	Unit  AmountUnit        `json:"unit"`
 }
 
 type RelationClaim struct {
@@ -1358,20 +1354,16 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 type TimeClaim struct {
 	CoreClaim
 
-	Prop             DocumentReference `json:"prop"`
-	Timestamp        Timestamp         `json:"timestamp"`
-	UncertaintyLower *Timestamp        `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *Timestamp        `json:"uncertaintyUpper,omitempty"`
-	Precision        TimePrecision     `json:"precision"`
+	Prop      DocumentReference `json:"prop"`
+	Timestamp Timestamp         `json:"timestamp"`
+	Precision TimePrecision     `json:"precision"`
 }
 
 type TimeRangeClaim struct {
 	CoreClaim
 
-	Prop             DocumentReference `json:"prop"`
-	Lower            Timestamp         `json:"lower"`
-	Upper            Timestamp         `json:"upper"`
-	UncertaintyLower *Timestamp        `json:"uncertaintyLower,omitempty"`
-	UncertaintyUpper *Timestamp        `json:"uncertaintyUpper,omitempty"`
-	Precision        TimePrecision     `json:"precision"`
+	Prop      DocumentReference `json:"prop"`
+	Lower     Timestamp         `json:"lower"`
+	Upper     Timestamp         `json:"upper"`
+	Precision TimePrecision     `json:"precision"`
 }

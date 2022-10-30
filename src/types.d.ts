@@ -95,8 +95,6 @@ type StringClaim = CoreClaim & {
 type AmountClaim = CoreClaim & {
   prop: DocumentReference
   amount: number
-  uncertaintyLower?: number
-  uncertaintyUpper?: number
   unit: AmountUnit
 }
 
@@ -104,8 +102,6 @@ type AmountRangeClaim = CoreClaim & {
   prop: DocumentReference
   lower: number
   upper: number
-  uncertaintyLower?: number
-  uncertaintyUpper?: number
   unit: AmountUnit
 }
 
@@ -132,8 +128,6 @@ type UnknownValueClaim = CoreClaim & {
 type TimeClaim = CoreClaim & {
   prop: DocumentReference
   timestamp: string
-  uncertaintyLower?: string
-  uncertaintyUpper?: string
   precision: TimePrecision
 }
 
@@ -141,8 +135,6 @@ type TimeRangeClaim = CoreClaim & {
   prop: DocumentReference
   lower: string
   upper: string
-  uncertaintyLower?: string
-  uncertaintyUpper?: string
   precision: TimePrecision
 }
 

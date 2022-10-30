@@ -302,6 +302,21 @@ func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client
 	return document, hit, nil
 }
 
+func clampConfidence(c search.Score) search.Score {
+	if c < 0 {
+		// max(c, es.HighNegationConfidence)
+		if c < es.HighNegationConfidence {
+			return es.HighNegationConfidence
+		}
+		return c
+	}
+	// min(c, es.HighConfidence)
+	if c < es.HighConfidence {
+		return c
+	}
+	return es.HighConfidence
+}
+
 func resolveDataTypeFromPropertyDocument(document *search.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
 	for _, claim := range document.Get(search.GetCorePropertyID("IS")) {
 		if c, ok := claim.(*search.RelationClaim); ok {
@@ -382,27 +397,31 @@ func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
 func processSnak( //nolint:ireturn,nolintlint
 	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
 	namespace uuid.UUID, prop string, idArgs []interface{}, confidence search.Confidence, snak mediawiki.Snak,
-) (search.Claim, errors.E) {
+) ([]search.Claim, errors.E) {
 	id := search.GetID(namespace, idArgs...)
 
 	switch snak.SnakType {
 	case mediawiki.Value:
 		// Process later down.
 	case mediawiki.SomeValue:
-		return &search.UnknownValueClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         id,
-				Confidence: confidence,
+		return []search.Claim{
+			&search.UnknownValueClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         id,
+					Confidence: confidence,
+				},
+				Prop: getDocumentReference(prop, ""),
 			},
-			Prop: getDocumentReference(prop, ""),
 		}, nil
 	case mediawiki.NoValue:
-		return &search.NoValueClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         id,
-				Confidence: confidence,
+		return []search.Claim{
+			&search.NoValueClaim{
+				CoreClaim: search.CoreClaim{
+					ID:         id,
+					Confidence: confidence,
+				},
+				Prop: getDocumentReference(prop, ""),
 			},
-			Prop: getDocumentReference(prop, ""),
 		}, nil
 	}
 
@@ -429,22 +448,26 @@ func processSnak( //nolint:ireturn,nolintlint
 	case mediawiki.StringValue:
 		switch dataType { //nolint:exhaustive
 		case mediawiki.ExternalID:
-			return &search.IdentifierClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.IdentifierClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop:       getDocumentReference(prop, ""),
+					Identifier: string(value),
 				},
-				Prop:       getDocumentReference(prop, ""),
-				Identifier: string(value),
 			}, nil
 		case mediawiki.String:
-			return &search.StringClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.StringClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop:   getDocumentReference(prop, ""),
+					String: string(value),
 				},
-				Prop:   getDocumentReference(prop, ""),
-				String: string(value),
 			}, nil
 		case mediawiki.CommonsMedia:
 			// First we make sure we do not have underscores.
@@ -457,36 +480,40 @@ func processSnak( //nolint:ireturn,nolintlint
 			args = append(args, "IS", 0, title, 0)
 			claimID := search.GetID(namespace, args...)
 
-			// An invalid claim we post-process later.
-			return &search.FileClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
-					Meta: &search.ClaimTypes{
-						Relation: search.RelationClaims{
-							{
-								CoreClaim: search.CoreClaim{
-									ID:         claimID,
-									Confidence: es.HighConfidence,
+			return []search.Claim{
+				// An invalid claim we post-process later.
+				&search.FileClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+						Meta: &search.ClaimTypes{
+							Relation: search.RelationClaims{
+								{
+									CoreClaim: search.CoreClaim{
+										ID:         claimID,
+										Confidence: es.HighConfidence,
+									},
+									Prop: search.GetCorePropertyReference("IS"),
+									To:   getDocumentReference(title, ""),
 								},
-								Prop: search.GetCorePropertyReference("IS"),
-								To:   getDocumentReference(title, ""),
 							},
 						},
 					},
+					Prop: getDocumentReference(prop, ""),
+					Type: "invalid/invalid",
+					URL:  "https://xx.invalid",
 				},
-				Prop: getDocumentReference(prop, ""),
-				Type: "invalid/invalid",
-				URL:  "https://xx.invalid",
 			}, nil
 		case mediawiki.URL:
-			return &search.ReferenceClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.ReferenceClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop: getDocumentReference(prop, ""),
+					IRI:  string(value),
 				},
-				Prop: getDocumentReference(prop, ""),
-				IRI:  string(value),
 			}, nil
 		case mediawiki.GeoShape:
 			return nil, errors.Errorf("%w: GeoShape", notSupportedDataTypeError)
@@ -505,25 +532,29 @@ func processSnak( //nolint:ireturn,nolintlint
 			if value.Type != mediawiki.ItemType {
 				return nil, errors.Errorf("WikiBaseItem data type, but WikiBaseEntityIDValue has type %d, not ItemType", value.Type)
 			}
-			return &search.RelationClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.RelationClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop: getDocumentReference(prop, ""),
+					To:   getDocumentReference(value.ID, ""),
 				},
-				Prop: getDocumentReference(prop, ""),
-				To:   getDocumentReference(value.ID, ""),
 			}, nil
 		case mediawiki.WikiBaseProperty:
 			if value.Type != mediawiki.PropertyType {
 				return nil, errors.Errorf("WikiBaseProperty data type, but WikiBaseEntityIDValue has type %d, not PropertyType", value.Type)
 			}
-			return &search.RelationClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.RelationClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop: getDocumentReference(prop, ""),
+					To:   getDocumentReference(value.ID, ""),
 				},
-				Prop: getDocumentReference(prop, ""),
-				To:   getDocumentReference(value.ID, ""),
 			}, nil
 		case mediawiki.WikiBaseLexeme:
 			return nil, errors.Errorf("%w: WikiBaseLexeme", notSupportedDataTypeError)
@@ -542,13 +573,15 @@ func processSnak( //nolint:ireturn,nolintlint
 			if value.Language != "en" && !strings.HasPrefix(value.Language, "en-") {
 				return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
 			}
-			return &search.TextClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				&search.TextClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop: getDocumentReference(prop, ""),
+					HTML: search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 				},
-				Prop: getDocumentReference(prop, ""),
-				HTML: search.TranslatableHTMLString{value.Language: html.EscapeString(value.Text)},
 			}, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for MonolingualTextValue: %d", dataType)
@@ -581,24 +614,16 @@ func processSnak( //nolint:ireturn,nolintlint
 			} else if value.LowerBound != nil || value.UpperBound != nil {
 				return nil, errors.Errorf("both lower and upper bounds have to be provided, or none, not just one")
 			}
-			claim := search.AmountClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
-				},
-				Prop:             getDocumentReference(prop, ""),
-				Amount:           amount,
-				UncertaintyLower: uncertaintyLower,
-				UncertaintyUpper: uncertaintyUpper,
-			}
 
+			var unit search.AmountUnit
+			var metaClaims *search.ClaimTypes
 			if value.Unit == "1" {
-				claim.Unit = search.AmountUnitNone
+				unit = search.AmountUnitNone
 			} else {
 				// For now we store the amount as-is and convert to the same unit later on
 				// using the unit we store into meta claims.
 				// TODO: Implement unit post-processing.
-				claim.Unit = search.AmountUnitCustom
+				unit = search.AmountUnitCustom
 				args := append([]interface{}{}, idArgs...)
 				args = append(args, "UNIT", 0)
 				claimID := search.GetID(NameSpaceWikidata, args...)
@@ -610,7 +635,7 @@ func processSnak( //nolint:ireturn,nolintlint
 				} else {
 					return nil, errors.Errorf("unsupported unit URL: %s", value.Unit)
 				}
-				claim.CoreClaim.Meta = &search.ClaimTypes{
+				metaClaims = &search.ClaimTypes{
 					Relation: search.RelationClaims{
 						{
 							CoreClaim: search.CoreClaim{
@@ -624,22 +649,56 @@ func processSnak( //nolint:ireturn,nolintlint
 				}
 			}
 
-			return &claim, nil
+			claims := []search.Claim{
+				&search.AmountClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+						Meta:       metaClaims,
+					},
+					Prop:   getDocumentReference(prop, ""),
+					Amount: amount,
+					Unit:   unit,
+				},
+			}
+			if uncertaintyLower != nil && uncertaintyUpper != nil {
+				// We lower the confidence of the original claim.
+				claims[0].(*search.AmountClaim).Confidence *= 0.9
+				claims = append(
+					claims,
+					&search.AmountRangeClaim{
+						CoreClaim: search.CoreClaim{
+							ID: id,
+							// We raise the confidence of the range claim.
+							Confidence: clampConfidence(confidence * 1.1),
+							Meta:       metaClaims,
+						},
+						Prop:  getDocumentReference(prop, ""),
+						Lower: *uncertaintyLower,
+						Upper: *uncertaintyUpper,
+						Unit:  unit,
+					},
+				)
+			}
+
+			return claims, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for QuantityValue: %d", dataType)
 		}
 	case mediawiki.TimeValue:
 		switch dataType { //nolint:exhaustive
 		case mediawiki.Time:
-			// TODO: Convert timestamps in Julian calendar to ones in Gregorian calendar.
-			return &search.TimeClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         id,
-					Confidence: confidence,
+			return []search.Claim{
+				// TODO: Convert timestamps in Julian calendar to ones in Gregorian calendar.
+				&search.TimeClaim{
+					CoreClaim: search.CoreClaim{
+						ID:         id,
+						Confidence: confidence,
+					},
+					Prop:      getDocumentReference(prop, ""),
+					Timestamp: search.Timestamp(value.Time),
+					Precision: search.TimePrecision(value.Precision),
 				},
-				Prop:      getDocumentReference(prop, ""),
-				Timestamp: search.Timestamp(value.Time),
-				Precision: search.TimePrecision(value.Precision),
 			}, nil
 		default:
 			return nil, errors.Errorf("unexpected data type for TimeValue: %d", dataType)
@@ -655,7 +714,7 @@ func addQualifiers(
 ) errors.E {
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
-			qualifierClaim, err := processSnak(
+			qualifierClaims, err := processSnak(
 				ctx, index, log, esClient, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
 			)
 			if errors.Is(err, SilentSkippedError) {
@@ -667,10 +726,12 @@ func addQualifiers(
 					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
-			err = claim.AddMeta(qualifierClaim)
-			if err != nil {
-				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
-					Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+			for j, qualifierClaim := range qualifierClaims {
+				err = claim.AddMeta(qualifierClaim)
+				if err != nil {
+					log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i).Int(j)).
+						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+				}
 			}
 		}
 	}
@@ -708,7 +769,7 @@ func addReference(
 
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
-			c, err := processSnak(
+			cs, err := processSnak(
 				ctx, index, log, esClient, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
 			)
 			if errors.Is(err, SilentSkippedError) {
@@ -720,10 +781,12 @@ func addReference(
 					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
-			err = referenceClaim.AddMeta(c)
-			if err != nil {
-				log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
-					Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+			for k, c := range cs {
+				err = referenceClaim.AddMeta(c)
+				if err != nil {
+					log.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j).Int(k)).
+						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+				}
 			}
 		}
 	}
@@ -1001,7 +1064,7 @@ func ConvertEntity(
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claim, err := processSnak(
+			claims, err := processSnak(
 				ctx, index, log, esClient, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(err, SilentSkippedError) {
@@ -1013,26 +1076,28 @@ func ConvertEntity(
 					Err(err).Fields(errors.AllDetails(err)).Send()
 				continue
 			}
-			err = addQualifiers(
-				ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
-			)
-			if err != nil {
-				log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("qualifiers")).
-					Err(err).Fields(errors.AllDetails(err)).Send()
-				continue
-			}
-			for i, reference := range statement.References {
-				err = addReference(ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+			for j, claim := range claims {
+				err = addQualifiers(
+					ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+				)
 				if err != nil {
-					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("reference").Int(i)).
+					log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("qualifiers")).
 						Err(err).Fields(errors.AllDetails(err)).Send()
 					continue
 				}
-			}
-			err = document.Add(claim)
-			if err != nil {
-				log.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID)).
-					Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+				for i, reference := range statement.References {
+					err = addReference(ctx, index, log, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+					if err != nil {
+						log.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("reference").Int(i)).
+							Err(err).Fields(errors.AllDetails(err)).Send()
+						continue
+					}
+				}
+				err = document.Add(claim)
+				if err != nil {
+					log.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j)).
+						Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+				}
 			}
 		}
 	}
