@@ -641,9 +641,31 @@ post into the following two PeerDB Search documents:
 
 </details>
 
+### MoMA search
+
+To populate search with [The Museum of Modern Art](https://www.moma.org/) (MoMA)
+artists and artworks (from [this dataset](https://github.com/MuseumofModernArt/collection)),
+clone the repository and run (you need Go 1.19 or newer):
+
+```sh
+make moma
+./moma
+```
+
+Runtime is few minutes. If you also want to add articles (to have more full-text data)
+and (more) images from MoMA's website, run instead:
+
+```sh
+./moma --website-data
+```
+
+Fetching data from the website takes time, so runtime is around 12 hours.
+
 ### Wikipedia search
 
-To populate search with English Wikipedia articles, Wikimedia Commons files, and Wikidata data,
+To populate search with [English Wikipedia](https://en.wikipedia.org/wiki/Main_Page)
+articles, [Wikimedia Commons](https://commons.wikimedia.org/wiki/Main_Page) files,
+and [Wikidata](https://www.wikidata.org/wiki/Wikidata:Main_Page) data,
 clone the repository and run (you need Go 1.19 or newer):
 
 ```sh
