@@ -8,7 +8,6 @@ PeerDB Search is opinionated open source search system incorporating best practi
 interfaces/experience to provide an intuitive, fast, and easy to use search over semantic, structured, and full-text data.
 Its user interface automatically adapts to data and search results and provides relevant filters. The goal of the user
 interface is to allow users without technical knowledge to easily find results they want, without having to write queries.
-The system also allows multiple data sources to be used and merged together.
 
 Demos:
 
@@ -100,6 +99,11 @@ docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
 Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
 The parameters above are primarily meant for development on a local machine.
 
+ElasticSearch instance needs to have an index with documents in PeerDB Search schema
+and configured with PeerDB Search mapping.
+If you already have such an index, proceed to run PeerDB Search, otherwise first
+[populate ElasticSearch with data](#populating-with-data).
+
 Next, to run PeerDB Search you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
 keypair which is then used to create a TLS certificate. Use Go 1.19 or newer.
@@ -145,6 +149,491 @@ PeerDB Search would then be available at `https://public.domain.example.com`.
 When using Let's Encrypt you accept its Terms of Service.
 
 ## Populating with data
+
+Power of PeerDB Search comes from having data in ElasticSearch index organized into documents in PeerDB Search schema.
+The schema is designed to allow describing almost any data. Moreover, data and properties to describe data can be changed
+at runtime without having to reconfigure PeerDB Search, e.g., it adapts filters automatically.
+The schema also allows multiple data sources to be used and merged together.
+
+PeerDB Search schema of documents is fully described in
+[JSON Schema](https://json-schema.org/) and is available [here](./schema/doc.json).
+But at a high-level look like:
+
+```json
+{
+  "_id": "22 character ID",
+  "name": {
+    "en": "name in English"
+  },
+  "score": 1.0,
+  "active": {
+    "id": [
+      {
+        "_id": "22 character ID",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "22 character property ID",
+          "name": {
+            "en": "property name in English"
+          },
+          "score": 1.0
+        },
+        "id": "external ID value"
+      }
+    ],
+    "ref": [...],
+    "text": [...],
+    "amount": [...],
+    "rel": [...],
+    "file": [...],
+    "time": [...]
+  }
+}
+```
+
+Besides core metadata (`_id`, `name`, and `score`) all other data is organized
+in claims (seen under `active` claims above) which are then organized based on claim
+(data) type. For example, there are `id` claims which are used to store external
+ID values. `prop` is a reference to a property document which describes the ID value.
+
+Which properties you use and how you use them to map your data to PeerDB Search documents
+is left to you. We do suggest that you first populate the index using core PeerDB Search
+properties. You can do that by running:
+
+```sh
+./search populate
+```
+
+This also creates an ElasticSearch index if it does not yet exist and configures it
+with [PeerDB Search mapping](./index.json). Otherwise you have to create such index
+yourself.
+
+Then you populate the index with documents for properties for you data. For example, if you
+have a blog post like:
+
+```json
+{
+  "id": 123,
+  "title": "Some title",
+  "body": "Some <b>blog post</b> body HTML",
+  "author": {
+    "username": "foobar",
+    "displayName": "Foo Bar"
+  }
+}
+```
+
+To convert the blog post:
+
+- You could create two documents, one for `title` property and another for `body` property.
+  But you could also decide to map `title` to core `name` metadata, and `body` to
+  existing `DESCRIPTION` (for shorter HTML contents shown in search results as well)
+  or `ARTICLE` (for longer HTML contents) core property (and its label `HAS_ARTICLE`).
+- Maybe you also want to record the original blog post ID and author `username`,
+  so create property documents for them as well.
+- Author `displayName` name can be mapped to `name` core metadata.
+- Another property document is needed for the `author` property.
+- Documents should also have additional claims to describe relations between them.
+  Properties should be marked as properties and which claim type they are meant to be
+  used for. It is useful to create properties for user documents and blog post documents,
+  which can in turn be more general (core) items.
+
+Assuming that only documents for core properties are in the index,
+you could convert the above blog post into the following PeerDB Search documents:
+
+```json
+{
+  "_id": "Hx5zknvxsmPRiLFbGMPeiZ",
+  "name": {
+    "en": "author username"
+  },
+  "score": 1.0,
+  "active": {
+    "rel": [
+      {
+        "_id": "5zZZ6nJFKuA5oNBu9QbsYY",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HohteEmv2o7gPRnJ5wukVe",
+          "name": {
+            "en": "property"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "jjcWxq9VoVLhKqV2tnqz1A",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "UJEVrqCGa9f3vAWi2mNWc7",
+          "name": {
+            "en": "\"identifier\" claim type"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "8mu7vrUK7zJ4Me2JwYUG6t",
+  "name": {
+    "en": "blog post ID"
+  },
+  "score": 1.0,
+  "active": {
+    "rel": [
+      {
+        "_id": "DWYDFZ2DbasS4Tyehnko2U",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HohteEmv2o7gPRnJ5wukVe",
+          "name": {
+            "en": "property"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "ivhonZLA2ktDwyMawBLuKV",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "UJEVrqCGa9f3vAWi2mNWc7",
+          "name": {
+            "en": "\"identifier\" claim type"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "fmUeT7JN8qPuFw28Vdredm",
+  "name": {
+    "en": "author"
+  },
+  "score": 1.0,
+  "active": {
+    "rel": [
+      {
+        "_id": "gK8nXxJ3AXErTmGPoAVF78",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HohteEmv2o7gPRnJ5wukVe",
+          "name": {
+            "en": "property"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "pDBnb32Vd2VPd2UjPnd1eS",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HZ41G8fECg4CjfZN4dmYwf",
+          "name": {
+            "en": "\"relation\" claim type"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "6asppjBfRGSTt5Df7Zvomb",
+  "name": {
+    "en": "user"
+  },
+  "score": 1.0,
+  "active": {
+    "rel": [
+      {
+        "_id": "79m7fNMHy7SRinSmB3WARM",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HohteEmv2o7gPRnJ5wukVe",
+          "name": {
+            "en": "property"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "EuGC7ZRK7weuHNoZLDC8ah",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "6HpkLLj1iSK3XBhgHpc6n3",
+          "name": {
+            "en": "item"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "3APZXnK3uofpdEJV55Po18",
+  "name": {
+    "en": "blog post"
+  },
+  "score": 1.0,
+  "active": {
+    "rel": [
+      {
+        "_id": "c24VwrPEMwZUhRgECzSn1b",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "HohteEmv2o7gPRnJ5wukVe",
+          "name": {
+            "en": "property"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "faByPL18Y1ZH2NAhea4FBy",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "6HpkLLj1iSK3XBhgHpc6n3",
+          "name": {
+            "en": "item"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "LcrxeiU9XjxosmX8kiPCx6",
+  "name": {
+    "en": "Foo Bar"
+  },
+  "score": 1.0,
+  "active": {
+    "id": [
+      {
+        "_id": "9TfczNe5aa4LrKqWQWfnFF",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "Hx5zknvxsmPRiLFbGMPeiZ",
+          "name": {
+            "en": "author username"
+          },
+          "score": 1.0
+        },
+        "id": "foobar"
+      }
+    ],
+    "rel": [
+      {
+        "_id": "sgpzxwxPyn51j5VfH992ZQ",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "6asppjBfRGSTt5Df7Zvomb",
+          "name": {
+            "en": "user"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "_id": "MpGZyd7grTBPYhMhETAuHV",
+  "name": {
+    "en": "Some title"
+  },
+  "score": 1.0,
+  "active": {
+    "id": [
+      {
+        "_id": "Ci3A1tLF6MHZ4y5zBibvGg",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "8mu7vrUK7zJ4Me2JwYUG6t",
+          "name": {
+            "en": "blog post ID"
+          },
+          "score": 1.0
+        },
+        "id": "123"
+      }
+    ],
+    "text": [
+      {
+        "_id": "VdX1HZm1ETw8K77nLTV6yt",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "FJJLydayUgDuqFsRK2ZtbR",
+          "name": {
+            "en": "article"
+          },
+          "score": 1.0
+        },
+        "html": {
+          "en": "Some <b>blog post</b> body HTML"
+        }
+      }
+    ],
+    "rel": [
+      {
+        "_id": "xbufQEChDXvtg3hh4i1PvT",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "fmUeT7JN8qPuFw28Vdredm",
+          "name": {
+            "en": "author"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "LcrxeiU9XjxosmX8kiPCx6",
+          "name": {
+            "en": "Foo Bar"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "LJNg7QaiMxE1crjMiijpaN",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "2fjzZyP7rv8E4aHnBc6KAa",
+          "name": {
+            "en": "is"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "3APZXnK3uofpdEJV55Po18",
+          "name": {
+            "en": "blog post"
+          },
+          "score": 1.0
+        }
+      },
+      {
+        "_id": "UxhYEJY6mpA147eujZ489B",
+        "confidence": 1.0,
+        "prop": {
+          "_id": "5SoFeEFk5aWXUYFC1EZFec",
+          "name": {
+            "en": "label"
+          },
+          "score": 1.0
+        },
+        "to": {
+          "_id": "MQYs7JmAR3tge25eTPS8XT",
+          "name": {
+            "en": "has article"
+          },
+          "score": 1.0
+        }
+      }
+    ]
+  }
+}
+```
 
 ### Wikipedia search
 
