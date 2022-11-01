@@ -494,11 +494,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if s.Development != "" {
-		s.Proxy(w, req, nil)
-	} else {
-		s.staticFile(w, req, "/index.html", false)
-	}
+	s.HomeGetGetHTML(w, req, nil)
 }
 
 func (s *Service) getSite(req *http.Request) (Site, errors.E) {

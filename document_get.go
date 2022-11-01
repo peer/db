@@ -90,11 +90,7 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	if s.Development != "" {
-		s.Proxy(w, req, nil)
-	} else {
-		s.staticFile(w, req, "/index.html", false)
-	}
+	s.HomeGetGetHTML(w, req, nil)
 }
 
 // DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
