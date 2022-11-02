@@ -107,7 +107,7 @@ const rowSpan = computed(() => {
         <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
       </h2>
       <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap items-start gap-1 text-sm">
-        <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow">{{ tag }}</li>
+        <li v-for="tag of tags" :key="tag" class="py-1px rounded bg-secondary-400 px-1.5 text-neutral-600 shadow-sm">{{ tag }}</li>
       </ul>
       <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
         <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
