@@ -792,6 +792,10 @@ func index(config *Config) errors.E {
 				}
 			}
 		} else if artwork.ThumbnailURL != "" {
+			url := artwork.ThumbnailURL
+			if strings.HasPrefix(url, "http://") {
+				url = strings.Replace(url, "http://", "https://", 1)
+			}
 			err := doc.Add(&search.FileClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", 0),
@@ -799,8 +803,8 @@ func index(config *Config) errors.E {
 				},
 				Prop:    search.GetCorePropertyReference("IMAGE"),
 				Type:    "image/jpeg",
-				URL:     artwork.ThumbnailURL,
-				Preview: []string{artwork.ThumbnailURL},
+				URL:     url,
+				Preview: []string{url},
 			})
 			if err != nil {
 				return err
