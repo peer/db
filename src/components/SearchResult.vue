@@ -77,11 +77,11 @@ const rowsCount = computed(() => {
 const gridRows = computed(() => {
   switch (rowsCount.value) {
     case 1:
-      return "sm:grid-rows-[100%]"
+      return "sm:grid-rows-[1fr]"
     case 2:
-      return "sm:grid-rows-[auto_100%]"
+      return "sm:grid-rows-[auto_1fr]"
     case 3:
-      return "sm:grid-rows-[auto_auto_100%]"
+      return "sm:grid-rows-[auto_auto_1fr]"
     default:
       throw new Error(`unexpected count of rows: ${rowsCount.value}`)
   }
