@@ -1,3 +1,4 @@
+import type { Router as VueRouter, RouteLocationRaw, RouteLocationNormalizedLoaded, RouteLocation } from "vue-router"
 import type { NONE } from "@/symbols"
 
 export type RelSearchResult = {
@@ -261,6 +262,15 @@ export type SiteContext = {
   site: {
     index: string
     title: string
+  }
+}
+
+export type Router = VueRouter & {
+  apiResolve(
+    to: RouteLocationRaw,
+    currentLocation?: RouteLocationNormalizedLoaded,
+  ): RouteLocation & {
+    href: string
   }
 }
 

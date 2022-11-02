@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue"
-import { useRouter, useRoute } from "vue-router"
+import { useRoute } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
+import { useRouter } from "@/utils"
 
 const props = withDefaults(
   defineProps<{

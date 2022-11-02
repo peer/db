@@ -2,7 +2,7 @@
 import type { PeerDBDocument } from "@/types"
 
 import { ref, computed, watch, readonly } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import RouterLink from "@/components/RouterLink.vue"
@@ -14,7 +14,7 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
 import { getDocument, useSearchState } from "@/search"
 import { globalProgress } from "@/api"
-import { getBestClaimOfType } from "@/utils"
+import { getBestClaimOfType, useRouter } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps({

@@ -1,8 +1,9 @@
 import type { DeepReadonly } from "vue"
-import type { Mutable, Claim, ClaimTypes, Required } from "@/types"
+import type { Mutable, Claim, ClaimTypes, Required, Router } from "@/types"
 
 import { toRaw } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
+import { useRouter as useVueRouter } from "vue-router"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 import { LIST, ORDER } from "@/props"
 
@@ -155,4 +156,8 @@ export function getClaimsListsOfType<K extends keyof ClaimTypes>(
     res.push(c.sort(([c1, o1], [c2, o2]) => o1 - o2).map(([c, o]) => c))
   }
   return res
+}
+
+export function useRouter(): Router {
+  return useVueRouter() as Router
 }

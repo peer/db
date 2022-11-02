@@ -1,3 +1,5 @@
+import type { Router } from "@/types"
+
 import { createApp } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
 import Main from "@/Main.vue"
@@ -30,7 +32,7 @@ const router = createRouter({
       component: () => import(`./views/${route.name}.vue`),
       props: true,
     })),
-})
+}) as Router
 
 const apiRouter = createRouter({
   history: createWebHistory(),
@@ -39,6 +41,7 @@ const apiRouter = createRouter({
     .map((route) => ({
       path: `/api${route.path}`,
       name: route.name,
+      component: () => null,
       props: true,
     })),
 })

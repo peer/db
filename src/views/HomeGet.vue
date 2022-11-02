@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue"
-import { useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import Footer from "@/components/Footer.vue"
 import { postSearch } from "@/search"
 import siteContext from "@/context"
+import { useRouter } from "@/utils"
 
 const router = useRouter()
 const form = ref()
