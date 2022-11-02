@@ -615,7 +615,7 @@ func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request,
 }
 
 // DocumentSearchAPIPost is a POST HTTP request handler which stores the search state and returns
-// query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID
+// query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
 func (s *Service) DocumentSearchAPIPost(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {

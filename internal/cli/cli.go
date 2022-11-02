@@ -466,7 +466,7 @@ func Run(config interface{}, defaults kong.Vars, run func(*kong.Context) errors.
 		}
 	}
 	if loggingConfig.Logging.File.Path != "" {
-		w, err := os.OpenFile(loggingConfig.Logging.File.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
+		w, err := os.OpenFile(loggingConfig.Logging.File.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode) //nolint:govet
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cannot open logging file: %s\n", err.Error())
 			// Use the same exit code as Kong does.
@@ -498,7 +498,6 @@ func Run(config interface{}, defaults kong.Vars, run func(*kong.Context) errors.
 		}
 
 		var j []byte
-		var err error
 		switch e := ee.(type) { //nolint:errorlint
 		case interface {
 			MarshalJSON() ([]byte, error)

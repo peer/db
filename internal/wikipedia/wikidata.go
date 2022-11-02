@@ -304,13 +304,13 @@ func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client
 
 func clampConfidence(c search.Score) search.Score {
 	if c < 0 {
-		// max(c, es.HighNegationConfidence)
+		// max(c, es.HighNegationConfidence).
 		if c < es.HighNegationConfidence {
 			return es.HighNegationConfidence
 		}
 		return c
 	}
-	// min(c, es.HighConfidence)
+	// min(c, es.HighConfidence).
 	if c < es.HighConfidence {
 		return c
 	}
@@ -670,7 +670,7 @@ func processSnak( //nolint:ireturn,nolintlint
 						CoreClaim: search.CoreClaim{
 							ID: id,
 							// We raise the confidence of the range claim.
-							Confidence: clampConfidence(confidence * 1.1),
+							Confidence: clampConfidence(confidence * 1.1), //nolint:gomnd
 							Meta:       metaClaims,
 						},
 						Prop:  getDocumentReference(prop, ""),
