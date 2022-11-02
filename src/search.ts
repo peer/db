@@ -56,7 +56,7 @@ function queryToData(route: RouteLocationNormalizedLoaded, data: FormData | URLS
 
 export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
   const query: ServerQuery = await postURL(
-    router.resolve({
+    router.apiResolve({
       name: "DocumentSearch",
     }).href,
     new FormData(form),
@@ -126,7 +126,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   queryToData(route, form)
   form.set("filters", JSON.stringify(filters))
   const updatedQuery: ServerQuery = await postURL(
-    router.resolve({
+    router.apiResolve({
       name: "DocumentSearch",
     }).href,
     form,
@@ -167,7 +167,7 @@ function updateDocs(
 }
 
 function getSearchURL(router: Router, params: string): string {
-  return router.resolve({ name: "DocumentSearch" }).href + "?" + params
+  return router.apiResolve({ name: "DocumentSearch" }).href + "?" + params
 }
 
 export function useSearch(
@@ -222,7 +222,7 @@ export function useFilters(progress: Ref<number>): {
       if (!s) {
         return null
       }
-      return router.resolve({
+      return router.apiResolve({
         name: "DocumentSearchFilters",
         params: {
           s,
@@ -516,8 +516,8 @@ export function useRelFilterValues(
         return null
       }
       if (property._type === "rel") {
-        return router.resolve({
-          name: "DocumentSearchRelFilterGet",
+        return router.apiResolve({
+          name: "DocumentSearchRelFilter",
           params: {
             s,
             prop: property._id,
@@ -580,8 +580,8 @@ export function useAmountHistogramValues(
         if (!property._unit) {
           throw new Error(`property "${property._id}" is missing unit`)
         }
-        return router.resolve({
-          name: "DocumentSearchAmountFilterGet",
+        return router.apiResolve({
+          name: "DocumentSearchAmountFilter",
           params: {
             s,
             prop: property._id,
@@ -665,8 +665,8 @@ export function useTimeHistogramValues(
         return null
       }
       if (property._type === "time") {
-        return router.resolve({
-          name: "DocumentSearchTimeFilterGet",
+        return router.apiResolve({
+          name: "DocumentSearchTimeFilter",
           params: {
             s,
             prop: property._id,
@@ -749,8 +749,8 @@ export function useStringFilterValues(
         return null
       }
       if (property._type === "string") {
-        return router.resolve({
-          name: "DocumentSearchStringFilterGet",
+        return router.apiResolve({
+          name: "DocumentSearchStringFilter",
           params: {
             s,
             prop: property._id,
@@ -872,7 +872,7 @@ async function getHistogramValues(
 
 export async function getDocument(router: Router, result: { _id: string }, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
   const { doc } = await getURL(
-    router.resolve({
+    router.apiResolve({
       name: "DocumentGet",
       params: {
         id: result._id,

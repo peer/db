@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	gddo "github.com/golang/gddo/httputil"
 	"gitlab.com/tozd/go/errors"
 )
 
@@ -86,11 +85,12 @@ type matcher struct {
 }
 
 type route struct {
-	Name     string
-	Path     string
-	Segments []pathSegment
-	// A map between methods and a map between content types and handlers.
-	Handlers map[string]map[string]Handler
+	Name       string
+	Path       string
+	Segments   []pathSegment
+	GetHandler Handler
+	// A map between methods and API handlers.
+	APIHandlers map[string]Handler
 }
 
 type Params map[string]string
@@ -116,7 +116,7 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) Handle(name, method, contentType, path string, handler Handler) errors.E {
+func (r *Router) Handle(name, method, path string, api bool, handler Handler) errors.E {
 	ro, ok := r.routes[name]
 	if !ok {
 		segments, err := parsePath(path)
@@ -128,10 +128,10 @@ func (r *Router) Handle(name, method, contentType, path string, handler Handler)
 			return errors.WithMessagef(err, `compiling regexp for path "%s" failed for route "%s"`, path, name)
 		}
 		ro = &route{
-			Name:     name,
-			Path:     path,
-			Segments: segments,
-			Handlers: make(map[string]map[string]Handler),
+			Name:        name,
+			Path:        path,
+			Segments:    segments,
+			APIHandlers: make(map[string]Handler),
 		}
 		r.routes[name] = ro
 		r.matchers = append(r.matchers, matcher{
@@ -155,18 +155,24 @@ func (r *Router) Handle(name, method, contentType, path string, handler Handler)
 		}
 	}
 
-	m, ok := ro.Handlers[method]
-	if !ok {
-		m = make(map[string]Handler)
-		ro.Handlers[method] = m
-	}
+	if api {
+		_, ok := ro.APIHandlers[method]
+		if ok {
+			return errors.Errorf(`route "%s" for "%s" has already handler for method "%s"`, name, path, method)
+		}
 
-	_, ok = m[contentType]
-	if ok {
-		return errors.Errorf(`route "%s" for "%s" has already handler for method "%s" and content type "%s"`, name, path, method, contentType)
-	}
+		ro.APIHandlers[method] = handler
+	} else {
+		if method != http.MethodGet {
+			return errors.Errorf(`non-API handler for route "%s" for "%s" must use GET HTTP method`, name, path)
+		}
 
-	m[contentType] = handler
+		if ro.GetHandler != nil {
+			return errors.Errorf(`non-API handler for route "%s" for "%s" already exists`, name, path)
+		}
+
+		ro.GetHandler = handler
+	}
 
 	return nil
 }
@@ -193,6 +199,12 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	path := req.URL.Path
 
+	api := false
+	if strings.HasPrefix(path, "/api/") {
+		api = true
+		path = strings.TrimPrefix(path, "/api")
+	}
+
 	for _, matcher := range r.matchers {
 		match := matcher.Regexp.FindStringSubmatch(path)
 		if match == nil {
@@ -201,55 +213,42 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		params := matcher.GetParams(match)
 
-		m, ok := matcher.Route.Handlers[req.Method]
-		if !ok {
-			allow := []string{}
-			for method := range matcher.Route.Handlers {
-				allow = append(allow, method)
-			}
-			w.Header().Add("Allow", strings.Join(allow, ", "))
+		var handler Handler
+		if api {
+			var ok bool
+			handler, ok = matcher.Route.APIHandlers[req.Method]
+			if !ok {
+				allow := []string{}
+				for method := range matcher.Route.APIHandlers {
+					allow = append(allow, method)
+				}
+				w.Header().Add("Allow", strings.Join(allow, ", "))
 
-			if r.MethodNotAllowed != nil {
-				r.MethodNotAllowed(w, req, params)
-			} else {
-				r.Error(w, req, http.StatusMethodNotAllowed)
+				if r.MethodNotAllowed != nil {
+					r.MethodNotAllowed(w, req, params)
+				} else {
+					r.Error(w, req, http.StatusMethodNotAllowed)
+				}
+				return
 			}
-			return
+		} else {
+			if matcher.Route.GetHandler == nil {
+				// We exit search early.
+				break
+			}
+			if req.Method != http.MethodGet && req.Method != http.MethodHead {
+				w.Header().Add("Allow", "GET, HEAD")
+
+				if r.MethodNotAllowed != nil {
+					r.MethodNotAllowed(w, req, params)
+				} else {
+					r.Error(w, req, http.StatusMethodNotAllowed)
+				}
+				return
+			}
+			handler = matcher.Route.GetHandler
 		}
 
-		// If we got to here, then the rest depends on the content type negotiation, so we set caching header
-		// to signal that. Even if there is just one handler defined currently and no content negotiation really
-		// happened, additional handlers might be defined in the future.
-		w.Header().Add("Vary", "Accept")
-
-		offers := []string{}
-		for contentType := range m {
-			if contentType != "" {
-				offers = append(offers, contentType)
-			}
-		}
-
-		contentType := gddo.NegotiateContentType(req, offers, "")
-		handler, ok := m[contentType]
-		if !ok {
-			// offers is always non-empty here because otherwise there is a handler
-			// for catch-all "" content type and we would not be here.
-			switch req.Method {
-			case http.MethodPatch:
-				w.Header().Add("Accept-Patch", strings.Join(offers, ", "))
-			case http.MethodPost:
-				w.Header().Add("Accept-Post", strings.Join(offers, ", "))
-			}
-
-			if r.NotAcceptable != nil {
-				r.NotAcceptable(w, req, params)
-			} else {
-				r.Error(w, req, http.StatusNotAcceptable)
-			}
-			return
-		}
-
-		// This might be a catch-all "" content type handler.
 		handler(w, req, params)
 		return
 	}
@@ -261,13 +260,24 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (r *Router) Path(name string, params Params, query string) (string, errors.E) {
+func (r *Router) path(name string, params Params, query string, api bool) (string, errors.E) {
 	route, ok := r.routes[name]
 	if !ok {
 		return "", errors.Errorf(`route with name "%s" does not exist`, name)
 	}
+	if api && len(route.APIHandlers) == 0 {
+		return "", errors.Errorf(`route with name "%s" has no API handlers`, name)
+	}
+	if !api && route.GetHandler == nil {
+		return "", errors.Errorf(`route with name "%s" has no get handler`, name)
+	}
 
 	var res strings.Builder
+
+	if api {
+		res.WriteString("/api")
+	}
+
 	for _, segment := range route.Segments {
 		if !segment.Parameter {
 			res.WriteString("/")
@@ -284,8 +294,14 @@ func (r *Router) Path(name string, params Params, query string) (string, errors.
 		res.WriteString(val)
 	}
 
-	if res.Len() == 0 {
-		res.WriteString("/")
+	if api {
+		if res.String() == "/api" {
+			res.WriteString("/")
+		}
+	} else {
+		if res.Len() == 0 {
+			res.WriteString("/")
+		}
 	}
 
 	if query != "" {
@@ -294,4 +310,12 @@ func (r *Router) Path(name string, params Params, query string) (string, errors.
 	}
 
 	return res.String(), nil
+}
+
+func (r *Router) Path(name string, params Params, query string) (string, errors.E) {
+	return r.path(name, params, query, false)
+}
+
+func (r *Router) APIPath(name string, params Params, query string) (string, errors.E) {
+	return r.path(name, params, query, true)
 }

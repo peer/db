@@ -20,9 +20,9 @@ import (
 // TODO: Support slug per document.
 // TODO: JSON response should include _id field.
 
-// DocumentGetGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for a
+// DocumentGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
-func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params Params) {
 	site, errE := s.getSite(req)
 	if errE != nil {
 		s.notFoundWithError(w, req, errE)
@@ -90,12 +90,12 @@ func (s *Service) DocumentGetGetHTML(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	s.HomeGetGetHTML(w, req, nil)
+	s.HomeGet(w, req, nil)
 }
 
-// DocumentGetGetJSON is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// DocumentGetAPIGet is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) DocumentGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, []string{compressionGzip, compressionDeflate, compressionIdentity})
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

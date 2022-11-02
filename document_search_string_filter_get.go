@@ -20,7 +20,7 @@ type histogramStringResult struct {
 }
 
 //nolint:dupl
-func (s *Service) DocumentSearchStringFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchStringFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

@@ -38,6 +38,8 @@ type routes struct {
 	Routes []struct {
 		Name string `json:"name"`
 		Path string `json:"path"`
+		API  bool   `json:"api,omitempty"`
+		Get  bool   `json:"get,omitempty"`
 	} `json:"routes"`
 }
 
@@ -338,17 +340,57 @@ func (s *Service) configureRoutes(router *Router) errors.E {
 	v := reflect.ValueOf(s)
 
 	for _, route := range rs.Routes {
-		foundGet := false
-		foundAnyHandler := false
-		for _, method := range []string{http.MethodGet, http.MethodPost} {
-			for contentTypeSuffix, contentType := range map[string]string{"HTML": "text/html", "JSON": "application/json"} {
-				handlerName := fmt.Sprintf("%s%s%s", route.Name, strings.Title(strings.ToLower(method)), contentTypeSuffix) //nolint:staticcheck
+		if !route.Get && !route.API {
+			errE := errors.New(`at least one of "get" and "api" has to be true`)
+			errors.Details(errE)["name"] = route.Name
+			errors.Details(errE)["path"] = route.Path
+			return errE
+		}
+
+		if route.Get {
+			handlerName := route.Name
+			m := v.MethodByName(handlerName)
+			if !m.IsValid() {
+				errE := errors.New("handler not found")
+				errors.Details(errE)["handler"] = handlerName
+				errors.Details(errE)["name"] = route.Name
+				errors.Details(errE)["path"] = route.Path
+				return errE
+			}
+			s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler found")
+			// We cannot use Handler here because it is a named type.
+			h, ok := m.Interface().(func(http.ResponseWriter, *http.Request, Params))
+			if !ok {
+				errE := errors.Errorf("invalid route handler type: %T", m.Interface())
+				errors.Details(errE)["handler"] = handlerName
+				errors.Details(errE)["name"] = route.Name
+				errors.Details(errE)["path"] = route.Path
+				return errE
+			}
+			h = logHandlerName(handlerName, h)
+			errE := router.Handle(route.Name, http.MethodGet, route.Path, false, h)
+			if errE != nil {
+				errors.Details(errE)["handler"] = handlerName
+				errors.Details(errE)["name"] = route.Name
+				errors.Details(errE)["path"] = route.Path
+				return errE
+			}
+		}
+		if route.API {
+			foundAnyAPIHandler := false
+			// MethodHead is handled by MethodGet handled.
+			for _, method := range []string{
+				http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch,
+				http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace,
+			} {
+				handlerName := fmt.Sprintf("%sAPI%s", route.Name, strings.Title(strings.ToLower(method))) //nolint:staticcheck
 				m := v.MethodByName(handlerName)
 				if !m.IsValid() {
-					s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler not found")
+					s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: API handler not found")
 					continue
 				}
-				s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: handler found")
+				s.Log.Debug().Str("handler", handlerName).Str("name", route.Name).Str("path", route.Path).Msg("route registration: API handler found")
+				foundAnyAPIHandler = true
 				// We cannot use Handler here because it is a named type.
 				h, ok := m.Interface().(func(http.ResponseWriter, *http.Request, Params))
 				if !ok {
@@ -359,17 +401,15 @@ func (s *Service) configureRoutes(router *Router) errors.E {
 					return errE
 				}
 				h = logHandlerName(handlerName, h)
-				errE := router.Handle(route.Name, method, contentType, route.Path, h)
+				errE := router.Handle(route.Name, method, route.Path, true, h)
 				if errE != nil {
 					errors.Details(errE)["handler"] = handlerName
 					errors.Details(errE)["name"] = route.Name
 					errors.Details(errE)["path"] = route.Path
 					return errE
 				}
-				foundAnyHandler = true
 				if method == http.MethodGet {
-					foundGet = true
-					errE := router.Handle(route.Name, http.MethodHead, contentType, route.Path, h)
+					errE := router.Handle(route.Name, http.MethodHead, route.Path, true, h)
 					if errE != nil {
 						errors.Details(errE)["handler"] = handlerName
 						errors.Details(errE)["name"] = route.Name
@@ -378,18 +418,12 @@ func (s *Service) configureRoutes(router *Router) errors.E {
 					}
 				}
 			}
-		}
-		if !foundGet {
-			errE := errors.Errorf("no GET route handler found")
-			errors.Details(errE)["name"] = route.Name
-			errors.Details(errE)["path"] = route.Path
-			return errE
-		}
-		if !foundAnyHandler {
-			errE := errors.Errorf("no route handler found")
-			errors.Details(errE)["name"] = route.Name
-			errors.Details(errE)["path"] = route.Path
-			return errE
+			if !foundAnyAPIHandler {
+				errE := errors.Errorf("no route API handler found")
+				errors.Details(errE)["name"] = route.Name
+				errors.Details(errE)["path"] = route.Path
+				return errE
+			}
 		}
 	}
 
@@ -577,7 +611,7 @@ func (s *Service) renderAndCompressContext() errors.E {
 				return errE
 			}
 
-			site.compressedFiles[compression]["/context.json"] = data
+			site.compressedFiles[compression]["/index.json"] = data
 		}
 
 		// Map cannot be modified directly, so we modify the copy

@@ -69,7 +69,7 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
-func (s *Service) DocumentSearchFiltersGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

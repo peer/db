@@ -459,9 +459,9 @@ type searchResult struct {
 	Unit  string `json:"_unit,omitempty"`
 }
 
-// DocumentSearchGetHTML is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+// DocumentSearch is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
 // If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request, _ Params) {
+func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -494,7 +494,7 @@ func (s *Service) DocumentSearchGetHTML(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	s.HomeGetGetHTML(w, req, nil)
+	s.HomeGet(w, req, nil)
 }
 
 func (s *Service) getSite(req *http.Request) (Site, errors.E) {
@@ -547,11 +547,11 @@ func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
 	return boolQuery
 }
 
-// DocumentSearchGetJSON is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
+// DocumentSearchAPIGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request, _ Params) {
+func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)
@@ -614,31 +614,9 @@ func (s *Service) DocumentSearchGetJSON(w http.ResponseWriter, req *http.Request
 	s.writeJSON(w, req, contentEncoding, results, metadata)
 }
 
-// DocumentSearchPostHTML is a POST HTTP request handler which stores the search state and redirect to
-// the GET endpoint based on search ID. The handler follows the Post/Redirect/Get pattern.
-func (s *Service) DocumentSearchPostHTML(w http.ResponseWriter, req *http.Request, _ Params) {
-	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
-
-	m := timing.NewMetric("s").Start()
-	sh := makeSearch(req.Form)
-	m.Stop()
-	path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
-	if err != nil {
-		s.internalServerErrorWithError(w, req, err)
-		return
-	}
-
-	// TODO: Should we push the location to the client, too?
-	// TODO: Should we already do the query, to warm up ES cache?
-	//       Maybe we should cache response ourselves so that we do not hit ES twice?
-	w.Header().Set("Location", path)
-	w.WriteHeader(http.StatusSeeOther)
-}
-
-// DocumentSearchPostJSON is a POST HTTP request handler which stores the search state and returns
-// query parameters for the GET endpoint as JSON.
-func (s *Service) DocumentSearchPostJSON(w http.ResponseWriter, req *http.Request, _ Params) {
+// DocumentSearchAPIPost is a POST HTTP request handler which stores the search state and returns
+// query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID
+func (s *Service) DocumentSearchAPIPost(w http.ResponseWriter, req *http.Request, _ Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

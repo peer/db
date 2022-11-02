@@ -52,7 +52,7 @@ type histogramAmountResult struct {
 	Count int64   `json:"count"`
 }
 
-func (s *Service) DocumentSearchAmountFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

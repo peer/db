@@ -31,9 +31,6 @@ export async function getURL(url: string, priority: number, abortSignal: AbortSi
       async ({ signal }) => {
         const response = await fetch(url, {
           method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
           mode: "same-origin",
           credentials: "omit",
           redirect: "error",
@@ -68,7 +65,6 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
       // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584

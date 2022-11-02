@@ -22,12 +22,27 @@ const router = createRouter({
       return { top: 0 }
     }
   },
-  routes: routes.map((route) => ({
-    path: route.path,
-    name: route.name,
-    component: () => import(`./views/${route.name}.vue`),
-    props: true,
-  })),
+  routes: routes
+    .filter((route) => route.get)
+    .map((route) => ({
+      path: route.path,
+      name: route.name,
+      component: () => import(`./views/${route.name}.vue`),
+      props: true,
+    })),
 })
+
+const apiRouter = createRouter({
+  history: createWebHistory(),
+  routes: routes
+    .filter((route) => route.api)
+    .map((route) => ({
+      path: `/api${route.path}`,
+      name: route.name,
+      props: true,
+    })),
+})
+
+router.apiResolve = apiRouter.resolve.bind(apiRouter)
 
 createApp(Main).use(router).mount("main")

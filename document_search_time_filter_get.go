@@ -45,7 +45,7 @@ type histogramTimeResult struct {
 	Count int64     `json:"count"`
 }
 
-func (s *Service) DocumentSearchTimeFilterGetGetJSON(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchTimeFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)

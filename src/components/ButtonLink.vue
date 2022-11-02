@@ -17,7 +17,7 @@ const props = defineProps({
   },
 })
 
-// We use fake "/" then disabled. The link is not really active then, so that is OK.
+// We use fake "/" when disabled. The link is not really active then, so that is OK.
 // We have to make both be computed to retain reactivity.
 const { navigate, href } = useLink({
   to: computed(() => (props.disabled ? "/" : props.to)),

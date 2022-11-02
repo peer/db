@@ -137,7 +137,7 @@ func (s *Service) serveStaticFiles(router *Router) errors.E {
 
 	for _, site := range s.Sites {
 		for path := range site.compressedFiles[compressionIdentity] {
-			if path == "/index.html" || path == "/context.json" {
+			if path == "/index.html" || path == "/index.json" {
 				continue
 			}
 
@@ -151,11 +151,7 @@ func (s *Service) serveStaticFiles(router *Router) errors.E {
 				h = staticH
 			}
 
-			err := router.Handle(n, http.MethodGet, "", path, h)
-			if err != nil {
-				return err
-			}
-			err = router.Handle(n, http.MethodHead, "", path, h)
+			err := router.Handle(n, http.MethodGet, path, false, h)
 			if err != nil {
 				return err
 			}

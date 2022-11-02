@@ -2,39 +2,46 @@
   "routes": [
     {
       "name": "DocumentSearch",
-      "path": "/d"
+      "path": "/d",
+      "api": true,
+      "get": true
     },
     {
       "name": "DocumentSearchFilters",
-      "path": "/d/filters/:s"
+      "path": "/d/filters/:s",
+      "api": true
     },
     {
-      "name": "DocumentSearchRelFilterGet",
-      "path": "/d/filters/:s/rel/:prop"
+      "name": "DocumentSearchRelFilter",
+      "path": "/d/filters/:s/rel/:prop",
+      "api": true
     },
     {
-      "name": "DocumentSearchAmountFilterGet",
-      "path": "/d/filters/:s/amount/:prop/:unit"
+      "name": "DocumentSearchAmountFilter",
+      "path": "/d/filters/:s/amount/:prop/:unit",
+      "api": true
     },
     {
-      "name": "DocumentSearchTimeFilterGet",
-      "path": "/d/filters/:s/time/:prop"
+      "name": "DocumentSearchTimeFilter",
+      "path": "/d/filters/:s/time/:prop",
+      "api": true
     },
     {
-      "name": "DocumentSearchStringFilterGet",
-      "path": "/d/filters/:s/string/:prop"
+      "name": "DocumentSearchStringFilter",
+      "path": "/d/filters/:s/string/:prop",
+      "api": true
     },
     {
       "name": "DocumentGet",
-      "path": "/d/:id"
-    },
-    {
-      "name": "ContextGet",
-      "path": "/context.json"
+      "path": "/d/:id",
+      "api": true,
+      "get": true
     },
     {
       "name": "HomeGet",
-      "path": "/"
+      "path": "/",
+      "api": true,
+      "get": true
     }
   ]
 }
