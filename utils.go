@@ -298,10 +298,17 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 
 	m := timing.NewMetric("j").Start()
 
-	encoded, err := x.MarshalWithoutEscapeHTML(data)
-	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+	var encoded []byte
+	switch d := data.(type) {
+	case json.RawMessage:
+		encoded = []byte(d)
+	default:
+		e, err := x.MarshalWithoutEscapeHTML(data)
+		if err != nil {
+			s.internalServerErrorWithError(w, req, errors.WithStack(err))
+			return
+		}
+		encoded = e
 	}
 
 	m.Stop()
@@ -348,7 +355,9 @@ func (s *Service) writeJSON(w http.ResponseWriter, req *http.Request, contentEnc
 		//       See: https://github.com/golang/go/pull/50904
 		w.Header().Set("Content-Length", strconv.Itoa(len(encoded)))
 	}
-	w.Header().Set("Cache-Control", "no-cache")
+	if len(w.Header().Values("Cache-Control")) == 0 {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
 	w.Header().Add("Vary", "Accept-Encoding")
 	w.Header().Set("Etag", etag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")

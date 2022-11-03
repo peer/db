@@ -1,10 +1,6 @@
 package search
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -23,12 +19,6 @@ import (
 // DocumentGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
 func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params Params) {
-	site, errE := s.getSite(req)
-	if errE != nil {
-		s.notFoundWithError(w, req, errE)
-		return
-	}
-
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -73,20 +63,24 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 	// TODO: If "s" is provided, should we validate that id is really part of search? Currently we do on the frontend.
 
 	// We check if document exists.
-	headers := http.Header{}
-	headers.Set("X-Opaque-ID", idFromRequest(req))
-	m := timing.NewMetric("es").Start()
-	_, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
-		Method:  "HEAD",
-		Path:    fmt.Sprintf("/%s/_doc/%s", site.Index, id),
-		Headers: headers,
-	})
-	m.Stop()
-	if elastic.IsNotFound(err) {
-		s.NotFound(w, req, nil)
+	searchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
 		return
-	} else if err != nil {
+	}
+	searchService = searchService.From(0).Size(0).Query(elastic.NewTermQuery("_id", id))
+
+	m := timing.NewMetric("es").Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
+	}
+	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+
+	if res.Hits.TotalHits.Value == 0 {
+		s.NotFound(w, req, nil)
 		return
 	}
 
@@ -102,12 +96,6 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 		return
 	}
 
-	site, errE := s.getSite(req)
-	if errE != nil {
-		s.notFoundWithError(w, req, errE)
-		return
-	}
-
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -120,42 +108,34 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 	// We do not check "s" and "q" parameters because the expectation is that
 	// they are not provided with JSON request (because they are not used).
 
-	headers := http.Header{}
-	headers.Set("Accept-Encoding", contentEncoding)
-	headers.Set("X-Opaque-ID", idFromRequest(req))
-	m := timing.NewMetric("es").Start()
-	resp, err := s.ESClient.PerformRequest(ctx, elastic.PerformRequestOptions{
-		Method:  "GET",
-		Path:    fmt.Sprintf("/%s/_source/%s", site.Index, id),
-		Headers: headers,
-	})
-	m.Stop()
-	if elastic.IsNotFound(err) {
-		s.NotFound(w, req, nil)
+	// We do a search query and not _doc or _source request to get the document
+	// so that it works also on aliases.
+	// See: https://github.com/elastic/elasticsearch/issues/69649
+	searchService, _, errE := s.getSearchService(req)
+	if errE != nil {
+		s.notFoundWithError(w, req, errE)
 		return
-	} else if err != nil {
+	}
+	searchService = searchService.From(0).Size(maxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("_id", id))
+
+	m := timing.NewMetric("es").Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	hash := sha256.Sum256(resp.Body)
-	etag := `"` + base64.RawURLEncoding.EncodeToString(hash[:]) + `"`
-
-	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
-	if contentEncoding != compressionIdentity {
-		w.Header().Set("Content-Encoding", contentEncoding)
-	} else {
-		// TODO: Always set Content-Length.
-		//       See: https://github.com/golang/go/pull/50904
-		w.Header().Set("Content-Length", resp.Header.Get("Content-Length"))
+	if len(res.Hits.Hits) == 0 {
+		s.NotFound(w, req, nil)
+		return
+	} else if len(res.Hits.Hits) > 1 {
+		s.Log.Warn().Str("id", id).Msg("found more than one document for ID")
 	}
+
 	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
-	w.Header().Add("Vary", "Accept-Encoding")
-	w.Header().Set("Etag", etag)
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 
-	// See: https://github.com/golang/go/issues/50905
-	// See: https://github.com/golang/go/pull/50903
-	http.ServeContent(w, req, "", time.Time{}, bytes.NewReader(resp.Body))
+	s.writeJSON(w, req, contentEncoding, res.Hits.Hits[0].Source, nil)
 }
