@@ -18,6 +18,11 @@ type filteredTermAggregations struct {
 	Filter termAggregations `json:"filter"`
 }
 
+type searchRelFilterResult struct {
+	ID    string `json:"_id"`
+	Count int64  `json:"_count"`
+}
+
 //nolint:dupl
 func (s *Service) DocumentSearchRelFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
@@ -94,9 +99,9 @@ func (s *Service) DocumentSearchRelFilterAPIGet(w http.ResponseWriter, req *http
 		return
 	}
 
-	results := make([]searchResult, len(rel.Filter.Props.Buckets))
+	results := make([]searchRelFilterResult, len(rel.Filter.Props.Buckets))
 	for i, bucket := range rel.Filter.Props.Buckets {
-		results[i] = searchResult{ID: bucket.Key, Count: bucket.Docs.Count}
+		results[i] = searchRelFilterResult{ID: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.

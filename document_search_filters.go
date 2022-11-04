@@ -73,6 +73,13 @@ type intValueAggregation struct {
 	Value int64 `json:"value"`
 }
 
+type searchFiltersResult struct {
+	ID    string `json:"_id,omitempty"`
+	Count int64  `json:"_count,omitempty"`
+	Type  string `json:"_type,omitempty"`
+	Unit  string `json:"_unit,omitempty"`
+}
+
 func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
@@ -223,16 +230,16 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		sizeBucket++
 	}
 
-	results := make([]searchResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+sizeBucket)
+	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+sizeBucket)
 	for i, bucket := range rel.Props.Buckets {
-		results[i] = searchResult{
+		results[i] = searchFiltersResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "rel",
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
-		results[len(rel.Props.Buckets)+i] = searchResult{
+		results[len(rel.Props.Buckets)+i] = searchFiltersResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
 			Type:  "amount",
@@ -240,21 +247,21 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		}
 	}
 	for i, bucket := range time.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = searchResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = searchFiltersResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
 		}
 	}
 	for i, bucket := range str.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+i] = searchResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+i] = searchFiltersResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "string",
 		}
 	}
 	if sizeBucket != 0 {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)] = searchResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
 			Count: size.Value,
 			Type:  "size",
 		}
@@ -262,7 +269,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 
 	// Because we combine multiple aggregations of maxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
-	slices.SortStableFunc(results, func(a searchResult, b searchResult) bool {
+	slices.SortStableFunc(results, func(a searchFiltersResult, b searchFiltersResult) bool {
 		return a.Count > b.Count
 	})
 	if len(results) > maxResultsCount {

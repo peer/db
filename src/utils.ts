@@ -1,5 +1,5 @@
 import type { DeepReadonly } from "vue"
-import type { Mutable, Claim, ClaimTypes, Required, Router } from "@/types"
+import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit } from "@/types"
 
 import { toRaw } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
@@ -11,7 +11,7 @@ const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
-export function formatValue(value: number, unit: string): string {
+export function formatValue(value: number, unit: AmountUnit): string {
   let res = parseFloat(value.toPrecision(5)).toString()
   if (unit !== "1") {
     res += unit

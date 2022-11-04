@@ -31,7 +31,11 @@ export type SizeSearchResult = {
   _type: "size"
 }
 
-export type SearchResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | SizeSearchResult
+export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | SizeSearchResult
+
+export type SearchResult = {
+  _id: string
+}
 
 export type RelValuesResult = {
   _id: string
