@@ -7,8 +7,8 @@ import (
 	"gitlab.com/peerdb/search/internal/es"
 )
 
-func (c *PopulateCommand) runIndex(globals *Globals, index string) errors.E {
-	ctx, _, _, esClient, processor, err := es.Initialize(globals.Log, globals.Elastic, index)
+func (c *PopulateCommand) runIndex(globals *Globals, index string, sizeField bool) errors.E {
+	ctx, _, _, esClient, processor, err := es.Initialize(globals.Log, globals.Elastic, index, sizeField)
 	if err != nil {
 		return err
 	}
@@ -24,13 +24,13 @@ func (c *PopulateCommand) runIndex(globals *Globals, index string) errors.E {
 func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	if len(globals.Sites) > 0 {
 		for _, site := range globals.Sites {
-			err := c.runIndex(globals, site.Index)
+			err := c.runIndex(globals, site.Index, site.SizeField)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		err := c.runIndex(globals, globals.Index)
+		err := c.runIndex(globals, globals.Index, globals.SizeField)
 		if err != nil {
 			return err
 		}

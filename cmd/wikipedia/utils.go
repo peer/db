@@ -101,7 +101,7 @@ func initializeElasticSearch(globals *Globals) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
-	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Log, globals.Elastic, globals.Index)
+	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Log, globals.Elastic, globals.Index, globals.SizeField)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}

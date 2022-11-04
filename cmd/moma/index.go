@@ -418,7 +418,7 @@ func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, logger ze
 }
 
 func index(config *Config) errors.E {
-	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Log, config.Elastic, config.Index)
+	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Log, config.Elastic, config.Index, config.SizeField)
 	if errE != nil {
 		return errE
 	}

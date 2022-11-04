@@ -4,6 +4,7 @@ import type {
   AmountFilterState,
   TimeFilterState,
   StringFilterState,
+  SizeFilterState,
   FiltersState,
   ClientQuery,
   RelSearchResult,
@@ -11,6 +12,7 @@ import type {
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
+  SizeSearchResult,
 } from "@/types"
 
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
@@ -20,6 +22,7 @@ import RelFiltersResult from "@/components/RelFiltersResult.vue"
 import AmountFiltersResult from "@/components/AmountFiltersResult.vue"
 import TimeFiltersResult from "@/components/TimeFiltersResult.vue"
 import StringFiltersResult from "@/components/StringFiltersResult.vue"
+import SizeFilterResult from "@/components/SizeFiltersResult.vue"
 import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import Button from "@/components/Button.vue"
@@ -134,7 +137,7 @@ onBeforeUnmount(() => {
 
 const updateFiltersProgress = ref(0)
 // A non-read-only version of filters state so that we can modify it as necessary.
-const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
+const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, size: null })
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
@@ -183,6 +186,17 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.str = { ...updatedState.str }
     updatedState.str[id] = s
+    await postFilters(router, route, updatedState, updateFiltersProgress)
+  } finally {
+    updateFiltersProgress.value -= 1
+  }
+}
+
+async function onSizeFiltersStateUpdate(s: SizeFilterState) {
+  updateFiltersProgress.value += 1
+  try {
+    const updatedState = { ...filtersState.value }
+    updatedState.size = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
   } finally {
     updateFiltersProgress.value -= 1
@@ -281,6 +295,14 @@ const filtersEnabled = ref(false)
             :state="filtersState.str[doc._id] || (filtersState.str[doc._id] = [])"
             :update-progress="updateFiltersProgress"
             @update:state="onStringFiltersStateUpdate(doc._id, $event)"
+          />
+          <SizeFilterResult
+            v-if="doc._type === 'size'"
+            :search-total="searchTotal"
+            :result="doc as SizeSearchResult"
+            :state="filtersState.size"
+            :update-progress="updateFiltersProgress"
+            @update:state="onSizeFiltersStateUpdate($event)"
           />
         </template>
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"

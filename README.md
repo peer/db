@@ -736,6 +736,28 @@ docker run -d --network peerdb --name peerdb-search -p 443:8080 -v "$(pwd):/data
  -E name@example.com -C /data/letsencrypt -c /data/demos.yml
 ```
 
+### Size of documents filter
+
+PeerDB Search can filter on size of documents, but it requires
+[installed mapper-size ElasticSearch plugin](https://www.elastic.co/guide/en/elasticsearch/plugins/current/mapper-size.html)
+and enabled size field in the [index](https://www.elastic.co/guide/en/elasticsearch/plugins/current/mapper-size-usage.html).
+If you use populate command to create the index, you can enable the size field with the `--size-field` argument:
+
+```sh
+./search --size-field populate
+```
+
+Alternatively, you can set `sizeField` in site configuration.
+
+If you use Docker to run ElasticSearch, you can
+[use create a custom Docker image with the plugin installed](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/docker.html#_c_customized_image),
+or run on your running container:
+
+```sh
+docker exec -t -i elasticsearch bin/elasticsearch-plugin install mapper-size
+docker restart elasticsearch
+```
+
 ## Development
 
 During PeerDB Search development run backend and frontend as separate processes. During development the backend

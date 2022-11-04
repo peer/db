@@ -6,11 +6,13 @@ import type {
   AmountValuesResult,
   TimeValuesResult,
   StringValuesResult,
+  SizeValuesResult,
   PeerDBDocument,
   RelFilter,
   AmountFilter,
   TimeFilter,
   StringFilter,
+  SizeFilter,
   Filters,
   FiltersState,
   ClientQuery,
@@ -20,6 +22,7 @@ import type {
   TimeSearchResult,
   StringSearchResult,
   Router,
+  SizeSearchResult,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
@@ -123,6 +126,14 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
       }
     }
   }
+  if (updatedState.size) {
+    // TODO: Support also OR between value and none.
+    if (updatedState.size === NONE) {
+      filters.and.push({ size: { none: true } })
+    } else {
+      filters.and.push({ size: { ...updatedState.size } })
+    }
+  }
   const form = new FormData()
   queryToData(route, form)
   form.set("filters", JSON.stringify(filters))
@@ -146,7 +157,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
 
 function updateDocs(
   router: Router,
-  docs: Ref<PeerDBDocument[]>,
+  docs: Ref<(PeerDBDocument | SizeSearchResult)[]>,
   limit: number,
   results: readonly SearchResult[],
   priority: number,
@@ -155,15 +166,21 @@ function updateDocs(
 ) {
   assert(limit <= results.length, `${limit} <= ${results.length}`)
   for (let i = docs.value.length; i < limit; i++) {
-    progress.value += 1
-    docs.value.push(results[i])
-    getDocument(router, results[i], priority, abortSignal, progress)
-      .then((data) => {
-        docs.value[i] = data
-      })
-      .finally(() => {
-        progress.value -= 1
-      })
+    const result = results[i]
+    // SizeSearchResult does not have _id.
+    if ("_id" in result) {
+      progress.value += 1
+      docs.value.push(result)
+      getDocument(router, result, priority, abortSignal, progress)
+        .then((data) => {
+          docs.value[i] = data
+        })
+        .finally(() => {
+          progress.value -= 1
+        })
+    } else {
+      docs.value.push(result)
+    }
   }
 }
 
@@ -238,7 +255,7 @@ export function useFilters(progress: Ref<number>): {
 
 function filtersToFiltersState(filters: Filters): FiltersState {
   if ("and" in filters) {
-    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {} }
+    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {}, size: null }
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
       for (const [prop, values] of Object.entries(s.rel)) {
@@ -291,6 +308,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        size: null,
       }
     } else {
       return {
@@ -300,6 +318,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        size: null,
       }
     }
   }
@@ -312,6 +331,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
+        size: null,
       }
     } else {
       return {
@@ -324,6 +344,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
+        size: null,
       }
     }
   }
@@ -336,6 +357,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           [filters.time.prop]: NONE,
         },
         str: {},
+        size: null,
       }
     } else {
       return {
@@ -348,6 +370,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           },
         },
         str: {},
+        size: null,
       }
     }
   }
@@ -360,6 +383,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         str: {
           [filters.str.prop]: [NONE],
         },
+        size: null,
       }
     } else {
       return {
@@ -368,6 +392,29 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         time: {},
         str: {
           [filters.str.prop]: [(filters.str as StringFilter).str],
+        },
+        size: null,
+      }
+    }
+  }
+  if ("size" in filters) {
+    if ("none" in filters.size && filters.size.none) {
+      return {
+        rel: {},
+        amount: {},
+        time: {},
+        str: {},
+        size: NONE,
+      }
+    } else {
+      return {
+        rel: {},
+        amount: {},
+        time: {},
+        str: {},
+        size: {
+          gte: (filters.size as SizeFilter).gte,
+          lte: (filters.size as SizeFilter).lte,
         },
       }
     }
@@ -399,7 +446,7 @@ function useSearchResults(
   const _docs = ref<(PeerDBDocument & SearchResult)[]>([])
   const _results = ref<SearchResult[]>([])
   const _total = ref<number | null>(null)
-  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
+  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, size: null })
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : _docs
@@ -421,7 +468,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
         _moreThanTotal.value = false
         _hasMore.value = false
         return
@@ -433,7 +480,7 @@ function useSearchResults(
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
         _moreThanTotal.value = false
         _hasMore.value = false
         if (redirect) {
@@ -453,7 +500,7 @@ function useSearchResults(
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
       } else {
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {} }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
       }
       limit = Math.min(initialLimit, results.value.length)
       // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
@@ -808,6 +855,82 @@ export function useStringFilterValues(
   }
 }
 
+export function useSizeHistogramValues(progress: Ref<number>): {
+  results: DeepReadonly<Ref<SizeValuesResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  min: DeepReadonly<Ref<number | null>>
+  max: DeepReadonly<Ref<number | null>>
+  interval: DeepReadonly<Ref<number | null>>
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  const _results = ref<SizeValuesResult[]>([])
+  const _total = ref<number | null>(null)
+  const _min = ref<number | null>(null)
+  const _max = ref<number | null>(null)
+  const _interval = ref<number | null>(null)
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const total = import.meta.env.DEV ? readonly(_total) : _total
+  const min = import.meta.env.DEV ? readonly(_min) : _min
+  const max = import.meta.env.DEV ? readonly(_max) : _max
+  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!s) {
+        return null
+      }
+      return router.apiResolve({
+        name: "DocumentSearchSizeFilter",
+        params: {
+          s,
+        },
+      }).href
+    },
+    async (url, oldURL, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (!url) {
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        return
+      }
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      _results.value = data.results as SizeValuesResult[]
+      _total.value = data.total
+      _min.value = data.min != null ? parseInt(data.min) : null
+      _max.value = data.max != null ? parseInt(data.max) : null
+      _interval.value = data.interval != null ? parseFloat(data.interval) : null
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    results,
+    total,
+    min,
+    max,
+    interval,
+  }
+}
+
 async function getSearchResults(
   url: string,
   priority: number,
@@ -841,7 +964,13 @@ async function getHistogramValues(
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
-): Promise<{ results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[]; total: number; min?: string; max?: string; interval?: string }> {
+): Promise<{
+  results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[] | SizeValuesResult[]
+  total: number
+  min?: string
+  max?: string
+  interval?: string
+}> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
@@ -849,7 +978,7 @@ async function getHistogramValues(
     throw new Error("Peerdb-Total header is null")
   }
   const res = { results: doc, total: parseInt(total) } as {
-    results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[]
+    results: AmountValuesResult[] | TimeValuesResult[] | StringValuesResult[] | SizeValuesResult[]
     total: number
     min?: string
     max?: string

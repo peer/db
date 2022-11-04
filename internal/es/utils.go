@@ -64,7 +64,7 @@ func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{
 
 var _ retryablehttp.LeveledLogger = (*retryableHTTPLoggerAdapter)(nil)
 
-func Initialize(logger zerolog.Logger, url, index string) (
+func Initialize(logger zerolog.Logger, url, index string, sizeField bool) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client, *elastic.BulkProcessor, errors.E,
 ) {
 	ctx := context.Background()
@@ -91,7 +91,7 @@ func Initialize(logger zerolog.Logger, url, index string) (
 
 	simpleHTTPClient := cleanhttp.DefaultPooledClient()
 
-	esClient, errE := search.EnsureIndex(ctx, simpleHTTPClient, logger, url, index)
+	esClient, errE := search.EnsureIndex(ctx, simpleHTTPClient, logger, url, index, sizeField)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, errE
 	}

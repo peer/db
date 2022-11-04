@@ -26,7 +26,12 @@ export type StringSearchResult = {
   _type: "string"
 }
 
-export type SearchResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
+export type SizeSearchResult = {
+  _count: number
+  _type: "size"
+}
+
+export type SearchResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | SizeSearchResult
 
 export type RelValuesResult = {
   _id: string
@@ -45,6 +50,11 @@ export type TimeValuesResult = {
 
 export type StringValuesResult = {
   str: string
+  count: number
+}
+
+export type SizeValuesResult = {
+  min: number
   count: number
 }
 
@@ -224,6 +234,15 @@ export type StringNoneFilter = {
   none: true
 }
 
+export type SizeFilter = {
+  gte: number
+  lte: number
+}
+
+export type SizeNoneFilter = {
+  none: true
+}
+
 export type Filters =
   | {
       and: Filters[]
@@ -238,6 +257,7 @@ export type Filters =
   | { amount: AmountFilter | AmountNoneFilter }
   | { time: TimeFilter | TimeNoneFilter }
   | { str: StringFilter | StringNoneFilter }
+  | { size: SizeFilter | SizeNoneFilter }
 
 export type RelFilterState = (string | typeof NONE)[]
 
@@ -247,11 +267,14 @@ export type TimeFilterState = null | typeof NONE | { gte: string; lte: string }
 
 export type StringFilterState = (string | typeof NONE)[]
 
+export type SizeFilterState = null | typeof NONE | { gte: number; lte: number }
+
 export type FiltersState = {
   rel: Record<string, RelFilterState>
   amount: Record<string, AmountFilterState>
   time: Record<string, TimeFilterState>
   str: Record<string, StringFilterState>
+  size: SizeFilterState
 }
 
 export type ServerQuery = { s?: string; q?: string; filters?: Filters }

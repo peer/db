@@ -10,11 +10,12 @@ import (
 )
 
 type site struct {
-	Domain   string `json:"domain" yaml:"domain"`
-	Index    string `json:"index" yaml:"index"`
-	Title    string `json:"title" yaml:"title"`
-	CertFile string `json:"cert,omitempty" yaml:"cert,omitempty"`
-	KeyFile  string `json:"key,omitempty" yaml:"key,omitempty"`
+	Domain    string `json:"domain" yaml:"domain"`
+	Index     string `json:"index" yaml:"index"`
+	Title     string `json:"title" yaml:"title"`
+	CertFile  string `json:"cert,omitempty" yaml:"cert,omitempty"`
+	KeyFile   string `json:"key,omitempty" yaml:"key,omitempty"`
+	SizeField bool   `json:"sizeField,omitempty" yaml:"sizeField,omitempty"`
 }
 
 func (s *site) Decode(ctx *kong.DecodeContext) error {
@@ -43,7 +44,8 @@ type Globals struct {
 	cli.LoggingConfig `yaml:",inline"`
 	Elastic           string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}." yaml:"elastic"`
 	Index             string `short:"i" group:"Sites:" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}." yaml:"index"`
-	Sites             []site `short:"s" group:"Sites:" name:"site" placeholder:"SITE" sep:"none" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", and \"key\". Can be provided multiple times." yaml:"sites"`
+	SizeField         bool   `group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed." yaml:"sizeField"`
+	Sites             []site `short:"s" group:"Sites:" name:"site" placeholder:"SITE" sep:"none" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." yaml:"sites"`
 }
 
 // Config provides configuration.

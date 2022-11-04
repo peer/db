@@ -25,6 +25,7 @@ type Globals struct {
 	CacheDir               string `short:"C" name:"cache" placeholder:"DIR" default:"${defaultCacheDir}" type:"path" help:"Where to cache files to. Default: ${defaultCacheDir}."`
 	Elastic                string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."`
 	Index                  string `short:"i" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
+	SizeField              bool   `help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
 	DecompressionThreads   int    `placeholder:"INT" default:"0" help:"The number of threads used for decompression. Defaults to the number of available cores."`
 	DecodingThreads        int    `placeholder:"INT" default:"0" help:"The number of threads used for decoding. Defaults to the number of available cores."`
 	ItemsProcessingThreads int    `placeholder:"INT" default:"0" help:"The number of threads used for items processing. Defaults to the number of available cores."`

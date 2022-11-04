@@ -69,6 +69,10 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
+type intValueAggregation struct {
+	Value int64 `json:"value"`
+}
+
 func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
@@ -159,8 +163,13 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		// so we set precision threshold to twice as much to try to always get precise counts.
 		elastic.NewCardinalityAggregation().Field("active.string.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
+	sizeAggregation := elastic.NewValueCountAggregation().Field("_size")
 	searchService = searchService.Size(0).Query(query).
-		Aggregation("rel", relAggregation).Aggregation("amount", amountAggregation).Aggregation("time", timeAggregation).Aggregation("string", stringAggregation)
+		Aggregation("rel", relAggregation).
+		Aggregation("amount", amountAggregation).
+		Aggregation("time", timeAggregation).
+		Aggregation("string", stringAggregation).
+		Aggregation("size", sizeAggregation)
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -200,9 +209,21 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	var size intValueAggregation
+	err = json.Unmarshal(res.Aggregations["size"], &size)
+	if err != nil {
+		m.Stop()
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
+	}
 	m.Stop()
 
-	results := make([]searchResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets))
+	sizeBucket := 0
+	if size.Value > 0 {
+		sizeBucket++
+	}
+
+	results := make([]searchResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+sizeBucket)
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = searchResult{
 			ID:    bucket.Key,
@@ -232,6 +253,12 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 			Type:  "string",
 		}
 	}
+	if sizeBucket != 0 {
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)] = searchResult{
+			Count: size.Value,
+			Type:  "size",
+		}
+	}
 
 	// Because we combine multiple aggregations of maxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
@@ -256,7 +283,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	if int64(len(str.Props.Buckets)) > str.Total.Value {
 		str.Total.Value = int64(len(str.Props.Buckets))
 	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value, 10)
+	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value+int64(sizeBucket), 10)
 
 	metadata := http.Header{
 		"Total": {total},

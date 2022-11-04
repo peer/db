@@ -125,6 +125,31 @@ func (f stringFilter) Valid() errors.E {
 	return nil
 }
 
+type sizeFilter struct {
+	Gte  *float64 `json:"gte,omitempty"`
+	Lte  *float64 `json:"lte,omitempty"`
+	None bool     `json:"none,omitempty"`
+}
+
+func (f sizeFilter) Valid() errors.E {
+	if f.Gte == nil && f.Lte == nil && !f.None {
+		return errors.New("gte and lte, or none has to be set")
+	}
+	if f.Lte != nil && f.Gte == nil {
+		return errors.New("gte has to be set if lte is set")
+	}
+	if f.Lte == nil && f.Gte != nil {
+		return errors.New("lte has to be set if gte is set")
+	}
+	if f.Gte != nil && f.None {
+		return errors.New("gte and none cannot be both set")
+	}
+	if f.Lte != nil && f.None {
+		return errors.New("lte and none cannot be both set")
+	}
+	return nil
+}
+
 type filters struct {
 	And    []filters     `json:"and,omitempty"`
 	Or     []filters     `json:"or,omitempty"`
@@ -133,6 +158,7 @@ type filters struct {
 	Amount *amountFilter `json:"amount,omitempty"`
 	Time   *timeFilter   `json:"time,omitempty"`
 	Str    *stringFilter `json:"str,omitempty"`
+	Size   *sizeFilter   `json:"size,omitempty"`
 }
 
 func (f filters) Valid() errors.E {
@@ -186,6 +212,13 @@ func (f filters) Valid() errors.E {
 	if f.Str != nil {
 		nonEmpty++
 		err := f.Str.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	if f.Size != nil {
+		nonEmpty++
+		err := f.Size.Valid()
 		if err != nil {
 			return err
 		}
@@ -281,6 +314,14 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				elastic.NewTermQuery("active.string.string", f.Str.Str),
 			),
 		)
+	}
+	if f.Size != nil {
+		if f.Size.None {
+			return elastic.NewBoolQuery().MustNot(
+				elastic.NewExistsQuery("_size"),
+			)
+		}
+		return elastic.NewRangeQuery("_size").Lte(*f.Size.Lte).Gte(*f.Size.Gte)
 	}
 	panic(errors.New("invalid filters"))
 }
@@ -453,7 +494,7 @@ func getSearch(form url.Values) *search {
 
 // searchResult is returned from the searchGet API endpoint.
 type searchResult struct {
-	ID    string `json:"_id"`
+	ID    string `json:"_id,omitempty"`
 	Count int64  `json:"_count,omitempty"`
 	Type  string `json:"_type,omitempty"`
 	Unit  string `json:"_unit,omitempty"`

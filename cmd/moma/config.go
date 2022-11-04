@@ -24,6 +24,7 @@ type Config struct {
 	CacheDir    string `short:"C" name:"cache" placeholder:"DIR" default:"${defaultCacheDir}" type:"path" help:"Where to cache files to. Default: ${defaultCacheDir}."`
 	Elastic     string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."`
 	Index       string `short:"i" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
+	SizeField   bool   `help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
 	ArtistsURL  string `placeholder:"URL" name:"artists" default:"${defaultArtistsURL}" help:"URL of artists JSON to use. It can be a local file path, too. Default: ${defaultArtistsURL}."`
 	ArtworksURL string `placeholder:"URL" name:"artworks" default:"${defaultArtworksURL}" help:"URL of artworks JSON to use. It can be a local file path, too. Default: ${defaultArtworksURL}."`
 	WebsiteData bool   `help:"Fetch images and descriptions from MoMA website."`

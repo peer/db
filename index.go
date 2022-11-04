@@ -9,16 +9,22 @@ import (
 	"github.com/rs/zerolog"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 )
 
 // TODO: Generate index configuration automatically from document structs?
 
 //go:embed index.json
-var indexConfiguration string
+var indexConfiguration []byte
 
 type loggerAdapter struct {
 	log   zerolog.Logger
 	level zerolog.Level
+}
+
+type indexConfigurationStruct struct {
+	Settings map[string]interface{} `json:"settings"`
+	Mappings map[string]interface{} `json:"mappings"`
 }
 
 func (a loggerAdapter) Printf(format string, v ...interface{}) {
@@ -47,7 +53,7 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 // the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
-func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url, index string) (*elastic.Client, errors.E) {
+func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url, index string, sizeField bool) (*elastic.Client, errors.E) {
 	esClient, errE := GetClient(httpClient, logger, url)
 	if errE != nil {
 		return nil, errE
@@ -59,7 +65,17 @@ func EnsureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Lo
 	}
 
 	if !exists {
-		createIndex, err := esClient.CreateIndex(index).BodyString(indexConfiguration).Do(ctx)
+		var config indexConfigurationStruct
+		errE = x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
+		if errE != nil {
+			return nil, errE
+		}
+
+		if sizeField {
+			config.Mappings["_size"] = map[string]interface{}{"enabled": true}
+		}
+
+		createIndex, err := esClient.CreateIndex(index).BodyJson(config).Do(ctx)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
