@@ -15,6 +15,7 @@ Demos:
   Wikimedia Commons files, and Wikidata data.
 - [https://moma.peerdb.org/](https://moma.peerdb.org/): a search service for The
   Museum of Modern Art (MoMA) artists and artworks.
+- [https://omni.peerdb.org/](https://omni.peerdb.org/): using an ElasticSearch alias to combine other demos into one search service
 
 ## Installation
 
