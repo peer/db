@@ -32,6 +32,11 @@
       "api": true
     },
     {
+      "name": "DocumentSearchIndexFilter",
+      "path": "/d/filters/:s/index",
+      "api": true
+    },
+    {
       "name": "DocumentSearchSizeFilter",
       "path": "/d/filters/:s/size",
       "api": true

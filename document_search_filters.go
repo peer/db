@@ -170,12 +170,16 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		// so we set precision threshold to twice as much to try to always get precise counts.
 		elastic.NewCardinalityAggregation().Field("active.string.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
+	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
+	// so we use it to get the most accurate approximation.
+	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
 	sizeAggregation := elastic.NewValueCountAggregation().Field("_size")
 	searchService = searchService.Size(0).Query(query).
 		Aggregation("rel", relAggregation).
 		Aggregation("amount", amountAggregation).
 		Aggregation("time", timeAggregation).
 		Aggregation("string", stringAggregation).
+		Aggregation("index", indexAggregation).
 		Aggregation("size", sizeAggregation)
 
 	m = timing.NewMetric("es").Start()
@@ -216,6 +220,13 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	var index intValueAggregation
+	err = json.Unmarshal(res.Aggregations["index"], &index)
+	if err != nil {
+		m.Stop()
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
+	}
 	var size intValueAggregation
 	err = json.Unmarshal(res.Aggregations["size"], &size)
 	if err != nil {
@@ -225,12 +236,17 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	}
 	m.Stop()
 
-	sizeBucket := 0
-	if size.Value > 0 {
-		sizeBucket++
+	indexFilter := 0
+	if index.Value > 0 {
+		indexFilter++
 	}
 
-	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+sizeBucket)
+	sizeFilter := 0
+	if size.Value > 0 {
+		sizeFilter++
+	}
+
+	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+indexFilter+sizeFilter)
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = searchFiltersResult{
 			ID:    bucket.Key,
@@ -260,8 +276,15 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 			Type:  "string",
 		}
 	}
-	if sizeBucket != 0 {
+	if indexFilter != 0 {
 		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
+			// This depends on TrackTotalHits being set to true.
+			Count: res.Hits.TotalHits.Value,
+			Type:  "index",
+		}
+	}
+	if sizeFilter != 0 {
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+indexFilter] = searchFiltersResult{
 			Count: size.Value,
 			Type:  "size",
 		}
@@ -290,7 +313,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	if int64(len(str.Props.Buckets)) > str.Total.Value {
 		str.Total.Value = int64(len(str.Props.Buckets))
 	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value+int64(sizeBucket), 10)
+	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
 
 	metadata := http.Header{
 		"Total": {total},

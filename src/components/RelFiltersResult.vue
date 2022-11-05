@@ -72,7 +72,7 @@ function stateHasNONE(): boolean {
       </div>
       <ul>
         <li v-for="doc in docsWithNone" :key="'_id' in doc ? doc._id : NONE" class="flex gap-x-1">
-          <template v-if="'_id' in doc && doc.name?.en && (doc._count != props.searchTotal || state.includes(doc._id))">
+          <template v-if="'_id' in doc && doc.name?.en && (doc._count != searchTotal || state.includes(doc._id))">
             <input
               :id="'rel/' + property._id + '/' + doc._id"
               :disabled="updateProgress > 0"
@@ -100,7 +100,7 @@ function stateHasNONE(): boolean {
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="'_id' in doc && doc.name?.en && doc._count == props.searchTotal">
+          <template v-else-if="'_id' in doc && doc.name?.en && doc._count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
             <div class="my-1 leading-none">{{ doc.name.en }}</div>
             <div class="my-1 leading-none">({{ doc._count }})</div>

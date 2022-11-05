@@ -70,7 +70,7 @@ function stateHasNONE(): boolean {
       </div>
       <ul>
         <li v-for="result in limitedResultsWithNone" :key="'str' in result ? result.str : NONE" class="flex gap-x-1">
-          <template v-if="'str' in result && (result.count != props.searchTotal || state.includes(result.str))">
+          <template v-if="'str' in result && (result.count != searchTotal || state.includes(result.str))">
             <input
               :id="'string/' + property._id + '/' + result.str"
               :disabled="updateProgress > 0"
@@ -95,7 +95,7 @@ function stateHasNONE(): boolean {
               >({{ result.count }})</label
             >
           </template>
-          <template v-else-if="'str' in result && result.count == props.searchTotal">
+          <template v-else-if="'str' in result && result.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
             <div class="my-1 leading-none">{{ result.str }}</div>
             <div class="my-1 leading-none">({{ result.count }})</div>

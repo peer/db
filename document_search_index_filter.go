@@ -14,13 +14,14 @@ import (
 	"gitlab.com/peerdb/search/identifier"
 )
 
-type searchStringFilterResult struct {
-	Str   string `json:"str"`
-	Count int64  `json:"count"`
+type indexAggregations struct {
+	Buckets []struct {
+		Key   string `json:"key"`
+		Count int64  `json:"doc_count"`
+	} `json:"buckets"`
 }
 
-//nolint:dupl
-func (s *Service) DocumentSearchStringFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
+func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
 	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
 	if contentEncoding == "" {
 		s.NotAcceptable(w, req, nil)
@@ -33,12 +34,6 @@ func (s *Service) DocumentSearchStringFilterAPIGet(w http.ResponseWriter, req *h
 	id := params["s"]
 	if !identifier.Valid(id) {
 		s.badRequestWithError(w, req, errors.New(`"s" parameter is not a valid identifier`))
-		return
-	}
-
-	prop := params["prop"]
-	if !identifier.Valid(prop) {
-		s.badRequestWithError(w, req, errors.New(`"prop" parameter is not a valid identifier`))
 		return
 	}
 
@@ -58,24 +53,11 @@ func (s *Service) DocumentSearchStringFilterAPIGet(w http.ResponseWriter, req *h
 		s.notFoundWithError(w, req, errE)
 		return
 	}
-	aggregation := elastic.NewNestedAggregation().Path("active.string").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("active.string.prop._id", prop),
-		).SubAggregation(
-			"props",
-			elastic.NewTermsAggregation().Field("active.string.string").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		).SubAggregation(
-			"total",
-			// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
-			// so we use it to get the most accurate approximation.
-			elastic.NewCardinalityAggregation().Field("active.string.string").PrecisionThreshold(40000), //nolint:gomnd
-		),
-	)
-	searchService = searchService.Size(0).Query(query).Aggregation("string", aggregation)
+	termsAggregation := elastic.NewTermsAggregation().Field("_index").Size(maxResultsCount)
+	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
+	// so we use it to get the most accurate approximation.
+	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
+	searchService = searchService.Size(0).Query(query).Aggregation("terms", termsAggregation).Aggregation("index", indexAggregation)
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -87,25 +69,33 @@ func (s *Service) DocumentSearchStringFilterAPIGet(w http.ResponseWriter, req *h
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	m = timing.NewMetric("d").Start()
-	var str filteredTermAggregations
-	err = json.Unmarshal(res.Aggregations["string"], &str)
-	m.Stop()
+	var terms indexAggregations
+	err = json.Unmarshal(res.Aggregations["terms"], &terms)
 	if err != nil {
+		m.Stop()
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
+	var index intValueAggregation
+	err = json.Unmarshal(res.Aggregations["index"], &index)
+	if err != nil {
+		m.Stop()
+		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		return
+	}
+	m.Stop()
 
-	results := make([]searchStringFilterResult, len(str.Filter.Props.Buckets))
-	for i, bucket := range str.Filter.Props.Buckets {
-		results[i] = searchStringFilterResult{Str: bucket.Key, Count: bucket.Docs.Count}
+	results := make([]searchStringFilterResult, len(terms.Buckets))
+	for i, bucket := range terms.Buckets {
+		results[i] = searchStringFilterResult{Str: bucket.Key, Count: bucket.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	if int64(len(str.Filter.Props.Buckets)) > str.Filter.Total.Value {
-		str.Filter.Total.Value = int64(len(str.Filter.Props.Buckets))
+	if int64(len(terms.Buckets)) > index.Value {
+		index.Value = int64(len(terms.Buckets))
 	}
-	total := strconv.FormatInt(str.Filter.Total.Value, 10)
+	total := strconv.FormatInt(index.Value, 10)
 
 	metadata := http.Header{
 		"Total": {total},

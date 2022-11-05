@@ -26,12 +26,17 @@ export type StringSearchResult = {
   _type: "string"
 }
 
+export type IndexSearchResult = {
+  _count: number
+  _type: "index"
+}
+
 export type SizeSearchResult = {
   _count: number
   _type: "size"
 }
 
-export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | SizeSearchResult
+export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | IndexSearchResult | SizeSearchResult
 
 export type SearchResult = {
   _id: string
@@ -53,6 +58,11 @@ export type TimeValuesResult = {
 }
 
 export type StringValuesResult = {
+  str: string
+  count: number
+}
+
+export type IndexValuesResult = {
   str: string
   count: number
 }
@@ -238,6 +248,10 @@ export type StringNoneFilter = {
   none: true
 }
 
+export type IndexFilter = {
+  str: string
+}
+
 export type SizeFilter = {
   gte: number
   lte: number
@@ -261,6 +275,7 @@ export type Filters =
   | { amount: AmountFilter | AmountNoneFilter }
   | { time: TimeFilter | TimeNoneFilter }
   | { str: StringFilter | StringNoneFilter }
+  | { index: IndexFilter }
   | { size: SizeFilter | SizeNoneFilter }
 
 export type RelFilterState = (string | typeof NONE)[]
@@ -271,6 +286,8 @@ export type TimeFilterState = null | typeof NONE | { gte: string; lte: string }
 
 export type StringFilterState = (string | typeof NONE)[]
 
+export type IndexFilterState = string[]
+
 export type SizeFilterState = null | typeof NONE | { gte: number; lte: number }
 
 export type FiltersState = {
@@ -278,6 +295,7 @@ export type FiltersState = {
   amount: Record<string, AmountFilterState>
   time: Record<string, TimeFilterState>
   str: Record<string, StringFilterState>
+  index: IndexFilterState
   size: SizeFilterState
 }
 

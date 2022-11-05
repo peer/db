@@ -758,6 +758,13 @@ docker exec -t -i elasticsearch bin/elasticsearch-plugin install mapper-size
 docker restart elasticsearch
 ```
 
+### Use with ElasticSearch alias
+
+If you use an
+[ElasticSearch alias](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/aliases.html)
+instead of an index, PeerDB Search will provide a filter to filter documents based
+on which index they come from.
+
 ## Development
 
 During PeerDB Search development run backend and frontend as separate processes. During development the backend

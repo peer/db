@@ -125,6 +125,17 @@ func (f stringFilter) Valid() errors.E {
 	return nil
 }
 
+type indexFilter struct {
+	Str string `json:"str"`
+}
+
+func (f indexFilter) Valid() errors.E {
+	if f.Str == "" {
+		return errors.New("str has to be set")
+	}
+	return nil
+}
+
 type sizeFilter struct {
 	Gte  *float64 `json:"gte,omitempty"`
 	Lte  *float64 `json:"lte,omitempty"`
@@ -158,6 +169,7 @@ type filters struct {
 	Amount *amountFilter `json:"amount,omitempty"`
 	Time   *timeFilter   `json:"time,omitempty"`
 	Str    *stringFilter `json:"str,omitempty"`
+	Index  *indexFilter  `json:"index,omitempty"`
 	Size   *sizeFilter   `json:"size,omitempty"`
 }
 
@@ -212,6 +224,13 @@ func (f filters) Valid() errors.E {
 	if f.Str != nil {
 		nonEmpty++
 		err := f.Str.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	if f.Index != nil {
+		nonEmpty++
+		err := f.Index.Valid()
 		if err != nil {
 			return err
 		}
@@ -314,6 +333,9 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				elastic.NewTermQuery("active.string.string", f.Str.Str),
 			),
 		)
+	}
+	if f.Index != nil {
+		return elastic.NewTermQuery("_index", f.Index.Str)
 	}
 	if f.Size != nil {
 		if f.Size.None {
@@ -549,6 +571,8 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 		return nil, 0, err
 	}
 
+	// The fact that TrackTotalHits is set to true is important because the count is used as the
+	// number of documents of the filter on the _index field.
 	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, nil
 }

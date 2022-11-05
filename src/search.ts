@@ -7,12 +7,14 @@ import type {
   AmountValuesResult,
   TimeValuesResult,
   StringValuesResult,
+  IndexValuesResult,
   SizeValuesResult,
   PeerDBDocument,
   RelFilter,
   AmountFilter,
   TimeFilter,
   StringFilter,
+  IndexFilter,
   SizeFilter,
   Filters,
   FiltersState,
@@ -125,6 +127,10 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
         filters.and.push({ str: { prop, str } })
       }
     }
+  }
+  // TODO: Support also OR between values.
+  for (const str of updatedState.index) {
+    filters.and.push({ index: { str } })
   }
   if (updatedState.size) {
     // TODO: Support also OR between value and none.
@@ -255,7 +261,7 @@ export function useFilters(progress: Ref<number>): {
 
 function filtersToFiltersState(filters: Filters): FiltersState {
   if ("and" in filters) {
-    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {}, size: null }
+    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
       for (const [prop, values] of Object.entries(s.rel)) {
@@ -290,6 +296,18 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           }
         }
       }
+      for (const str of s.index) {
+        if (!state.index.includes(str)) {
+          state.index.push(str)
+        }
+      }
+      if (s.size) {
+        if (!state.size) {
+          state.size = s.size
+        } else {
+          throw new Error(`duplicate size filter`)
+        }
+      }
     }
     return state
   }
@@ -308,6 +326,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        index: [],
         size: null,
       }
     } else {
@@ -318,6 +337,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        index: [],
         size: null,
       }
     }
@@ -331,6 +351,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
+        index: [],
         size: null,
       }
     } else {
@@ -344,6 +365,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
+        index: [],
         size: null,
       }
     }
@@ -357,6 +379,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           [filters.time.prop]: NONE,
         },
         str: {},
+        index: [],
         size: null,
       }
     } else {
@@ -370,6 +393,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           },
         },
         str: {},
+        index: [],
         size: null,
       }
     }
@@ -383,6 +407,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         str: {
           [filters.str.prop]: [NONE],
         },
+        index: [],
         size: null,
       }
     } else {
@@ -393,8 +418,19 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         str: {
           [filters.str.prop]: [(filters.str as StringFilter).str],
         },
+        index: [],
         size: null,
       }
+    }
+  }
+  if ("index" in filters) {
+    return {
+      rel: {},
+      amount: {},
+      time: {},
+      str: {},
+      index: [(filters.index as IndexFilter).str],
+      size: null,
     }
   }
   if ("size" in filters) {
@@ -404,6 +440,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        index: [],
         size: NONE,
       }
     } else {
@@ -412,6 +449,7 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
+        index: [],
         size: {
           gte: (filters.size as SizeFilter).gte,
           lte: (filters.size as SizeFilter).lte,
@@ -446,7 +484,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   const _docs = ref<(PeerDBDocument & Type)[]>([]) as Ref<(PeerDBDocument & Type)[]>
   const _results = ref<Type[]>([]) as Ref<Type[]>
   const _total = ref<number | null>(null)
-  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, size: null })
+  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
   const _moreThanTotal = ref(false)
   const _hasMore = ref(false)
   const docs = import.meta.env.DEV ? readonly(_docs) : (_docs as unknown as Readonly<Ref<readonly DeepReadonly<PeerDBDocument & Type>[]>>)
@@ -468,7 +506,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
         _hasMore.value = false
         return
@@ -480,7 +518,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _docs.value = []
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
         _hasMore.value = false
         if (redirect) {
@@ -500,7 +538,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
       } else {
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, size: null }
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
       }
       limit = Math.min(initialLimit, results.value.length)
       // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
@@ -822,8 +860,95 @@ export function useStringFilterValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getStringValues(url, -2, controller.signal, progress)
+      const data = await getStringValues<StringValuesResult>(url, -2, controller.signal, progress)
       _results.value = data.results as StringValuesResult[]
+      _total.value = data.total
+      limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
+      _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit)
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return {
+    limitedResults,
+    results,
+    total,
+    hasMore,
+    loadMore: () => {
+      limit = Math.min(limit + FILTERS_INCREASE, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
+      _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit)
+    },
+  }
+}
+
+export function useIndexFilterValues(progress: Ref<number>): {
+  limitedResults: DeepReadonly<Ref<IndexValuesResult[]>>
+  results: DeepReadonly<Ref<IndexValuesResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  const router = useRouter()
+  const route = useRoute()
+
+  let limit = 0
+
+  const _limitedResults = ref<IndexValuesResult[]>([])
+  const _results = ref<IndexValuesResult[]>([])
+  const _total = ref<number | null>(null)
+  const _hasMore = ref(false)
+  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : _limitedResults
+  const results = import.meta.env.DEV ? readonly(_results) : _results
+  const total = import.meta.env.DEV ? readonly(_total) : _total
+  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      let s
+      if (Array.isArray(route.query.s)) {
+        s = route.query.s[0]
+      } else {
+        s = route.query.s
+      }
+      if (!screen) {
+        return null
+      }
+      return router.apiResolve({
+        name: "DocumentSearchIndexFilter",
+        params: {
+          s,
+        },
+      }).href
+    },
+    async (url, oldURL, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      if (!url) {
+        _limitedResults.value = []
+        _results.value = []
+        _total.value = null
+        _hasMore.value = false
+        return
+      }
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+      const data = await getStringValues<IndexValuesResult>(url, -2, controller.signal, progress)
+      _results.value = data.results as IndexValuesResult[]
       _total.value = data.total
       limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
       // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
@@ -1000,13 +1125,13 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   return res
 }
 
-async function getStringValues(
+async function getStringValues<Type extends StringValuesResult | IndexValuesResult>(
   url: string,
   priority: number,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
 ): Promise<{
-  results: StringValuesResult[]
+  results: Type[]
   total: number
 }> {
   const { doc, headers } = await getURL(url, priority, abortSignal, progress)
@@ -1016,7 +1141,7 @@ async function getStringValues(
     throw new Error("Peerdb-Total header is null")
   }
   const res = { results: doc, total: parseInt(total) } as {
-    results: StringValuesResult[]
+    results: Type[]
     total: number
   }
 

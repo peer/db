@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support config file.
 - MoMA demo site.
 - Filter on size of documents.
+- Filter on source index when using ElasticSearch alias.
 
 ## [0.1.0] - 2022-09-30
 
