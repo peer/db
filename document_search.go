@@ -273,64 +273,64 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 	if f.Rel != nil {
 		if f.Rel.None {
 			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("active.rel",
-					elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
+				elastic.NewNestedQuery("claims.rel",
+					elastic.NewTermQuery("claims.rel.prop._id", f.Rel.Prop),
 				),
 			)
 		}
-		return elastic.NewNestedQuery("active.rel",
+		return elastic.NewNestedQuery("claims.rel",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.rel.prop._id", f.Rel.Prop),
-				elastic.NewTermQuery("active.rel.to._id", f.Rel.Value),
+				elastic.NewTermQuery("claims.rel.prop._id", f.Rel.Prop),
+				elastic.NewTermQuery("claims.rel.to._id", f.Rel.Value),
 			),
 		)
 	}
 	if f.Amount != nil {
 		if f.Amount.None {
 			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("active.amount",
+				elastic.NewNestedQuery("claims.amount",
 					elastic.NewBoolQuery().Must(
-						elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
-						elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
+						elastic.NewTermQuery("claims.amount.prop._id", f.Amount.Prop),
+						elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
 					),
 				),
 			)
 		}
-		return elastic.NewNestedQuery("active.amount",
+		return elastic.NewNestedQuery("claims.amount",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", f.Amount.Prop),
-				elastic.NewTermQuery("active.amount.unit", *f.Amount.Unit),
-				elastic.NewRangeQuery("active.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
+				elastic.NewTermQuery("claims.amount.prop._id", f.Amount.Prop),
+				elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
+				elastic.NewRangeQuery("claims.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
 			),
 		)
 	}
 	if f.Time != nil {
 		if f.Time.None {
 			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("active.time",
-					elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
+				elastic.NewNestedQuery("claims.time",
+					elastic.NewTermQuery("claims.time.prop._id", f.Time.Prop),
 				),
 			)
 		}
-		return elastic.NewNestedQuery("active.time",
+		return elastic.NewNestedQuery("claims.time",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.time.prop._id", f.Time.Prop),
-				elastic.NewRangeQuery("active.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
+				elastic.NewTermQuery("claims.time.prop._id", f.Time.Prop),
+				elastic.NewRangeQuery("claims.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
 			),
 		)
 	}
 	if f.Str != nil {
 		if f.Str.None {
 			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("active.string",
-					elastic.NewTermQuery("active.string.prop._id", f.Str.Prop),
+				elastic.NewNestedQuery("claims.string",
+					elastic.NewTermQuery("claims.string.prop._id", f.Str.Prop),
 				),
 			)
 		}
-		return elastic.NewNestedQuery("active.string",
+		return elastic.NewNestedQuery("claims.string",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.string.prop._id", f.Str.Prop),
-				elastic.NewTermQuery("active.string.string", f.Str.Str),
+				elastic.NewTermQuery("claims.string.prop._id", f.Str.Prop),
+				elastic.NewTermQuery("claims.string.string", f.Str.Str),
 			),
 		)
 	}
@@ -589,10 +589,10 @@ func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
 		// TODO: Check which analyzer is used.
 		bq.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
 		for _, field := range []field{
-			{"active.id", "id"},
-			{"active.ref", "iri"},
-			{"active.text", "html.en"},
-			{"active.string", "string"},
+			{"claims.id", "id"},
+			{"claims.ref", "iri"},
+			{"claims.text", "html.en"},
+			{"claims.string", "string"},
 		} {
 			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
 			q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")

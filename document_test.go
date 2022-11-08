@@ -56,7 +56,7 @@ func TestDocument(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, search.Document{
-		Active: &search.ClaimTypes{
+		Claims: &search.ClaimTypes{
 			NoValue: search.NoValueClaims{
 				{
 					CoreClaim: search.CoreClaim{

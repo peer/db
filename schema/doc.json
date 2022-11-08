@@ -12,10 +12,7 @@
     "mnemonic": {
       "$ref": "definitions.json#/$defs/mnemonic"
     },
-    "active": {
-      "$ref": "definitions.json#/$defs/claimTypes"
-    },
-    "inactive": {
+    "claims": {
       "$ref": "definitions.json#/$defs/claimTypes"
     }
   },

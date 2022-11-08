@@ -169,7 +169,7 @@ But at a high-level look like:
     "en": "name in English"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "id": [
       {
         "_id": "22 character ID",
@@ -195,7 +195,7 @@ But at a high-level look like:
 ```
 
 Besides core metadata (`_id`, `name`, and `score`) all other data is organized
-in claims (seen under `active` claims above) which are then organized based on claim
+in claims (seen under `claims` claims above) which are then organized based on claim
 (data) type. For example, there are `id` claims which are used to store external
 ID values. `prop` is a reference to a property document which describes the ID value.
 
@@ -251,7 +251,7 @@ post into the following two PeerDB Search documents:
     "en": "Foo Bar"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "id": [
       {
         "_id": "9TfczNe5aa4LrKqWQWfnFF",
@@ -297,7 +297,7 @@ post into the following two PeerDB Search documents:
     "en": "Some title"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "id": [
       {
         "_id": "Ci3A1tLF6MHZ4y5zBibvGg",
@@ -398,7 +398,7 @@ post into the following two PeerDB Search documents:
     "en": "author username"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "rel": [
       {
         "_id": "5zZZ6nJFKuA5oNBu9QbsYY",
@@ -448,7 +448,7 @@ post into the following two PeerDB Search documents:
     "en": "blog post ID"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "rel": [
       {
         "_id": "DWYDFZ2DbasS4Tyehnko2U",
@@ -498,7 +498,7 @@ post into the following two PeerDB Search documents:
     "en": "author"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "rel": [
       {
         "_id": "gK8nXxJ3AXErTmGPoAVF78",
@@ -548,7 +548,7 @@ post into the following two PeerDB Search documents:
     "en": "user"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "rel": [
       {
         "_id": "79m7fNMHy7SRinSmB3WARM",
@@ -598,7 +598,7 @@ post into the following two PeerDB Search documents:
     "en": "blog post"
   },
   "score": 1.0,
-  "active": {
+  "claims": {
     "rel": [
       {
         "_id": "c24VwrPEMwZUhRgECzSn1b",

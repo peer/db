@@ -33,32 +33,32 @@ const route = useRoute()
 const hasLoaded = computed(() => props.doc?.name?.en)
 // TODO: Do not hard-code properties?
 const description = computed(() => {
-  return getBestClaimOfType(props.doc.active, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
+  return getBestClaimOfType(props.doc.claims, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
 })
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(props.doc.active, "rel", IS).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.active, "rel", INSTANCE_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.active, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.active, "rel", LABEL).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.active, "string", DEPARTMENT).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", CLASSIFICATION).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", MEDIUM).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", NATIONALITY).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", GENDER).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "string", MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc.active, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", IS).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", INSTANCE_OF).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", LABEL).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "string", DEPARTMENT).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", CLASSIFICATION).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", MEDIUM).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", NATIONALITY).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", GENDER).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "string", MEDIA_TYPE).map((c) => c.string),
+    ...getClaimsOfType(props.doc.claims, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
   ]
 })
 const previewFiles = computed(() => {
   // TODO: Sort files by group by properties (e.g., "image" first) and then sort inside groups by confidence.
   return [
-    ...getClaimsListsOfType(props.doc.active, "ref", PREVIEW_URL)
+    ...getClaimsListsOfType(props.doc.claims, "ref", PREVIEW_URL)
       .flat(1)
       .map((c) => c.iri),
-    ...[...(props.doc.active?.file || [])].flatMap((c) => c.preview ?? []),
+    ...[...(props.doc.claims?.file || [])].flatMap((c) => c.preview ?? []),
   ]
 })
 const rowsCount = computed(() => {

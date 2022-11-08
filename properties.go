@@ -235,7 +235,7 @@ func GenerateCoreProperties(properties []struct {
 				Score: 0.0,
 			},
 			Mnemonic: Mnemonic(mnemonic),
-			Active: &ClaimTypes{
+			Claims: &ClaimTypes{
 				Text: TextClaims{
 					{
 						CoreClaim: CoreClaim{
@@ -279,10 +279,9 @@ func GenerateCoreProperties(properties []struct {
 			},
 		}
 
-		activeClaimTypes := CoreProperties[id].Active
 		for _, isClaim := range property.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
-			activeClaimTypes.Relation = append(activeClaimTypes.Relation, RelationClaim{
+			CoreProperties[id].Claims.Relation = append(CoreProperties[id].Claims.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
 					ID:         getPropertyClaimID(mnemonic, "IS", 0, isClaimMnemonic, 0),
 					Confidence: 1.0,
@@ -323,7 +322,7 @@ func generateAllCoreProperties() {
 				Score: 0.0,
 			},
 			Mnemonic: Mnemonic(mnemonic),
-			Active: &ClaimTypes{
+			Claims: &ClaimTypes{
 				Text: TextClaims{
 					{
 						CoreClaim: CoreClaim{

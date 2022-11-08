@@ -223,10 +223,10 @@ func getDocumentReference(id, source string) search.DocumentReference {
 }
 
 func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
-	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("active.id",
+	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("claims.id",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("active.id.prop._id", search.GetCorePropertyID(property)),
-			elastic.NewTermQuery("active.id.id", id),
+			elastic.NewTermQuery("claims.id.prop._id", search.GetCorePropertyID(property)),
+			elastic.NewTermQuery("claims.id.id", id),
 		),
 	)).SeqNoAndPrimaryTerm(true).Do(ctx)
 	if err != nil {
@@ -858,7 +858,7 @@ func ConvertEntity(
 	}
 
 	if entity.Type == mediawiki.Property {
-		document.Active = &search.ClaimTypes{
+		document.Claims = &search.ClaimTypes{
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
@@ -891,7 +891,7 @@ func ConvertEntity(
 			},
 		}
 	} else if entity.Type == mediawiki.Item {
-		document.Active = &search.ClaimTypes{
+		document.Claims = &search.ClaimTypes{
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
@@ -927,7 +927,7 @@ func ConvertEntity(
 		// It is expected that this document will be merged with another document with standard
 		// file claims, so the claims here are just a set of additional claims to be added and
 		// are missing standard file claims.
-		document.Active = &search.ClaimTypes{
+		document.Claims = &search.ClaimTypes{
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{
@@ -980,7 +980,7 @@ func ConvertEntity(
 					return nil, errE
 				}
 			}
-			document.Active.Identifier = append(document.Active.Identifier, search.IdentifierClaim{
+			document.Claims.Identifier = append(document.Claims.Identifier, search.IdentifierClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
 					Confidence: es.HighConfidence,
@@ -988,7 +988,7 @@ func ConvertEntity(
 				Prop:       search.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
 				Identifier: siteLink.Title,
 			})
-			document.Active.Reference = append(document.Active.Reference, search.ReferenceClaim{
+			document.Claims.Reference = append(document.Claims.Reference, search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
 					ID:         search.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
 					Confidence: es.HighConfidence,
@@ -1004,7 +1004,7 @@ func ConvertEntity(
 		// We use this in resolveDataTypeFromPropertyDocument, too.
 		claimTypeMnemonic := getPropertyClaimType(*entity.DataType)
 		if claimTypeMnemonic != "" {
-			document.Active.Relation = append(document.Active.Relation, search.RelationClaim{
+			document.Claims.Relation = append(document.Claims.Relation, search.RelationClaim{
 				CoreClaim: search.CoreClaim{
 					ID: search.GetID(namespace, entity.ID, "IS", 0, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
@@ -1022,7 +1022,7 @@ func ConvertEntity(
 	englishLabels = append(englishLabels, englishAliases...)
 	englishLabels = deduplicate(englishLabels)
 	for i, label := range englishLabels {
-		document.Active.Text = append(document.Active.Text, search.TextClaim{
+		document.Claims.Text = append(document.Claims.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, entity.ID, "ALSO_KNOWN_AS", i),
 				Confidence: es.HighConfidence,
@@ -1036,7 +1036,7 @@ func ConvertEntity(
 
 	englishDescriptions := getEnglishValues(entity.Descriptions)
 	for i, description := range englishDescriptions {
-		document.Active.Text = append(document.Active.Text, search.TextClaim{
+		document.Claims.Text = append(document.Claims.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
 				ID:         search.GetID(namespace, entity.ID, "DESCRIPTION", i),
 				Confidence: es.MediumConfidence,

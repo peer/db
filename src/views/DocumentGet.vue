@@ -88,11 +88,11 @@ async function afterClick() {
 }
 
 const hasLoaded = computed(() => doc.value?.name?.en)
-const article = computed(() => getBestClaimOfType(doc.value?.active, "text", ARTICLE))
+const article = computed(() => getBestClaimOfType(doc.value?.claims, "text", ARTICLE))
 const file = computed(() => {
   const f = {
-    url: getBestClaimOfType(doc.value?.active, "ref", FILE_URL)?.iri,
-    mediaType: getBestClaimOfType(doc.value?.active, "string", MEDIA_TYPE)?.string,
+    url: getBestClaimOfType(doc.value?.claims, "ref", FILE_URL)?.iri,
+    mediaType: getBestClaimOfType(doc.value?.claims, "string", MEDIA_TYPE)?.string,
   }
   if (f.url && f.mediaType) {
     return f
@@ -175,7 +175,7 @@ const file = computed(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <PropertiesRows :properties="doc.active" />
+                  <PropertiesRows :properties="doc.claims" />
                 </tbody>
               </table>
             </TabPanel>

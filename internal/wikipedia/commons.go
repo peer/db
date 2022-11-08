@@ -422,7 +422,7 @@ func convertImage(
 			},
 			Score: 0.0,
 		},
-		Active: &search.ClaimTypes{
+		Claims: &search.ClaimTypes{
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{

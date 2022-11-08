@@ -12,10 +12,6 @@ import (
 	"gitlab.com/tozd/go/x"
 )
 
-const (
-	ActiveClaimThreshold = 0.5
-)
-
 type VisitResult int
 
 const (
@@ -53,8 +49,7 @@ type Document struct {
 	CoreDocument
 
 	Mnemonic Mnemonic    `json:"mnemonic,omitempty"`
-	Active   *ClaimTypes `json:"active,omitempty"`
-	Inactive *ClaimTypes `json:"inactive,omitempty"`
+	Claims   *ClaimTypes `json:"claims,omitempty"`
 }
 
 func (d Document) Reference() DocumentReference {
@@ -67,24 +62,14 @@ func (d Document) Reference() DocumentReference {
 }
 
 func (d *Document) Visit(visitor visitor) errors.E {
-	if d.Active != nil {
-		err := d.Active.Visit(visitor)
+	if d.Claims != nil {
+		err := d.Claims.Visit(visitor)
 		if err != nil {
 			return err
 		}
-		// If active claims became empty after visiting, we set them to nil.
-		if d.Active.Size() == 0 {
-			d.Active = nil
-		}
-	}
-	if d.Inactive != nil {
-		err := d.Inactive.Visit(visitor)
-		if err != nil {
-			return err
-		}
-		// If inactive claims became empty after visiting, we set them to nil.
-		if d.Inactive.Size() == 0 {
-			d.Inactive = nil
+		// If claims became empty after visiting, we set them to nil.
+		if d.Claims.Size() == 0 {
+			d.Claims = nil
 		}
 	}
 	return nil
@@ -757,44 +742,34 @@ func (d *Document) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
 	}
-	activeClaims := claim.GetConfidence() >= ActiveClaimThreshold || claim.GetConfidence() <= -ActiveClaimThreshold
-	var claimTypes *ClaimTypes
-	if activeClaims {
-		if d.Active == nil {
-			d.Active = &ClaimTypes{}
-		}
-		claimTypes = d.Active
-	} else {
-		if d.Inactive == nil {
-			d.Inactive = &ClaimTypes{}
-		}
-		claimTypes = d.Inactive
+	if d.Claims == nil {
+		d.Claims = &ClaimTypes{}
 	}
 	switch c := claim.(type) {
 	case *IdentifierClaim:
-		claimTypes.Identifier = append(claimTypes.Identifier, *c)
+		d.Claims.Identifier = append(d.Claims.Identifier, *c)
 	case *ReferenceClaim:
-		claimTypes.Reference = append(claimTypes.Reference, *c)
+		d.Claims.Reference = append(d.Claims.Reference, *c)
 	case *TextClaim:
-		claimTypes.Text = append(claimTypes.Text, *c)
+		d.Claims.Text = append(d.Claims.Text, *c)
 	case *StringClaim:
-		claimTypes.String = append(claimTypes.String, *c)
+		d.Claims.String = append(d.Claims.String, *c)
 	case *AmountClaim:
-		claimTypes.Amount = append(claimTypes.Amount, *c)
+		d.Claims.Amount = append(d.Claims.Amount, *c)
 	case *AmountRangeClaim:
-		claimTypes.AmountRange = append(claimTypes.AmountRange, *c)
+		d.Claims.AmountRange = append(d.Claims.AmountRange, *c)
 	case *RelationClaim:
-		claimTypes.Relation = append(claimTypes.Relation, *c)
+		d.Claims.Relation = append(d.Claims.Relation, *c)
 	case *FileClaim:
-		claimTypes.File = append(claimTypes.File, *c)
+		d.Claims.File = append(d.Claims.File, *c)
 	case *NoValueClaim:
-		claimTypes.NoValue = append(claimTypes.NoValue, *c)
+		d.Claims.NoValue = append(d.Claims.NoValue, *c)
 	case *UnknownValueClaim:
-		claimTypes.UnknownValue = append(claimTypes.UnknownValue, *c)
+		d.Claims.UnknownValue = append(d.Claims.UnknownValue, *c)
 	case *TimeClaim:
-		claimTypes.Time = append(claimTypes.Time, *c)
+		d.Claims.Time = append(d.Claims.Time, *c)
 	case *TimeRangeClaim:
-		claimTypes.TimeRange = append(claimTypes.TimeRange, *c)
+		d.Claims.TimeRange = append(d.Claims.TimeRange, *c)
 	default:
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}

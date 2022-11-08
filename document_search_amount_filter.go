@@ -101,27 +101,27 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 		return
 	}
 
-	minMaxAggregation := elastic.NewNestedAggregation().Path("active.amount").SubAggregation(
+	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", prop),
+				elastic.NewTermQuery("claims.amount.prop._id", prop),
 			).Must(
-				elastic.NewTermQuery("active.amount.unit", unit),
+				elastic.NewTermQuery("claims.amount.unit", unit),
 			),
 		).SubAggregation(
 			"min",
-			elastic.NewMinAggregation().Field("active.amount.amount"),
+			elastic.NewMinAggregation().Field("claims.amount.amount"),
 		).SubAggregation(
 			"max",
-			elastic.NewMaxAggregation().Field("active.amount.amount"),
+			elastic.NewMaxAggregation().Field("claims.amount.amount"),
 		).SubAggregation(
 			"discrete",
 			// We want to know if all values are discrete (integers). They are if the sum is zero.
 			elastic.NewSumAggregation().Script(
 				// TODO: Use a runtime field.
 				//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
-				elastic.NewScript("return Math.abs(doc['active.amount.amount'].value - Math.floor(doc['active.amount.amount'].value))"),
+				elastic.NewScript("return Math.abs(doc['claims.amount.amount'].value - Math.floor(doc['claims.amount.amount'].value))"),
 			),
 		),
 	)
@@ -174,17 +174,17 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 		s.notFoundWithError(w, req, errE)
 		return
 	}
-	histogramAggregation := elastic.NewNestedAggregation().Path("active.amount").SubAggregation(
+	histogramAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("active.amount.prop._id", prop),
+				elastic.NewTermQuery("claims.amount.prop._id", prop),
 			).Must(
-				elastic.NewTermQuery("active.amount.unit", unit),
+				elastic.NewTermQuery("claims.amount.unit", unit),
 			),
 		).SubAggregation(
 			"hist",
-			elastic.NewHistogramAggregation().Field("active.amount.amount").Offset(min).Interval(interval).SubAggregation(
+			elastic.NewHistogramAggregation().Field("claims.amount.amount").Offset(min).Interval(interval).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),

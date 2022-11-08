@@ -83,16 +83,16 @@ func (s *Service) DocumentSearchTimeFilterAPIGet(w http.ResponseWriter, req *htt
 		s.notFoundWithError(w, req, errE)
 		return
 	}
-	minMaxAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
+	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("active.time.prop._id", prop),
+			elastic.NewTermQuery("claims.time.prop._id", prop),
 		).SubAggregation(
 			"min",
-			elastic.NewMinAggregation().Field("active.time.timestamp"),
+			elastic.NewMinAggregation().Field("claims.time.timestamp"),
 		).SubAggregation(
 			"max",
-			elastic.NewMaxAggregation().Field("active.time.timestamp"),
+			elastic.NewMaxAggregation().Field("claims.time.timestamp"),
 		),
 	)
 	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
@@ -144,13 +144,13 @@ func (s *Service) DocumentSearchTimeFilterAPIGet(w http.ResponseWriter, req *htt
 		s.notFoundWithError(w, req, errE)
 		return
 	}
-	histogramAggregation := elastic.NewNestedAggregation().Path("active.time").SubAggregation(
+	histogramAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("active.time.prop._id", prop),
+			elastic.NewTermQuery("claims.time.prop._id", prop),
 		).SubAggregation(
 			"hist",
-			elastic.NewDateHistogramAggregation().Field("active.time.timestamp").Offset(offsetString).FixedInterval(intervalString).SubAggregation(
+			elastic.NewDateHistogramAggregation().Field("claims.time.timestamp").Offset(offsetString).FixedInterval(intervalString).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),

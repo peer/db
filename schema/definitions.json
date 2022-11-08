@@ -116,7 +116,7 @@
       }
     },
     "confidence": {
-      "description": "When the confidence of a claim is >= 0.5 or <= -0.5, it is an active claim, otherwise it is inactive claim. Negative confidence negates the claim.",
+      "description": "Negative confidence negates the claim.",
       "$ref": "#/$defs/score"
     },
     "textClaims": {

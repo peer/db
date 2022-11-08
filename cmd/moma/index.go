@@ -463,7 +463,7 @@ func index(config *Config) errors.E {
 				},
 				Score: 0.0,
 			},
-			Active: &search.ClaimTypes{
+			Claims: &search.ClaimTypes{
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{
@@ -697,7 +697,7 @@ func index(config *Config) errors.E {
 				},
 				Score: 0.0,
 			},
-			Active: &search.ClaimTypes{
+			Claims: &search.ClaimTypes{
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{

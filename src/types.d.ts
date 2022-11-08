@@ -200,8 +200,7 @@ export type PeerDBDocument = {
   score?: number
   scores?: Record<string, number>
   mnemonic?: string
-  active?: ClaimTypes
-  inactive?: ClaimTypes
+  claims?: ClaimTypes
 }
 
 export type RelFilter = {
