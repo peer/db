@@ -112,7 +112,7 @@
         "type": "keyword",
         "doc_values": false
       },
-      "active": {
+      "claims": {
         "properties": {
           "id": {
             "type": "nested",
