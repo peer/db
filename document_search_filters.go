@@ -237,7 +237,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	m.Stop()
 
 	indexFilter := 0
-	if index.Value > 0 {
+	if index.Value > 1 {
 		indexFilter++
 	}
 
