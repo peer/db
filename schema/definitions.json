@@ -200,10 +200,7 @@
           "$ref": "#/$defs/translatableHtmlString"
         }
       },
-      "required": [
-        "prop",
-        "html"
-      ],
+      "required": ["prop", "html"],
       "unevaluatedProperties": false
     },
     "stringClaim": {
@@ -222,10 +219,7 @@
           "contentMediaType": "text/plain"
         }
       },
-      "required": [
-        "prop",
-        "string"
-      ],
+      "required": ["prop", "string"],
       "unevaluatedProperties": false
     },
     "fileClaim": {
@@ -256,11 +250,7 @@
           }
         }
       },
-      "required": [
-        "prop",
-        "type",
-        "url"
-      ],
+      "required": ["prop", "type", "url"],
       "unevaluatedProperties": false
     },
     "relationClaim": {
@@ -278,10 +268,7 @@
           "$ref": "#/$defs/documentReference"
         }
       },
-      "required": [
-        "prop",
-        "to"
-      ],
+      "required": ["prop", "to"],
       "unevaluatedProperties": false
     },
     "identifierClaim": {
@@ -300,10 +287,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "prop",
-        "id"
-      ],
+      "required": ["prop", "id"],
       "unevaluatedProperties": false
     },
     "referenceClaim": {
@@ -322,10 +306,7 @@
           "format": "iri"
         }
       },
-      "required": [
-        "prop",
-        "iri"
-      ],
+      "required": ["prop", "iri"],
       "unevaluatedProperties": false
     },
     "noValueClaim": {
@@ -341,9 +322,7 @@
           "$ref": "#/$defs/documentReference"
         }
       },
-      "required": [
-        "prop"
-      ],
+      "required": ["prop"],
       "unevaluatedProperties": false
     },
     "unknownValueClaim": {
@@ -359,9 +338,7 @@
           "$ref": "#/$defs/documentReference"
         }
       },
-      "required": [
-        "prop"
-      ],
+      "required": ["prop"],
       "unevaluatedProperties": false
     },
     "amountClaim": {
@@ -382,11 +359,7 @@
           "$ref": "#/$defs/amountUnit"
         }
       },
-      "required": [
-        "prop",
-        "amount",
-        "unit"
-      ],
+      "required": ["prop", "amount", "unit"],
       "unevaluatedProperties": false
     },
     "amountRangeClaim": {
@@ -412,12 +385,7 @@
           "$ref": "#/$defs/amountUnit"
         }
       },
-      "required": [
-        "prop",
-        "lower",
-        "upper",
-        "unit"
-      ],
+      "required": ["prop", "lower", "upper", "unit"],
       "unevaluatedProperties": false
     },
     "timeClaim": {
@@ -438,10 +406,7 @@
           "$ref": "#/$defs/timePrecision"
         }
       },
-      "required": [
-        "prop",
-        "timestamp"
-      ],
+      "required": ["prop", "timestamp"],
       "unevaluatedProperties": false
     },
     "timeRangeClaim": {
@@ -467,11 +432,7 @@
           "$ref": "#/$defs/timePrecision"
         }
       },
-      "required": [
-        "prop",
-        "lower",
-        "upper"
-      ],
+      "required": ["prop", "lower", "upper"],
       "unevaluatedProperties": false
     },
     "translatableHtmlString": {
@@ -500,49 +461,11 @@
     },
     "amountUnit": {
       "description": "All amounts for the same quantity should use the same unit so that it is easier to compare values during search. The exception is unit \"@\" which stands for an unit for which conversion is not yet available or done, the real unit should then be described using an UNIT meta claim. \"1\" is used unit-less amounts. \"/\" represents ratio.",
-      "enum": [
-        "@",
-        "1",
-        "/",
-        "kg/kg",
-        "kg",
-        "kg/m³",
-        "m",
-        "m²",
-        "m/s",
-        "V",
-        "W",
-        "Pa",
-        "C",
-        "J",
-        "°C",
-        "rad",
-        "Hz",
-        "$",
-        "B",
-        "px",
-        "s"
-      ]
+      "enum": ["@", "1", "/", "kg/kg", "kg", "kg/m³", "m", "m²", "m/s", "V", "W", "Pa", "C", "J", "°C", "rad", "Hz", "$", "B", "px", "s"]
     },
     "timePrecision": {
       "description": "See precisions used in Wikidata (https://www.wikidata.org/wiki/Help:Dates).",
-      "enum": [
-        "G",
-        "100M",
-        "10M",
-        "M",
-        "100k",
-        "10k",
-        "k",
-        "100y",
-        "10y",
-        "y",
-        "m",
-        "d",
-        "h",
-        "min",
-        "s"
-      ]
+      "enum": ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"]
     }
   }
 }
