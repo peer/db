@@ -454,6 +454,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	var fileDocument *search.Document
 	for _, cc := range claim.GetMeta(search.GetCorePropertyID("IS")) {
 		if c, ok := cc.(*search.RelationClaim); ok {
+			// c.To.ID should be a real ID because we called claim.VisitMeta(v) above.
 			fileDocument, err = v.getDocumentByID(c.To.ID)
 			if errors.Is(err, NotFoundError) {
 				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
