@@ -68,10 +68,11 @@ function stateHasNONE(): boolean {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none"
-          ><template v-if="propertyName">{{ propertyName }}</template
-          ><template v-else><i>untitled</i></template></RouterLink
-        >
+        <RouterLink
+          :to="{ name: 'DocumentGet', params: { id: property._id } }"
+          class="link mb-1.5 text-lg leading-none"
+          v-html="propertyName || '<i>untitled</i>'"
+        ></RouterLink>
         ({{ property._count }})
       </div>
       <ul>
@@ -92,9 +93,8 @@ function stateHasNONE(): boolean {
               :for="'rel/' + property._id + '/' + doc._id"
               class="my-1 leading-none"
               :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              ><template v-if="getName(doc.claims)">{{ getName(doc.claims) }}</template
-              ><template v-else><i>untitled</i></template></label
-            >
+              v-html="getName(doc.claims) || '<i>untitled</i>'"
+            ></label>
             <label
               :for="'rel/' + property._id + '/' + doc._id"
               class="my-1 leading-none"
@@ -107,10 +107,7 @@ function stateHasNONE(): boolean {
           </template>
           <template v-else-if="'_id' in doc && doc.claims && doc._count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
-            <div class="my-1 leading-none">
-              <template v-if="getName(doc.claims)">{{ getName(doc.claims) }}</template
-              ><template v-else><i>untitled</i></template>
-            </div>
+            <div class="my-1 leading-none" v-html="getName(doc.claims) || '<i>untitled</i>'"></div>
             <div class="my-1 leading-none">({{ doc._count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"

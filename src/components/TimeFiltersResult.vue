@@ -180,10 +180,11 @@ onBeforeUnmount(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none"
-          ><template v-if="propertyName">{{ propertyName }}</template
-          ><template v-else><i>untitled</i></template></RouterLink
-        >
+        <RouterLink
+          :to="{ name: 'DocumentGet', params: { id: property._id } }"
+          class="link mb-1.5 text-lg leading-none"
+          v-html="propertyName || '<i>untitled</i>'"
+        ></RouterLink>
         ({{ property._count }})
       </div>
       <ul>

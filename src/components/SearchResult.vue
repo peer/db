@@ -105,10 +105,7 @@ const rowSpan = computed(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
       <h2 class="text-xl leading-none">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link"
-          ><template v-if="docName">{{ docName }}</template
-          ><template v-else><i>untitled</i></template></RouterLink
-        >
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link" v-html="docName || '<i>untitled</i>'"></RouterLink>
       </h2>
       <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-start gap-1 text-sm">
         <li v-for="tag of tags" :key="tag" class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm">{{ tag }}</li>

@@ -155,10 +155,7 @@ const file = computed(() => {
               >All properties</Tab
             >
           </TabList>
-          <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">
-            <template v-if="docName">{{ docName }}</template
-            ><template v-else><i>untitled</i></template>
-          </h1>
+          <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>untitled</i>'"></h1>
           <TabPanels>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanel v-if="article" tabindex="-1">

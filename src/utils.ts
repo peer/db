@@ -164,9 +164,7 @@ export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null)
     return null
   }
 
-  const wrapper = document.createElement("div")
-  wrapper.innerHTML = claim.html.en
-  return wrapper.textContent || wrapper.innerText || null
+  return claim.html.en
 }
 
 export function useRouter(): Router {
