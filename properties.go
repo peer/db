@@ -96,8 +96,8 @@ var (
 			nil,
 		},
 		{
-			"also known as",
-			"Entity is also known as.",
+			"name",
+			"The name of the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
@@ -186,12 +186,7 @@ func GetCorePropertyReference(mnemonic string) DocumentReference {
 	if !ok {
 		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
 	}
-	return DocumentReference{
-		ID:     property.ID,
-		Name:   property.Name,
-		Score:  property.Score,
-		Scores: property.Scores,
-	}
+	return property.Reference()
 }
 
 func getMnemonic(data string) string {
@@ -228,26 +223,33 @@ func GenerateCoreProperties(properties []struct {
 		id := string(GetCorePropertyID(mnemonic))
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
-				ID: Identifier(id),
-				Name: Name{
-					"en": property.Name,
-				},
-				Score: 0.0,
+				ID:    Identifier(id),
+				Score: 0.5,
 			},
 			Mnemonic: Mnemonic(mnemonic),
 			Claims: &ClaimTypes{
 				Text: TextClaims{
 					{
 						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "NAME", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID:    GetCorePropertyID("NAME"),
+							Score: 0.5,
+						},
+						HTML: TranslatableHTMLString{
+							"en": html.EscapeString(property.Name),
+						},
+					},
+					{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetCorePropertyID("DESCRIPTION"),
-							Name: Name{
-								"en": "description",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("DESCRIPTION"),
+							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
 							"en": property.DescriptionHTML,
@@ -261,18 +263,12 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetCorePropertyID("IS"),
-							Name: Name{
-								"en": "is",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("IS"),
+							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID: GetCorePropertyID("PROPERTY"),
-							Name: Name{
-								"en": "property",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("PROPERTY"),
+							Score: 0.5,
 						},
 					},
 				},
@@ -287,18 +283,12 @@ func GenerateCoreProperties(properties []struct {
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID: GetCorePropertyID("IS"),
-					Name: Name{
-						"en": "is",
-					},
-					Score: 0.0,
+					ID:    GetCorePropertyID("IS"),
+					Score: 0.5,
 				},
 				To: DocumentReference{
-					ID: GetCorePropertyID(isClaimMnemonic),
-					Name: Name{
-						"en": isClaim,
-					},
-					Score: 0.0,
+					ID:    GetCorePropertyID(isClaimMnemonic),
+					Score: 0.5,
 				},
 			})
 		}
@@ -315,26 +305,33 @@ func generateAllCoreProperties() {
 		description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
-				ID: Identifier(id),
-				Name: Name{
-					"en": name,
-				},
-				Score: 0.0,
+				ID:    Identifier(id),
+				Score: 0.5,
 			},
 			Mnemonic: Mnemonic(mnemonic),
 			Claims: &ClaimTypes{
 				Text: TextClaims{
 					{
 						CoreClaim: CoreClaim{
+							ID:         getPropertyClaimID(mnemonic, "NAME", 0),
+							Confidence: 1.0,
+						},
+						Prop: DocumentReference{
+							ID:    GetCorePropertyID("NAME"),
+							Score: 0.5,
+						},
+						HTML: TranslatableHTMLString{
+							"en": html.EscapeString(name),
+						},
+					},
+					{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetCorePropertyID("DESCRIPTION"),
-							Name: Name{
-								"en": "description",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("DESCRIPTION"),
+							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(description),
@@ -348,18 +345,12 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetCorePropertyID("IS"),
-							Name: Name{
-								"en": "is",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("IS"),
+							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID: GetCorePropertyID("PROPERTY"),
-							Name: Name{
-								"en": "property",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("PROPERTY"),
+							Score: 0.5,
 						},
 					},
 					{
@@ -368,18 +359,12 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID: GetCorePropertyID("IS"),
-							Name: Name{
-								"en": "is",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("IS"),
+							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID: GetCorePropertyID("CLAIM_TYPE"),
-							Name: Name{
-								"en": "claim type",
-							},
-							Score: 0.0,
+							ID:    GetCorePropertyID("CLAIM_TYPE"),
+							Score: 0.5,
 						},
 					},
 				},

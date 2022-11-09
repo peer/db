@@ -6,7 +6,7 @@ import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
 import { useRelFilterValues, NONE } from "@/search"
-import { equals } from "@/utils"
+import { equals, getName } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -22,7 +22,8 @@ const emit = defineEmits<{
 const progress = ref(0)
 const { docs, total, hasMore, loadMore } = useRelFilterValues(props.property, progress)
 
-const hasLoaded = computed(() => props.property?.name?.en)
+const hasLoaded = computed(() => props.property?.claims)
+const propertyName = computed(() => getName(props.property?.claims))
 const docsWithNone = computed(() => {
   if (!docs.value.length) {
     return docs.value
@@ -67,12 +68,15 @@ function stateHasNONE(): boolean {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none"
+          ><template v-if="propertyName">{{ propertyName }}</template
+          ><template v-else><i>untitled</i></template></RouterLink
+        >
         ({{ property._count }})
       </div>
       <ul>
         <li v-for="doc in docsWithNone" :key="'_id' in doc ? doc._id : NONE" class="flex gap-x-1">
-          <template v-if="'_id' in doc && doc.name?.en && (doc._count != searchTotal || state.includes(doc._id))">
+          <template v-if="'_id' in doc && doc.claims && (doc._count != searchTotal || state.includes(doc._id))">
             <input
               :id="'rel/' + property._id + '/' + doc._id"
               :disabled="updateProgress > 0"
@@ -88,7 +92,8 @@ function stateHasNONE(): boolean {
               :for="'rel/' + property._id + '/' + doc._id"
               class="my-1 leading-none"
               :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >{{ doc.name.en }}</label
+              ><template v-if="getName(doc.claims)">{{ getName(doc.claims) }}</template
+              ><template v-else><i>untitled</i></template></label
             >
             <label
               :for="'rel/' + property._id + '/' + doc._id"
@@ -100,9 +105,12 @@ function stateHasNONE(): boolean {
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="'_id' in doc && doc.name?.en && doc._count == searchTotal">
+          <template v-else-if="'_id' in doc && doc.claims && doc._count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
-            <div class="my-1 leading-none">{{ doc.name.en }}</div>
+            <div class="my-1 leading-none">
+              <template v-if="getName(doc.claims)">{{ getName(doc.claims) }}</template
+              ><template v-else><i>untitled</i></template>
+            </div>
             <div class="my-1 leading-none">({{ doc._count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"

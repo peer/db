@@ -54,10 +54,8 @@ type Document struct {
 
 func (d Document) Reference() DocumentReference {
 	return DocumentReference{
-		ID:     d.ID,
-		Name:   d.Name,
-		Score:  d.Score,
-		Scores: d.Scores,
+		ID:    d.ID,
+		Score: d.Score,
 	}
 }
 
@@ -784,9 +782,28 @@ func (d *Document) AllClaims() []Claim {
 	return v.Result
 }
 
+func (d *Document) MergeFrom(other ...*Document) errors.E {
+	// TODO: What to do about duplicate equal claims (e.g., same NAME claim)?
+	//       Skip them? What is an equal claim, what if just metadata is different?
+
+	// TODO: Make sure there are no duplicate claim IDs.
+
+	for _, o := range other {
+		for _, claim := range o.AllClaims() {
+			err := d.Add(claim)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// TODO: What to do about scores after merging?
+	d.Score = 0.5
+	d.Scores = nil
+	return nil
+}
+
 type CoreDocument struct {
 	ID     Identifier `json:"-"`
-	Name   Name       `json:"name"`
 	Score  Score      `json:"score"`
 	Scores Scores     `json:"scores,omitempty"`
 }
@@ -861,11 +878,6 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	*t = Timestamp(time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC))
 	return nil
 }
-
-type Name = TranslatablePlainString
-
-// Language to plain string mapping.
-type TranslatablePlainString map[string]string
 
 // Language to HTML string mapping.
 type TranslatableHTMLString map[string]string
@@ -1004,10 +1016,8 @@ type Confidence = Score
 type Score float64
 
 type DocumentReference struct {
-	ID     Identifier `json:"_id"`
-	Name   Name       `json:"name"`
-	Score  Score      `json:"score"`
-	Scores Scores     `json:"scores,omitempty"`
+	ID    Identifier `json:"_id"`
+	Score Score      `json:"score"`
 }
 
 type IdentifierClaim struct {

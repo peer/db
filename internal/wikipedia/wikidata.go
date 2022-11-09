@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	WikidataReference                 = "xx-Wikidata"
-	WikimediaCommonsEntityReference   = "xx-CommonsEntity"
-	WikimediaCommonsFileReference     = "xx-CommonsFile"
-	WikipediaCategoryReference        = "xx-WikipediaCategory"
-	WikipediaTemplateReference        = "xx-WikipediaTemplate"
-	WikimediaCommonsCategoryReference = "xx-CommonsCategory"
-	WikimediaCommonsTemplateReference = "xx-CommonsTemplate"
+	WikidataReference                 = "-Wikidata-"
+	WikimediaCommonsEntityReference   = "-CommonsEntity-"
+	WikimediaCommonsFileReference     = "-CommonsFile-"
+	WikipediaCategoryReference        = "-WikipediaCategory-"
+	WikipediaTemplateReference        = "-WikipediaTemplate-"
+	WikimediaCommonsCategoryReference = "-CommonsCategory-"
+	WikimediaCommonsTemplateReference = "-CommonsTemplate-"
 )
 
 var (
@@ -165,57 +165,42 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
-// getDocumentReference does not return a valid reference: name is set to the ID itself for language xx-*.
-// Wikidata entity references also have a valid ID field, others have an empty ID field. It panics for unsupported IDs.
+// getDocumentReference does not return a valid reference, but it encodes original ID into the _id field
+// with "-" prefix. It panics for unsupported IDs.
 func getDocumentReference(id, source string) search.DocumentReference {
 	if strings.HasPrefix(id, "M") {
 		return search.DocumentReference{
-			Name: map[string]string{
-				WikimediaCommonsEntityReference: id,
-			},
+			ID: search.Identifier(WikimediaCommonsEntityReference + id),
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return search.DocumentReference{
-			ID: GetWikidataDocumentID(id),
-			Name: map[string]string{
-				WikidataReference: id,
-			},
+			ID: search.Identifier(WikidataReference + id),
 		}
 	} else if strings.HasPrefix(id, "Category:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
-				Name: map[string]string{
-					WikipediaCategoryReference: id,
-				},
+				ID: search.Identifier(WikipediaCategoryReference + id),
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
-				Name: map[string]string{
-					WikimediaCommonsCategoryReference: id,
-				},
+				ID: search.Identifier(WikimediaCommonsCategoryReference + id),
 			}
 		}
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
-				Name: map[string]string{
-					WikipediaTemplateReference: id,
-				},
+				ID: search.Identifier(WikipediaTemplateReference + id),
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
-				Name: map[string]string{
-					WikimediaCommonsTemplateReference: id,
-				},
+				ID: search.Identifier(WikimediaCommonsTemplateReference + id),
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return search.DocumentReference{
-			Name: map[string]string{
-				WikimediaCommonsFileReference: id,
-			},
+			ID: search.Identifier(WikimediaCommonsFileReference + id),
 		}
 	}
 
@@ -849,12 +834,23 @@ func ConvertEntity(
 	// TODO: Store last item revision and last modification time somewhere. To every claim from input entity?
 	document := search.Document{
 		CoreDocument: search.CoreDocument{
-			ID: id,
-			Name: search.Name{
-				"en": name,
-			},
-			Score: 0.0,
+			ID:    id,
+			Score: 0.5,
 		},
+	}
+
+	err := document.Add(&search.TextClaim{
+		CoreClaim: search.CoreClaim{
+			ID:         search.GetID(namespace, entity.ID, "NAME", 0),
+			Confidence: es.HighConfidence,
+		},
+		Prop: search.GetCorePropertyReference("NAME"),
+		HTML: search.TranslatableHTMLString{
+			"en": html.EscapeString(name),
+		},
+	})
+	if err != nil {
+		log.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 	}
 
 	if entity.Type == mediawiki.Property {
@@ -1024,10 +1020,10 @@ func ConvertEntity(
 	for i, label := range englishLabels {
 		document.Claims.Text = append(document.Claims.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, entity.ID, "ALSO_KNOWN_AS", i),
-				Confidence: es.HighConfidence,
+				ID:         search.GetID(namespace, entity.ID, "NAME", i+1),
+				Confidence: es.MediumConfidence,
 			},
-			Prop: search.GetCorePropertyReference("ALSO_KNOWN_AS"),
+			Prop: search.GetCorePropertyReference("NAME"),
 			HTML: search.TranslatableHTMLString{
 				"en": html.EscapeString(label),
 			},

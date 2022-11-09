@@ -343,7 +343,7 @@ func ConvertPageRedirects(log zerolog.Logger, namespace uuid.UUID, id string, pa
 }
 
 func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirect string, document *search.Document) {
-	claimID := search.GetID(namespace, id, "ALSO_KNOWN_AS", redirect)
+	claimID := search.GetID(namespace, id, "NAME", redirect)
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
 		return
@@ -351,7 +351,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	// TODO: Construct better the name. E.g., remove underscores.
 	escapedName := html.EscapeString(redirect)
 	found := false
-	for _, claim := range document.Get(search.GetCorePropertyID("ALSO_KNOWN_AS")) {
+	for _, claim := range document.Get(search.GetCorePropertyID("NAME")) {
 		if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
 			found = true
 			break
@@ -365,7 +365,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 			ID:         claimID,
 			Confidence: es.MediumConfidence,
 		},
-		Prop: search.GetCorePropertyReference("ALSO_KNOWN_AS"),
+		Prop: search.GetCorePropertyReference("NAME"),
 		HTML: search.TranslatableHTMLString{
 			"en": escapedName,
 		},

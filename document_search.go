@@ -586,8 +586,6 @@ func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
 	if sh.Text != "" {
 		bq := elastic.NewBoolQuery()
 		bq.Should(elastic.NewTermQuery("_id", sh.Text))
-		// TODO: Check which analyzer is used.
-		bq.Should(elastic.NewSimpleQueryStringQuery(sh.Text).Field("name.en").DefaultOperator("AND"))
 		for _, field := range []field{
 			{"claims.id", "id"},
 			{"claims.ref", "iri"},

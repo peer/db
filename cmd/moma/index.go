@@ -457,13 +457,22 @@ func index(config *Config) errors.E {
 
 		doc := search.Document{ //nolint:dupl
 			CoreDocument: search.CoreDocument{
-				ID: search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
-				Name: search.Name{
-					"en": artist.DisplayName,
-				},
-				Score: 0.0,
+				ID:    search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
+				Score: 0.5,
 			},
 			Claims: &search.ClaimTypes{
+				Text: search.TextClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "NAME", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("NAME"),
+						HTML: search.TranslatableHTMLString{
+							"en": html.EscapeString(artist.DisplayName),
+						},
+					},
+				},
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{
@@ -691,13 +700,22 @@ func index(config *Config) errors.E {
 
 		doc := search.Document{ //nolint:dupl
 			CoreDocument: search.CoreDocument{
-				ID: search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
-				Name: search.Name{
-					"en": artwork.Title,
-				},
-				Score: 0.0,
+				ID:    search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
+				Score: 0.5,
 			},
 			Claims: &search.ClaimTypes{
+				Text: search.TextClaims{
+					{
+						CoreClaim: search.CoreClaim{
+							ID:         search.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "NAME", 0),
+							Confidence: es.HighConfidence,
+						},
+						Prop: search.GetCorePropertyReference("NAME"),
+						HTML: search.TranslatableHTMLString{
+							"en": html.EscapeString(artwork.Title),
+						},
+					},
+				},
 				Identifier: search.IdentifierClaims{
 					{
 						CoreClaim: search.CoreClaim{

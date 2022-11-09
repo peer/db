@@ -14,7 +14,7 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
 import { getDocument, useSearchState } from "@/search"
 import { globalProgress } from "@/api"
-import { getBestClaimOfType, useRouter } from "@/utils"
+import { getBestClaimOfType, useRouter, getName } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps({
@@ -87,7 +87,8 @@ async function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const hasLoaded = computed(() => doc.value?.name?.en)
+const hasLoaded = computed(() => doc.value?.claims)
+const docName = computed(() => getName(doc.value?.claims))
 const article = computed(() => getBestClaimOfType(doc.value?.claims, "text", ARTICLE))
 const file = computed(() => {
   const f = {
@@ -154,7 +155,10 @@ const file = computed(() => {
               >All properties</Tab
             >
           </TabList>
-          <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">{{ doc.name?.en }}</h1>
+          <h1 class="mb-4 text-4xl font-bold drop-shadow-sm">
+            <template v-if="docName">{{ docName }}</template
+            ><template v-else><i>untitled</i></template>
+          </h1>
           <TabPanels>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanel v-if="article" tabindex="-1">

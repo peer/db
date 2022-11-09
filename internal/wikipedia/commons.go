@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"html"
 	"math"
 	"path"
 	"strconv"
@@ -416,13 +417,22 @@ func convertImage(
 
 	document := &search.Document{
 		CoreDocument: search.CoreDocument{
-			ID: id,
-			Name: search.Name{
-				"en": name,
-			},
-			Score: 0.0,
+			ID:    id,
+			Score: 0.5,
 		},
 		Claims: &search.ClaimTypes{
+			Text: search.TextClaims{
+				{
+					CoreClaim: search.CoreClaim{
+						ID:         search.GetID(namespace, image.Name, "NAME", 0),
+						Confidence: es.HighConfidence,
+					},
+					Prop: search.GetCorePropertyReference("NAME"),
+					HTML: search.TranslatableHTMLString{
+						"en": html.EscapeString(name),
+					},
+				},
+			},
 			Identifier: search.IdentifierClaims{
 				{
 					CoreClaim: search.CoreClaim{

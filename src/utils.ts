@@ -5,7 +5,7 @@ import { toRaw } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { useRouter as useVueRouter } from "vue-router"
 import { fromDate, toDate, hour, minute, second } from "@/time"
-import { LIST, ORDER } from "@/props"
+import { LIST, ORDER, NAME } from "@/props"
 
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 
@@ -156,6 +156,17 @@ export function getClaimsListsOfType<K extends keyof ClaimTypes>(
     res.push(c.sort(([c1, o1], [c2, o2]) => o1 - o2).map(([c, o]) => c))
   }
   return res
+}
+
+export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
+  const claim = getBestClaimOfType(claimTypes, "text", NAME)
+  if (!claim) {
+    return null
+  }
+
+  const wrapper = document.createElement("div")
+  wrapper.innerHTML = claim.html.en
+  return wrapper.textContent || wrapper.innerText || null
 }
 
 export function useRouter(): Router {

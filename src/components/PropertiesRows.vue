@@ -23,7 +23,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.id }}</td>
     </tr>
@@ -36,7 +39,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <a :href="claim.iri" class="link">{{ claim.iri }}</a>
@@ -51,7 +57,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <!-- eslint-disable vue/no-v-html -->
       <td
@@ -70,7 +79,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.string }}
@@ -85,7 +97,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.amount }} <template v-if="claim.unit !== '1'">{{ claim.unit }}</template>
@@ -100,7 +115,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
@@ -115,10 +133,16 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.to?._id } }" class="link">{{ claim.to?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.to?._id } }" class="link"
+          >{{ claim.to?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
@@ -130,7 +154,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <a v-if="claim.preview?.length > 0" :href="claim.url">
@@ -148,7 +175,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
     </tr>
@@ -161,7 +191,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
     </tr>
@@ -174,7 +207,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.timestamp }}
@@ -189,7 +225,10 @@ defineProps({
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link">{{ claim.prop?.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop?._id } }" class="link"
+          >{{ claim.prop?._id
+          }}<!-- TODO: Render name. --></RouterLink
+        >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
     </tr>

@@ -72,10 +72,6 @@ export type SizeValuesResult = {
   count: number
 }
 
-type TranslatablePlainString = {
-  en: string
-}
-
 type TranslatableHTMLString = {
   en: string
 }
@@ -92,9 +88,7 @@ type CoreClaim = {
 
 type DocumentReference = {
   _id: string
-  name: TranslatablePlainString
   score: number
-  scores: Record<string, number>
 }
 
 type IdentifierClaim = CoreClaim & {
@@ -194,9 +188,8 @@ type Claim =
 
 export type PeerDBDocument = {
   _id: string
-  // Name and score are optional on the frontend because
-  // search results do not have them initially.
-  name?: TranslatablePlainString
+  // Score is optional on the frontend because
+  // search results do not have it initially.
   score?: number
   scores?: Record<string, number>
   mnemonic?: string

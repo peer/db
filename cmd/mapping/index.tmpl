@@ -5,18 +5,6 @@
     "index.mapping.total_fields.limit": 20000,
     "analysis": {
       "analyzer": {
-        "english_plain": {
-          "type": "custom",
-          "tokenizer": "standard",
-          "filter": [
-            "english_possessive_stemmer",
-            "lowercase",
-            "decimal_digit",
-            "asciifolding",
-            "english_stop",
-            "english_stemmer"
-          ]
-        },
         "english_html": {
           "type": "custom",
           "tokenizer": "standard",
@@ -89,14 +77,6 @@
       }
     ],
     "properties": {
-      "name": {
-        "properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "english_plain"
-          }
-        }
-      },
       "score": {
         "type": "double"
       },

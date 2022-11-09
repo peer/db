@@ -4,7 +4,7 @@ import type { PeerDBDocument } from "@/types"
 import { computed } from "vue"
 import { useRoute } from "vue-router"
 import RouterLink from "@/components/RouterLink.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType } from "@/utils"
+import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName } from "@/utils"
 import {
   DESCRIPTION,
   ORIGINAL_CATALOG_DESCRIPTION,
@@ -30,7 +30,8 @@ const props = defineProps<{
 
 const route = useRoute()
 
-const hasLoaded = computed(() => props.doc?.name?.en)
+const hasLoaded = computed(() => props.doc?.claims)
+const docName = computed(() => getName(props.doc?.claims))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
   return getBestClaimOfType(props.doc.claims, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
@@ -38,10 +39,10 @@ const description = computed(() => {
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(props.doc.claims, "rel", IS).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.claims, "rel", INSTANCE_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.claims, "rel", SUBCLASS_OF).map((c) => c.to.name.en),
-    ...getClaimsOfType(props.doc.claims, "rel", LABEL).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", IS).map((c) => c.to._id), // TODO: Render name.
+    ...getClaimsOfType(props.doc.claims, "rel", INSTANCE_OF).map((c) => c.to._id), // TODO: Render name.
+    ...getClaimsOfType(props.doc.claims, "rel", SUBCLASS_OF).map((c) => c.to._id), // TODO: Render name.
+    ...getClaimsOfType(props.doc.claims, "rel", LABEL).map((c) => c.to._id), // TODO: Render name.
     ...getClaimsOfType(props.doc.claims, "string", DEPARTMENT).map((c) => c.string),
     ...getClaimsOfType(props.doc.claims, "string", CLASSIFICATION).map((c) => c.string),
     ...getClaimsOfType(props.doc.claims, "string", MEDIUM).map((c) => c.string),
@@ -49,7 +50,7 @@ const tags = computed(() => {
     ...getClaimsOfType(props.doc.claims, "string", GENDER).map((c) => c.string),
     ...getClaimsOfType(props.doc.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
     ...getClaimsOfType(props.doc.claims, "string", MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "rel", COPYRIGHT_STATUS).map((c) => c.to.name.en),
+    ...getClaimsOfType(props.doc.claims, "rel", COPYRIGHT_STATUS).map((c) => c.to._id), // TODO: Render name.
   ]
 })
 const previewFiles = computed(() => {
@@ -104,7 +105,10 @@ const rowSpan = computed(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
       <h2 class="text-xl leading-none">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link">{{ doc.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link"
+          ><template v-if="docName">{{ docName }}</template
+          ><template v-else><i>untitled</i></template></RouterLink
+        >
       </h2>
       <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-start gap-1 text-sm">
         <li v-for="tag of tags" :key="tag" class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm">{{ tag }}</li>

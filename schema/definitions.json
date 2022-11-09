@@ -8,9 +8,6 @@
         "_id": {
           "$ref": "#/$defs/identifier"
         },
-        "name": {
-          "$ref": "#/$defs/name"
-        },
         "score": {
           "$ref": "#/$defs/score"
         },
@@ -18,7 +15,7 @@
           "$ref": "#/$defs/scores"
         }
       },
-      "required": ["_id", "name", "score"]
+      "required": ["_id", "score"]
     },
     "coreClaimProperties": {
       "type": "object",
@@ -95,9 +92,6 @@
       "type": "string",
       "format": "date-time",
       "pattern": "^-?\\d{4,}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
-    },
-    "name": {
-      "$ref": "#/$defs/translatablePlainString"
     },
     "mnemonic": {
       "type": "string",
@@ -480,17 +474,6 @@
       ],
       "unevaluatedProperties": false
     },
-    "translatablePlainString": {
-      "type": "object",
-      "patternProperties": {
-        "^[a-z]{2}(-[A-Z]{2})?$": {
-          "type": "string",
-          "contentMediaType": "text/plain"
-        }
-      },
-      "minProperties": 1,
-      "additionalProperties": false
-    },
     "translatableHtmlString": {
       "type": "object",
       "patternProperties": {
@@ -508,21 +491,11 @@
         "_id": {
           "$ref": "#/$defs/identifier"
         },
-        "name": {
-          "$ref": "#/$defs/name"
-        },
         "score": {
           "$ref": "#/$defs/score"
-        },
-        "scores": {
-          "$ref": "#/$defs/scores"
         }
       },
-      "required": [
-        "_id",
-        "name",
-        "score"
-      ],
+      "required": ["_id", "score"],
       "additionalProperties": false
     },
     "amountUnit": {

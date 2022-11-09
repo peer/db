@@ -4,7 +4,7 @@ import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/ty
 import { ref, computed } from "vue"
 import Button from "@/components/Button.vue"
 import { useStringFilterValues, NONE } from "@/search"
-import { equals } from "@/utils"
+import { equals, getName } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -20,7 +20,8 @@ const emit = defineEmits<{
 const progress = ref(0)
 const { limitedResults, total, hasMore, loadMore } = useStringFilterValues(props.property, progress)
 
-const hasLoaded = computed(() => props.property?.name?.en)
+const hasLoaded = computed(() => props.property?.claims)
+const propertyName = computed(() => getName(props.property?.claims))
 const limitedResultsWithNone = computed(() => {
   if (!limitedResults.value.length) {
     return limitedResults.value
@@ -65,7 +66,10 @@ function stateHasNONE(): boolean {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none"
+          ><template v-if="propertyName">{{ propertyName }}</template
+          ><template v-else><i>untitled</i></template></RouterLink
+        >
         ({{ property._count }})
       </div>
       <ul>

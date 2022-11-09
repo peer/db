@@ -29,12 +29,11 @@ var (
 // WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (IS claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
 // (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_PAGE_TITLE (Wikipedia page title, without underscores), ENGLISH_WIKIPEDIA_PAGE
 // (URL to the Wikipedia page), WIKIMEDIA_COMMONS_PAGE_TITLE (Wikimedia Commons page title, without underscores), WIKIMEDIA_COMMONS_PAGE
-// (URL to the Wikimedia Commons page), ALSO_KNOWN_AS (for any non-first English labels), DESCRIPTION (for English entity descriptions).
-// Name of the document is the first English label.
+// (URL to the Wikimedia Commons page), NAME (for English labels), DESCRIPTION (for English entity descriptions).
 //
-// When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
-// for language xx-*. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
-// pass, checking all references and setting true document names for English language (ID for language xx-* is useful for debugging when reference is invalid).
+// When creating claims referencing other documents it creates an invalid reference storing original Wikidata ID into the _id field prefixed with "-".
+// This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
+// pass, checking all references and setting true IDs (having Wikidata ID is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type WikidataCommand struct {
 	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`

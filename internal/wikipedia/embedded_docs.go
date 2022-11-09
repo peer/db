@@ -32,16 +32,6 @@ type updateEmbeddedDocumentsVisitor struct {
 }
 
 func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
-	name := ""
-	for _, field := range []string{
-		"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference,
-		WikipediaCategoryReference, WikipediaTemplateReference, WikimediaCommonsCategoryReference, WikimediaCommonsTemplateReference,
-	} {
-		if ref.Name[field] != "" {
-			name = ref.Name[field]
-			break
-		}
-	}
 	errE := errors.WithStack(err)
 	details := errors.Details(errE)
 	details["doc"] = string(v.DocumentID)
@@ -51,26 +41,21 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 		details["entity"] = v.EntityIDs
 	}
 	details["claim"] = string(claimID)
-	if ref.ID != "" {
-		details["ref"] = string(ref.ID)
-	}
-	if name != "" {
-		details["name"] = name
+	id := string(ref.ID)
+	if id != "" {
+		if !strings.HasPrefix(id, "-") {
+			details["ref"] = id
+		} else {
+			prop, id := v.getOriginalID(id)
+			if prop != "" && id != "" {
+				details["name"] = id
+			}
+		}
 	}
 	return errE
 }
 
 func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID search.Identifier, msg string) {
-	name := ""
-	for _, field := range []string{
-		"en", WikidataReference, WikimediaCommonsEntityReference, WikimediaCommonsFileReference,
-		WikipediaCategoryReference, WikipediaTemplateReference, WikimediaCommonsCategoryReference, WikimediaCommonsTemplateReference,
-	} {
-		if fileDoc.Name[field] != "" {
-			name = fileDoc.Name[field]
-			break
-		}
-	}
 	l := v.Log.Warn().Str("doc", string(v.DocumentID))
 	if len(v.EntityIDs) == 1 {
 		l = l.Str("entity", v.EntityIDs[0])
@@ -79,31 +64,34 @@ func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, cl
 	}
 	l = l.Str("claim", string(claimID))
 	l = l.Str("ref", string(fileDoc.ID))
-	if name != "" {
-		l = l.Str("name", name)
-	}
 	l.Msg(msg)
 }
 
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
 	if errors.Is(err, referenceNotFoundError) {
-		if ref.ID != "" {
+		id := string(ref.ID)
+		if id != "" && !strings.HasPrefix(id, "-") {
 			if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
 				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
 			} else {
 				v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
 			}
-		} else if ref.Name[WikimediaCommonsFileReference] != "" {
-			filename := strings.TrimPrefix(ref.Name[WikimediaCommonsFileReference], "File:")
-			filename = strings.ReplaceAll(filename, " ", "_")
-			filename = FirstUpperCase(filename)
-			if _, ok := v.SkippedWikimediaCommonsFiles.Load(filename); ok {
-				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
-			} else {
-				v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
-			}
 		} else {
-			v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
+			prop, id := v.getOriginalID(id)
+			if prop == "WIKIMEDIA_COMMONS_FILE_NAME" {
+				if _, ok := v.SkippedWikimediaCommonsFiles.Load(id); ok {
+					v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
+				} else {
+					v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
+				}
+			} else {
+				name, ok := errors.AllDetails(err)["name"].(string)
+				if ok && (strings.HasPrefix(name, "Template:") || strings.HasPrefix(name, "Module:") || strings.HasPrefix(name, "Category:")) {
+					v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
+				} else {
+					v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
+				}
+			}
 		}
 		v.Changed++
 		return search.Drop, nil
@@ -111,26 +99,36 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.Do
 	return search.Keep, err
 }
 
+func (v *updateEmbeddedDocumentsVisitor) getOriginalID(id string) (string, string) {
+	if strings.HasPrefix(id, WikipediaCategoryReference) {
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(id, WikipediaCategoryReference)
+	} else if strings.HasPrefix(id, WikipediaTemplateReference) {
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(id, WikipediaTemplateReference)
+	} else if strings.HasPrefix(id, WikimediaCommonsCategoryReference) {
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(id, WikimediaCommonsCategoryReference)
+	} else if strings.HasPrefix(id, WikimediaCommonsTemplateReference) {
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(id, WikimediaCommonsTemplateReference)
+	} else if strings.HasPrefix(id, WikimediaCommonsFileReference) {
+		filename := strings.TrimPrefix(strings.TrimPrefix(id, WikimediaCommonsFileReference), "File:")
+		filename = strings.ReplaceAll(filename, " ", "_")
+		filename = FirstUpperCase(filename)
+		return "WIKIMEDIA_COMMONS_FILE_NAME", filename
+	} else if strings.HasPrefix(id, WikimediaCommonsEntityReference) {
+		return "WIKIMEDIA_COMMONS_ENTITY_ID", strings.TrimPrefix(id, WikimediaCommonsEntityReference)
+	}
+
+	return "", ""
+}
+
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
-	if ref.ID != "" {
+	id := string(ref.ID)
+	if id != "" && !strings.HasPrefix(id, "-") {
 		return v.getDocumentReferenceByID(ref, claimID)
 	}
 
-	if ref.Name[WikipediaCategoryReference] != "" {
-		return v.getDocumentReferenceByProp(ref, claimID, "ENGLISH_WIKIPEDIA_PAGE_TITLE", ref.Name[WikipediaCategoryReference])
-	} else if ref.Name[WikipediaTemplateReference] != "" {
-		return v.getDocumentReferenceByProp(ref, claimID, "ENGLISH_WIKIPEDIA_PAGE_TITLE", ref.Name[WikipediaTemplateReference])
-	} else if ref.Name[WikimediaCommonsCategoryReference] != "" {
-		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_PAGE_TITLE", ref.Name[WikimediaCommonsCategoryReference])
-	} else if ref.Name[WikimediaCommonsTemplateReference] != "" {
-		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_PAGE_TITLE", ref.Name[WikimediaCommonsTemplateReference])
-	} else if ref.Name[WikimediaCommonsFileReference] != "" {
-		filename := strings.TrimPrefix(ref.Name[WikimediaCommonsFileReference], "File:")
-		filename = strings.ReplaceAll(filename, " ", "_")
-		filename = FirstUpperCase(filename)
-		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_FILE_NAME", filename)
-	} else if ref.Name[WikimediaCommonsEntityReference] != "" {
-		return v.getDocumentReferenceByProp(ref, claimID, "WIKIMEDIA_COMMONS_ENTITY_ID", ref.Name[WikimediaCommonsEntityReference])
+	prop, id := v.getOriginalID(id)
+	if prop != "" && id != "" {
+		return v.getDocumentReferenceByProp(ref, claimID, prop, id)
 	}
 
 	errE := errors.Errorf("invalid reference")
@@ -213,14 +211,9 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.Doc
 		return nil, v.makeError(err, ref, claimID)
 	}
 
-	res := &search.DocumentReference{
-		ID:     document.ID,
-		Name:   document.Name,
-		Score:  document.Score,
-		Scores: document.Scores,
-	}
+	res := document.Reference()
 
-	return res, nil
+	return &res, nil
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.IdentifierClaim) (search.VisitResult, errors.E) {

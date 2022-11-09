@@ -35,11 +35,11 @@ var (
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims based on
 // statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (M prefixed ID),
-// ALSO_KNOWN_AS (for any English labels), DESCRIPTION (for English entity descriptions).
+// NAME (for any English labels), DESCRIPTION (for English entity descriptions).
 //
-// When creating claims referencing other documents it just assumes a reference is valid and creates one, storing original Wikidata ID into a name
-// for language xx-*. This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
-// pass, checking all references and setting true document names for English language (ID for language xx-* is useful for debugging when reference is invalid).
+// When creating claims referencing other documents it creates an invalid reference storing original Wikidata ID into the _id field prefixed with "-".
+// This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
+// pass, checking all references and setting true IDs (having Wikidata ID is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type CommonsCommand struct {
 	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
@@ -119,17 +119,11 @@ func (c *CommonsCommand) processEntity(
 		globals.Log.Warn().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).
 			Str("got", string(additionalDocument.ID)).Msg("document ID mismatch")
 	}
-	if document.Name["en"] != additionalDocument.Name["en"] {
-		globals.Log.Warn().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).
-			Str("expected", document.Name["en"]).Str("got", additionalDocument.Name["en"]).Msg("document name mismatch")
-	}
 
-	for _, claim := range additionalDocument.AllClaims() {
-		err := document.Add(claim)
-		if err != nil {
-			globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
-			return nil
-		}
+	err = document.MergeFrom(additionalDocument)
+	if err != nil {
+		globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+		return nil
 	}
 
 	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
@@ -143,7 +137,7 @@ func (c *CommonsCommand) processEntity(
 // It creates claims with the following properties (not necessary all of them): WIKIMEDIA_COMMONS_FILE_NAME (just filename, without "File:"
 // prefix, but with underscores and file extension), WIKIMEDIA_COMMONS_FILE (URL to file page), FILE_URL (URL to full resolution or raw file),
 // FILE (IS claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, DURATION (in seconds), multiple PREVIEW_URL
-// (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and without underscores.
+// (a list of URLs of previews), WIDTH, HEIGHT, NAME (a filename without file extension and without underscores).
 // The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
 // For some files (primarily PDFs and DJVU files) metadata is not stored in the SQL table but SQL table only contains a reference to additional
@@ -192,7 +186,7 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikimedia Commons entity's document which is then updated with
 // claims with the following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
-// ALSO_KNOWN_AS (from redirects pointing to the file), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the file is in),
+// NAME (from redirects pointing to the file), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the file is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsFileDescriptionsCommand struct {
 	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
@@ -357,7 +351,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the category), DESCRIPTION (extracted from Wikimedia Commons' category article),
-// ALSO_KNOWN_AS (from redirects pointing to the category), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
+// NAME (from redirects pointing to the category), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsCategoriesCommand struct {
 	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
@@ -527,7 +521,7 @@ func (c *CommonsCategoriesCommand) processPage(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: WIKIMEDIA_COMMONS_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
+// NAME (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsTemplatesCommand struct {
 	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`

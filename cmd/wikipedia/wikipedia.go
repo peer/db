@@ -50,7 +50,7 @@ var (
 // It creates claims with the following properties (not necessary all of them): ENGLISH_WIKIPEDIA_FILE_NAME (just filename, without "File:"
 // prefix, but with underscores and file extension), ENGLISH_WIKIPEDIA_FILE (URL to file page), FILE_URL (URL to full resolution or raw file),
 // FILE (is claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, DURATION (in seconds), multiple PREVIEW_URL
-// (a list of URLs of previews), WIDTH, HEIGHT. Name of the document is filename without file extension and without underscores.
+// (a list of URLs of previews), WIDTH, HEIGHT, NAME (a filename without file extension and without underscores).
 // The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
 // Most files used on English Wikipedia are from Wikimedia Commons, but some are not for copyright reasons (e.g., you can use a copyrighted
@@ -103,7 +103,7 @@ func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
 //
 // It accesses existing documents in ElasticSearch to load corresponding file's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the file), DESCRIPTION (potentially multiple),
-// ALSO_KNOWN_AS (from redirects pointing to the file), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the file is in),
+// NAME (from redirects pointing to the file), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the file is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaFileDescriptionsCommand struct {
 	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikipedia files."`
@@ -380,7 +380,7 @@ func wikipediaArticlesProcessArticle(
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ARTICLE (body of the article), HAS_ARTICLE (a label), ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article),
-// DESCRIPTION (a summary, with higher confidence than Wikidata's description), ALSO_KNOWN_AS (from redirects pointing to the article),
+// DESCRIPTION (a summary, with higher confidence than Wikidata's description), NAME (from redirects pointing to the article),
 // IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the article is in), USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaArticlesCommand struct {
 	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
@@ -405,7 +405,7 @@ func (c *WikipediaArticlesCommand) Run(globals *Globals) errors.E {
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the article), DESCRIPTION (extracted from Wikipedia's category article),
-// ALSO_KNOWN_AS (from redirects pointing to the category), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
+// NAME (from redirects pointing to the category), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the category is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaCategoriesCommand struct {
 	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
@@ -431,7 +431,7 @@ func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
 //
 // It accesses existing documents in ElasticSearch to load corresponding Wikidata entity's document which is then updated with claims with the
 // following properties: ENGLISH_WIKIPEDIA_PAGE_ID (internal page ID of the template or module), DESCRIPTION (extracted from documentation),
-// ALSO_KNOWN_AS (from redirects pointing to the template or module), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the template or module is in),
+// NAME (from redirects pointing to the template or module), IN_ENGLISH_WIKIPEDIA_CATEGORY (for categories the template or module is in),
 // USES_ENGLISH_WIKIPEDIA_TEMPLATE (for templates used).
 type WikipediaTemplatesCommand struct {
 	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`

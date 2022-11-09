@@ -6,7 +6,7 @@ import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals } from "@/utils"
+import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -22,7 +22,8 @@ const emit = defineEmits<{
 const progress = ref(0)
 const { results, min, max } = useTimeHistogramValues(props.property, progress)
 
-const hasLoaded = computed(() => props.property?.name?.en)
+const hasLoaded = computed(() => props.property?.claims)
+const propertyName = computed(() => getName(props.property?.claims))
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
@@ -179,7 +180,10 @@ onBeforeUnmount(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div v-if="hasLoaded" class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none">{{ property.name?.en }}</RouterLink>
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: property._id } }" class="link mb-1.5 text-lg leading-none"
+          ><template v-if="propertyName">{{ propertyName }}</template
+          ><template v-else><i>untitled</i></template></RouterLink
+        >
         ({{ property._count }})
       </div>
       <ul>
