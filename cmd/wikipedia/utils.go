@@ -269,6 +269,10 @@ func templatesCommandProcessPage(
 		return nil
 	}
 
+	// Page title we add only from English Wikipedia as NAME claim on the document when processing
+	// Wikidata entities (we have it there through site links on Wikidata entities), but not for
+	// Wikimedia Commons as they might not be in English.
+
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)

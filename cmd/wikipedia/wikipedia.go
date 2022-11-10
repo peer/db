@@ -306,6 +306,9 @@ func wikipediaArticlesProcessArticle(
 		return nil
 	}
 
+	// Page title we already added as NAME claim on the document when processing
+	// Wikidata entities (we have it there through site links on Wikidata entities).
+
 	id := article.MainEntity.Identifier
 
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)

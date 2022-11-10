@@ -786,10 +786,9 @@ func (d *Document) MergeFrom(other ...*Document) errors.E {
 	// TODO: What to do about duplicate equal claims (e.g., same NAME claim)?
 	//       Skip them? What is an equal claim, what if just metadata is different?
 
-	// TODO: Make sure there are no duplicate claim IDs.
-
 	for _, o := range other {
 		for _, claim := range o.AllClaims() {
+			// Add makes sure that there are no duplicate claim IDs.
 			err := d.Add(claim)
 			if err != nil {
 				return err

@@ -820,9 +820,10 @@ func ConvertEntity(
 	} else {
 		id = GetWikidataDocumentID(entity.ID)
 
-		// We simply use the first label we have.
+		// We simply use the first label we have. We do not remove it from englishLabels
+		// so that deduplication works correctly, but we check later on that we are not
+		// adding any NAME claim equal to name.
 		name = englishLabels[0]
-		englishLabels = englishLabels[1:]
 
 		// Remove prefix if it is a template, module, or category entity.
 		name = strings.TrimPrefix(name, "Template:")
@@ -830,7 +831,7 @@ func ConvertEntity(
 		name = strings.TrimPrefix(name, "Category:")
 	}
 
-	// TODO: Set mnemonic if a property and the name is unique (it should be).
+	// TODO: Set mnemonic if it is a property and the name is unique (it should be).
 	// TODO: Store last item revision and last modification time somewhere. To every claim from input entity?
 	document := search.Document{
 		CoreDocument: search.CoreDocument{
@@ -841,7 +842,8 @@ func ConvertEntity(
 
 	err := document.Add(&search.TextClaim{
 		CoreClaim: search.CoreClaim{
-			ID:         search.GetID(namespace, entity.ID, "NAME", 0),
+			ID: search.GetID(namespace, entity.ID, "NAME", 0),
+			// The first added English label is added as a high confidence claim.
 			Confidence: es.HighConfidence,
 		},
 		Prop: search.GetCorePropertyReference("NAME"),
@@ -992,6 +994,10 @@ func ConvertEntity(
 				Prop: search.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE"),
 				IRI:  url,
 			})
+			// Here we add English Wikipedia page title to labels to be included as another NAME claim on the document.
+			if site.Wiki == "enwiki" {
+				englishLabels = append(englishLabels, siteLink.Title)
+			}
 		}
 	}
 
@@ -1016,11 +1022,25 @@ func ConvertEntity(
 
 	englishAliases := getEnglishValuesSlice(entity.Aliases)
 	englishLabels = append(englishLabels, englishAliases...)
+	for i, label := range englishLabels {
+		// Remove prefix if it is a template, module, or category entity.
+		label = strings.TrimPrefix(label, "Template:")
+		label = strings.TrimPrefix(label, "Module:")
+		label = strings.TrimPrefix(label, "Category:")
+		englishLabels[i] = label
+	}
 	englishLabels = deduplicate(englishLabels)
 	for i, label := range englishLabels {
+		// NAME claim with name value has already been added, so we skip it.
+		if label == name {
+			continue
+		}
+
 		document.Claims.Text = append(document.Claims.Text, search.TextClaim{
 			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, entity.ID, "NAME", i+1),
+				// We add +1 to i to make sure we do not repeat claim ID (we use the same form for name value NAME claim).
+				ID: search.GetID(namespace, entity.ID, "NAME", i+1),
+				// Other English labels and aliases are added with the medium confidence.
 				Confidence: es.MediumConfidence,
 			},
 			Prop: search.GetCorePropertyReference("NAME"),

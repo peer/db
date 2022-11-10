@@ -452,6 +452,10 @@ func (c *CommonsCategoriesCommand) processPage(
 		return nil
 	}
 
+	// Page title might not be in English so we do NOT add it as NAME claim on the document when processing
+	// Wikidata entities (we have it there through site links on Wikidata entities), nor we add it here,
+	// but we rely on Wikidata entities' labels only.
+
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
