@@ -29,7 +29,7 @@ var (
 // WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (IS claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
 // (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_PAGE_TITLE (Wikipedia page title, without underscores), ENGLISH_WIKIPEDIA_PAGE
 // (URL to the Wikipedia page), WIKIMEDIA_COMMONS_PAGE_TITLE (Wikimedia Commons page title, without underscores), WIKIMEDIA_COMMONS_PAGE
-// (URL to the Wikimedia Commons page), NAME (for English labels), DESCRIPTION (for English entity descriptions).
+// (URL to the Wikimedia Commons page), NAME (for English labels and aliases), DESCRIPTION (for English entity descriptions).
 //
 // When creating claims referencing other documents it creates an invalid reference storing original Wikidata ID into the _id field prefixed with "-".
 // This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
