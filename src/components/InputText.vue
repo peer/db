@@ -1,10 +1,12 @@
 <script setup lang="ts">
-defineProps({
-  progress: {
-    type: Number,
-    default: 0,
+withDefaults(
+  defineProps<{
+    progress?: number
+  }>(),
+  {
+    progress: 0,
   },
-})
+)
 </script>
 
 <template>

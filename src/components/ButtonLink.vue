@@ -1,21 +1,14 @@
 <script setup lang="ts">
+import type { RouteLocationRaw } from "vue-router"
+
 import { computed } from "vue"
 import { useLink } from "vue-router"
 
-const props = defineProps({
-  to: {
-    type: [String, Object],
-    required: true,
-  },
-  replace: {
-    type: Boolean,
-    default: false,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-})
+const props = defineProps<{
+  to: RouteLocationRaw
+  replace?: boolean
+  disabled?: boolean
+}>()
 
 // We use fake "/" when disabled. The link is not really active then, so that is OK.
 // We have to make both be computed to retain reactivity.

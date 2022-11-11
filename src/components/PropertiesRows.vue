@@ -1,22 +1,23 @@
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
+import type { ClaimTypes } from "@/types"
+
 import RouterLink from "@/components/RouterLink.vue"
 
-defineProps({
-  properties: {
-    type: Object,
-    default() {
-      return {}
-    },
+withDefaults(
+  defineProps<{
+    claims?: DeepReadonly<ClaimTypes>
+    level?: number
+  }>(),
+  {
+    claims: () => ({}),
+    level: 0,
   },
-  level: {
-    type: Number,
-    default: 0,
-  },
-})
+)
 </script>
 
 <template>
-  <template v-for="claim in properties.id" :key="claim._id">
+  <template v-for="claim in claims.id" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -32,7 +33,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.ref" :key="claim._id">
+  <template v-for="claim in claims.ref" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -50,7 +51,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.text" :key="claim._id">
+  <template v-for="claim in claims.text" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -72,7 +73,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.string" :key="claim._id">
+  <template v-for="claim in claims.string" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -90,7 +91,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.amount" :key="claim._id">
+  <template v-for="claim in claims.amount" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -108,7 +109,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.amountRange" :key="claim._id">
+  <template v-for="claim in claims.amountRange" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -126,7 +127,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.rel" :key="claim._id">
+  <template v-for="claim in claims.rel" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -147,7 +148,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.file" :key="claim._id">
+  <template v-for="claim in claims.file" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -160,7 +161,7 @@ defineProps({
         >
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <a v-if="claim.preview?.length > 0" :href="claim.url">
+        <a v-if="claim.preview?.[0]" :href="claim.url">
           <img :src="claim.preview[0]" />
         </a>
         <a v-else :href="claim.url" class="link">{{ claim.type }}</a>
@@ -168,7 +169,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.none" :key="claim._id">
+  <template v-for="claim in claims.none" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -184,7 +185,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.unknown" :key="claim._id">
+  <template v-for="claim in claims.unknown" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -200,7 +201,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.time" :key="claim._id">
+  <template v-for="claim in claims.time" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
@@ -218,7 +219,7 @@ defineProps({
     </tr>
     <PropertiesRows :properties="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in properties.timeRange" :key="claim._id">
+  <template v-for="claim in claims.timeRange" :key="claim._id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"

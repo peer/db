@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import ProgressBar from "@/components/ProgressBar.vue"
 
-defineProps({
-  progress: {
-    type: Number,
-    default: 0,
+withDefaults(
+  defineProps<{
+    progress?: number
+    disabled?: boolean
+  }>(),
+  {
+    progress: 0,
   },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-})
+)
 </script>
 
 <template>

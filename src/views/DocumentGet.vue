@@ -17,12 +17,9 @@ import { globalProgress } from "@/api"
 import { getBestClaimOfType, useRouter, getName } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
-const props = defineProps({
-  id: {
-    type: String,
-    required: true,
-  },
-})
+const props = defineProps<{
+  id: string
+}>()
 
 const route = useRoute()
 const router = useRouter()
@@ -176,7 +173,7 @@ const file = computed(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <PropertiesRows :properties="doc.claims" />
+                  <PropertiesRows :claims="doc.claims" />
                 </tbody>
               </table>
             </TabPanel>

@@ -1,24 +1,14 @@
 <script setup lang="ts">
+import type { RouteLocationRaw } from "vue-router"
+
 import { useLink } from "vue-router"
 
-const props = defineProps({
-  to: {
-    type: [String, Object],
-    required: true,
-  },
-  replace: {
-    type: Boolean,
-    default: false,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  afterClick: {
-    type: Function,
-    default: null,
-  },
-})
+const props = defineProps<{
+  to: RouteLocationRaw
+  replace?: boolean
+  disabled?: boolean
+  afterClick?: () => void
+}>()
 
 const { navigate, href } = useLink(props)
 

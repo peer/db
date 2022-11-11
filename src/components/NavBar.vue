@@ -4,12 +4,9 @@ import ProgressBar from "@/components/ProgressBar.vue"
 import RouterLink from "@/components/RouterLink.vue"
 import { useNavbar } from "@/navbar"
 
-defineProps({
-  progress: {
-    type: Number,
-    required: true,
-  },
-})
+defineProps<{
+  progress: number
+}>()
 
 const { ref: navbar, attrs: navbarAttrs } = useNavbar()
 </script>
