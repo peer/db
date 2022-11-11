@@ -69,7 +69,7 @@ function stateHasNONE(): boolean {
         <RouterLink
           :to="{ name: 'DocumentGet', params: { id: property._id } }"
           class="link mb-1.5 text-lg leading-none"
-          v-html="propertyName || '<i>untitled</i>'"
+          v-html="propertyName || '<i>no name</i>'"
         ></RouterLink>
         ({{ property._count }})
       </div>
