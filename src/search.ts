@@ -170,6 +170,7 @@ export function useSearch(
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -192,6 +193,7 @@ export function useFilters(
 ): {
   results: DeepReadonly<Ref<SearchFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -431,6 +433,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const route = useRoute()
 
@@ -438,10 +441,12 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   const _total = ref<number | null>(null)
   const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
   const _moreThanTotal = ref(false)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const filters = import.meta.env.DEV ? readonly(_filters) : _filters
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -456,16 +461,31 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearchResults<Type>(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getSearchResults<Type>(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
+        _moreThanTotal.value = false
+        _error.value = `${err}`
+        return
+      }
       if (!("results" in data)) {
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
+        _error.value = null
         if (redirect) {
           await redirect(data)
         }
@@ -484,6 +504,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       } else {
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
       }
+      _error.value = null
     },
     {
       immediate: true,
@@ -498,6 +519,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
     total,
     filters,
     moreThanTotal,
+    error,
   }
 }
 
@@ -508,11 +530,12 @@ export function useRelFilterValues(
 ): {
   results: DeepReadonly<Ref<RelValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
-  const data = useSearchResults<RelSearchResult>(
+  return useSearchResults<RelSearchResult>(
     el,
     progress,
     () => {
@@ -539,10 +562,6 @@ export function useRelFilterValues(
     },
     null,
   )
-  return {
-    results: data.results as DeepReadonly<Ref<RelSearchResult[]>>,
-    total: data.total,
-  }
 }
 
 export function useAmountHistogramValues(
@@ -555,6 +574,7 @@ export function useAmountHistogramValues(
   min: DeepReadonly<Ref<number | null>>
   max: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -564,11 +584,13 @@ export function useAmountHistogramValues(
   const _min = ref<number | null>(null)
   const _max = ref<number | null>(null)
   const _interval = ref<number | null>(null)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -609,16 +631,32 @@ export function useAmountHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getHistogramValues(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        _error.value = `${err}`
+        return
+      }
       _results.value = data.results as AmountValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseFloat(data.min) : null
       _max.value = data.max != null ? parseFloat(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
+      _error.value = null
     },
     {
       immediate: true,
@@ -631,6 +669,7 @@ export function useAmountHistogramValues(
     min,
     max,
     interval,
+    error,
   }
 }
 
@@ -644,6 +683,7 @@ export function useTimeHistogramValues(
   min: DeepReadonly<Ref<bigint | null>>
   max: DeepReadonly<Ref<bigint | null>>
   interval: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -653,11 +693,13 @@ export function useTimeHistogramValues(
   const _min = ref<bigint | null>(null)
   const _max = ref<bigint | null>(null)
   const _interval = ref<number | null>(null)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -694,16 +736,32 @@ export function useTimeHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getHistogramValues(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        _error.value = `${err}`
+        return
+      }
       _results.value = data.results as TimeValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? timestampToSeconds(data.min) : null
       _max.value = data.max != null ? timestampToSeconds(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
+      _error.value = null
     },
     {
       immediate: true,
@@ -716,6 +774,7 @@ export function useTimeHistogramValues(
     min,
     max,
     interval,
+    error,
   }
 }
 
@@ -726,14 +785,17 @@ export function useStringFilterValues(
 ): {
   results: DeepReadonly<Ref<StringValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
   const _results = ref<StringValuesResult[]>([])
   const _total = ref<number | null>(null)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -767,13 +829,26 @@ export function useStringFilterValues(
       if (!url) {
         _results.value = []
         _total.value = null
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getStringValues<StringValuesResult>(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getStringValues<StringValuesResult>(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _error.value = `${err}`
+        return
+      }
       _results.value = data.results as StringValuesResult[]
       _total.value = data.total
+      _error.value = null
     },
     {
       immediate: true,
@@ -783,6 +858,7 @@ export function useStringFilterValues(
   return {
     results,
     total,
+    error,
   }
 }
 
@@ -792,14 +868,17 @@ export function useIndexFilterValues(
 ): {
   results: DeepReadonly<Ref<IndexValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
   const _results = ref<IndexValuesResult[]>([])
   const _total = ref<number | null>(null)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -828,13 +907,26 @@ export function useIndexFilterValues(
       if (!url) {
         _results.value = []
         _total.value = null
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getStringValues<IndexValuesResult>(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getStringValues<IndexValuesResult>(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _error.value = `${err}`
+        return
+      }
       _results.value = data.results as IndexValuesResult[]
       _total.value = data.total
+      _error.value = null
     },
     {
       immediate: true,
@@ -844,6 +936,7 @@ export function useIndexFilterValues(
   return {
     results,
     total,
+    error,
   }
 }
 
@@ -856,6 +949,7 @@ export function useSizeHistogramValues(
   min: DeepReadonly<Ref<number | null>>
   max: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -865,11 +959,13 @@ export function useSizeHistogramValues(
   const _min = ref<number | null>(null)
   const _max = ref<number | null>(null)
   const _interval = ref<number | null>(null)
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -901,16 +997,32 @@ export function useSizeHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        _error.value = null
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, el, controller.signal, progress)
+      let data
+      try {
+        data = await getHistogramValues(url, el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _total.value = null
+        _min.value = null
+        _max.value = null
+        _interval.value = null
+        _error.value = `${err}`
+        return
+      }
       _results.value = data.results as SizeValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseInt(data.min) : null
       _max.value = data.max != null ? parseInt(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
+      _error.value = null
     },
     {
       immediate: true,
@@ -923,6 +1035,7 @@ export function useSizeHistogramValues(
     min,
     max,
     interval,
+    error,
   }
 }
 
@@ -1025,14 +1138,17 @@ export function useSearchState(
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<ClientQuery>>
+  error: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
   const _query = ref<ClientQuery>({})
+  const _error = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const query = import.meta.env.DEV ? readonly(_query) : _query
+  const error = import.meta.env.DEV ? readonly(_error) : _error
 
   const initialRouteName = route.name
   watch(
@@ -1050,16 +1166,29 @@ export function useSearchState(
       if (!s) {
         _results.value = []
         _query.value = {}
+        _error.value = null
         return
       }
       const params = new URLSearchParams()
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearchResults<SearchResult>(getSearchURL(router, params.toString()), el, controller.signal, progress)
+      let data
+      try {
+        data = await getSearchResults<SearchResult>(getSearchURL(router, params.toString()), el, controller.signal, progress)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        _results.value = []
+        _query.value = {}
+        _error.value = `${err}`
+        return
+      }
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}
+        _error.value = null
         await redirect(data)
         return
       }
@@ -1071,6 +1200,7 @@ export function useSearchState(
         at: undefined,
         q: data.query,
       }
+      _error.value = null
     },
     {
       immediate: true,
@@ -1080,5 +1210,6 @@ export function useSearchState(
   return {
     results,
     query,
+    error,
   }
 }
