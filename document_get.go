@@ -1,6 +1,8 @@
 package search
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"time"
@@ -137,5 +139,12 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
 
-	s.writeJSON(w, req, contentEncoding, res.Hits.Hits[0].Source, nil)
+	// ID is not stored in the document, so we set it here ourselves.
+	source := bytes.NewBuffer(res.Hits.Hits[0].Source)
+	source.Truncate(source.Len() - 1)
+	source.WriteString(`,"_id":"`)
+	source.WriteString(id)
+	source.WriteString(`"}`)
+
+	s.writeJSON(w, req, contentEncoding, json.RawMessage(source.Bytes()), nil)
 }
