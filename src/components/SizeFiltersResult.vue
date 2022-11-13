@@ -18,8 +18,10 @@ const emit = defineEmits<{
   (e: "update:state", state: SizeFilterState): void
 }>()
 
+const el = ref(null)
+
 const progress = ref(0)
-const { results, min, max } = useSizeHistogramValues(progress)
+const { results, min, max } = useSizeHistogramValues(el, progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
@@ -140,7 +142,7 @@ onBeforeUnmount(() => {
         <span class="mb-1.5 text-lg leading-none">document size</span>
         ({{ result._count }})
       </div>
-      <ul>
+      <ul ref="el">
         <li v-if="min !== null && max !== null && min !== max">
           <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
           <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">

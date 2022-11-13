@@ -9,7 +9,6 @@ import type {
   StringValuesResult,
   IndexValuesResult,
   SizeValuesResult,
-  PeerDBDocument,
   RelFilter,
   AmountFilter,
   TimeFilter,
@@ -29,19 +28,16 @@ import type {
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute } from "vue-router"
-import { assert } from "@vue/compiler-core"
 import { getURL, postURL } from "@/api"
 import { timestampToSeconds, useRouter } from "@/utils"
 import { NONE } from "@/symbols"
 
 export { NONE } from "@/symbols"
 
-const SEARCH_INITIAL_LIMIT = 50
-const SEARCH_INCREASE = 50
-const FILTERS_INITIAL_LIMIT = 10
-const FILTERS_INCREASE = 10
-// If the last increase would be equal or less than this number, just skip to the end.
-const SKIP_TO_END = 2
+export const SEARCH_INITIAL_LIMIT = 50
+export const SEARCH_INCREASE = 50
+export const FILTERS_INITIAL_LIMIT = 10
+export const FILTERS_INCREASE = 10
 
 function queryToData(route: RouteLocationNormalizedLoaded, data: FormData | URLSearchParams) {
   if (Array.isArray(route.query.s)) {
@@ -161,80 +157,47 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   }
 }
 
-function updateDocs<Type extends SearchResult | SearchFilterResult | RelSearchResult>(
-  router: Router,
-  docs: Ref<((PeerDBDocument & Type) | Type)[]>,
-  limit: number,
-  results: Type[],
-  priority: number,
-  abortSignal: AbortSignal,
-  progress: Ref<number>,
-) {
-  assert(limit <= results.length, `${limit} <= ${results.length}`)
-  for (let i = docs.value.length; i < limit; i++) {
-    const result = results[i]
-    // SizeSearchResult does not have _id.
-    if ("_id" in result) {
-      progress.value += 1
-      docs.value.push(result)
-      getDocument<Type & { _id: string }>(router, result as Type & { _id: string }, priority, abortSignal, progress)
-        .then((data) => {
-          docs.value[i] = data
-        })
-        .finally(() => {
-          progress.value -= 1
-        })
-    } else {
-      docs.value.push(result)
-    }
-  }
-}
-
 function getSearchURL(router: Router, params: string): string {
   return router.apiResolve({ name: "DocumentSearch" }).href + "?" + params
 }
 
 export function useSearch(
+  el: Ref<Element | null>,
   progress: Ref<number>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
 ): {
-  docs: DeepReadonly<Ref<(PeerDBDocument & SearchResult)[]>>
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
   return useSearchResults<SearchResult>(
-    0,
+    el,
     progress,
     () => {
       const params = new URLSearchParams()
       queryToData(route, params)
       return getSearchURL(router, params.toString())
     },
-    SEARCH_INITIAL_LIMIT,
-    SEARCH_INCREASE,
     redirect,
   )
 }
 
-export function useFilters(progress: Ref<number>): {
-  docs: DeepReadonly<Ref<(PeerDBDocument & SearchFilterResult)[]>>
+export function useFilters(
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
   results: DeepReadonly<Ref<SearchFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
   return useSearchResults<SearchFilterResult>(
-    -1,
+    el,
     progress,
     () => {
       let s
@@ -253,8 +216,6 @@ export function useFilters(progress: Ref<number>): {
         },
       }).href
     },
-    FILTERS_INITIAL_LIMIT,
-    FILTERS_INCREASE,
     null,
   )
 }
@@ -461,38 +422,26 @@ function filtersToFiltersState(filters: Filters): FiltersState {
 }
 
 function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSearchResult>(
-  priority: number,
+  el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
-  initialLimit: number,
-  increase: number,
   redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
 ): {
-  docs: DeepReadonly<Ref<(PeerDBDocument & Type)[]>>
   results: DeepReadonly<Ref<Type[]>>
   total: DeepReadonly<Ref<number | null>>
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
-  const router = useRouter()
   const route = useRoute()
 
-  let limit = 0
-
-  const _docs = ref<(PeerDBDocument & Type)[]>([]) as Ref<(PeerDBDocument & Type)[]>
   const _results = ref<Type[]>([]) as Ref<Type[]>
   const _total = ref<number | null>(null)
   const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
   const _moreThanTotal = ref(false)
-  const _hasMore = ref(false)
-  const docs = import.meta.env.DEV ? readonly(_docs) : (_docs as unknown as Readonly<Ref<readonly DeepReadonly<PeerDBDocument & Type>[]>>)
   const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const filters = import.meta.env.DEV ? readonly(_filters) : _filters
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
-  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
 
   const initialRouteName = route.name
   watch(
@@ -503,24 +452,20 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         return
       }
       if (!url) {
-        _docs.value = []
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
-        _hasMore.value = false
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearchResults<Type>(url, priority, controller.signal, progress)
+      const data = await getSearchResults<Type>(url, el, controller.signal, progress)
       if (!("results" in data)) {
-        _docs.value = []
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
-        _hasMore.value = false
         if (redirect) {
           await redirect(data)
         }
@@ -534,19 +479,11 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _moreThanTotal.value = false
         _total.value = parseInt(data.total)
       }
-      _docs.value = []
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
       } else {
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
       }
-      limit = Math.min(initialLimit, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      updateDocs<Type>(router, _docs, limit, _results.value, priority, controller.signal, progress)
     },
     {
       immediate: true,
@@ -557,39 +494,26 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   onBeforeUnmount(() => controller.abort())
 
   return {
-    docs,
     results,
     total,
     filters,
     moreThanTotal,
-    hasMore,
-    loadMore: () => {
-      limit = Math.min(limit + increase, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      updateDocs<Type>(router, _docs, limit, _results.value, priority, controller.signal, progress)
-    },
   }
 }
 
 export function useRelFilterValues(
-  property: PeerDBDocument & RelSearchResult,
+  result: RelSearchResult,
+  el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  docs: DeepReadonly<Ref<(PeerDBDocument & RelValuesResult)[]>>
   results: DeepReadonly<Ref<RelValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
   const data = useSearchResults<RelSearchResult>(
-    -2,
+    el,
     progress,
     () => {
       let s
@@ -598,36 +522,32 @@ export function useRelFilterValues(
       } else {
         s = route.query.s
       }
-      if (!s || !property._id || !property._type) {
+      if (!s || !result._id || !result._type) {
         return null
       }
-      if (property._type === "rel") {
+      if (result._type === "rel") {
         return router.apiResolve({
           name: "DocumentSearchRelFilter",
           params: {
             s,
-            prop: property._id,
+            prop: result._id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
-    FILTERS_INITIAL_LIMIT,
-    FILTERS_INCREASE,
     null,
   )
   return {
-    docs: data.docs as DeepReadonly<Ref<(PeerDBDocument & RelSearchResult)[]>>,
     results: data.results as DeepReadonly<Ref<RelSearchResult[]>>,
     total: data.total,
-    hasMore: data.hasMore,
-    loadMore: data.loadMore,
   }
 }
 
 export function useAmountHistogramValues(
-  property: PeerDBDocument & AmountSearchResult,
+  result: AmountSearchResult,
+  el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<AmountValuesResult[]>>
@@ -659,23 +579,23 @@ export function useAmountHistogramValues(
       } else {
         s = route.query.s
       }
-      if (!s || !property._id || !property._type) {
+      if (!s || !result._id || !result._type) {
         return null
       }
-      if (property._type === "amount") {
-        if (!property._unit) {
-          throw new Error(`property "${property._id}" is missing unit`)
+      if (result._type === "amount") {
+        if (!result._unit) {
+          throw new Error(`property "${result._id}" is missing unit`)
         }
         return router.apiResolve({
           name: "DocumentSearchAmountFilter",
           params: {
             s,
-            prop: property._id,
-            unit: property._unit,
+            prop: result._id,
+            unit: result._unit,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
     async (url, oldURL, onCleanup) => {
@@ -693,7 +613,7 @@ export function useAmountHistogramValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      const data = await getHistogramValues(url, el, controller.signal, progress)
       _results.value = data.results as AmountValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseFloat(data.min) : null
@@ -715,7 +635,8 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  property: PeerDBDocument & TimeSearchResult,
+  result: TimeSearchResult,
+  el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<TimeValuesResult[]>>
@@ -747,19 +668,19 @@ export function useTimeHistogramValues(
       } else {
         s = route.query.s
       }
-      if (!s || !property._id || !property._type) {
+      if (!s || !result._id || !result._type) {
         return null
       }
-      if (property._type === "time") {
+      if (result._type === "time") {
         return router.apiResolve({
           name: "DocumentSearchTimeFilter",
           params: {
             s,
-            prop: property._id,
+            prop: result._id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
     async (url, oldURL, onCleanup) => {
@@ -777,7 +698,7 @@ export function useTimeHistogramValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      const data = await getHistogramValues(url, el, controller.signal, progress)
       _results.value = data.results as TimeValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? timestampToSeconds(data.min) : null
@@ -799,28 +720,20 @@ export function useTimeHistogramValues(
 }
 
 export function useStringFilterValues(
-  property: PeerDBDocument & StringSearchResult,
+  result: StringSearchResult,
+  el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  limitedResults: DeepReadonly<Ref<StringValuesResult[]>>
   results: DeepReadonly<Ref<StringValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
-  let limit = 0
-
-  const _limitedResults = ref<StringValuesResult[]>([])
   const _results = ref<StringValuesResult[]>([])
   const _total = ref<number | null>(null)
-  const _hasMore = ref(false)
-  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : _limitedResults
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
-  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
 
   const initialRouteName = route.name
   watch(
@@ -831,19 +744,19 @@ export function useStringFilterValues(
       } else {
         s = route.query.s
       }
-      if (!s || !property._id || !property._type) {
+      if (!s || !result._id || !result._type) {
         return null
       }
-      if (property._type === "string") {
+      if (result._type === "string") {
         return router.apiResolve({
           name: "DocumentSearchStringFilter",
           params: {
             s,
-            prop: property._id,
+            prop: result._id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${property._type}" for property "${property._id}"`)
+        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
     async (url, oldURL, onCleanup) => {
@@ -852,24 +765,15 @@ export function useStringFilterValues(
         return
       }
       if (!url) {
-        _limitedResults.value = []
         _results.value = []
         _total.value = null
-        _hasMore.value = false
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getStringValues<StringValuesResult>(url, -2, controller.signal, progress)
+      const data = await getStringValues<StringValuesResult>(url, el, controller.signal, progress)
       _results.value = data.results as StringValuesResult[]
       _total.value = data.total
-      limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      _limitedResults.value = results.value.slice(0, limit)
     },
     {
       immediate: true,
@@ -877,42 +781,25 @@ export function useStringFilterValues(
   )
 
   return {
-    limitedResults,
     results,
     total,
-    hasMore,
-    loadMore: () => {
-      limit = Math.min(limit + FILTERS_INCREASE, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      _limitedResults.value = results.value.slice(0, limit)
-    },
   }
 }
 
-export function useIndexFilterValues(progress: Ref<number>): {
-  limitedResults: DeepReadonly<Ref<IndexValuesResult[]>>
+export function useIndexFilterValues(
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
   results: DeepReadonly<Ref<IndexValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  hasMore: DeepReadonly<Ref<boolean>>
-  loadMore: () => void
 } {
   const router = useRouter()
   const route = useRoute()
 
-  let limit = 0
-
-  const _limitedResults = ref<IndexValuesResult[]>([])
   const _results = ref<IndexValuesResult[]>([])
   const _total = ref<number | null>(null)
-  const _hasMore = ref(false)
-  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : _limitedResults
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
-  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
 
   const initialRouteName = route.name
   watch(
@@ -939,24 +826,15 @@ export function useIndexFilterValues(progress: Ref<number>): {
         return
       }
       if (!url) {
-        _limitedResults.value = []
         _results.value = []
         _total.value = null
-        _hasMore.value = false
         return
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getStringValues<IndexValuesResult>(url, -2, controller.signal, progress)
+      const data = await getStringValues<IndexValuesResult>(url, el, controller.signal, progress)
       _results.value = data.results as IndexValuesResult[]
       _total.value = data.total
-      limit = Math.min(FILTERS_INITIAL_LIMIT, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      _limitedResults.value = results.value.slice(0, limit)
     },
     {
       immediate: true,
@@ -964,23 +842,15 @@ export function useIndexFilterValues(progress: Ref<number>): {
   )
 
   return {
-    limitedResults,
     results,
     total,
-    hasMore,
-    loadMore: () => {
-      limit = Math.min(limit + FILTERS_INCREASE, results.value.length)
-      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
-      if (limit + SKIP_TO_END >= results.value.length) {
-        limit = results.value.length
-      }
-      _hasMore.value = limit < results.value.length
-      _limitedResults.value = results.value.slice(0, limit)
-    },
   }
 }
 
-export function useSizeHistogramValues(progress: Ref<number>): {
+export function useSizeHistogramValues(
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
   results: DeepReadonly<Ref<SizeValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<number | null>>
@@ -1035,7 +905,7 @@ export function useSizeHistogramValues(progress: Ref<number>): {
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getHistogramValues(url, -2, controller.signal, progress)
+      const data = await getHistogramValues(url, el, controller.signal, progress)
       _results.value = data.results as SizeValuesResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseInt(data.min) : null
@@ -1058,11 +928,11 @@ export function useSizeHistogramValues(progress: Ref<number>): {
 
 async function getSearchResults<Type extends SearchResult | SearchFilterResult | RelSearchResult>(
   url: string,
-  priority: number,
+  el: Ref<Element | null>,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
 ): Promise<{ results: Type[]; total: string; query?: string; filters?: Filters } | { q: string; s: string }> {
-  const { doc, headers } = await getURL(url, priority, abortSignal, progress)
+  const { doc, headers } = await getURL(url, el, abortSignal, progress)
 
   if (Array.isArray(doc)) {
     const total = headers.get("Peerdb-Total")
@@ -1086,7 +956,7 @@ async function getSearchResults<Type extends SearchResult | SearchFilterResult |
 
 async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult | SizeValuesResult>(
   url: string,
-  priority: number,
+  el: Ref<Element | null>,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
 ): Promise<{
@@ -1096,7 +966,7 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   max?: string
   interval?: string
 }> {
-  const { doc, headers } = await getURL(url, priority, abortSignal, progress)
+  const { doc, headers } = await getURL(url, el, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
   if (total === null) {
@@ -1127,14 +997,14 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
 
 async function getStringValues<Type extends StringValuesResult | IndexValuesResult>(
   url: string,
-  priority: number,
+  el: Ref<Element | null>,
   abortSignal: AbortSignal,
   progress?: Ref<number>,
 ): Promise<{
   results: Type[]
   total: number
 }> {
-  const { doc, headers } = await getURL(url, priority, abortSignal, progress)
+  const { doc, headers } = await getURL(url, el, abortSignal, progress)
 
   const total = headers.get("Peerdb-Total")
   if (total === null) {
@@ -1148,30 +1018,8 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
   return res
 }
 
-export async function getDocument<Type extends { _id: string }>(
-  router: Router,
-  result: Type,
-  priority: number,
-  abortSignal: AbortSignal,
-  progress?: Ref<number>,
-): Promise<PeerDBDocument & Type> {
-  const { doc } = await getURL(
-    router.apiResolve({
-      name: "DocumentGet",
-      params: {
-        id: result._id,
-      },
-    }).href,
-    priority,
-    abortSignal,
-    progress,
-  )
-  // We add any extra fields from the result (e.g., _count).
-  // This also adds _id if it is not already present.
-  return { ...doc, ...result }
-}
-
 export function useSearchState(
+  el: Ref<Element | null>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
   progress?: Ref<number>,
 ): {
@@ -1208,7 +1056,7 @@ export function useSearchState(
       params.set("s", s)
       const controller = new AbortController()
       onCleanup(() => controller.abort())
-      const data = await getSearchResults<SearchResult>(getSearchURL(router, params.toString()), 0, controller.signal, progress)
+      const data = await getSearchResults<SearchResult>(getSearchURL(router, params.toString()), el, controller.signal, progress)
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}

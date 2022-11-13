@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { PeerDBDocument, TimeFilterState, TimeSearchResult } from "@/types"
+import type { TimeFilterState, TimeSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
 import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
-  property: PeerDBDocument & TimeSearchResult
+  result: TimeSearchResult
   state: TimeFilterState
   updateProgress: number
 }>()
@@ -19,11 +20,10 @@ const emit = defineEmits<{
   (e: "update:state", state: TimeFilterState): void
 }>()
 
-const progress = ref(0)
-const { results, min, max } = useTimeHistogramValues(props.property, progress)
+const el = ref(null)
 
-const hasLoaded = computed(() => props.property?.claims)
-const propertyName = computed(() => getName(props.property?.claims))
+const progress = ref(0)
+const { results, min, max } = useTimeHistogramValues(props.result, el, progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
@@ -178,16 +178,18 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded" class="flex flex-col">
+    <div class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink
-          :to="{ name: 'DocumentGet', params: { id: property._id } }"
-          class="link mb-1.5 text-lg leading-none"
-          v-html="propertyName || '<i>no name</i>'"
-        ></RouterLink>
-        ({{ property._count }})
+        <WithDocument :id="result._id" v-slot="{ doc }">
+          <RouterLink
+            :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            class="link mb-1.5 text-lg leading-none"
+            v-html="getName(doc.claims) || '<i>no name</i>'"
+          ></RouterLink>
+        </WithDocument>
+        ({{ result._count }})
       </div>
-      <ul>
+      <ul ref="el">
         <li v-if="min !== null && max !== null && min !== max">
           <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
           <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
@@ -216,9 +218,9 @@ onBeforeUnmount(() => {
           <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
           <div class="my-1 leading-none">({{ results[0].count }})</div>
         </li>
-        <li v-if="property._count < searchTotal" class="mt-4 flex gap-x-1">
+        <li v-if="result._count < searchTotal" class="mt-4 flex gap-x-1">
           <input
-            :id="'time/' + property._id + '/none'"
+            :id="'time/' + result._id + '/none'"
             :disabled="updateProgress > 0"
             :checked="state === NONE"
             :class="
@@ -228,19 +230,14 @@ onBeforeUnmount(() => {
             class="my-1 rounded"
             @change="onNoneChange($event)"
           />
-          <label :for="'time/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'time/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>none</i></label
           >
-          <label :for="'time/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >({{ searchTotal - property._count }})</label
+          <label :for="'time/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ searchTotal - result._count }})</label
           >
         </li>
       </ul>
-    </div>
-    <div v-else class="flex animate-pulse">
-      <div class="flex-1 space-y-4">
-        <div class="h-2 w-72 rounded bg-slate-200"></div>
-      </div>
     </div>
   </div>
 </template>

@@ -3,8 +3,8 @@ import type { IndexFilterState, IndexSearchResult } from "@/types"
 
 import { ref } from "vue"
 import Button from "@/components/Button.vue"
-import { useIndexFilterValues } from "@/search"
-import { equals } from "@/utils"
+import { useIndexFilterValues, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import { equals, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -17,8 +17,12 @@ const emit = defineEmits<{
   (e: "update:state", state: IndexFilterState): void
 }>()
 
+const el = ref(null)
+
 const progress = ref(0)
-const { limitedResults, total, hasMore, loadMore } = useIndexFilterValues(progress)
+const { results, total } = useIndexFilterValues(el, progress)
+
+const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 function onChange(event: Event, str: string) {
   let updatedState = [...props.state]
@@ -42,7 +46,7 @@ function onChange(event: Event, str: string) {
         <span class="mb-1.5 text-lg leading-none">document index</span>
         ({{ result._count }})
       </div>
-      <ul>
+      <ul ref="el">
         <li v-for="res in limitedResults" :key="res.str" class="flex gap-x-1">
           <template v-if="res.count != props.searchTotal || state.includes(res.str)">
             <input

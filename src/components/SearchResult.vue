@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { PeerDBDocument } from "@/types"
+import type { SearchResult } from "@/types"
 
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
+import WithDocument from "@/components/WithDocument.vue"
 import RouterLink from "@/components/RouterLink.vue"
 import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName } from "@/utils"
 import {
@@ -24,42 +25,43 @@ import {
   GENDER,
 } from "@/props"
 
-const props = defineProps<{
-  doc: PeerDBDocument
+defineProps<{
+  result: SearchResult
 }>()
 
 const route = useRoute()
 
-const hasLoaded = computed(() => props.doc?.claims)
-const docName = computed(() => getName(props.doc?.claims))
+const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
+
+const docName = computed(() => getName(withDocument.value?.doc?.claims))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
-  return getBestClaimOfType(props.doc.claims, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
+  return getBestClaimOfType(withDocument.value?.doc?.claims, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
 })
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(props.doc.claims, "rel", IS).map((c) => c.to._id), // TODO: Render name.
-    ...getClaimsOfType(props.doc.claims, "rel", INSTANCE_OF).map((c) => c.to._id), // TODO: Render name.
-    ...getClaimsOfType(props.doc.claims, "rel", SUBCLASS_OF).map((c) => c.to._id), // TODO: Render name.
-    ...getClaimsOfType(props.doc.claims, "rel", LABEL).map((c) => c.to._id), // TODO: Render name.
-    ...getClaimsOfType(props.doc.claims, "string", DEPARTMENT).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", CLASSIFICATION).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", MEDIUM).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", NATIONALITY).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", GENDER).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "string", MEDIA_TYPE).map((c) => c.string),
-    ...getClaimsOfType(props.doc.claims, "rel", COPYRIGHT_STATUS).map((c) => c.to._id), // TODO: Render name.
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", IS).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", INSTANCE_OF).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", SUBCLASS_OF).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", LABEL).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", DEPARTMENT).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", CLASSIFICATION).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIUM).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", NATIONALITY).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", GENDER).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIA_TYPE).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", COPYRIGHT_STATUS).map((c) => ({ id: c.to._id })),
   ]
 })
 const previewFiles = computed(() => {
   // TODO: Sort files by group by properties (e.g., "image" first) and then sort inside groups by confidence.
   return [
-    ...getClaimsListsOfType(props.doc.claims, "ref", PREVIEW_URL)
+    ...getClaimsListsOfType(withDocument.value?.doc?.claims, "ref", PREVIEW_URL)
       .flat(1)
       .map((c) => c.iri),
-    ...[...(props.doc.claims?.file || [])].flatMap((c) => c.preview ?? []),
+    ...[...(withDocument.value?.doc?.claims?.file || [])].flatMap((c) => c.preview ?? []),
   ]
 })
 const rowsCount = computed(() => {
@@ -103,29 +105,44 @@ const rowSpan = computed(() => {
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded" class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
-      <h2 class="text-xl leading-none">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }" class="link" v-html="docName || '<i>no name</i>'"></RouterLink>
-      </h2>
-      <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-start gap-1 text-sm">
-        <li v-for="tag of tags" :key="tag" class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm">{{ tag }}</li>
-      </ul>
-      <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
-          ><img :src="previewFiles[0]" class="mx-auto bg-white"
-        /></RouterLink>
-      </div>
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
-    </div>
-    <div v-else class="flex animate-pulse">
-      <div class="flex-1 space-y-4">
-        <div class="h-2 w-72 rounded bg-slate-200"></div>
-        <div class="grid grid-cols-5 gap-4">
-          <div class="col-span-1 h-2 rounded bg-slate-200"></div>
-          <div class="col-span-2 h-2 rounded bg-slate-200"></div>
+    <WithDocument :id="result._id" ref="withDocument">
+      <template #default="{ doc }">
+        <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
+          <h2 class="text-xl leading-none">
+            <RouterLink
+              :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
+              class="link"
+              v-html="docName || '<i>no name</i>'"
+            ></RouterLink>
+          </h2>
+          <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-start gap-1 text-sm">
+            <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
+              <li v-if="'string' in tag" class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm">{{ tag.string }}</li>
+              <WithDocument v-else-if="'id' in tag" :id="tag.id" v-slot="{ doc }">
+                <li class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm" v-html="getName(doc.claims) || '<i>no name</i>'"></li>
+              </WithDocument>
+            </template>
+          </ul>
+          <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
+              ><img :src="previewFiles[0]" class="mx-auto bg-white"
+            /></RouterLink>
+          </div>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
         </div>
-      </div>
-    </div>
+      </template>
+      <template #loading>
+        <div class="flex animate-pulse">
+          <div class="flex-1 space-y-4">
+            <div class="h-2 w-72 rounded bg-slate-200"></div>
+            <div class="grid grid-cols-5 gap-4">
+              <div class="col-span-1 h-2 rounded bg-slate-200"></div>
+              <div class="col-span-2 h-2 rounded bg-slate-200"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </WithDocument>
   </div>
 </template>

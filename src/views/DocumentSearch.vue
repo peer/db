@@ -9,7 +9,6 @@ import type {
   FiltersState,
   ClientQuery,
   RelSearchResult,
-  PeerDBDocument,
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
@@ -30,24 +29,23 @@ import NavBar from "@/components/NavBar.vue"
 import Footer from "@/components/Footer.vue"
 import Button from "@/components/Button.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
-import { useSearch, useFilters, postFilters } from "@/search"
+import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { globalProgress } from "@/api"
-import { clone, useRouter } from "@/utils"
+import { clone, useRouter, useLimitResults } from "@/utils"
 
 const router = useRouter()
 const route = useRoute()
 
+const searchEl = ref(null)
+
 const searchProgress = ref(0)
 const {
-  docs: searchDocs,
-  total: searchTotal,
   results: searchResults,
+  total: searchTotal,
   filters: searchFilters,
   moreThanTotal: searchMoreThanTotal,
-  hasMore: searchHasMore,
-  loadMore: searchLoadMore,
-} = useSearch(searchProgress, async (query) => {
+} = useSearch(searchEl, searchProgress, async (query) => {
   await router.replace({
     name: "DocumentSearch",
     // Maybe route.query has "at" parameter which we want to keep.
@@ -55,13 +53,23 @@ const {
   })
 })
 
+const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: searchLoadMore } = useLimitResults(searchResults, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
+
+const filtersEl = ref(null)
+
 const filtersProgress = ref(0)
-const { docs: filtersDocs, total: filtersTotal, hasMore: filtersHasMore, loadMore: filtersLoadMore } = useFilters(filtersProgress)
+const { results: filtersResults, total: filtersTotal } = useFilters(filtersEl, filtersProgress)
+
+const {
+  limitedResults: limitedFiltersResults,
+  hasMore: filtersHasMore,
+  loadMore: filtersLoadMore,
+} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 const idToIndex = computed(() => {
   const map = new Map<string, number>()
-  for (const [i, doc] of searchDocs.value.entries()) {
-    map.set(doc._id, i)
+  for (const [i, result] of searchResults.value.entries()) {
+    map.set(result._id, i)
   }
   return map
 })
@@ -227,14 +235,14 @@ const filtersEnabled = ref(false)
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
-    <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
+    <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <div v-if="searchTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No results found.</div>
         </div>
       </div>
       <template v-else-if="searchTotal !== null && searchTotal > 0">
-        <template v-for="(doc, i) in searchDocs" :key="doc._id">
+        <template v-for="(result, i) in limitedSearchResults" :key="result._id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
             <div class="h-2 w-full bg-slate-200"></div>
@@ -254,7 +262,7 @@ const filtersEnabled = ref(false)
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="(track(doc._id) as any)" :doc="doc as PeerDBDocument" />
+          <SearchResult :ref="(track(result._id) as any)" :result="result" />
         </template>
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">
@@ -269,7 +277,7 @@ const filtersEnabled = ref(false)
         </div>
       </template>
     </div>
-    <div class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'">
+    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'">
       <div v-if="filtersTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No filters available.</div>
@@ -277,51 +285,51 @@ const filtersEnabled = ref(false)
       </div>
       <template v-else-if="searchTotal !== null && filtersTotal !== null && filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <template v-for="doc in filtersDocs" :key="doc._id">
+        <template v-for="result in limitedFiltersResults" :key="result._id">
           <RelFiltersResult
-            v-if="doc._type === 'rel'"
+            v-if="result._type === 'rel'"
             :search-total="searchTotal"
-            :property="doc as PeerDBDocument & RelSearchResult"
-            :state="filtersState.rel[doc._id] || (filtersState.rel[doc._id] = [])"
+            :result="result as RelSearchResult"
+            :state="filtersState.rel[result._id] || (filtersState.rel[result._id] = [])"
             :update-progress="updateFiltersProgress"
-            @update:state="onRelFiltersStateUpdate(doc._id, $event)"
+            @update:state="onRelFiltersStateUpdate(result._id, $event)"
           />
           <AmountFiltersResult
-            v-if="doc._type === 'amount'"
+            v-if="result._type === 'amount'"
             :search-total="searchTotal"
-            :property="doc as PeerDBDocument & AmountSearchResult"
-            :state="filtersState.amount[`${doc._id}/${doc._unit}`] || (filtersState.amount[`${doc._id}/${doc._unit}`] = null)"
+            :result="result as AmountSearchResult"
+            :state="filtersState.amount[`${result._id}/${result._unit}`] || (filtersState.amount[`${result._id}/${result._unit}`] = null)"
             :update-progress="updateFiltersProgress"
-            @update:state="onAmountFiltersStateUpdate(doc._id, doc._unit, $event)"
+            @update:state="onAmountFiltersStateUpdate(result._id, result._unit, $event)"
           />
           <TimeFiltersResult
-            v-if="doc._type === 'time'"
+            v-if="result._type === 'time'"
             :search-total="searchTotal"
-            :property="doc as PeerDBDocument & TimeSearchResult"
-            :state="filtersState.time[doc._id] || (filtersState.time[doc._id] = null)"
+            :result="result as TimeSearchResult"
+            :state="filtersState.time[result._id] || (filtersState.time[result._id] = null)"
             :update-progress="updateFiltersProgress"
-            @update:state="onTimeFiltersStateUpdate(doc._id, $event)"
+            @update:state="onTimeFiltersStateUpdate(result._id, $event)"
           />
           <StringFiltersResult
-            v-if="doc._type === 'string'"
+            v-if="result._type === 'string'"
             :search-total="searchTotal"
-            :property="doc as PeerDBDocument & StringSearchResult"
-            :state="filtersState.str[doc._id] || (filtersState.str[doc._id] = [])"
+            :result="result as StringSearchResult"
+            :state="filtersState.str[result._id] || (filtersState.str[result._id] = [])"
             :update-progress="updateFiltersProgress"
-            @update:state="onStringFiltersStateUpdate(doc._id, $event)"
+            @update:state="onStringFiltersStateUpdate(result._id, $event)"
           />
           <IndexFiltersResult
-            v-if="doc._type === 'index'"
+            v-if="result._type === 'index'"
             :search-total="searchTotal"
-            :result="doc as IndexSearchResult"
+            :result="result as IndexSearchResult"
             :state="filtersState.index"
             :update-progress="updateFiltersProgress"
             @update:state="onIndexFiltersStateUpdate($event)"
           />
           <SizeFiltersResult
-            v-if="doc._type === 'size'"
+            v-if="result._type === 'size'"
             :search-total="searchTotal"
-            :result="doc as SizeSearchResult"
+            :result="result as SizeSearchResult"
             :state="filtersState.size"
             :update-progress="updateFiltersProgress"
             @update:state="onSizeFiltersStateUpdate($event)"
@@ -330,7 +338,9 @@ const filtersEnabled = ref(false)
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
           >More filters</Button
         >
-        <div v-else-if="filtersTotal > filtersDocs.length" class="text-center text-sm">{{ filtersTotal - filtersDocs.length }} filters not shown.</div>
+        <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">
+          {{ filtersTotal - limitedFiltersResults.length }} filters not shown.
+        </div>
       </template>
     </div>
   </div>

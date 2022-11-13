@@ -31,7 +31,7 @@ withDefaults(
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.id }}</td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.ref" :key="claim._id">
     <tr>
@@ -49,7 +49,7 @@ withDefaults(
         <a :href="claim.iri" class="link">{{ claim.iri }}</a>
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.text" :key="claim._id">
     <tr>
@@ -71,7 +71,7 @@ withDefaults(
       ></td>
       <!-- eslint-enable vue/no-v-html -->
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.string" :key="claim._id">
     <tr>
@@ -89,7 +89,7 @@ withDefaults(
         {{ claim.string }}
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.amount" :key="claim._id">
     <tr>
@@ -107,7 +107,7 @@ withDefaults(
         {{ claim.amount }} <template v-if="claim.unit !== '1'">{{ claim.unit }}</template>
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.amountRange" :key="claim._id">
     <tr>
@@ -125,7 +125,7 @@ withDefaults(
         {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.rel" :key="claim._id">
     <tr>
@@ -146,7 +146,7 @@ withDefaults(
         >
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.file" :key="claim._id">
     <tr>
@@ -167,7 +167,7 @@ withDefaults(
         <a v-else :href="claim.url" class="link">{{ claim.type }}</a>
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.none" :key="claim._id">
     <tr>
@@ -183,7 +183,7 @@ withDefaults(
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.unknown" :key="claim._id">
     <tr>
@@ -199,7 +199,7 @@ withDefaults(
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.time" :key="claim._id">
     <tr>
@@ -217,7 +217,7 @@ withDefaults(
         {{ claim.timestamp }}
       </td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
   <template v-for="claim in claims.timeRange" :key="claim._id">
     <tr>
@@ -233,6 +233,6 @@ withDefaults(
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
     </tr>
-    <PropertiesRows :properties="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
 </template>

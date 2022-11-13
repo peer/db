@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
+import type { StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed } from "vue"
 import Button from "@/components/Button.vue"
-import { useStringFilterValues, NONE } from "@/search"
-import { equals, getName } from "@/utils"
+import WithDocument from "@/components/WithDocument.vue"
+import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import { equals, getName, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
-  property: PeerDBDocument & StringSearchResult
+  result: StringSearchResult
   state: StringFilterState
   updateProgress: number
 }>()
@@ -17,18 +18,20 @@ const emit = defineEmits<{
   (e: "update:state", state: StringFilterState): void
 }>()
 
-const progress = ref(0)
-const { limitedResults, total, hasMore, loadMore } = useStringFilterValues(props.property, progress)
+const el = ref(null)
 
-const hasLoaded = computed(() => props.property?.claims)
-const propertyName = computed(() => getName(props.property?.claims))
+const progress = ref(0)
+const { results, total } = useStringFilterValues(props.result, el, progress)
+
+const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
 const limitedResultsWithNone = computed(() => {
   if (!limitedResults.value.length) {
     return limitedResults.value
-  } else if (props.property._count >= props.searchTotal) {
+  } else if (props.result._count >= props.searchTotal) {
     return limitedResults.value
   }
-  const res = [...limitedResults.value, { count: props.searchTotal - props.property._count }]
+  const res = [...limitedResults.value, { count: props.searchTotal - props.result._count }]
   res.sort((a, b) => b.count - a.count)
   return res
 })
@@ -64,50 +67,52 @@ function stateHasNONE(): boolean {
 
 <template>
   <div class="rounded border bg-white p-4 shadow">
-    <div v-if="hasLoaded" class="flex flex-col">
+    <div class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <RouterLink
-          :to="{ name: 'DocumentGet', params: { id: property._id } }"
-          class="link mb-1.5 text-lg leading-none"
-          v-html="propertyName || '<i>no name</i>'"
-        ></RouterLink>
-        ({{ property._count }})
+        <WithDocument :id="result._id" v-slot="{ doc }">
+          <RouterLink
+            :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            class="link mb-1.5 text-lg leading-none"
+            v-html="getName(doc.claims) || '<i>no name</i>'"
+          ></RouterLink>
+        </WithDocument>
+        ({{ result._count }})
       </div>
-      <ul>
-        <li v-for="result in limitedResultsWithNone" :key="'str' in result ? result.str : NONE" class="flex gap-x-1">
-          <template v-if="'str' in result && (result.count != searchTotal || state.includes(result.str))">
+      <ul ref="el">
+        <li v-for="res in limitedResultsWithNone" :key="'str' in res ? res.str : NONE" class="flex gap-x-1">
+          <template v-if="'str' in res && (res.count != searchTotal || state.includes(res.str))">
             <input
-              :id="'string/' + property._id + '/' + result.str"
+              :id="'string/' + result._id + '/' + res.str"
               :disabled="updateProgress > 0"
-              :checked="state.includes(result.str)"
+              :checked="state.includes(res.str)"
               :class="
                 updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
               "
               type="checkbox"
               class="my-1 rounded"
-              @change="onChange($event, result.str)"
+              @change="onChange($event, res.str)"
             />
             <label
-              :for="'string/' + property._id + '/' + result.str"
+              :for="'string/' + result._id + '/' + res.str"
               class="my-1 leading-none"
               :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >{{ result.str }}</label
+              >{{ res.str }}</label
             >
             <label
-              :for="'string/' + property._id + '/' + result.str"
+              :for="'string/' + result._id + '/' + res.str"
               class="my-1 leading-none"
               :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ result.count }})</label
+              >({{ res.count }})</label
             >
           </template>
-          <template v-else-if="'str' in result && result.count == searchTotal">
+          <template v-else-if="'str' in res && res.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
-            <div class="my-1 leading-none">{{ result.str }}</div>
-            <div class="my-1 leading-none">({{ result.count }})</div>
+            <div class="my-1 leading-none">{{ res.str }}</div>
+            <div class="my-1 leading-none">({{ res.count }})</div>
           </template>
-          <template v-else-if="!('str' in result)">
+          <template v-else-if="!('str' in res)">
             <input
-              :id="'string/' + property._id + '/none'"
+              :id="'string/' + result._id + '/none'"
               :disabled="updateProgress > 0"
               :checked="stateHasNONE()"
               :class="
@@ -117,11 +122,11 @@ function stateHasNONE(): boolean {
               class="my-1 rounded"
               @change="onNoneChange($event)"
             />
-            <label :for="'string/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'string/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >
-            <label :for="'string/' + property._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ result.count }})</label
+            <label :for="'string/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >({{ res.count }})</label
             >
           </template>
         </li>
@@ -130,11 +135,6 @@ function stateHasNONE(): boolean {
         >{{ total - limitedResults.length }} more</Button
       >
       <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">{{ total - limitedResults.length }} values not shown.</div>
-    </div>
-    <div v-else class="flex animate-pulse">
-      <div class="flex-1 space-y-4">
-        <div class="h-2 w-72 rounded bg-slate-200"></div>
-      </div>
     </div>
   </div>
 </template>

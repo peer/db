@@ -1,11 +1,14 @@
-import type { DeepReadonly } from "vue"
+import { DeepReadonly, Ref, watchEffect } from "vue"
 import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit } from "@/types"
 
-import { toRaw } from "vue"
+import { toRaw, ref, readonly } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { useRouter as useVueRouter } from "vue-router"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 import { LIST, ORDER, NAME } from "@/props"
+
+// If the last increase would be equal or less than this number, just skip to the end.
+const SKIP_TO_END = 2
 
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 
@@ -169,4 +172,45 @@ export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null)
 
 export function useRouter(): Router {
   return useVueRouter() as Router
+}
+
+export function useLimitResults<Type>(
+  results: DeepReadonly<Ref<Type[]>>,
+  initialLimit: number,
+  increase: number,
+): {
+  limitedResults: DeepReadonly<Ref<Type[]>>
+  hasMore: DeepReadonly<Ref<boolean>>
+  loadMore: () => void
+} {
+  let limit = 0
+
+  const _limitedResults = ref<Type[]>([]) as Ref<Type[]>
+  const _hasMore = ref(false)
+  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : (_limitedResults as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
+  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
+
+  watchEffect(() => {
+    limit = Math.min(initialLimit, results.value.length)
+    // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+    if (limit + SKIP_TO_END >= results.value.length) {
+      limit = results.value.length
+    }
+    _hasMore.value = limit < results.value.length
+    _limitedResults.value = results.value.slice(0, limit) as Type[]
+  })
+
+  return {
+    limitedResults,
+    hasMore,
+    loadMore: () => {
+      limit = Math.min(limit + increase, results.value.length)
+      // If the last increase would be equal or less than SKIP_TO_END, just skip to the end.
+      if (limit + SKIP_TO_END >= results.value.length) {
+        limit = results.value.length
+      }
+      _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit) as Type[]
+    },
+  }
 }

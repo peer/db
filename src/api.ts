@@ -1,4 +1,5 @@
 import type { Ref } from "vue"
+import type { PeerDBDocument, Router } from "@/types"
 
 import { ref, readonly } from "vue"
 import PQueue from "p-queue"
@@ -10,7 +11,9 @@ const localGetCache = new Map<string, WeakRef<{ doc: object; headers: Headers }>
 const _globalProgress = ref(0)
 export const globalProgress = import.meta.env.DEV ? readonly(_globalProgress) : _globalProgress
 
-export async function getURL(url: string, priority: number, abortSignal: AbortSignal, progress?: Ref<number>): Promise<{ doc: object; headers: Headers }> {
+// TODO: Improve priority with "el".
+export async function getURL(url: string, el: Ref<Element | null>, abortSignal: AbortSignal, progress?: Ref<number>): Promise<{ doc: object; headers: Headers }> {
+  // Is it already cached?
   const weakRef = localGetCache.get(url)
   if (weakRef) {
     const cached = weakRef.deref()
@@ -29,6 +32,18 @@ export async function getURL(url: string, priority: number, abortSignal: AbortSi
   try {
     const res = await queue.add(
       async ({ signal }) => {
+        // We check again.
+        const weakRef = localGetCache.get(url)
+        if (weakRef) {
+          const cached = weakRef.deref()
+          if (cached) {
+            return cached
+          } else {
+            // Weak reference's target has been reclaimed.
+            localGetCache.delete(url)
+          }
+        }
+
         const response = await fetch(url, {
           method: "GET",
           mode: "same-origin",
@@ -44,7 +59,7 @@ export async function getURL(url: string, priority: number, abortSignal: AbortSi
         return { doc: await response.json(), headers: response.headers }
       },
       {
-        priority,
+        priority: 0,
         signal: abortSignal,
       },
     )
@@ -84,4 +99,19 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
     _globalProgress.value -= 1
     progress.value -= 1
   }
+}
+
+export async function getDocument(router: Router, id: string, el: Ref<Element | null>, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
+  const { doc } = await getURL(
+    router.apiResolve({
+      name: "DocumentGet",
+      params: {
+        id,
+      },
+    }).href,
+    el,
+    abortSignal,
+    progress,
+  )
+  return doc as PeerDBDocument
 }
