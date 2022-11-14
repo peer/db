@@ -206,8 +206,8 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
-	var time termAggregations
-	err = json.Unmarshal(res.Aggregations["time"], &time)
+	var timeA termAggregations
+	err = json.Unmarshal(res.Aggregations["time"], &timeA)
 	if err != nil {
 		m.Stop()
 		s.internalServerErrorWithError(w, req, errors.WithStack(err))
@@ -246,7 +246,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		sizeFilter++
 	}
 
-	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+indexFilter+sizeFilter)
+	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)+indexFilter+sizeFilter)
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = searchFiltersResult{
 			ID:    bucket.Key,
@@ -262,7 +262,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 			Unit:  bucket.Key[1],
 		}
 	}
-	for i, bucket := range time.Props.Buckets {
+	for i, bucket := range timeA.Props.Buckets {
 		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = searchFiltersResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
@@ -270,21 +270,21 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 		}
 	}
 	for i, bucket := range str.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+i] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = searchFiltersResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "string",
 		}
 	}
 	if indexFilter != 0 {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
 			// This depends on TrackTotalHits being set to true.
 			Count: res.Hits.TotalHits.Value,
 			Type:  "index",
 		}
 	}
 	if sizeFilter != 0 {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(time.Props.Buckets)+len(str.Props.Buckets)+indexFilter] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)+indexFilter] = searchFiltersResult{
 			Count: size.Value,
 			Type:  "size",
 		}
@@ -307,13 +307,13 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	if int64(len(amount.Filter.Props.Buckets)) > amount.Filter.Total.Value {
 		amount.Filter.Total.Value = int64(len(amount.Filter.Props.Buckets))
 	}
-	if int64(len(time.Props.Buckets)) > time.Total.Value {
-		time.Total.Value = int64(len(time.Props.Buckets))
+	if int64(len(timeA.Props.Buckets)) > timeA.Total.Value {
+		timeA.Total.Value = int64(len(timeA.Props.Buckets))
 	}
 	if int64(len(str.Props.Buckets)) > str.Total.Value {
 		str.Total.Value = int64(len(str.Props.Buckets))
 	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+time.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
+	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
 
 	metadata := http.Header{
 		"Total": {total},
