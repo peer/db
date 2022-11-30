@@ -26,6 +26,9 @@ const { results, total } = useStringFilterValues(props.result, el, progress)
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 const limitedResultsWithNone = computed(() => {
+  // We cannot add "none" result without knowing other results because the "none" result might not be
+  // shown initially at all if other results have higher counts. If were to add "none" result always,
+  // it could happen that it flashes initially and then is hidden once other results load.
   if (!limitedResults.value.length) {
     return limitedResults.value
   } else if (props.result._count >= props.searchTotal) {
