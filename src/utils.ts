@@ -3,6 +3,7 @@ import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit } from "@
 
 import { toRaw, ref, readonly } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
+import { prng_alea } from "esm-seedrandom"
 import { useRouter as useVueRouter } from "vue-router"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 import { LIST, ORDER, NAME } from "@/props"
@@ -213,4 +214,17 @@ export function useLimitResults<Type>(
       _limitedResults.value = results.value.slice(0, limit) as Type[]
     },
   }
+}
+
+// We have to use complete class names for Tailwind to detect used classes and generating the
+// corresponding CSS and do not do string interpolation or concatenation of partial class names.
+// See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
+const lengthClasses = ["w-24", "w-32", "w-40", "w-48"]
+
+export function loadingLength(seed: string, i: number): string {
+  const rand = prng_alea(seed)
+  for (let j = 0; j < i; j++) {
+    rand.quick()
+  }
+  return lengthClasses[Math.floor(lengthClasses.length * rand.quick())]
 }

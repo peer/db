@@ -166,12 +166,12 @@ onBeforeUnmount(() => {
           </div>
           <div ref="sliderEl"></div>
         </li>
-        <li v-else-if="results.length === 1" class="flex gap-x-1">
-          <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
+        <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
+          <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
           <div class="my-1 leading-none">{{ formatValue(results[0].min, "B") }}</div>
           <div class="my-1 leading-none">({{ results[0].count }})</div>
         </li>
-        <li v-if="result._count < searchTotal" class="mt-4 flex gap-x-1">
+        <li v-if="result._count < searchTotal" class="mt-4 flex items-baseline gap-x-1 first:mt-0">
           <input
             :id="'size/none'"
             :disabled="updateProgress > 0"
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "
             type="checkbox"
-            class="my-1 rounded"
+            class="my-1 self-center rounded"
             @change="onNoneChange($event)"
           />
           <label :for="'size/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"><i>none</i></label>

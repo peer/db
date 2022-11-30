@@ -47,7 +47,7 @@ function onChange(event: Event, str: string) {
         ({{ result._count }})
       </div>
       <ul ref="el">
-        <li v-for="res in limitedResults" :key="res.str" class="flex gap-x-1">
+        <li v-for="res in limitedResults" :key="res.str" class="flex items-baseline gap-x-1">
           <template v-if="res.count != props.searchTotal || state.includes(res.str)">
             <input
               :id="'index/' + res.str"
@@ -57,7 +57,7 @@ function onChange(event: Event, str: string) {
                 updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
               "
               type="checkbox"
-              class="my-1 rounded"
+              class="my-1 self-center rounded"
               @change="onChange($event, res.str)"
             />
             <label :for="'index/' + res.str" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">{{
@@ -68,7 +68,7 @@ function onChange(event: Event, str: string) {
             >
           </template>
           <template v-else-if="res.count == props.searchTotal">
-            <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
+            <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
             <div class="my-1 leading-none">{{ res.str }}</div>
             <div class="my-1 leading-none">({{ res.count }})</div>
           </template>

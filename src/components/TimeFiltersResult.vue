@@ -7,7 +7,7 @@ import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName } from "@/utils"
+import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName, loadingLength } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -180,12 +180,15 @@ onBeforeUnmount(() => {
   <div class="rounded border bg-white p-4 shadow">
     <div class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
-        <WithDocument :id="result._id" v-slot="{ doc }">
-          <RouterLink
-            :to="{ name: 'DocumentGet', params: { id: result._id } }"
-            class="link mb-1.5 text-lg leading-none"
-            v-html="getName(doc.claims) || '<i>no name</i>'"
-          ></RouterLink>
+        <WithDocument :id="result._id">
+          <template #default="{ doc }">
+            <RouterLink
+              :to="{ name: 'DocumentGet', params: { id: result._id } }"
+              class="link mb-1.5 text-lg leading-none"
+              v-html="getName(doc.claims) || '<i>no name</i>'"
+            ></RouterLink>
+          </template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id, 0)]"></div></template>
         </WithDocument>
         ({{ result._count }})
       </div>
@@ -213,12 +216,12 @@ onBeforeUnmount(() => {
           </div>
           <div ref="sliderEl"></div>
         </li>
-        <li v-else-if="results.length === 1" class="flex gap-x-1">
-          <div class="my-1 inline-block h-4 w-4 shrink-0 border border-transparent align-middle"></div>
+        <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
+          <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
           <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
           <div class="my-1 leading-none">({{ results[0].count }})</div>
         </li>
-        <li v-if="result._count < searchTotal" class="mt-4 flex gap-x-1">
+        <li v-if="result._count < searchTotal" class="mt-4 flex items-baseline gap-x-1 first:mt-0">
           <input
             :id="'time/' + result._id + '/none'"
             :disabled="updateProgress > 0"
@@ -227,7 +230,7 @@ onBeforeUnmount(() => {
               updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
             "
             type="checkbox"
-            class="my-1 rounded"
+            class="my-1 self-center rounded"
             @change="onNoneChange($event)"
           />
           <label :for="'time/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
