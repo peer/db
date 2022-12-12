@@ -166,6 +166,12 @@
   }
 }
 
+@layer utilities {
+  .data-reloading {
+    filter: grayscale(0.8) contrast(0.9) brightness(1.06);
+  }
+}
+
 /* stylelint-disable selector-class-pattern */
 
 /*

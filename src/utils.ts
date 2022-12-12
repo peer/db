@@ -1,7 +1,7 @@
 import { DeepReadonly, Ref, watchEffect } from "vue"
 import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit } from "@/types"
 
-import { toRaw, ref, readonly } from "vue"
+import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { prng_alea } from "esm-seedrandom"
 import { useRouter as useVueRouter } from "vue-router"
@@ -219,9 +219,79 @@ export function useLimitResults<Type>(
 // We have to use complete class names for Tailwind to detect used classes and generating the
 // corresponding CSS and do not do string interpolation or concatenation of partial class names.
 // See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
-const lengthClasses = ["w-24", "w-32", "w-40", "w-48"]
+const widthClasses = ["w-24", "w-32", "w-40", "w-48"]
+const widthShortClasses = ["w-4", "w-8", "w-12", "w-16"]
+const heightShortClasses = ["h-0", "h-1/5", "h-2/5", "h-3/5", "h-4/5", "h-full"]
 
-export function loadingLength(seed: string): string {
+export function loadingWidth(seed: string): string {
   const rand = prng_alea(seed)
-  return lengthClasses[Math.floor(lengthClasses.length * rand.quick())]
+  return widthClasses[Math.floor(widthClasses.length * rand.quick())]
+}
+
+export function loadingShortWidth(seed: string): string {
+  const rand = prng_alea(seed)
+  return widthShortClasses[Math.floor(widthShortClasses.length * rand.quick())]
+}
+
+export function loadingShortHeight(seed: string): string {
+  const rand = prng_alea(seed)
+  return heightShortClasses[Math.floor(heightShortClasses.length * rand.quick())]
+}
+
+export function loadingShortHeights(seed: string, count: number): string[] {
+  const rand = prng_alea(seed)
+  const res = []
+  let fullAdded = false
+  for (let i = 0; i < count; i++) {
+    res.push(heightShortClasses[Math.floor(heightShortClasses.length * rand.quick())])
+    if (res[i] === heightShortClasses[heightShortClasses.length - 1]) {
+      fullAdded = true
+    }
+  }
+  if (!fullAdded) {
+    // We want to make sure that at least one class in results is for full height.
+    res[Math.floor(res.length * rand.quick())] = heightShortClasses[heightShortClasses.length - 1]
+  }
+  return res
+}
+
+export function useInitialLoad(progress: Ref<number>): { initialLoad: Ref<boolean>; laterLoad: Ref<boolean> } {
+  const _initialLoad = ref<boolean>(false)
+  const _laterLoad = ref<boolean>(false)
+  const initialLoad = import.meta.env.DEV ? readonly(_initialLoad) : _initialLoad
+  const laterLoad = import.meta.env.DEV ? readonly(_laterLoad) : _laterLoad
+
+  let initialLoadDone = false
+  watch(
+    progress,
+    (p) => {
+      if (p > 0) {
+        if (_initialLoad.value || _laterLoad.value) {
+          return
+        }
+        if (initialLoadDone) {
+          if (!_laterLoad.value) {
+            _laterLoad.value = true
+          }
+        } else {
+          if (!_initialLoad.value) {
+            _initialLoad.value = true
+          }
+        }
+      } else {
+        if (_initialLoad.value) {
+          _initialLoad.value = false
+          initialLoadDone = true
+        }
+        if (_laterLoad.value) {
+          _laterLoad.value = false
+        }
+      }
+    },
+    {
+      immediate: true,
+    },
+  )
+
+  return { initialLoad, laterLoad }
 }

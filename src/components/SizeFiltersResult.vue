@@ -5,7 +5,7 @@ import type { SizeFilterState, SizeSearchResult } from "@/types"
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import { useSizeHistogramValues, NONE } from "@/search"
-import { formatValue, equals } from "@/utils"
+import { formatValue, equals, useInitialLoad, loadingShortHeights } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -22,6 +22,7 @@ const el = ref(null)
 
 const progress = ref(0)
 const { results, min, max } = useSizeHistogramValues(el, progress)
+const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
@@ -136,14 +137,24 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow">
+  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
     <div class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
         <span class="mb-1.5 text-lg leading-none">document size</span>
         ({{ result._count }})
       </div>
       <ul ref="el">
-        <li v-if="min !== null && max !== null && min !== max">
+        <li v-if="min === null || max === null" class="animate-pulse">
+          <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
+            <div v-for="(h, i) in loadingShortHeights('size', 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
+          </div>
+          <div class="flex flex-row justify-between gap-x-1">
+            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          </div>
+          <div class="my-1.5 h-2 rounded bg-slate-200"></div>
+        </li>
+        <li v-else-if="min !== max">
           <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
           <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
             <!-- We subtract 1 from bar width to have a gap between bars. -->

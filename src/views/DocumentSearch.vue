@@ -106,7 +106,9 @@ watch(
       hash: route.hash,
     })
   },
-  { immediate: true },
+  {
+    immediate: true,
+  },
 )
 
 const searchMoreButton = ref()

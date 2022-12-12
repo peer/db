@@ -7,7 +7,7 @@ import noUiSlider from "nouislider"
 import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName, loadingLength } from "@/utils"
+import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName, loadingWidth, useInitialLoad, loadingShortHeights } from "@/utils"
 
 const props = defineProps<{
   searchTotal: number
@@ -24,6 +24,7 @@ const el = ref(null)
 
 const progress = ref(0)
 const { results, min, max } = useTimeHistogramValues(props.result, el, progress)
+const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   const updatedState = {
@@ -177,7 +178,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow">
+  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
     <div class="flex flex-col">
       <div class="flex items-baseline gap-x-1">
         <WithDocument :id="result._id">
@@ -188,12 +189,22 @@ onBeforeUnmount(() => {
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result._id)]"></div></template>
         </WithDocument>
         ({{ result._count }})
       </div>
       <ul ref="el">
-        <li v-if="min !== null && max !== null && min !== max">
+        <li v-if="min === null || max === null" class="animate-pulse">
+          <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
+            <div v-for="(h, i) in loadingShortHeights(result._id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
+          </div>
+          <div class="flex flex-row justify-between gap-x-1">
+            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          </div>
+          <div class="my-1.5 h-2 rounded bg-slate-200"></div>
+        </li>
+        <li v-else-if="min !== max">
           <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
           <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
             <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -221,7 +232,7 @@ onBeforeUnmount(() => {
           <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
           <div class="my-1 leading-none">({{ results[0].count }})</div>
         </li>
-        <li v-if="result._count < searchTotal" class="mt-4 flex items-baseline gap-x-1 first:mt-0">
+        <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="min === null || max === null ? 'mt-3' : 'mt-4'">
           <input
             :id="'time/' + result._id + '/none'"
             :disabled="updateProgress > 0"

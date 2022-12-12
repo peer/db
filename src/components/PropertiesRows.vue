@@ -4,7 +4,7 @@ import type { ClaimTypes } from "@/types"
 
 import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import { getName, loadingLength } from "@/utils"
+import { getName, loadingWidth } from "@/utils"
 
 withDefaults(
   defineProps<{
@@ -30,7 +30,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.id }}</td>
@@ -48,7 +48,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -68,7 +68,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <!-- eslint-disable vue/no-v-html -->
@@ -92,7 +92,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -112,7 +112,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -132,7 +132,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -152,7 +152,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -160,7 +160,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.to._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.to._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.to._id)]"></div></template>
         </WithDocument>
       </td>
     </tr>
@@ -177,7 +177,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -200,7 +200,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
@@ -218,7 +218,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
@@ -236,7 +236,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -256,7 +256,7 @@ withDefaults(
           <template #default="{ doc }">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }" class="link" v-html="getName(doc.claims) || '<i>no name</i>'"></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(claim.prop._id)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(claim.prop._id)]"></div></template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
