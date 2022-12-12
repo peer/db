@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id, 0)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id)]"></div></template>
         </WithDocument>
         ({{ result._count }})
       </div>

@@ -221,10 +221,7 @@ export function useLimitResults<Type>(
 // See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
 const lengthClasses = ["w-24", "w-32", "w-40", "w-48"]
 
-export function loadingLength(seed: string, i: number): string {
+export function loadingLength(seed: string): string {
   const rand = prng_alea(seed)
-  for (let j = 0; j < i; j++) {
-    rand.quick()
-  }
   return lengthClasses[Math.floor(lengthClasses.length * rand.quick())]
 }

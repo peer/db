@@ -82,7 +82,7 @@ function stateHasNONE(): boolean {
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id, 0)]"></div></template>
+          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(result._id)]"></div></template>
         </WithDocument>
         ({{ result._count }})
       </div>
@@ -110,7 +110,7 @@ function stateHasNONE(): boolean {
                 ></label>
               </template>
               <template #loading>
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(`${result._id}/${res._id}`, 0)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(res._id)]"></div>
               </template>
             </WithDocument>
             <label
@@ -130,7 +130,7 @@ function stateHasNONE(): boolean {
                 <div class="my-1 inline-block leading-none" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
               </template>
               <template #loading>
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(`${result._id}/${res._id}`, 0)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingLength(res._id)]"></div>
               </template>
             </WithDocument>
             <div class="my-1 inline-block leading-none">({{ res._count }})</div>
