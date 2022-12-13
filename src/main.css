@@ -62,23 +62,6 @@
     animation-name: indeterminate-ltr;
   }
 
-  .animate-navbar {
-    animation-duration: 100ms;
-    animation-iteration-count: 1;
-    animation-timing-function: linear;
-    animation-name: animate-navbar;
-  }
-
-  @keyframes animate-navbar {
-    0% {
-      transform: translate3d(0, -100%, 0);
-    }
-
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-  }
-
   @keyframes indeterminate-ltr {
     0% {
       left: -90%;
@@ -110,6 +93,23 @@
     100% {
       left: 107%;
       right: -8%;
+    }
+  }
+
+  .animate-navbar {
+    animation-duration: 100ms;
+    animation-iteration-count: 1;
+    animation-timing-function: linear;
+    animation-name: animate-navbar;
+  }
+
+  @keyframes animate-navbar {
+    0% {
+      transform: translate3d(0, -100%, 0);
+    }
+
+    100% {
+      transform: translate3d(0, 0, 0);
     }
   }
 
