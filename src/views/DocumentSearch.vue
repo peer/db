@@ -238,12 +238,17 @@ const filtersEnabled = ref(false)
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
     <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
-      <div v-if="searchTotal === 0">
+      <div v-if="searchTotal === null">
+        <div class="my-1 sm:my-4">
+          <div class="text-center text-sm">Searching...</div>
+        </div>
+      </div>
+      <div v-else-if="searchTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No results found.</div>
         </div>
       </div>
-      <template v-else-if="searchTotal !== null && searchTotal > 0">
+      <template v-else-if="searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result._id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
@@ -280,12 +285,17 @@ const filtersEnabled = ref(false)
       </template>
     </div>
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'">
-      <div v-if="filtersTotal === 0">
+      <div v-if="searchTotal === null || filtersTotal === null">
+        <div class="my-1 sm:my-4">
+          <div class="text-center text-sm">Determining filters...</div>
+        </div>
+      </div>
+      <div v-else-if="filtersTotal === 0">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">No filters available.</div>
         </div>
       </div>
-      <template v-else-if="searchTotal !== null && filtersTotal !== null && filtersTotal > 0">
+      <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
         <template v-for="result in limitedFiltersResults" :key="result._id">
           <RelFiltersResult
