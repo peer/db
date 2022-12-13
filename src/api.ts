@@ -2,9 +2,9 @@ import type { Ref } from "vue"
 import type { PeerDBDocument, Router } from "@/types"
 
 import { ref, readonly } from "vue"
-import PQueue from "p-queue"
+import { Queue } from "@/queue"
 
-const queue = new PQueue({ concurrency: 100 })
+const queue = new Queue({ concurrency: 100 })
 
 const localGetCache = new Map<string, WeakRef<{ doc: object; headers: Headers }>>()
 
@@ -31,7 +31,7 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
   _globalProgress.value += 1
   try {
     const res = await queue.add(
-      async ({ signal }) => {
+      async () => {
         // We check again.
         const weakRef = localGetCache.get(url)
         if (weakRef) {
@@ -51,7 +51,7 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
           redirect: "error",
           referrer: document.location.href,
           referrerPolicy: "strict-origin-when-cross-origin",
-          signal,
+          signal: abortSignal,
         })
         if (!response.ok) {
           throw new Error(`fetch error ${response.status}: ${await response.text()}`)
@@ -59,7 +59,6 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
         return { doc: await response.json(), headers: response.headers }
       },
       {
-        priority: 0,
         signal: abortSignal,
       },
     )
