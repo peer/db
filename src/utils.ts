@@ -220,7 +220,7 @@ export function useLimitResults<Type>(
 // corresponding CSS and do not do string interpolation or concatenation of partial class names.
 // See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
 const widthClasses = ["w-24", "w-32", "w-40", "w-48"]
-const widthShortClasses = ["w-4", "w-8", "w-12", "w-16"]
+const widthLongClasses = ["w-24", "w-32", "w-40", "w-48", "w-56", "w-64", "w-72", "w-80", "w-96"]
 const heightShortClasses = ["h-0", "h-1/5", "h-2/5", "h-3/5", "h-4/5", "h-full"]
 
 export function loadingWidth(seed: string): string {
@@ -228,9 +228,9 @@ export function loadingWidth(seed: string): string {
   return widthClasses[Math.floor(widthClasses.length * rand.quick())]
 }
 
-export function loadingShortWidth(seed: string): string {
+export function loadingLongWidth(seed: string): string {
   const rand = prng_alea(seed)
-  return widthShortClasses[Math.floor(widthShortClasses.length * rand.quick())]
+  return widthLongClasses[Math.floor(widthLongClasses.length * rand.quick())]
 }
 
 export function loadingShortHeight(seed: string): string {

@@ -13,7 +13,7 @@ import PropertiesRows from "@/components/PropertiesRows.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useSearchState } from "@/search"
 import { globalProgress } from "@/api"
-import { getBestClaimOfType, useRouter, getName } from "@/utils"
+import { getBestClaimOfType, useRouter, getName, loadingLongWidth } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps<{
@@ -166,13 +166,15 @@ const file = computed(() => {
           </TabGroup>
         </template>
         <template #loading>
-          <div class="flex animate-pulse">
-            <div class="flex-1 space-y-4">
-              <div class="h-2 w-72 rounded bg-slate-200"></div>
-              <div class="grid grid-cols-5 gap-4">
-                <div class="col-span-1 h-2 rounded bg-slate-200"></div>
-                <div class="col-span-2 h-2 rounded bg-slate-200"></div>
-              </div>
+          <div class="flex animate-pulse flex-col gap-y-2">
+            <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
+            <div class="flex gap-x-4">
+              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
+              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
+            </div>
+            <div class="flex gap-x-4">
+              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
+              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
             </div>
           </div>
         </template>

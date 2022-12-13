@@ -5,7 +5,7 @@ import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
 import WithDocument from "@/components/WithDocument.vue"
 import RouterLink from "@/components/RouterLink.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName } from "@/utils"
+import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth } from "@/utils"
 import {
   DESCRIPTION,
   ORIGINAL_CATALOG_DESCRIPTION,
@@ -133,13 +133,15 @@ const rowSpan = computed(() => {
         </div>
       </template>
       <template #loading>
-        <div class="flex animate-pulse">
-          <div class="flex-1 space-y-4">
-            <div class="h-2 w-72 rounded bg-slate-200"></div>
-            <div class="grid grid-cols-5 gap-4">
-              <div class="col-span-1 h-2 rounded bg-slate-200"></div>
-              <div class="col-span-2 h-2 rounded bg-slate-200"></div>
-            </div>
+        <div class="flex animate-pulse flex-col gap-y-2">
+          <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/1`)]"></div>
+          <div class="flex gap-x-4">
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/2`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/3`)]"></div>
+          </div>
+          <div class="flex gap-x-4">
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/4`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/5`)]"></div>
           </div>
         </div>
       </template>
