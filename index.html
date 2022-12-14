@@ -1,16 +1,28 @@
 <!DOCTYPE html>
-<html lang="en" class="text-gray-900 bg-slate-100 font-sans" style="background-color: rgb(241 245 249); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'; color: rgb(17 24 39)">
+<html lang="en" class="text-gray-900 bg-slate-100 font-sans">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ .Site.Title }}</title>
+    <style>
+      body{margin: 0}
+      .text-gray-900{color: rgb(17 24 39)}
+      .bg-slate-100{background-color: rgb(241 245 249)}
+      .font-sans{font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"}
+      .flex{display: flex}
+      .flex-col{flex-direction: column}
+      .flex-grow{flex-grow: 1}
+      .min-h-screen{min-height: 100vh}
+      .justify-center{justify-content: center}
+      .self-center{align-self: center}
+    </style>
     <script type="module" src="/src/main.ts"></script>
   </head>
-  <body class="flex flex-col min-h-screen" style="display: flex; flex-direction: column; min-height: 100vh; margin: 0">
+  <body class="flex flex-col min-h-screen">
     <header></header>
-    <main class="flex-grow flex justify-center" style="display: flex; flex-grow: 1; justify-content: center">
-      <div class="self-center jsonly" style="align-self: center">Loading...</div>
-      <noscript class="self-center" style="align-self: center"><style>.jsonly {display: none;}</style>JavaScript is required.</noscript>
+    <main class="flex-grow flex justify-center">
+      <div class="self-center jsonly">Loading...</div>
+      <noscript class="self-center"><style>.jsonly{display: none}</style>JavaScript is required.</noscript>
     </main>
     <footer></footer>
   </body>
