@@ -1,5 +1,4 @@
 import type { Ref } from "vue"
-import type { PeerDBDocument, Router } from "@/types"
 
 import { ref, readonly } from "vue"
 import { Queue } from "@/queue"
@@ -98,19 +97,4 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
     _globalProgress.value -= 1
     progress.value -= 1
   }
-}
-
-export async function getDocument(router: Router, id: string, el: Ref<Element | null>, abortSignal: AbortSignal, progress?: Ref<number>): Promise<PeerDBDocument> {
-  const { doc } = await getURL(
-    router.apiResolve({
-      name: "DocumentGet",
-      params: {
-        id,
-      },
-    }).href,
-    el,
-    abortSignal,
-    progress,
-  )
-  return doc as PeerDBDocument
 }
