@@ -1178,6 +1178,7 @@ export function useSearchState(
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<ClientQuery>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -1185,9 +1186,11 @@ export function useSearchState(
   const _results = ref<SearchResult[]>([])
   const _query = ref<ClientQuery>({})
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const query = import.meta.env.DEV ? readonly(_query) : _query
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -1206,10 +1209,13 @@ export function useSearchState(
         _results.value = []
         _query.value = {}
         _error.value = null
+        _url.value = null
         return
       }
       const params = new URLSearchParams()
       params.set("s", s)
+      const newURL = getSearchURL(router, params.toString())
+      _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       let data
@@ -1251,5 +1257,6 @@ export function useSearchState(
     results,
     query,
     error,
+    url,
   }
 }
