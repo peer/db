@@ -51,18 +51,21 @@ watch(
 
     // We want to eagerly remove any old doc and show loading again.
     _doc.value = null
+    // We want to eagerly remove any error.
     _error.value = null
 
+    let data
     try {
-      const res = await getURL(newURL, el, controller.signal)
-      _doc.value = res.doc as PeerDBDocument
+      data = await getURL(newURL, el, controller.signal)
     } catch (err) {
       if (controller.signal.aborted) {
         return
       }
       console.error("WithDocument", newURL, err)
       _error.value = `${err}`
+      return
     }
+    _doc.value = data.doc as PeerDBDocument
   },
   {
     immediate: true,

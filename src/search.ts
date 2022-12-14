@@ -462,12 +462,15 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -492,7 +495,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
-        _error.value = null
         if (redirect) {
           await redirect(data)
         }
@@ -511,7 +513,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       } else {
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
       }
-      _error.value = null
     },
     {
       immediate: true,
@@ -638,13 +639,16 @@ export function useAmountHistogramValues(
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
         _max.value = null
         _interval.value = null
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -670,7 +674,6 @@ export function useAmountHistogramValues(
       _min.value = data.min != null ? parseFloat(data.min) : null
       _max.value = data.max != null ? parseFloat(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
-      _error.value = null
     },
     {
       immediate: true,
@@ -749,13 +752,16 @@ export function useTimeHistogramValues(
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
         _max.value = null
         _interval.value = null
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -781,7 +787,6 @@ export function useTimeHistogramValues(
       _min.value = data.min != null ? timestampToSeconds(data.min) : null
       _max.value = data.max != null ? timestampToSeconds(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
-      _error.value = null
     },
     {
       immediate: true,
@@ -851,10 +856,13 @@ export function useStringFilterValues(
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -874,7 +882,6 @@ export function useStringFilterValues(
       }
       _results.value = data.results as StringValuesResult[]
       _total.value = data.total
-      _error.value = null
     },
     {
       immediate: true,
@@ -935,10 +942,13 @@ export function useIndexFilterValues(
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -958,7 +968,6 @@ export function useIndexFilterValues(
       }
       _results.value = data.results as IndexValuesResult[]
       _total.value = data.total
-      _error.value = null
     },
     {
       immediate: true,
@@ -1028,13 +1037,16 @@ export function useSizeHistogramValues(
         return
       }
       _url.value = newURL || null
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
         _max.value = null
         _interval.value = null
-        _error.value = null
         return
       }
       const controller = new AbortController()
@@ -1060,7 +1072,6 @@ export function useSizeHistogramValues(
       _min.value = data.min != null ? parseInt(data.min) : null
       _max.value = data.max != null ? parseInt(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
-      _error.value = null
     },
     {
       immediate: true,
@@ -1205,10 +1216,13 @@ export function useSearchState(
       if (initialRouteName !== route.name) {
         return
       }
+
+      // We want to eagerly remove any error.
+      _error.value = null
+
       if (!s) {
         _results.value = []
         _query.value = {}
-        _error.value = null
         _url.value = null
         return
       }
@@ -1234,7 +1248,6 @@ export function useSearchState(
       if (!("results" in data)) {
         _results.value = []
         _query.value = {}
-        _error.value = null
         await redirect(data)
         return
       }
@@ -1246,7 +1259,6 @@ export function useSearchState(
         at: undefined,
         q: data.query,
       }
-      _error.value = null
     },
     {
       immediate: true,

@@ -165,6 +165,9 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
     updatedState.rel = { ...updatedState.rel }
     updatedState.rel[id] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onRelFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -177,6 +180,9 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
     updatedState.amount = { ...updatedState.amount }
     updatedState.amount[`${id}/${unit}`] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onAmountFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -189,6 +195,9 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
     updatedState.time = { ...updatedState.time }
     updatedState.time[id] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onTimeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -201,6 +210,9 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
     updatedState.str = { ...updatedState.str }
     updatedState.str[id] = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onStringFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -212,6 +224,9 @@ async function onIndexFiltersStateUpdate(s: IndexFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.index = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onIndexFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -223,6 +238,9 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.size = s
     await postFilters(router, route, updatedState, updateFiltersProgress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onSizeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }

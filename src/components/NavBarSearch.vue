@@ -25,7 +25,12 @@ const form = ref()
 const progress = ref(0)
 
 async function onSubmit() {
-  await postSearch(router, form.value, progress)
+  try {
+    await postSearch(router, form.value, progress)
+  } catch (err) {
+    // TODO: Show notification with error.
+    console.error("onSubmit", err)
+  }
 }
 
 function onFilters() {
