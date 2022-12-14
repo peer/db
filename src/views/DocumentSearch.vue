@@ -45,6 +45,7 @@ const {
   total: searchTotal,
   filters: searchFilters,
   moreThanTotal: searchMoreThanTotal,
+  url: searchURL,
 } = useSearch(searchEl, searchProgress, async (query) => {
   await router.replace({
     name: "DocumentSearch",
@@ -58,7 +59,7 @@ const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: 
 const filtersEl = ref(null)
 
 const filtersProgress = ref(0)
-const { results: filtersResults, total: filtersTotal } = useFilters(filtersEl, filtersProgress)
+const { results: filtersResults, total: filtersTotal, url: filtersURL } = useFilters(filtersEl, filtersProgress)
 
 const {
   limitedResults: limitedFiltersResults,
@@ -237,7 +238,7 @@ const filtersEnabled = ref(false)
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
-    <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
+    <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchURL">
       <div v-if="searchTotal === null">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">Searching...</div>
@@ -284,7 +285,7 @@ const filtersEnabled = ref(false)
         </div>
       </template>
     </div>
-    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'">
+    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
       <div v-if="searchTotal === null || filtersTotal === null">
         <div class="my-1 sm:my-4">
           <div class="text-center text-sm">Determining filters...</div>

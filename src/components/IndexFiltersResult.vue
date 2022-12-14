@@ -20,7 +20,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, total } = useIndexFilterValues(el, progress)
+const { results, total, url } = useIndexFilterValues(el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
@@ -41,7 +41,7 @@ function onChange(event: Event, str: string) {
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
+  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
     <div class="flex items-baseline gap-x-1">
       <span class="mb-1.5 text-lg leading-none">document index</span>
       ({{ result._count }})

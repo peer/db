@@ -171,6 +171,7 @@ export function useSearch(
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -194,6 +195,7 @@ export function useFilters(
   results: DeepReadonly<Ref<SearchFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -434,6 +436,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const route = useRoute()
 
@@ -442,21 +445,24 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const filters = import.meta.env.DEV ? readonly(_filters) : _filters
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
     getURL,
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
@@ -468,7 +474,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getSearchResults<Type>(url, el, controller.signal, progress)
+        data = await getSearchResults<Type>(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -520,6 +526,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
     filters,
     moreThanTotal,
     error,
+    url,
   }
 }
 
@@ -531,6 +538,7 @@ export function useRelFilterValues(
   results: DeepReadonly<Ref<RelValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -575,6 +583,7 @@ export function useAmountHistogramValues(
   max: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -585,12 +594,14 @@ export function useAmountHistogramValues(
   const _max = ref<number | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -620,12 +631,13 @@ export function useAmountHistogramValues(
         throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
@@ -638,7 +650,7 @@ export function useAmountHistogramValues(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getHistogramValues(url, el, controller.signal, progress)
+        data = await getHistogramValues(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -670,6 +682,7 @@ export function useAmountHistogramValues(
     max,
     interval,
     error,
+    url,
   }
 }
 
@@ -684,6 +697,7 @@ export function useTimeHistogramValues(
   max: DeepReadonly<Ref<bigint | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -694,12 +708,14 @@ export function useTimeHistogramValues(
   const _max = ref<bigint | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -725,12 +741,13 @@ export function useTimeHistogramValues(
         throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
@@ -743,7 +760,7 @@ export function useTimeHistogramValues(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getHistogramValues(url, el, controller.signal, progress)
+        data = await getHistogramValues(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -775,6 +792,7 @@ export function useTimeHistogramValues(
     max,
     interval,
     error,
+    url,
   }
 }
 
@@ -786,6 +804,7 @@ export function useStringFilterValues(
   results: DeepReadonly<Ref<StringValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -793,9 +812,11 @@ export function useStringFilterValues(
   const _results = ref<StringValuesResult[]>([])
   const _total = ref<number | null>(null)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -821,12 +842,13 @@ export function useStringFilterValues(
         throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
       }
     },
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _error.value = null
@@ -836,7 +858,7 @@ export function useStringFilterValues(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getStringValues<StringValuesResult>(url, el, controller.signal, progress)
+        data = await getStringValues<StringValuesResult>(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -859,6 +881,7 @@ export function useStringFilterValues(
     results,
     total,
     error,
+    url,
   }
 }
 
@@ -869,6 +892,7 @@ export function useIndexFilterValues(
   results: DeepReadonly<Ref<IndexValuesResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -876,9 +900,11 @@ export function useIndexFilterValues(
   const _results = ref<IndexValuesResult[]>([])
   const _total = ref<number | null>(null)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -899,12 +925,13 @@ export function useIndexFilterValues(
         },
       }).href
     },
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _error.value = null
@@ -914,7 +941,7 @@ export function useIndexFilterValues(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getStringValues<IndexValuesResult>(url, el, controller.signal, progress)
+        data = await getStringValues<IndexValuesResult>(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -937,6 +964,7 @@ export function useIndexFilterValues(
     results,
     total,
     error,
+    url,
   }
 }
 
@@ -950,6 +978,7 @@ export function useSizeHistogramValues(
   max: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
@@ -960,12 +989,14 @@ export function useSizeHistogramValues(
   const _max = ref<number | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
+  const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const min = import.meta.env.DEV ? readonly(_min) : _min
   const max = import.meta.env.DEV ? readonly(_max) : _max
   const interval = import.meta.env.DEV ? readonly(_interval) : _interval
   const error = import.meta.env.DEV ? readonly(_error) : _error
+  const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const initialRouteName = route.name
   watch(
@@ -986,12 +1017,13 @@ export function useSizeHistogramValues(
         },
       }).href
     },
-    async (url, oldURL, onCleanup) => {
+    async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
       }
-      if (!url) {
+      _url.value = newURL || null
+      if (!newURL) {
         _results.value = []
         _total.value = null
         _min.value = null
@@ -1004,7 +1036,7 @@ export function useSizeHistogramValues(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getHistogramValues(url, el, controller.signal, progress)
+        data = await getHistogramValues(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
@@ -1036,6 +1068,7 @@ export function useSizeHistogramValues(
     max,
     interval,
     error,
+    url,
   }
 }
 

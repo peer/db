@@ -110,7 +110,7 @@ const file = computed(() => {
       <NavBarSearch v-else />
     </NavBar>
   </Teleport>
-  <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
+  <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <div class="rounded border bg-white p-4 shadow">
       <WithDocument :id="id" ref="withDocument">
         <template #default="{ doc }">

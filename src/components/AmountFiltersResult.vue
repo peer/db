@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, min, max } = useAmountHistogramValues(props.result, el, progress)
+const { results, min, max, url } = useAmountHistogramValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
@@ -139,17 +139,20 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
+  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
     <div class="flex items-baseline gap-x-1">
       <WithDocument :id="result._id">
-        <template #default="{ doc }">
+        <template #default="{ doc, url }">
           <RouterLink
             :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            :data-url="url"
             class="link mb-1.5 text-lg leading-none"
             v-html="getName(doc.claims) || '<i>no name</i>'"
           ></RouterLink>
         </template>
-        <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result._id)]"></div></template>
+        <template #loading="{ url }">
+          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result._id)]"></div>
+        </template>
       </WithDocument>
       ({{ result._count }})
     </div>

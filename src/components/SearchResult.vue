@@ -104,7 +104,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow">
+  <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
     <WithDocument :id="result._id" ref="withDocument">
       <template #default="{ doc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
