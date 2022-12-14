@@ -178,8 +178,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
-    <div class="flex flex-col">
+  <div class="rounded border bg-white p-4 shadow flex flex-col" :class="{ 'data-reloading': laterLoad }">
       <div class="flex items-baseline gap-x-1">
         <WithDocument :id="result._id">
           <template #default="{ doc }">
@@ -252,6 +251,5 @@ onBeforeUnmount(() => {
           >
         </li>
       </ul>
-    </div>
   </div>
 </template>

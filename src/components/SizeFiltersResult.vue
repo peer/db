@@ -137,8 +137,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
-    <div class="flex flex-col">
+  <div class="rounded border bg-white p-4 shadow flex flex-col" :class="{ 'data-reloading': laterLoad }">
       <div class="flex items-baseline gap-x-1">
         <span class="mb-1.5 text-lg leading-none">document size</span>
         ({{ result._count }})
@@ -200,6 +199,5 @@ onBeforeUnmount(() => {
           >
         </li>
       </ul>
-    </div>
   </div>
 </template>

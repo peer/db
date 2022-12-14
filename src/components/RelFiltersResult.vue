@@ -72,8 +72,7 @@ function stateHasNONE(): boolean {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
-    <div class="flex flex-col">
+  <div class="rounded border bg-white p-4 shadow flex flex-col" :class="{ 'data-reloading': laterLoad }">
       <div class="flex items-baseline gap-x-1">
         <WithDocument :id="result._id">
           <template #default="{ doc }">
@@ -172,5 +171,4 @@ function stateHasNONE(): boolean {
       <Button v-if="total !== null && hasMore" class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - limitedResults.length }} more</Button>
       <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">{{ total - limitedResults.length }} values not shown.</div>
     </div>
-  </div>
 </template>

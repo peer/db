@@ -139,86 +139,84 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
-    <div class="flex flex-col">
-      <div class="flex items-baseline gap-x-1">
-        <WithDocument :id="result._id">
-          <template #default="{ doc }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: result._id } }"
-              class="link mb-1.5 text-lg leading-none"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result._id)]"></div></template>
-        </WithDocument>
-        ({{ result._count }})
-      </div>
-      <ul ref="el">
-        <li v-if="min === null || max === null" class="animate-pulse">
-          <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-            <div v-for="(h, i) in loadingShortHeights(result._id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
-          </div>
-          <div class="flex flex-row justify-between gap-x-1">
-            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
-            <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
-          </div>
-          <div class="my-1.5 h-2 rounded bg-slate-200"></div>
-        </li>
-        <li v-else-if="min !== max">
-          <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
-          <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
-            <!-- We subtract 1 from bar width to have a gap between bars. -->
-            <rect
-              v-for="(res, i) in results"
-              :key="i"
-              :height="Math.ceil((chartHeight * res.count) / maxCount)"
-              :width="barWidth - 1"
-              :y="chartHeight - Math.ceil((chartHeight * res.count) / maxCount)"
-              :x="i * barWidth"
-            ></rect>
-          </svg>
-          <div class="flex flex-row justify-between gap-x-1">
-            <div>
-              {{ formatValue(min, result._unit) }}
-            </div>
-            <div>
-              {{ formatValue(max, result._unit) }}
-            </div>
-          </div>
-          <div ref="sliderEl"></div>
-        </li>
-        <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
-          <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-          <div class="my-1 leading-none">{{ formatValue(results[0].min, result._unit) }}</div>
-          <div class="my-1 leading-none">({{ results[0].count }})</div>
-        </li>
-        <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="min === null || max === null ? 'mt-3' : 'mt-4'">
-          <input
-            :id="'amount/' + result._id + '/' + result._unit + '/none'"
-            :disabled="updateProgress > 0"
-            :checked="state === NONE"
-            :class="
-              updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-            "
-            type="checkbox"
-            class="my-1 self-center rounded"
-            @change="onNoneChange($event)"
-          />
-          <label
-            :for="'amount/' + result._id + '/' + result._unit + '/none'"
-            class="my-1 leading-none"
-            :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            ><i>none</i></label
-          >
-          <label
-            :for="'amount/' + result._id + '/' + result._unit + '/none'"
-            class="my-1 leading-none"
-            :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >({{ searchTotal - result._count }})</label
-          >
-        </li>
-      </ul>
+  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }">
+    <div class="flex items-baseline gap-x-1">
+      <WithDocument :id="result._id">
+        <template #default="{ doc }">
+          <RouterLink
+            :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            class="link mb-1.5 text-lg leading-none"
+            v-html="getName(doc.claims) || '<i>no name</i>'"
+          ></RouterLink>
+        </template>
+        <template #loading><div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result._id)]"></div></template>
+      </WithDocument>
+      ({{ result._count }})
     </div>
+    <ul ref="el">
+      <li v-if="min === null || max === null" class="animate-pulse">
+        <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
+          <div v-for="(h, i) in loadingShortHeights(result._id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
+        </div>
+        <div class="flex flex-row justify-between gap-x-1">
+          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+        </div>
+        <div class="my-1.5 h-2 rounded bg-slate-200"></div>
+      </li>
+      <li v-else-if="min !== max">
+        <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
+        <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
+          <!-- We subtract 1 from bar width to have a gap between bars. -->
+          <rect
+            v-for="(res, i) in results"
+            :key="i"
+            :height="Math.ceil((chartHeight * res.count) / maxCount)"
+            :width="barWidth - 1"
+            :y="chartHeight - Math.ceil((chartHeight * res.count) / maxCount)"
+            :x="i * barWidth"
+          ></rect>
+        </svg>
+        <div class="flex flex-row justify-between gap-x-1">
+          <div>
+            {{ formatValue(min, result._unit) }}
+          </div>
+          <div>
+            {{ formatValue(max, result._unit) }}
+          </div>
+        </div>
+        <div ref="sliderEl"></div>
+      </li>
+      <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
+        <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
+        <div class="my-1 leading-none">{{ formatValue(results[0].min, result._unit) }}</div>
+        <div class="my-1 leading-none">({{ results[0].count }})</div>
+      </li>
+      <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="min === null || max === null ? 'mt-3' : 'mt-4'">
+        <input
+          :id="'amount/' + result._id + '/' + result._unit + '/none'"
+          :disabled="updateProgress > 0"
+          :checked="state === NONE"
+          :class="
+            updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
+          "
+          type="checkbox"
+          class="my-1 self-center rounded"
+          @change="onNoneChange($event)"
+        />
+        <label
+          :for="'amount/' + result._id + '/' + result._unit + '/none'"
+          class="my-1 leading-none"
+          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          ><i>none</i></label
+        >
+        <label
+          :for="'amount/' + result._id + '/' + result._unit + '/none'"
+          class="my-1 leading-none"
+          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          >({{ searchTotal - result._count }})</label
+        >
+      </li>
+    </ul>
   </div>
 </template>
