@@ -39,14 +39,17 @@ watch(
     const controller = new AbortController()
     onCleanup(() => controller.abort())
 
+    // We want to eagerly remove any old doc and show loading again.
+    _doc.value = null
+    _error.value = null
+
     try {
       _doc.value = await getDocument(router, id, el, controller.signal)
-      _error.value = null
     } catch (err) {
       if (controller.signal.aborted) {
         return
       }
-      _doc.value = null
+      console.error("WithDocument", id, err)
       _error.value = `${err}`
     }
   },
