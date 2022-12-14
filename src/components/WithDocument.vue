@@ -60,7 +60,7 @@ watch(
       if (controller.signal.aborted) {
         return
       }
-      console.error("WithDocument", id, err)
+      console.error("WithDocument", newURL, err)
       _error.value = `${err}`
     }
   },

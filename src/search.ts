@@ -479,6 +479,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         if (controller.signal.aborted) {
           return
         }
+        console.error("useSearchResults", newURL, err)
         _results.value = []
         _total.value = null
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
@@ -655,6 +656,7 @@ export function useAmountHistogramValues(
         if (controller.signal.aborted) {
           return
         }
+        console.error("useAmountHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
         _min.value = null
@@ -765,6 +767,7 @@ export function useTimeHistogramValues(
         if (controller.signal.aborted) {
           return
         }
+        console.error("getHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
         _min.value = null
@@ -863,6 +866,7 @@ export function useStringFilterValues(
         if (controller.signal.aborted) {
           return
         }
+        console.error("useStringFilterValues", newURL, err)
         _results.value = []
         _total.value = null
         _error.value = `${err}`
@@ -946,6 +950,7 @@ export function useIndexFilterValues(
         if (controller.signal.aborted) {
           return
         }
+        console.error("useIndexFilterValues", newURL, err)
         _results.value = []
         _total.value = null
         _error.value = `${err}`
@@ -1041,6 +1046,7 @@ export function useSizeHistogramValues(
         if (controller.signal.aborted) {
           return
         }
+        console.error("useSizeHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
         _min.value = null
@@ -1208,11 +1214,12 @@ export function useSearchState(
       onCleanup(() => controller.abort())
       let data
       try {
-        data = await getSearchResults<SearchResult>(getSearchURL(router, params.toString()), el, controller.signal, progress)
+        data = await getSearchResults<SearchResult>(newURL, el, controller.signal, progress)
       } catch (err) {
         if (controller.signal.aborted) {
           return
         }
+        console.error("useSearchState", newURL, err)
         _results.value = []
         _query.value = {}
         _error.value = `${err}`
