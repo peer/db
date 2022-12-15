@@ -5,7 +5,7 @@ import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
 import WithDocument from "@/components/WithDocument.vue"
 import RouterLink from "@/components/RouterLink.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth } from "@/utils"
+import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
 import {
   DESCRIPTION,
   ORIGINAL_CATALOG_DESCRIPTION,
@@ -115,11 +115,20 @@ const rowSpan = computed(() => {
               v-html="docName || '<i>no name</i>'"
             ></RouterLink>
           </h2>
-          <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-start gap-1 text-sm">
+          <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
-              <li v-if="'string' in tag" class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm">{{ tag.string }}</li>
-              <WithDocument v-else-if="'id' in tag" :id="tag.id" v-slot="{ doc }">
-                <li class="rounded-sm bg-secondary-400 py-0.5 px-1.5 leading-none text-neutral-600 shadow-sm" v-html="getName(doc.claims) || '<i>no name</i>'"></li>
+              <li v-if="'string' in tag" class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm">{{ tag.string }}</li>
+              <WithDocument v-else-if="'id' in tag" :id="tag.id">
+                <template #default="{ doc, url }">
+                  <li
+                    class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm"
+                    :data-url="url"
+                    v-html="getName(doc.claims) || '<i>no name</i>'"
+                  ></li>
+                </template>
+                <template #loading="{ url }">
+                  <li class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                </template>
               </WithDocument>
             </template>
           </ul>
