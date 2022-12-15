@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, min, max, url } = useAmountHistogramValues(props.result, el, progress)
+const { results, min, max, error, url } = useAmountHistogramValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
@@ -157,7 +157,10 @@ onBeforeUnmount(() => {
       ({{ result._count }})
     </div>
     <ul ref="el">
-      <li v-if="min === null || max === null" class="animate-pulse">
+      <li v-if="error">
+        <i class="text-error-600">loading data failed</i>
+      </li>
+      <li v-else-if="min === null || max === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result._id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
         </div>
@@ -195,7 +198,7 @@ onBeforeUnmount(() => {
         <div class="my-1 leading-none">{{ formatValue(results[0].min, result._unit) }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
-      <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="min === null || max === null ? 'mt-3' : 'mt-4'">
+      <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
         <input
           :id="'amount/' + result._id + '/' + result._unit + '/none'"
           :disabled="updateProgress > 0"

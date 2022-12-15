@@ -154,6 +154,9 @@ const rowSpan = computed(() => {
           </div>
         </div>
       </template>
+      <template #error>
+        <i class="text-error-600">loading data failed</i>
+      </template>
     </WithDocument>
   </div>
 </template>

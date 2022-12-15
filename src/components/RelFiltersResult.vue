@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, total, url } = useRelFilterValues(props.result, el, progress)
+const { results, total, error, url } = useRelFilterValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
@@ -90,7 +90,10 @@ function stateHasNONE(): boolean {
       ({{ result._count }})
     </div>
     <ul ref="el">
-      <template v-if="total === null">
+      <li v-if="error">
+        <i class="text-error-600">loading data failed</i>
+      </li>
+      <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
           <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
           <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result._id}/${i}`)]"></div>

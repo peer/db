@@ -10,6 +10,13 @@ const localGetCache = new Map<string, WeakRef<{ doc: object; headers: Headers }>
 const _globalProgress = ref(0)
 export const globalProgress = import.meta.env.DEV ? readonly(_globalProgress) : _globalProgress
 
+export class FetchError extends Error {
+  constructor(msg: string, options?: { cause?: Error; status: number; body: string; url: string; requestID: string | null }) {
+    super(msg, options)
+    Object.assign(this, options)
+  }
+}
+
 // TODO: Improve priority with "el".
 export async function getURL(url: string, el: Ref<Element | null>, abortSignal: AbortSignal, progress?: Ref<number>): Promise<{ doc: object; headers: Headers }> {
   // Is it already cached?
@@ -53,7 +60,13 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
           signal: abortSignal,
         })
         if (!response.ok) {
-          throw new Error(`fetch error ${response.status}: ${await response.text()}`)
+          const body = await response.text()
+          throw new FetchError(`fetch GET error ${response.status}: ${body}`, {
+            status: response.status,
+            body,
+            url,
+            requestID: response.headers.get("Request-ID"),
+          })
         }
         return { doc: await response.json(), headers: response.headers }
       },
@@ -90,7 +103,13 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
       referrerPolicy: "strict-origin-when-cross-origin",
     })
     if (!response.ok) {
-      throw new Error(`fetch error ${response.status}: ${await response.text()}`)
+      const body = await response.text()
+      throw new FetchError(`fetch POST error ${response.status}: ${body}`, {
+        status: response.status,
+        body,
+        url,
+        requestID: response.headers.get("Request-ID"),
+      })
     }
     return await response.json()
   } finally {

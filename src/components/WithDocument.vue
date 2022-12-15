@@ -81,6 +81,8 @@ defineExpose({
 
 <template>
   <slot v-if="doc" :doc="doc" :url="url"></slot>
-  <slot v-else-if="error" name="error" :error="error" :url="url"></slot>
+  <slot v-else-if="error" name="error" :error="error" :url="url">
+    <i class="text-error-600" :data-url="url">loading data failed</i>
+  </slot>
   <slot v-else name="loading" :url="url"></slot>
 </template>

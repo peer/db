@@ -45,6 +45,7 @@ const {
   total: searchTotal,
   filters: searchFilters,
   moreThanTotal: searchMoreThanTotal,
+  error: searchError,
   url: searchURL,
 } = useSearch(searchEl, searchProgress, async (query) => {
   await router.replace({
@@ -59,7 +60,7 @@ const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: 
 const filtersEl = ref(null)
 
 const filtersProgress = ref(0)
-const { results: filtersResults, total: filtersTotal, url: filtersURL } = useFilters(filtersEl, filtersProgress)
+const { results: filtersResults, total: filtersTotal, error: filtersError, url: filtersURL } = useFilters(filtersEl, filtersProgress)
 
 const {
   limitedResults: limitedFiltersResults,
@@ -257,15 +258,14 @@ const filtersEnabled = ref(false)
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
     <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchURL">
-      <div v-if="searchTotal === null">
-        <div class="my-1 sm:my-4">
-          <div class="text-center text-sm">Searching...</div>
-        </div>
+      <div v-if="searchError" class="my-1 sm:my-4">
+        <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
-      <div v-else-if="searchTotal === 0">
-        <div class="my-1 sm:my-4">
-          <div class="text-center text-sm">No results found.</div>
-        </div>
+      <div v-else-if="searchTotal === null" class="my-1 sm:my-4">
+        <div class="text-center text-sm">Searching...</div>
+      </div>
+      <div v-else-if="searchTotal === 0" class="my-1 sm:my-4">
+        <div class="text-center text-sm">No results found.</div>
       </div>
       <template v-else-if="searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result._id">
@@ -304,15 +304,14 @@ const filtersEnabled = ref(false)
       </template>
     </div>
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
-      <div v-if="searchTotal === null || filtersTotal === null">
-        <div class="my-1 sm:my-4">
-          <div class="text-center text-sm">Determining filters...</div>
-        </div>
+      <div v-if="searchError || filtersError" class="my-1 sm:my-4">
+        <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
-      <div v-else-if="filtersTotal === 0">
-        <div class="my-1 sm:my-4">
-          <div class="text-center text-sm">No filters available.</div>
-        </div>
+      <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
+        <div class="text-center text-sm">Determining filters...</div>
+      </div>
+      <div v-else-if="filtersTotal === 0" class="my-1 sm:my-4">
+        <div class="text-center text-sm">No filters available.</div>
       </div>
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
