@@ -296,7 +296,7 @@ const filtersEnabled = ref(false)
           <div v-else-if="searchResults.length < searchTotal && !searchMoreThanTotal" class="text-center text-sm">
             All of first {{ searchResults.length }} shown of {{ searchTotal }} results found.
           </div>
-          <div v-else-if="searchResults.length == searchTotal && !searchMoreThanTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
+          <div v-else-if="searchResults.length === searchTotal && !searchMoreThanTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
           <div class="relative h-2 w-full bg-slate-200">
             <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
           </div>
