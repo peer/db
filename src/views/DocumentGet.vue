@@ -115,25 +115,23 @@ const file = computed(() => {
       <WithDocument :id="id" ref="withDocument">
         <template #default="{ doc }">
           <!--
-          TODO: Consider using manual mode and draw ring only around the focused Tab component.
-          See: https://github.com/tailwindlabs/headlessui/issues/1881
-        -->
+            TODO: Fix how hover interacts with focused tab.
+            See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
+          -->
           <TabGroup>
-            <TabList
-              class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1"
-            >
+            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100">
               <Tab
                 v-if="article"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >Article</Tab
               >
               <Tab
                 v-if="file"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl-md ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >File</Tab
               >
               <Tab
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >All properties</Tab
               >
             </TabList>
