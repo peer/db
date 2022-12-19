@@ -91,7 +91,7 @@ watch(
       return
     }
     // Initial data has not yet been loaded, so we wait.
-    if (!topId && searchTotal === null) {
+    if (!topId && searchTotal.value === null) {
       return
     }
     // We set "s", "at", and "q" here to undefined so that we control their order in the query string.
