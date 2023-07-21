@@ -2,7 +2,7 @@ module gitlab.com/peerdb/search
 
 go 1.19
 
-require github.com/alecthomas/kong v0.2.22
+require github.com/alecthomas/kong v0.8.1-0.20230721120856-074ccd090604
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
