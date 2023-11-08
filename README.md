@@ -1,13 +1,8 @@
-# PeerDB Search
+# PeerDB
 
-[![Go Report Card](https://goreportcard.com/badge/gitlab.com/peerdb/search)](https://goreportcard.com/report/gitlab.com/peerdb/search)
-[![pipeline status](https://gitlab.com/peerdb/search/badges/main/pipeline.svg?ignore_skipped=true)](https://gitlab.com/peerdb/search/-/pipelines)
-[![coverage report](https://gitlab.com/peerdb/search/badges/main/coverage.svg)](https://gitlab.com/peerdb/search/-/graphs/main/charts)
-
-PeerDB Search is opinionated open source search system incorporating best practices in search and user
-interfaces/experience to provide an intuitive, fast, and easy to use search over semantic, structured, and full-text data.
-Its user interface automatically adapts to data and search results and provides relevant filters. The goal of the user
-interface is to allow users without technical knowledge to easily find results they want, without having to write queries.
+[![Go Report Card](https://goreportcard.com/badge/gitlab.com/peerdb/peerdb)](https://goreportcard.com/report/gitlab.com/peerdb/peerdb)
+[![pipeline status](https://gitlab.com/peerdb/peerdb/badges/main/pipeline.svg?ignore_skipped=true)](https://gitlab.com/peerdb/peerdb/-/pipelines)
+[![coverage report](https://gitlab.com/peerdb/peerdb/badges/main/coverage.svg)](https://gitlab.com/peerdb/peerdb/-/graphs/main/charts)
 
 Demos:
 
@@ -17,13 +12,20 @@ Demos:
   Museum of Modern Art (MoMA) artists and artworks.
 - [omni.peerdb.org](https://omni.peerdb.org/): combination of other demos into one search service.
 
+## Components
+
+- PeerDB Search is opinionated open source search system incorporating best practices in search and user
+  interfaces/experience to provide an intuitive, fast, and easy to use search over semantic, structured, and full-text data.
+  Its user interface automatically adapts to data and search results and provides relevant filters. The goal of the user
+  interface is to allow users without technical knowledge to easily find results they want, without having to write queries.
+
 ## Installation
 
-You can run PeerDB Search behind a reverse proxy (which should support HTTP2), or simply run it directly
-(it is safe to do so). PeerDB Search is compiled into one backend binary which has frontend files embedded
+You can run PeerDB behind a reverse proxy (which should support HTTP2), or simply run it directly
+(it is safe to do so). PeerDB is compiled into one backend binary which has frontend files embedded
 and they are served by the backend as well.
 
-The [releases page](https://gitlab.com/peerdb/search/-/releases)
+The [releases page](https://gitlab.com/peerdb/peerdb/-/releases)
 contains a list of stable versions. Each includes:
 
 - A statically compiled binary.
@@ -34,32 +36,32 @@ contains a list of stable versions. Each includes:
 
 The latest stable statically compiled binary for Linux (amd64) is available at:
 
-[`https://gitlab.com/peerdb/search/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search`](https://gitlab.com/peerdb/search/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search)
+[`https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search`](https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search)
 
-You can also download older versions on the [releases page](https://gitlab.com/peerdb/search/-/releases).
+You can also download older versions on the [releases page](https://gitlab.com/peerdb/peerdb/-/releases).
 
 The latest successfully built development (`main` branch) binary is available at:
 
-[`https://gitlab.com/peerdb/search/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker`](https://gitlab.com/peerdb/search/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker)
+[`https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker`](https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker)
 
 ### Docker
 
 Docker images for stable versions are available as:
 
-`registry.gitlab.com/peerdb/search/tag/<version>:latest`
+`registry.gitlab.com/peerdb/peerdb/tag/<version>:latest`
 
 `<version>` is a version string with `.` replaced with `-`. E.g., `v0.1.0` becomes `v0-1-0`.
 
-The docker image contains only PeerDB Search binary, which is image's entrypoint.
+The docker image contains only PeerDB binary, which is image's entrypoint.
 If you need a shell as well, then use the debug version of the image:
 
-`registry.gitlab.com/peerdb/search/tag/<version>:latest-debug`
+`registry.gitlab.com/peerdb/peerdb/tag/<version>:latest-debug`
 
 In that case you have to override the entrypoint (i.e., `--entrypoint sh` argument to `docker run`).
 
 The latest successfully built development (`main` branch) image is available as:
 
-`registry.gitlab.com/peerdb/search/branch/main:latest`
+`registry.gitlab.com/peerdb/peerdb/branch/main:latest`
 
 generated in the current directory as described above:
 
@@ -68,12 +70,12 @@ generated in the current directory as described above:
 You can build a binary yourself using [Nix](https://nixos.org/). For the latest stable version, run:
 
 ```sh
-nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/search/-/releases/permalink/latest/downloads/nix/nix.tgz)) { }"
+nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/nix/nix.tgz)) { }"
 ```
 
 The built binary is available at `./result/bin/search`.
 
-If you download a `nix.tgz` file for an [older version](https://gitlab.com/peerdb/search/-/releases),
+If you download a `nix.tgz` file for an [older version](https://gitlab.com/peerdb/peerdb/-/releases),
 you can build the binary with:
 
 ```sh
@@ -83,12 +85,12 @@ nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball file:
 To build the latest development (`main` branch) binary, run:
 
 ```sh
-nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/search/-/jobs/artifacts/main/raw/nix.tgz?job=nix)) { }"
+nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/nix.tgz?job=nix)) { }"
 ```
 
 ## Usage
 
-PeerDB Search requires an ElasticSearch instance. To run one locally you can use Docker:
+PeerDB requires an ElasticSearch instance. To run one locally you can use Docker:
 
 ```sh
 docker network create peerdb
@@ -101,12 +103,12 @@ docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
 Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
 The parameters above are primarily meant for development on a local machine.
 
-ElasticSearch instance needs to have an index with documents in PeerDB Search schema
-and configured with PeerDB Search mapping.
-If you already have such an index, proceed to run PeerDB Search, otherwise first
+ElasticSearch instance needs to have an index with documents in PeerDB schema
+and configured with PeerDB mapping.
+If you already have such an index, proceed to run PeerDB, otherwise first
 [populate ElasticSearch with data](#populating-with-data).
 
-Next, to run PeerDB Search you need a HTTPS TLS certificate (as required by HTTP2). When running locally
+Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
 keypair which is then used to create a TLS certificate. Use Go 1.19 or newer.
 
@@ -116,7 +118,7 @@ mkcert -install
 mkcert localhost 127.0.0.1 ::1
 ```
 
-This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you can provide to PeerDB Search as:
+This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you can provide to PeerDB as:
 
 ```sh
 ./search -k localhost+2.pem -K localhost+2-key.pem
@@ -125,8 +127,8 @@ This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you c
 When running using Docker, you have to provide them to the container through a volume, e.g.:
 
 ```sh
-docker run -d --network peerdb --name peerdb-search -p 8080:8080 -v "$(pwd):/data" \
- registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
+docker run -d --network peerdb --name peerdb -p 8080:8080 -v "$(pwd):/data" \
+ registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
  -k /data/localhost+2.pem -K /data/localhost+2-key.pem
 ```
 
@@ -137,27 +139,27 @@ Temporary accepted self-signed certificates are not recommended because
 If you want to use a self-signed certificate instead of `mkcert`, add the certificate to
 your browser's certificate store.
 
-When running it directly publicly on the Internet (it is safe to do so), PeerDB Search is able to
+When running it directly publicly on the Internet (it is safe to do so), PeerDB is able to
 obtain a HTTPS TLS certificate from [Let's Encrypt](https://letsencrypt.org) automatically:
 
 ```sh
-docker run -d --network peerdb --name peerdb-search -p 443:8080 -v "$(pwd):/data" \
- registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
+docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
+ registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
  -D public.domain.example.com -E name@example.com -C /data/letsencrypt
 ```
 
-PeerDB Search would then be available at `https://public.domain.example.com`.
+PeerDB would then be available at `https://public.domain.example.com`.
 
 When using Let's Encrypt you accept its Terms of Service.
 
 ## Populating with data
 
-Power of PeerDB Search comes from having data in ElasticSearch index organized into documents in PeerDB Search schema.
+Power of PeerDB Search comes from having data in ElasticSearch index organized into documents in PeerDB schema.
 The schema is designed to allow describing almost any data. Moreover, data and properties to describe data can be changed
 at runtime without having to reconfigure PeerDB Search, e.g., it adapts filters automatically.
 The schema also allows multiple data sources to be used and merged together.
 
-PeerDB Search schema of documents is fully described in
+PeerDB schema of documents is fully described in
 [JSON Schema](https://json-schema.org/) and is available [here](./schema/doc.json).
 But at a high-level look like:
 
@@ -198,8 +200,8 @@ in claims (seen under `active` claims above) which are then organized based on c
 (data) type. For example, there are `id` claims which are used to store external
 ID values. `prop` is a reference to a property document which describes the ID value.
 
-Which properties you use and how you use them to map your data to PeerDB Search documents
-is left to you. We do suggest that you first populate the index using core PeerDB Search
+Which properties you use and how you use them to map your data to PeerDB documents
+is left to you. We do suggest that you first populate the index using core PeerDB
 properties. You can do that by running:
 
 ```sh
@@ -241,7 +243,7 @@ To convert the blog post:
   which can in turn be more general (core) items.
 
 Assuming that the author does not yet have its document, you could convert the above blog
-post into the following two PeerDB Search documents:
+post into the following two PeerDB documents:
 
 ```json
 {
@@ -721,19 +723,19 @@ Or maybe you also want English Wikipedia articles:
 
 ## Configuration
 
-PeerDB Search can be configured through CLI arguments and a config file. CLI arguments have precedence
+PeerDB can be configured through CLI arguments and a config file. CLI arguments have precedence
 over the config file. Config file is a YAML file with the structure corresponding to the structure of
 CLI flags and commands. Run `./search --help` for list of available flags and commands. If no command is
 specified, `serve` command is the default.
 
-Each PeerDB Search instance can serve multiple sites and Let's Encrypt can be used to obtain
+Each PeerDB instance can serve multiple sites and Let's Encrypt can be used to obtain
 HTTPS TLS certificates for them automatically. Example config file for all demos is available
 in [`demos.yml`](./demos.yml). It configures sites, their titles, and ElasticSearch indices
 for each site. To use the config file with Docker, you could do:
 
 ```sh
-docker run -d --network peerdb --name peerdb-search -p 443:8080 -v "$(pwd):/data" \
- registry.gitlab.com/peerdb/search/branch/main:latest -e http://elasticsearch:9200 \
+docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
+ registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
  -E name@example.com -C /data/letsencrypt -c /data/demos.yml
 ```
 
@@ -768,7 +770,7 @@ on which index they come from.
 
 ## Development
 
-During PeerDB Search development run backend and frontend as separate processes. During development the backend
+During PeerDB development run backend and frontend as separate processes. During development the backend
 proxies frontend requests to Vite, which in turn compiles frontend files and serves them, hot-reloading
 the frontend as necessary.
 
@@ -817,7 +819,7 @@ you to the backend which then proxies unknown requests (non-API requests) to the
 
 ## GitHub mirror
 
-There is also a [read-only GitHub mirror available](https://github.com/peer/db-search),
+There is also a [read-only GitHub mirror available](https://github.com/peer/db),
 if you need to fork the project there.
 
 ## Funding
