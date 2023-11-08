@@ -16,8 +16,9 @@ Demos:
 
 - PeerDB Search is search for semantic, structured, and full-text data. It is opinionated open source search system incorporating
   best practices in search and user interfaces/experience to provide an intuitive, fast, and easy to use search over semantic,
-  structured, and full-text data. Its user interface automatically adapts to data and search results and provides relevant filters.
-  The goal of the user interface is to allow users without technical knowledge to easily find results they want, without having to write queries.
+  structured, and full-text data. Its user interface automatically adapts to data and search results and provides relevant
+  filters. The goal of the user interface is to allow users without technical knowledge to easily find results they want,
+  without having to write queries.
 
 ## Installation
 
