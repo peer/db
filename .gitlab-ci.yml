@@ -398,11 +398,11 @@ publish:
   image: golang:1.19.1-alpine3.15
 
   script:
-    - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/search@$CI_COMMIT_REF_NAME"
+    - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"
 
   rules:
     # Only on protected tags on main repository. Protected tags start with "v".
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/ && $CI_PROJECT_PATH == "peerdb/search"'
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/ && $CI_PROJECT_PATH == "peerdb/peerdb"'
 
   # We do not need build artifacts in this job.
   dependencies: []

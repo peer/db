@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed repository from `gitlab.com/peerdb/search` to `gitlab.com/peerdb/peerdb`.
+
 ## [0.2.0] - 2022-11-08
 
 ### Added
