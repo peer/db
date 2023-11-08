@@ -11,12 +11,11 @@ interface is to allow users without technical knowledge to easily find results t
 
 Demos:
 
-- [https://wikipedia.peerdb.org/](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
+- [wikipedia.peerdb.org](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
   Wikimedia Commons files, and Wikidata data.
-- [https://moma.peerdb.org/](https://moma.peerdb.org/): a search service for The
+- [moma.peerdb.org](https://moma.peerdb.org/): a search service for The
   Museum of Modern Art (MoMA) artists and artworks.
-- [https://omni.peerdb.org/](https://omni.peerdb.org/): using an ElasticSearch alias to combine other demos into one
-  search service
+- [omni.peerdb.org](https://omni.peerdb.org/): combination of other demos into one search service.
 
 ## Installation
 
@@ -824,6 +823,6 @@ if you need to fork the project there.
 ## Funding
 
 This project was funded through the [NGI0 Discovery Fund](https://nlnet.nl/discovery/), a
-fund established by NLnet with financial support from the European Commission's
+fund established by [NLnet](https://nlnet.nl) with financial support from the European Commission's
 [Next Generation Internet](https://ngi.eu/) programme, under the aegis of DG Communications
 Networks, Content and Technology under grant agreement No 825322.
