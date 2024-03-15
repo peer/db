@@ -7,7 +7,7 @@ RUN apk --update add make
 COPY . /src/peerdb-search
 WORKDIR /src/peerdb-search
 RUN \
-  npm ci --audit=false --audit=false && \
+  npm ci --audit=false && \
   npm audit signatures && \
   make dist
 
