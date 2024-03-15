@@ -29,12 +29,15 @@ const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
 
 const { results, query } = useSearchState(el, async (query) => {
   // Something was not OK, so we redirect to the URL without "s".
+  const query =  { ...route.query }
+  // Maybe route.query has "tab" parameter which we want to keep.
   // TODO: This has still created a new search state on the server, we should not do that.
   await router.replace({
     name: "DocumentGet",
     params: {
       id: props.id,
     },
+    query:,
   })
 })
 

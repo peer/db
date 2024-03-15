@@ -51,6 +51,7 @@ const {
   await router.replace({
     name: "DocumentSearch",
     // Maybe route.query has "at" parameter which we want to keep.
+    // TODO: Order of arguments here?
     query: { ...route.query, ...query },
   })
 })

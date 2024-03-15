@@ -37,7 +37,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
-			path, err := s.Router.Path("DocumentGet", Params{"id": id}, "")
+			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"tab": req.Form["tab"]}.Encode())
 			if err != nil {
 				s.internalServerErrorWithError(w, req, err)
 				return
@@ -49,7 +49,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 			return
 		} else if req.Form.Has("q") {
 			// We redirect to the URL without "q".
-			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"s": {sh.ID}}.Encode())
+			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"s": {sh.ID}, "tab": req.Form["tab"]}.Encode())
 			if err != nil {
 				s.internalServerErrorWithError(w, req, err)
 				return
