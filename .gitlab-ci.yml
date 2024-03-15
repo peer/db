@@ -55,7 +55,7 @@ test_node:
     - git lfs fetch
 
   script:
-    - npm ci --audit=false --audit=false
+    - npm ci --audit=false
     - npm run test-ci
 
   artifacts:
@@ -104,7 +104,7 @@ lint_node:
     - git lfs fetch
 
   script:
-    - npm ci --audit=false --audit=false
+    - npm ci --audit=false
     - npm run lint
 
 lint_vue:
@@ -117,7 +117,7 @@ lint_vue:
     - git lfs fetch
 
   script:
-    - npm ci --audit=false --audit=false
+    - npm ci --audit=false
     - npm run lint-vue
 
 lint_style:
@@ -130,7 +130,7 @@ lint_style:
     - git lfs fetch
 
   script:
-    - npm ci --audit=false --audit=false
+    - npm ci --audit=false
     - npm run lint-style
 
 fmt_go:
@@ -157,7 +157,7 @@ fmt_node:
     - git lfs fetch
 
   script:
-    - npm ci --audit=false --audit=false
+    - npm ci --audit=false
     - npm run fmt
     - git diff --exit-code --color=always
 
