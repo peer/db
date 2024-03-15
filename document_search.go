@@ -353,7 +353,7 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 type search struct {
 	ID       string   `json:"s"`
 	Text     string   `json:"q"`
-	Filters  *filters `json:"filters"`
+	Filters  *filters `json:"-"`
 	ParentID string   `json:"-"`
 	RootID   string   `json:"-"`
 }
