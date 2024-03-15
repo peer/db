@@ -398,11 +398,11 @@ publish:
   image: golang:1.19.1-alpine3.15
 
   script:
-    - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/search@$CI_COMMIT_REF_NAME"
+    - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"
 
   rules:
     # Only on protected tags on main repository. Protected tags start with "v".
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/ && $CI_PROJECT_PATH == "peerdb/search"'
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/ && $CI_PROJECT_PATH == "peerdb/peerdb"'
 
   # We do not need build artifacts in this job.
   dependencies: []
@@ -411,11 +411,12 @@ sync_releases:
   stage: sync
 
   image:
-    name: registry.gitlab.com/tozd/gitlab/release/tag/v0-3-0:latest-debug
+    name: registry.gitlab.com/tozd/gitlab/release/tag/v0-6-0:latest-debug
     entrypoint: [""]
 
   script:
-    - /gitlab-release
+    # On branch jobs, just update or remove releases, thus releases are created only on tag jobs.
+    - /gitlab-release ${CI_COMMIT_BRANCH:+--no-create}
 
   rules:
     # Protected tags start with "v".
@@ -428,15 +429,14 @@ sync_config:
   stage: sync
 
   image:
-    name: registry.gitlab.com/tozd/gitlab/config/tag/v0-3-4:latest-debug
+    name: registry.gitlab.com/tozd/gitlab/config/tag/v0-5-0:latest-debug
     entrypoint: [""]
 
   script:
     - /gitlab-config set
 
   rules:
-    # TODO: Fix. Temporary disabled until MAC verification issues are resolved.
-    - if: '$DISABLED && $GITLAB_API_TOKEN && $SOPS_AGE_KEY_FILE && $CI_COMMIT_BRANCH == "main"'
+    - if: '$GITLAB_API_TOKEN && $SOPS_AGE_KEY_FILE && $CI_COMMIT_BRANCH == "main"'
       changes:
         - .gitlab-conf.yml
 
