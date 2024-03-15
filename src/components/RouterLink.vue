@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick } from "vue"
 import type { RouteLocationRaw } from "vue-router"
 
 import { useLink } from "vue-router"
@@ -15,6 +16,7 @@ const { navigate, href } = useLink(props)
 async function onClick(event: MouseEvent) {
   await navigate(event)
   if (props.afterClick) {
+    await nextTick()
     await props.afterClick()
   }
 }
