@@ -10,7 +10,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build search wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit serve watch
+.PHONY: build search wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit watch
 
 build: search wikipedia mapping moma
 
