@@ -24,8 +24,8 @@ const (
 )
 
 type PrepareCommand struct {
-	SkippedWikidataEntities      string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
-	SkippedWikimediaCommonsFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
+	SkippedWikidataEntities      string `help:"Load IDs of skipped Wikidata entities."             placeholder:"PATH" type:"path"`
+	SkippedWikimediaCommonsFiles string `help:"Load filenames of skipped Wikimedia Commons files." placeholder:"PATH" type:"path"`
 }
 
 func (c *PrepareCommand) Run(globals *Globals) errors.E {

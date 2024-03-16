@@ -10,11 +10,11 @@ import (
 )
 
 type site struct {
-	Domain    string `json:"domain" yaml:"domain"`
-	Index     string `json:"index" yaml:"index"`
-	Title     string `json:"title" yaml:"title"`
-	CertFile  string `json:"cert,omitempty" yaml:"cert,omitempty"`
-	KeyFile   string `json:"key,omitempty" yaml:"key,omitempty"`
+	Domain    string `json:"domain"              yaml:"domain"`
+	Index     string `json:"index"               yaml:"index"`
+	Title     string `json:"title"               yaml:"title"`
+	CertFile  string `json:"cert,omitempty"      yaml:"cert,omitempty"`
+	KeyFile   string `json:"key,omitempty"       yaml:"key,omitempty"`
 	SizeField bool   `json:"sizeField,omitempty" yaml:"sizeField,omitempty"`
 }
 
@@ -39,13 +39,13 @@ const (
 //
 //nolint:lll
 type Globals struct {
-	Version           kong.VersionFlag `short:"V" help:"Show program's version and exit." yaml:"-"`
-	Config            cli.ConfigFlag   `short:"c" name:"config" placeholder:"PATH" help:"Load configuration from a JSON or YAML file." yaml:"-"`
-	cli.LoggingConfig `yaml:",inline"`
-	Elastic           string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}." yaml:"elastic"`
-	Index             string `short:"i" group:"Sites:" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}." yaml:"index"`
-	SizeField         bool   `group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed." yaml:"sizeField"`
-	Sites             []site `short:"s" group:"Sites:" name:"site" placeholder:"SITE" sep:"none" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." yaml:"sites"`
+	Version           kong.VersionFlag `                                           help:"Show program's version and exit."                                                                                                                                                           short:"V" yaml:"-"`
+	Config            cli.ConfigFlag   `                                           help:"Load configuration from a JSON or YAML file."                                                                                                   name:"config" placeholder:"PATH"            short:"c" yaml:"-"`
+	cli.LoggingConfig `                                                                                                                                                                                                                                                       yaml:",inline"`
+	Elastic           string `default:"${defaultElastic}"                help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                                                               placeholder:"URL"             short:"e" yaml:"elastic"`
+	Index             string `default:"${defaultIndex}"   group:"Sites:" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                                                                  placeholder:"NAME"            short:"i" yaml:"index"`
+	SizeField         bool   `                            group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                                                                                   yaml:"sizeField"`
+	Sites             []site `                            group:"Sites:" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site"   placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 // Config provides configuration.
@@ -53,22 +53,22 @@ type Globals struct {
 type Config struct {
 	Globals `yaml:"globals"`
 
-	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB Search server. Default command." yaml:"serve"`
-	Populate PopulateCommand `cmd:"" help:"Populate index or indices with core properties." yaml:"populate"`
+	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB Search server. Default command."      yaml:"serve"`
+	Populate PopulateCommand `cmd:""                    help:"Populate index or indices with core properties." yaml:"populate"`
 }
 
 //nolint:lll
 type ServeCommand struct {
-	Development bool   `short:"d" help:"Run in development mode and proxy unknown requests." yaml:"development"`
-	ProxyTo     string `short:"P" placeholder:"URL" default:"${defaultProxyTo}" help:"Base URL to proxy to in development mode. Default: ${defaultProxyTo}." yaml:"proxyTo"`
+	Development bool   `                            help:"Run in development mode and proxy unknown requests."                                     short:"d" yaml:"development"`
+	ProxyTo     string `default:"${defaultProxyTo}" help:"Base URL to proxy to in development mode. Default: ${defaultProxyTo}." placeholder:"URL" short:"P" yaml:"proxyTo"`
 	TLS         struct {
-		CertFile string `short:"k" group:"File certificate:" name:"cert" placeholder:"PATH" type:"existingfile" help:"Default  certificate for TLS, when not using Let's Encrypt." yaml:"cert"`
-		KeyFile  string `short:"K" group:"File certificate:" name:"key" placeholder:"PATH" type:"existingfile" help:"Default certificate's private key, when not using Let's Encrypt." yaml:"key"`
-		Domain   string `short:"D" group:"Let's Encrypt:" placeholder:"STRING" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." yaml:"domain"`
-		Email    string `short:"E" group:"Let's Encrypt:" help:"Contact e-mail to use with Let's Encrypt." yaml:"email"`
-		Cache    string `short:"C" group:"Let's Encrypt:" type:"path" placeholder:"PATH" default:"${defaultTLSCache}" help:"Let's Encrypt's cache directory. Default: ${defaultTLSCache}." yaml:"cache"`
+		CertFile string `                             group:"File certificate:" help:"Default  certificate for TLS, when not using Let's Encrypt."                           name:"cert" placeholder:"PATH"   short:"k" type:"existingfile" yaml:"cert"`
+		KeyFile  string `                             group:"File certificate:" help:"Default certificate's private key, when not using Let's Encrypt."                      name:"key"  placeholder:"PATH"   short:"K" type:"existingfile" yaml:"key"`
+		Domain   string `                             group:"Let's Encrypt:"    help:"Domain name to request for Let's Encrypt's certificate when sites are not configured."             placeholder:"STRING" short:"D"                     yaml:"domain"`
+		Email    string `                             group:"Let's Encrypt:"    help:"Contact e-mail to use with Let's Encrypt."                                                                              short:"E"                     yaml:"email"`
+		Cache    string `default:"${defaultTLSCache}" group:"Let's Encrypt:"    help:"Let's Encrypt's cache directory. Default: ${defaultTLSCache}."                                     placeholder:"PATH"   short:"C" type:"path"         yaml:"cache"`
 	} `embed:"" prefix:"tls." yaml:"tls"`
-	Title string `short:"T" group:"Sites:" placeholder:"NAME" default:"${defaultTitle}" help:"Title to be shown to the users when sites are not configured. Default: ${defaultTitle}." yaml:"title"`
+	Title string `default:"${defaultTitle}" group:"Sites:" help:"Title to be shown to the users when sites are not configured. Default: ${defaultTitle}." placeholder:"NAME" short:"T" yaml:"title"`
 }
 
 type PopulateCommand struct{}

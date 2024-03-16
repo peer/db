@@ -19,13 +19,13 @@ const (
 //
 //nolint:lll
 type Config struct {
-	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
+	Version kong.VersionFlag `help:"Show program's version and exit." short:"V"`
 	cli.LoggingConfig
-	CacheDir    string `short:"C" name:"cache" placeholder:"DIR" default:"${defaultCacheDir}" type:"path" help:"Where to cache files to. Default: ${defaultCacheDir}."`
-	Elastic     string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."`
-	Index       string `short:"i" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
-	SizeField   bool   `help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
-	ArtistsURL  string `placeholder:"URL" name:"artists" default:"${defaultArtistsURL}" help:"URL of artists JSON to use. It can be a local file path, too. Default: ${defaultArtistsURL}."`
-	ArtworksURL string `placeholder:"URL" name:"artworks" default:"${defaultArtworksURL}" help:"URL of artworks JSON to use. It can be a local file path, too. Default: ${defaultArtworksURL}."`
-	WebsiteData bool   `help:"Fetch images and descriptions from MoMA website."`
+	CacheDir    string `default:"${defaultCacheDir}"    help:"Where to cache files to. Default: ${defaultCacheDir}."                                          name:"cache"    placeholder:"DIR"  short:"C" type:"path"`
+	Elastic     string `default:"${defaultElastic}"     help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                 placeholder:"URL"  short:"e"`
+	Index       string `default:"${defaultIndex}"       help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                                  placeholder:"NAME" short:"i"`
+	SizeField   bool   `                                help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
+	ArtistsURL  string `default:"${defaultArtistsURL}"  help:"URL of artists JSON to use. It can be a local file path, too. Default: ${defaultArtistsURL}."   name:"artists"  placeholder:"URL"`
+	ArtworksURL string `default:"${defaultArtworksURL}" help:"URL of artworks JSON to use. It can be a local file path, too. Default: ${defaultArtworksURL}." name:"artworks" placeholder:"URL"`
+	WebsiteData bool   `                                help:"Fetch images and descriptions from MoMA website."`
 }

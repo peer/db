@@ -44,9 +44,9 @@ var (
 )
 
 type picture struct {
-	Sources     []string `pagser:"source->eachAttr(srcset)" json:"sources,omitempty"`
-	ImageSrc    string   `pagser:"img->attr(src)" json:"imageSrc,omitempty"`
-	ImageSrcSet string   `pagser:"img->attr(srcset)" json:"imageSrcSet,omitempty"`
+	Sources     []string `json:"sources,omitempty"     pagser:"source->eachAttr(srcset)"`
+	ImageSrc    string   `json:"imageSrc,omitempty"    pagser:"img->attr(src)"`
+	ImageSrcSet string   `json:"imageSrcSet,omitempty" pagser:"img->attr(srcset)"`
 }
 
 type imageSrc struct {
@@ -212,15 +212,15 @@ func (p picture) Image() (image, errors.E) {
 }
 
 type momaArtist struct {
-	ChallengeRunning bool      `pagser:"#challenge-running->exists()" json:"challengeRunning"`
-	Pictures         []picture `pagser:"#main > div > section[role='banner'] picture" json:"pictures,omitempty"`
-	Article          string    `pagser:"#main > div > section.\\$typography\\/baseline\\:body section.typography\\/markdown->html()" json:"article,omitempty"`
+	ChallengeRunning bool      `json:"challengeRunning"   pagser:"#challenge-running->exists()"`
+	Pictures         []picture `json:"pictures,omitempty" pagser:"#main > div > section[role='banner'] picture"`
+	Article          string    `json:"article,omitempty"  pagser:"#main > div > section.\\$typography\\/baseline\\:body section.typography\\/markdown->html()"`
 }
 
 type momaArtwork struct {
-	ChallengeRunning bool      `pagser:"#challenge-running->exists()" json:"challengeRunning"`
-	Pictures         []picture `pagser:"section.work *:not(button) > picture" json:"pictures,omitempty"`
-	Article          string    `pagser:"#text->html()" json:"article,omitempty"`
+	ChallengeRunning bool      `json:"challengeRunning"   pagser:"#challenge-running->exists()"`
+	Pictures         []picture `json:"pictures,omitempty" pagser:"section.work *:not(button) > picture"`
+	Article          string    `json:"article,omitempty"  pagser:"#text->html()"`
 }
 
 type Artist struct {
@@ -278,7 +278,7 @@ func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	var data T
 	err := p.ParseReader(&data, in)
 	if err != nil {
-		return *new(T), errors.WithStack(err) //nolint:gocritic
+		return *new(T), errors.WithStack(err) 
 	}
 
 	return data, nil
@@ -349,7 +349,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T))))) //nolint:gocritic
+	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T))))) 
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -384,13 +384,13 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE //nolint:gocritic
+		return *new(T), errE 
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE //nolint:gocritic
+		return *new(T), errE 
 	}
 	defer resp.Body.Close()
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
@@ -401,7 +401,7 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		errors.Details(errE)["url"] = url
 		errors.Details(errE)["code"] = resp.StatusCode
 		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
-		return *new(T), errE //nolint:gocritic
+		return *new(T), errE 
 	}
 
 	return extractData[T](resp.Body)

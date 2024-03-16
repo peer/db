@@ -53,8 +53,8 @@ const (
 
 //nolint:lll
 type console struct {
-	Type  string        `placeholder:"TYPE" enum:"color,nocolor,json,disable" default:"${defaultLoggingConsoleType}" help:"Type of console logging. Possible: ${enum}. Default: ${defaultLoggingConsoleType}." yaml:"type"`
-	Level zerolog.Level `short:"l" placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"${defaultLoggingConsoleLevel}" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${defaultLoggingConsoleLevel}." yaml:"level"`
+	Type  string        `default:"${defaultLoggingConsoleType}"  enum:"color,nocolor,json,disable"  help:"Type of console logging. Possible: ${enum}. Default: ${defaultLoggingConsoleType}."                                                                   placeholder:"TYPE"            yaml:"type"`
+	Level zerolog.Level `default:"${defaultLoggingConsoleLevel}" enum:"trace,debug,info,warn,error" help:"All logs with a level greater than or equal to this level will be written to the console. Possible: ${enum}. Default: ${defaultLoggingConsoleLevel}." placeholder:"LEVEL" short:"l" yaml:"level"`
 }
 
 func (c *console) UnmarshalYAML(value *yaml.Node) error {
@@ -86,8 +86,8 @@ const (
 
 //nolint:lll
 type file struct {
-	Path  string        `placeholder:"PATH" type:"path" help:"Append logs to a file (as well)." yaml:"path"`
-	Level zerolog.Level `placeholder:"LEVEL" enum:"trace,debug,info,warn,error" default:"${defaultLoggingFileLevel}" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${defaultLoggingFileLevel}." yaml:"level"`
+	Path  string        `                                                                        help:"Append logs to a file (as well)."                                                                                                               placeholder:"PATH"  type:"path" yaml:"path"`
+	Level zerolog.Level `default:"${defaultLoggingFileLevel}" enum:"trace,debug,info,warn,error" help:"All logs with a level greater than or equal to this level will be written to the file. Possible: ${enum}. Default: ${defaultLoggingFileLevel}." placeholder:"LEVEL"             yaml:"level"`
 }
 
 func (f *file) UnmarshalYAML(value *yaml.Node) error {
@@ -117,7 +117,7 @@ type LoggingConfig struct {
 	Log     zerolog.Logger `kong:"-" yaml:"-"`
 	Logging struct {
 		Console console `embed:"" prefix:"console." yaml:"console"`
-		File    file    `embed:"" prefix:"file." yaml:"file"`
+		File    file    `embed:"" prefix:"file."    yaml:"file"`
 	} `embed:"" prefix:"logging." yaml:"logging"`
 }
 

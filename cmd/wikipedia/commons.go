@@ -42,8 +42,8 @@ var (
 // pass, checking all references and setting true IDs (having Wikidata ID is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type CommonsCommand struct {
-	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
-	URL          string `placeholder:"URL" help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	SkippedFiles string `help:"Load filenames of skipped Wikimedia Commons files."                                                         placeholder:"PATH" type:"path"`
+	URL          string `help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest." placeholder:"URL"`
 }
 
 func (c *CommonsCommand) Run(globals *Globals) errors.E {
@@ -150,10 +150,10 @@ func (c *CommonsCommand) processEntity(
 // want the latest information about files because we directly use files hosted on Wikimedia Commons by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
 type CommonsFilesCommand struct {
-	Token       string `placeholder:"TOKEN" env:"WIKIMEDIA_COMMONS_TOKEN" help:"Access token for Wikimedia Commons API. Not required. Environment variable: ${env}."`
-	APILimit    int    `placeholder:"INT" default:"${defaultAPILimit}" help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${defaultAPILimit}."` //nolint:lll
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikimedia Commons files."`
-	URL         string `placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
+	Token       string `                             env:"WIKIMEDIA_COMMONS_TOKEN" help:"Access token for Wikimedia Commons API. Not required. Environment variable: ${env}."                                                               placeholder:"TOKEN"`
+	APILimit    int    `default:"${defaultAPILimit}"                               help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${defaultAPILimit}." placeholder:"INT"` //nolint:lll
+	SaveSkipped string `                                                           help:"Save filenames of skipped Wikimedia Commons files."                                                                                                placeholder:"PATH"  type:"path"`
+	URL         string `                                                           help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."                                      placeholder:"URL"`
 }
 
 func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
@@ -189,7 +189,7 @@ func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
 // NAME (from redirects pointing to the file), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the file is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsFileDescriptionsCommand struct {
-	SkippedFiles string `placeholder:"PATH" type:"path" help:"Load filenames of skipped Wikimedia Commons files."`
+	SkippedFiles string `help:"Load filenames of skipped Wikimedia Commons files." placeholder:"PATH" type:"path"`
 }
 
 func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
@@ -354,7 +354,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 // NAME (from redirects pointing to the category), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the category is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsCategoriesCommand struct {
-	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	SkippedEntities string `help:"Load IDs of skipped Wikidata entities." placeholder:"PATH" type:"path"`
 }
 
 func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
@@ -528,7 +528,7 @@ func (c *CommonsCategoriesCommand) processPage(
 // NAME (from redirects pointing to the template or module), IN_WIKIMEDIA_COMMONS_CATEGORY (for categories the template or module is in),
 // USES_WIKIMEDIA_COMMONS_TEMPLATE (for templates used).
 type CommonsTemplatesCommand struct {
-	SkippedEntities string `placeholder:"PATH" type:"path" help:"Load IDs of skipped Wikidata entities."`
+	SkippedEntities string `help:"Load IDs of skipped Wikidata entities." placeholder:"PATH" type:"path"`
 }
 
 func (c *CommonsTemplatesCommand) Run(globals *Globals) errors.E {

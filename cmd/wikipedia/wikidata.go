@@ -36,8 +36,8 @@ var (
 // pass, checking all references and setting true IDs (having Wikidata ID is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.
 type WikidataCommand struct {
-	SaveSkipped string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
-	URL         string `placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
+	SaveSkipped string `help:"Save IDs of skipped Wikidata entities."                                                            placeholder:"PATH" type:"path"`
+	URL         string `help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest." placeholder:"URL"`
 }
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {

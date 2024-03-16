@@ -167,7 +167,7 @@ lint_docs:
   image: node:20.9-alpine3.18
 
   before_script:
-    - apk --update add make git git-lfs
+    - apk --update add make bash git git-lfs
     - git lfs fetch
 
   script:

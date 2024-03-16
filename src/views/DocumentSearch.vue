@@ -289,7 +289,7 @@ const filtersEnabled = ref(false)
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="(track(result._id) as any)" :result="result" />
+          <SearchResult :ref="track(result._id) as any" :result="result" />
         </template>
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">

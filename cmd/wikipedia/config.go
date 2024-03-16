@@ -20,15 +20,15 @@ const (
 //
 //nolint:lll
 type Globals struct {
-	Version kong.VersionFlag `short:"V" help:"Show program's version and exit."`
+	Version kong.VersionFlag `help:"Show program's version and exit." short:"V"`
 	cli.LoggingConfig
-	CacheDir               string `short:"C" name:"cache" placeholder:"DIR" default:"${defaultCacheDir}" type:"path" help:"Where to cache files to. Default: ${defaultCacheDir}."`
-	Elastic                string `short:"e" placeholder:"URL" default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."`
-	Index                  string `short:"i" placeholder:"NAME" default:"${defaultIndex}" help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."`
-	SizeField              bool   `help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
-	DecompressionThreads   int    `placeholder:"INT" default:"0" help:"The number of threads used for decompression. Defaults to the number of available cores."`
-	DecodingThreads        int    `placeholder:"INT" default:"0" help:"The number of threads used for decoding. Defaults to the number of available cores."`
-	ItemsProcessingThreads int    `placeholder:"INT" default:"0" help:"The number of threads used for items processing. Defaults to the number of available cores."`
+	CacheDir               string `default:"${defaultCacheDir}" help:"Where to cache files to. Default: ${defaultCacheDir}."                                       name:"cache" placeholder:"DIR"  short:"C" type:"path"`
+	Elastic                string `default:"${defaultElastic}"  help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                           placeholder:"URL"  short:"e"`
+	Index                  string `default:"${defaultIndex}"    help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                            placeholder:"NAME" short:"i"`
+	SizeField              bool   `                             help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
+	DecompressionThreads   int    `default:"0"                  help:"The number of threads used for decompression. Defaults to the number of available cores."                 placeholder:"INT"`
+	DecodingThreads        int    `default:"0"                  help:"The number of threads used for decoding. Defaults to the number of available cores."                      placeholder:"INT"`
+	ItemsProcessingThreads int    `default:"0"                  help:"The number of threads used for items processing. Defaults to the number of available cores."              placeholder:"INT"`
 }
 
 // Config provides configuration.
@@ -38,22 +38,22 @@ type Config struct {
 
 	// First we create all documents we search for: Wikidata entities and Wikimedia Commons and Wikipedia files.
 	Wikidata       WikidataCommand       `cmd:"" help:"Populate search with Wikidata entities dump."`
-	CommonsFiles   CommonsFilesCommand   `cmd:"" name:"commons-files" help:"Populate search with Wikimedia Commons files from image table SQL dump."`
-	WikipediaFiles WikipediaFilesCommand `cmd:"" name:"wikipedia-files" help:"Populate search with Wikipedia files from image table SQL dump."`
+	CommonsFiles   CommonsFilesCommand   `cmd:"" help:"Populate search with Wikimedia Commons files from image table SQL dump." name:"commons-files"`
+	WikipediaFiles WikipediaFilesCommand `cmd:"" help:"Populate search with Wikipedia files from image table SQL dump."         name:"wikipedia-files"`
 
 	// Then we add claims from entities of Wikimedia Commons files.
 	Commons CommonsCommand `cmd:"" help:"Populate search with Wikimedia Commons entities dump."`
 
 	// We add descriptions from HTML dumps.
-	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" name:"wikipedia-articles" help:"Populate search with Wikipedia articles HTML dump."`
-	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" name:"wikipedia-file-descriptions" help:"Populate search with Wikipedia file descriptions HTML dump."`
-	WikipediaCategories       WikipediaCategoriesCommand       `cmd:"" name:"wikipedia-categories" help:"Populate search with Wikipedia categories HTML dump."`
+	WikipediaArticles         WikipediaArticlesCommand         `cmd:"" help:"Populate search with Wikipedia articles HTML dump."          name:"wikipedia-articles"`
+	WikipediaFileDescriptions WikipediaFileDescriptionsCommand `cmd:"" help:"Populate search with Wikipedia file descriptions HTML dump." name:"wikipedia-file-descriptions"`
+	WikipediaCategories       WikipediaCategoriesCommand       `cmd:"" help:"Populate search with Wikipedia categories HTML dump."        name:"wikipedia-categories"`
 
 	// Not everything is available as dumps, so we fetch using API.
-	WikipediaTemplates      WikipediaTemplatesCommand      `cmd:"" name:"wikipedia-templates" help:"Populate search with Wikipedia templates using API."`
-	CommonsFileDescriptions CommonsFileDescriptionsCommand `cmd:"" name:"commons-file-descriptions" help:"Populate search with Wikimedia Commons file descriptions using API."` //nolint:lll
-	CommonsCategories       CommonsCategoriesCommand       `cmd:"" name:"commons-categories" help:"Populate search with Wikimedia Commons categories using API."`
-	CommonsTemplates        CommonsTemplatesCommand        `cmd:"" name:"commons-templates" help:"Populate search with Wikimedia Commons templates using API."`
+	WikipediaTemplates      WikipediaTemplatesCommand      `cmd:"" help:"Populate search with Wikipedia templates using API."                 name:"wikipedia-templates"`
+	CommonsFileDescriptions CommonsFileDescriptionsCommand `cmd:"" help:"Populate search with Wikimedia Commons file descriptions using API." name:"commons-file-descriptions"` //nolint:lll
+	CommonsCategories       CommonsCategoriesCommand       `cmd:"" help:"Populate search with Wikimedia Commons categories using API."        name:"commons-categories"`
+	CommonsTemplates        CommonsTemplatesCommand        `cmd:"" help:"Populate search with Wikimedia Commons templates using API."         name:"commons-templates"`
 
 	Prepare  PrepareCommand  `cmd:"" help:"Prepare populated data for search."`
 	Optimize OptimizeCommand `cmd:"" help:"Optimize search data."`
@@ -67,16 +67,16 @@ type runner interface {
 
 //nolint:lll
 type AllCommand struct {
-	WikidataSaveSkipped          string `placeholder:"PATH" type:"path" help:"Save IDs of skipped Wikidata entities."`
-	CommonsSaveSkipped           string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikimedia Commons files."`
-	WikipediaSaveSkipped         string `placeholder:"PATH" type:"path" help:"Save filenames of skipped Wikipedia files."`
-	WikidataURL                  string `name:"wikidata" placeholder:"URL" help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."`
-	CommonsFilesURL              string `name:"commons-files" placeholder:"URL" help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."`
-	WikipediaFilesURL            string `name:"wikipedia-files" placeholder:"URL" help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."`
-	CommonsURL                   string `name:"commons" placeholder:"URL" help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."`
-	WikipediaArticlesURL         string `name:"wikipedia-articles" placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
-	WikipediaFileDescriptionsURL string `name:"wikipedia-file-descriptions" placeholder:"URL" help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."`
-	WikipediaCategoriesURL       string `name:"wikipedia-categories" placeholder:"URL" help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."`
+	WikidataSaveSkipped          string `help:"Save IDs of skipped Wikidata entities."                                                                                                          placeholder:"PATH" type:"path"`
+	CommonsSaveSkipped           string `help:"Save filenames of skipped Wikimedia Commons files."                                                                                              placeholder:"PATH" type:"path"`
+	WikipediaSaveSkipped         string `help:"Save filenames of skipped Wikipedia files."                                                                                                      placeholder:"PATH" type:"path"`
+	WikidataURL                  string `help:"URL of Wikidata entities JSON dump to use. It can be a local file path, too. Default: the latest."            name:"wikidata"                    placeholder:"URL"`
+	CommonsFilesURL              string `help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest." name:"commons-files"               placeholder:"URL"`
+	WikipediaFilesURL            string `help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."         name:"wikipedia-files"             placeholder:"URL"`
+	CommonsURL                   string `help:"URL of Wikimedia Commons entities JSON dump to use. It can be a local file path, too. Default: the latest."   name:"commons"                     placeholder:"URL"`
+	WikipediaArticlesURL         string `help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."           name:"wikipedia-articles"          placeholder:"URL"`
+	WikipediaFileDescriptionsURL string `help:"URL of Wikipedia file descriptions HTML dump to use. It can be a local file path, too. Default: the latest."  name:"wikipedia-file-descriptions" placeholder:"URL"`
+	WikipediaCategoriesURL       string `help:"URL of Wikipedia articles HTML dump to use. It can be a local file path, too. Default: the latest."           name:"wikipedia-categories"        placeholder:"URL"`
 }
 
 func (c *AllCommand) Run(globals *Globals) errors.E {
