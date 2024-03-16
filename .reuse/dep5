@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: PeerDB
+Upstream-Contact: <https://gitlab.com/peerdb/peerdb>
+Source: https://gitlab.com/peerdb/peerdb
+
+Files: *
+Copyright: © 2020 PeerDB contributors <https://gitlab.com/peerdb/peerdb>
+License: Apache-2.0
+
+Files: *.md
+Copyright: © 2020 PeerDB contributors <https://gitlab.com/peerdb/peerdb>
+License: CC0-1.0
+
+Files: *.txt
+Copyright: © 2020 PeerDB contributors <https://gitlab.com/peerdb/peerdb>
+License: CC0-1.0

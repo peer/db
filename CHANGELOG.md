@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgrade to Go 1.21 and Node 20.
 - Remove active/inactive claims split and have only one set of claims.
-- Renamed repository from `gitlab.com/peerdb/search` to `gitlab.com/peerdb/peerdb`.
+- Rename repository from `gitlab.com/peerdb/search` to `gitlab.com/peerdb/peerdb`.
 
 ## [0.2.0] - 2022-11-08
 

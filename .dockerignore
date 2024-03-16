@@ -38,3 +38,5 @@ codeclimate.json
 /moma
 *.pem
 /keys.txt
+*.env
+*.secret

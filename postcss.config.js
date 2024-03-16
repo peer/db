@@ -1,6 +1,4 @@
-/* global module */
-
-module.exports = {
+export default {
   plugins: {
     // postcss-import is not needed here because it is automatically added by Vite.
     tailwindcss: {},

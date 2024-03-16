@@ -11,6 +11,8 @@ variables:
   # We want full history so that "git describe" always works correctly.
   GIT_DEPTH: 0
   FF_ENABLE_BASH_EXIT_CODE_CHECK: "true"
+  # We always want to run with the Go version installed in a Docker image.
+  GOTOOLCHAIN: local
   DOCKER_PIPELINE_IMAGE_NAME: "$CI_REGISTRY_IMAGE/pipeline:$CI_PIPELINE_ID"
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: "1"
@@ -19,17 +21,15 @@ variables:
 test_go:
   stage: test
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   before_script:
-    - apk --update add make gcc musl-dev git git-lfs
+    - apk --update add make bash gcc musl-dev mailcap git git-lfs
     - git lfs fetch
-    - (cd /go; go install gotest.tools/gotestsum@v1.8.2)
+    - (cd /go; go install gotest.tools/gotestsum@v1.10.1)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.2.0)
 
   script:
-    - mkdir -p dist
-    - touch dist/dummy
     - make test-ci
 
   artifacts:
@@ -40,7 +40,9 @@ test_go:
         coverage_format: cobertura
         path: coverage.xml
     paths:
+      - tests.xml
       - coverage.html
+      - coverage.xml
     expire_in: never
 
   coverage: '/coverage: \d+\.\d+% of statements/'
@@ -48,7 +50,7 @@ test_go:
 test_node:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -76,16 +78,14 @@ test_node:
 lint_go:
   stage: test
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   before_script:
-    - apk --update add make gcc musl-dev git git-lfs
+    - apk --update add make bash gcc musl-dev git git-lfs
     - git lfs fetch
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.2
 
   script:
-    - mkdir -p dist
-    - touch dist/dummy
     - make lint-ci
 
   artifacts:
@@ -97,7 +97,7 @@ lint_go:
 lint_node:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -110,7 +110,7 @@ lint_node:
 lint_vue:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -123,7 +123,7 @@ lint_vue:
 lint_style:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -136,13 +136,13 @@ lint_style:
 fmt_go:
   stage: test
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   before_script:
-    - apk --update add make git gcc musl-dev grep git-lfs
+    - apk --update add make bash git gcc musl-dev grep git-lfs
     - git lfs fetch
-    - go install mvdan.cc/gofumpt@v0.4.0
-    - go install golang.org/x/tools/cmd/goimports@v0.1.12
+    - go install mvdan.cc/gofumpt@v0.5.0
+    - go install golang.org/x/tools/cmd/goimports@v0.13.0
 
   script:
     - make fmt-ci
@@ -150,7 +150,7 @@ fmt_go:
 fmt_node:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -164,7 +164,7 @@ fmt_node:
 lint_docs:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add make git git-lfs
@@ -177,12 +177,12 @@ lint_docs:
 audit_go:
   stage: test
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   before_script:
-    - apk --update add make git gcc musl-dev git-lfs
+    - apk --update add make bash git gcc musl-dev git-lfs
     - git lfs fetch
-    - go install github.com/sonatype-nexus-community/nancy@v1.0.39
+    - go install github.com/sonatype-nexus-community/nancy@v1.0.42
 
   script:
     - make audit
@@ -190,7 +190,7 @@ audit_go:
 audit_node:
   stage: test
 
-  image: node:16.17-alpine3.15
+  image: node:20.9-alpine3.18
 
   before_script:
     - apk --update add git git-lfs
@@ -203,7 +203,7 @@ audit_node:
 commits:
   stage: test
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   variables:
     GIT_DEPTH: "0"
@@ -214,13 +214,23 @@ commits:
   script:
     - '! git log --oneline "-G^(<<<<<<<|=======|>>>>>>>)" | grep "^"'
 
+reuse:
+  stage: test
+
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+
+  script:
+    - reuse lint
+
 docker:
   stage: build
 
-  image: docker:20-git
+  image: docker:23-git
 
   services:
-    - docker:20-dind
+    - docker:23-dind
 
   before_script:
     - docker info
@@ -302,10 +312,10 @@ nix:
 push_branch:
   stage: deploy
 
-  image: docker:20
+  image: docker:23
 
   services:
-    - docker:20-dind
+    - docker:23-dind
 
   before_script:
     - docker info
@@ -333,10 +343,10 @@ push_branch:
 push_tag:
   stage: deploy
 
-  image: docker:20
+  image: docker:23
 
   services:
-    - docker:20-dind
+    - docker:23-dind
 
   before_script:
     - docker info
@@ -365,7 +375,7 @@ push_tag:
 upload_binaries:
   stage: deploy
 
-  image: curlimages/curl:7.80.0
+  image: curlimages/curl:8.1.2
 
   script:
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-search-linux-amd64 "$PACKAGE_REGISTRY_URL/linux-amd64/${CI_COMMIT_REF_NAME#v}/peerdb-search"'
@@ -395,7 +405,7 @@ upload_nix:
 publish:
   stage: deploy
 
-  image: golang:1.19.1-alpine3.15
+  image: golang:1.21-alpine3.18
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"

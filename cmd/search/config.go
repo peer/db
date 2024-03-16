@@ -30,7 +30,7 @@ func (s *site) Decode(ctx *kong.DecodeContext) error {
 const (
 	DefaultElastic  = "http://127.0.0.1:9200"
 	DefaultIndex    = "docs"
-	DefaultProxyTo  = "http://localhost:3000"
+	DefaultProxyTo  = "http://localhost:5173"
 	DefaultTLSCache = "letsencrypt"
 	DefaultTitle    = "PeerDB Search"
 )

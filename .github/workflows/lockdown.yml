@@ -12,6 +12,6 @@ jobs:
         with:
           github-token: ${{ github.token }}
           process-only: 'prs'
-          pr-comment: 'This repository is a mirror of https://gitlab.com/peerdb/search and does not accept pull requests. Please make a merge request on GitLab.'
+          pr-comment: 'This repository is a mirror of https://gitlab.com/peerdb/peerdb and does not accept pull requests. Please make a merge request on GitLab.'
           close-pr: true
           lock-pr: true
