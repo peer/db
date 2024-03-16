@@ -1,19 +1,19 @@
-@import "tailwindcss/base";
-@import "nouislider/dist/nouislider.css";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
-@import "tailwindcss/variants";
+@import url("tailwindcss/base");
+@import url("nouislider/dist/nouislider.css");
+@import url("tailwindcss/components");
+@import url("tailwindcss/utilities");
+@import url("tailwindcss/variants");
 
 @layer components {
+  a:has(img) {
+    @apply outline-none;
+  }
+
   .link,
   .prose a {
     @apply rounded-sm font-medium text-primary-600 outline-none drop-shadow-sm;
 
     text-decoration: unset;
-  }
-
-  a:has(img) {
-    @apply outline-none;
   }
 
   a > img {
