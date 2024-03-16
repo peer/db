@@ -278,7 +278,7 @@ func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	var data T
 	err := p.ParseReader(&data, in)
 	if err != nil {
-		return *new(T), errors.WithStack(err) 
+		return *new(T), errors.WithStack(err)
 	}
 
 	return data, nil
@@ -349,7 +349,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T))))) 
+	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T)))))
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -384,13 +384,13 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE 
+		return *new(T), errE
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
-		return *new(T), errE 
+		return *new(T), errE
 	}
 	defer resp.Body.Close()
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
@@ -401,7 +401,7 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		errors.Details(errE)["url"] = url
 		errors.Details(errE)["code"] = resp.StatusCode
 		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
-		return *new(T), errE 
+		return *new(T), errE
 	}
 
 	return extractData[T](resp.Body)
