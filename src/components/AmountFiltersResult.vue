@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, min, max, error, url } = useAmountHistogramValues(props.result, el, progress)
+const { results, min, max, error, url: resultsUrl } = useAmountHistogramValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
+  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <WithDocument :id="result._id">
         <template #default="{ doc, url }">

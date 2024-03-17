@@ -106,11 +106,11 @@ const rowSpan = computed(() => {
 <template>
   <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
     <WithDocument :id="result._id" ref="withDocument">
-      <template #default="{ doc }">
+      <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
+              :to="{ name: 'DocumentGet', params: { id: resultDoc._id }, query: { s: route.query.s } }"
               class="link"
               v-html="docName || '<i>no name</i>'"
             ></RouterLink>
@@ -133,7 +133,7 @@ const rowSpan = computed(() => {
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: doc._id }, query: { s: route.query.s } }"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc._id }, query: { s: route.query.s } }"
               ><img :src="previewFiles[0]" class="mx-auto bg-white"
             /></RouterLink>
           </div>

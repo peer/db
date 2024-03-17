@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const el = ref(null)
 
 const progress = ref(0)
-const { results, total, error, url } = useRelFilterValues(props.result, el, progress)
+const { results, total, error, url: resultsUrl } = useRelFilterValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
@@ -72,7 +72,7 @@ function stateHasNONE(): boolean {
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
+  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <WithDocument :id="result._id">
         <template #default="{ doc, url }">
