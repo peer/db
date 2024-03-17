@@ -63,7 +63,7 @@ fmt-ci: fmt
 	git diff --exit-code --color=always
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml *.nix coverage dist search wikipedia mapping moma
+	rm -rf coverage.* codeclimate.json tests.xml coverage dist search wikipedia mapping moma
 
 release:
 	npx --yes --package 'release-it@15.4.2' --package '@release-it/keep-a-changelog@3.1.0' -- release-it

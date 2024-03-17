@@ -36,7 +36,6 @@ contains a list of stable versions. Each includes:
 
 - A statically compiled binary.
 - Docker images.
-- A nix package.
 
 ### Static binary
 
@@ -70,29 +69,6 @@ The latest successfully built development (`main` branch) image is available as:
 `registry.gitlab.com/peerdb/peerdb/branch/main:latest`
 
 generated in the current directory as described above:
-
-### Nix
-
-You can build a binary yourself using [Nix](https://nixos.org/). For the latest stable version, run:
-
-```sh
-nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/nix/nix.tgz)) { }"
-```
-
-The built binary is available at `./result/bin/search`.
-
-If you download a `nix.tgz` file for an [older version](https://gitlab.com/peerdb/peerdb/-/releases),
-you can build the binary with:
-
-```sh
-nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball file://$(pwd)/nix.tgz)) { }"
-```
-
-To build the latest development (`main` branch) binary, run:
-
-```sh
-nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/nix.tgz?job=nix)) { }"
-```
 
 ## Usage
 

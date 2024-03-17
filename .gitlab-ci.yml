@@ -279,36 +279,6 @@ docker:
   # We want to run it as soon as possible and do not wait for test stage to finish.
   needs: []
 
-nix:
-  stage: build
-
-  image: nixos/nix:2.11.1
-
-  before_script:
-    - nix-env -f '<nixpkgs>' -iA nodePackages.node2nix git-lfs gnused
-    - git lfs fetch
-
-  script:
-    - node2nix --lock package-lock.json --nodejs-16 --composition node.nix --development
-    - ./nix-update.sh
-    - mkdir nix
-    - cp package.json *.nix nix
-    - tar czf nix.tgz nix
-    - mkdir /tmp/test
-    - cp nix.tgz /tmp/test
-    - cd /tmp/test
-    - nix-build -E "with import <nixpkgs> { }; callPackage (import (fetchTarball file://$(pwd)/nix.tgz)) { }"
-
-  artifacts:
-    expose_as: nix
-    name: nix
-    paths:
-      - nix.tgz
-    expire_in: never
-
-  # We want to run it as soon as possible and do not wait for test stage to finish.
-  needs: []
-
 push_branch:
   stage: deploy
 
@@ -386,21 +356,6 @@ upload_binaries:
 
   dependencies:
     - docker
-
-upload_nix:
-  stage: deploy
-
-  image: curlimages/curl:7.80.0
-
-  script:
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file nix.tgz "$PACKAGE_REGISTRY_URL/nix/${CI_COMMIT_REF_NAME#v}/nix.tgz"'
-
-  rules:
-    # Only on protected tags. Protected tags start with "v".
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/'
-
-  dependencies:
-    - nix
 
 publish:
   stage: deploy
