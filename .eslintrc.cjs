@@ -10,6 +10,13 @@ module.exports = {
   extends: ["eslint:recommended", "plugin:vue/vue3-recommended", "@vue/typescript/recommended", "prettier"],
   rules: {
     "vue/multi-word-component-names": ["off"],
+    "vue/no-v-html": ["off"],
+    "vue/no-v-text-v-html-on-component": [
+      "error",
+      {
+        "allow": ["RouterLink"],
+      },
+    ],
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
