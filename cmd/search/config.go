@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/alecthomas/kong"
-
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"

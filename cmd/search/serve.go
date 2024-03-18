@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/net/idna"
-
-	"gitlab.com/tozd/go/cli"
 
 	"gitlab.com/peerdb/search"
 )

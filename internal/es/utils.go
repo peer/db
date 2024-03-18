@@ -15,10 +15,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
+	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-
-	"gitlab.com/tozd/go/cli"
 
 	"gitlab.com/peerdb/search"
 )
