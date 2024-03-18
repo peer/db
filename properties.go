@@ -182,7 +182,7 @@ var (
 )
 
 func GetCorePropertyReference(mnemonic string) DocumentReference {
-	property, ok := CoreProperties[*GetCorePropertyID(mnemonic)]
+	property, ok := CoreProperties[GetCorePropertyID(mnemonic)]
 	if !ok {
 		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
 	}
@@ -201,10 +201,11 @@ func GetID(namespace uuid.UUID, args ...interface{}) identifier.Identifier {
 	return identifier.FromUUID(res)
 }
 
-// GetCorePropertyID returns a pointer only so that it is easier to set the value directly
-// to CoreClaim's ID field. It never returns nil.
-func GetCorePropertyID(mnemonic string) *identifier.Identifier {
-	id := GetID(nameSpaceCoreProperties, mnemonic)
+func GetCorePropertyID(mnemonic string) identifier.Identifier {
+	return GetID(nameSpaceCoreProperties, mnemonic)
+}
+
+func getPointer(id identifier.Identifier) *identifier.Identifier {
 	return &id
 }
 
@@ -223,7 +224,7 @@ func GenerateCoreProperties(properties []struct {
 ) {
 	for _, property := range properties {
 		mnemonic := getMnemonic(property.Name)
-		id := *GetCorePropertyID(mnemonic)
+		id := GetCorePropertyID(mnemonic)
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
 				ID:    id,
@@ -238,7 +239,7 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("NAME"),
+							ID:    getPointer(GetCorePropertyID("NAME")),
 							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
@@ -251,7 +252,7 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("DESCRIPTION"),
+							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
 							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
@@ -266,11 +267,11 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("IS"),
+							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID:    GetCorePropertyID("PROPERTY"),
+							ID:    getPointer(GetCorePropertyID("PROPERTY")),
 							Score: 0.5,
 						},
 					},
@@ -286,11 +287,11 @@ func GenerateCoreProperties(properties []struct {
 					Confidence: 1.0,
 				},
 				Prop: DocumentReference{
-					ID:    GetCorePropertyID("IS"),
+					ID:    getPointer(GetCorePropertyID("IS")),
 					Score: 0.5,
 				},
 				To: DocumentReference{
-					ID:    GetCorePropertyID(isClaimMnemonic),
+					ID:    getPointer(GetCorePropertyID(isClaimMnemonic)),
 					Score: 0.5,
 				},
 			})
@@ -304,7 +305,7 @@ func generateAllCoreProperties() {
 	for _, claimType := range claimTypes {
 		name := fmt.Sprintf(`"%s" claim type`, claimType)
 		mnemonic := getMnemonic(name)
-		id := *GetCorePropertyID(mnemonic)
+		id := GetCorePropertyID(mnemonic)
 		description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
@@ -320,7 +321,7 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("NAME"),
+							ID:    getPointer(GetCorePropertyID("NAME")),
 							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
@@ -333,7 +334,7 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("DESCRIPTION"),
+							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
 							Score: 0.5,
 						},
 						HTML: TranslatableHTMLString{
@@ -348,11 +349,11 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("IS"),
+							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID:    GetCorePropertyID("PROPERTY"),
+							ID:    getPointer(GetCorePropertyID("PROPERTY")),
 							Score: 0.5,
 						},
 					},
@@ -362,11 +363,11 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: DocumentReference{
-							ID:    GetCorePropertyID("IS"),
+							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: 0.5,
 						},
 						To: DocumentReference{
-							ID:    GetCorePropertyID("CLAIM_TYPE"),
+							ID:    getPointer(GetCorePropertyID("CLAIM_TYPE")),
 							Score: 0.5,
 						},
 					},

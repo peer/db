@@ -77,7 +77,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	claims := doc.Get(*search.GetCorePropertyID("ARTICLE"))
+	claims := doc.Get(search.GetCorePropertyID("ARTICLE"))
 	assert.Equal(t, []search.Claim{
 		&search.NoValueClaim{
 			CoreClaim: search.CoreClaim{

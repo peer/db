@@ -455,7 +455,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	}
 
 	var fileDocument *search.Document
-	for _, cc := range claim.GetMeta(*search.GetCorePropertyID("IS")) {
+	for _, cc := range claim.GetMeta(search.GetCorePropertyID("IS")) {
 		if c, ok := cc.(*search.RelationClaim); ok {
 			// c.To.ID should be non-nil ID because we called claim.VisitMeta(v) above.
 			fileDocument, err = v.getDocumentByID(*c.To.ID)
@@ -471,7 +471,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	if fileDocument != nil {
 		var mediaType string
-		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("MEDIA_TYPE")) {
+		for _, cc := range fileDocument.Get(search.GetCorePropertyID("MEDIA_TYPE")) {
 			if c, ok := cc.(*search.StringClaim); ok {
 				mediaType = c.String
 				break
@@ -489,7 +489,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		}
 
 		var fileURL string
-		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("FILE_URL")) {
+		for _, cc := range fileDocument.Get(search.GetCorePropertyID("FILE_URL")) {
 			if c, ok := cc.(*search.ReferenceClaim); ok {
 				fileURL = c.IRI
 				break
@@ -508,7 +508,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 		// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
 		var previews []string
-		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("PREVIEW_URL")) {
+		for _, cc := range fileDocument.Get(search.GetCorePropertyID("PREVIEW_URL")) {
 			if c, ok := cc.(*search.ReferenceClaim); ok {
 				previews = append(previews, c.IRI)
 			}
@@ -529,10 +529,10 @@ func UpdateEmbeddedDocuments(
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []search.Claim{}
-	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
 	entityIDs := []string{}
 	for _, entityIDClaim := range entityIDClaims {

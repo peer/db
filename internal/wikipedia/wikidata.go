@@ -244,7 +244,7 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 		}
 
 		found := false
-		for _, claim := range document.Get(*search.GetCorePropertyID(property)) {
+		for _, claim := range document.Get(search.GetCorePropertyID(property)) {
 			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == id {
 				found = true
 				break
@@ -315,10 +315,10 @@ func clampConfidence(c search.Score) search.Score {
 }
 
 func resolveDataTypeFromPropertyDocument(document *search.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
-	for _, claim := range document.Get(*search.GetCorePropertyID("IS")) {
+	for _, claim := range document.Get(search.GetCorePropertyID("IS")) {
 		if c, ok := claim.(*search.RelationClaim); ok {
 			for claimType, dataTypes := range claimTypeToDataTypesMap {
-				if c.To.ID != nil && *c.To.ID == *search.GetCorePropertyID(claimType) {
+				if c.To.ID != nil && *c.To.ID == search.GetCorePropertyID(claimType) {
 					if len(dataTypes) == 1 {
 						return dataTypes[0], nil
 					} else if claimType == "RELATION_CLAIM_TYPE" && valueType != nil {

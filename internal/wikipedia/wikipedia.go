@@ -351,7 +351,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	}
 	escapedName := html.EscapeString(strings.ReplaceAll(redirect, "_", " "))
 	found := false
-	for _, claim := range document.Get(*search.GetCorePropertyID("NAME")) {
+	for _, claim := range document.Get(search.GetCorePropertyID("NAME")) {
 		if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
 			found = true
 			break
