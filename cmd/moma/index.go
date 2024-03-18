@@ -418,23 +418,23 @@ func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, logger ze
 }
 
 func index(config *Config) errors.E {
-	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Log, config.Elastic, config.Index, config.SizeField)
+	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Logger, config.Elastic, config.Index, config.SizeField)
 	if errE != nil {
 		return errE
 	}
 
-	artists, err := getJSON[Artist](ctx, httpClient, config.Log, config.CacheDir, config.ArtistsURL)
+	artists, err := getJSON[Artist](ctx, httpClient, config.Logger, config.CacheDir, config.ArtistsURL)
 	if err != nil {
 		return err
 	}
 
-	artworks, err := getJSON[Artwork](ctx, httpClient, config.Log, config.CacheDir, config.ArtworksURL)
+	artworks, err := getJSON[Artwork](ctx, httpClient, config.Logger, config.CacheDir, config.ArtworksURL)
 	if err != nil {
 		return err
 	}
 
 	count := x.Counter(0)
-	progress := es.Progress(config.Log, processor, nil, nil, "indexing")
+	progress := es.Progress(config.Logger, processor, nil, nil, "indexing")
 	ticker := x.NewTicker(ctx, &count, int64(len(search.CoreProperties))+int64(len(artists))+int64(len(artworks)), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -443,7 +443,7 @@ func index(config *Config) errors.E {
 		}
 	}()
 
-	err = search.SaveCoreProperties(ctx, config.Log, esClient, processor, config.Index)
+	err = search.SaveCoreProperties(ctx, config.Logger, esClient, processor, config.Index)
 	if err != nil {
 		return err
 	}
@@ -624,21 +624,21 @@ func index(config *Config) errors.E {
 		}
 
 		if config.WebsiteData { //nolint:dupl
-			data, err := getArtist(ctx, httpClient, config.Log, artist.ConstituentID)
+			data, err := getArtist(ctx, httpClient, config.Logger, artist.ConstituentID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
-					config.Log.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
+					config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
 					count.Increment()
 					continue
 				}
-				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
+				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
 			} else if data.ChallengeRunning {
-				config.Log.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
+				config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
 					image, err := picture.Image()
 					if err != nil {
-						config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
+						config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
 					} else {
 						errE = doc.Add(&search.FileClaim{
 							CoreClaim: search.CoreClaim{
@@ -687,7 +687,7 @@ func index(config *Config) errors.E {
 
 		count.Increment()
 
-		config.Log.Debug().Str("doc", doc.ID.String()).Msg("saving document")
+		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		search.InsertOrReplaceDocument(processor, config.Index, &doc)
 	}
 
@@ -752,21 +752,21 @@ func index(config *Config) errors.E {
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
 		if config.WebsiteData { //nolint:dupl
-			data, err := getArtwork(ctx, httpClient, config.Log, artwork.ObjectID)
+			data, err := getArtwork(ctx, httpClient, config.Logger, artwork.ObjectID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
-					config.Log.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")
+					config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")
 					count.Increment()
 					continue
 				}
-				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
+				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
 			} else if data.ChallengeRunning {
-				config.Log.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
+				config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
 					image, err := picture.Image()
 					if err != nil {
-						config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+						config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 					} else {
 						errE = doc.Add(&search.FileClaim{
 							CoreClaim: search.CoreClaim{
@@ -839,7 +839,7 @@ func index(config *Config) errors.E {
 			processedConstituentIDs[constituentID] = true
 			to, err := getArtistReference(artistsMap, constituentID)
 			if err != nil {
-				config.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 				continue
 			}
 			err = doc.Add(&search.RelationClaim{
@@ -1103,7 +1103,7 @@ func index(config *Config) errors.E {
 
 		count.Increment()
 
-		config.Log.Debug().Str("doc", doc.ID.String()).Msg("saving document")
+		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		search.InsertOrReplaceDocument(processor, config.Index, &doc)
 	}
 

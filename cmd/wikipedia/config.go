@@ -5,8 +5,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"gitlab.com/tozd/go/errors"
-
-	"gitlab.com/peerdb/search/internal/cli"
+	"gitlab.com/tozd/go/zerolog"
 )
 
 const (
@@ -20,15 +19,16 @@ const (
 //
 //nolint:lll
 type Globals struct {
-	Version kong.VersionFlag `help:"Show program's version and exit." short:"V"`
-	cli.LoggingConfig
-	CacheDir               string `default:"${defaultCacheDir}" help:"Where to cache files to. Default: ${defaultCacheDir}."                                       name:"cache" placeholder:"DIR"  short:"C" type:"path"`
-	Elastic                string `default:"${defaultElastic}"  help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                           placeholder:"URL"  short:"e"`
-	Index                  string `default:"${defaultIndex}"    help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                            placeholder:"NAME" short:"i"`
-	SizeField              bool   `                             help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
-	DecompressionThreads   int    `default:"0"                  help:"The number of threads used for decompression. Defaults to the number of available cores."                 placeholder:"INT"`
-	DecodingThreads        int    `default:"0"                  help:"The number of threads used for decoding. Defaults to the number of available cores."                      placeholder:"INT"`
-	ItemsProcessingThreads int    `default:"0"                  help:"The number of threads used for items processing. Defaults to the number of available cores."              placeholder:"INT"`
+	zerolog.LoggingConfig
+
+	Version                kong.VersionFlag `                             help:"Show program's version and exit."                                                                                            short:"V"`
+	CacheDir               string           `default:"${defaultCacheDir}" help:"Where to cache files to. Default: ${defaultCacheDir}."                                       name:"cache" placeholder:"DIR"  short:"C" type:"path"`
+	Elastic                string           `default:"${defaultElastic}"  help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                           placeholder:"URL"  short:"e"`
+	Index                  string           `default:"${defaultIndex}"    help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                            placeholder:"NAME" short:"i"`
+	SizeField              bool             `                             help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
+	DecompressionThreads   int              `default:"0"                  help:"The number of threads used for decompression. Defaults to the number of available cores."                 placeholder:"INT"`
+	DecodingThreads        int              `default:"0"                  help:"The number of threads used for decoding. Defaults to the number of available cores."                      placeholder:"INT"`
+	ItemsProcessingThreads int              `default:"0"                  help:"The number of threads used for items processing. Defaults to the number of available cores."              placeholder:"INT"`
 }
 
 // Config provides configuration.
@@ -114,7 +114,7 @@ func (c *AllCommand) Run(globals *Globals) errors.E {
 	}
 
 	for _, command := range allCommands {
-		globals.Log.Info().Msgf("running command %s", reflect.TypeOf(command).Elem().Name())
+		globals.Logger.Info().Msgf("running command %s", reflect.TypeOf(command).Elem().Name())
 		err := command.Run(globals)
 		if err != nil {
 			return err

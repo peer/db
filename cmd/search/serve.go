@@ -12,8 +12,9 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/net/idna"
 
+	"gitlab.com/tozd/go/cli"
+
 	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/cli"
 )
 
 const (
@@ -25,7 +26,7 @@ func (c *ServeCommand) Help() string {
 }
 
 func (c *ServeCommand) Run(globals *Globals) errors.E {
-	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Log, globals.Elastic)
+	esClient, err := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 				manager := CertificateManager{
 					CertFile: site.CertFile,
 					KeyFile:  site.KeyFile,
-					Log:      globals.Log,
+					Log:      globals.Logger,
 				}
 
 				err = manager.Start()
@@ -68,7 +69,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 				manager := CertificateManager{
 					CertFile: c.TLS.CertFile,
 					KeyFile:  c.TLS.KeyFile,
-					Log:      globals.Log,
+					Log:      globals.Logger,
 				}
 
 				err = manager.Start()
@@ -120,7 +121,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 			manager := CertificateManager{
 				CertFile: c.TLS.CertFile,
 				KeyFile:  c.TLS.KeyFile,
-				Log:      globals.Log,
+				Log:      globals.Logger,
 			}
 
 			err = manager.Start()
@@ -152,7 +153,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 		letsEncryptGetCertificate = manager.GetCertificate
 	}
 
-	s, err := search.NewService(esClient, globals.Log, cli.Version, cli.BuildTimestamp, cli.Revision, sites, development)
+	s, err := search.NewService(esClient, globals.Logger, cli.Version, cli.BuildTimestamp, cli.Revision, sites, development)
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 	server := &http.Server{
 		Addr:              listenAddr,
 		Handler:           handler,
-		ErrorLog:          log.New(globals.Log, "", 0),
+		ErrorLog:          log.New(globals.Logger, "", 0),
 		ConnContext:       s.ConnContext,
 		ReadHeaderTimeout: time.Minute,
 		TLSConfig: &tls.Config{
@@ -213,7 +214,7 @@ func (c *ServeCommand) Run(globals *Globals) errors.E {
 		panic(errors.New("no GetCertificate"))
 	}
 
-	globals.Log.Info().Msgf("starting on %s", listenAddr)
+	globals.Logger.Info().Msgf("starting on %s", listenAddr)
 
 	return errors.WithStack(server.ListenAndServeTLS("", ""))
 }

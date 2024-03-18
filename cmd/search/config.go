@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/alecthomas/kong"
 
+	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-
-	"gitlab.com/peerdb/search/internal/cli"
+	"gitlab.com/tozd/go/zerolog"
 )
 
 type site struct {
@@ -39,13 +39,14 @@ const (
 //
 //nolint:lll
 type Globals struct {
-	Version           kong.VersionFlag `                                           help:"Show program's version and exit."                                                                                                                                                           short:"V" yaml:"-"`
-	Config            cli.ConfigFlag   `                                           help:"Load configuration from a JSON or YAML file."                                                                                                   name:"config" placeholder:"PATH"            short:"c" yaml:"-"`
-	cli.LoggingConfig `                                                                                                                                                                                                                                                       yaml:",inline"`
-	Elastic           string `default:"${defaultElastic}"                help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                                                               placeholder:"URL"             short:"e" yaml:"elastic"`
-	Index             string `default:"${defaultIndex}"   group:"Sites:" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                                                                  placeholder:"NAME"            short:"i" yaml:"index"`
-	SizeField         bool   `                            group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                                                                                   yaml:"sizeField"`
-	Sites             []site `                            group:"Sites:" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site"   placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
+	zerolog.LoggingConfig `yaml:",inline"`
+
+	Version   kong.VersionFlag `                                           help:"Show program's version and exit."                                                                                                                                                           short:"V" yaml:"-"`
+	Config    cli.ConfigFlag   `                                           help:"Load configuration from a JSON or YAML file."                                                                                                   name:"config" placeholder:"PATH"            short:"c" yaml:"-"`
+	Elastic   string           `default:"${defaultElastic}"                help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                                                               placeholder:"URL"             short:"e" yaml:"elastic"`
+	Index     string           `default:"${defaultIndex}"   group:"Sites:" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                                                                  placeholder:"NAME"            short:"i" yaml:"index"`
+	SizeField bool             `                            group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                                                                                   yaml:"sizeField"`
+	Sites     []site           `                            group:"Sites:" help:"Site configuration as JSON with fields \"domain\", \"index\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site"   placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 // Config provides configuration.

@@ -8,12 +8,12 @@ import (
 )
 
 func (c *PopulateCommand) runIndex(globals *Globals, index string, sizeField bool) errors.E {
-	ctx, _, _, esClient, processor, err := es.Initialize(globals.Log, globals.Elastic, index, sizeField)
+	ctx, _, _, esClient, processor, err := es.Initialize(globals.Logger, globals.Elastic, index, sizeField)
 	if err != nil {
 		return err
 	}
 
-	err = search.SaveCoreProperties(ctx, globals.Log, esClient, processor, index)
+	err = search.SaveCoreProperties(ctx, globals.Logger, esClient, processor, index)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	globals.Log.Info().Msg("Done.")
+	globals.Logger.Info().Msg("Done.")
 
 	return nil
 }

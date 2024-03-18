@@ -411,7 +411,7 @@ func generate(config *Config) errors.E {
 		return errors.WithStack(err)
 	}
 
-	config.Log.Info().Msg("mapping generated successfully")
+	config.Logger.Info().Msg("mapping generated successfully")
 
 	return nil
 }

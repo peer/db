@@ -154,7 +154,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	filename = wikipedia.FirstUpperCase(filename)
 
 	if _, ok := skippedWikipediaFiles.Load(filename); ok {
-		globals.Log.Debug().Str("file", filename).Str("title", article.Name).Msg("skipped file")
+		globals.Logger.Debug().Str("file", filename).Str("title", article.Name).Msg("skipped file")
 		return nil
 	}
 
@@ -167,11 +167,11 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		details["file"] = filename
 		details["title"] = article.Name
 		if errors.Is(err, wikipedia.WikimediaCommonsFileError) {
-			globals.Log.Debug().Err(err).Fields(details).Send()
+			globals.Logger.Debug().Err(err).Fields(details).Send()
 		} else if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
+			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(err).Fields(details).Send()
 		}
 		return nil
 	}
@@ -182,7 +182,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
@@ -192,41 +192,41 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	err = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikipediaFile, filename, article, document)
+	err = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikipediaFile, filename, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", article.Name).Msg("updating document")
+	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", article.Name).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
@@ -275,21 +275,21 @@ func wikipediaArticlesProcessArticle(
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
+			globals.Logger.Debug().Str("title", article.Name).Msg("article does not have an associated entity: redirect")
 		} else if wiktionaryRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
+			globals.Logger.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wiktionary")
 		} else if wikispeciesRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
+			globals.Logger.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikispecies")
 		} else if wikimediaCommonsRegex.MatchString(article.ArticleBody.WikiText) {
-			globals.Log.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
+			globals.Logger.Debug().Str("title", article.Name).Msg("article does not have an associated entity: wikimedia commons")
 		} else {
-			globals.Log.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
+			globals.Logger.Warn().Str("title", article.Name).Msg("article does not have an associated entity")
 		}
 		return nil
 	}
 
 	if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(article.MainEntity.Identifier).String()); ok {
-		globals.Log.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
+		globals.Logger.Debug().Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("skipped entity")
 		return nil
 	}
 
@@ -299,9 +299,9 @@ func wikipediaArticlesProcessArticle(
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
 		if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
+			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(err).Fields(details).Send()
 		}
 		return nil
 	}
@@ -317,7 +317,7 @@ func wikipediaArticlesProcessArticle(
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
@@ -327,41 +327,41 @@ func wikipediaArticlesProcessArticle(
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleInCategories(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	err = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, article, document)
+	err = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, article, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
+	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil

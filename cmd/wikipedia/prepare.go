@@ -56,7 +56,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
-	return search.SaveCoreProperties(ctx, globals.Log, esClient, processor, globals.Index)
+	return search.SaveCoreProperties(ctx, globals.Logger, esClient, processor, globals.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
@@ -73,7 +73,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	g, ctx := errgroup.WithContext(ctx)
 
 	count := x.Counter(0)
-	progress := es.Progress(globals.Log, processor, cache, nil, "")
+	progress := es.Progress(globals.Logger, processor, cache, nil, "")
 	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -116,7 +116,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Log, esClient, processor, cache, hit)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, esClient, processor, cache, hit)
 					if err != nil {
 						return err
 					}

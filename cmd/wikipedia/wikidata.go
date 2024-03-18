@@ -75,14 +75,14 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 func (c *WikidataCommand) processEntity(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Log, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
-			globals.Log.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Logger.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else if errors.Is(err, wikipedia.SkippedError) {
-			globals.Log.Warn().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Logger.Warn().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
-			globals.Log.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Logger.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		id := wikipedia.GetWikidataDocumentID(entity.ID)
 		_, loaded := skippedWikidataEntities.LoadOrStore(id.String(), true)
@@ -92,7 +92,7 @@ func (c *WikidataCommand) processEntity(
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
+	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
 	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil

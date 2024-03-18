@@ -4,7 +4,7 @@ import (
 	"github.com/alecthomas/kong"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search/internal/cli"
+	"gitlab.com/tozd/go/cli"
 )
 
 func main() {

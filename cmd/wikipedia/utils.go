@@ -101,7 +101,7 @@ func initializeElasticSearch(globals *Globals) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
 	*elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
-	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Log, globals.Elastic, globals.Index, globals.SizeField)
+	ctx, cancel, httpClient, esClient, processor, errE := es.Initialize(globals.Logger, globals.Elastic, globals.Index, globals.SizeField)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -150,7 +150,7 @@ func initializeRun(
 			DecompressionThreads:   globals.DecodingThreads,
 			DecodingThreads:        globals.DecodingThreads,
 			ItemsProcessingThreads: globals.ItemsProcessingThreads,
-			Progress:               es.Progress(globals.Log, processor, cache, count, ""),
+			Progress:               es.Progress(globals.Logger, processor, cache, count, ""),
 		}, nil
 	}
 
@@ -186,7 +186,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 	go func() {
 		for p := range ticker.C {
 			stats := processor.Stats()
-			globals.Log.Info().
+			globals.Logger.Info().
 				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
 				Send()
@@ -198,7 +198,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 			// Loop ends with pages is closed, which happens when context is cancelled, too.
 			for page := range pages {
 				if page.Properties["wikibase_item"] == "" {
-					globals.Log.Debug().Str("title", page.Title).Msg("template without Wikidata item")
+					globals.Logger.Debug().Str("title", page.Title).Msg("template without Wikidata item")
 					continue
 				}
 
@@ -212,7 +212,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 				html, errE := wikipedia.GetPageHTML(ctx, httpClient, site, page.Title+"/doc")
 				if errE != nil {
 					if errors.AllDetails(errE)["code"] != http.StatusNotFound {
-						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
 						continue
 					}
 
@@ -225,7 +225,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 					// And if it does not exist, without "/doc".
 					html, errE = wikipedia.GetPageHTML(ctx, httpClient, site, page.Title)
 					if errE != nil {
-						globals.Log.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
 						continue
 					}
 				}
@@ -252,7 +252,7 @@ func templatesCommandProcessPage(
 	id := page.Properties["wikibase_item"]
 
 	if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(id).String()); ok {
-		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
+		globals.Logger.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
 		return nil
 	}
 
@@ -262,9 +262,9 @@ func templatesCommandProcessPage(
 		details["entity"] = id
 		details["title"] = page.Title
 		if errors.Is(err, wikipedia.NotFoundError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
+			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(err).Fields(details).Send()
 		}
 		return nil
 	}
@@ -279,7 +279,7 @@ func templatesCommandProcessPage(
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
@@ -289,41 +289,41 @@ func templatesCommandProcessPage(
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	err = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	err = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
+	err = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Log.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
@@ -375,16 +375,16 @@ func filesCommandProcessImage(
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
 ) errors.E {
-	document, err := convertImage(ctx, globals.Log, httpClient, token, apiLimit, image)
+	document, err := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
 		if errors.Is(err, wikipedia.SilentSkippedError) {
-			globals.Log.Debug().Err(err).Fields(details).Send()
+			globals.Logger.Debug().Err(err).Fields(details).Send()
 		} else if errors.Is(err, wikipedia.SkippedError) {
-			globals.Log.Warn().Err(err).Fields(details).Send()
+			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
-			globals.Log.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(err).Fields(details).Send()
 		}
 		_, loaded := skippedMap.LoadOrStore(image.Name, true)
 		if !loaded {
@@ -393,7 +393,7 @@ func filesCommandProcessImage(
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
+	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
 	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil

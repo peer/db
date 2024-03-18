@@ -2,7 +2,7 @@ module gitlab.com/peerdb/search
 
 go 1.21
 
-require github.com/alecthomas/kong v0.8.1-0.20230721120856-074ccd090604
+require github.com/alecthomas/kong v0.8.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
@@ -11,18 +11,19 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/justinas/alice v1.2.0
-	github.com/mattn/go-colorable v0.1.12
 	github.com/mitchellh/go-server-timing v1.0.1
 	github.com/olivere/elastic/v7 v7.0.32
-	github.com/rs/zerolog v1.26.2-0.20220219153918-361cdf616a3c
+	github.com/rs/zerolog v1.31.1-0.20231108200417-bb14b8b9de11
 	github.com/stretchr/testify v1.8.4
+	gitlab.com/tozd/go/cli v0.3.0
 	gitlab.com/tozd/go/mediawiki v0.12.0
-	gitlab.com/tozd/go/x v0.0.0-20220217225640-a462fdb57560
+	gitlab.com/tozd/go/x v0.0.0-20231020213422-f3cd46ddd778
+	gitlab.com/tozd/go/zerolog v0.6.0
+	gitlab.com/tozd/identifier v0.2.0
 	golang.org/x/crypto v0.21.0
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b
 	golang.org/x/net v0.21.0
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -45,19 +46,19 @@ require (
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
 	github.com/pingcap/log v0.0.0-20210625125904-98ed8e2eb1c7 // indirect
 	github.com/pingcap/parser v0.0.0-20210802034743-dd9b189324ce // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/xid v1.3.0 // indirect
+	github.com/rs/xid v1.5.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/whilp/git-urls v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	gitlab.com/tozd/identifier v0.2.0 // indirect
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.18.1 // indirect
@@ -67,11 +68,12 @@ require (
 	golang.org/x/tools v0.13.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
 	github.com/andybalholm/brotli v1.0.4
-	github.com/btcsuite/btcutil v1.0.2
+	github.com/btcsuite/btcutil v1.0.2 // indirect
 	github.com/google/uuid v1.3.1
 	github.com/hashicorp/go-retryablehttp v0.7.1-0.20211018174820-ff6d014e72d9
 	github.com/hashicorp/golang-lru v0.5.4
