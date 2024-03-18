@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 )
 
 type VisitResult int
@@ -22,11 +23,11 @@ const (
 )
 
 type Claim interface {
-	GetID() Identifier
+	GetID() identifier.Identifier
 	GetConfidence() Confidence
 	AddMeta(claim Claim) errors.E
-	GetMetaByID(id Identifier) Claim
-	RemoveMetaByID(id Identifier) Claim
+	GetMetaByID(id identifier.Identifier) Claim
+	RemoveMetaByID(id identifier.Identifier) Claim
 	VisitMeta(visitor visitor) errors.E
 }
 
@@ -54,7 +55,7 @@ type Document struct {
 
 func (d Document) Reference() DocumentReference {
 	return DocumentReference{
-		ID:    d.ID,
+		ID:    &d.ID,
 		Score: d.Score,
 	}
 }
@@ -429,7 +430,7 @@ func (c *ClaimTypes) Size() int {
 }
 
 type getByIDVisitor struct {
-	ID     Identifier
+	ID     identifier.Identifier
 	Action VisitResult
 	Result Claim
 }
@@ -531,13 +532,13 @@ func (v *getByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 }
 
 type getByPropIDVisitor struct {
-	ID     Identifier
+	ID     identifier.Identifier
 	Action VisitResult
 	Result []Claim
 }
 
 func (v *getByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -545,7 +546,7 @@ func (v *getByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResul
 }
 
 func (v *getByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -553,7 +554,7 @@ func (v *getByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult,
 }
 
 func (v *getByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -561,7 +562,7 @@ func (v *getByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E)
 }
 
 func (v *getByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -569,7 +570,7 @@ func (v *getByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, error
 }
 
 func (v *getByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -577,7 +578,7 @@ func (v *getByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, error
 }
 
 func (v *getByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -585,7 +586,7 @@ func (v *getByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitRes
 }
 
 func (v *getByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -593,7 +594,7 @@ func (v *getByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, e
 }
 
 func (v *getByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -601,7 +602,7 @@ func (v *getByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E)
 }
 
 func (v *getByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -609,7 +610,7 @@ func (v *getByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, err
 }
 
 func (v *getByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -617,7 +618,7 @@ func (v *getByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitR
 }
 
 func (v *getByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -625,7 +626,7 @@ func (v *getByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 }
 
 func (v *getByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID == v.ID {
+	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -696,7 +697,7 @@ func (v *allClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, e
 	return Keep, nil
 }
 
-func (d *Document) Get(propID Identifier) []Claim {
+func (d *Document) Get(propID identifier.Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
 		Action: Keep,
@@ -706,7 +707,7 @@ func (d *Document) Get(propID Identifier) []Claim {
 	return v.Result
 }
 
-func (d *Document) Remove(propID Identifier) []Claim {
+func (d *Document) Remove(propID identifier.Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
 		Action: Drop,
@@ -716,7 +717,7 @@ func (d *Document) Remove(propID Identifier) []Claim {
 	return v.Result
 }
 
-func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
+func (d *Document) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -726,7 +727,7 @@ func (d *Document) GetByID(id Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
-func (d *Document) RemoveByID(id Identifier) Claim { //nolint:ireturn
+func (d *Document) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,
@@ -802,14 +803,12 @@ func (d *Document) MergeFrom(other ...*Document) errors.E {
 }
 
 type CoreDocument struct {
-	ID     Identifier `json:"-"`
-	Score  Score      `json:"score"`
-	Scores Scores     `json:"scores,omitempty"`
+	ID     identifier.Identifier `json:"-"`
+	Score  Score                 `json:"score"`
+	Scores Scores                `json:"scores,omitempty"`
 }
 
 type Mnemonic string
-
-type Identifier string
 
 type Timestamp time.Time
 
@@ -915,12 +914,12 @@ type (
 )
 
 type CoreClaim struct {
-	ID         Identifier  `json:"_id"`
-	Confidence Confidence  `json:"confidence"`
-	Meta       *ClaimTypes `json:"meta,omitempty"`
+	ID         identifier.Identifier `json:"_id"`
+	Confidence Confidence            `json:"confidence"`
+	Meta       *ClaimTypes           `json:"meta,omitempty"`
 }
 
-func (cc CoreClaim) GetID() Identifier {
+func (cc CoreClaim) GetID() identifier.Identifier {
 	return cc.ID
 }
 
@@ -980,7 +979,7 @@ func (cc *CoreClaim) VisitMeta(visitor visitor) errors.E {
 	return nil
 }
 
-func (cc *CoreClaim) GetMetaByID(id Identifier) Claim { //nolint:ireturn
+func (cc *CoreClaim) GetMetaByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Result: nil,
@@ -990,7 +989,7 @@ func (cc *CoreClaim) GetMetaByID(id Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
-func (cc *CoreClaim) GetMeta(propID Identifier) []Claim {
+func (cc *CoreClaim) GetMeta(propID identifier.Identifier) []Claim {
 	v := getByPropIDVisitor{
 		ID:     propID,
 		Action: Keep,
@@ -1000,7 +999,7 @@ func (cc *CoreClaim) GetMeta(propID Identifier) []Claim {
 	return v.Result
 }
 
-func (cc *CoreClaim) RemoveMetaByID(id Identifier) Claim { //nolint:ireturn
+func (cc *CoreClaim) RemoveMetaByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := getByIDVisitor{
 		ID:     id,
 		Result: nil,
@@ -1015,8 +1014,11 @@ type Confidence = Score
 type Score float64
 
 type DocumentReference struct {
-	ID    Identifier `json:"_id"`
-	Score Score      `json:"score"`
+	ID    *identifier.Identifier `json:"_id,omitempty"`
+	Score Score                  `json:"score"`
+
+	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
+	Temporary string `json:"_temp,omitempty"`
 }
 
 type IdentifierClaim struct {

@@ -251,7 +251,7 @@ func templatesCommandProcessPage(
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
 
-	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
+	if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(id).String()); ok {
 		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
 		return nil
 	}
@@ -276,7 +276,7 @@ func templatesCommandProcessPage(
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -286,7 +286,7 @@ func templatesCommandProcessPage(
 	err = wikipedia.ConvertTemplateDescription(id, from, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -296,7 +296,7 @@ func templatesCommandProcessPage(
 	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -306,7 +306,7 @@ func templatesCommandProcessPage(
 	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -316,14 +316,14 @@ func templatesCommandProcessPage(
 	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
@@ -393,7 +393,7 @@ func filesCommandProcessImage(
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", image.Name).Msg("saving document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
 	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil

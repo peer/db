@@ -102,11 +102,11 @@ func (c *CommonsCommand) processEntity(
 	additionalDocument, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Log, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
 		if errors.Is(err, wikipedia.SilentSkippedError) {
-			globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Err(err).Str("entity", entity.ID).Fields(errors.AllDetails(err)).Send()
+			globals.Log.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(err).Str("entity", entity.ID).Fields(errors.AllDetails(err)).Send()
 		} else if errors.Is(err, wikipedia.SkippedError) {
-			globals.Log.Warn().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Log.Warn().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
-			globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Log.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		return nil
 	}
@@ -116,17 +116,17 @@ func (c *CommonsCommand) processEntity(
 	_ = additionalDocument.Remove(wikipedia.GetWikidataDocumentID("P1163"))
 
 	if document.ID != additionalDocument.ID {
-		globals.Log.Warn().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).
-			Str("got", string(additionalDocument.ID)).Msg("document ID mismatch")
+		globals.Log.Warn().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).
+			Str("got", additionalDocument.ID.String()).Msg("document ID mismatch")
 	}
 
 	err = document.MergeFrom(additionalDocument)
 	if err != nil {
-		globals.Log.Error().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+		globals.Log.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
@@ -285,7 +285,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -295,7 +295,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, "FROM_WIKIMEDIA_COMMONS", filename, html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -305,7 +305,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -315,7 +315,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -325,14 +325,14 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikimediaCommonsFile, filename, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("file", filename).Str("title", page.Title).Msg("updating document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", page.Title).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
@@ -434,7 +434,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
 
-	if _, ok := skippedWikidataEntities.Load(string(wikipedia.GetWikidataDocumentID(id))); ok {
+	if _, ok := skippedWikidataEntities.Load(wikipedia.GetWikidataDocumentID(id).String()); ok {
 		globals.Log.Debug().Str("entity", id).Str("title", page.Title).Msg("skipped entity")
 		return nil
 	}
@@ -459,7 +459,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -469,7 +469,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	err = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -479,7 +479,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	err = wikipedia.ConvertPageInCategories(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -489,7 +489,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	err = wikipedia.ConvertPageUsedTemplates(globals.Log, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
@@ -499,14 +499,14 @@ func (c *CommonsCategoriesCommand) processPage(
 	err = wikipedia.ConvertPageRedirects(globals.Log, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
 		details := errors.AllDetails(err)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
 		globals.Log.Error().Err(err).Fields(details).Send()
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", id).Str("title", page.Title).Msg("updating document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
 	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil

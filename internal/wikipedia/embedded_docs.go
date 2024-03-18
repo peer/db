@@ -11,12 +11,16 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
 )
 
-var referenceNotFoundError = errors.Base("document reference to a nonexistent document")
+var (
+	referenceNotFoundError  = errors.Base("document reference to a nonexistent document")
+	referenceTemporaryError = errors.Base("document reference is a temporary reference")
+)
 
 type updateEmbeddedDocumentsVisitor struct {
 	Context                      context.Context
@@ -27,57 +31,53 @@ type updateEmbeddedDocumentsVisitor struct {
 	SkippedWikimediaCommonsFiles *sync.Map
 	ESClient                     *elastic.Client
 	Changed                      int
-	DocumentID                   search.Identifier
+	DocumentID                   identifier.Identifier
 	EntityIDs                    []string
 }
 
-func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID search.Identifier) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID identifier.Identifier) errors.E {
 	errE := errors.WithStack(err)
 	details := errors.Details(errE)
-	details["doc"] = string(v.DocumentID)
+	details["doc"] = v.DocumentID.String()
 	if len(v.EntityIDs) == 1 {
 		details["entity"] = v.EntityIDs[0]
 	} else if len(v.EntityIDs) > 1 {
 		details["entity"] = v.EntityIDs
 	}
-	details["claim"] = string(claimID)
-	id := string(ref.ID)
-	if id != "" {
-		if !strings.HasPrefix(id, "-") {
-			details["ref"] = id
-		} else {
-			prop, id := v.getOriginalID(id)
-			if prop != "" && id != "" {
-				details["name"] = id
-			}
+	details["claim"] = claimID.String()
+	if ref.ID != nil {
+		details["ref"] = ref.ID.String()
+	} else {
+		prop, id := v.getOriginalID(ref.Temporary)
+		if prop != "" && id != "" {
+			details["name"] = id
 		}
 	}
 	return errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID search.Identifier, msg string) {
-	l := v.Log.Warn().Str("doc", string(v.DocumentID))
+func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID identifier.Identifier, msg string) {
+	l := v.Log.Warn().Str("doc", v.DocumentID.String())
 	if len(v.EntityIDs) == 1 {
 		l = l.Str("entity", v.EntityIDs[0])
 	} else if len(v.EntityIDs) > 1 {
 		l = l.Strs("entity", v.EntityIDs)
 	}
-	l = l.Str("claim", string(claimID))
-	l = l.Str("ref", string(fileDoc.ID))
+	l = l.Str("claim", claimID.String())
+	l = l.Str("ref", fileDoc.ID.String())
 	l.Msg(msg)
 }
 
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
 	if errors.Is(err, referenceNotFoundError) {
-		id := string(ref.ID)
-		if id != "" && !strings.HasPrefix(id, "-") {
-			if _, ok := v.SkippedWikidataEntities.Load(string(ref.ID)); ok {
+		if ref.ID != nil {
+			if _, ok := v.SkippedWikidataEntities.Load(ref.ID.String()); ok {
 				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
 			} else {
 				v.Log.Warn().Err(err).Fields(errors.AllDetails(err)).Send()
 			}
 		} else {
-			prop, id := v.getOriginalID(id)
+			prop, id := v.getOriginalID(ref.Temporary)
 			if prop == "WIKIMEDIA_COMMONS_FILE_NAME" {
 				if _, ok := v.SkippedWikimediaCommonsFiles.Load(id); ok {
 					v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
@@ -99,34 +99,33 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.Do
 	return search.Keep, err
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getOriginalID(id string) (string, string) {
-	if strings.HasPrefix(id, WikipediaCategoryReference) {
-		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(id, WikipediaCategoryReference)
-	} else if strings.HasPrefix(id, WikipediaTemplateReference) {
-		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(id, WikipediaTemplateReference)
-	} else if strings.HasPrefix(id, WikimediaCommonsCategoryReference) {
-		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(id, WikimediaCommonsCategoryReference)
-	} else if strings.HasPrefix(id, WikimediaCommonsTemplateReference) {
-		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(id, WikimediaCommonsTemplateReference)
-	} else if strings.HasPrefix(id, WikimediaCommonsFileReference) {
-		filename := strings.TrimPrefix(strings.TrimPrefix(id, WikimediaCommonsFileReference), "File:")
+func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary string) (string, string) {
+	if strings.HasPrefix(temporary, WikipediaCategoryReference) {
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(temporary, WikipediaCategoryReference)
+	} else if strings.HasPrefix(temporary, WikipediaTemplateReference) {
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(temporary, WikipediaTemplateReference)
+	} else if strings.HasPrefix(temporary, WikimediaCommonsCategoryReference) {
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(temporary, WikimediaCommonsCategoryReference)
+	} else if strings.HasPrefix(temporary, WikimediaCommonsTemplateReference) {
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(temporary, WikimediaCommonsTemplateReference)
+	} else if strings.HasPrefix(temporary, WikimediaCommonsFileReference) {
+		filename := strings.TrimPrefix(strings.TrimPrefix(temporary, WikimediaCommonsFileReference), "File:")
 		filename = strings.ReplaceAll(filename, " ", "_")
 		filename = FirstUpperCase(filename)
 		return "WIKIMEDIA_COMMONS_FILE_NAME", filename
-	} else if strings.HasPrefix(id, WikimediaCommonsEntityReference) {
-		return "WIKIMEDIA_COMMONS_ENTITY_ID", strings.TrimPrefix(id, WikimediaCommonsEntityReference)
+	} else if strings.HasPrefix(temporary, WikimediaCommonsEntityReference) {
+		return "WIKIMEDIA_COMMONS_ENTITY_ID", strings.TrimPrefix(temporary, WikimediaCommonsEntityReference)
 	}
 
 	return "", ""
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
-	id := string(ref.ID)
-	if id != "" && !strings.HasPrefix(id, "-") {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID identifier.Identifier) (*search.DocumentReference, errors.E) {
+	if ref.ID != nil {
 		return v.getDocumentReferenceByID(ref, claimID)
 	}
 
-	prop, id := v.getOriginalID(id)
+	prop, id := v.getOriginalID(ref.Temporary)
 	if prop != "" && id != "" {
 		return v.getDocumentReferenceByProp(ref, claimID, prop, id)
 	}
@@ -164,7 +163,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 	return document, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id search.Identifier) (*search.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*search.Document, errors.E) {
 	// Here we check cache with Identifier type, so values cannot conflict with caching done
 	// by getDocumentByTitle, which uses string type.
 	maybeDocument, ok := v.Cache.Get(id)
@@ -189,7 +188,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id search.Identifier) (
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
-	ref search.DocumentReference, claimID search.Identifier, property, title string,
+	ref search.DocumentReference, claimID identifier.Identifier, property, title string,
 ) (*search.DocumentReference, errors.E) {
 	document, err := v.getDocumentByProp(property, title)
 	if errors.Is(err, NotFoundError) {
@@ -203,8 +202,12 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
 	return &res, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID search.Identifier) (*search.DocumentReference, errors.E) {
-	document, err := v.getDocumentByID(ref.ID)
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID identifier.Identifier) (*search.DocumentReference, errors.E) {
+	if ref.ID == nil {
+		return nil, v.makeError(referenceTemporaryError, ref, claimID)
+	}
+
+	document, err := v.getDocumentByID(*ref.ID)
 	if errors.Is(err, NotFoundError) {
 		return nil, v.makeError(referenceNotFoundError, ref, claimID)
 	} else if err != nil {
@@ -452,10 +455,10 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 	}
 
 	var fileDocument *search.Document
-	for _, cc := range claim.GetMeta(search.GetCorePropertyID("IS")) {
+	for _, cc := range claim.GetMeta(*search.GetCorePropertyID("IS")) {
 		if c, ok := cc.(*search.RelationClaim); ok {
-			// c.To.ID should be a real ID because we called claim.VisitMeta(v) above.
-			fileDocument, err = v.getDocumentByID(c.To.ID)
+			// c.To.ID should be non-nil ID because we called claim.VisitMeta(v) above.
+			fileDocument, err = v.getDocumentByID(*c.To.ID)
 			if errors.Is(err, NotFoundError) {
 				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
 			} else if err != nil {
@@ -468,7 +471,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	if fileDocument != nil {
 		var mediaType string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("MEDIA_TYPE")) {
+		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("MEDIA_TYPE")) {
 			if c, ok := cc.(*search.StringClaim); ok {
 				mediaType = c.String
 				break
@@ -486,7 +489,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		}
 
 		var fileURL string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("FILE_URL")) {
+		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("FILE_URL")) {
 			if c, ok := cc.(*search.ReferenceClaim); ok {
 				fileURL = c.IRI
 				break
@@ -505,7 +508,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 		// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
 		var previews []string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("PREVIEW_URL")) {
+		for _, cc := range fileDocument.Get(*search.GetCorePropertyID("PREVIEW_URL")) {
 			if c, ok := cc.(*search.ReferenceClaim); ok {
 				previews = append(previews, c.IRI)
 			}
@@ -526,18 +529,18 @@ func UpdateEmbeddedDocuments(
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []search.Claim{}
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, document.Get(*search.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
 	entityIDs := []string{}
 	for _, entityIDClaim := range entityIDClaims {
 		idClaim, ok := entityIDClaim.(*search.IdentifierClaim)
 		if !ok {
 			errE := errors.New("unexpected ID claim type")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(entityIDClaim.GetID())
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = entityIDClaim.GetID().String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", entityIDClaim)
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
 			return false, errE

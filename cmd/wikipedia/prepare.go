@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/search"
@@ -143,7 +144,14 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
-	document.ID = search.Identifier(hit.Id)
+	document.ID, errE = identifier.FromString(hit.Id)
+	if errE != nil {
+		details := errors.AllDetails(errE)
+		details["doc"] = document.ID.String()
+		details["id"] = hit.Id
+		log.Error().Err(errE).Fields(details).Msg("invalid hit ID")
+		return nil
+	}
 
 	changed, errE := wikipedia.UpdateEmbeddedDocuments(
 		ctx, index, log, esClient, cache,
@@ -152,13 +160,13 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	)
 	if errE != nil {
 		details := errors.AllDetails(errE)
-		details["doc"] = string(document.ID)
+		details["doc"] = document.ID.String()
 		log.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
 		return nil
 	}
 
 	if changed {
-		log.Debug().Str("doc", string(document.ID)).Msg("updating document")
+		log.Debug().Str("doc", document.ID.String()).Msg("updating document")
 		search.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &document)
 	}
 

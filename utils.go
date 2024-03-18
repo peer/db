@@ -33,7 +33,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 const (
@@ -439,7 +439,7 @@ func (s *Service) staticFile(w http.ResponseWriter, req *http.Request, path stri
 }
 
 func (s *Service) ConnContext(ctx context.Context, c net.Conn) context.Context {
-	return context.WithValue(ctx, connectionIDContextKey, identifier.NewRandom())
+	return context.WithValue(ctx, connectionIDContextKey, identifier.New().String())
 }
 
 func idFromRequest(req *http.Request) string {
@@ -504,12 +504,12 @@ func (c *metricsConn) Write(b []byte) (int, error) {
 
 // insertOrReplaceDocument inserts or replaces the document based on its ID.
 func InsertOrReplaceDocument(processor *elastic.BulkProcessor, index string, doc *Document) {
-	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).Doc(doc)
+	req := elastic.NewBulkIndexRequest().Index(index).Id(doc.ID.String()).Doc(doc)
 	processor.Add(req)
 }
 
 // updateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on seqNo and primaryTerm).
 func UpdateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *Document) {
-	req := elastic.NewBulkIndexRequest().Index(index).Id(string(doc.ID)).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
+	req := elastic.NewBulkIndexRequest().Index(index).Id(doc.ID.String()).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
 	processor.Add(req)
 }

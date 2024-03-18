@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
@@ -41,7 +42,7 @@ func ConvertWikipediaArticle(id, html string, document *search.Document) errors.
 	body, doc, err := ExtractArticle(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "article extraction failed")
-		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["doc"] = document.ID.String()
 		return errE
 	}
 
@@ -65,8 +66,8 @@ func ConvertWikipediaArticle(id, html string, document *search.Document) errors.
 		err = document.Add(claim)
 		if err != nil {
 			errE := errors.WithMessage(err, "claim cannot be added")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = claimID.String()
 			return errE
 		}
 	}
@@ -74,7 +75,7 @@ func ConvertWikipediaArticle(id, html string, document *search.Document) errors.
 	summary, err := ExtractArticleSummary(doc)
 	if err != nil {
 		errE := errors.WithMessage(err, "summary extraction failed")
-		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["doc"] = document.ID.String()
 		return errE
 	}
 
@@ -93,7 +94,7 @@ func ConvertFileDescription(namespace uuid.UUID, id, from, html string, document
 	descriptions, err := ExtractFileDescriptions(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "descriptions extraction failed")
-		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["doc"] = document.ID.String()
 		return errE
 	}
 
@@ -112,14 +113,14 @@ func ConvertCategoryDescription(id, from, html string, document *search.Document
 	return convertDescription(NameSpaceWikidata, id, from, html, document, ExtractCategoryDescription)
 }
 
-func updateTextClaim(claimID search.Identifier, document *search.Document, prop, value string) errors.E {
+func updateTextClaim(claimID identifier.Identifier, document *search.Document, prop, value string) errors.E {
 	existingClaim := document.GetByID(claimID)
 	if existingClaim != nil {
 		claim, ok := existingClaim.(*search.TextClaim)
 		if !ok {
 			errE := errors.New("unexpected claim type")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = claimID.String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.TextClaim{})
 			return errE
@@ -139,8 +140,8 @@ func updateTextClaim(claimID search.Identifier, document *search.Document, prop,
 		err := document.Add(claim)
 		if err != nil {
 			errE := errors.WithMessage(err, "claim cannot be added")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = claimID.String()
 			return errE
 		}
 	}
@@ -158,7 +159,7 @@ func convertDescription(namespace uuid.UUID, id, from, html string, document *se
 	description, err := extract(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
-		errors.Details(errE)["doc"] = string(document.ID)
+		errors.Details(errE)["doc"] = document.ID.String()
 		return errE
 	}
 
@@ -181,8 +182,8 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 		claim, ok := existingClaim.(*search.IdentifierClaim)
 		if !ok {
 			errE := errors.New("unexpected page id claim type")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = claimID.String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
 			return errE
@@ -200,8 +201,8 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 		err := document.Add(claim)
 		if err != nil {
 			errE := errors.WithMessage(err, "claim cannot be added")
-			errors.Details(errE)["doc"] = string(document.ID)
-			errors.Details(errE)["claim"] = string(claimID)
+			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["claim"] = claimID.String()
 			return errE
 		}
 	}
@@ -296,7 +297,7 @@ func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, 
 		}
 		err := document.Add(claim)
 		if err != nil {
-			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
+			log.Error().Str("doc", document.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 		}
 	}
@@ -320,7 +321,7 @@ func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix
 		}
 		err := document.Add(claim)
 		if err != nil {
-			log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
+			log.Error().Str("doc", document.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 		}
 	}
@@ -350,7 +351,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	}
 	escapedName := html.EscapeString(strings.ReplaceAll(redirect, "_", " "))
 	found := false
-	for _, claim := range document.Get(search.GetCorePropertyID("NAME")) {
+	for _, claim := range document.Get(*search.GetCorePropertyID("NAME")) {
 		if c, ok := claim.(*search.TextClaim); ok && c.HTML["en"] == escapedName {
 			found = true
 			break
@@ -371,7 +372,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	}
 	err := document.Add(claim)
 	if err != nil {
-		log.Error().Str("doc", string(document.ID)).Str("entity", id).Str("claim", string(claimID)).Str("title", title).
+		log.Error().Str("doc", document.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 			Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 // TODO: Support slug per document.
@@ -24,9 +24,9 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := params["id"]
-	if !identifier.Valid(id) {
-		s.badRequestWithError(w, req, errors.New(`"id" parameter is not a valid identifier`))
+	id, errE := identifier.FromString(params["id"])
+	if errE != nil {
+		s.badRequestWithError(w, req, errors.WithMessage(errE, `"id" parameter is not a valid identifier`))
 		return
 	}
 
@@ -37,7 +37,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
-			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"tab": req.Form["tab"]}.Encode())
+			path, err := s.Router.Path("DocumentGet", Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]}.Encode())
 			if err != nil {
 				s.internalServerErrorWithError(w, req, err)
 				return
@@ -49,7 +49,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params P
 			return
 		} else if req.Form.Has("q") {
 			// We redirect to the URL without "q".
-			path, err := s.Router.Path("DocumentGet", Params{"id": id}, url.Values{"s": {sh.ID}, "tab": req.Form["tab"]}.Encode())
+			path, err := s.Router.Path("DocumentGet", Params{"id": id.String()}, url.Values{"s": {sh.ID.String()}, "tab": req.Form["tab"]}.Encode())
 			if err != nil {
 				s.internalServerErrorWithError(w, req, err)
 				return
@@ -101,9 +101,9 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := params["id"]
-	if !identifier.Valid(id) {
-		s.badRequestWithError(w, req, errors.New(`"id" parameter is not a valid identifier`))
+	id, errE := identifier.FromString(params["id"])
+	if errE != nil {
+		s.badRequestWithError(w, req, errors.WithMessage(errE, `"id" parameter is not a valid identifier`))
 		return
 	}
 
@@ -133,7 +133,7 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 		s.NotFound(w, req, nil)
 		return
 	} else if len(res.Hits.Hits) > 1 {
-		s.Log.Warn().Str("id", id).Msg("found more than one document for ID")
+		s.Log.Warn().Str("id", id.String()).Msg("found more than one document for ID")
 	}
 
 	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
@@ -143,7 +143,7 @@ func (s *Service) DocumentGetAPIGet(w http.ResponseWriter, req *http.Request, pa
 	source := bytes.NewBuffer(res.Hits.Hits[0].Source)
 	source.Truncate(source.Len() - 1)
 	source.WriteString(`,"_id":"`)
-	source.WriteString(id)
+	source.WriteString(id.String())
 	source.WriteString(`"}`)
 
 	s.writeJSON(w, req, contentEncoding, json.RawMessage(source.Bytes()), nil)

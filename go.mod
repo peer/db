@@ -57,6 +57,7 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/whilp/git-urls v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	gitlab.com/tozd/identifier v0.2.0 // indirect
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.18.1 // indirect
@@ -71,11 +72,11 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/hashicorp/go-retryablehttp v0.7.1-0.20211018174820-ff6d014e72d9
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	gitlab.com/tozd/go/errors v0.4.1-0.20220421090138-64c8737df0c3
+	gitlab.com/tozd/go/errors v0.8.0
 	golang.org/x/sync v0.3.0
 )

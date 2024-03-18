@@ -13,7 +13,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/exp/slices"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 // TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
@@ -90,9 +90,9 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := params["s"]
-	if !identifier.Valid(id) {
-		s.badRequestWithError(w, req, errors.New(`"s" parameter is not a valid identifier`))
+	id, errE := identifier.FromString(params["s"])
+	if errE != nil {
+		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 

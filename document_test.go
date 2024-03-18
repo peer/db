@@ -7,8 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"gitlab.com/tozd/identifier"
+
 	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/identifier"
 )
 
 func TestTimestampMarshal(t *testing.T) {
@@ -45,7 +46,7 @@ func TestDocument(t *testing.T) {
 	doc := search.Document{}
 	assert.Equal(t, search.Document{}, doc)
 
-	id := search.Identifier(identifier.NewRandom())
+	id := identifier.New()
 
 	err := doc.Add(&search.NoValueClaim{
 		CoreClaim: search.CoreClaim{
@@ -76,7 +77,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: search.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	claims := doc.Get(search.GetCorePropertyID("ARTICLE"))
+	claims := doc.Get(*search.GetCorePropertyID("ARTICLE"))
 	assert.Equal(t, []search.Claim{
 		&search.NoValueClaim{
 			CoreClaim: search.CoreClaim{
@@ -96,7 +97,7 @@ func TestDocument(t *testing.T) {
 	}, claim)
 	assert.Equal(t, search.Document{}, doc)
 
-	id2 := search.Identifier(identifier.NewRandom())
+	id2 := identifier.New()
 
 	err = claim.AddMeta(&search.UnknownValueClaim{
 		CoreClaim: search.CoreClaim{

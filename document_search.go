@@ -15,7 +15,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 const (
@@ -23,39 +23,30 @@ const (
 )
 
 type relFilter struct {
-	Prop  string `json:"prop"`
-	Value string `json:"value,omitempty"`
-	None  bool   `json:"none,omitempty"`
+	Prop  identifier.Identifier  `json:"prop"`
+	Value *identifier.Identifier `json:"value,omitempty"`
+	None  bool                   `json:"none,omitempty"`
 }
 
 func (f relFilter) Valid() errors.E {
-	if !identifier.Valid(f.Prop) {
-		return errors.New("invalid prop")
-	}
-	if f.Value == "" && !f.None {
+	if f.Value == nil && !f.None {
 		return errors.New("value or none has to be set")
 	}
-	if f.Value != "" && f.None {
+	if f.Value != nil && f.None {
 		return errors.New("value and none cannot be both set")
-	}
-	if f.Value != "" && !identifier.Valid(f.Value) {
-		return errors.New("invalid value")
 	}
 	return nil
 }
 
 type amountFilter struct {
-	Prop string      `json:"prop"`
-	Unit *AmountUnit `json:"unit,omitempty"`
-	Gte  *float64    `json:"gte,omitempty"`
-	Lte  *float64    `json:"lte,omitempty"`
-	None bool        `json:"none,omitempty"`
+	Prop identifier.Identifier `json:"prop"`
+	Unit *AmountUnit           `json:"unit,omitempty"`
+	Gte  *float64              `json:"gte,omitempty"`
+	Lte  *float64              `json:"lte,omitempty"`
+	None bool                  `json:"none,omitempty"`
 }
 
 func (f amountFilter) Valid() errors.E {
-	if !identifier.Valid(f.Prop) {
-		return errors.New("invalid prop")
-	}
 	if f.Unit == nil {
 		return errors.New("unit has to be set")
 	}
@@ -78,16 +69,13 @@ func (f amountFilter) Valid() errors.E {
 }
 
 type timeFilter struct {
-	Prop string     `json:"prop"`
-	Gte  *Timestamp `json:"gte,omitempty"`
-	Lte  *Timestamp `json:"lte,omitempty"`
-	None bool       `json:"none,omitempty"`
+	Prop identifier.Identifier `json:"prop"`
+	Gte  *Timestamp            `json:"gte,omitempty"`
+	Lte  *Timestamp            `json:"lte,omitempty"`
+	None bool                  `json:"none,omitempty"`
 }
 
 func (f timeFilter) Valid() errors.E {
-	if !identifier.Valid(f.Prop) {
-		return errors.New("invalid prop")
-	}
 	if f.Gte == nil && f.Lte == nil && !f.None {
 		return errors.New("gte and lte, or none has to be set")
 	}
@@ -107,15 +95,12 @@ func (f timeFilter) Valid() errors.E {
 }
 
 type stringFilter struct {
-	Prop string `json:"prop"`
-	Str  string `json:"str,omitempty"`
-	None bool   `json:"none,omitempty"`
+	Prop identifier.Identifier `json:"prop"`
+	Str  string                `json:"str,omitempty"`
+	None bool                  `json:"none,omitempty"`
 }
 
 func (f stringFilter) Valid() errors.E {
-	if !identifier.Valid(f.Prop) {
-		return errors.New("invalid prop")
-	}
 	if f.Str == "" && !f.None {
 		return errors.New("str or none has to be set")
 	}
@@ -351,11 +336,11 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 // search represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type search struct {
-	ID       string   `json:"s"`
-	Text     string   `json:"q"`
-	Filters  *filters `json:"-"`
-	ParentID string   `json:"-"`
-	RootID   string   `json:"-"`
+	ID       identifier.Identifier  `json:"s"`
+	Text     string                 `json:"q"`
+	Filters  *filters               `json:"-"`
+	ParentID *identifier.Identifier `json:"-"`
+	RootID   identifier.Identifier  `json:"-"`
 }
 
 // Encode returns search state as a query string.
@@ -365,7 +350,7 @@ func (q *search) Encode() string {
 	var buf strings.Builder
 	buf.WriteString(url.QueryEscape("s"))
 	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.ID))
+	buf.WriteString(url.QueryEscape(q.ID.String()))
 	buf.WriteByte('&')
 	buf.WriteString(url.QueryEscape("q"))
 	buf.WriteByte('=')
@@ -383,7 +368,7 @@ func (q *search) EncodeWithAt(at string) string {
 	var buf strings.Builder
 	buf.WriteString(url.QueryEscape("s"))
 	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.ID))
+	buf.WriteString(url.QueryEscape(q.ID.String()))
 	buf.WriteByte('&')
 	buf.WriteString(url.QueryEscape("at"))
 	buf.WriteByte('=')
@@ -408,9 +393,9 @@ type field struct {
 
 // makeSearch creates a new search state given optional existing state and new queries.
 func makeSearch(form url.Values) *search {
-	parentSearchID := form.Get("s")
-	if !identifier.Valid(parentSearchID) {
-		parentSearchID = ""
+	var parentSearchID *identifier.Identifier
+	if id, errE := identifier.FromString(form.Get("s")); errE == nil {
+		parentSearchID = &id
 	}
 
 	textQuery := form.Get("q")
@@ -424,10 +409,10 @@ func makeSearch(form url.Values) *search {
 		}
 	}
 
-	id := identifier.NewRandom()
+	id := identifier.New()
 	rootID := id
-	if parentSearchID != "" {
-		ps, ok := searches.Load(parentSearchID)
+	if parentSearchID != nil {
+		ps, ok := searches.Load(*parentSearchID)
 		if ok {
 			parentSearch := ps.(*search) //nolint:errcheck
 			// There was no change.
@@ -437,7 +422,7 @@ func makeSearch(form url.Values) *search {
 			rootID = parentSearch.RootID
 		} else {
 			// Unknown ID.
-			parentSearchID = ""
+			parentSearchID = nil
 		}
 	}
 
@@ -456,8 +441,8 @@ func makeSearch(form url.Values) *search {
 // getOrMakeSearch resolves an existing search state if possible.
 // If not, it creates a new search state.
 func getOrMakeSearch(form url.Values) (*search, bool) {
-	searchID := form.Get("s")
-	if !identifier.Valid(searchID) {
+	searchID, errE := identifier.FromString(form.Get("s"))
+	if errE != nil {
 		return makeSearch(form), false
 	}
 
@@ -482,8 +467,8 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
 	if (form.Has("q") && ss.Text != textQuery) || (form.Has("filters") && !reflect.DeepEqual(ss.Filters, fs)) {
 		ss = &search{
-			ID:       identifier.NewRandom(),
-			ParentID: ss.ID,
+			ID:       identifier.New(),
+			ParentID: &ss.ID,
 			RootID:   ss.RootID,
 			Text:     textQuery,
 			Filters:  fs,
@@ -497,8 +482,8 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 
 // getSearch resolves an existing search state if possible.
 func getSearch(form url.Values) *search {
-	searchID := form.Get("s")
-	if !identifier.Valid(searchID) {
+	searchID, errE := identifier.FromString(form.Get("s"))
+	if errE != nil {
 		return nil
 	}
 	sh, ok := searches.Load(searchID)

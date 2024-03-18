@@ -85,14 +85,14 @@ func (c *WikidataCommand) processEntity(
 			globals.Log.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		}
 		id := wikipedia.GetWikidataDocumentID(entity.ID)
-		_, loaded := skippedWikidataEntities.LoadOrStore(string(id), true)
+		_, loaded := skippedWikidataEntities.LoadOrStore(id.String(), true)
 		if !loaded {
 			atomic.AddInt64(&skippedWikidataEntitiesCount, 1)
 		}
 		return nil
 	}
 
-	globals.Log.Debug().Str("doc", string(document.ID)).Str("entity", entity.ID).Msg("saving document")
+	globals.Log.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
 	search.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil

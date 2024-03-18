@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 var (
@@ -178,11 +178,11 @@ var (
 	// TODO: Use sync.Map?
 
 	// CoreProperties is a map from a core property ID to a document describing it.
-	CoreProperties = map[string]Document{}
+	CoreProperties = map[identifier.Identifier]Document{}
 )
 
 func GetCorePropertyReference(mnemonic string) DocumentReference {
-	property, ok := CoreProperties[string(GetCorePropertyID(mnemonic))]
+	property, ok := CoreProperties[*GetCorePropertyID(mnemonic)]
 	if !ok {
 		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
 	}
@@ -193,19 +193,22 @@ func getMnemonic(data string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(data), " ", "_"), `"`, "")
 }
 
-func GetID(namespace uuid.UUID, args ...interface{}) Identifier {
+func GetID(namespace uuid.UUID, args ...interface{}) identifier.Identifier {
 	res := namespace
 	for _, arg := range args {
 		res = uuid.NewSHA1(res, []byte(fmt.Sprint(arg)))
 	}
-	return Identifier(identifier.FromUUID(res))
+	return identifier.FromUUID(res)
 }
 
-func GetCorePropertyID(mnemonic string) Identifier {
-	return GetID(nameSpaceCoreProperties, mnemonic)
+// GetCorePropertyID returns a pointer only so that it is easier to set the value directly
+// to CoreClaim's ID field. It never returns nil.
+func GetCorePropertyID(mnemonic string) *identifier.Identifier {
+	id := GetID(nameSpaceCoreProperties, mnemonic)
+	return &id
 }
 
-func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...interface{}) Identifier {
+func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...interface{}) identifier.Identifier {
 	a := []interface{}{}
 	a = append(a, propertyMnemonic, claimMnemonic, i)
 	a = append(a, args...)
@@ -220,10 +223,10 @@ func GenerateCoreProperties(properties []struct {
 ) {
 	for _, property := range properties {
 		mnemonic := getMnemonic(property.Name)
-		id := string(GetCorePropertyID(mnemonic))
+		id := *GetCorePropertyID(mnemonic)
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
-				ID:    Identifier(id),
+				ID:    id,
 				Score: 0.5,
 			},
 			Mnemonic: Mnemonic(mnemonic),
@@ -301,11 +304,11 @@ func generateAllCoreProperties() {
 	for _, claimType := range claimTypes {
 		name := fmt.Sprintf(`"%s" claim type`, claimType)
 		mnemonic := getMnemonic(name)
-		id := string(GetCorePropertyID(mnemonic))
+		id := *GetCorePropertyID(mnemonic)
 		description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
 		CoreProperties[id] = Document{
 			CoreDocument: CoreDocument{
-				ID:    Identifier(id),
+				ID:    id,
 				Score: 0.5,
 			},
 			Mnemonic: Mnemonic(mnemonic),
@@ -380,7 +383,7 @@ func SaveCoreProperties(ctx context.Context, log zerolog.Logger, esClient *elast
 		}
 
 		property := property
-		log.Debug().Str("doc", string(property.ID)).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
+		log.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
 		InsertOrReplaceDocument(processor, index, &property)
 	}
 

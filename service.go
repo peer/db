@@ -25,7 +25,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 //go:embed routes.json
@@ -144,14 +144,14 @@ func hostHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
-// requestIDHandler is similar to hlog.requestIDHandler, but uses identifier.NewRandom() for ID.
+// requestIDHandler is similar to hlog.requestIDHandler, but uses identifier.New() for ID.
 func requestIDHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := req.Context()
 			id := idFromRequest(req)
 			if id == "" {
-				id = identifier.NewRandom()
+				id = identifier.New().String()
 				ctx = context.WithValue(ctx, requestIDContextKey, id)
 				req = req.WithContext(ctx)
 			}

@@ -673,7 +673,7 @@ func convertImage(
 			}
 			previews = previewsSubset
 		}
-		previewsList := string(search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST"))
+		previewsList := search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
 		for i, preview := range previews {
 			err = document.Add(&search.ReferenceClaim{
 				CoreClaim: search.CoreClaim{
@@ -687,7 +687,7 @@ func convertImage(
 									Confidence: es.HighConfidence,
 								},
 								Prop:       search.GetCorePropertyReference("LIST"),
-								Identifier: previewsList,
+								Identifier: previewsList.String(),
 							},
 						},
 						Amount: search.AmountClaims{

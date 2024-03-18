@@ -12,7 +12,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search/identifier"
+	"gitlab.com/tozd/identifier"
 )
 
 type floatValueAggregation struct {
@@ -36,9 +36,9 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
-	id := params["s"]
-	if !identifier.Valid(id) {
-		s.badRequestWithError(w, req, errors.New(`"s" parameter is not a valid identifier`))
+	id, errE := identifier.FromString(params["s"])
+	if errE != nil {
+		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 

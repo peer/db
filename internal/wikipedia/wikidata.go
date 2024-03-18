@@ -15,19 +15,20 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
 )
 
 const (
-	WikidataReference                 = "-Wikidata-"
-	WikimediaCommonsEntityReference   = "-CommonsEntity-"
-	WikimediaCommonsFileReference     = "-CommonsFile-"
-	WikipediaCategoryReference        = "-WikipediaCategory-"
-	WikipediaTemplateReference        = "-WikipediaTemplate-"
-	WikimediaCommonsCategoryReference = "-CommonsCategory-"
-	WikimediaCommonsTemplateReference = "-CommonsTemplate-"
+	WikidataReference                 = "Wikidata-"
+	WikimediaCommonsEntityReference   = "CommonsEntity-"
+	WikimediaCommonsFileReference     = "CommonsFile-"
+	WikipediaCategoryReference        = "WikipediaCategory-"
+	WikipediaTemplateReference        = "WikipediaTemplate-"
+	WikimediaCommonsCategoryReference = "CommonsCategory-"
+	WikimediaCommonsTemplateReference = "CommonsTemplate-"
 )
 
 var (
@@ -90,7 +91,7 @@ func init() {
 	}
 }
 
-func GetWikidataDocumentID(id string) search.Identifier {
+func GetWikidataDocumentID(id string) identifier.Identifier {
 	return search.GetID(NameSpaceWikidata, id)
 }
 
@@ -165,42 +166,49 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
 
-// getDocumentReference does not return a valid reference, but it encodes original ID into the _id field
-// with "-" prefix. It panics for unsupported IDs.
+// getDocumentReference does not return a valid reference, but it encodes original
+// ID into the _temp field to be resolved later. It panics for unsupported IDs.
 func getDocumentReference(id, source string) search.DocumentReference {
 	if strings.HasPrefix(id, "M") {
 		return search.DocumentReference{
-			ID: search.Identifier(WikimediaCommonsEntityReference + id),
+			ID:        nil,
+			Temporary: WikimediaCommonsEntityReference + id,
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return search.DocumentReference{
-			ID: search.Identifier(WikidataReference + id),
+			ID:        nil,
+			Temporary: WikidataReference + id,
 		}
 	} else if strings.HasPrefix(id, "Category:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
-				ID: search.Identifier(WikipediaCategoryReference + id),
+				ID:        nil,
+				Temporary: WikipediaCategoryReference + id,
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
-				ID: search.Identifier(WikimediaCommonsCategoryReference + id),
+				ID:        nil,
+				Temporary: WikimediaCommonsCategoryReference + id,
 			}
 		}
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
-				ID: search.Identifier(WikipediaTemplateReference + id),
+				ID:        nil,
+				Temporary: WikipediaTemplateReference + id,
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
-				ID: search.Identifier(WikimediaCommonsTemplateReference + id),
+				ID:        nil,
+				Temporary: WikimediaCommonsTemplateReference + id,
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return search.DocumentReference{
-			ID: search.Identifier(WikimediaCommonsFileReference + id),
+			ID:        nil,
+			Temporary: WikimediaCommonsFileReference + id,
 		}
 	}
 
@@ -210,7 +218,7 @@ func getDocumentReference(id, source string) search.DocumentReference {
 func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*search.Document, *elastic.SearchHit, errors.E) {
 	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("claims.id",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.id.prop._id", search.GetCorePropertyID(property)),
+			elastic.NewTermQuery("claims.id.prop._id", search.GetCorePropertyID(property).String()),
 			elastic.NewTermQuery("claims.id.id", id),
 		),
 	)).SeqNoAndPrimaryTerm(true).Do(ctx)
@@ -229,10 +237,14 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 		}
 
 		// ID is not stored in the document, so we set it here ourselves.
-		document.ID = search.Identifier(hit.Id)
+		var errE errors.E
+		document.ID, errE = identifier.FromString(hit.Id)
+		if errE != nil {
+			return nil, nil, errE
+		}
 
 		found := false
-		for _, claim := range document.Get(search.GetCorePropertyID(property)) {
+		for _, claim := range document.Get(*search.GetCorePropertyID(property)) {
 			if c, ok := claim.(*search.IdentifierClaim); ok && c.Identifier == id {
 				found = true
 				break
@@ -251,8 +263,8 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 	return nil, nil, errors.WithStack(NotFoundError)
 }
 
-func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id search.Identifier) (*search.Document, *elastic.GetResult, errors.E) {
-	esDoc, err := esClient.Get().Index(index).Id(string(id)).Do(ctx)
+func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id identifier.Identifier) (*search.Document, *elastic.GetResult, errors.E) {
+	esDoc, err := esClient.Get().Index(index).Id(id.String()).Do(ctx)
 	if elastic.IsNotFound(err) {
 		// Caller should add details to the error.
 		return nil, nil, errors.WithStack(NotFoundError)
@@ -303,10 +315,10 @@ func clampConfidence(c search.Score) search.Score {
 }
 
 func resolveDataTypeFromPropertyDocument(document *search.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
-	for _, claim := range document.Get(search.GetCorePropertyID("IS")) {
+	for _, claim := range document.Get(*search.GetCorePropertyID("IS")) {
 		if c, ok := claim.(*search.RelationClaim); ok {
 			for claimType, dataTypes := range claimTypeToDataTypesMap {
-				if c.To.ID == search.GetCorePropertyID(claimType) {
+				if c.To.ID != nil && *c.To.ID == *search.GetCorePropertyID(claimType) {
 					if len(dataTypes) == 1 {
 						return dataTypes[0], nil
 					} else if claimType == "RELATION_CLAIM_TYPE" && valueType != nil {
@@ -804,7 +816,7 @@ func ConvertEntity(
 		return nil, errors.WithStack(errors.BaseWrap(SilentSkippedError, "limited only to English"))
 	}
 
-	var id search.Identifier
+	var id identifier.Identifier
 	var name string
 	var filename string
 	if entity.Type == mediawiki.MediaInfo {
