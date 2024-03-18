@@ -99,22 +99,27 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.Do
 	return search.Keep, err
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary string) (string, string) {
-	if strings.HasPrefix(temporary, WikipediaCategoryReference) {
-		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(temporary, WikipediaCategoryReference)
-	} else if strings.HasPrefix(temporary, WikipediaTemplateReference) {
-		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", strings.TrimPrefix(temporary, WikipediaTemplateReference)
-	} else if strings.HasPrefix(temporary, WikimediaCommonsCategoryReference) {
-		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(temporary, WikimediaCommonsCategoryReference)
-	} else if strings.HasPrefix(temporary, WikimediaCommonsTemplateReference) {
-		return "WIKIMEDIA_COMMONS_PAGE_TITLE", strings.TrimPrefix(temporary, WikimediaCommonsTemplateReference)
-	} else if strings.HasPrefix(temporary, WikimediaCommonsFileReference) {
-		filename := strings.TrimPrefix(strings.TrimPrefix(temporary, WikimediaCommonsFileReference), "File:")
+func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (string, string) {
+	if len(temporary) != 2 {
+		return "", ""
+	}
+
+	switch temporary[0] {
+	case WikipediaCategoryReference:
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", temporary[1]
+	case WikipediaTemplateReference:
+		return "ENGLISH_WIKIPEDIA_PAGE_TITLE", temporary[1]
+	case WikimediaCommonsCategoryReference:
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", temporary[1]
+	case WikimediaCommonsTemplateReference:
+		return "WIKIMEDIA_COMMONS_PAGE_TITLE", temporary[1]
+	case WikimediaCommonsFileReference:
+		filename := strings.TrimPrefix(temporary[1], "File:")
 		filename = strings.ReplaceAll(filename, " ", "_")
 		filename = FirstUpperCase(filename)
 		return "WIKIMEDIA_COMMONS_FILE_NAME", filename
-	} else if strings.HasPrefix(temporary, WikimediaCommonsEntityReference) {
-		return "WIKIMEDIA_COMMONS_ENTITY_ID", strings.TrimPrefix(temporary, WikimediaCommonsEntityReference)
+	case WikimediaCommonsEntityReference:
+		return "WIKIMEDIA_COMMONS_ENTITY_ID", temporary[1]
 	}
 
 	return "", ""

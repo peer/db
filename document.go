@@ -1018,7 +1018,7 @@ type DocumentReference struct {
 	Score Score                  `json:"score"`
 
 	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
-	Temporary string `json:"_temp,omitempty"`
+	Temporary []string `json:"_temp,omitempty"`
 }
 
 type IdentifierClaim struct {

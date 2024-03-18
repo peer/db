@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	WikidataReference                 = "Wikidata-"
-	WikimediaCommonsEntityReference   = "CommonsEntity-"
-	WikimediaCommonsFileReference     = "CommonsFile-"
-	WikipediaCategoryReference        = "WikipediaCategory-"
-	WikipediaTemplateReference        = "WikipediaTemplate-"
-	WikimediaCommonsCategoryReference = "CommonsCategory-"
-	WikimediaCommonsTemplateReference = "CommonsTemplate-"
+	WikidataReference                 = "Wikidata"
+	WikimediaCommonsEntityReference   = "CommonsEntity"
+	WikimediaCommonsFileReference     = "CommonsFile"
+	WikipediaCategoryReference        = "WikipediaCategory"
+	WikipediaTemplateReference        = "WikipediaTemplate"
+	WikimediaCommonsCategoryReference = "CommonsCategory"
+	WikimediaCommonsTemplateReference = "CommonsTemplate"
 )
 
 var (
@@ -172,24 +172,24 @@ func getDocumentReference(id, source string) search.DocumentReference {
 	if strings.HasPrefix(id, "M") {
 		return search.DocumentReference{
 			ID:        nil,
-			Temporary: WikimediaCommonsEntityReference + id,
+			Temporary: []string{WikimediaCommonsEntityReference, id},
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return search.DocumentReference{
 			ID:        nil,
-			Temporary: WikidataReference + id,
+			Temporary: []string{WikidataReference, id},
 		}
 	} else if strings.HasPrefix(id, "Category:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
 				ID:        nil,
-				Temporary: WikipediaCategoryReference + id,
+				Temporary: []string{WikipediaCategoryReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
 				ID:        nil,
-				Temporary: WikimediaCommonsCategoryReference + id,
+				Temporary: []string{WikimediaCommonsCategoryReference, id},
 			}
 		}
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
@@ -197,18 +197,18 @@ func getDocumentReference(id, source string) search.DocumentReference {
 		case "ENGLISH_WIKIPEDIA":
 			return search.DocumentReference{
 				ID:        nil,
-				Temporary: WikipediaTemplateReference + id,
+				Temporary: []string{WikipediaTemplateReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return search.DocumentReference{
 				ID:        nil,
-				Temporary: WikimediaCommonsTemplateReference + id,
+				Temporary: []string{WikimediaCommonsTemplateReference, id},
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return search.DocumentReference{
 			ID:        nil,
-			Temporary: WikimediaCommonsFileReference + id,
+			Temporary: []string{WikimediaCommonsFileReference, id},
 		}
 	}
 
