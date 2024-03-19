@@ -1089,27 +1089,25 @@ export function useSizeHistogramValues(
   }
 }
 
-async function getSearchResults<Type extends SearchResult | SearchFilterResult | RelSearchResult>(
+async function getSearchResults<T extends SearchResult | SearchFilterResult | RelSearchResult>(
   url: string,
-  el: Ref<Element | null>,
-  abortSignal: AbortSignal,
-  progress?: Ref<number>,
-): Promise<{ results: Type[]; total: string; query?: string; filters?: Filters } | { q: string; s: string }> {
-  const { doc, headers } = await getURL(url, el, abortSignal, progress)
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal | null,
+  progress: Ref<number> | null,
+): Promise<{ results: T[]; total: number; query?: string; filters?: Filters } | { q: string; s: string }> {
+  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
 
   if (Array.isArray(doc)) {
-    const total = headers.get("Peerdb-Total")
-    if (total === null) {
-      throw new Error("Peerdb-Total header is null")
+    if (!("total" in metadata)) {
+      throw new Error(`"total" metadata is missing`)
     }
-    const res = { results: doc, total } as { results: Type[]; total: string; query?: string; filters?: Filters }
-    const query = headers.get("Peerdb-Query")
-    if (query !== null) {
-      res.query = decodeURIComponent(query)
+    const total = metadata["total"] as number
+    const res = { results: doc, total } as { results: T[]; total: number; query?: string; filters?: Filters }
+    if ("query" in metadata) {
+      res.query = metadata["query"] as string
     }
-    const filters = headers.get("Peerdb-Filters")
-    if (filters !== null) {
-      res.filters = JSON.parse(decodeURIComponent(filters))
+    if ("filters" in metadata) {
+      res.filters = JSON.parse(metadata["filters"] as string)
     }
     return res
   }
@@ -1119,9 +1117,9 @@ async function getSearchResults<Type extends SearchResult | SearchFilterResult |
 
 async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult | SizeValuesResult>(
   url: string,
-  el: Ref<Element | null>,
-  abortSignal: AbortSignal,
-  progress?: Ref<number>,
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal | null,
+  progress: Ref<number> | null,
 ): Promise<{
   results: Type[]
   total: number
@@ -1129,30 +1127,27 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   max?: string
   interval?: string
 }> {
-  const { doc, headers } = await getURL(url, el, abortSignal, progress)
+  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
 
-  const total = headers.get("Peerdb-Total")
-  if (total === null) {
-    throw new Error("Peerdb-Total header is null")
+  if (!("total" in metadata)) {
+    throw new Error(`"total" metadata is missing`)
   }
-  const res = { results: doc, total: parseInt(total) } as {
+  const total = metadata["total"] as number
+  const res = { results: doc, total: total } as {
     results: Type[]
     total: number
     min?: string
     max?: string
     interval?: string
   }
-  const min = headers.get("Peerdb-Min")
-  if (min !== null) {
-    res.min = min
+  if ("min" in metadata) {
+    res.min = metadata["min"] as string
   }
-  const max = headers.get("Peerdb-Max")
-  if (max !== null) {
-    res.max = max
+  if ("max" in metadata) {
+    res.max = metadata["max"] as string
   }
-  const interval = headers.get("Peerdb-Interval")
-  if (interval !== null) {
-    res.interval = interval
+  if ("interval" in metadata) {
+    res.interval = metadata["interval"] as string
   }
 
   return res
@@ -1160,20 +1155,20 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
 
 async function getStringValues<Type extends StringValuesResult | IndexValuesResult>(
   url: string,
-  el: Ref<Element | null>,
-  abortSignal: AbortSignal,
-  progress?: Ref<number>,
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal | null,
+  progress: Ref<number> | null,
 ): Promise<{
   results: Type[]
   total: number
 }> {
-  const { doc, headers } = await getURL(url, el, abortSignal, progress)
+  const { doc, metadata} = await getURL(url, el, abortSignal, progress)
 
-  const total = headers.get("Peerdb-Total")
-  if (total === null) {
-    throw new Error("Peerdb-Total header is null")
+  if (!("total" in metadata)) {
+    throw new Error(`"total" metadata is missing`)
   }
-  const res = { results: doc, total: parseInt(total) } as {
+  const total = metadata["total"] as number
+  const res = { results: doc, total: total } as {
     results: Type[]
     total: number
   }
@@ -1184,7 +1179,7 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
 export function useSearchState(
   el: Ref<Element | null>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
-  progress?: Ref<number>,
+  progress: Ref<number> | null,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<ClientQuery>>

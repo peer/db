@@ -1,30 +1,47 @@
 import type { Ref } from "vue"
+import type { Metadata } from "@/types"
 
 import { ref, readonly } from "vue"
 import { Queue } from "@/queue"
+import { decodeMetadata } from "./metadata"
 
 const queue = new Queue({ concurrency: 100 })
 
-const localGetCache = new Map<string, WeakRef<{ doc: object; headers: Headers }>>()
+const localGetCache = new Map<string, WeakRef<{ doc: unknown; metadata: Metadata }>>()
 
 const _globalProgress = ref(0)
 export const globalProgress = import.meta.env.DEV ? readonly(_globalProgress) : _globalProgress
 
 export class FetchError extends Error {
-  constructor(msg: string, options?: { cause?: Error; status: number; body: string; url: string; requestID: string | null }) {
+  cause?: Error
+  status: number
+  body: string
+  url: string
+  requestID: string | null
+
+  constructor(msg: string, options: { cause?: Error; status: number; body: string; url: string; requestID: string | null }) {
+    // Cause gets set by super.
     super(msg, options)
-    Object.assign(this, options)
+    this.status = options.status
+    this.body = options.body
+    this.url = options.url
+    this.requestID = options.requestID
   }
 }
 
 // TODO: Improve priority with "el".
-export async function getURL(url: string, el: Ref<Element | null>, abortSignal: AbortSignal, progress?: Ref<number>): Promise<{ doc: object; headers: Headers }> {
+export async function getURL<T>(
+  url: string,
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal | null,
+  progress: Ref<number> | null,
+): Promise<{ doc: T; metadata: Metadata }> {
   // Is it already cached?
   const weakRef = localGetCache.get(url)
   if (weakRef) {
     const cached = weakRef.deref()
     if (cached) {
-      return cached
+      return cached as { doc: T, metadata: Metadata }
     } else {
       // Weak reference's target has been reclaimed.
       localGetCache.delete(url)
@@ -59,7 +76,8 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
           referrerPolicy: "strict-origin-when-cross-origin",
           signal: abortSignal,
         })
-        if (!response.ok) {
+        const contentType = response.headers.get("Content-Type")
+        if (!contentType || !contentType.includes("application/json")) {
           const body = await response.text()
           throw new FetchError(`fetch GET error ${response.status}: ${body}`, {
             status: response.status,
@@ -68,10 +86,10 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
             requestID: response.headers.get("Request-ID"),
           })
         }
-        return { doc: await response.json(), headers: response.headers }
+        return { doc: await response.json(), metadata: decodeMetadata(response.headers) }
       },
       {
-        signal: abortSignal,
+        signal: abortSignal || undefined,
       },
     )
     localGetCache.set(url, new WeakRef(res))
@@ -84,8 +102,10 @@ export async function getURL(url: string, el: Ref<Element | null>, abortSignal: 
   }
 }
 
-export async function postURL(url: string, form: FormData, progress: Ref<number>): Promise<object> {
-  progress.value += 1
+export async function postURL<T>(url: string, form: FormData, progress: Ref<number> | null): Promise<T> {
+  if (progress) {
+    progress.value += 1
+  }
   _globalProgress.value += 1
   try {
     const response = await fetch(url, {
@@ -102,7 +122,8 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
     })
-    if (!response.ok) {
+    const contentType = response.headers.get("Content-Type")
+    if (!contentType || !contentType.includes("application/json")) {
       const body = await response.text()
       throw new FetchError(`fetch POST error ${response.status}: ${body}`, {
         status: response.status,
@@ -114,6 +135,8 @@ export async function postURL(url: string, form: FormData, progress: Ref<number>
     return await response.json()
   } finally {
     _globalProgress.value -= 1
-    progress.value -= 1
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }
