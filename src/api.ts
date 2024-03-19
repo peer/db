@@ -71,7 +71,6 @@ export async function getURL<T>(
           method: "GET",
           mode: "same-origin",
           credentials: "omit",
-          redirect: "error",
           referrer: document.location.href,
           referrerPolicy: "strict-origin-when-cross-origin",
           signal: abortSignal,
@@ -118,7 +117,6 @@ export async function postURL<T>(url: string, form: FormData, progress: Ref<numb
       body: new URLSearchParams(form as any),
       mode: "same-origin",
       credentials: "omit",
-      redirect: "error",
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
     })
