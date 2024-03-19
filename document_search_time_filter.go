@@ -186,7 +186,7 @@ func (s *Service) DocumentSearchTimeFilterGet(w http.ResponseWriter, req *http.R
 	}
 
 	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {
-		metadata["Interval"] = []string{intervalString}
+		metadata["interval"] = []string{intervalString}
 	}
 
 	s.WriteJSON(w, req, results, metadata)
