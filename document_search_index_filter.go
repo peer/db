@@ -6,12 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 )
 
 type indexAggregations struct {
@@ -21,19 +20,13 @@ type indexAggregations struct {
 	} `json:"buckets"`
 }
 
-func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
-		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 
@@ -42,15 +35,15 @@ func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *ht
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req, nil)
+		s.NotFound(w, req)
 		return
 	}
-	sh := ss.(*search) //nolint:errcheck
+	sh := ss.(*searchState) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
 	searchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 	termsAggregation := elastic.NewTermsAggregation().Field("_index").Size(maxResultsCount)
@@ -63,7 +56,7 @@ func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *ht
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -73,14 +66,14 @@ func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *ht
 	err = json.Unmarshal(res.Aggregations["terms"], &terms)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var index intValueAggregation
 	err = json.Unmarshal(res.Aggregations["index"], &index)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	m.Stop()
@@ -97,9 +90,7 @@ func (s *Service) DocumentSearchIndexFilterAPIGet(w http.ResponseWriter, req *ht
 	}
 	total := strconv.FormatInt(index.Value, 10)
 
-	metadata := http.Header{
-		"Total": {total},
-	}
-
-	s.writeJSON(w, req, contentEncoding, results, metadata)
+	s.WriteJSON(w, req, results, map[string]interface{}{
+		"total": total,
+	})
 }

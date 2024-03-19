@@ -1,9 +1,8 @@
-package main
+package search
 
 import (
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search"
 	"gitlab.com/peerdb/search/internal/es"
 )
 
@@ -13,7 +12,7 @@ func (c *PopulateCommand) runIndex(globals *Globals, index string, sizeField boo
 		return err
 	}
 
-	err = search.SaveCoreProperties(ctx, globals.Logger, esClient, processor, index)
+	err = SaveCoreProperties(ctx, globals.Logger, esClient, processor, index)
 	if err != nil {
 		return err
 	}

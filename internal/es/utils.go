@@ -19,7 +19,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/search/search"
 )
 
 const (

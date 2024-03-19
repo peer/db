@@ -10,7 +10,6 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-
 	"gitlab.com/tozd/identifier"
 )
 

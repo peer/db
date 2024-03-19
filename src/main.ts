@@ -9,7 +9,7 @@ import siteContext from "@/context"
 
 // During development when requests are proxied to Vite, placeholders
 // in HTML files are not rendered. So we set them here as well.
-document.title = siteContext.site.title
+document.title = siteContext.title
 
 const router = createRouter({
   history: createWebHistory(),

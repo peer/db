@@ -5,17 +5,15 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 )
 
 const (
@@ -333,9 +331,9 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 	panic(errors.New("invalid filters"))
 }
 
-// search represents current search state.
+// searchState represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
-type search struct {
+type searchState struct {
 	ID       identifier.Identifier  `json:"s"`
 	Text     string                 `json:"q"`
 	Filters  *filters               `json:"-"`
@@ -343,41 +341,22 @@ type search struct {
 	RootID   identifier.Identifier  `json:"-"`
 }
 
-// Encode returns search state as a query string.
-// We want the order of parameters to be "s" and then "q" so that
-// if "q" is cut, URL still works.
-func (q *search) Encode() string {
-	var buf strings.Builder
-	buf.WriteString(url.QueryEscape("s"))
-	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.ID.String()))
-	buf.WriteByte('&')
-	buf.WriteString(url.QueryEscape("q"))
-	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.Text))
-	return buf.String()
+// Values returns search state as query string values.
+func (q *searchState) Values() url.Values {
+	values := url.Values{}
+	values.Set("s", q.ID.String())
+	values.Set("q", q.Text)
+	return values
 }
 
-// Encode returns search state as a query string, with additional "at" parameter.
-// We want the order of parameters to be "s", "at", and then "q" so that
-// if "q" is cut, URL still works.
-func (q *search) EncodeWithAt(at string) string {
+// ValuesWithAt returns search state as query string values, with additional "at" parameter.
+func (q *searchState) ValuesWithAt(at string) url.Values {
+	values := q.Values()
 	if at == "" {
-		return q.Encode()
+		return values
 	}
-	var buf strings.Builder
-	buf.WriteString(url.QueryEscape("s"))
-	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.ID.String()))
-	buf.WriteByte('&')
-	buf.WriteString(url.QueryEscape("at"))
-	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(at))
-	buf.WriteByte('&')
-	buf.WriteString(url.QueryEscape("q"))
-	buf.WriteByte('=')
-	buf.WriteString(url.QueryEscape(q.Text))
-	return buf.String()
+	values.Set("at", at)
+	return values
 }
 
 // TODO: Use a database instead.
@@ -392,7 +371,7 @@ type field struct {
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
 // makeSearch creates a new search state given optional existing state and new queries.
-func makeSearch(form url.Values) *search {
+func makeSearch(form url.Values) *searchState {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(form.Get("s")); errE == nil {
 		parentSearchID = &id
@@ -414,7 +393,7 @@ func makeSearch(form url.Values) *search {
 	if parentSearchID != nil {
 		ps, ok := searches.Load(*parentSearchID)
 		if ok {
-			parentSearch := ps.(*search) //nolint:errcheck
+			parentSearch := ps.(*searchState) //nolint:errcheck
 			// There was no change.
 			if parentSearch.Text == textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
@@ -426,7 +405,7 @@ func makeSearch(form url.Values) *search {
 		}
 	}
 
-	sh := &search{
+	sh := &searchState{
 		ID:       id,
 		ParentID: parentSearchID,
 		RootID:   rootID,
@@ -440,7 +419,7 @@ func makeSearch(form url.Values) *search {
 
 // getOrMakeSearch resolves an existing search state if possible.
 // If not, it creates a new search state.
-func getOrMakeSearch(form url.Values) (*search, bool) {
+func getOrMakeSearch(form url.Values) (*searchState, bool) {
 	searchID, errE := identifier.FromString(form.Get("s"))
 	if errE != nil {
 		return makeSearch(form), false
@@ -462,11 +441,11 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 		}
 	}
 
-	ss := sh.(*search) //nolint:errcheck
+	ss := sh.(*searchState) //nolint:errcheck
 	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
 	if (form.Has("q") && ss.Text != textQuery) || (form.Has("filters") && !reflect.DeepEqual(ss.Filters, fs)) {
-		ss = &search{
+		ss = &searchState{
 			ID:       identifier.New(),
 			ParentID: &ss.ID,
 			RootID:   ss.RootID,
@@ -481,7 +460,7 @@ func getOrMakeSearch(form url.Values) (*search, bool) {
 }
 
 // getSearch resolves an existing search state if possible.
-func getSearch(form url.Values) *search {
+func getSearch(form url.Values) *searchState {
 	searchID, errE := identifier.FromString(form.Get("s"))
 	if errE != nil {
 		return nil
@@ -491,7 +470,7 @@ func getSearch(form url.Values) *search {
 		return nil
 	}
 	textQuery := form.Get("q")
-	ss := sh.(*search) //nolint:errcheck
+	ss := sh.(*searchState) //nolint:errcheck
 	// We allow there to not be "q" so that it is easier to use as an API.
 	if form.Has("q") && ss.Text != textQuery {
 		return nil
@@ -505,7 +484,7 @@ type searchResult struct {
 
 // DocumentSearch is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
 // If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ Params) {
+func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -514,9 +493,9 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ Par
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.Router.Path("DocumentSearch", nil, sh.Encode())
+		path, err := s.Reverse("DocumentSearch", nil, sh.Values())
 		if err != nil {
-			s.internalServerErrorWithError(w, req, err)
+			s.InternalServerErrorWithError(w, req, err)
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
@@ -526,9 +505,9 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ Par
 		return
 	} else if !req.Form.Has("q") {
 		// "q" is missing, so we redirect to the correct URL.
-		path, err := s.Router.Path("DocumentSearch", nil, sh.EncodeWithAt(req.Form.Get("at")))
+		path, err := s.Reverse("DocumentSearch", nil, sh.ValuesWithAt(req.Form.Get("at")))
 		if err != nil {
-			s.internalServerErrorWithError(w, req, err)
+			s.InternalServerErrorWithError(w, req, err)
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
@@ -538,34 +517,24 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ Par
 		return
 	}
 
-	s.HomeGet(w, req, nil)
-}
-
-func (s *Service) getSite(req *http.Request) (Site, errors.E) {
-	if site, ok := s.Sites[req.Host]; req.Host != "" && ok {
-		return site, nil
-	} else if site, ok := s.Sites[""]; len(s.Sites) == 1 && ok {
-		return site, nil
-	}
-	return Site{}, errors.Errorf(`site not found for host "%s"`, req.Host)
+	s.Home(w, req, nil)
 }
 
 func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, errors.E) {
-	site, err := s.getSite(req)
-	if err != nil {
-		return nil, 0, err
-	}
+	ctx := req.Context()
+
+	site := waf.MustGetSite[*Site](ctx)
 
 	// The fact that TrackTotalHits is set to true is important because the count is used as the
 	// number of documents of the filter on the _index field.
 	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", idFromRequest(req)).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, nil
+		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, nil
 }
 
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
+func (s *Service) getSearchQuery(sh *searchState) elastic.Query { //nolint:ireturn
 	boolQuery := elastic.NewBoolQuery()
 
 	if sh.Text != "" {
@@ -591,17 +560,11 @@ func (s *Service) getSearchQuery(sh *search) elastic.Query { //nolint:ireturn
 	return boolQuery
 }
 
-// DocumentSearchAPIGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
+// DocumentSearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request, _ Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -612,13 +575,13 @@ func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request,
 		// Something was not OK, so we return new query parameters.
 		// TODO: Should we already do the query, to warm up ES cache?
 		//       Maybe we should cache response ourselves so that we do not hit ES twice?
-		s.writeJSON(w, req, contentEncoding, sh, nil)
+		s.WriteJSON(w, req, sh, nil)
 		return
 	}
 
 	searchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 	searchService = searchService.From(0).Size(maxResultsCount).Query(s.getSearchQuery(sh))
@@ -627,7 +590,7 @@ func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request,
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -642,31 +605,23 @@ func (s *Service) DocumentSearchAPIGet(w http.ResponseWriter, req *http.Request,
 		total += "+"
 	}
 
-	metadata := http.Header{
-		"Total": {total},
-	}
-
 	// TODO: Move this to a separate API endpoint.
 	filters, err := x.MarshalWithoutEscapeHTML(sh.Filters)
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
-	metadata.Set("Query", url.PathEscape(sh.Text))
-	metadata.Set("Filters", url.PathEscape(string(filters)))
 
-	s.writeJSON(w, req, contentEncoding, results, metadata)
+	s.WriteJSON(w, req, results, map[string]interface{}{
+		"total":   total,
+		"query":   sh.Text,
+		"filters": string(filters),
+	})
 }
 
-// DocumentSearchAPIPost is a POST HTTP request handler which stores the search state and returns
+// DocumentSearchPost is a POST HTTP request handler which stores the search state and returns
 // query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
-func (s *Service) DocumentSearchAPIPost(w http.ResponseWriter, req *http.Request, _ Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -676,5 +631,5 @@ func (s *Service) DocumentSearchAPIPost(w http.ResponseWriter, req *http.Request
 
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit ES twice?
-	s.writeJSON(w, req, contentEncoding, sh, nil)
+	s.WriteJSON(w, req, sh, nil)
 }

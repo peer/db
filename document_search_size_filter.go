@@ -7,12 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 )
 
 type floatValueAggregation struct {
@@ -26,19 +25,13 @@ type histogramSizeAggregations struct {
 	} `json:"buckets"`
 }
 
-func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
-		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 
@@ -47,15 +40,15 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req, nil)
+		s.NotFound(w, req)
 		return
 	}
-	sh := ss.(*search) //nolint:errcheck
+	sh := ss.(*searchState) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
 	minMaxSearchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 
@@ -67,7 +60,7 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -77,22 +70,22 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	err = json.Unmarshal(res.Aggregations["min"], &minSize)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var maxSize floatValueAggregation
 	err = json.Unmarshal(res.Aggregations["max"], &maxSize)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	m.Stop()
 
 	var min, interval float64
 	if res.Hits.TotalHits.Value == 0 || minSize.Value == nil || maxSize.Value == nil {
-		s.writeJSON(w, req, contentEncoding, make([]histogramAmountResult, 0), http.Header{
-			"Total": {"0"},
+		s.WriteJSON(w, req, make([]histogramAmountResult, 0), map[string]interface{}{
+			"total": 0,
 		})
 		return
 	} else if *minSize.Value == *maxSize.Value {
@@ -115,7 +108,7 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 
 	histogramSearchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 	histogramAggregation := elastic.NewHistogramAggregation().Field("_size").Offset(min).Interval(interval)
@@ -125,7 +118,7 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -135,7 +128,7 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -152,15 +145,15 @@ func (s *Service) DocumentSearchSizeFilterAPIGet(w http.ResponseWriter, req *htt
 	minString := strconv.FormatInt(int64(*minSize.Value), 10)
 	maxString := strconv.FormatInt(int64(*maxSize.Value), 10)
 
-	metadata := http.Header{
-		"Total": {total},
-		"Min":   {minString},
-		"Max":   {maxString},
+	metadata := map[string]interface{}{
+		"total": total,
+		"min":   minString,
+		"max":   maxString,
 	}
 
 	if *minSize.Value != *maxSize.Value {
-		metadata["Interval"] = []string{intervalString}
+		metadata["interval"] = intervalString
 	}
 
-	s.writeJSON(w, req, contentEncoding, results, metadata)
+	s.WriteJSON(w, req, results, metadata)
 }

@@ -296,10 +296,14 @@ export type ServerQuery = { s?: string; q?: string; filters?: Filters }
 export type ClientQuery = { s?: string; at?: string; q?: string }
 
 export type SiteContext = {
-  site: {
-    index: string
-    title: string
+  domain: string
+  build?: {
+    version?: string
+    buildTimestamp?: string
+    revision?: string
   }
+  index: string
+  title: string
 }
 
 export type Router = VueRouter & {

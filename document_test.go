@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/search"

@@ -7,12 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 )
 
 const (
@@ -52,35 +51,29 @@ type histogramAmountResult struct {
 	Count int64   `json:"count"`
 }
 
-func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
-		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 
 	prop, errE := identifier.FromString(params["prop"])
 	if errE != nil {
-		s.badRequestWithError(w, req, errors.WithMessage(errE, `"prop" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" parameter is not a valid identifier`))
 		return
 	}
 
 	unit := params["unit"]
 	if !ValidAmountUnit(unit) {
-		s.badRequestWithError(w, req, errors.New(`"unit" parameter is not a valid unit`))
+		s.BadRequestWithError(w, req, errors.New(`"unit" parameter is not a valid unit`))
 		return
 	}
 	if unit == "@" {
-		s.badRequestWithError(w, req, errors.New(`"unit" parameter cannot be "@"`))
+		s.BadRequestWithError(w, req, errors.New(`"unit" parameter cannot be "@"`))
 		return
 	}
 
@@ -89,15 +82,15 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req, nil)
+		s.NotFound(w, req)
 		return
 	}
-	sh := ss.(*search) //nolint:errcheck
+	sh := ss.(*searchState) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
 	minMaxSearchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 
@@ -131,7 +124,7 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -141,14 +134,14 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	err = json.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
 	var min, interval float64
 	if minMax.Filter.Count == 0 {
-		s.writeJSON(w, req, contentEncoding, make([]histogramAmountResult, 0), http.Header{
-			"Total": {"0"},
+		s.WriteJSON(w, req, make([]histogramAmountResult, 0), map[string]interface{}{
+			"total": 0,
 		})
 		return
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
@@ -171,7 +164,7 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 
 	histogramSearchService, _, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 	histogramAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
@@ -196,7 +189,7 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -206,7 +199,7 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 
@@ -223,15 +216,15 @@ func (s *Service) DocumentSearchAmountFilterAPIGet(w http.ResponseWriter, req *h
 	minString := strconv.FormatFloat(minMax.Filter.Min.Value, 'f', -1, 64)
 	maxString := strconv.FormatFloat(minMax.Filter.Max.Value, 'f', -1, 64)
 
-	metadata := http.Header{
-		"Total": {total},
-		"Min":   {minString},
-		"Max":   {maxString},
+	metadata := map[string]interface{}{
+		"total": total,
+		"min":   minString,
+		"max":   maxString,
 	}
 
 	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {
-		metadata["Interval"] = []string{intervalString}
+		metadata["interval"] = intervalString
 	}
 
-	s.writeJSON(w, req, contentEncoding, results, metadata)
+	s.WriteJSON(w, req, results, metadata)
 }

@@ -1,57 +1,76 @@
 {
   "routes": [
     {
+      "name": "Home",
+      "path": "/",
+      "api": null,
+      "get": {}
+    },
+    {
+      "name": "License",
+      "path": "/LICENSE",
+      "api": null,
+      "get": {}
+    },
+    {
+      "name": "Notice",
+      "path": "/NOTICE",
+      "api": null,
+      "get": {}
+    },
+    {
       "name": "DocumentSearch",
       "path": "/d",
-      "api": true,
-      "get": true
+      "api": {},
+      "get": {}
     },
     {
       "name": "DocumentSearchFilters",
       "path": "/d/filters/:s",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchRelFilter",
       "path": "/d/filters/:s/rel/:prop",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchAmountFilter",
       "path": "/d/filters/:s/amount/:prop/:unit",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchTimeFilter",
       "path": "/d/filters/:s/time/:prop",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchStringFilter",
       "path": "/d/filters/:s/string/:prop",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchIndexFilter",
       "path": "/d/filters/:s/index",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentSearchSizeFilter",
       "path": "/d/filters/:s/size",
-      "api": true
+      "api": {},
+      "get": null
     },
     {
       "name": "DocumentGet",
       "path": "/d/:id",
-      "api": true,
-      "get": true
-    },
-    {
-      "name": "HomeGet",
-      "path": "/",
-      "api": true,
-      "get": true
+      "api": {},
+      "get": {}
     }
   ]
 }

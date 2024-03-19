@@ -7,13 +7,12 @@ import (
 	"strconv"
 	"time"
 
-	gddo "github.com/golang/gddo/httputil"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-	"golang.org/x/exp/slices"
-
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
+	"golang.org/x/exp/slices"
 )
 
 // TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
@@ -25,15 +24,12 @@ func (s *Service) populateProperties(ctx context.Context) errors.E {
 	)
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)
 
-	for domain, site := range s.Sites {
+	for _, site := range s.Sites {
 		total, err := s.ESClient.Count(site.Index).Query(query).Do(ctx)
 		if err != nil {
 			return errors.Errorf(`site "%s": %w`, site.Index, err)
 		}
-		// Map cannot be modified directly, so we modify the copy
-		// and store it back into the map.
 		site.propertiesTotal = total
-		s.Sites[domain] = site
 	}
 
 	return nil
@@ -80,19 +76,13 @@ type searchFiltersResult struct {
 	Unit  string `json:"_unit,omitempty"`
 }
 
-func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.Request, params Params) {
-	contentEncoding := gddo.NegotiateContentEncoding(req, allCompressions)
-	if contentEncoding == "" {
-		s.NotAcceptable(w, req, nil)
-		return
-	}
-
+func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
-		s.badRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
 		return
 	}
 
@@ -101,15 +91,15 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req, nil)
+		s.NotFound(w, req)
 		return
 	}
-	sh := ss.(*search) //nolint:errcheck
+	sh := ss.(*searchState) //nolint:errcheck
 
 	query := s.getSearchQuery(sh)
 	searchService, propertiesTotal, errE := s.getSearchService(req)
 	if errE != nil {
-		s.notFoundWithError(w, req, errE)
+		s.NotFoundWithError(w, req, errE)
 		return
 	}
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
@@ -186,7 +176,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
@@ -196,42 +186,42 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var amount filteredMultiTermAggregations
 	err = json.Unmarshal(res.Aggregations["amount"], &amount)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var timeA termAggregations
 	err = json.Unmarshal(res.Aggregations["time"], &timeA)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var str termAggregations
 	err = json.Unmarshal(res.Aggregations["string"], &str)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var index intValueAggregation
 	err = json.Unmarshal(res.Aggregations["index"], &index)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	var size intValueAggregation
 	err = json.Unmarshal(res.Aggregations["size"], &size)
 	if err != nil {
 		m.Stop()
-		s.internalServerErrorWithError(w, req, errors.WithStack(err))
+		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
 	m.Stop()
@@ -315,9 +305,7 @@ func (s *Service) DocumentSearchFiltersAPIGet(w http.ResponseWriter, req *http.R
 	}
 	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
 
-	metadata := http.Header{
-		"Total": {total},
-	}
-
-	s.writeJSON(w, req, contentEncoding, results, metadata)
+	s.WriteJSON(w, req, results, map[string]interface{}{
+		"total": total,
+	})
 }
