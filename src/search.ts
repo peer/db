@@ -501,12 +501,18 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         return
       }
       _results.value = data.results
-      if (data.total.endsWith("+")) {
-        _moreThanTotal.value = true
-        _total.value = parseInt(data.total.substring(0, data.total.length - 1))
+      if (typeof data.total === "string") {
+        if (data.total.endsWith("+")) {
+          _moreThanTotal.value = true
+          _total.value = parseInt(data.total.substring(0, data.total.length - 1))
+        } else {
+          // This should not really happen, but we still cover the case.
+          _moreThanTotal.value = false
+          _total.value = parseInt(data.total)
+        }
       } else {
         _moreThanTotal.value = false
-        _total.value = parseInt(data.total)
+        _total.value = data.total
       }
       if (data.filters) {
         _filters.value = filtersToFiltersState(data.filters)
@@ -1094,15 +1100,15 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal | null,
   progress: Ref<number> | null,
-): Promise<{ results: T[]; total: number; query?: string; filters?: Filters } | { q: string; s: string }> {
+): Promise<{ results: T[]; total: number | string; query?: string; filters?: Filters } | { q: string; s: string }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
 
   if (Array.isArray(doc)) {
     if (!("total" in metadata)) {
       throw new Error(`"total" metadata is missing`)
     }
-    const total = metadata["total"] as number
-    const res = { results: doc, total } as { results: T[]; total: number; query?: string; filters?: Filters }
+    const total = metadata["total"] as number | string
+    const res = { results: doc, total } as { results: T[]; total: number | string; query?: string; filters?: Filters }
     if ("query" in metadata) {
       res.query = metadata["query"] as string
     }

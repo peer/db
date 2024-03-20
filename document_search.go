@@ -1,10 +1,10 @@
 package search
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
@@ -600,9 +600,12 @@ func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ 
 		results[i] = searchResult{ID: hit.Id}
 	}
 
-	total := strconv.FormatInt(res.Hits.TotalHits.Value, 10)
+	// Total is a string or a number.
+	var total interface{}
 	if res.Hits.TotalHits.Relation == "gte" {
-		total += "+"
+		total = fmt.Sprintf("+%d", res.Hits.TotalHits.Value)
+	} else {
+		total = res.Hits.TotalHits.Value
 	}
 
 	// TODO: Move this to a separate API endpoint.
