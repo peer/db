@@ -24,12 +24,14 @@ import type {
   TimeSearchResult,
   StringSearchResult,
   Router,
+  QueryValues,
+  QueryValuesWithOptional,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute } from "vue-router"
 import { getURL, postURL } from "@/api"
-import { timestampToSeconds, useRouter } from "@/utils"
+import { encodeQuery, timestampToSeconds, useRouter } from "@/utils"
 import { NONE } from "@/symbols"
 
 export { NONE } from "@/symbols"
@@ -39,21 +41,23 @@ export const SEARCH_INCREASE = 50
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-function queryToData(route: RouteLocationNormalizedLoaded, data: FormData | URLSearchParams) {
+function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
+  const form = new FormData()
   if (Array.isArray(route.query.s)) {
     if (route.query.s[0] != null) {
-      data.set("s", route.query.s[0])
+      form.set("s", route.query.s[0])
     }
   } else if (route.query.s != null) {
-    data.set("s", route.query.s)
+    form.set("s", route.query.s)
   }
   if (Array.isArray(route.query.q)) {
     if (route.query.q[0] != null) {
-      data.set("q", route.query.q[0])
+      form.set("q", route.query.q[0])
     }
   } else if (route.query.q != null) {
-    data.set("q", route.query.q)
+    form.set("q", route.query.q)
   }
+  return form
 }
 
 export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
@@ -66,10 +70,11 @@ export async function postSearch(router: Router, form: HTMLFormElement, progress
   )
   await router.push({
     name: "DocumentSearch",
-    query: {
-      s: query.s,
+    query: encodeQuery({
+      // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
+      s: query.s || undefined,
       q: query.q,
-    },
+    }),
   })
 }
 
@@ -136,8 +141,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
       filters.and.push({ size: { ...updatedState.size } })
     }
   }
-  const form = new FormData()
-  queryToData(route, form)
+  const form = queryToFormData(route)
   form.set("filters", JSON.stringify(filters))
   const updatedQuery: ServerQuery = await postURL(
     router.apiResolve({
@@ -149,22 +153,26 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   if (route.query.s !== updatedQuery.s || route.query.q !== updatedQuery.q) {
     await router.push({
       name: "DocumentSearch",
-      query: {
-        s: updatedQuery.s,
+      query: encodeQuery({
+        // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
+        s: updatedQuery.s || undefined,
         q: updatedQuery.q,
-      },
+      }),
     })
   }
 }
 
-function getSearchURL(router: Router, params: string): string {
-  return router.apiResolve({ name: "DocumentSearch" }).href + "?" + params
+function getSearchURL(router: Router, query: QueryValuesWithOptional): string {
+  return router.apiResolve({
+    name: "DocumentSearch",
+    query: encodeQuery(query),
+  }).href
 }
 
 export function useSearch(
   el: Ref<Element | null>,
   progress: Ref<number>,
-  redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+  redirect: (query: QueryValues) => Promise<void | undefined>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
@@ -180,9 +188,11 @@ export function useSearch(
     el,
     progress,
     () => {
-      const params = new URLSearchParams()
-      queryToData(route, params)
-      return getSearchURL(router, params.toString())
+      return getSearchURL(router, {
+        // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
+        s: route.query.s || undefined,
+        q: route.query.q,
+      })
     },
     redirect,
   )
@@ -429,7 +439,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
-  redirect?: ((query: LocationQueryRaw) => Promise<void | undefined>) | null,
+  redirect?: ((query: QueryValues) => Promise<void | undefined>) | null,
 ): {
   results: DeepReadonly<Ref<Type[]>>
   total: DeepReadonly<Ref<number | null>>
@@ -1168,7 +1178,7 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
   results: Type[]
   total: number
 }> {
-  const { doc, metadata} = await getURL(url, el, abortSignal, progress)
+  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
 
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
@@ -1227,9 +1237,7 @@ export function useSearchState(
         _url.value = null
         return
       }
-      const params = new URLSearchParams()
-      params.set("s", s)
-      const newURL = getSearchURL(router, params.toString())
+      const newURL = getSearchURL(router, { s })
       _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())

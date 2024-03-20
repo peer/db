@@ -321,6 +321,10 @@ type ItemTypes = BareItem | ItemTypes[]
 
 export type Metadata = Record<Key, ItemTypes>
 
+export type QueryValues = Record<string, string | string[]>
+
+export type QueryValuesWithOptional = Record<string, string | (string | null)[] | undefined | null>
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>

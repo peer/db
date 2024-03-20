@@ -41,7 +41,7 @@ export async function getURL<T>(
   if (weakRef) {
     const cached = weakRef.deref()
     if (cached) {
-      return cached as { doc: T, metadata: Metadata }
+      return cached as { doc: T; metadata: Metadata }
     } else {
       // Weak reference's target has been reclaimed.
       localGetCache.delete(url)

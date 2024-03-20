@@ -1,5 +1,5 @@
 import { DeepReadonly, Ref, watchEffect } from "vue"
-import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit } from "@/types"
+import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
 
 import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
@@ -294,4 +294,50 @@ export function useInitialLoad(progress: Ref<number>): { initialLoad: Ref<boolea
   )
 
   return { initialLoad, laterLoad }
+}
+
+// encodeQuery should match implementation on the backend.
+export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
+  const keys = []
+  for (const key in query) {
+    keys.push(key)
+  }
+  // We want keys in an alphabetical order (default in Go).
+  keys.sort()
+
+  // We want the order of parameters to be "s", "at", and then "q" so that if "q" is cut,
+  // URL still works. So we just bring "s" to the front.
+  const i = keys.indexOf("s")
+  if (i >= 0) {
+    keys.splice(i, 1)
+    keys.unshift("s")
+  }
+
+  const values: QueryValues = {}
+  for (const key of keys) {
+    const value = query[key]
+    if (value === undefined) {
+      continue
+    } else if (value === null) {
+      // In contrast with Vue Router, we convert null values to an empty string because Go
+      // does not support bare parameters without = and waf would then normalize them anyway.
+      values[key] = ""
+    } else if (Array.isArray(value)) {
+      const vs: string[] = []
+      for (const v in value) {
+        if (v === null) {
+          vs.push("")
+        } else {
+          vs.push(v)
+        }
+      }
+      if (vs.length > 0) {
+        values[key] = vs
+      }
+    } else {
+      values[key] = value
+    }
+  }
+
+  return values
 }

@@ -7,7 +7,6 @@ import type {
   IndexFilterState,
   SizeFilterState,
   FiltersState,
-  ClientQuery,
   RelSearchResult,
   AmountSearchResult,
   TimeSearchResult,
@@ -32,7 +31,7 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { globalProgress } from "@/api"
-import { clone, useRouter, useLimitResults } from "@/utils"
+import { clone, useRouter, useLimitResults, encodeQuery } from "@/utils"
 
 const router = useRouter()
 const route = useRoute()
@@ -50,9 +49,8 @@ const {
 } = useSearch(searchEl, searchProgress, async (query) => {
   await router.replace({
     name: "DocumentSearch",
-    // Maybe route.query has "at" parameter which we want to keep.
-    // TODO: Order of arguments here?
-    query: { ...route.query, ...query },
+    // Maybe route.query has non-empty "at" parameter which we want to keep.
+    query: encodeQuery({ at: route.query.at || undefined, ...query }),
   })
 })
 
@@ -95,17 +93,11 @@ watch(
     if (!topId && searchTotal.value === null) {
       return
     }
-    // We set "s", "at", and "q" here to undefined so that we control their order in the query string.
-    const query: ClientQuery = { s: undefined, at: undefined, q: undefined, ...route.query }
-    if (!topId) {
-      delete query.at
-    } else {
-      query.at = topId
-    }
     await router.replace({
       name: route.name as string,
       params: route.params,
-      query: query,
+      // We do not want to set an empty "at" query parameter.
+      query: encodeQuery({ ...route.query, at: topId || undefined }),
       hash: route.hash,
     })
   },

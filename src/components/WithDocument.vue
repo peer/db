@@ -56,7 +56,7 @@ watch(
 
     let data
     try {
-      data = await getURL(newURL, el, controller.signal)
+      data = await getURL(newURL, el, controller.signal, null)
     } catch (err) {
       if (controller.signal.aborted) {
         return
