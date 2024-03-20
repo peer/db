@@ -1,4 +1,4 @@
-package search
+package peerdb
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/search/search"
+	"gitlab.com/peerdb/peerdb/search"
 )
 
 //go:embed routes.json

@@ -1,4 +1,4 @@
-package search
+package peerdb
 
 import (
 	"github.com/alecthomas/kong"

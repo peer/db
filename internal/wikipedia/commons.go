@@ -21,8 +21,9 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 const (
@@ -400,75 +401,75 @@ func fitBoxWidth(width, height float64) int {
 
 func ConvertWikimediaCommonsImage(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
-) (*search.Document, errors.E) {
+) (*peerdb.Document, errors.E) {
 	return convertImage(ctx, log, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
 func convertImage(
 	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
 	token string, apiLimit int, image Image,
-) (*search.Document, errors.E) {
-	id := search.GetID(namespace, image.Name)
+) (*peerdb.Document, errors.E) {
+	id := peerdb.GetID(namespace, image.Name)
 
 	name := strings.ReplaceAll(image.Name, "_", " ")
 	name = strings.TrimSuffix(name, path.Ext(name))
 
 	prefix := GetMediawikiFilePrefix(image.Name)
 
-	document := &search.Document{
-		CoreDocument: search.CoreDocument{
+	doc := &peerdb.Document{
+		CoreDocument: document.CoreDocument{
 			ID:    id,
 			Score: 0.5,
 		},
-		Claims: &search.ClaimTypes{
-			Text: search.TextClaims{
+		Claims: &document.ClaimTypes{
+			Text: document.TextClaims{
 				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "NAME", 0),
+					CoreClaim: document.CoreClaim{
+						ID:         peerdb.GetID(namespace, image.Name, "NAME", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: search.GetCorePropertyReference("NAME"),
-					HTML: search.TranslatableHTMLString{
+					Prop: peerdb.GetCorePropertyReference("NAME"),
+					HTML: document.TranslatableHTMLString{
 						"en": html.EscapeString(name),
 					},
 				},
 			},
-			Identifier: search.IdentifierClaims{
+			Identifier: document.IdentifierClaims{
 				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
+					CoreClaim: document.CoreClaim{
+						ID:         peerdb.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop:       search.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
+					Prop:       peerdb.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
 				},
 			},
-			Reference: search.ReferenceClaims{
+			Reference: document.ReferenceClaims{
 				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
+					CoreClaim: document.CoreClaim{
+						ID:         peerdb.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: search.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
+					Prop: peerdb.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
 				},
 				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "FILE_URL", 0),
+					CoreClaim: document.CoreClaim{
+						ID:         peerdb.GetID(namespace, image.Name, "FILE_URL", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: search.GetCorePropertyReference("FILE_URL"),
+					Prop: peerdb.GetCorePropertyReference("FILE_URL"),
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 				},
 			},
-			Relation: search.RelationClaims{
+			Relation: document.RelationClaims{
 				{
-					CoreClaim: search.CoreClaim{
-						ID:         search.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
+					CoreClaim: document.CoreClaim{
+						ID:         peerdb.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: search.GetCorePropertyReference("IS"),
-					To:   search.GetCorePropertyReference("FILE"),
+					Prop: peerdb.GetCorePropertyReference("IS"),
+					To:   peerdb.GetCorePropertyReference("FILE"),
 				},
 			},
 		},
@@ -500,29 +501,29 @@ func convertImage(
 		image.MediaType = ambiguous.MediaType
 	}
 	if !supportedMediaTypes[mediaType] {
-		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported media type "%s"`, mediaType))
+		return nil, errors.WithStack(errors.BaseWrapf(ErrSkipped, `unsupported media type "%s"`, mediaType))
 	}
 	if !supportedMediawikiMediaTypes[image.MediaType] {
-		return nil, errors.WithStack(errors.BaseWrapf(SkippedError, `unsupported Mediawiki media type "%s"`, image.MediaType))
+		return nil, errors.WithStack(errors.BaseWrapf(ErrSkipped, `unsupported Mediawiki media type "%s"`, image.MediaType))
 	}
 
-	err := document.Add(&search.StringClaim{
-		CoreClaim: search.CoreClaim{
-			ID:         search.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
+	err := doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         peerdb.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   search.GetCorePropertyReference("MEDIA_TYPE"),
+		Prop:   peerdb.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
 	})
 	if err != nil {
 		return nil, err
 	}
-	err = document.Add(&search.StringClaim{
-		CoreClaim: search.CoreClaim{
-			ID:         search.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
+	err = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         peerdb.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   search.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+		Prop:   peerdb.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
 	})
 	if err != nil {
@@ -533,14 +534,14 @@ func convertImage(
 		log.Warn().Str("file", image.Name).Msg("zero size")
 	}
 	// We set size even if it is zero.
-	err = document.Add(&search.AmountClaim{
-		CoreClaim: search.CoreClaim{
-			ID:         search.GetID(namespace, image.Name, "SIZE", 0),
+	err = doc.Add(&document.AmountClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         peerdb.GetID(namespace, image.Name, "SIZE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   search.GetCorePropertyReference("SIZE"),
+		Prop:   peerdb.GetCorePropertyReference("SIZE"),
 		Amount: float64(image.Size),
-		Unit:   search.AmountUnitByte,
+		Unit:   document.AmountUnitByte,
 	})
 	if err != nil {
 		return nil, err
@@ -557,14 +558,14 @@ func convertImage(
 				log.Warn().Str("file", image.Name).Msg("zero page count")
 			}
 			// We set page count even if it is zero, if the media type should have a page count.
-			err = document.Add(&search.AmountClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, image.Name, "PAGE_COUNT", 0),
+			err = doc.Add(&document.AmountClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         peerdb.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 					Confidence: es.MediumConfidence,
 				},
-				Prop:   search.GetCorePropertyReference("PAGE_COUNT"),
+				Prop:   peerdb.GetCorePropertyReference("PAGE_COUNT"),
 				Amount: float64(pageCount),
-				Unit:   search.AmountUnitNone,
+				Unit:   document.AmountUnitNone,
 			})
 			if err != nil {
 				return nil, err
@@ -582,14 +583,14 @@ func convertImage(
 				log.Warn().Str("file", image.Name).Msg("zero duration")
 			}
 			// We set duration even if it is zero, if the media type should have a duration.
-			err := document.Add(&search.AmountClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, image.Name, "DURATION", 0),
+			err := doc.Add(&document.AmountClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         peerdb.GetID(namespace, image.Name, "DURATION", 0),
 					Confidence: es.MediumConfidence,
 				},
-				Prop:   search.GetCorePropertyReference("DURATION"),
+				Prop:   peerdb.GetCorePropertyReference("DURATION"),
 				Amount: duration,
-				Unit:   search.AmountUnitSecond,
+				Unit:   document.AmountUnitSecond,
 			})
 			if err != nil {
 				return nil, err
@@ -673,37 +674,37 @@ func convertImage(
 			}
 			previews = previewsSubset
 		}
-		previewsList := search.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
+		previewsList := peerdb.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
 		for i, preview := range previews {
-			err = document.Add(&search.ReferenceClaim{
-				CoreClaim: search.CoreClaim{
-					ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i),
+			err = doc.Add(&document.ReferenceClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i),
 					Confidence: es.HighConfidence,
-					Meta: &search.ClaimTypes{
-						Identifier: search.IdentifierClaims{
+					Meta: &document.ClaimTypes{
+						Identifier: document.IdentifierClaims{
 							{
-								CoreClaim: search.CoreClaim{
-									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
+								CoreClaim: document.CoreClaim{
+									ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
 									Confidence: es.HighConfidence,
 								},
-								Prop:       search.GetCorePropertyReference("LIST"),
+								Prop:       peerdb.GetCorePropertyReference("LIST"),
 								Identifier: previewsList.String(),
 							},
 						},
-						Amount: search.AmountClaims{
+						Amount: document.AmountClaims{
 							{
-								CoreClaim: search.CoreClaim{
-									ID:         search.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
+								CoreClaim: document.CoreClaim{
+									ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
 									Confidence: es.HighConfidence,
 								},
-								Prop:   search.GetCorePropertyReference("ORDER"),
+								Prop:   peerdb.GetCorePropertyReference("ORDER"),
 								Amount: float64(i),
-								Unit:   search.AmountUnitNone,
+								Unit:   document.AmountUnitNone,
 							},
 						},
 					},
 				},
-				Prop: search.GetCorePropertyReference("PREVIEW_URL"),
+				Prop: peerdb.GetCorePropertyReference("PREVIEW_URL"),
 				IRI:  preview,
 			})
 			if err != nil {
@@ -714,36 +715,36 @@ func convertImage(
 
 	// We set width and height even if it is zero, if the media type should have a preview (and thus width and height).
 	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
-		err = document.Add(&search.AmountClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, image.Name, "WIDTH", 0),
+		err = doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         peerdb.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: es.MediumConfidence,
 			},
-			Prop:   search.GetCorePropertyReference("WIDTH"),
+			Prop:   peerdb.GetCorePropertyReference("WIDTH"),
 			Amount: float64(image.Width),
-			Unit:   search.AmountUnitPixel,
+			Unit:   document.AmountUnitPixel,
 		})
 		if err != nil {
 			return nil, err
 		}
-		err = document.Add(&search.AmountClaim{
-			CoreClaim: search.CoreClaim{
-				ID:         search.GetID(namespace, image.Name, "HEIGHT", 0),
+		err = doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         peerdb.GetID(namespace, image.Name, "HEIGHT", 0),
 				Confidence: es.MediumConfidence,
 			},
-			Prop:   search.GetCorePropertyReference("HEIGHT"),
+			Prop:   peerdb.GetCorePropertyReference("HEIGHT"),
 			Amount: float64(image.Height),
-			Unit:   search.AmountUnitPixel,
+			Unit:   document.AmountUnitPixel,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return document, err
+	return doc, err
 }
 
-func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*search.Document, *elastic.SearchHit, errors.E) {
+func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
 	document, hit, err := getDocumentFromESByProp(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name

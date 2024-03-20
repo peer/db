@@ -41,13 +41,13 @@ contains a list of stable versions. Each includes:
 
 The latest stable statically compiled binary for Linux (amd64) is available at:
 
-[`https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search`](https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb-search)
+[`https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb`](https://gitlab.com/peerdb/peerdb/-/releases/permalink/latest/downloads/linux-amd64/peerdb)
 
 You can also download older versions on the [releases page](https://gitlab.com/peerdb/peerdb/-/releases).
 
 The latest successfully built development (`main` branch) binary is available at:
 
-[`https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker`](https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-search-linux-amd64?job=docker)
+[`https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-linux-amd64?job=docker`](https://gitlab.com/peerdb/peerdb/-/jobs/artifacts/main/raw/peerdb-linux-amd64?job=docker)
 
 ### Docker
 
@@ -103,7 +103,7 @@ mkcert localhost 127.0.0.1 ::1
 This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you can provide to PeerDB as:
 
 ```sh
-./search -k localhost+2.pem -K localhost+2-key.pem
+./peerdb -k localhost+2.pem -K localhost+2-key.pem
 ```
 
 When running using Docker, you have to provide them to the container through a volume, e.g.:
@@ -181,7 +181,7 @@ is left to you. We do suggest that you first populate the index using core PeerD
 properties. You can do that by running:
 
 ```sh
-./search populate
+./peerdb populate
 ```
 
 This also creates an ElasticSearch index if it does not yet exist and configures it
@@ -676,7 +676,7 @@ Or maybe you also want English Wikipedia articles:
 
 PeerDB can be configured through CLI arguments and a config file. CLI arguments have precedence
 over the config file. Config file is a YAML file with the structure corresponding to the structure of
-CLI flags and commands. Run `./search --help` for list of available flags and commands. If no command is
+CLI flags and commands. Run `./peerdb --help` for list of available flags and commands. If no command is
 specified, `serve` command is the default.
 
 Each PeerDB instance can serve multiple sites and Let's Encrypt can be used to obtain
@@ -698,7 +698,7 @@ and enabled size field in the [index](https://www.elastic.co/guide/en/elasticsea
 If you use populate command to create the index, you can enable the size field with the `--size-field` argument:
 
 ```sh
-./search --size-field populate
+./peerdb --size-field populate
 ```
 
 Alternatively, you can set `sizeField` in site configuration.
@@ -733,8 +733,8 @@ and provides a HTTP2 API. Node 20 or newer is required as well.
 Then clone the repository and run:
 
 ```sh
-make search
-./search -d -k localhost+2.pem -K localhost+2-key.pem
+make peerdb
+./peerdb -d -k localhost+2.pem -K localhost+2-key.pem
 ```
 
 `localhost+2.pem` and `localhost+2-key.pem` are files of a TLS certificate

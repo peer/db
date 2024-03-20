@@ -1,4 +1,4 @@
-package search_test
+package peerdb_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 func TestTimestampMarshal(t *testing.T) {
@@ -29,7 +30,7 @@ func TestTimestampMarshal(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.timestamp, func(t *testing.T) {
-			var timestamp search.Timestamp
+			var timestamp document.Timestamp
 			in := []byte(test.timestamp)
 			err := json.Unmarshal(in, &timestamp)
 			assert.NoError(t, err)
@@ -42,109 +43,109 @@ func TestTimestampMarshal(t *testing.T) {
 }
 
 func TestDocument(t *testing.T) {
-	doc := search.Document{}
-	assert.Equal(t, search.Document{}, doc)
+	doc := peerdb.Document{}
+	assert.Equal(t, peerdb.Document{}, doc)
 
 	id := identifier.New()
 
-	err := doc.Add(&search.NoValueClaim{
-		CoreClaim: search.CoreClaim{
+	err := doc.Add(&document.NoValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, search.Document{
-		Claims: &search.ClaimTypes{
-			NoValue: search.NoValueClaims{
+	assert.Equal(t, peerdb.Document{
+		Claims: &document.ClaimTypes{
+			NoValue: document.NoValueClaims{
 				{
-					CoreClaim: search.CoreClaim{
+					CoreClaim: document.CoreClaim{
 						ID:         id,
 						Confidence: 1.0,
 					},
-					Prop: search.GetCorePropertyReference("ARTICLE"),
+					Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 				},
 			},
 		},
 	}, doc)
 	claim := doc.GetByID(id)
-	assert.Equal(t, &search.NoValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.NoValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	claims := doc.Get(search.GetCorePropertyID("ARTICLE"))
-	assert.Equal(t, []search.Claim{
-		&search.NoValueClaim{
-			CoreClaim: search.CoreClaim{
+	claims := doc.Get(peerdb.GetCorePropertyID("ARTICLE"))
+	assert.Equal(t, []document.Claim{
+		&document.NoValueClaim{
+			CoreClaim: document.CoreClaim{
 				ID:         id,
 				Confidence: 1.0,
 			},
-			Prop: search.GetCorePropertyReference("ARTICLE"),
+			Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 		},
 	}, claims)
 	claim = doc.RemoveByID(id)
-	assert.Equal(t, &search.NoValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.NoValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	assert.Equal(t, search.Document{}, doc)
+	assert.Equal(t, peerdb.Document{}, doc)
 
 	id2 := identifier.New()
 
-	err = claim.AddMeta(&search.UnknownValueClaim{
-		CoreClaim: search.CoreClaim{
+	err = claim.AddMeta(&document.UnknownValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, &search.NoValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.NoValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
-			Meta: &search.ClaimTypes{
-				UnknownValue: search.UnknownValueClaims{
+			Meta: &document.ClaimTypes{
+				UnknownValue: document.UnknownValueClaims{
 					{
-						CoreClaim: search.CoreClaim{
+						CoreClaim: document.CoreClaim{
 							ID:         id2,
 							Confidence: 1.0,
 						},
-						Prop: search.GetCorePropertyReference("ARTICLE"),
+						Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 					},
 				},
 			},
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 	metaClaim := claim.GetMetaByID(id2)
-	assert.Equal(t, &search.UnknownValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.UnknownValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
 	metaClaim = claim.RemoveMetaByID(id2)
-	assert.Equal(t, &search.UnknownValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.UnknownValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
-	assert.Equal(t, &search.NoValueClaim{
-		CoreClaim: search.CoreClaim{
+	assert.Equal(t, &document.NoValueClaim{
+		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: search.GetCorePropertyReference("ARTICLE"),
+		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 }

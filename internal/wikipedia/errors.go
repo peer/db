@@ -5,6 +5,6 @@ import (
 )
 
 var (
-	SkippedError       = errors.Base("skipped")
-	SilentSkippedError = errors.BaseWrap(SkippedError, "silent skipped")
+	ErrSkipped       = errors.Base("skipped")
+	ErrSilentSkipped = errors.BaseWrap(ErrSkipped, "silent skipped")
 )

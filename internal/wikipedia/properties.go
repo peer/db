@@ -1,7 +1,7 @@
 package wikipedia
 
 import (
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/peerdb"
 )
 
 var wikipediaProperties = []struct {
@@ -118,5 +118,5 @@ var wikipediaProperties = []struct {
 }
 
 func init() {
-	search.GenerateCoreProperties(wikipediaProperties)
+	peerdb.GenerateCoreProperties(wikipediaProperties)
 }

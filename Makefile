@@ -12,23 +12,23 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build search wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit watch
+.PHONY: build peerdb wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit watch
 
-build: search wikipedia mapping moma
+build: peerdb wikipedia mapping moma
 
 # dist is build only if it is missing. Use "make clean" to remove it to build it again.
-search: dist
-	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
+peerdb: dist
+	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
 wikipedia mapping moma:
-	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/search/cmd/$@
+	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
 # dist is build only if it is missing. Use "make clean" to remove it to build it again.
 build-static: dist
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o search gitlab.com/peerdb/search/cmd/search
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/search/cmd/wikipedia
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/search/cmd/mapping
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/search/cmd/moma
+	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
+	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
+	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/peerdb/cmd/mapping
+	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/peerdb/cmd/moma
 
 dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json tailwind.config.js LICENSE
 	npm run build
@@ -57,13 +57,13 @@ lint-ci: dist/index.html
 fmt:
 	go mod tidy
 	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 gofumpt -w
-	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 goimports -w -local gitlab.com/peerdb/search
+	git ls-files --cached --modified --other --exclude-standard -z | grep -z -Z '.go$$' | xargs -0 goimports -w -local gitlab.com/peerdb/peerdb
 
 fmt-ci: fmt
 	git diff --exit-code --color=always
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml coverage dist search wikipedia mapping moma
+	rm -rf coverage.* codeclimate.json tests.xml coverage dist peerdb wikipedia mapping moma
 
 release:
 	npx --yes --package 'release-it@15.4.2' --package '@release-it/keep-a-changelog@3.1.0' -- release-it
@@ -75,4 +75,4 @@ audit: dist/index.html
 	go list -json -deps ./... | nancy sleuth --skip-update-check
 
 watch:
-	CompileDaemon -build="make --silent search" -command="./search/search -d -k localhost+2.pem -K localhost+2-key.pem" -include="*.tmpl" -include="*.json" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true
+	CompileDaemon -build="make --silent peerdb" -command="./peerdb -d -k localhost+2.pem -K localhost+2-key.pem" -include="*.tmpl" -include="*.json" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true

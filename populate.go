@@ -1,9 +1,9 @@
-package search
+package peerdb
 
 import (
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 func (c *PopulateCommand) runIndex(globals *Globals, index string, sizeField bool) errors.E {

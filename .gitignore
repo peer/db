@@ -32,7 +32,7 @@ codeclimate.json
 /coverage
 /.cache
 /output
-/search
+/peerdb
 /wikipedia
 /mapping
 /moma

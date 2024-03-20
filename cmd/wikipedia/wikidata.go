@@ -10,9 +10,9 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 var (
@@ -77,9 +77,9 @@ func (c *WikidataCommand) processEntity(
 ) errors.E {
 	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
-		if errors.Is(err, wikipedia.SilentSkippedError) {
+		if errors.Is(err, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
-		} else if errors.Is(err, wikipedia.SkippedError) {
+		} else if errors.Is(err, wikipedia.ErrSkipped) {
 			globals.Logger.Warn().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
 			globals.Logger.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
@@ -93,7 +93,7 @@ func (c *WikidataCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
-	search.InsertOrReplaceDocument(processor, globals.Index, document)
+	peerdb.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }

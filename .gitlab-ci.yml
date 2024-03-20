@@ -266,14 +266,14 @@ docker:
     - docker push "$DOCKER_PIPELINE_IMAGE_NAME-debug"
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
     - export IMAGE_ID=$(docker create "$DOCKER_PIPELINE_IMAGE_NAME")
-    - docker cp "$IMAGE_ID:/search" peerdb-search-linux-amd64
+    - docker cp "$IMAGE_ID:/peerdb" peerdb-linux-amd64
     - docker rm "$IMAGE_ID"
 
   artifacts:
     expose_as: binaries
     name: binaries
     paths:
-      - peerdb-search-linux-amd64
+      - peerdb-linux-amd64
     expire_in: never
 
   # We want to run it as soon as possible and do not wait for test stage to finish.
@@ -348,7 +348,7 @@ upload_binaries:
   image: curlimages/curl:8.1.2
 
   script:
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-search-linux-amd64 "$PACKAGE_REGISTRY_URL/linux-amd64/${CI_COMMIT_REF_NAME#v}/peerdb-search"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-linux-amd64 "$PACKAGE_REGISTRY_URL/linux-amd64/${CI_COMMIT_REF_NAME#v}/peerdb"'
 
   rules:
     # Only on protected tags. Protected tags start with "v".

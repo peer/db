@@ -13,9 +13,9 @@ import (
 	"gitlab.com/tozd/identifier"
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 const (
@@ -56,7 +56,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
-	return search.SaveCoreProperties(ctx, globals.Logger, esClient, processor, globals.Index)
+	return peerdb.SaveCoreProperties(ctx, globals.Logger, esClient, processor, globals.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
@@ -134,8 +134,8 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache, hit *elastic.SearchHit,
 ) errors.E {
-	var document search.Document
-	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &document)
+	var doc peerdb.Document
+	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &doc)
 	if errE != nil {
 		details := errors.AllDetails(errE)
 		details["doc"] = hit.Id
@@ -144,10 +144,10 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
-	document.ID, errE = identifier.FromString(hit.Id)
+	doc.ID, errE = identifier.FromString(hit.Id)
 	if errE != nil {
 		details := errors.AllDetails(errE)
-		details["doc"] = document.ID.String()
+		details["doc"] = doc.ID.String()
 		details["id"] = hit.Id
 		log.Error().Err(errE).Fields(details).Msg("invalid hit ID")
 		return nil
@@ -156,18 +156,18 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	changed, errE := wikipedia.UpdateEmbeddedDocuments(
 		ctx, index, log, esClient, cache,
 		&skippedWikidataEntities, &skippedWikimediaCommonsFiles,
-		&document,
+		&doc,
 	)
 	if errE != nil {
 		details := errors.AllDetails(errE)
-		details["doc"] = document.ID.String()
+		details["doc"] = doc.ID.String()
 		log.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
 		return nil
 	}
 
 	if changed {
-		log.Debug().Str("doc", document.ID.String()).Msg("updating document")
-		search.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &document)
+		log.Debug().Str("doc", doc.ID.String()).Msg("updating document")
+		peerdb.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &doc)
 	}
 
 	return nil

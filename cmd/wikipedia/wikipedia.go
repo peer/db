@@ -12,8 +12,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 const (
@@ -166,9 +166,9 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 		details := errors.AllDetails(err)
 		details["file"] = filename
 		details["title"] = article.Name
-		if errors.Is(err, wikipedia.WikimediaCommonsFileError) {
+		if errors.Is(err, wikipedia.ErrWikimediaCommonsFile) {
 			globals.Logger.Debug().Err(err).Fields(details).Send()
-		} else if errors.Is(err, wikipedia.NotFoundError) {
+		} else if errors.Is(err, wikipedia.ErrNotFound) {
 			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Logger.Error().Err(err).Fields(details).Send()
@@ -227,14 +227,14 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
 
 func wikipediaArticlesRun(
 	globals *Globals, skippedWikidataEntitiesPath, url string, namespace int,
-	convertArticle func(string, string, *search.Document) errors.E,
+	convertArticle func(string, string, *peerdb.Document) errors.E,
 ) errors.E {
 	errE := populateSkippedMap(skippedWikidataEntitiesPath, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
 	if errE != nil {
@@ -271,7 +271,7 @@ func wikipediaArticlesRun(
 
 func wikipediaArticlesProcessArticle(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
-	convertArticle func(string, string, *search.Document) errors.E,
+	convertArticle func(string, string, *peerdb.Document) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
@@ -298,7 +298,7 @@ func wikipediaArticlesProcessArticle(
 		details := errors.AllDetails(err)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
-		if errors.Is(err, wikipedia.NotFoundError) {
+		if errors.Is(err, wikipedia.ErrNotFound) {
 			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Logger.Error().Err(err).Fields(details).Send()
@@ -362,7 +362,7 @@ func wikipediaArticlesProcessArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -416,8 +416,8 @@ type WikipediaCategoriesCommand struct {
 }
 
 func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
-	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, document *search.Document) errors.E {
-		return wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, document)
+	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, doc *peerdb.Document) errors.E {
+		return wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, doc)
 	})
 }
 

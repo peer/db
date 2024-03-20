@@ -5,17 +5,17 @@ import (
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/peerdb"
 )
 
 func main() {
-	var config search.Config
+	var config peerdb.Config
 	cli.Run(&config, kong.Vars{
-		"defaultProxyTo":      search.DefaultProxyTo,
-		"defaultTLSCache":     search.DefaultTLSCache,
-		"defaultElastic":      search.DefaultElastic,
-		"defaultIndex":        search.DefaultIndex,
-		"defaultTitle":        search.DefaultTitle,
+		"defaultProxyTo":      peerdb.DefaultProxyTo,
+		"defaultTLSCache":     peerdb.DefaultTLSCache,
+		"defaultElastic":      peerdb.DefaultElastic,
+		"defaultIndex":        peerdb.DefaultIndex,
+		"defaultTitle":        peerdb.DefaultTitle,
 		"developmentModeHelp": " Proxy unknown requests.",
 	}, func(ctx *kong.Context) errors.E {
 		return errors.WithStack(ctx.Run(&config.Globals))

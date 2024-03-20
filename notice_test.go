@@ -1,4 +1,4 @@
-package search_test
+package peerdb_test
 
 import (
 	"testing"

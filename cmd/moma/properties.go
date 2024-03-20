@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/peerdb"
 )
 
 var momaProperties = []struct {
@@ -137,5 +137,5 @@ var momaProperties = []struct {
 }
 
 func init() {
-	search.GenerateCoreProperties(momaProperties)
+	peerdb.GenerateCoreProperties(momaProperties)
 }

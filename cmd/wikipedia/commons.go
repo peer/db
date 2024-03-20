@@ -14,9 +14,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 var (
@@ -101,9 +101,9 @@ func (c *CommonsCommand) processEntity(
 
 	additionalDocument, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if err != nil {
-		if errors.Is(err, wikipedia.SilentSkippedError) {
+		if errors.Is(err, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(err).Str("entity", entity.ID).Fields(errors.AllDetails(err)).Send()
-		} else if errors.Is(err, wikipedia.SkippedError) {
+		} else if errors.Is(err, wikipedia.ErrSkipped) {
 			globals.Logger.Warn().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
 		} else {
 			globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
@@ -127,7 +127,7 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -333,7 +333,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", page.Title).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -444,7 +444,7 @@ func (c *CommonsCategoriesCommand) processPage(
 		details := errors.AllDetails(err)
 		details["entity"] = id
 		details["title"] = page.Title
-		if errors.Is(err, wikipedia.NotFoundError) {
+		if errors.Is(err, wikipedia.ErrNotFound) {
 			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Logger.Error().Err(err).Fields(details).Send()
@@ -507,7 +507,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }

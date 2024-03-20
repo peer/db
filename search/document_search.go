@@ -1,23 +1,20 @@
 package search
 
 import (
-	"fmt"
-	"net/http"
 	"net/url"
 	"reflect"
 	"sync"
-	"time"
 
-	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 const (
-	maxResultsCount = 1000
+	MaxResultsCount = 1000
 )
 
 type relFilter struct {
@@ -38,7 +35,7 @@ func (f relFilter) Valid() errors.E {
 
 type amountFilter struct {
 	Prop identifier.Identifier `json:"prop"`
-	Unit *AmountUnit           `json:"unit,omitempty"`
+	Unit *document.AmountUnit  `json:"unit,omitempty"`
 	Gte  *float64              `json:"gte,omitempty"`
 	Lte  *float64              `json:"lte,omitempty"`
 	None bool                  `json:"none,omitempty"`
@@ -68,8 +65,8 @@ func (f amountFilter) Valid() errors.E {
 
 type timeFilter struct {
 	Prop identifier.Identifier `json:"prop"`
-	Gte  *Timestamp            `json:"gte,omitempty"`
-	Lte  *Timestamp            `json:"lte,omitempty"`
+	Gte  *document.Timestamp   `json:"gte,omitempty"`
+	Lte  *document.Timestamp   `json:"lte,omitempty"`
 	None bool                  `json:"none,omitempty"`
 }
 
@@ -331,9 +328,9 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 	panic(errors.New("invalid filters"))
 }
 
-// searchState represents current search state.
+// SearchState represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
-type searchState struct {
+type SearchState struct {
 	ID       identifier.Identifier  `json:"s"`
 	Text     string                 `json:"q"`
 	Filters  *filters               `json:"-"`
@@ -342,7 +339,7 @@ type searchState struct {
 }
 
 // Values returns search state as query string values.
-func (q *searchState) Values() url.Values {
+func (q *SearchState) Values() url.Values {
 	values := url.Values{}
 	values.Set("s", q.ID.String())
 	values.Set("q", q.Text)
@@ -350,13 +347,42 @@ func (q *searchState) Values() url.Values {
 }
 
 // ValuesWithAt returns search state as query string values, with additional "at" parameter.
-func (q *searchState) ValuesWithAt(at string) url.Values {
+func (q *SearchState) ValuesWithAt(at string) url.Values {
 	values := q.Values()
 	if at == "" {
 		return values
 	}
 	values.Set("at", at)
 	return values
+}
+
+// TODO: Determine which operator should be the default?
+// TODO: Make sure right analyzers are used for all fields.
+// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
+func (q *SearchState) SearchQuery() elastic.Query { //nolint:ireturn
+	boolQuery := elastic.NewBoolQuery()
+
+	if q.Text != "" {
+		bq := elastic.NewBoolQuery()
+		bq.Should(elastic.NewTermQuery("_id", q.Text))
+		for _, field := range []field{
+			{"claims.id", "id"},
+			{"claims.ref", "iri"},
+			{"claims.text", "html.en"},
+			{"claims.string", "string"},
+		} {
+			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
+			q := elastic.NewSimpleQueryStringQuery(q.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
+		}
+		boolQuery.Must(bq)
+	}
+
+	if q.Filters != nil {
+		boolQuery.Must(q.Filters.ToQuery())
+	}
+
+	return boolQuery
 }
 
 // TODO: Use a database instead.
@@ -370,20 +396,22 @@ type field struct {
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
-// makeSearch creates a new search state given optional existing state and new queries.
-func makeSearch(form url.Values) *searchState {
+// MakeSearchState creates a new search state given optional existing state and new queries.
+func MakeSearchState(s string, textQuery, filtersJSON *string) *SearchState {
 	var parentSearchID *identifier.Identifier
-	if id, errE := identifier.FromString(form.Get("s")); errE == nil {
+	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
 	}
 
-	textQuery := form.Get("q")
+	if textQuery == nil {
+		q := ""
+		textQuery = &q
+	}
 
 	var fs *filters
-	fsJSON := form.Get("filters")
-	if fsJSON != "" {
+	if filtersJSON != nil {
 		var f filters
-		if x.UnmarshalWithoutUnknownFields([]byte(fsJSON), &f) == nil && f.Valid() == nil {
+		if x.UnmarshalWithoutUnknownFields([]byte(*filtersJSON), &f) == nil && f.Valid() == nil {
 			fs = &f
 		}
 	}
@@ -393,9 +421,9 @@ func makeSearch(form url.Values) *searchState {
 	if parentSearchID != nil {
 		ps, ok := searches.Load(*parentSearchID)
 		if ok {
-			parentSearch := ps.(*searchState) //nolint:errcheck
+			parentSearch := ps.(*SearchState) //nolint:errcheck
 			// There was no change.
-			if parentSearch.Text == textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
+			if parentSearch.Text == *textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
 			}
 			rootID = parentSearch.RootID
@@ -405,11 +433,11 @@ func makeSearch(form url.Values) *searchState {
 		}
 	}
 
-	sh := &searchState{
+	sh := &SearchState{
 		ID:       id,
 		ParentID: parentSearchID,
 		RootID:   rootID,
-		Text:     textQuery,
+		Text:     *textQuery,
 		Filters:  fs,
 	}
 	searches.Store(sh.ID, sh)
@@ -417,39 +445,41 @@ func makeSearch(form url.Values) *searchState {
 	return sh
 }
 
-// getOrMakeSearch resolves an existing search state if possible.
+// GetOrMakeSearchState resolves an existing search state if possible.
 // If not, it creates a new search state.
-func getOrMakeSearch(form url.Values) (*searchState, bool) {
-	searchID, errE := identifier.FromString(form.Get("s"))
+func GetOrMakeSearchState(s string, textQuery, filtersJSON *string) (*SearchState, bool) {
+	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return makeSearch(form), false
+		return MakeSearchState(s, textQuery, filtersJSON), false
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return makeSearch(form), false
+		return MakeSearchState(s, textQuery, filtersJSON), false
 	}
-
-	textQuery := form.Get("q")
-
 	var fs *filters
-	fsJSON := form.Get("filters")
-	if fsJSON != "" {
+	if filtersJSON != nil {
 		var f filters
-		if x.UnmarshalWithoutUnknownFields([]byte(fsJSON), &f) == nil && f.Valid() == nil {
+		if x.UnmarshalWithoutUnknownFields([]byte(*filtersJSON), &f) == nil && f.Valid() == nil {
 			fs = &f
 		}
 	}
 
-	ss := sh.(*searchState) //nolint:errcheck
+	ss := sh.(*SearchState) //nolint:errcheck
 	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
-	if (form.Has("q") && ss.Text != textQuery) || (form.Has("filters") && !reflect.DeepEqual(ss.Filters, fs)) {
-		ss = &searchState{
+	if (textQuery != nil && ss.Text != *textQuery) || (filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs)) {
+		if textQuery == nil {
+			textQuery = &ss.Text
+		}
+		if filtersJSON == nil {
+			fs = ss.Filters
+		}
+		ss = &SearchState{
 			ID:       identifier.New(),
 			ParentID: &ss.ID,
 			RootID:   ss.RootID,
-			Text:     textQuery,
+			Text:     *textQuery,
 			Filters:  fs,
 		}
 		searches.Store(ss.ID, ss)
@@ -459,9 +489,9 @@ func getOrMakeSearch(form url.Values) (*searchState, bool) {
 	return ss, true
 }
 
-// getSearch resolves an existing search state if possible.
-func getSearch(form url.Values) *searchState {
-	searchID, errE := identifier.FromString(form.Get("s"))
+// GetSearchState resolves an existing search state if possible.
+func GetSearchState(s string, textQuery *string) *SearchState {
+	searchID, errE := identifier.FromString(s)
 	if errE != nil {
 		return nil
 	}
@@ -469,170 +499,10 @@ func getSearch(form url.Values) *searchState {
 	if !ok {
 		return nil
 	}
-	textQuery := form.Get("q")
-	ss := sh.(*searchState) //nolint:errcheck
+	ss := sh.(*SearchState) //nolint:errcheck
 	// We allow there to not be "q" so that it is easier to use as an API.
-	if form.Has("q") && ss.Text != textQuery {
+	if textQuery != nil && ss.Text != *textQuery {
 		return nil
 	}
 	return ss
-}
-
-type searchResult struct {
-	ID string `json:"_id"`
-}
-
-// DocumentSearch is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-// If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
-
-	m := timing.NewMetric("s").Start()
-	sh, ok := getOrMakeSearch(req.Form)
-	m.Stop()
-	if !ok {
-		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.Reverse("DocumentSearch", nil, sh.Values())
-		if err != nil {
-			s.InternalServerErrorWithError(w, req, err)
-			return
-		}
-		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
-		return
-	} else if !req.Form.Has("q") {
-		// "q" is missing, so we redirect to the correct URL.
-		path, err := s.Reverse("DocumentSearch", nil, sh.ValuesWithAt(req.Form.Get("at")))
-		if err != nil {
-			s.InternalServerErrorWithError(w, req, err)
-			return
-		}
-		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
-	s.Home(w, req, nil)
-}
-
-func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, errors.E) {
-	ctx := req.Context()
-
-	site := waf.MustGetSite[*Site](ctx)
-
-	// The fact that TrackTotalHits is set to true is important because the count is used as the
-	// number of documents of the filter on the _index field.
-	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, nil
-}
-
-// TODO: Determine which operator should be the default?
-// TODO: Make sure right analyzers are used for all fields.
-// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *Service) getSearchQuery(sh *searchState) elastic.Query { //nolint:ireturn
-	boolQuery := elastic.NewBoolQuery()
-
-	if sh.Text != "" {
-		bq := elastic.NewBoolQuery()
-		bq.Should(elastic.NewTermQuery("_id", sh.Text))
-		for _, field := range []field{
-			{"claims.id", "id"},
-			{"claims.ref", "iri"},
-			{"claims.text", "html.en"},
-			{"claims.string", "string"},
-		} {
-			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(sh.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
-			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
-		}
-		boolQuery.Must(bq)
-	}
-
-	if sh.Filters != nil {
-		boolQuery.Must(sh.Filters.ToQuery())
-	}
-
-	return boolQuery
-}
-
-// DocumentSearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
-// search state and returns to the client a JSON with an array of IDs of found documents. If search state is
-// invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
-// encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
-
-	m := timing.NewMetric("s").Start()
-	sh, ok := getOrMakeSearch(req.Form)
-	m.Stop()
-	if !ok {
-		// Something was not OK, so we return new query parameters.
-		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
-		s.WriteJSON(w, req, sh, nil)
-		return
-	}
-
-	searchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
-	searchService = searchService.From(0).Size(maxResultsCount).Query(s.getSearchQuery(sh))
-
-	m = timing.NewMetric("es").Start()
-	res, err := searchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
-	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	results := make([]searchResult, len(res.Hits.Hits))
-	for i, hit := range res.Hits.Hits {
-		results[i] = searchResult{ID: hit.Id}
-	}
-
-	// Total is a string or a number.
-	var total interface{}
-	if res.Hits.TotalHits.Relation == "gte" {
-		total = fmt.Sprintf("+%d", res.Hits.TotalHits.Value)
-	} else {
-		total = res.Hits.TotalHits.Value
-	}
-
-	// TODO: Move this to a separate API endpoint.
-	filters, err := x.MarshalWithoutEscapeHTML(sh.Filters)
-	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
-	}
-
-	s.WriteJSON(w, req, results, map[string]interface{}{
-		"total":   total,
-		"query":   sh.Text,
-		"filters": string(filters),
-	})
-}
-
-// DocumentSearchPost is a POST HTTP request handler which stores the search state and returns
-// query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
-func (s *Service) DocumentSearchPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
-
-	m := timing.NewMetric("s").Start()
-	sh := makeSearch(req.Form)
-	m.Stop()
-
-	// TODO: Should we already do the query, to warm up ES cache?
-	//       Maybe we should cache response ourselves so that we do not hit ES twice?
-	s.WriteJSON(w, req, sh, nil)
 }

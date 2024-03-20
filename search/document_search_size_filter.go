@@ -1,9 +1,9 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"math"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
 )
 
 type floatValueAggregation struct {
@@ -25,33 +24,21 @@ type histogramSizeAggregations struct {
 	} `json:"buckets"`
 }
 
-func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	ctx := req.Context()
+func DocumentSearchSizeFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
-
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
-		return
-	}
 
 	m := timing.NewMetric("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req)
-		return
+		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*searchState) //nolint:errcheck
+	sh := ss.(*SearchState) //nolint:errcheck
 
-	query := s.getSearchQuery(sh)
-	minMaxSearchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
+	query := sh.SearchQuery()
 
+	minMaxSearchService, _ := getSearchService()
 	minAggregation := elastic.NewMinAggregation().Field("_size")
 	maxAggregation := elastic.NewMaxAggregation().Field("_size")
 	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("min", minAggregation).Aggregation("max", maxAggregation)
@@ -60,8 +47,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	timing.NewMetric("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
@@ -70,24 +56,21 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 	err = json.Unmarshal(res.Aggregations["min"], &minSize)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var maxSize floatValueAggregation
 	err = json.Unmarshal(res.Aggregations["max"], &maxSize)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	m.Stop()
 
 	var min, interval float64
 	if res.Hits.TotalHits.Value == 0 || minSize.Value == nil || maxSize.Value == nil {
-		s.WriteJSON(w, req, make([]histogramAmountResult, 0), map[string]interface{}{
+		return make([]histogramAmountResult, 0), map[string]interface{}{
 			"total": 0,
-		})
-		return
+		}, nil
 	} else if *minSize.Value == *maxSize.Value {
 		min = *minSize.Value
 		interval = math.Nextafter(*minSize.Value, *minSize.Value+1)
@@ -106,11 +89,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 		}
 	}
 
-	histogramSearchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
+	histogramSearchService, _ := getSearchService()
 	histogramAggregation := elastic.NewHistogramAggregation().Field("_size").Offset(min).Interval(interval)
 	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
@@ -118,8 +97,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	timing.NewMetric("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
@@ -128,8 +106,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 
 	results := make([]histogramAmountResult, len(histogram.Buckets))
@@ -155,5 +132,5 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 		metadata["interval"] = intervalString
 	}
 
-	s.WriteJSON(w, req, results, metadata)
+	return results, metadata, nil
 }

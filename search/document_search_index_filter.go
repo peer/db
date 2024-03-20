@@ -1,8 +1,8 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -10,7 +10,6 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
 )
 
 type indexAggregations struct {
@@ -20,33 +19,22 @@ type indexAggregations struct {
 	} `json:"buckets"`
 }
 
-func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	ctx := req.Context()
+func DocumentSearchIndexFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
-
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
-		return
-	}
 
 	m := timing.NewMetric("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req)
-		return
+		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*searchState) //nolint:errcheck
+	sh := ss.(*SearchState) //nolint:errcheck
 
-	query := s.getSearchQuery(sh)
-	searchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
-	termsAggregation := elastic.NewTermsAggregation().Field("_index").Size(maxResultsCount)
+	query := sh.SearchQuery()
+
+	searchService, _ := getSearchService()
+	termsAggregation := elastic.NewTermsAggregation().Field("_index").Size(MaxResultsCount)
 	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 	// so we use it to get the most accurate approximation.
 	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
@@ -56,8 +44,7 @@ func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
@@ -66,15 +53,13 @@ func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.
 	err = json.Unmarshal(res.Aggregations["terms"], &terms)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var index intValueAggregation
 	err = json.Unmarshal(res.Aggregations["index"], &index)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	m.Stop()
 
@@ -90,7 +75,7 @@ func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.
 	}
 	total := strconv.FormatInt(index.Value, 10)
 
-	s.WriteJSON(w, req, results, map[string]interface{}{
+	return results, map[string]interface{}{
 		"total": total,
-	})
+	}, nil
 }

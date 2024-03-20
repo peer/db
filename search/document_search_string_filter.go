@@ -1,8 +1,8 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -10,7 +10,6 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
 )
 
 type searchStringFilterResult struct {
@@ -18,46 +17,28 @@ type searchStringFilterResult struct {
 	Count int64  `json:"count"`
 }
 
-//nolint:dupl
-func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	ctx := req.Context()
+func DocumentSearchStringFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
-
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
-		return
-	}
-
-	prop, errE := identifier.FromString(params["prop"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" parameter is not a valid identifier`))
-		return
-	}
 
 	m := timing.NewMetric("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req)
-		return
+		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*searchState) //nolint:errcheck
+	sh := ss.(*SearchState) //nolint:errcheck
 
-	query := s.getSearchQuery(sh)
-	searchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
+	query := sh.SearchQuery()
+
+	searchService, _ := getSearchService()
 	aggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
 			elastic.NewTermQuery("claims.string.prop._id", prop),
 		).SubAggregation(
 			"props",
-			elastic.NewTermsAggregation().Field("claims.string.string").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			elastic.NewTermsAggregation().Field("claims.string.string").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
@@ -74,8 +55,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
@@ -84,8 +64,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 	err = json.Unmarshal(res.Aggregations["string"], &str)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 
 	results := make([]searchStringFilterResult, len(str.Filter.Props.Buckets))
@@ -100,7 +79,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 	}
 	total := strconv.FormatInt(str.Filter.Total.Value, 10)
 
-	s.WriteJSON(w, req, results, map[string]interface{}{
+	return results, map[string]interface{}{
 		"total": total,
-	})
+	}, nil
 }

@@ -13,7 +13,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 //go:embed testdata

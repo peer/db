@@ -25,9 +25,9 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
-	"gitlab.com/peerdb/search/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
 const (
@@ -261,7 +261,7 @@ func templatesCommandProcessPage(
 		details := errors.AllDetails(err)
 		details["entity"] = id
 		details["title"] = page.Title
-		if errors.Is(err, wikipedia.NotFoundError) {
+		if errors.Is(err, wikipedia.ErrNotFound) {
 			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Logger.Error().Err(err).Fields(details).Send()
@@ -324,7 +324,7 @@ func templatesCommandProcessPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	search.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
 
 	return nil
 }
@@ -333,7 +333,7 @@ func filesCommandRun(
 	globals *Globals,
 	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
 	token string, apiLimit int, saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
 ) errors.E {
 	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
 	if errE != nil {
@@ -373,15 +373,15 @@ func filesCommandRun(
 func filesCommandProcessImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*search.Document, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
 ) errors.E {
 	document, err := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
 	if err != nil {
 		details := errors.AllDetails(err)
 		details["file"] = image.Name
-		if errors.Is(err, wikipedia.SilentSkippedError) {
+		if errors.Is(err, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Err(err).Fields(details).Send()
-		} else if errors.Is(err, wikipedia.SkippedError) {
+		} else if errors.Is(err, wikipedia.ErrSkipped) {
 			globals.Logger.Warn().Err(err).Fields(details).Send()
 		} else {
 			globals.Logger.Error().Err(err).Fields(details).Send()
@@ -394,7 +394,7 @@ func filesCommandProcessImage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
-	search.InsertOrReplaceDocument(processor, globals.Index, document)
+	peerdb.InsertOrReplaceDocument(processor, globals.Index, document)
 
 	return nil
 }

@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -11,29 +10,10 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
 	"golang.org/x/exp/slices"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
-
-// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
-
-func (s *Service) populateProperties(ctx context.Context) errors.E {
-	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop._id", "2fjzZyP7rv8E4aHnBc6KAa"),
-		elastic.NewTermQuery("claims.rel.to._id", "HohteEmv2o7gPRnJ5wukVe"),
-	)
-	query := elastic.NewNestedQuery("claims.rel", boolQuery)
-
-	for _, site := range s.Sites {
-		total, err := s.ESClient.Count(site.Index).Query(query).Do(ctx)
-		if err != nil {
-			return errors.Errorf(`site "%s": %w`, site.Index, err)
-		}
-		site.propertiesTotal = total
-	}
-
-	return nil
-}
 
 type termAggregations struct {
 	Props struct {
@@ -76,35 +56,24 @@ type searchFiltersResult struct {
 	Unit  string `json:"_unit,omitempty"`
 }
 
-func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	ctx := req.Context()
+func DocumentSearchFiltersGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
-
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" parameter is not a valid identifier`))
-		return
-	}
 
 	m := timing.NewMetric("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return not found.
-		s.NotFound(w, req)
-		return
+		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*searchState) //nolint:errcheck
+	sh := ss.(*SearchState) //nolint:errcheck
 
-	query := s.getSearchQuery(sh)
-	searchService, propertiesTotal, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
+	query := sh.SearchQuery()
+
+	searchService, propertiesTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.rel.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.rel.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -120,25 +89,25 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 			elastic.NewBoolQuery().MustNot(elastic.NewTermQuery("claims.amount.unit", "@")),
 		).SubAggregation(
 			"props",
-			elastic.NewMultiTermsAggregation().Terms("claims.amount.prop._id", "claims.amount.unit").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			elastic.NewMultiTermsAggregation().Terms("claims.amount.prop._id", "claims.amount.unit").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
 		).SubAggregation(
 			"total",
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*amountUnitsTotal,
+			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*AmountUnitsTotal,
 			// so we set precision threshold to twice as much to try to always get precise counts.
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			elastic.NewCardinalityAggregation().Script(
 				// We use "|" as separator because this is used by ElasticSearch in "key_as_string" as well.
 				elastic.NewScript("return doc['claims.amount.prop._id'].value + '|' + doc['claims.amount.unit'].value"),
-			).PrecisionThreshold(2*propertiesTotal*int64(amountUnitsTotal)),
+			).PrecisionThreshold(2*propertiesTotal*int64(document.AmountUnitsTotal)),
 		),
 	)
 	timeAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.time.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.time.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -150,7 +119,7 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 	)
 	stringAggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.string.prop._id").Size(maxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.string.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -176,8 +145,7 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
@@ -186,43 +154,37 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var amount filteredMultiTermAggregations
 	err = json.Unmarshal(res.Aggregations["amount"], &amount)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var timeA termAggregations
 	err = json.Unmarshal(res.Aggregations["time"], &timeA)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var str termAggregations
 	err = json.Unmarshal(res.Aggregations["string"], &str)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var index intValueAggregation
 	err = json.Unmarshal(res.Aggregations["index"], &index)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	var size intValueAggregation
 	err = json.Unmarshal(res.Aggregations["size"], &size)
 	if err != nil {
 		m.Stop()
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
+		return nil, nil, errors.WithStack(err)
 	}
 	m.Stop()
 
@@ -280,13 +242,13 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 		}
 	}
 
-	// Because we combine multiple aggregations of maxResultsCount each, we have to
+	// Because we combine multiple aggregations of MaxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
 	slices.SortStableFunc(results, func(a searchFiltersResult, b searchFiltersResult) bool {
 		return a.Count > b.Count
 	})
-	if len(results) > maxResultsCount {
-		results = results[:maxResultsCount]
+	if len(results) > MaxResultsCount {
+		results = results[:MaxResultsCount]
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.
@@ -305,7 +267,7 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 	}
 	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
 
-	s.WriteJSON(w, req, results, map[string]interface{}{
+	return results, map[string]interface{}{
 		"total": total,
-	})
+	}, nil
 }

@@ -1,4 +1,4 @@
-package search
+package peerdb
 
 import (
 	"bytes"
@@ -13,6 +13,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb/search"
 )
 
 // TODO: Support slug per document.
@@ -26,14 +28,20 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 
 	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
 	// We validate "s" and "q" parameters.
 	if req.Form.Has("s") || req.Form.Has("q") {
+		var q *string
+		if req.Form.Has("q") {
+			qq := req.Form.Get("q")
+			q = &qq
+		}
+
 		m := timing.NewMetric("s").Start()
-		sh := getSearch(req.Form)
+		sh := search.GetSearchState(req.Form.Get("s"), q)
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".
@@ -65,11 +73,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	// TODO: If "s" is provided, should we validate that id is really part of search? Currently we do on the frontend.
 
 	// We check if document exists.
-	searchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
+	searchService, _ := s.getSearchService(req)
 	searchService = searchService.From(0).Size(0).Query(elastic.NewTermQuery("_id", id))
 
 	m := timing.NewMetric("es").Start()
@@ -97,7 +101,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" parameter is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -107,12 +111,8 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	// We do a search query and not _doc or _source request to get the document
 	// so that it works also on aliases.
 	// See: https://github.com/elastic/elasticsearch/issues/69649
-	searchService, _, errE := s.getSearchService(req)
-	if errE != nil {
-		s.NotFoundWithError(w, req, errE)
-		return
-	}
-	searchService = searchService.From(0).Size(maxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("_id", id))
+	searchService, _ := s.getSearchService(req)
+	searchService = searchService.From(0).Size(search.MaxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("_id", id))
 
 	m := timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)

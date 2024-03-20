@@ -1,4 +1,4 @@
-package search_test
+package peerdb_test
 
 import (
 	"crypto/tls"
@@ -19,7 +19,7 @@ import (
 	z "gitlab.com/tozd/go/zerolog"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/search"
+	"gitlab.com/peerdb/peerdb"
 )
 
 //go:embed public
@@ -106,7 +106,7 @@ func TestRouteHome(t *testing.T) {
 	testStaticFile(t, "Home", "dist/index.html", "text/html; charset=utf-8")
 }
 
-func startTestServer(t *testing.T) (*httptest.Server, *search.Service) {
+func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	t.Helper()
 
 	tempDir := t.TempDir()
@@ -118,17 +118,17 @@ func startTestServer(t *testing.T) (*httptest.Server, *search.Service) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	globals := &search.Globals{
+	globals := &peerdb.Globals{
 		LoggingConfig: z.LoggingConfig{
 			Logger: logger,
 		},
-		Elastic:   search.DefaultElastic,
-		Index:     search.DefaultIndex,
+		Elastic:   peerdb.DefaultElastic,
+		Index:     peerdb.DefaultIndex,
 		SizeField: false,
 	}
 
-	serve := search.ServeCommand{
-		Server: waf.Server[*search.Site]{
+	serve := peerdb.ServeCommand{
+		Server: waf.Server[*peerdb.Site]{
 			TLS: waf.TLS{
 				CertFile: certPath,
 				KeyFile:  keyPath,
@@ -138,7 +138,7 @@ func startTestServer(t *testing.T) (*httptest.Server, *search.Service) {
 			// Having 0 for port here makes the rest of the codebase expect a random port and wait for its assignment.
 			Addr: "localhost:0",
 		},
-		Title: search.DefaultTitle,
+		Title: peerdb.DefaultTitle,
 	}
 
 	handler, service, errE := serve.Init(globals, testFiles)

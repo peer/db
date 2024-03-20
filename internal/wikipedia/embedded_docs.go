@@ -13,13 +13,14 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/search"
-	"gitlab.com/peerdb/search/internal/es"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 var (
-	referenceNotFoundError  = errors.Base("document reference to a nonexistent document")
-	referenceTemporaryError = errors.Base("document reference is a temporary reference")
+	errReferenceNotFound  = errors.Base("document reference to a nonexistent document")
+	errReferenceTemporary = errors.Base("document reference is a temporary reference")
 )
 
 type updateEmbeddedDocumentsVisitor struct {
@@ -35,7 +36,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	EntityIDs                    []string
 }
 
-func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.DocumentReference, claimID identifier.Identifier) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref peerdb.DocumentReference, claimID identifier.Identifier) errors.E {
 	errE := errors.WithStack(err)
 	details := errors.Details(errE)
 	details["doc"] = v.DocumentID.String()
@@ -56,7 +57,7 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref search.Documen
 	return errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, claimID identifier.Identifier, msg string) {
+func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *peerdb.Document, claimID identifier.Identifier, msg string) {
 	l := v.Log.Warn().Str("doc", v.DocumentID.String())
 	if len(v.EntityIDs) == 1 {
 		l = l.Str("entity", v.EntityIDs[0])
@@ -68,8 +69,8 @@ func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *search.Document, cl
 	l.Msg(msg)
 }
 
-func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.DocumentReference) (search.VisitResult, errors.E) {
-	if errors.Is(err, referenceNotFoundError) {
+func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref peerdb.DocumentReference) (document.VisitResult, errors.E) {
+	if errors.Is(err, errReferenceNotFound) {
 		if ref.ID != nil {
 			if _, ok := v.SkippedWikidataEntities.Load(ref.ID.String()); ok {
 				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
@@ -94,9 +95,9 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref search.Do
 			}
 		}
 		v.Changed++
-		return search.Drop, nil
+		return document.Drop, nil
 	}
-	return search.Keep, err
+	return document.Keep, err
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (string, string) {
@@ -125,7 +126,7 @@ func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (stri
 	return "", ""
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.DocumentReference, claimID identifier.Identifier) (*search.DocumentReference, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref peerdb.DocumentReference, claimID identifier.Identifier) (*peerdb.DocumentReference, errors.E) {
 	if ref.ID != nil {
 		return v.getDocumentReferenceByID(ref, claimID)
 	}
@@ -143,19 +144,19 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref search.Documen
 	return nil, errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*search.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*peerdb.Document, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
 	// by getDocumentByID, which uses Identifier type.
 	maybeDocument, ok := v.Cache.Get(title)
 	if ok {
 		if maybeDocument == nil {
-			return nil, errors.WithStack(NotFoundError)
+			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*search.Document), nil
+		return maybeDocument.(*peerdb.Document), nil
 	}
 
 	document, _, err := getDocumentFromESByProp(v.Context, v.Index, v.ESClient, property, title)
-	if errors.Is(err, NotFoundError) {
+	if errors.Is(err, ErrNotFound) {
 		v.Cache.Add(title, nil)
 		return nil, err
 	} else if err != nil {
@@ -168,19 +169,19 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 	return document, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*search.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*peerdb.Document, errors.E) {
 	// Here we check cache with Identifier type, so values cannot conflict with caching done
 	// by getDocumentByTitle, which uses string type.
 	maybeDocument, ok := v.Cache.Get(id)
 	if ok {
 		if maybeDocument == nil {
-			return nil, errors.WithStack(NotFoundError)
+			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*search.Document), nil
+		return maybeDocument.(*peerdb.Document), nil
 	}
 
 	document, _, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
-	if errors.Is(err, NotFoundError) {
+	if errors.Is(err, ErrNotFound) {
 		v.Cache.Add(id, nil)
 		return nil, err
 	} else if err != nil {
@@ -193,11 +194,11 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
-	ref search.DocumentReference, claimID identifier.Identifier, property, title string,
-) (*search.DocumentReference, errors.E) {
+	ref peerdb.DocumentReference, claimID identifier.Identifier, property, title string,
+) (*peerdb.DocumentReference, errors.E) {
 	document, err := v.getDocumentByProp(property, title)
-	if errors.Is(err, NotFoundError) {
-		return nil, v.makeError(referenceNotFoundError, ref, claimID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, v.makeError(errReferenceNotFound, ref, claimID)
 	} else if err != nil {
 		return nil, v.makeError(err, ref, claimID)
 	}
@@ -207,14 +208,14 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
 	return &res, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.DocumentReference, claimID identifier.Identifier) (*search.DocumentReference, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref peerdb.DocumentReference, claimID identifier.Identifier) (*peerdb.DocumentReference, errors.E) {
 	if ref.ID == nil {
-		return nil, v.makeError(referenceTemporaryError, ref, claimID)
+		return nil, v.makeError(errReferenceTemporary, ref, claimID)
 	}
 
 	document, err := v.getDocumentByID(*ref.ID)
-	if errors.Is(err, NotFoundError) {
-		return nil, v.makeError(referenceNotFoundError, ref, claimID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, v.makeError(errReferenceNotFound, ref, claimID)
 	} else if err != nil {
 		return nil, v.makeError(err, ref, claimID)
 	}
@@ -224,10 +225,10 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref search.Doc
 	return &res, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.IdentifierClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -240,13 +241,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *search.Identifie
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -259,13 +260,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *search.ReferenceC
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *document.TextClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -278,13 +279,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *search.TextClaim) (sea
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -297,13 +298,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *search.StringClaim) 
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -316,13 +317,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *search.AmountClaim) 
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRangeClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *document.AmountRangeClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -335,13 +336,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *search.AmountRa
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -364,13 +365,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *search.RelationCla
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *document.NoValueClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -383,13 +384,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *search.NoValueClaim
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.UnknownValueClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *document.UnknownValueClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -402,13 +403,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *search.Unknown
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -421,13 +422,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *search.TimeClaim) (sea
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *document.TimeRangeClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -440,13 +441,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *search.TimeRangeC
 		v.Changed++
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (search.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (document.VisitResult, errors.E) {
 	err := claim.VisitMeta(v)
 	if err != nil {
-		return search.Keep, err
+		return document.Keep, err
 	}
 
 	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
@@ -459,13 +460,13 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		v.Changed++
 	}
 
-	var fileDocument *search.Document
-	for _, cc := range claim.GetMeta(search.GetCorePropertyID("IS")) {
-		if c, ok := cc.(*search.RelationClaim); ok {
+	var fileDocument *peerdb.Document
+	for _, cc := range claim.GetMeta(peerdb.GetCorePropertyID("IS")) {
+		if c, ok := cc.(*document.RelationClaim); ok {
 			// c.To.ID should be non-nil ID because we called claim.VisitMeta(v) above.
 			fileDocument, err = v.getDocumentByID(*c.To.ID)
-			if errors.Is(err, NotFoundError) {
-				return v.handleError(v.makeError(referenceNotFoundError, c.To, c.ID), c.To)
+			if errors.Is(err, ErrNotFound) {
+				return v.handleError(v.makeError(errReferenceNotFound, c.To, c.ID), c.To)
 			} else if err != nil {
 				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
 			}
@@ -476,8 +477,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 	if fileDocument != nil {
 		var mediaType string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("MEDIA_TYPE")) {
-			if c, ok := cc.(*search.StringClaim); ok {
+		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("MEDIA_TYPE")) {
+			if c, ok := cc.(*document.StringClaim); ok {
 				mediaType = c.String
 				break
 			}
@@ -485,7 +486,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		if mediaType == "" {
 			v.logWarning(fileDocument, claim.ID, "referenced Wikimedia commons file document is missing a MEDIA_TYPE string claim")
 			v.Changed++
-			return search.Drop, nil
+			return document.Drop, nil
 		}
 
 		if !reflect.DeepEqual(claim.Type, mediaType) {
@@ -494,8 +495,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		}
 
 		var fileURL string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("FILE_URL")) {
-			if c, ok := cc.(*search.ReferenceClaim); ok {
+		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("FILE_URL")) {
+			if c, ok := cc.(*document.ReferenceClaim); ok {
 				fileURL = c.IRI
 				break
 			}
@@ -503,7 +504,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		if fileURL == "" {
 			v.logWarning(fileDocument, claim.ID, "referenced Wikimedia commons file document is missing a FILE_URL reference claim")
 			v.Changed++
-			return search.Drop, nil
+			return document.Drop, nil
 		}
 
 		if !reflect.DeepEqual(claim.URL, fileURL) {
@@ -513,8 +514,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 
 		// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
 		var previews []string
-		for _, cc := range fileDocument.Get(search.GetCorePropertyID("PREVIEW_URL")) {
-			if c, ok := cc.(*search.ReferenceClaim); ok {
+		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("PREVIEW_URL")) {
+			if c, ok := cc.(*document.ReferenceClaim); ok {
 				previews = append(previews, c.IRI)
 			}
 		}
@@ -525,35 +526,35 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *search.FileClaim) (sea
 		}
 	}
 
-	return search.Keep, nil
+	return document.Keep, nil
 }
 
 func UpdateEmbeddedDocuments(
 	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
-	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, document *search.Document,
+	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *peerdb.Document,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
-	entityIDClaims := []search.Claim{}
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
-	entityIDClaims = append(entityIDClaims, document.Get(search.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
+	entityIDClaims := []document.Claim{}
+	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
 	entityIDs := []string{}
 	for _, entityIDClaim := range entityIDClaims {
-		idClaim, ok := entityIDClaim.(*search.IdentifierClaim)
+		idClaim, ok := entityIDClaim.(*document.IdentifierClaim)
 		if !ok {
 			errE := errors.New("unexpected ID claim type")
-			errors.Details(errE)["doc"] = document.ID.String()
+			errors.Details(errE)["doc"] = doc.ID.String()
 			errors.Details(errE)["claim"] = entityIDClaim.GetID().String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", entityIDClaim)
-			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &search.IdentifierClaim{})
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &document.IdentifierClaim{})
 			return false, errE
 		}
 		entityIDs = append(entityIDs, idClaim.Identifier)
 	}
 
-	cache.Add(document.ID, document)
+	cache.Add(doc.ID, doc)
 
 	v := updateEmbeddedDocumentsVisitor{
 		Context:                      ctx,
@@ -564,10 +565,10 @@ func UpdateEmbeddedDocuments(
 		SkippedWikimediaCommonsFiles: skippedWikimediaCommonsFiles,
 		ESClient:                     esClient,
 		Changed:                      0,
-		DocumentID:                   document.ID,
+		DocumentID:                   doc.ID,
 		EntityIDs:                    entityIDs,
 	}
-	errE := document.Visit(&v)
+	errE := doc.Visit(&v)
 	if errE != nil {
 		return false, errE
 	}
