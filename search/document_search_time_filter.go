@@ -161,7 +161,7 @@ func DocumentSearchTimeFilterGet(ctx context.Context, getSearchService func() (*
 	}
 
 	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {
-		metadata["interval"] = []string{intervalString}
+		metadata["interval"] = intervalString
 	}
 
 	return results, metadata, nil
