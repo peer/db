@@ -13,7 +13,7 @@ import PropertiesRows from "@/components/PropertiesRows.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useSearchState } from "@/search"
 import { globalProgress } from "@/api"
-import { getBestClaimOfType, useRouter, getName, loadingLongWidth } from "@/utils"
+import { getBestClaimOfType, useRouter, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps<{
@@ -27,24 +27,25 @@ const el = ref(null)
 
 const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
 
-const { results, query } = useSearchState(el, async () => {
-  // Something was not OK, so we redirect to the URL without "s".
-  // TODO: This has still created a new search state on the server, we should not do that.
+const { results, query } = useSearchState(
+  el,
+  async (query) => {
+    // Something was not OK, so we redirect to the URL without "s".
+    // TODO: This has still created a new search state on the server, we should not do that.
 
-  // Maybe route.query has "tab" parameter which we want to keep.
-  // We do not use query argument in useSearchState callback because it
-  // is about (new) search state which we just discard here.
-  const query = { ...route.query }
-  delete query["s"]
-
-  await router.replace({
-    name: "DocumentGet",
-    params: {
-      id: props.id,
-    },
-    query,
-  })
-})
+    await router.replace({
+      name: "DocumentGet",
+      params: {
+        id: props.id,
+      },
+      // Maybe route.query has non-empty "tab" parameter which we want to keep.
+      // We do not use query argument in useSearchState callback because it
+      // is about (new) search state which we just discard here.
+      query: encodeQuery({ tab: route.query.tab || undefined }),
+    })
+  },
+  null,
+)
 
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
   const res = { previous: null, next: null } as { previous: string | null; next: string | null }
