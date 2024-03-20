@@ -248,8 +248,6 @@ gitlab.com/tozd/go/zerolog v0.6.0 h1:+nR1D6w2afK6nXId64untH8J9cd4catcK0i0m4j//m4
 gitlab.com/tozd/go/zerolog v0.6.0/go.mod h1:my9jXGUOlH2Ln9PHPutHmUXZmExm3JO69vlcU3QKjto=
 gitlab.com/tozd/identifier v0.2.0 h1:g9KJloExNkEj353erOf/oAbIIxbZtemTtkPGMHvC81c=
 gitlab.com/tozd/identifier v0.2.0/go.mod h1:gq8Gs7n/c5Qo97QBi7sYDEbqqaj5D3bvujA/c2Linq4=
-gitlab.com/tozd/waf v0.15.0 h1:zXYIt0YP3Av9JhU7IAVr6ZWfwpFE25AcPXHmBsCsGBQ=
-gitlab.com/tozd/waf v0.15.0/go.mod h1:PippBk1hz2wYSzL24N+Pu5SCGQQTwMIwnTB2sl1Halw=
 gitlab.com/tozd/waf v0.16.0 h1:r/mVrRxB5RqSk1eq6l3eZckf+XGILcgCv5D6pCRXo90=
 gitlab.com/tozd/waf v0.16.0/go.mod h1:PippBk1hz2wYSzL24N+Pu5SCGQQTwMIwnTB2sl1Halw=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=

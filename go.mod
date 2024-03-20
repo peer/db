@@ -8,7 +8,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/foolin/pagser v0.1.5
-	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/mitchellh/go-server-timing v1.0.1
 	github.com/olivere/elastic/v7 v7.0.32
@@ -43,6 +42,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/go-git/go-git/v5 v5.11.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
