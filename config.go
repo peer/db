@@ -14,7 +14,7 @@ const (
 	DefaultTLSCache = "letsencrypt"
 	DefaultElastic  = "http://127.0.0.1:9200"
 	DefaultIndex    = "docs"
-	DefaultTitle    = "PeerDB Search"
+	DefaultTitle    = "PeerDB"
 )
 
 // Globals describes top-level (global) flags.
@@ -66,8 +66,8 @@ func (g *Globals) Validate() error {
 type Config struct {
 	Globals `yaml:"globals"`
 
-	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB Search server. Default command."      yaml:"serve"`
-	Populate PopulateCommand `cmd:""                    help:"Populate index or indices with core properties." yaml:"populate"`
+	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB server. Default command."      yaml:"serve"`
+	Populate PopulateCommand `cmd:""                    help:"Populate search index or indices with core properties." yaml:"populate"`
 }
 
 //nolint:lll
