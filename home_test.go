@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -118,11 +119,16 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
+	elastic := os.Getenv("ELASTIC")
+	if elastic == "" {
+		elastic = peerdb.DefaultElastic
+	}
+
 	globals := &peerdb.Globals{
 		LoggingConfig: z.LoggingConfig{
 			Logger: logger,
 		},
-		Elastic:   peerdb.DefaultElastic,
+		Elastic:   elastic,
 		Index:     peerdb.DefaultIndex,
 		SizeField: false,
 	}
