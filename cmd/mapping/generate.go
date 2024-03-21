@@ -26,7 +26,7 @@ type claimType struct {
 }
 
 // TODO: Generate automatically from the Document struct.
-var claimTypes = []claimType{
+var claimTypes = []claimType{ //nolint:gochecknoglobals
 	{
 		"id",
 		[]field{

@@ -136,6 +136,6 @@ var momaProperties = []struct {
 	},
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	peerdb.GenerateCoreProperties(momaProperties)
 }
