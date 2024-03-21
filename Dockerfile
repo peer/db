@@ -7,6 +7,7 @@ RUN apk --update add make
 COPY . /src/peerdb
 WORKDIR /src/peerdb
 RUN \
+  npm install -g npm@latest && \
   npm ci --audit=false && \
   npm audit signatures && \
   make dist
