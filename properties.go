@@ -212,7 +212,7 @@ func getPointer(id identifier.Identifier) *identifier.Identifier {
 	return &id
 }
 
-func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...interface{}) identifier.Identifier {
+func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...interface{}) identifier.Identifier { //nolint:unparam
 	a := []interface{}{}
 	a = append(a, propertyMnemonic, claimMnemonic, i)
 	a = append(a, args...)

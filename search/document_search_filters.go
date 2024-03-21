@@ -58,7 +58,7 @@ type searchFiltersResult struct {
 	Unit  string `json:"unit,omitempty"`
 }
 
-func DocumentSearchFiltersGet(
+func DocumentSearchFiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
@@ -208,6 +208,7 @@ func DocumentSearchFiltersGet(
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "rel",
+			Unit:  "",
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
@@ -223,6 +224,7 @@ func DocumentSearchFiltersGet(
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
+			Unit:  "",
 		}
 	}
 	for i, bucket := range str.Props.Buckets {
@@ -230,19 +232,24 @@ func DocumentSearchFiltersGet(
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "string",
+			Unit:  "",
 		}
 	}
 	if indexFilter != 0 {
 		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
+			ID: "",
 			// This depends on TrackTotalHits being set to true.
 			Count: res.Hits.TotalHits.Value,
 			Type:  "index",
+			Unit:  "",
 		}
 	}
 	if sizeFilter != 0 {
 		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)+indexFilter] = searchFiltersResult{
+			ID:    "",
 			Count: size.Value,
 			Type:  "size",
+			Unit:  "",
 		}
 	}
 

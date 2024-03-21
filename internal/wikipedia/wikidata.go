@@ -505,9 +505,10 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 							},
 						},
 					},
-					Prop: getDocumentReference(prop, ""),
-					Type: "invalid/invalid",
-					URL:  "https://xx.invalid",
+					Prop:    getDocumentReference(prop, ""),
+					Type:    "invalid/invalid",
+					URL:     "https://xx.invalid",
+					Preview: nil,
 				},
 			}, nil
 		case mediawiki.URL:

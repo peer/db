@@ -107,7 +107,7 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 		return nil, nil, errE
 	}
 
-	service := &Service{
+	service := &Service{ //nolint:forcetypeassert
 		Service: waf.Service[*Site]{
 			Logger:          globals.Logger,
 			CanonicalLogger: globals.Logger,

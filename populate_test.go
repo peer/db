@@ -17,8 +17,8 @@ func TestMain(m *testing.M) {
 		elastic = peerdb.DefaultElastic
 	}
 
-	globals := &peerdb.Globals{
-		LoggingConfig: z.LoggingConfig{
+	globals := &peerdb.Globals{ //nolint:exhaustruct
+		LoggingConfig: z.LoggingConfig{ //nolint:exhaustruct
 			Logger: zerolog.Nop(),
 		},
 		Elastic:   elastic,
