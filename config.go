@@ -66,7 +66,7 @@ func (g *Globals) Validate() error {
 type Config struct {
 	Globals `yaml:"globals"`
 
-	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB server. Default command."      yaml:"serve"`
+	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB server. Default command."                    yaml:"serve"`
 	Populate PopulateCommand `cmd:""                    help:"Populate search index or indices with core properties." yaml:"populate"`
 }
 

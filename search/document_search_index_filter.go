@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+//nolint:tagliatelle
 type indexAggregations struct {
 	Buckets []struct {
 		Key   string `json:"key"`
@@ -31,7 +32,7 @@ func DocumentSearchIndexFilterGet(
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*State) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
 	query := sh.Query()
 

@@ -159,7 +159,8 @@ func cleanupDocument(doc *goquery.Document) {
 			return
 		}
 		clone := p.Clone()
-		for clone.Find("span:empty").Remove().Length() > 0 {
+		for clone.Find("span:empty").Remove().Length() > 0 { //nolint:revive
+			// Looping while something is removed.
 		}
 		if clone.Is(":empty") {
 			p.Remove()

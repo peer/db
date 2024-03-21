@@ -15,6 +15,7 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
+//nolint:tagliatelle
 type minMaxTimeAggregations struct {
 	Filter struct {
 		Count int64 `json:"doc_count"`
@@ -27,6 +28,7 @@ type minMaxTimeAggregations struct {
 	} `json:"filter"`
 }
 
+//nolint:tagliatelle
 type histogramTimeAggregations struct {
 	Filter struct {
 		Hist struct {
@@ -57,7 +59,7 @@ func DocumentSearchTimeFilterGet(
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*State) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
 	query := sh.Query()
 

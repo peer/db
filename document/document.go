@@ -670,9 +670,9 @@ func (v *AllClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, e
 }
 
 type CoreDocument struct {
-	ID     identifier.Identifier `json:"id"`
-	Score  Score                 `json:"score"`
-	Scores Scores                `json:"scores,omitempty"`
+	ID     identifier.Identifier `                       json:"id"`
+	Score  Score                 `                       json:"score"`
+	Scores Scores                `exhaustruct:"optional" json:"scores,omitempty"`
 }
 
 type Mnemonic string
@@ -781,9 +781,9 @@ type (
 )
 
 type CoreClaim struct {
-	ID         identifier.Identifier `json:"id"`
-	Confidence Confidence            `json:"confidence"`
-	Meta       *ClaimTypes           `json:"meta,omitempty"`
+	ID         identifier.Identifier `                       json:"id"`
+	Confidence Confidence            `                       json:"confidence"`
+	Meta       *ClaimTypes           `exhaustruct:"optional" json:"meta,omitempty"`
 }
 
 func (cc CoreClaim) GetID() identifier.Identifier {
@@ -885,7 +885,7 @@ type Reference struct {
 	Score Score                  `json:"score"`
 
 	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
-	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"`
+	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"` //nolint:tagliatelle
 }
 
 type IdentifierClaim struct {

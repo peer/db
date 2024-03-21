@@ -98,7 +98,7 @@ func Initialize(logger zerolog.Logger, url, index string, sizeField bool) (
 
 	// TODO: Make number of workers configurable.
 	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
-		func(_ int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				logger.Error().Err(err).Msg("indexing error")
 			} else if failed := response.Failed(); len(failed) > 0 {
@@ -122,7 +122,7 @@ func Initialize(logger zerolog.Logger, url, index string, sizeField bool) (
 	httpClient.Logger = retryableHTTPLoggerAdapter{logger}
 
 	// Set User-Agent header.
-	httpClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, retry int) {
+	httpClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, _ int) {
 		// TODO: Make contact e-mail into a CLI argument.
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
 	}

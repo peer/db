@@ -14,7 +14,7 @@ func main() {
 		"defaultIndex":       DefaultIndex,
 		"defaultArtistsURL":  DefaultArtistsURL,
 		"defaultArtworksURL": DefaultArtworksURL,
-	}, func(ctx *kong.Context) errors.E {
+	}, func(_ *kong.Context) errors.E {
 		return index(&config)
 	})
 }

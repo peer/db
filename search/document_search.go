@@ -386,7 +386,7 @@ func (q *State) Query() elastic.Query { //nolint:ireturn
 }
 
 // TODO: Use a database instead.
-var searches = sync.Map{}
+var searches = sync.Map{} //nolint:gochecknoglobals
 
 // field describes a nested field for ElasticSearch to search on.
 type field struct {
@@ -421,7 +421,7 @@ func CreateState(s string, textQuery, filtersJSON *string) *State {
 	if parentSearchID != nil {
 		ps, ok := searches.Load(*parentSearchID)
 		if ok {
-			parentSearch := ps.(*State) //nolint:errcheck
+			parentSearch := ps.(*State) //nolint:errcheck,forcetypeassert
 			// There was no change.
 			if parentSearch.Text == *textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
@@ -465,7 +465,7 @@ func GetOrCreateState(s string, textQuery, filtersJSON *string) (*State, bool) {
 		}
 	}
 
-	ss := sh.(*State) //nolint:errcheck
+	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
 	if (textQuery != nil && ss.Text != *textQuery) || (filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs)) {
@@ -499,7 +499,7 @@ func GetState(s string, textQuery *string) *State {
 	if !ok {
 		return nil
 	}
-	ss := sh.(*State) //nolint:errcheck
+	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 	// We allow there to not be "q" so that it is easier to use as an API.
 	if textQuery != nil && ss.Text != *textQuery {
 		return nil

@@ -34,7 +34,7 @@ func DocumentSearchRelFilterGet(
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*State) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
 	query := sh.Query()
 

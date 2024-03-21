@@ -19,6 +19,7 @@ const (
 	histogramBins = 100
 )
 
+//nolint:tagliatelle
 type minMaxAmountAggregations struct {
 	Filter struct {
 		Count int64 `json:"doc_count"`
@@ -34,6 +35,7 @@ type minMaxAmountAggregations struct {
 	} `json:"filter"`
 }
 
+//nolint:tagliatelle
 type histogramAmountAggregations struct {
 	Filter struct {
 		Hist struct {
@@ -71,7 +73,7 @@ func DocumentSearchAmountFilterGet(
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*State) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
 	query := sh.Query()
 

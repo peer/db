@@ -270,11 +270,11 @@ type Artwork struct {
 	Duration        float64  `json:"Duration (sec.),omitempty"`
 }
 
-func PagserExists(node *goquery.Selection, args ...string) (out interface{}, err error) {
+func PagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
 	return node.Length() > 0, nil
 }
 
-func extractData[T any](in io.Reader) (T, errors.E) {
+func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	p := pagser.New()
 
 	p.RegisterFunc("exists", PagserExists)
@@ -383,7 +383,7 @@ func getArtistReference(artistsMap map[int]peerdb.Document, constituentID int) (
 	return doc.Reference(), nil
 }
 
-func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string) (T, errors.E) {
+func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string) (T, errors.E) { //nolint:ireturn
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -421,7 +421,7 @@ func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID 
 	return getData[momaArtwork](ctx, httpClient, url)
 }
 
-func index(config *Config) errors.E {
+func index(config *Config) errors.E { //nolint:maintidx
 	ctx, _, httpClient, esClient, processor, errE := es.Initialize(config.Logger, config.Elastic, config.Index, config.SizeField)
 	if errE != nil {
 		return errE
@@ -627,7 +627,7 @@ func index(config *Config) errors.E {
 			}
 		}
 
-		if config.WebsiteData { //nolint:dupl
+		if config.WebsiteData { //nolint:dupl,nestif
 			data, err := getArtist(ctx, httpClient, artist.ConstituentID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
@@ -755,7 +755,7 @@ func index(config *Config) errors.E {
 
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
-		if config.WebsiteData { //nolint:dupl
+		if config.WebsiteData { //nolint:dupl,nestif
 			data, err := getArtwork(ctx, httpClient, artwork.ObjectID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {

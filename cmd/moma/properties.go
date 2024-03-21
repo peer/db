@@ -4,6 +4,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 )
 
+//nolint:gochecknoglobals
 var momaProperties = []struct {
 	Name            string
 	DescriptionHTML string

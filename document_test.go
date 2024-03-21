@@ -13,6 +13,8 @@ import (
 )
 
 func TestTimestampMarshal(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		timestamp string
 		unix      int64
@@ -29,7 +31,10 @@ func TestTimestampMarshal(t *testing.T) {
 		{`"-239999999-01-01T00:00:00Z"`, -7573730615596800},
 	}
 	for _, test := range tests {
+		test := test
 		t.Run(test.timestamp, func(t *testing.T) {
+			t.Parallel()
+
 			var timestamp document.Timestamp
 			in := []byte(test.timestamp)
 			err := json.Unmarshal(in, &timestamp)
@@ -43,8 +48,10 @@ func TestTimestampMarshal(t *testing.T) {
 }
 
 func TestDocument(t *testing.T) {
-	doc := peerdb.Document{}
-	assert.Equal(t, peerdb.Document{}, doc)
+	t.Parallel()
+
+	doc := peerdb.Document{}                //nolint:exhaustruct
+	assert.Equal(t, peerdb.Document{}, doc) //nolint:exhaustruct
 
 	id := identifier.New()
 
@@ -95,7 +102,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	assert.Equal(t, peerdb.Document{}, doc)
+	assert.Equal(t, peerdb.Document{}, doc) //nolint:exhaustruct
 
 	id2 := identifier.New()
 

@@ -70,7 +70,7 @@ func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *peerdb.Document, cl
 }
 
 func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref document.Reference) (document.VisitResult, errors.E) {
-	if errors.Is(err, errReferenceNotFound) {
+	if errors.Is(err, errReferenceNotFound) { //nolint:nestif
 		if ref.ID != nil {
 			if _, ok := v.SkippedWikidataEntities.Load(ref.ID.String()); ok {
 				v.Log.Debug().Err(err).Fields(errors.AllDetails(err)).Send()
