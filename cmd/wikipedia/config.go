@@ -80,6 +80,7 @@ type AllCommand struct {
 }
 
 func (c *AllCommand) Run(globals *Globals) errors.E {
+	//nolint:exhaustruct
 	allCommands := []runner{
 		&WikidataCommand{
 			SaveSkipped: c.WikidataSaveSkipped,

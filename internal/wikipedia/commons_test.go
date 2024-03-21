@@ -16,6 +16,8 @@ const (
 )
 
 func TestGetXMLPageCount(t *testing.T) {
+	t.Parallel()
+
 	var metadata map[string]interface{}
 	err := json.Unmarshal([]byte(xmlJSON), &metadata)
 	require.NoError(t, err)
@@ -24,6 +26,8 @@ func TestGetXMLPageCount(t *testing.T) {
 }
 
 func TestFitBoxWidth(t *testing.T) {
+	t.Parallel()
+
 	width := fitBoxWidth(691, 1097)
 	assert.Equal(t, 161, width)
 }

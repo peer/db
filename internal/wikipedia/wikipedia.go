@@ -21,15 +21,16 @@ import (
 )
 
 var (
+	//nolint:gochecknoglobals
 	NameSpaceWikipediaFile = uuid.MustParse("94b1c372-bc28-454c-a45a-2e4d29d15146")
 
 	ErrWikimediaCommonsFile = errors.Base("file is from Wikimedia Commons error")
 )
 
 func ConvertWikipediaImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
 ) (*peerdb.Document, errors.E) {
-	return convertImage(ctx, log, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
+	return convertImage(ctx, logger, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }
 
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
@@ -249,38 +250,38 @@ func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Clien
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
-func ConvertArticleInCategories(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
 	for _, category := range article.Categories {
-		convertInCategory(log, namespace, mnemonicPrefix, id, article.Name, category.Name, doc)
+		convertInCategory(logger, namespace, mnemonicPrefix, id, article.Name, category.Name, doc)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
-func ConvertArticleUsedTemplates(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
 	for _, template := range article.Templates {
-		convertUsedTemplate(log, namespace, mnemonicPrefix, id, article.Name, template.Name, doc)
+		convertUsedTemplate(logger, namespace, mnemonicPrefix, id, article.Name, template.Name, doc)
 	}
 	return nil
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
-func ConvertPageInCategories(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
 	for _, category := range page.Categories {
-		convertInCategory(log, namespace, mnemonicPrefix, id, page.Title, category.Title, doc)
+		convertInCategory(logger, namespace, mnemonicPrefix, id, page.Title, category.Title, doc)
 	}
 	return nil
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
-func ConvertPageUsedTemplates(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
 	for _, template := range page.Templates {
-		convertUsedTemplate(log, namespace, mnemonicPrefix, id, page.Title, template.Title, doc)
+		convertUsedTemplate(logger, namespace, mnemonicPrefix, id, page.Title, template.Title, doc)
 	}
 	return nil
 }
 
-func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, category string, doc *peerdb.Document) {
+func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, category string, doc *peerdb.Document) {
 	if !strings.HasPrefix(category, "Category:") {
 		return
 	}
@@ -298,13 +299,13 @@ func convertInCategory(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, 
 		}
 		err := doc.Add(claim)
 		if err != nil {
-			log.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
+			logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 		}
 	}
 }
 
-func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, template string, doc *peerdb.Document) {
+func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, template string, doc *peerdb.Document) {
 	if !strings.HasPrefix(template, "Template:") && !strings.HasPrefix(template, "Module:") {
 		return
 	}
@@ -322,29 +323,29 @@ func convertUsedTemplate(log zerolog.Logger, namespace uuid.UUID, mnemonicPrefix
 		}
 		err := doc.Add(claim)
 		if err != nil {
-			log.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
+			logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 		}
 	}
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertArticleRedirects(log zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
 	for _, redirect := range article.Redirects {
-		convertRedirect(log, namespace, id, article.Name, redirect.Name, doc)
+		convertRedirect(logger, namespace, id, article.Name, redirect.Name, doc)
 	}
 	return nil
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertPageRedirects(log zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
 	for _, redirect := range page.Redirects {
-		convertRedirect(log, namespace, id, page.Title, redirect.Title, doc)
+		convertRedirect(logger, namespace, id, page.Title, redirect.Title, doc)
 	}
 	return nil
 }
 
-func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirect string, doc *peerdb.Document) {
+func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redirect string, doc *peerdb.Document) {
 	claimID := peerdb.GetID(namespace, id, "NAME", redirect)
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim != nil {
@@ -373,7 +374,7 @@ func convertRedirect(log zerolog.Logger, namespace uuid.UUID, id, title, redirec
 	}
 	err := doc.Add(claim)
 	if err != nil {
-		log.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
+		logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
 			Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
 	}
 }

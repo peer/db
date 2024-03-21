@@ -19,6 +19,7 @@ import (
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
+//nolint:gochecknoglobals
 var (
 	// Set of filenames.
 	skippedWikimediaCommonsFiles      = sync.Map{}
@@ -263,7 +264,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 func (c *CommonsFileDescriptionsCommand) processPage(
 	ctx context.Context, globals *Globals, esClient *elastic.Client,
 	processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
-) errors.E {
+) errors.E { //nolint:unparam
 	filename := strings.TrimPrefix(page.Title, "File:")
 	// First we make sure we do not have spaces.
 	filename = strings.ReplaceAll(filename, " ", "_")
@@ -432,7 +433,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 func (c *CommonsCategoriesCommand) processPage(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
-) errors.E {
+) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
 

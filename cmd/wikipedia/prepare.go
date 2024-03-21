@@ -132,14 +132,14 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache, hit *elastic.SearchHit,
-) errors.E {
+	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache, hit *elastic.SearchHit,
+) errors.E { //nolint:unparam
 	var doc peerdb.Document
 	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &doc)
 	if errE != nil {
 		details := errors.AllDetails(errE)
 		details["doc"] = hit.Id
-		log.Error().Err(errE).Fields(details).Send()
+		logger.Error().Err(errE).Fields(details).Send()
 		return nil
 	}
 
@@ -149,24 +149,24 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 		details := errors.AllDetails(errE)
 		details["doc"] = doc.ID.String()
 		details["id"] = hit.Id
-		log.Error().Err(errE).Fields(details).Msg("invalid hit ID")
+		logger.Error().Err(errE).Fields(details).Msg("invalid hit ID")
 		return nil
 	}
 
 	changed, errE := wikipedia.UpdateEmbeddedDocuments(
-		ctx, index, log, esClient, cache,
+		ctx, index, logger, esClient, cache,
 		&skippedWikidataEntities, &skippedWikimediaCommonsFiles,
 		&doc,
 	)
 	if errE != nil {
 		details := errors.AllDetails(errE)
 		details["doc"] = doc.ID.String()
-		log.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
+		logger.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
 		return nil
 	}
 
 	if changed {
-		log.Debug().Str("doc", doc.ID.String()).Msg("updating document")
+		logger.Debug().Str("doc", doc.ID.String()).Msg("updating document")
 		peerdb.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &doc)
 	}
 

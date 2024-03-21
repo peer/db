@@ -36,6 +36,7 @@ var (
 	wikimediaCommonsRegex = regexp.MustCompile(`(?i)\{\{(Wikimedia Commons redirect|commons redirect)`)
 )
 
+//nolint:gochecknoglobals
 var (
 	// Set of filenames.
 	skippedWikipediaFiles      = sync.Map{}
@@ -65,6 +66,8 @@ var (
 // of a file has been uploaded) so the fact that metadata might be from a different file revision does not seem to be too problematic here. We anyway
 // want the latest information about files because we directly use files hosted on English Wikipedia by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
+//
+//nolint:lll
 type WikipediaFilesCommand struct {
 	Token       string `                             env:"WIKIPEDIA_TOKEN" help:"Access token for Wikipedia API. Not required. Environment variable: ${env}."                                                                       placeholder:"TOKEN"`
 	APILimit    int    `default:"${defaultAPILimit}"                       help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${defaultAPILimit}." placeholder:"INT"` //nolint:lll

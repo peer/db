@@ -39,27 +39,27 @@ func prepareFields(keysAndValues []interface{}) {
 }
 
 type retryableHTTPLoggerAdapter struct {
-	log zerolog.Logger
+	logger zerolog.Logger
 }
 
 func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...interface{}) {
 	prepareFields(keysAndValues)
-	a.log.Error().Fields(keysAndValues).Msg(msg)
+	a.logger.Error().Fields(keysAndValues).Msg(msg)
 }
 
 func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...interface{}) {
 	prepareFields(keysAndValues)
-	a.log.Info().Fields(keysAndValues).Msg(msg)
+	a.logger.Info().Fields(keysAndValues).Msg(msg)
 }
 
 func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...interface{}) {
 	prepareFields(keysAndValues)
-	a.log.Debug().Fields(keysAndValues).Msg(msg)
+	a.logger.Debug().Fields(keysAndValues).Msg(msg)
 }
 
 func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{}) {
 	prepareFields(keysAndValues)
-	a.log.Warn().Fields(keysAndValues).Msg(msg)
+	a.logger.Warn().Fields(keysAndValues).Msg(msg)
 }
 
 var _ retryablehttp.LeveledLogger = (*retryableHTTPLoggerAdapter)(nil)

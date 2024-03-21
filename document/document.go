@@ -31,7 +31,7 @@ type Claim interface {
 	VisitMeta(visitor Visitor) errors.E
 }
 
-type Visitor interface {
+type Visitor interface { //nolint:interfacebloat
 	VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E)
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
 	VisitText(claim *TextClaim) (VisitResult, errors.E)
@@ -46,7 +46,7 @@ type Visitor interface {
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
 }
 
-func (c *ClaimTypes) Visit(visitor Visitor) errors.E {
+func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	if c == nil {
 		return nil
 	}
@@ -799,7 +799,7 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 		return errors.Errorf(`meta claim with ID "%s" already exists`, claimID)
 	}
 	if cc.Meta == nil {
-		cc.Meta = &ClaimTypes{}
+		cc.Meta = new(ClaimTypes)
 	}
 	switch c := claim.(type) {
 	case *IdentifierClaim:
@@ -885,7 +885,7 @@ type Reference struct {
 	Score Score                  `json:"score"`
 
 	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
-	Temporary []string `json:"_temp,omitempty"`
+	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"`
 }
 
 type IdentifierClaim struct {
@@ -990,6 +990,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("px")
 	case AmountUnitSecond:
 		buffer.WriteString("s")
+	case AmountUnitsTotal:
+		fallthrough
 	default:
 		panic(errors.Errorf("invalid AmountUnit value: %d", u))
 	}

@@ -37,6 +37,7 @@ const (
 )
 
 var (
+	//nolint:gochecknoglobals
 	NameSpaceMoMA = uuid.MustParse("d1a7b133-7d73-4ff1-b4d1-0ac93b91cccd")
 
 	mediaRegex     = regexp.MustCompile(`^(?:/media|/d/assets)/([^./]+)(?:/.+)?.(jpg|png)(?:\?sha=\w+)?$`)
@@ -127,7 +128,7 @@ func (p picture) Image() (image, errors.E) {
 	if p.ImageSrc != "" {
 		mediaType, width, height, err := parseMediaURL(p.ImageSrc)
 		if err != nil {
-			return image{}, err
+			return image{}, err //nolint:exhaustruct
 		}
 		images = append(images, imageSrc{
 			Path:      p.ImageSrc,
@@ -139,7 +140,7 @@ func (p picture) Image() (image, errors.E) {
 	for _, path := range parseSrcSet(p.ImageSrcSet) {
 		mediaType, width, height, err := parseMediaURL(path)
 		if err != nil {
-			return image{}, err
+			return image{}, err //nolint:exhaustruct
 		}
 		images = append(images, imageSrc{
 			Path:      path,
@@ -152,7 +153,7 @@ func (p picture) Image() (image, errors.E) {
 		for _, path := range parseSrcSet(source) {
 			mediaType, width, height, err := parseMediaURL(path)
 			if err != nil {
-				return image{}, err
+				return image{}, err //nolint:exhaustruct
 			}
 			images = append(images, imageSrc{
 				Path:      path,
@@ -164,7 +165,7 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	if len(images) == 0 {
-		return image{}, errors.New("no images")
+		return image{}, errors.New("no images") //nolint:exhaustruct
 	}
 
 	// Sorts so that the image with the largest area is the first.
@@ -202,7 +203,7 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	if len(images) == 0 {
-		return image{}, errors.New("no image suitable for preview")
+		return image{}, errors.New("no image suitable for preview") //nolint:exhaustruct
 	}
 
 	return image{
@@ -224,6 +225,7 @@ type momaArtwork struct {
 	Article          string    `json:"article,omitempty"  pagser:"#text->html()"`
 }
 
+//nolint:tagliatelle
 type Artist struct {
 	ConstituentID int    `json:"ConstituentID"`
 	DisplayName   string `json:"DisplayName"`
@@ -236,6 +238,7 @@ type Artist struct {
 	ULAN          string `json:"ULAN"`
 }
 
+//nolint:tagliatelle
 type Artwork struct {
 	Title           string   `json:"Title"`
 	Artist          []string `json:"Artist"`
@@ -375,12 +378,12 @@ func getArtistReference(artistsMap map[int]peerdb.Document, constituentID int) (
 	if !ok {
 		errE := errors.New("unknown artist")
 		errors.Details(errE)["constituentID"] = constituentID
-		return document.Reference{}, errE
+		return document.Reference{}, errE //nolint:exhaustruct
 	}
 	return doc.Reference(), nil
 }
 
-func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) {
+func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string) (T, errors.E) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -408,14 +411,14 @@ func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	return extractData[T](resp.Body)
 }
 
-func getArtist(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, constituentID int) (momaArtist, errors.E) {
+func getArtist(ctx context.Context, httpClient *retryablehttp.Client, constituentID int) (momaArtist, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
-	return getData[momaArtist](ctx, httpClient, logger, url)
+	return getData[momaArtist](ctx, httpClient, url)
 }
 
-func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, objectID int) (momaArtwork, errors.E) {
+func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID int) (momaArtwork, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/collection/works/%d", objectID)
-	return getData[momaArtwork](ctx, httpClient, logger, url)
+	return getData[momaArtwork](ctx, httpClient, url)
 }
 
 func index(config *Config) errors.E {
@@ -625,7 +628,7 @@ func index(config *Config) errors.E {
 		}
 
 		if config.WebsiteData { //nolint:dupl
-			data, err := getArtist(ctx, httpClient, config.Logger, artist.ConstituentID)
+			data, err := getArtist(ctx, httpClient, artist.ConstituentID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
@@ -753,7 +756,7 @@ func index(config *Config) errors.E {
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
 		if config.WebsiteData { //nolint:dupl
-			data, err := getArtwork(ctx, httpClient, config.Logger, artwork.ObjectID)
+			data, err := getArtwork(ctx, httpClient, artwork.ObjectID)
 			if err != nil {
 				if errors.AllDetails(err)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")

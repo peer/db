@@ -31,6 +31,7 @@ const (
 	maxPreviews  = 100
 )
 
+//nolint:gochecknoglobals
 var (
 	NameSpaceWikimediaCommonsFile = uuid.MustParse("31974ea8-ab0c-466d-9aaa-e1bf3c959edc")
 
@@ -138,6 +139,7 @@ var (
 	}
 )
 
+//nolint:tagliatelle
 type Image struct {
 	Name          string                 `json:"img_name"`
 	Size          int64                  `json:"img_size"`
@@ -156,6 +158,7 @@ type Image struct {
 
 func (i *Image) UnmarshalJSON(b []byte) error {
 	type ImageSub Image
+	//nolint:tagliatelle
 	type ImageFull struct {
 		ImageSub
 
@@ -360,32 +363,32 @@ func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, token s
 	return imageInfo.PageCount, nil
 }
 
-func getDuration(ctx context.Context, httpClient *retryablehttp.Client, image Image) (float64, errors.E) {
+func getDuration(image Image) float64 {
 	duration := getPathFloat(image.Metadata, []string{"data", "duration"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
 	duration = getPathFloat(image.Metadata, []string{"duration"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
 	duration = getPathFloat(image.Metadata, []string{"data", "playtime_seconds"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
 	duration = getPathFloat(image.Metadata, []string{"playtime_seconds"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
 	duration = getPathFloat(image.Metadata, []string{"data", "length"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
 	duration = getPathFloat(image.Metadata, []string{"length"})
 	if duration != nil {
-		return *duration, nil
+		return *duration
 	}
-	return 0.0, nil
+	return 0.0
 }
 
 // Implementation matches includes/media/MediaHandler.php's fitBoxWidth of Mediawiki.
@@ -400,13 +403,13 @@ func fitBoxWidth(width, height float64) int {
 }
 
 func ConvertWikimediaCommonsImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
 ) (*peerdb.Document, errors.E) {
-	return convertImage(ctx, log, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
+	return convertImage(ctx, logger, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
-func convertImage(
-	ctx context.Context, log zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
+func convertImage( //nolint:maintidx
+	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
 	token string, apiLimit int, image Image,
 ) (*peerdb.Document, errors.E) {
 	id := peerdb.GetID(namespace, image.Name)
@@ -451,7 +454,7 @@ func convertImage(
 						Confidence: es.HighConfidence,
 					},
 					Prop: peerdb.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
-					IRI:  fmt.Sprintf("https://en.wikipedia.org/wiki/File:%s", image.Name),
+					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
 				},
 				{
 					CoreClaim: document.CoreClaim{
@@ -531,7 +534,7 @@ func convertImage(
 	}
 
 	if image.Size == 0 {
-		log.Warn().Str("file", image.Name).Msg("zero size")
+		logger.Warn().Str("file", image.Name).Msg("zero size")
 	}
 	// We set size even if it is zero.
 	err = doc.Add(&document.AmountClaim{
@@ -552,10 +555,10 @@ func convertImage(
 		pageCount, err = getPageCount(ctx, httpClient, token, apiLimit, image)
 		if err != nil {
 			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
-			log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting page count")
+			logger.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting page count")
 		} else {
 			if pageCount == 0 {
-				log.Warn().Str("file", image.Name).Msg("zero page count")
+				logger.Warn().Str("file", image.Name).Msg("zero page count")
 			}
 			// We set page count even if it is zero, if the media type should have a page count.
 			err = doc.Add(&document.AmountClaim{
@@ -574,27 +577,22 @@ func convertImage(
 	}
 
 	if hasDuration[mediaType] {
-		duration, err := getDuration(ctx, httpClient, image) //nolint:govet
+		duration := getDuration(image)
+		if duration == 0.0 && !canHaveZeroDuration[mediaType] {
+			logger.Warn().Str("file", image.Name).Msg("zero duration")
+		}
+		// We set duration even if it is zero and the media type should have a duration.
+		err = doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         peerdb.GetID(namespace, image.Name, "DURATION", 0),
+				Confidence: es.MediumConfidence,
+			},
+			Prop:   peerdb.GetCorePropertyReference("DURATION"),
+			Amount: duration,
+			Unit:   document.AmountUnitSecond,
+		})
 		if err != nil {
-			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
-			log.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting duration")
-		} else {
-			if duration == 0.0 && !canHaveZeroDuration[mediaType] {
-				log.Warn().Str("file", image.Name).Msg("zero duration")
-			}
-			// We set duration even if it is zero, if the media type should have a duration.
-			err := doc.Add(&document.AmountClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         peerdb.GetID(namespace, image.Name, "DURATION", 0),
-					Confidence: es.MediumConfidence,
-				},
-				Prop:   peerdb.GetCorePropertyReference("DURATION"),
-				Amount: duration,
-				Unit:   document.AmountUnitSecond,
-			})
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
 
@@ -603,9 +601,9 @@ func convertImage(
 		previewPages = 1
 	}
 	previews := []string{}
-	if !noPreview[mediaType] {
+	if !noPreview[mediaType] { //nolint:nestif
 		if image.Width == 0 || image.Height == 0 {
-			log.Warn().Str("file", image.Name).Msgf("expected width/height (%dx%d)", image.Width, image.Height)
+			logger.Warn().Str("file", image.Name).Msgf("expected width/height (%dx%d)", image.Width, image.Height)
 		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(es.PreviewSize) && image.Height <= int64(es.PreviewSize) {
 			// If the image is small, we link directly to the image.
 			previews = append(previews,
@@ -661,7 +659,7 @@ func convertImage(
 			}
 		}
 	} else if image.Width != 0 || image.Height != 0 {
-		log.Warn().Str("file", image.Name).Msgf("unexpected width/height (%dx%d)", image.Width, image.Height)
+		logger.Warn().Str("file", image.Name).Msgf("unexpected width/height (%dx%d)", image.Width, image.Height)
 	}
 
 	if len(previews) > 0 {

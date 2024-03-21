@@ -378,14 +378,14 @@ func generateAllCoreProperties() {
 	}
 }
 
-func SaveCoreProperties(ctx context.Context, log zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, index string) errors.E {
+func SaveCoreProperties(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, index string) errors.E {
 	for _, property := range CoreProperties {
 		if ctx.Err() != nil {
 			break
 		}
 
 		property := property
-		log.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
+		logger.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
 		InsertOrReplaceDocument(processor, index, &property)
 	}
 
@@ -402,6 +402,6 @@ func SaveCoreProperties(ctx context.Context, log zerolog.Logger, esClient *elast
 	return nil
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	generateAllCoreProperties()
 }

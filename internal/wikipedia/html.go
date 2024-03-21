@@ -194,7 +194,7 @@ func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
 		return "", nil, errors.WithStack(err)
 	}
 	doc, errE := extractArticle(doc)
-	if err != nil {
+	if errE != nil {
 		return "", doc, errE
 	}
 	if len(strings.TrimSpace(doc.Find("body").Text())) < minimumSummarySize {
@@ -243,7 +243,7 @@ func ExtractCategoryDescription(input string) (string, errors.E) {
 		return "", errors.WithStack(err)
 	}
 	doc, errE := extractArticle(doc)
-	if err != nil {
+	if errE != nil {
 		return "", errE
 	}
 	return ExtractArticleSummary(doc)

@@ -125,6 +125,7 @@ func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.
 	s.WriteJSON(w, req, data, metadata)
 }
 
+//nolint:dupl
 func (s *Service) DocumentSearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
@@ -175,6 +176,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 	s.WriteJSON(w, req, data, metadata)
 }
 
+//nolint:dupl
 func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
@@ -203,6 +205,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 	s.WriteJSON(w, req, data, metadata)
 }
 
+//nolint:dupl
 func (s *Service) DocumentSearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {

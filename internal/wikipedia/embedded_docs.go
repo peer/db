@@ -152,7 +152,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 		if maybeDocument == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*peerdb.Document), nil
+		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromESByProp(v.Context, v.Index, v.ESClient, property, title)
@@ -177,7 +177,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 		if maybeDocument == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*peerdb.Document), nil
+		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
@@ -530,7 +530,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, index string, log zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
 	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *peerdb.Document,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
@@ -558,7 +558,7 @@ func UpdateEmbeddedDocuments(
 
 	v := updateEmbeddedDocumentsVisitor{
 		Context:                      ctx,
-		Log:                          log,
+		Log:                          logger,
 		Index:                        index,
 		Cache:                        cache,
 		SkippedWikidataEntities:      skippedWikidataEntities,

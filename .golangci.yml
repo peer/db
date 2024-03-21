@@ -138,3 +138,9 @@ linters:
     # - nlreturn
     # - varnamelen
     # - wsl
+
+issues:
+  exclude-rules:
+    - path: internal/wikipedia/.*_test\.go
+      linters:
+        - testpackage

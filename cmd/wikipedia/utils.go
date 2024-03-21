@@ -83,7 +83,7 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 
 	sortedSkipped := make([]string, 0, atomic.LoadInt64(count))
 	skippedMap.Range(func(key, _ interface{}) bool {
-		sortedSkipped = append(sortedSkipped, key.(string))
+		sortedSkipped = append(sortedSkipped, key.(string)) //nolint:forcetypeassert
 		return true
 	})
 	sort.Strings(sortedSkipped)
@@ -247,7 +247,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 func templatesCommandProcessPage(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor,
 	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
-) errors.E {
+) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
 

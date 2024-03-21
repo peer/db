@@ -10,8 +10,8 @@ import (
 type Document struct {
 	document.CoreDocument
 
-	Mnemonic document.Mnemonic    `json:"mnemonic,omitempty"`
-	Claims   *document.ClaimTypes `json:"claims,omitempty"`
+	Mnemonic document.Mnemonic    `exhaustruct:"optional" json:"mnemonic,omitempty"`
+	Claims   *document.ClaimTypes `                       json:"claims,omitempty"`
 }
 
 func (d Document) Reference() document.Reference {

@@ -58,10 +58,17 @@ func testExtractData[T any](t *testing.T, dir string) {
 }
 
 func TestExtractData(t *testing.T) {
+	t.Parallel()
+
 	t.Run("artist", func(t *testing.T) {
+		t.Parallel()
+
 		testExtractData[momaArtist](t, "artist")
 	})
+
 	t.Run("artwork", func(t *testing.T) {
+		t.Parallel()
+
 		testExtractData[momaArtwork](t, "artwork")
 	})
 }

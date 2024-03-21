@@ -20,6 +20,8 @@ import (
 var content embed.FS
 
 func TestExtractArticle(t *testing.T) {
+	t.Parallel()
+
 	entries, err := content.ReadDir("testdata/article")
 	require.NoError(t, err)
 
@@ -31,7 +33,10 @@ func TestExtractArticle(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		entry := entry
 		t.Run(base, func(t *testing.T) {
+			t.Parallel()
+
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
 			output, _, err := wikipedia.ExtractArticle(string(input))
@@ -50,6 +55,8 @@ func TestExtractArticle(t *testing.T) {
 }
 
 func TestExtractArticleSummary(t *testing.T) {
+	t.Parallel()
+
 	entries, err := content.ReadDir("testdata/article")
 	require.NoError(t, err)
 
@@ -61,7 +68,10 @@ func TestExtractArticleSummary(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		entry := entry
 		t.Run(base, func(t *testing.T) {
+			t.Parallel()
+
 			input, err := content.ReadFile(filepath.Join("testdata", "article", entry.Name()))
 			require.NoError(t, err)
 			_, doc, err := wikipedia.ExtractArticle(string(input))
@@ -86,6 +96,8 @@ type outputStruct struct {
 }
 
 func TestExtractFileDescriptions(t *testing.T) {
+	t.Parallel()
+
 	entries, err := content.ReadDir("testdata/file")
 	require.NoError(t, err)
 
@@ -97,7 +109,9 @@ func TestExtractFileDescriptions(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
+		entry := entry
 		t.Run(base, func(t *testing.T) {
+			t.Parallel()
 			input, err := content.ReadFile(filepath.Join("testdata", "file", entry.Name()))
 			require.NoError(t, err)
 			output, err := wikipedia.ExtractFileDescriptions(string(input))
@@ -122,6 +136,8 @@ func TestExtractFileDescriptions(t *testing.T) {
 }
 
 func TestExtractCategoryAndTemplateDescription(t *testing.T) {
+	t.Parallel()
+
 	for _, conf := range []struct {
 		Dir  string
 		Func func(string) (string, errors.E)
@@ -135,7 +151,10 @@ func TestExtractCategoryAndTemplateDescription(t *testing.T) {
 			wikipedia.ExtractTemplateDescription,
 		},
 	} {
+		conf := conf
 		t.Run(conf.Dir, func(t *testing.T) {
+			t.Parallel()
+
 			entries, err := content.ReadDir("testdata/" + conf.Dir)
 			require.NoError(t, err)
 			for _, entry := range entries {

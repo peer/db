@@ -15,6 +15,7 @@ import (
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 )
 
+//nolint:gochecknoglobals
 var (
 	// Set of document IDs.
 	skippedWikidataEntities      = sync.Map{}

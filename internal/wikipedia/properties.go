@@ -4,6 +4,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 )
 
+//nolint:gochecknoglobals
 var wikipediaProperties = []struct {
 	Name            string
 	DescriptionHTML string
@@ -117,6 +118,6 @@ var wikipediaProperties = []struct {
 	},
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	peerdb.GenerateCoreProperties(wikipediaProperties)
 }

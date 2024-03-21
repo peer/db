@@ -74,9 +74,11 @@ type apiTask struct {
 }
 
 // apiWorkersPerSite is a map between a site and another map, which is a map between a context and a channel.
+//
+//nolint:gochecknoglobals
 var apiWorkersPerSite sync.Map
 
-func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, token string, tasks []apiTask) errors.E {
+func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, token string, tasks []apiTask) errors.E { //nolint:maintidx
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -284,7 +286,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	}
 
 	apiWorkersInterface, _ := apiWorkersPerSite.LoadOrStore(site, &sync.Map{})
-	apiWorkers := apiWorkersInterface.(*sync.Map) //nolint: errcheck
+	apiWorkers := apiWorkersInterface.(*sync.Map) //nolint: errcheck,forcetypeassert
 
 	apiTaskChan := make(chan apiTask, apiLimit)
 
