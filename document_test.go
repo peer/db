@@ -63,7 +63,7 @@ func TestDocument(t *testing.T) {
 		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, peerdb.Document{
+	assert.Equal(t, peerdb.Document{ //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			NoValue: document.NoValueClaims{
 				{

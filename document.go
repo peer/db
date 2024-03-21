@@ -5,13 +5,14 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 type Document struct {
 	document.CoreDocument
 
 	Mnemonic document.Mnemonic    `exhaustruct:"optional" json:"mnemonic,omitempty"`
-	Claims   *document.ClaimTypes `                       json:"claims,omitempty"`
+	Claims   *document.ClaimTypes `exhaustruct:"optional" json:"claims,omitempty"`
 }
 
 func (d Document) Reference() document.Reference {
@@ -135,7 +136,7 @@ func (d *Document) MergeFrom(other ...*Document) errors.E {
 		}
 	}
 	// TODO: What to do about scores after merging?
-	d.Score = 0.5
+	d.Score = es.LowConfidence
 	d.Scores = nil
 	return nil
 }

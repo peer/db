@@ -124,7 +124,7 @@ func updateTextClaim(claimID identifier.Identifier, doc *peerdb.Document, prop, 
 			errors.Details(errE)["doc"] = doc.ID.String()
 			errors.Details(errE)["claim"] = claimID.String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &document.TextClaim{})
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", new(document.TextClaim))
 			return errE
 		}
 		claim.HTML["en"] = value
@@ -187,7 +187,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 			errors.Details(errE)["doc"] = doc.ID.String()
 			errors.Details(errE)["claim"] = claimID.String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", existingClaim)
-			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &document.IdentifierClaim{})
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", new(document.IdentifierClaim))
 			return errE
 		}
 		claim.Identifier = strconv.FormatInt(pageID, 10)
@@ -218,7 +218,7 @@ func ConvertTemplateDescription(id, from string, html string, doc *peerdb.Docume
 
 func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
 	doc, hit, errE := getDocumentFromESByProp(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
-	if errors.Is(errE, ErrNotFound) {
+	if errors.Is(errE, ErrNotFound) { //nolint:revive
 		// Passthrough.
 	} else if errE != nil {
 		errors.Details(errE)["file"] = name

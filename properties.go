@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 //nolint:gochecknoglobals
@@ -230,7 +231,7 @@ func GenerateCoreProperties(properties []struct {
 		CoreProperties[id] = Document{
 			CoreDocument: document.CoreDocument{
 				ID:    id,
-				Score: 0.5,
+				Score: es.LowConfidence,
 			},
 			Mnemonic: document.Mnemonic(mnemonic),
 			Claims: &document.ClaimTypes{
@@ -242,7 +243,7 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						HTML: document.TranslatableHTMLString{
 							"en": html.EscapeString(property.Name),
@@ -255,7 +256,7 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						HTML: document.TranslatableHTMLString{
 							"en": property.DescriptionHTML,
@@ -270,11 +271,11 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						To: document.Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 					},
 				},
@@ -290,11 +291,11 @@ func GenerateCoreProperties(properties []struct {
 				},
 				Prop: document.Reference{
 					ID:    getPointer(GetCorePropertyID("IS")),
-					Score: 0.5,
+					Score: es.LowConfidence,
 				},
 				To: document.Reference{
 					ID:    getPointer(GetCorePropertyID(isClaimMnemonic)),
-					Score: 0.5,
+					Score: es.LowConfidence,
 				},
 			})
 		}
@@ -312,7 +313,7 @@ func generateAllCoreProperties() {
 		CoreProperties[id] = Document{
 			CoreDocument: document.CoreDocument{
 				ID:    id,
-				Score: 0.5,
+				Score: es.LowConfidence,
 			},
 			Mnemonic: document.Mnemonic(mnemonic),
 			Claims: &document.ClaimTypes{
@@ -324,7 +325,7 @@ func generateAllCoreProperties() {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						HTML: document.TranslatableHTMLString{
 							"en": html.EscapeString(name),
@@ -337,7 +338,7 @@ func generateAllCoreProperties() {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						HTML: document.TranslatableHTMLString{
 							"en": html.EscapeString(description),
@@ -352,11 +353,11 @@ func generateAllCoreProperties() {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						To: document.Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 					},
 					{
@@ -366,11 +367,11 @@ func generateAllCoreProperties() {
 						},
 						Prop: document.Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 						To: document.Reference{
 							ID:    getPointer(GetCorePropertyID("CLAIM_TYPE")),
-							Score: 0.5,
+							Score: es.LowConfidence,
 						},
 					},
 				},

@@ -26,6 +26,7 @@ import (
 //go:embed public
 var publicFiles embed.FS
 
+//nolint:exhaustruct
 var testFiles = fstest.MapFS{ //nolint:gochecknoglobals
 	"dist/index.html": &fstest.MapFile{
 		Data: []byte("<html><body>dummy test content</body></html>"),
@@ -124,8 +125,8 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		elastic = peerdb.DefaultElastic
 	}
 
-	globals := &peerdb.Globals{
-		LoggingConfig: z.LoggingConfig{
+	globals := &peerdb.Globals{ //nolint:exhaustruct
+		LoggingConfig: z.LoggingConfig{ //nolint:exhaustruct
 			Logger: logger,
 		},
 		Elastic:   elastic,
@@ -133,9 +134,9 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		SizeField: false,
 	}
 
-	serve := peerdb.ServeCommand{
-		Server: waf.Server[*peerdb.Site]{
-			TLS: waf.TLS{
+	serve := peerdb.ServeCommand{ //nolint:exhaustruct
+		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
+			TLS: waf.TLS{ //nolint:exhaustruct
 				CertFile: certPath,
 				KeyFile:  keyPath,
 			},
@@ -160,7 +161,7 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 
 	// We have to call GetCertificate ourselves.
 	// See: https://github.com/golang/go/issues/63812
-	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{
+	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
 		ServerName: "localhost",
 	})
 	require.NoError(t, err, "% -+#.1v", err)

@@ -422,7 +422,7 @@ func convertImage( //nolint:maintidx
 	doc := &peerdb.Document{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
-			Score: 0.5,
+			Score: es.LowConfidence,
 		},
 		Claims: &document.ClaimTypes{
 			Text: document.TextClaims{

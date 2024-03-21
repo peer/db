@@ -174,11 +174,13 @@ func getDocumentReference(id, source string) document.Reference {
 	if strings.HasPrefix(id, "M") {
 		return document.Reference{
 			ID:        nil,
+			Score:     0,
 			Temporary: []string{WikimediaCommonsEntityReference, id},
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return document.Reference{
 			ID:        nil,
+			Score:     0,
 			Temporary: []string{WikidataReference, id},
 		}
 	} else if strings.HasPrefix(id, "Category:") {
@@ -186,11 +188,13 @@ func getDocumentReference(id, source string) document.Reference {
 		case "ENGLISH_WIKIPEDIA":
 			return document.Reference{
 				ID:        nil,
+				Score:     0,
 				Temporary: []string{WikipediaCategoryReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return document.Reference{
 				ID:        nil,
+				Score:     0,
 				Temporary: []string{WikimediaCommonsCategoryReference, id},
 			}
 		}
@@ -199,17 +203,20 @@ func getDocumentReference(id, source string) document.Reference {
 		case "ENGLISH_WIKIPEDIA":
 			return document.Reference{
 				ID:        nil,
+				Score:     0,
 				Temporary: []string{WikipediaTemplateReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return document.Reference{
 				ID:        nil,
+				Score:     0,
 				Temporary: []string{WikimediaCommonsTemplateReference, id},
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return document.Reference{
 			ID:        nil,
+			Score:     0,
 			Temporary: []string{WikimediaCommonsFileReference, id},
 		}
 	}
@@ -265,30 +272,30 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 	return nil, nil, errors.WithStack(ErrNotFound)
 }
 
-func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id identifier.Identifier) (*peerdb.Document, *elastic.GetResult, errors.E) {
+func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id identifier.Identifier) (*peerdb.Document, errors.E) {
 	esDoc, err := esClient.Get().Index(index).Id(id.String()).Do(ctx)
 	if elastic.IsNotFound(err) {
 		// Caller should add details to the error.
-		return nil, nil, errors.WithStack(ErrNotFound)
+		return nil, errors.WithStack(ErrNotFound)
 	} else if err != nil {
 		// Caller should add details to the error.
-		return nil, nil, errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	} else if !esDoc.Found {
 		// Caller should add details to the error.
-		return nil, nil, errors.WithStack(ErrNotFound)
+		return nil, errors.WithStack(ErrNotFound)
 	}
 
 	var doc peerdb.Document
 	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &doc)
 	if err != nil {
 		// Caller should add details to the error.
-		return nil, nil, errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
 	doc.ID = id
 
-	return &doc, esDoc, nil
+	return &doc, nil
 }
 
 func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client, id string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
@@ -367,10 +374,10 @@ func getDataTypeForProperty(
 			errors.Details(err)["prop"] = prop
 			return 0, err
 		}
-		return resolveDataTypeFromPropertyDocument(maybeDocument.(*peerdb.Document), prop, valueType)
+		return resolveDataTypeFromPropertyDocument(maybeDocument.(*peerdb.Document), prop, valueType) //nolint:forcetypeassert
 	}
 
-	doc, _, err := getDocumentFromESByID(ctx, index, esClient, id)
+	doc, err := getDocumentFromESByID(ctx, index, esClient, id)
 	if errors.Is(err, ErrNotFound) {
 		cache.Add(id, nil)
 		errors.Details(err)["prop"] = prop
@@ -662,7 +669,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 			}
 			if uncertaintyLower != nil && uncertaintyUpper != nil {
 				// We lower the confidence of the original claim.
-				claims[0].(*document.AmountClaim).Confidence *= 0.9
+				claims[0].(*document.AmountClaim).Confidence *= 0.9 //nolint:forcetypeassert
 				claims = append(
 					claims,
 					&document.AmountRangeClaim{
@@ -710,7 +717,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 func addQualifiers(
 	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
-) errors.E {
+) errors.E { //nolint:unparam
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaims, err := processSnak(
@@ -743,7 +750,7 @@ func addQualifiers(
 func addReference(
 	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
-) errors.E {
+) errors.E { //nolint:unparam
 	// Edge case.
 	if len(reference.SnaksOrder) == 0 {
 		return nil
@@ -850,7 +857,7 @@ func ConvertEntity( //nolint:maintidx
 	doc := peerdb.Document{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
-			Score: 0.5,
+			Score: es.LowConfidence,
 		},
 	}
 

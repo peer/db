@@ -462,7 +462,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		doc := peerdb.Document{ //nolint:dupl
 			CoreDocument: document.CoreDocument{
 				ID:    peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
-				Score: 0.5,
+				Score: es.LowConfidence,
 			},
 			Claims: &document.ClaimTypes{
 				Text: document.TextClaims{
@@ -705,7 +705,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		doc := peerdb.Document{ //nolint:dupl
 			CoreDocument: document.CoreDocument{
 				ID:    peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
-				Score: 0.5,
+				Score: es.LowConfidence,
 			},
 			Claims: &document.ClaimTypes{
 				Text: document.TextClaims{

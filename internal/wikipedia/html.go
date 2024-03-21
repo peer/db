@@ -170,7 +170,7 @@ func cleanupDocument(doc *goquery.Document) {
 	doc.Find("*").RemoveAttr("data-mw")
 }
 
-func extractArticle(doc *goquery.Document) (*goquery.Document, errors.E) {
+func extractArticle(doc *goquery.Document) (*goquery.Document, errors.E) { //nolint:unparam
 	cleanupDocument(doc)
 	// Remove some sections.
 	// TODO: Extract to annotations and metadata.

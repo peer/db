@@ -242,7 +242,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 			}
 		} else if len(page.ImageInfo) == 0 {
 			for _, task := range pageTasks {
-				ii := ImageInfo{}
+				ii := ImageInfo{} //nolint:exhaustruct
 				// Set redirect if there is one, otherwise this sets an empty string.
 				ii.Redirect = redirects[page.Title]
 				ii.Redirect = strings.TrimPrefix(ii.Redirect, "File:")
@@ -294,7 +294,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	if loaded {
 		// We made it just in case but we do not need it.
 		close(apiTaskChan)
-		return existingAPITaskChan.(chan apiTask)
+		return existingAPITaskChan.(chan apiTask) //nolint:forcetypeassert
 	}
 
 	go func() {
@@ -410,7 +410,7 @@ func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	for {
 		select {
 		case <-ctx.Done():
-			return ImageInfo{}, errors.WithStack(ctx.Err())
+			return ImageInfo{}, errors.WithStack(ctx.Err()) //nolint:exhaustruct
 		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
@@ -424,7 +424,7 @@ func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, t
 				// Break the select and retry the loop.
 				break
 			}
-			return ImageInfo{}, err
+			return ImageInfo{}, err //nolint:exhaustruct
 		}
 	}
 }

@@ -24,7 +24,7 @@ var (
 )
 
 type updateEmbeddedDocumentsVisitor struct {
-	Context                      context.Context
+	Context                      context.Context //nolint:containedctx
 	Log                          zerolog.Logger
 	Index                        string
 	Cache                        *es.Cache
@@ -101,7 +101,7 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref document.
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (string, string) {
-	if len(temporary) != 2 {
+	if len(temporary) != 2 { //nolint:gomnd
 		return "", ""
 	}
 
@@ -180,7 +180,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
 	}
 
-	document, _, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
+	document, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
 	if errors.Is(err, ErrNotFound) {
 		v.Cache.Add(id, nil)
 		return nil, err
@@ -548,7 +548,7 @@ func UpdateEmbeddedDocuments(
 			errors.Details(errE)["doc"] = doc.ID.String()
 			errors.Details(errE)["claim"] = entityIDClaim.GetID().String()
 			errors.Details(errE)["got"] = fmt.Sprintf("%T", entityIDClaim)
-			errors.Details(errE)["expected"] = fmt.Sprintf("%T", &document.IdentifierClaim{})
+			errors.Details(errE)["expected"] = fmt.Sprintf("%T", new(document.IdentifierClaim))
 			return false, errE
 		}
 		entityIDs = append(entityIDs, idClaim.Identifier)
