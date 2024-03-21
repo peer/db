@@ -169,26 +169,26 @@ func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementR
 
 // getDocumentReference does not return a valid reference, but it encodes original
 // ID into the _temp field to be resolved later. It panics for unsupported IDs.
-func getDocumentReference(id, source string) peerdb.DocumentReference {
+func getDocumentReference(id, source string) document.DocumentReference {
 	if strings.HasPrefix(id, "M") {
-		return peerdb.DocumentReference{
+		return document.DocumentReference{
 			ID:        nil,
 			Temporary: []string{WikimediaCommonsEntityReference, id},
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
-		return peerdb.DocumentReference{
+		return document.DocumentReference{
 			ID:        nil,
 			Temporary: []string{WikidataReference, id},
 		}
 	} else if strings.HasPrefix(id, "Category:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
-			return peerdb.DocumentReference{
+			return document.DocumentReference{
 				ID:        nil,
 				Temporary: []string{WikipediaCategoryReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
-			return peerdb.DocumentReference{
+			return document.DocumentReference{
 				ID:        nil,
 				Temporary: []string{WikimediaCommonsCategoryReference, id},
 			}
@@ -196,18 +196,18 @@ func getDocumentReference(id, source string) peerdb.DocumentReference {
 	} else if strings.HasPrefix(id, "Template:") || strings.HasPrefix(id, "Module:") {
 		switch source {
 		case "ENGLISH_WIKIPEDIA":
-			return peerdb.DocumentReference{
+			return document.DocumentReference{
 				ID:        nil,
 				Temporary: []string{WikipediaTemplateReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
-			return peerdb.DocumentReference{
+			return document.DocumentReference{
 				ID:        nil,
 				Temporary: []string{WikimediaCommonsTemplateReference, id},
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
-		return peerdb.DocumentReference{
+		return document.DocumentReference{
 			ID:        nil,
 			Temporary: []string{WikimediaCommonsFileReference, id},
 		}

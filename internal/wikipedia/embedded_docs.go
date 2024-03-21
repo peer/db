@@ -36,7 +36,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	EntityIDs                    []string
 }
 
-func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref peerdb.DocumentReference, claimID identifier.Identifier) errors.E {
+func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref document.DocumentReference, claimID identifier.Identifier) errors.E {
 	errE := errors.WithStack(err)
 	details := errors.Details(errE)
 	details["doc"] = v.DocumentID.String()
@@ -69,7 +69,7 @@ func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *peerdb.Document, cl
 	l.Msg(msg)
 }
 
-func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref peerdb.DocumentReference) (document.VisitResult, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) handleError(err errors.E, ref document.DocumentReference) (document.VisitResult, errors.E) {
 	if errors.Is(err, errReferenceNotFound) {
 		if ref.ID != nil {
 			if _, ok := v.SkippedWikidataEntities.Load(ref.ID.String()); ok {
@@ -126,7 +126,7 @@ func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (stri
 	return "", ""
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref peerdb.DocumentReference, claimID identifier.Identifier) (*peerdb.DocumentReference, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref document.DocumentReference, claimID identifier.Identifier) (*document.DocumentReference, errors.E) {
 	if ref.ID != nil {
 		return v.getDocumentReferenceByID(ref, claimID)
 	}
@@ -194,8 +194,8 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
-	ref peerdb.DocumentReference, claimID identifier.Identifier, property, title string,
-) (*peerdb.DocumentReference, errors.E) {
+	ref document.DocumentReference, claimID identifier.Identifier, property, title string,
+) (*document.DocumentReference, errors.E) {
 	document, err := v.getDocumentByProp(property, title)
 	if errors.Is(err, ErrNotFound) {
 		return nil, v.makeError(errReferenceNotFound, ref, claimID)
@@ -208,7 +208,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByProp(
 	return &res, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref peerdb.DocumentReference, claimID identifier.Identifier) (*peerdb.DocumentReference, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref document.DocumentReference, claimID identifier.Identifier) (*document.DocumentReference, errors.E) {
 	if ref.ID == nil {
 		return nil, v.makeError(errReferenceTemporary, ref, claimID)
 	}
