@@ -370,12 +370,12 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	return result, nil
 }
 
-func getArtistReference(artistsMap map[int]peerdb.Document, constituentID int) (document.DocumentReference, errors.E) {
+func getArtistReference(artistsMap map[int]peerdb.Document, constituentID int) (document.Reference, errors.E) {
 	doc, ok := artistsMap[constituentID]
 	if !ok {
 		errE := errors.New("unknown artist")
 		errors.Details(errE)["constituentID"] = constituentID
-		return document.DocumentReference{}, errE
+		return document.Reference{}, errE
 	}
 	return doc.Reference(), nil
 }

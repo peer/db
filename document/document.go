@@ -880,7 +880,7 @@ type Confidence = Score
 
 type Score float64
 
-type DocumentReference struct {
+type Reference struct {
 	ID    *identifier.Identifier `json:"_id,omitempty"`
 	Score Score                  `json:"score"`
 
@@ -891,29 +891,29 @@ type DocumentReference struct {
 type IdentifierClaim struct {
 	CoreClaim
 
-	Prop       DocumentReference `json:"prop"`
-	Identifier string            `json:"id"`
+	Prop       Reference `json:"prop"`
+	Identifier string    `json:"id"`
 }
 
 type ReferenceClaim struct {
 	CoreClaim
 
-	Prop DocumentReference `json:"prop"`
-	IRI  string            `json:"iri"`
+	Prop Reference `json:"prop"`
+	IRI  string    `json:"iri"`
 }
 
 type TextClaim struct {
 	CoreClaim
 
-	Prop DocumentReference      `json:"prop"`
+	Prop Reference              `json:"prop"`
 	HTML TranslatableHTMLString `json:"html"`
 }
 
 type StringClaim struct {
 	CoreClaim
 
-	Prop   DocumentReference `json:"prop"`
-	String string            `json:"string"`
+	Prop   Reference `json:"prop"`
+	String string    `json:"string"`
 }
 
 type AmountUnit int
@@ -1061,46 +1061,46 @@ func ValidAmountUnit(unit string) bool {
 type AmountClaim struct {
 	CoreClaim
 
-	Prop   DocumentReference `json:"prop"`
-	Amount float64           `json:"amount"`
-	Unit   AmountUnit        `json:"unit"`
+	Prop   Reference  `json:"prop"`
+	Amount float64    `json:"amount"`
+	Unit   AmountUnit `json:"unit"`
 }
 
 type AmountRangeClaim struct {
 	CoreClaim
 
-	Prop  DocumentReference `json:"prop"`
-	Lower float64           `json:"lower"`
-	Upper float64           `json:"upper"`
-	Unit  AmountUnit        `json:"unit"`
+	Prop  Reference  `json:"prop"`
+	Lower float64    `json:"lower"`
+	Upper float64    `json:"upper"`
+	Unit  AmountUnit `json:"unit"`
 }
 
 type RelationClaim struct {
 	CoreClaim
 
-	Prop DocumentReference `json:"prop"`
-	To   DocumentReference `json:"to"`
+	Prop Reference `json:"prop"`
+	To   Reference `json:"to"`
 }
 
 type FileClaim struct {
 	CoreClaim
 
-	Prop    DocumentReference `json:"prop"`
-	Type    string            `json:"type"`
-	URL     string            `json:"url"`
-	Preview []string          `json:"preview,omitempty"`
+	Prop    Reference `json:"prop"`
+	Type    string    `json:"type"`
+	URL     string    `json:"url"`
+	Preview []string  `json:"preview,omitempty"`
 }
 
 type NoValueClaim struct {
 	CoreClaim
 
-	Prop DocumentReference `json:"prop"`
+	Prop Reference `json:"prop"`
 }
 
 type UnknownValueClaim struct {
 	CoreClaim
 
-	Prop DocumentReference `json:"prop"`
+	Prop Reference `json:"prop"`
 }
 
 type TimePrecision int
@@ -1207,16 +1207,16 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 type TimeClaim struct {
 	CoreClaim
 
-	Prop      DocumentReference `json:"prop"`
-	Timestamp Timestamp         `json:"timestamp"`
-	Precision TimePrecision     `json:"precision"`
+	Prop      Reference     `json:"prop"`
+	Timestamp Timestamp     `json:"timestamp"`
+	Precision TimePrecision `json:"precision"`
 }
 
 type TimeRangeClaim struct {
 	CoreClaim
 
-	Prop      DocumentReference `json:"prop"`
-	Lower     Timestamp         `json:"lower"`
-	Upper     Timestamp         `json:"upper"`
-	Precision TimePrecision     `json:"precision"`
+	Prop      Reference     `json:"prop"`
+	Lower     Timestamp     `json:"lower"`
+	Upper     Timestamp     `json:"upper"`
+	Precision TimePrecision `json:"precision"`
 }

@@ -1,9 +1,10 @@
 package peerdb
 
 import (
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 type Document struct {
@@ -13,8 +14,8 @@ type Document struct {
 	Claims   *document.ClaimTypes `json:"claims,omitempty"`
 }
 
-func (d Document) Reference() document.DocumentReference {
-	return document.DocumentReference{
+func (d Document) Reference() document.Reference {
+	return document.Reference{
 		ID:    &d.ID,
 		Score: d.Score,
 	}
