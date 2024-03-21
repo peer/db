@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"gitlab.com/peerdb/peerdb"
 	z "gitlab.com/tozd/go/zerolog"
+
+	"gitlab.com/peerdb/peerdb"
 )
 
 func TestMain(m *testing.M) {
