@@ -65,7 +65,7 @@ func DocumentSearchTimeFilterGet(
 	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.time.prop._id", prop),
+			elastic.NewTermQuery("claims.time.prop.id", prop),
 		).SubAggregation(
 			"min",
 			elastic.NewMinAggregation().Field("claims.time.timestamp"),
@@ -119,7 +119,7 @@ func DocumentSearchTimeFilterGet(
 	histogramAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.time.prop._id", prop),
+			elastic.NewTermQuery("claims.time.prop.id", prop),
 		).SubAggregation(
 			"hist",
 			elastic.NewDateHistogramAggregation().Field("claims.time.timestamp").Offset(offsetString).FixedInterval(intervalString).SubAggregation(

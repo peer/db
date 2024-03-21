@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
     <div class="flex items-baseline gap-x-1">
       <span class="mb-1.5 text-lg leading-none">document size</span>
-      ({{ result._count }})
+      ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
         <div class="my-1 leading-none">{{ formatValue(results[0].min, "B") }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
-      <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
+      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
         <input
           :id="'size/none'"
           :disabled="updateProgress > 0"
@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
         />
         <label :for="'size/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"><i>none</i></label>
         <label :for="'size/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          >({{ searchTotal - result._count }})</label
+          >({{ searchTotal - result.count }})</label
         >
       </li>
     </ul>

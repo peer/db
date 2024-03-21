@@ -5,7 +5,7 @@
     "coreDocumentProperties": {
       "type": "object",
       "properties": {
-        "_id": {
+        "id": {
           "$ref": "#/$defs/identifier"
         },
         "score": {
@@ -15,12 +15,12 @@
           "$ref": "#/$defs/scores"
         }
       },
-      "required": ["_id", "score"]
+      "required": ["id", "score"]
     },
     "coreClaimProperties": {
       "type": "object",
       "properties": {
-        "_id": {
+        "id": {
           "$ref": "#/$defs/identifier"
         },
         "confidence": {
@@ -37,7 +37,7 @@
           "unevaluatedProperties": false
         }
       },
-      "required": ["_id", "confidence"]
+      "required": ["id", "confidence"]
     },
     "claimTypes": {
       "type": "object",
@@ -449,14 +449,14 @@
     "documentReference": {
       "type": "object",
       "properties": {
-        "_id": {
+        "id": {
           "$ref": "#/$defs/identifier"
         },
         "score": {
           "$ref": "#/$defs/score"
         }
       },
-      "required": ["_id", "score"],
+      "required": ["id", "score"],
       "additionalProperties": false
     },
     "amountUnit": {

@@ -50,10 +50,10 @@ type intValueAggregation struct {
 }
 
 type searchFiltersResult struct {
-	ID    string `json:"_id,omitempty"`
-	Count int64  `json:"_count,omitempty"`
-	Type  string `json:"_type,omitempty"`
-	Unit  string `json:"_unit,omitempty"`
+	ID    string `json:"id,omitempty"`
+	Count int64  `json:"count,omitempty"`
+	Type  string `json:"type,omitempty"`
+	Unit  string `json:"unit,omitempty"`
 }
 
 func DocumentSearchFiltersGet(
@@ -75,7 +75,7 @@ func DocumentSearchFiltersGet(
 	searchService, propertiesTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.rel.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.rel.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -83,7 +83,7 @@ func DocumentSearchFiltersGet(
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.rel.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.rel.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
 	amountAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
 		"filter",
@@ -91,7 +91,7 @@ func DocumentSearchFiltersGet(
 			elastic.NewBoolQuery().MustNot(elastic.NewTermQuery("claims.amount.unit", "@")),
 		).SubAggregation(
 			"props",
-			elastic.NewMultiTermsAggregation().Terms("claims.amount.prop._id", "claims.amount.unit").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			elastic.NewMultiTermsAggregation().Terms("claims.amount.prop.id", "claims.amount.unit").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
@@ -103,13 +103,13 @@ func DocumentSearchFiltersGet(
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			elastic.NewCardinalityAggregation().Script(
 				// We use "|" as separator because this is used by ElasticSearch in "key_as_string" as well.
-				elastic.NewScript("return doc['claims.amount.prop._id'].value + '|' + doc['claims.amount.unit'].value"),
+				elastic.NewScript("return doc['claims.amount.prop.id'].value + '|' + doc['claims.amount.unit'].value"),
 			).PrecisionThreshold(2*propertiesTotal*int64(document.AmountUnitsTotal)),
 		),
 	)
 	timeAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.time.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.time.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -117,11 +117,11 @@ func DocumentSearchFiltersGet(
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.time.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.time.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
 	stringAggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.string.prop._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.string.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -129,7 +129,7 @@ func DocumentSearchFiltersGet(
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.string.prop._id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.string.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
 	)
 	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 	// so we use it to get the most accurate approximation.

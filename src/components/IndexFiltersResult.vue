@@ -44,7 +44,7 @@ function onChange(event: Event, str: string) {
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="url">
     <div class="flex items-baseline gap-x-1">
       <span class="mb-1.5 text-lg leading-none">document index</span>
-      ({{ result._count }})
+      ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">

@@ -571,19 +571,19 @@ export function useRelFilterValues(
       } else {
         s = route.query.s
       }
-      if (!s || !result._id || !result._type) {
+      if (!s || !result.id || !result.type) {
         return null
       }
-      if (result._type === "rel") {
+      if (result.type === "rel") {
         return router.apiResolve({
           name: "DocumentSearchRelFilter",
           params: {
             s,
-            prop: result._id,
+            prop: result.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
+        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
       }
     },
     null,
@@ -630,23 +630,23 @@ export function useAmountHistogramValues(
       } else {
         s = route.query.s
       }
-      if (!s || !result._id || !result._type) {
+      if (!s || !result.id || !result.type) {
         return null
       }
-      if (result._type === "amount") {
-        if (!result._unit) {
-          throw new Error(`property "${result._id}" is missing unit`)
+      if (result.type === "amount") {
+        if (!result.unit) {
+          throw new Error(`property "${result.id}" is missing unit`)
         }
         return router.apiResolve({
           name: "DocumentSearchAmountFilter",
           params: {
             s,
-            prop: result._id,
-            unit: result._unit,
+            prop: result.id,
+            unit: result.unit,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
+        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {
@@ -747,19 +747,19 @@ export function useTimeHistogramValues(
       } else {
         s = route.query.s
       }
-      if (!s || !result._id || !result._type) {
+      if (!s || !result.id || !result.type) {
         return null
       }
-      if (result._type === "time") {
+      if (result.type === "time") {
         return router.apiResolve({
           name: "DocumentSearchTimeFilter",
           params: {
             s,
-            prop: result._id,
+            prop: result.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
+        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {
@@ -851,19 +851,19 @@ export function useStringFilterValues(
       } else {
         s = route.query.s
       }
-      if (!s || !result._id || !result._type) {
+      if (!s || !result.id || !result.type) {
         return null
       }
-      if (result._type === "string") {
+      if (result.type === "string") {
         return router.apiResolve({
           name: "DocumentSearchStringFilter",
           params: {
             s,
-            prop: result._id,
+            prop: result.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result._type}" for property "${result._id}"`)
+        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {

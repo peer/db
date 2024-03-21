@@ -96,7 +96,7 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
   const claims: DeepReadonly<Claim>[] = []
   for (const cs of Object.values(claimTypes ?? {})) {
     for (const claim of cs || []) {
-      if (propertyId.includes(claim.prop._id)) {
+      if (propertyId.includes(claim.prop.id)) {
         claims.push(claim)
       }
     }
@@ -118,7 +118,7 @@ export function getClaimsOfType<K extends keyof ClaimTypes>(
   }
   const claims = []
   for (const claim of claimTypes?.[claimType] || []) {
-    if (propertyId.includes(claim.prop._id)) {
+    if (propertyId.includes(claim.prop.id)) {
       claims.push(claim)
     }
   }

@@ -70,7 +70,7 @@ const {
 const idToIndex = computed(() => {
   const map = new Map<string, number>()
   for (const [i, result] of searchResults.value.entries()) {
-    map.set(result._id, i)
+    map.set(result.id, i)
   }
   return map
 })
@@ -261,7 +261,7 @@ const filtersEnabled = ref(false)
         <div class="text-center text-sm">No results found.</div>
       </div>
       <template v-else-if="searchTotal > 0">
-        <template v-for="(result, i) in limitedSearchResults" :key="result._id">
+        <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
             <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
             <div class="h-2 w-full bg-slate-200"></div>
@@ -281,7 +281,7 @@ const filtersEnabled = ref(false)
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="track(result._id) as any" :result="result" />
+          <SearchResult :ref="track(result.id) as any" :result="result" />
         </template>
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
         <div v-else class="my-1 sm:my-4">
@@ -308,41 +308,41 @@ const filtersEnabled = ref(false)
       </div>
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <template v-for="result in limitedFiltersResults" :key="result._id">
+        <template v-for="result in limitedFiltersResults" :key="result.id">
           <RelFiltersResult
-            v-if="result._type === 'rel'"
+            v-if="result.type === 'rel'"
             :search-total="searchTotal"
             :result="result as RelSearchResult"
-            :state="filtersState.rel[result._id] || (filtersState.rel[result._id] = [])"
+            :state="filtersState.rel[result.id] || (filtersState.rel[result.id] = [])"
             :update-progress="updateFiltersProgress"
-            @update:state="onRelFiltersStateUpdate(result._id, $event)"
+            @update:state="onRelFiltersStateUpdate(result.id, $event)"
           />
           <AmountFiltersResult
-            v-if="result._type === 'amount'"
+            v-if="result.type === 'amount'"
             :search-total="searchTotal"
             :result="result as AmountSearchResult"
-            :state="filtersState.amount[`${result._id}/${result._unit}`] || (filtersState.amount[`${result._id}/${result._unit}`] = null)"
+            :state="filtersState.amount[`${result.id}/${result.unit}`] || (filtersState.amount[`${result.id}/${result.unit}`] = null)"
             :update-progress="updateFiltersProgress"
-            @update:state="onAmountFiltersStateUpdate(result._id, result._unit, $event)"
+            @update:state="onAmountFiltersStateUpdate(result.id, result.unit, $event)"
           />
           <TimeFiltersResult
-            v-if="result._type === 'time'"
+            v-if="result.type === 'time'"
             :search-total="searchTotal"
             :result="result as TimeSearchResult"
-            :state="filtersState.time[result._id] || (filtersState.time[result._id] = null)"
+            :state="filtersState.time[result.id] || (filtersState.time[result.id] = null)"
             :update-progress="updateFiltersProgress"
-            @update:state="onTimeFiltersStateUpdate(result._id, $event)"
+            @update:state="onTimeFiltersStateUpdate(result.id, $event)"
           />
           <StringFiltersResult
-            v-if="result._type === 'string'"
+            v-if="result.type === 'string'"
             :search-total="searchTotal"
             :result="result as StringSearchResult"
-            :state="filtersState.str[result._id] || (filtersState.str[result._id] = [])"
+            :state="filtersState.str[result.id] || (filtersState.str[result.id] = [])"
             :update-progress="updateFiltersProgress"
-            @update:state="onStringFiltersStateUpdate(result._id, $event)"
+            @update:state="onStringFiltersStateUpdate(result.id, $event)"
           />
           <IndexFiltersResult
-            v-if="result._type === 'index'"
+            v-if="result.type === 'index'"
             :search-total="searchTotal"
             :result="result as IndexSearchResult"
             :state="filtersState.index"
@@ -350,7 +350,7 @@ const filtersEnabled = ref(false)
             @update:state="onIndexFiltersStateUpdate($event)"
           />
           <SizeFiltersResult
-            v-if="result._type === 'size'"
+            v-if="result.type === 'size'"
             :search-total="searchTotal"
             :result="result as SizeSearchResult"
             :state="filtersState.size"

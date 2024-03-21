@@ -20,8 +20,8 @@ import (
 
 func (s *Service) populateProperties(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop._id", "2fjzZyP7rv8E4aHnBc6KAa"),
-		elastic.NewTermQuery("claims.rel.to._id", "HohteEmv2o7gPRnJ5wukVe"),
+		elastic.NewTermQuery("claims.rel.prop.id", "2fjzZyP7rv8E4aHnBc6KAa"),
+		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),
 	)
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)
 
@@ -285,7 +285,7 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf
 }
 
 type searchResult struct {
-	ID string `json:"_id"`
+	ID string `json:"id"`
 }
 
 // DocumentSearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided

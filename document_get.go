@@ -1,8 +1,6 @@
 package peerdb
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"time"
@@ -18,7 +16,7 @@ import (
 )
 
 // TODO: Support slug per document.
-// TODO: JSON response should include _id field.
+// TODO: JSON response should include id field.
 
 // DocumentGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
@@ -74,7 +72,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 
 	// We check if document exists.
 	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(0).Query(elastic.NewTermQuery("_id", id))
+	searchService = searchService.From(0).Size(0).Query(elastic.NewTermQuery("id", id.String()))
 
 	m := timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -112,7 +110,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	// so that it works also on aliases.
 	// See: https://github.com/elastic/elasticsearch/issues/69649
 	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(search.MaxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("_id", id))
+	searchService = searchService.From(0).Size(search.MaxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("id", id.String()))
 
 	m := timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -133,12 +131,5 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
 
-	// ID is not stored in the document, so we set it here ourselves.
-	source := bytes.NewBuffer(res.Hits.Hits[0].Source)
-	source.Truncate(source.Len() - 1)
-	source.WriteString(`,"_id":"`)
-	source.WriteString(id.String())
-	source.WriteString(`"}`)
-
-	s.WriteJSON(w, req, json.RawMessage(source.Bytes()), nil)
+	s.WriteJSON(w, req, res.Hits.Hits[0].Source, nil)
 }

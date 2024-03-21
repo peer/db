@@ -38,7 +38,7 @@ func DocumentSearchStringFilterGet(
 	aggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.string.prop._id", prop),
+			elastic.NewTermQuery("claims.string.prop.id", prop),
 		).SubAggregation(
 			"props",
 			elastic.NewTermsAggregation().Field("claims.string.string").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(

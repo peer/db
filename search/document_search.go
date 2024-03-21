@@ -254,14 +254,14 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		if f.Rel.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.rel",
-					elastic.NewTermQuery("claims.rel.prop._id", f.Rel.Prop),
+					elastic.NewTermQuery("claims.rel.prop.id", f.Rel.Prop),
 				),
 			)
 		}
 		return elastic.NewNestedQuery("claims.rel",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.rel.prop._id", f.Rel.Prop),
-				elastic.NewTermQuery("claims.rel.to._id", f.Rel.Value),
+				elastic.NewTermQuery("claims.rel.prop.id", f.Rel.Prop),
+				elastic.NewTermQuery("claims.rel.to.id", f.Rel.Value),
 			),
 		)
 	}
@@ -270,7 +270,7 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.amount",
 					elastic.NewBoolQuery().Must(
-						elastic.NewTermQuery("claims.amount.prop._id", f.Amount.Prop),
+						elastic.NewTermQuery("claims.amount.prop.id", f.Amount.Prop),
 						elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
 					),
 				),
@@ -278,7 +278,7 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		}
 		return elastic.NewNestedQuery("claims.amount",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop._id", f.Amount.Prop),
+				elastic.NewTermQuery("claims.amount.prop.id", f.Amount.Prop),
 				elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
 				elastic.NewRangeQuery("claims.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
 			),
@@ -288,13 +288,13 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		if f.Time.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.time",
-					elastic.NewTermQuery("claims.time.prop._id", f.Time.Prop),
+					elastic.NewTermQuery("claims.time.prop.id", f.Time.Prop),
 				),
 			)
 		}
 		return elastic.NewNestedQuery("claims.time",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.time.prop._id", f.Time.Prop),
+				elastic.NewTermQuery("claims.time.prop.id", f.Time.Prop),
 				elastic.NewRangeQuery("claims.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
 			),
 		)
@@ -303,13 +303,13 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 		if f.Str.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.string",
-					elastic.NewTermQuery("claims.string.prop._id", f.Str.Prop),
+					elastic.NewTermQuery("claims.string.prop.id", f.Str.Prop),
 				),
 			)
 		}
 		return elastic.NewNestedQuery("claims.string",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.string.prop._id", f.Str.Prop),
+				elastic.NewTermQuery("claims.string.prop.id", f.Str.Prop),
 				elastic.NewTermQuery("claims.string.string", f.Str.Str),
 			),
 		)
@@ -364,7 +364,7 @@ func (q *State) Query() elastic.Query { //nolint:ireturn
 
 	if q.Text != "" {
 		bq := elastic.NewBoolQuery()
-		bq.Should(elastic.NewTermQuery("_id", q.Text))
+		bq.Should(elastic.NewTermQuery("id", q.Text))
 		for _, field := range []field{
 			{"claims.id", "id"},
 			{"claims.ref", "iri"},

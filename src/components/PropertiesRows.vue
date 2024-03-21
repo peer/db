@@ -19,24 +19,24 @@ withDefaults(
 </script>
 
 <template>
-  <template v-for="claim in claims.id" :key="claim._id">
+  <template v-for="claim in claims.id" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -44,24 +44,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.ref" :key="claim._id">
+  <template v-for="claim in claims.ref" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -71,24 +71,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.text" :key="claim._id">
+  <template v-for="claim in claims.text" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -102,24 +102,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.string" :key="claim._id">
+  <template v-for="claim in claims.string" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -129,24 +129,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.amount" :key="claim._id">
+  <template v-for="claim in claims.amount" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -156,24 +156,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.amountRange" :key="claim._id">
+  <template v-for="claim in claims.amountRange" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -183,63 +183,63 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.rel" :key="claim._id">
+  <template v-for="claim in claims.rel" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <WithDocument :id="claim.to._id">
+        <WithDocument :id="claim.to.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.to._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.to.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.to._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.to.id)]"></div>
           </template>
         </WithDocument>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.file" :key="claim._id">
+  <template v-for="claim in claims.file" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -252,24 +252,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.none" :key="claim._id">
+  <template v-for="claim in claims.none" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -277,24 +277,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.unknown" :key="claim._id">
+  <template v-for="claim in claims.unknown" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -302,24 +302,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.time" :key="claim._id">
+  <template v-for="claim in claims.time" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>
@@ -329,24 +329,24 @@ withDefaults(
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
   </template>
-  <template v-for="claim in claims.timeRange" :key="claim._id">
+  <template v-for="claim in claims.timeRange" :key="claim.id">
     <tr>
       <td
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop._id">
+        <WithDocument :id="claim.prop.id">
           <template #default="{ doc, url }">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop._id } }"
+              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
               :data-url="url"
               class="link"
               v-html="getName(doc.claims) || '<i>no name</i>'"
             ></RouterLink>
           </template>
           <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop._id)]"></div>
+            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
         </WithDocument>
       </td>

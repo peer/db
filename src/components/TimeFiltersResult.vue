@@ -180,20 +180,20 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithDocument :id="result._id">
+      <WithDocument :id="result.id">
         <template #default="{ doc, url }">
           <RouterLink
-            :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            :to="{ name: 'DocumentGet', params: { id: result.id } }"
             :data-url="url"
             class="link mb-1.5 text-lg leading-none"
             v-html="getName(doc.claims) || '<i>no name</i>'"
           ></RouterLink>
         </template>
         <template #loading="{ url }">
-          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result._id)]"></div>
+          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
         </template>
       </WithDocument>
-      ({{ result._count }})
+      ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="min === null || max === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-          <div v-for="(h, i) in loadingShortHeights(result._id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
+          <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
         </div>
         <div class="flex flex-row justify-between gap-x-1">
           <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
@@ -237,9 +237,9 @@ onBeforeUnmount(() => {
         <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
-      <li v-if="result._count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
+      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
         <input
-          :id="'time/' + result._id + '/none'"
+          :id="'time/' + result.id + '/none'"
           :disabled="updateProgress > 0"
           :checked="state === NONE"
           :class="
@@ -249,11 +249,11 @@ onBeforeUnmount(() => {
           class="my-1 self-center rounded"
           @change="onNoneChange($event)"
         />
-        <label :for="'time/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+        <label :for="'time/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           ><i>none</i></label
         >
-        <label :for="'time/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          >({{ searchTotal - result._count }})</label
+        <label :for="'time/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          >({{ searchTotal - result.count }})</label
         >
       </li>
     </ul>

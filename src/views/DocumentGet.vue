@@ -50,12 +50,12 @@ const { results, query } = useSearchState(
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
   const res = { previous: null, next: null } as { previous: string | null; next: string | null }
   for (let i = 0; i < results.value.length; i++) {
-    if (results.value[i]._id === props.id) {
+    if (results.value[i].id === props.id) {
       if (i > 0) {
-        res.previous = results.value[i - 1]._id
+        res.previous = results.value[i - 1].id
       }
       if (i < results.value.length - 1) {
-        res.next = results.value[i + 1]._id
+        res.next = results.value[i + 1].id
       }
       return res
     }

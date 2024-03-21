@@ -670,7 +670,7 @@ func (v *AllClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, e
 }
 
 type CoreDocument struct {
-	ID     identifier.Identifier `json:"-"`
+	ID     identifier.Identifier `json:"id"`
 	Score  Score                 `json:"score"`
 	Scores Scores                `json:"scores,omitempty"`
 }
@@ -781,7 +781,7 @@ type (
 )
 
 type CoreClaim struct {
-	ID         identifier.Identifier `json:"_id"`
+	ID         identifier.Identifier `json:"id"`
 	Confidence Confidence            `json:"confidence"`
 	Meta       *ClaimTypes           `json:"meta,omitempty"`
 }
@@ -881,7 +881,7 @@ type Confidence = Score
 type Score float64
 
 type Reference struct {
-	ID    *identifier.Identifier `json:"_id,omitempty"`
+	ID    *identifier.Identifier `json:"id,omitempty"`
 	Score Score                  `json:"score"`
 
 	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.

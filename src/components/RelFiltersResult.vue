@@ -34,11 +34,11 @@ const limitedResultsWithNone = computed(() => {
   // it could happen that it flashes initially and then is hidden once other results load.
   if (!limitedResults.value.length) {
     return limitedResults.value
-  } else if (props.result._count >= props.searchTotal) {
+  } else if (props.result.count >= props.searchTotal) {
     return limitedResults.value
   }
-  const res = [...limitedResults.value, { _count: props.searchTotal - props.result._count }]
-  res.sort((a, b) => b._count - a._count)
+  const res = [...limitedResults.value, { count: props.searchTotal - props.result.count }]
+  res.sort((a, b) => b.count - a.count)
   return res
 })
 
@@ -74,20 +74,20 @@ function stateHasNONE(): boolean {
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithDocument :id="result._id">
+      <WithDocument :id="result.id">
         <template #default="{ doc, url }">
           <RouterLink
-            :to="{ name: 'DocumentGet', params: { id: result._id } }"
+            :to="{ name: 'DocumentGet', params: { id: result.id } }"
             :data-url="url"
             class="link mb-1.5 text-lg leading-none"
             v-html="getName(doc.claims) || '<i>no name</i>'"
           ></RouterLink>
         </template>
         <template #loading="{ url }">
-          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result._id)]"></div>
+          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
         </template>
       </WithDocument>
-      ({{ result._count }})
+      ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
@@ -96,28 +96,28 @@ function stateHasNONE(): boolean {
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
           <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result._id}/${i}`)]"></div>
+          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
           <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
         </li>
       </template>
       <template v-else>
-        <li v-for="res in limitedResultsWithNone" :key="'_id' in res ? res._id : NONE" class="flex items-baseline gap-x-1">
-          <template v-if="'_id' in res && (res._count != searchTotal || state.includes(res._id))">
+        <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="flex items-baseline gap-x-1">
+          <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
             <input
-              :id="'rel/' + result._id + '/' + res._id"
+              :id="'rel/' + result.id + '/' + res.id"
               :disabled="updateProgress > 0"
-              :checked="state.includes(res._id)"
+              :checked="state.includes(res.id)"
               :class="
                 updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
               "
               type="checkbox"
               class="my-1 self-center rounded"
-              @change="onChange($event, res._id)"
+              @change="onChange($event, res.id)"
             />
-            <WithDocument :id="res._id">
+            <WithDocument :id="res.id">
               <template #default="{ doc, url }">
                 <label
-                  :for="'rel/' + result._id + '/' + res._id"
+                  :for="'rel/' + result.id + '/' + res.id"
                   class="my-1 leading-none"
                   :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                   :data-url="url"
@@ -125,37 +125,34 @@ function stateHasNONE(): boolean {
                 ></label>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res._id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithDocument>
-            <label
-              :for="'rel/' + result._id + '/' + res._id"
-              class="my-1 leading-none"
-              :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ res._count }})</label
+            <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >({{ res.count }})</label
             >
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res._id } }" class="link"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="'_id' in res && res._count == searchTotal">
+          <template v-else-if="'id' in res && res.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-            <WithDocument :id="res._id">
+            <WithDocument :id="res.id">
               <template #default="{ doc, url }">
                 <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res._id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithDocument>
-            <div class="my-1 inline-block leading-none">({{ res._count }})</div>
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res._id } }" class="link"
+            <div class="my-1 inline-block leading-none">({{ res.count }})</div>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
             /></RouterLink>
           </template>
-          <template v-else-if="!('_id' in res)">
+          <template v-else-if="!('id' in res)">
             <input
-              :id="'rel/' + result._id + '/none'"
+              :id="'rel/' + result.id + '/none'"
               :disabled="updateProgress > 0"
               :checked="stateHasNONE()"
               :class="
@@ -165,11 +162,11 @@ function stateHasNONE(): boolean {
               class="my-1 self-center rounded"
               @change="onNoneChange($event)"
             />
-            <label :for="'rel/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >
-            <label :for="'rel/' + result._id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ res._count }})</label
+            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >({{ res.count }})</label
             >
           </template>
         </li>

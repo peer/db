@@ -32,10 +32,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -56,10 +56,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -80,10 +80,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -108,10 +108,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -131,10 +131,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -161,10 +161,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -198,10 +198,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -221,10 +221,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -232,10 +232,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"to",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -248,10 +248,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -279,10 +279,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -295,10 +295,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -311,10 +311,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}
@@ -343,10 +343,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"_id",
+				"id",
 				`{
 					"properties": {
-						"_id": {
+						"id": {
 							"type": "keyword"
 						}
 					}

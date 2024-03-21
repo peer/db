@@ -80,7 +80,7 @@ func DocumentSearchAmountFilterGet(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop._id", prop),
+				elastic.NewTermQuery("claims.amount.prop.id", prop),
 			).Must(
 				elastic.NewTermQuery("claims.amount.unit", unit),
 			),
@@ -146,7 +146,7 @@ func DocumentSearchAmountFilterGet(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop._id", prop),
+				elastic.NewTermQuery("claims.amount.prop.id", prop),
 			).Must(
 				elastic.NewTermQuery("claims.amount.unit", unit),
 			),

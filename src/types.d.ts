@@ -3,49 +3,49 @@ import type { BareItem, Key } from "structured-field-values"
 import type { NONE } from "@/symbols"
 
 export type RelSearchResult = {
-  _id: string
-  _count: number
-  _type: "rel"
+  id: string
+  count: number
+  type: "rel"
 }
 
 export type AmountSearchResult = {
-  _id: string
-  _count: number
-  _type: "amount"
-  _unit: AmountUnit
+  id: string
+  count: number
+  type: "amount"
+  unit: AmountUnit
 }
 
 export type TimeSearchResult = {
-  _id: string
-  _count: number
-  _type: "time"
+  id: string
+  count: number
+  type: "time"
 }
 
 export type StringSearchResult = {
-  _id: string
-  _count: number
-  _type: "string"
+  id: string
+  count: number
+  type: "string"
 }
 
 export type IndexSearchResult = {
-  _count: number
-  _type: "index"
+  count: number
+  type: "index"
 }
 
 export type SizeSearchResult = {
-  _count: number
-  _type: "size"
+  count: number
+  type: "size"
 }
 
 export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | IndexSearchResult | SizeSearchResult
 
 export type SearchResult = {
-  _id: string
+  id: string
 }
 
 export type RelValuesResult = {
-  _id: string
-  _count: number
+  id: string
+  count: number
 }
 
 export type AmountValuesResult = {
@@ -82,13 +82,13 @@ type AmountUnit = "@" | "1" | "/" | "kg/kg" | "kg" | "kg/m³" | "m" | "m²" | "m
 type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s"
 
 type CoreClaim = {
-  _id: string
+  id: string
   confidence: number
   meta?: ClaimTypes
 }
 
 type DocumentReference = {
-  _id: string
+  id: string
   score: number
 }
 
@@ -188,7 +188,7 @@ type Claim =
   | TimeRangeClaim
 
 export type PeerDBDocument = {
-  _id: string
+  id: string
   // Score is optional on the frontend because
   // search results do not have it initially.
   score?: number

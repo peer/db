@@ -38,7 +38,7 @@ var (
 // statements and also claims with the following properties: WIKIMEDIA_COMMONS_ENTITY_ID (M prefixed ID),
 // NAME (for any English labels), DESCRIPTION (for English entity descriptions).
 //
-// When creating claims referencing other documents it creates an invalid reference storing original Wikidata ID into the _id field prefixed with "-".
+// When creating claims referencing other documents it creates an invalid reference storing original Wikidata ID into the _temp field.
 // This is because the order of entities in a dump is arbitrary so we first insert all documents and then in PrepareCommand do another
 // pass, checking all references and setting true IDs (having Wikidata ID is useful for debugging when reference is invalid).
 // References to Wikimedia Commons files are done in a similar fashion, but with a meta claim.

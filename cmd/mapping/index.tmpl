@@ -77,6 +77,10 @@
       }
     ],
     "properties": {
+      "id": {
+        "type": "keyword",
+        "doc_values": false
+      },
       "score": {
         "type": "double"
       },
@@ -99,7 +103,7 @@
             "{{$claimType.Name}}": {
               "type": "nested",
               "properties": {
-                "_id": {
+                "id": {
                   "type": "keyword",
                   "doc_values": false
                 },

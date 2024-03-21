@@ -41,10 +41,10 @@ const description = computed(() => {
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", IS).map((c) => ({ id: c.to._id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", INSTANCE_OF).map((c) => ({ id: c.to._id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", SUBCLASS_OF).map((c) => ({ id: c.to._id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", LABEL).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", IS).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", INSTANCE_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", LABEL).map((c) => ({ id: c.to.id })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", DEPARTMENT).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", CLASSIFICATION).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIUM).map((c) => ({ string: c.string })),
@@ -52,7 +52,7 @@ const tags = computed(() => {
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", GENDER).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIA_TYPE).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", COPYRIGHT_STATUS).map((c) => ({ id: c.to._id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", COPYRIGHT_STATUS).map((c) => ({ id: c.to.id })),
   ]
 })
 const previewFiles = computed(() => {
@@ -105,12 +105,12 @@ const rowSpan = computed(() => {
 
 <template>
   <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
-    <WithDocument :id="result._id" ref="withDocument">
+    <WithDocument :id="result.id" ref="withDocument">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: resultDoc._id }, query: { s: route.query.s } }"
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: { s: route.query.s } }"
               class="link"
               v-html="docName || '<i>no name</i>'"
             ></RouterLink>
@@ -133,7 +133,7 @@ const rowSpan = computed(() => {
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc._id }, query: { s: route.query.s } }"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: { s: route.query.s } }"
               ><img :src="previewFiles[0]" class="mx-auto bg-white"
             /></RouterLink>
           </div>
@@ -143,14 +143,14 @@ const rowSpan = computed(() => {
       </template>
       <template #loading>
         <div class="flex animate-pulse flex-col gap-y-2">
-          <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/1`)]"></div>
+          <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/2`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/3`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/3`)]"></div>
           </div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/4`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result._id}/5`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/4`)]"></div>
+            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/5`)]"></div>
           </div>
         </div>
       </template>

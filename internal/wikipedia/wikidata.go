@@ -220,7 +220,7 @@ func getDocumentReference(id, source string) document.Reference {
 func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
 	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("claims.id",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.id.prop._id", peerdb.GetCorePropertyID(property).String()),
+			elastic.NewTermQuery("claims.id.prop.id", peerdb.GetCorePropertyID(property).String()),
 			elastic.NewTermQuery("claims.id.id", id),
 		),
 	)).SeqNoAndPrimaryTerm(true).Do(ctx)

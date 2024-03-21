@@ -17,8 +17,8 @@ type filteredTermAggregations struct {
 }
 
 type searchRelFilterResult struct {
-	ID    string `json:"_id"`
-	Count int64  `json:"_count"`
+	ID    string `json:"id"`
+	Count int64  `json:"count"`
 }
 
 //nolint:dupl
@@ -42,10 +42,10 @@ func DocumentSearchRelFilterGet(
 	aggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.rel.prop._id", prop),
+			elastic.NewTermQuery("claims.rel.prop.id", prop),
 		).SubAggregation(
 			"props",
-			elastic.NewTermsAggregation().Field("claims.rel.to._id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			elastic.NewTermsAggregation().Field("claims.rel.to.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
@@ -53,7 +53,7 @@ func DocumentSearchRelFilterGet(
 			"total",
 			// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 			// so we use it to get the most accurate approximation.
-			elastic.NewCardinalityAggregation().Field("claims.rel.to._id").PrecisionThreshold(40000), //nolint:gomnd
+			elastic.NewCardinalityAggregation().Field("claims.rel.to.id").PrecisionThreshold(40000), //nolint:gomnd
 		),
 	)
 	searchService = searchService.Size(0).Query(query).Aggregation("rel", aggregation)
