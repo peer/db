@@ -15,6 +15,7 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
+//nolint:gochecknoglobals
 var (
 	// TODO: Determine automatically.
 	// "none" and "unknown" are not listed here because they can take any property.

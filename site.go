@@ -34,11 +34,11 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	var value string
 	err := ctx.Scan.PopValueInto("value", &value)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	decoder := yaml.NewDecoder(strings.NewReader(value))
 	decoder.KnownFields(true)
-	err = decoder.Decode(s)
+	err = decoder.Decode(s) //nolint:musttag
 	if err != nil {
 		var yamlErr *yaml.TypeError
 		if errors.As(err, &yamlErr) {

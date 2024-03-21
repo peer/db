@@ -55,12 +55,12 @@ func init() { //nolint:gochecknoinits
 
 		data, err := f.(fs.ReadFileFS).ReadFile(path)
 		if err != nil {
-			return err
+			return err //nolint:wrapcheck
 		}
 
 		info, err := d.Info()
 		if err != nil {
-			return err
+			return err //nolint:wrapcheck
 		}
 
 		testFiles[filepath.Join("dist", path)] = &fstest.MapFile{

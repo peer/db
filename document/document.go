@@ -751,18 +751,18 @@ type TranslatableHTMLString map[string]string
 type Scores map[string]Score
 
 type ClaimTypes struct {
-	Identifier   IdentifierClaims   `json:"id,omitempty"`
-	Reference    ReferenceClaims    `json:"ref,omitempty"`
-	Text         TextClaims         `json:"text,omitempty"`
-	String       StringClaims       `json:"string,omitempty"`
-	Amount       AmountClaims       `json:"amount,omitempty"`
-	AmountRange  AmountRangeClaims  `json:"amountRange,omitempty"`
-	Relation     RelationClaims     `json:"rel,omitempty"`
-	File         FileClaims         `json:"file,omitempty"`
-	NoValue      NoValueClaims      `json:"none,omitempty"`
-	UnknownValue UnknownValueClaims `json:"unknown,omitempty"`
-	Time         TimeClaims         `json:"time,omitempty"`
-	TimeRange    TimeRangeClaims    `json:"timeRange,omitempty"`
+	Identifier   IdentifierClaims   `exhaustruct:"optional" json:"id,omitempty"`
+	Reference    ReferenceClaims    `exhaustruct:"optional" json:"ref,omitempty"`
+	Text         TextClaims         `exhaustruct:"optional" json:"text,omitempty"`
+	String       StringClaims       `exhaustruct:"optional" json:"string,omitempty"`
+	Amount       AmountClaims       `exhaustruct:"optional" json:"amount,omitempty"`
+	AmountRange  AmountRangeClaims  `exhaustruct:"optional" json:"amountRange,omitempty"`
+	Relation     RelationClaims     `exhaustruct:"optional" json:"rel,omitempty"`
+	File         FileClaims         `exhaustruct:"optional" json:"file,omitempty"`
+	NoValue      NoValueClaims      `exhaustruct:"optional" json:"none,omitempty"`
+	UnknownValue UnknownValueClaims `exhaustruct:"optional" json:"unknown,omitempty"`
+	Time         TimeClaims         `exhaustruct:"optional" json:"time,omitempty"`
+	TimeRange    TimeRangeClaims    `exhaustruct:"optional" json:"timeRange,omitempty"`
 }
 
 type (

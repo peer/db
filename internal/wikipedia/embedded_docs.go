@@ -58,7 +58,7 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref document.Refer
 }
 
 func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *peerdb.Document, claimID identifier.Identifier, msg string) {
-	l := v.Log.Warn().Str("doc", v.DocumentID.String())
+	l := v.Log.Warn().Str("doc", v.DocumentID.String()) //nolint:zerologlint
 	if len(v.EntityIDs) == 1 {
 		l = l.Str("entity", v.EntityIDs[0])
 	} else if len(v.EntityIDs) > 1 {

@@ -42,7 +42,7 @@ func (g *Globals) Validate() error {
 
 		// To make sure validation is called.
 		if err := site.Validate(); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		// We cannot use kong to set these defaults, so we do it here.
@@ -82,7 +82,7 @@ func (c *ServeCommand) Validate() error {
 	// We have to call Validate on kong-embedded structs ourselves.
 	// See: https://github.com/alecthomas/kong/issues/90
 	if err := c.Server.TLS.Validate(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if c.Domain != "" && c.Server.TLS.Email == "" {
