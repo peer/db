@@ -36,7 +36,7 @@ test_go:
         ingest.geoip.downloader.enabled: false
 
   variables:
-    ELASTIC: http://127.0.0.1:9200
+    ELASTIC: http://elasticsearch:9200
 
   before_script:
     - apk --update add make bash gcc musl-dev mailcap git git-lfs
