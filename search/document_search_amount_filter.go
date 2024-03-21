@@ -52,7 +52,9 @@ type histogramAmountResult struct {
 	Count int64   `json:"count"`
 }
 
-func DocumentSearchAmountFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string) (interface{}, map[string]interface{}, errors.E) {
+func DocumentSearchAmountFilterGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string,
+) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
 
 	if !document.ValidAmountUnit(unit) {
@@ -69,9 +71,9 @@ func DocumentSearchAmountFilterGet(ctx context.Context, getSearchService func() 
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*SearchState) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck
 
-	query := sh.SearchQuery()
+	query := sh.Query()
 
 	minMaxSearchService, _ := getSearchService()
 	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(

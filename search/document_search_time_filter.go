@@ -45,7 +45,9 @@ type histogramTimeResult struct {
 	Count int64              `json:"count"`
 }
 
-func DocumentSearchTimeFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
+func DocumentSearchTimeFilterGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
+) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
@@ -55,9 +57,9 @@ func DocumentSearchTimeFilterGet(ctx context.Context, getSearchService func() (*
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*SearchState) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck
 
-	query := sh.SearchQuery()
+	query := sh.Query()
 
 	minMaxSearchService, _ := getSearchService()
 	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(

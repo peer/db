@@ -56,7 +56,9 @@ type searchFiltersResult struct {
 	Unit  string `json:"_unit,omitempty"`
 }
 
-func DocumentSearchFiltersGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
+func DocumentSearchFiltersGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
+) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
@@ -66,9 +68,9 @@ func DocumentSearchFiltersGet(ctx context.Context, getSearchService func() (*ela
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*SearchState) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck
 
-	query := sh.SearchQuery()
+	query := sh.Query()
 
 	searchService, propertiesTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(

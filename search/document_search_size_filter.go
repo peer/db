@@ -24,7 +24,9 @@ type histogramSizeAggregations struct {
 	} `json:"buckets"`
 }
 
-func DocumentSearchSizeFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
+func DocumentSearchSizeFilterGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
+) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
@@ -34,9 +36,9 @@ func DocumentSearchSizeFilterGet(ctx context.Context, getSearchService func() (*
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*SearchState) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck
 
-	query := sh.SearchQuery()
+	query := sh.Query()
 
 	minMaxSearchService, _ := getSearchService()
 	minAggregation := elastic.NewMinAggregation().Field("_size")

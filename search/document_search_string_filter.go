@@ -17,7 +17,10 @@ type searchStringFilterResult struct {
 	Count int64  `json:"count"`
 }
 
-func DocumentSearchStringFilterGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier) (interface{}, map[string]interface{}, errors.E) {
+//nolint:dupl
+func DocumentSearchStringFilterGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
+) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
 
 	m := timing.NewMetric("s").Start()
@@ -27,9 +30,9 @@ func DocumentSearchStringFilterGet(ctx context.Context, getSearchService func() 
 		// Something was not OK, so we return not found.
 		return nil, nil, errors.WithStack(ErrNotFound)
 	}
-	sh := ss.(*SearchState) //nolint:errcheck
+	sh := ss.(*State) //nolint:errcheck
 
-	query := sh.SearchQuery()
+	query := sh.Query()
 
 	searchService, _ := getSearchService()
 	aggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(

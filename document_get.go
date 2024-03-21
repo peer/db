@@ -41,7 +41,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 		}
 
 		m := timing.NewMetric("s").Start()
-		sh := search.GetSearchState(req.Form.Get("s"), q)
+		sh := search.GetState(req.Form.Get("s"), q)
 		m.Stop()
 		if sh == nil {
 			// Something was not OK, so we redirect to the URL without both "s" and "q".

@@ -149,6 +149,8 @@ func (c *CommonsCommand) processEntity(
 // of a file has been uploaded) so the fact that metadata might be from a different file revision does not seem to be too problematic here. We anyway
 // want the latest information about files because we directly use files hosted on Wikimedia Commons by displaying them, so if they are changed or deleted,
 // we want to know that (otherwise we could try to display an image which does not exist anymore, which would fail to load).
+//
+//nolint:lll
 type CommonsFilesCommand struct {
 	Token       string `                             env:"WIKIMEDIA_COMMONS_TOKEN" help:"Access token for Wikimedia Commons API. Not required. Environment variable: ${env}."                                                               placeholder:"TOKEN"`
 	APILimit    int    `default:"${defaultAPILimit}"                               help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${defaultAPILimit}." placeholder:"INT"` //nolint:lll

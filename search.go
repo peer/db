@@ -250,7 +250,7 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf
 	}
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := search.GetOrMakeSearchState(req.Form.Get("s"), q, filters)
+	sh, ok := search.GetOrCreateState(req.Form.Get("s"), q, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
@@ -306,7 +306,7 @@ func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ 
 	}
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := search.GetOrMakeSearchState(req.Form.Get("s"), q, filters)
+	sh, ok := search.GetOrCreateState(req.Form.Get("s"), q, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return new query parameters.
@@ -317,7 +317,7 @@ func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ 
 	}
 
 	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(search.MaxResultsCount).Query(sh.SearchQuery())
+	searchService = searchService.From(0).Size(search.MaxResultsCount).Query(sh.Query())
 
 	m = timing.NewMetric("es").Start()
 	res, err := searchService.Do(ctx)
@@ -374,7 +374,7 @@ func (s *Service) DocumentSearchPost(w http.ResponseWriter, req *http.Request, _
 	}
 
 	m := timing.NewMetric("s").Start()
-	sh := search.MakeSearchState(req.Form.Get("s"), q, filters)
+	sh := search.CreateState(req.Form.Get("s"), q, filters)
 	m.Stop()
 
 	// TODO: Should we already do the query, to warm up ES cache?

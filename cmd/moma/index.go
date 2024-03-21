@@ -271,7 +271,7 @@ func PagserExists(node *goquery.Selection, args ...string) (out interface{}, err
 	return node.Length() > 0, nil
 }
 
-func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
+func extractData[T any](in io.Reader) (T, errors.E) {
 	p := pagser.New()
 
 	p.RegisterFunc("exists", PagserExists)
@@ -380,7 +380,7 @@ func getArtistReference(artistsMap map[int]peerdb.Document, constituentID int) (
 	return doc.Reference(), nil
 }
 
-func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) { //nolint:ireturn
+func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, url string) (T, errors.E) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)

@@ -328,9 +328,9 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 	panic(errors.New("invalid filters"))
 }
 
-// SearchState represents current search state.
+// State represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
-type SearchState struct {
+type State struct {
 	ID       identifier.Identifier  `json:"s"`
 	Text     string                 `json:"q"`
 	Filters  *filters               `json:"-"`
@@ -339,7 +339,7 @@ type SearchState struct {
 }
 
 // Values returns search state as query string values.
-func (q *SearchState) Values() url.Values {
+func (q *State) Values() url.Values {
 	values := url.Values{}
 	values.Set("s", q.ID.String())
 	values.Set("q", q.Text)
@@ -347,7 +347,7 @@ func (q *SearchState) Values() url.Values {
 }
 
 // ValuesWithAt returns search state as query string values, with additional "at" parameter.
-func (q *SearchState) ValuesWithAt(at string) url.Values {
+func (q *State) ValuesWithAt(at string) url.Values {
 	values := q.Values()
 	if at == "" {
 		return values
@@ -359,7 +359,7 @@ func (q *SearchState) ValuesWithAt(at string) url.Values {
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (q *SearchState) SearchQuery() elastic.Query { //nolint:ireturn
+func (q *State) Query() elastic.Query { //nolint:ireturn
 	boolQuery := elastic.NewBoolQuery()
 
 	if q.Text != "" {
@@ -396,8 +396,8 @@ type field struct {
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
-// MakeSearchState creates a new search state given optional existing state and new queries.
-func MakeSearchState(s string, textQuery, filtersJSON *string) *SearchState {
+// CreateState creates a new search state given optional existing state and new queries.
+func CreateState(s string, textQuery, filtersJSON *string) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
@@ -421,7 +421,7 @@ func MakeSearchState(s string, textQuery, filtersJSON *string) *SearchState {
 	if parentSearchID != nil {
 		ps, ok := searches.Load(*parentSearchID)
 		if ok {
-			parentSearch := ps.(*SearchState) //nolint:errcheck
+			parentSearch := ps.(*State) //nolint:errcheck
 			// There was no change.
 			if parentSearch.Text == *textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
 				return parentSearch
@@ -433,7 +433,7 @@ func MakeSearchState(s string, textQuery, filtersJSON *string) *SearchState {
 		}
 	}
 
-	sh := &SearchState{
+	sh := &State{
 		ID:       id,
 		ParentID: parentSearchID,
 		RootID:   rootID,
@@ -445,17 +445,17 @@ func MakeSearchState(s string, textQuery, filtersJSON *string) *SearchState {
 	return sh
 }
 
-// GetOrMakeSearchState resolves an existing search state if possible.
+// GetOrCreateState resolves an existing search state if possible.
 // If not, it creates a new search state.
-func GetOrMakeSearchState(s string, textQuery, filtersJSON *string) (*SearchState, bool) {
+func GetOrCreateState(s string, textQuery, filtersJSON *string) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return MakeSearchState(s, textQuery, filtersJSON), false
+		return CreateState(s, textQuery, filtersJSON), false
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return MakeSearchState(s, textQuery, filtersJSON), false
+		return CreateState(s, textQuery, filtersJSON), false
 	}
 	var fs *filters
 	if filtersJSON != nil {
@@ -465,7 +465,7 @@ func GetOrMakeSearchState(s string, textQuery, filtersJSON *string) (*SearchStat
 		}
 	}
 
-	ss := sh.(*SearchState) //nolint:errcheck
+	ss := sh.(*State) //nolint:errcheck
 	// There was a change, we make current search a parent search to a new search.
 	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
 	if (textQuery != nil && ss.Text != *textQuery) || (filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs)) {
@@ -475,7 +475,7 @@ func GetOrMakeSearchState(s string, textQuery, filtersJSON *string) (*SearchStat
 		if filtersJSON == nil {
 			fs = ss.Filters
 		}
-		ss = &SearchState{
+		ss = &State{
 			ID:       identifier.New(),
 			ParentID: &ss.ID,
 			RootID:   ss.RootID,
@@ -489,8 +489,8 @@ func GetOrMakeSearchState(s string, textQuery, filtersJSON *string) (*SearchStat
 	return ss, true
 }
 
-// GetSearchState resolves an existing search state if possible.
-func GetSearchState(s string, textQuery *string) *SearchState {
+// GetState resolves an existing search state if possible.
+func GetState(s string, textQuery *string) *State {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
 		return nil
@@ -499,7 +499,7 @@ func GetSearchState(s string, textQuery *string) *SearchState {
 	if !ok {
 		return nil
 	}
-	ss := sh.(*SearchState) //nolint:errcheck
+	ss := sh.(*State) //nolint:errcheck
 	// We allow there to not be "q" so that it is easier to use as an API.
 	if textQuery != nil && ss.Text != *textQuery {
 		return nil
