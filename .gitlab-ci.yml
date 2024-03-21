@@ -16,12 +16,24 @@ variables:
   DOCKER_PIPELINE_IMAGE_NAME: "$CI_REGISTRY_IMAGE/pipeline:$CI_PIPELINE_ID"
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: "1"
+  FF_NETWORK_PER_BUILD: 1
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic"
 
 test_go:
   stage: test
 
   image: golang:1.21-alpine3.18
+
+  services:
+    - name: elasticsearch:7.16.3
+      alias: elasticsearch
+      variables:
+        network.bind_host: 0.0.0.0
+        network.publish_host: elasticsearch
+        ES_JAVA_OPTS: "-Xmx1000m"
+        discovery.type: single-node
+        xpack.security.enabled: false
+        ingest.geoip.downloader.enabled: false
 
   before_script:
     - apk --update add make bash gcc musl-dev mailcap git git-lfs
