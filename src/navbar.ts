@@ -9,14 +9,14 @@ export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: 
     class: { "animate-navbar": false },
   })
   let lastScrollPosition = 0
-  const supportPageOffset = window.pageYOffset !== undefined
+  const supportScrollY = window.scrollY !== undefined
 
   function onScroll() {
     if (!navbar.value) {
       return
     }
 
-    const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
+    const currentScrollPosition = supportScrollY ? window.scrollY : document.documentElement.scrollTop
     if (currentScrollPosition <= 0) {
       attrs.value.style.position = "absolute"
       attrs.value.style.top = "0px"

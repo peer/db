@@ -1,8 +1,9 @@
-import { createApp } from "vue"
+import { createApp, ref } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
-import Main from "@/Main.vue"
+import App from "@/App.vue"
+import { progressKey } from "./progress"
 import { routes } from "@/../routes.json"
-import "./main.css"
+import "./app.css"
 import siteContext from "@/context"
 
 // During development when requests are proxied to Vite, placeholders
@@ -29,6 +30,7 @@ const router = createRouter({
       name: route.name,
       component: () => import(`./views/${route.name}.vue`),
       props: true,
+      strict: true,
     })),
 })
 
@@ -37,13 +39,14 @@ const apiRouter = createRouter({
   routes: routes
     .filter((route) => route.api)
     .map((route) => ({
-      path: `/api${route.path}`,
+      path: route.path === "/" ? "/api" : `/api${route.path}`,
       name: route.name,
       component: () => null,
       props: true,
+      strict: true,
     })),
 })
 
 router.apiResolve = apiRouter.resolve.bind(apiRouter)
 
-createApp(Main).use(router).mount("main")
+createApp(App).use(router).provide(progressKey, ref(0)).mount("main")
