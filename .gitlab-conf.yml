@@ -113,7 +113,7 @@ project:
   # Enable or disable packages repository feature. Type: boolean
   packages_enabled: true
   # One of disabled, private, enabled, or public. Type: string
-  pages_access_level: disabled
+  pages_access_level: enabled
   # Show link to create/view merge request when pushing from the command line. Type:
   # boolean
   printing_merge_request_link_enabled: true
@@ -141,7 +141,7 @@ project:
   # private, or enabled. Type: string
   security_and_compliance_access_level: disabled
   # Enable or disable Service Desk feature. Type: boolean
-  service_desk_enabled: true
+  service_desk_enabled: false
   # Enable shared runners for this project. Type: boolean
   shared_runners_enabled: true
   # One of disabled, private, or enabled. Type: string
@@ -155,7 +155,10 @@ project:
   suggestion_commit_message: null
   # The list of topics for the project. This replaces any existing topics that are
   # already added to the project. (Introduced in GitLab 14.0.) Type: array
-  topics: []
+  topics:
+    - collaboration
+    - database
+    - search
   # One of disabled, private, or enabled. Type: string
   wiki_access_level: disabled
 avatar: .gitlab-avatar.png
@@ -298,7 +301,7 @@ variables:
     key: GITLAB_API_TOKEN
     masked: true
     protected: true
-    raw: false
+    raw: true
     # sops:enc
     value: ENC[AES256_GCM,data:+LJY1YCUVc6OGiBcAGIJeOMwnEjkraJ0dPw=,iv:oCVWRGqwDowZJNT5tp7eEZ7WSiVxP5kvAWZ/zWn+58g=,tag:+iq5MYeHwnBlTrX3UdwimA==,type:str]
     variable_type: env_var
@@ -307,7 +310,7 @@ variables:
     key: SOPS_AGE_KEY_FILE
     masked: false
     protected: true
-    raw: false
+    raw: true
     # sops:enc
     value: ENC[AES256_GCM,data:U6rnZUZJz8nsfx/krEdf5SiPICzMwLAllJQJf7AZYz2p9jrzdOVz1WemH4b6fydtX7pcJ/ZtdVjARV5+L8dsR4GARPlbiwSL6oi7vTk5suKotPjytWxC1UISJIIqeP1XrO5WEtLM/13t2OIvnVbmf/HkwxHr0n59ZGHmDFDExbydjEfHBGB/XEJhLCtZeH/j8S5tOF9TdG3il89eAP+6VSO7Sh7Lny0dnQBubkA/HDwMwMVEMygnBumkuUA=,iv:4gVDLTEFjKquGknC2HFivRnVPKoYEHs2uHD0rLpT0K4=,tag:XUYZYiWNgUEa33UIw3I2Nw==,type:str]
     variable_type: file
