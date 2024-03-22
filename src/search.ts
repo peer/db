@@ -1,5 +1,5 @@
 import type { Ref, DeepReadonly } from "vue"
-import type { RouteLocationNormalizedLoaded, LocationQueryRaw } from "vue-router"
+import type { RouteLocationNormalizedLoaded, LocationQueryRaw, Router } from "vue-router"
 import type {
   SearchResult,
   SearchFilterResult,
@@ -23,15 +23,14 @@ import type {
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
-  Router,
   QueryValues,
   QueryValuesWithOptional,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
-import { useRoute } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { getURL, postURL } from "@/api"
-import { encodeQuery, timestampToSeconds, useRouter } from "@/utils"
+import { encodeQuery, timestampToSeconds } from "@/utils"
 import { NONE } from "@/symbols"
 
 export { NONE } from "@/symbols"

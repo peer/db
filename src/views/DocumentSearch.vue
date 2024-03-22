@@ -16,7 +16,7 @@ import type {
 } from "@/types"
 
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
-import { useRoute } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import SearchResult from "@/components/SearchResult.vue"
 import RelFiltersResult from "@/components/RelFiltersResult.vue"
 import AmountFiltersResult from "@/components/AmountFiltersResult.vue"
@@ -31,7 +31,7 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { globalProgress } from "@/api"
-import { clone, useRouter, useLimitResults, encodeQuery } from "@/utils"
+import { clone, useLimitResults, encodeQuery } from "@/utils"
 
 const router = useRouter()
 const route = useRoute()

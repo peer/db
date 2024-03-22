@@ -2,8 +2,8 @@
 import type { PeerDBDocument } from "@/types"
 
 import { ref, watch, readonly, onMounted, onUpdated, onUnmounted, getCurrentInstance } from "vue"
+import { useRouter } from "vue-router"
 import { getURL } from "@/api"
-import { useRouter } from "@/utils"
 
 const props = defineProps<{
   id: string

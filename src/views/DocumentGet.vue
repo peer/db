@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue"
-import { useRoute } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import RouterLink from "@/components/RouterLink.vue"
@@ -13,7 +13,7 @@ import PropertiesRows from "@/components/PropertiesRows.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useSearchState } from "@/search"
 import { globalProgress } from "@/api"
-import { getBestClaimOfType, useRouter, getName, loadingLongWidth, encodeQuery } from "@/utils"
+import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 
 const props = defineProps<{

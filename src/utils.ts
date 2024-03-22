@@ -1,10 +1,9 @@
 import { DeepReadonly, Ref, watchEffect } from "vue"
-import type { Mutable, Claim, ClaimTypes, Required, Router, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
+import type { Mutable, Claim, ClaimTypes, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
 
 import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { prng_alea } from "esm-seedrandom"
-import { useRouter as useVueRouter } from "vue-router"
 import { fromDate, toDate, hour, minute, second } from "@/time"
 import { LIST, ORDER, NAME } from "@/props"
 
@@ -169,10 +168,6 @@ export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null)
   }
 
   return claim.html.en
-}
-
-export function useRouter(): Router {
-  return useVueRouter() as Router
 }
 
 export function useLimitResults<Type>(
