@@ -60,7 +60,7 @@ test_go:
       - coverage.xml
     expire_in: never
 
-  coverage: '/coverage: \d+\.\d+% of statements/'
+  coverage: '/\. \(.+\) \(coverage: \d+\.\d+% of statements/'
 
 test_node:
   stage: test

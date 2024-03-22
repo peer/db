@@ -41,10 +41,10 @@ dist/index.html:
 	if [ ! -e dist/index.html ]; then echo "<html><body>dummy content</body></html>" > dist/index.html; fi
 
 test: dist/index.html
-	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
+	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic -coverpkg ./...
 
 test-ci: dist/index.html
-	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
+	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic -coverpkg ./...
 	gocover-cobertura < coverage.txt > coverage.xml
 	go tool cover -html=coverage.txt -o coverage.html
 
