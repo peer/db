@@ -1,24 +1,15 @@
-import { v5 as uuidv5, parse as uuidParse } from "uuid"
-import bs58 from "bs58"
+import { v5 as uuidv5 } from "uuid"
+import { Identifier } from "@tozd/identifier"
 
-const idLength = 22
 const nameSpaceCoreProperties = "34cd10b4-5731-46b8-a6dd-45444680ca62"
 const nameSpaceWikidata = "8f8ba777-bcce-4e45-8dd4-a328e6722c82"
-
-function identifierFromUUID(uuid: string): string {
-  const res = bs58.encode(uuidParse(uuid) as Uint8Array)
-  if (res.length < idLength) {
-    return "1".repeat(idLength - res.length) + res
-  }
-  return res
-}
 
 function getID(namespace: string, ...args: string[]): string {
   let res = namespace
   for (const arg of args) {
     res = uuidv5(arg, res)
   }
-  return identifierFromUUID(res)
+  return Identifier.fromUUID(res).toString()
 }
 
 export function getCorePropertyID(mnemonic: string): string {
