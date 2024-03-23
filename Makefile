@@ -43,6 +43,12 @@ dist/index.html:
 test: dist/index.html
 	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic -coverpkg ./...
 
+# GitLab CI uses the last coverage which matches the regexp, so we use jq to obtain it and print it last.
+# This might not be necessary if we could define the order of packages in the output and we could have the main package be the last.
+# See: https://github.com/gotestyourself/gotestsum/issues/392
+# This might not be necessary if "go tool covdata percent" could be used with --coverpkg and output the same value for the main package
+# as it is reported during testing.
+# See: https://github.com/golang/go/issues/66464
 test-ci: dist/index.html
 	gotestsum --format pkgname --jsonfile tests.json --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic -coverpkg ./...
 	gocover-cobertura < coverage.txt > coverage.xml
