@@ -49,6 +49,8 @@ test: dist/index.html
 # This might not be necessary if "go tool covdata percent" could be used with --coverpkg and output the same value for the main package
 # as it is reported during testing.
 # See: https://github.com/golang/go/issues/66464
+# TODO: Correctly compute total coverage across all packages and not use the main package's coverage.
+#       See: https://github.com/golang/go/issues/66506
 test-ci: dist/index.html
 	gotestsum --format pkgname --jsonfile tests.json --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic -coverpkg ./...
 	gocover-cobertura < coverage.txt > coverage.xml
