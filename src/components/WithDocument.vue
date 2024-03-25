@@ -4,12 +4,15 @@ import type { PeerDBDocument } from "@/types"
 import { ref, watch, readonly, onMounted, onUpdated, onUnmounted, getCurrentInstance } from "vue"
 import { useRouter } from "vue-router"
 import { getURL } from "@/api"
+import { injectMainProgress } from "@/progress"
 
 const props = defineProps<{
   id: string
 }>()
 
 const router = useRouter()
+
+const mainProgress = injectMainProgress()
 
 const _doc = ref<PeerDBDocument | null>(null)
 const _error = ref<string | null>(null)
@@ -56,7 +59,7 @@ watch(
 
     let data
     try {
-      data = await getURL(newURL, el, controller.signal, null)
+      data = await getURL(newURL, el, controller.signal, mainProgress)
     } catch (err) {
       if (controller.signal.aborted) {
         return

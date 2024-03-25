@@ -26,12 +26,7 @@ export class FetchError extends Error {
 }
 
 // TODO: Improve priority with "el".
-export async function getURL<T>(
-  url: string,
-  el: Ref<Element | null> | null,
-  abortSignal: AbortSignal | null,
-  progress: Ref<number> | null,
-): Promise<{ doc: T; metadata: Metadata }> {
+export async function getURL<T>(url: string, el: Ref<Element | null> | null, abortSignal: AbortSignal, progress: Ref<number>): Promise<{ doc: T; metadata: Metadata }> {
   // Is it already cached?
   const weakRef = localGetCache.get(url)
   if (weakRef) {
@@ -44,9 +39,7 @@ export async function getURL<T>(
     }
   }
 
-  if (progress) {
-    progress.value += 1
-  }
+  progress.value += 1
   try {
     const res = await queue.add(
       async () => {
@@ -84,22 +77,18 @@ export async function getURL<T>(
         return { doc: await response.json(), metadata: decodeMetadata(response.headers) }
       },
       {
-        signal: abortSignal || undefined,
+        signal: abortSignal,
       },
     )
     localGetCache.set(url, new WeakRef(res))
     return res
   } finally {
-    if (progress) {
-      progress.value -= 1
-    }
+    progress.value -= 1
   }
 }
 
-export async function postURL<T>(url: string, form: FormData, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T> {
-  if (progress) {
-    progress.value += 1
-  }
+export async function postURL<T>(url: string, form: FormData, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
+  progress.value += 1
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -128,8 +117,6 @@ export async function postURL<T>(url: string, form: FormData, abortSignal: Abort
     }
     return await response.json()
   } finally {
-    if (progress) {
-      progress.value -= 1
-    }
+    progress.value -= 1
   }
 }

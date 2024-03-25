@@ -1,6 +1,6 @@
 import type { InjectionKey, Ref } from "vue"
 
-import { ref, inject, watch } from "vue"
+import { ref, inject, computed } from "vue"
 
 export const progressKey = Symbol() as InjectionKey<Ref<number>>
 
@@ -24,16 +24,20 @@ export function injectMainProgress(): Ref<number> {
   return inject(progressKey, ref(0))
 }
 
+// localProgress returns a reactive and mutable local view of the
+// provided main progress. It starts at 0 but increasing or decreasing
+// it increases or decreases the main progress for the same amount.
 export function localProgress(mainProgress: Ref<number>): Ref<number> {
+  // This has to be a reactive variable otherwise things do not work
+  // as expected and mainProgress can become negative for some reason.
   const progress = ref(0)
-  watch(
-    progress,
-    (newProgress, oldProgress) => {
-      mainProgress.value += newProgress - oldProgress
+  return computed({
+    get() {
+      return progress.value
     },
-    {
-      flush: "sync",
+    set(newValue) {
+      mainProgress.value += newValue - progress.value
+      progress.value = newValue
     },
-  )
-  return progress
+  })
 }
