@@ -38,7 +38,7 @@ withDefaults(
         !primary && progress === 0 && !disabled,
     }"
   >
-    <slot></slot>
+    <slot />
     <ProgressBar :progress="progress" class="absolute inset-x-0 bottom-0 rounded-b" />
   </button>
 </template>

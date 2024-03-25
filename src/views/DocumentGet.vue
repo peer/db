@@ -7,6 +7,7 @@ import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import InputText from "@/components/InputText.vue"
+import InputTextLink from "@/components/InputTextLink.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -102,14 +103,9 @@ const file = computed(() => {
     <NavBar>
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :value="query.q" />
-        <RouterLink
-          v-else
-          class="max-w-xl flex-grow appearance-none rounded border-0 border-gray-500 bg-white px-3 py-2 text-left text-base shadow outline-none ring-2 ring-neutral-300 hover:ring-neutral-400 focus:border-blue-600 focus:ring-2 focus:ring-primary-500"
-          :to="{ name: 'DocumentSearch', query: { ...query, at: id } }"
-          :after-click="afterClick"
-        >
+        <InputTextLink v-else class="max-w-xl flex-grow" :to="{ name: 'DocumentSearch', query: { ...query, at: id } }" :after-click="afterClick">
           {{ query.q }}
-        </RouterLink>
+        </InputTextLink>
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink primary class="px-3.5" :disabled="!prevNext.previous" :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: { s: query.s } }">
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />

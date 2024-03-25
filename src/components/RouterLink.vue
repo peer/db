@@ -4,12 +4,19 @@ import type { RouteLocationRaw } from "vue-router"
 
 import { useLink } from "vue-router"
 
-const props = defineProps<{
-  to: RouteLocationRaw
-  replace?: boolean
-  disabled?: boolean
-  afterClick?: () => void
-}>()
+const props = withDefaults(
+  defineProps<{
+    to: RouteLocationRaw
+    replace?: boolean
+    disabled?: boolean
+    afterClick?: () => void
+  }>(),
+  {
+    replace: false,
+    disabled: false,
+    afterClick: undefined,
+  },
+)
 
 const { navigate, href } = useLink(props)
 
