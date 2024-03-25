@@ -109,11 +109,11 @@ const file = computed(() => {
           {{ query.q }}
         </RouterLink>
         <div class="grid grid-cols-2 gap-x-1">
-          <ButtonLink class="px-3.5" :disabled="!prevNext.previous" :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: { s: query.s } }">
+          <ButtonLink primary class="px-3.5" :disabled="!prevNext.previous" :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: { s: query.s } }">
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
           </ButtonLink>
-          <ButtonLink class="px-3.5" :disabled="!prevNext.next" :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: { s: query.s } }">
+          <ButtonLink primary class="px-3.5" :disabled="!prevNext.next" :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: { s: query.s } }">
             <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>
           </ButtonLink>

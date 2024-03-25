@@ -4,11 +4,19 @@ import type { RouteLocationRaw } from "vue-router"
 import { computed } from "vue"
 import { useLink } from "vue-router"
 
-const props = defineProps<{
-  to: RouteLocationRaw
-  replace?: boolean
-  disabled?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    to: RouteLocationRaw
+    replace?: boolean
+    disabled?: boolean
+    primary?: boolean
+  }>(),
+  {
+    replace: false,
+    disabled: false,
+    primary: false,
+  },
+)
 
 // We use fake "/" when disabled. The link is not really active then, so that is OK.
 // We have to make both be computed to retain reactivity.
@@ -21,14 +29,34 @@ const { navigate, href } = useLink({
 <template>
   <div
     v-if="disabled"
-    class="cursor-not-allowed select-none rounded bg-primary-300 px-6 py-2.5 font-medium uppercase leading-tight text-gray-100 shadow outline-none hover:bg-primary-300 focus:ring-2 focus:ring-primary-300 focus:ring-offset-1 active:bg-primary-300"
+    class="relative select-none rounded font-medium uppercase leading-tight shadow outline-none focus:ring-2 focus:ring-offset-1 text-center"
+    :class="{
+      'cursor-not-allowed': disabled,
+      'px-6 py-2.5 ': primary,
+      'px-[calc(1.5rem_-_2px)] py-[calc(0.625rem_-_2px)]': !primary,
+      'bg-primary-300 text-gray-100': primary && disabled,
+      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !disabled,
+      'border-neutral-300 border-2 bg-gray-100 text-gray-800 shadow-none': !primary && disabled,
+      'border-primary-600 border-2 text-primary-600 hover:bg-primary-50 hover:border-primary-700 hover:text-primary-700 focus:ring-primary-500 active:border-primary-500 active:text-primary-500 active:bg-primary-100':
+        !primary && !disabled,
+    }"
   >
     <slot />
   </div>
   <a
     v-else
     :href="href"
-    class="select-none rounded bg-primary-600 px-6 py-2.5 font-medium uppercase leading-tight text-white shadow outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+    class="relative select-none rounded font-medium uppercase leading-tight shadow outline-none focus:ring-2 focus:ring-offset-1 text-center"
+    :class="{
+      'cursor-not-allowed': disabled,
+      'px-6 py-2.5 ': primary,
+      'px-[calc(1.5rem_-_2px)] py-[calc(0.625rem_-_2px)]': !primary,
+      'bg-primary-300 text-gray-100': primary && disabled,
+      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !disabled,
+      'border-neutral-300 border-2 bg-gray-100 text-gray-800 shadow-none': !primary && disabled,
+      'border-primary-600 border-2 text-primary-600 hover:bg-primary-50 hover:border-primary-700 hover:text-primary-700 focus:ring-primary-500 active:border-primary-500 active:text-primary-500 active:bg-primary-100':
+        !primary && !disabled,
+    }"
     @click="navigate"
   >
     <slot />
