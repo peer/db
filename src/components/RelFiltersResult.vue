@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RelFilterState, RelSearchResult } from "@/types"
 
-import { ref, computed } from "vue"
+import { ref, computed, onBeforeUnmount } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
@@ -22,6 +22,12 @@ const emit = defineEmits<{
 }>()
 
 const el = ref(null)
+
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 const progress = injectProgress()
 const { results, total, error, url: resultsUrl } = useRelFilterValues(props.result, el, progress)
@@ -44,6 +50,10 @@ const limitedResultsWithNone = computed(() => {
 })
 
 function onChange(event: Event, id: string | typeof NONE) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   let updatedState = [...props.state]
   if ((event.target as HTMLInputElement).checked) {
     if (!updatedState.includes(id)) {
@@ -61,6 +71,10 @@ function onChange(event: Event, id: string | typeof NONE) {
 // so we cannot simply use onChange($event, NONE) in the template.
 // See: https://github.com/vuejs/core/issues/6817
 function onNoneChange(event: Event) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   onChange(event, NONE)
 }
 

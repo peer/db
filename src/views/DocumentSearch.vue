@@ -119,6 +119,9 @@ const filtersMoreButton = ref()
 const supportPageOffset = window.pageYOffset !== undefined
 
 function onScroll() {
+  if (abortController.signal.aborted) {
+    return
+  }
   if (!searchMoreButton.value && !filtersMoreButton.value) {
     return
   }

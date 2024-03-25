@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { StringFilterState, StringSearchResult } from "@/types"
 
-import { ref, computed } from "vue"
+import { ref, computed, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
@@ -20,6 +20,12 @@ const emit = defineEmits<{
 }>()
 
 const el = ref(null)
+
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 const progress = injectProgress()
 const { results, total, error, url: resultsUrl } = useStringFilterValues(props.result, el, progress)
@@ -42,6 +48,10 @@ const limitedResultsWithNone = computed(() => {
 })
 
 function onChange(event: Event, str: string | typeof NONE) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   let updatedState = [...props.state]
   if ((event.target as HTMLInputElement).checked) {
     if (!updatedState.includes(str)) {
@@ -59,6 +69,10 @@ function onChange(event: Event, str: string | typeof NONE) {
 // so we cannot simply use onChange($event, NONE) in the template.
 // See: https://github.com/vuejs/core/issues/6817
 function onNoneChange(event: Event) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   onChange(event, NONE)
 }
 

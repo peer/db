@@ -21,11 +21,21 @@ const emit = defineEmits<{
 
 const el = ref(null)
 
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 const progress = injectProgress()
 const { results, min, max, error, url } = useSizeHistogramValues(el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   const updatedState = {
     gte: unencoded[0],
     lte: unencoded[1],
@@ -36,6 +46,10 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
 }
 
 function onNoneChange(event: Event) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   let updatedState: typeof NONE | null
   if ((event.target as HTMLInputElement).checked) {
     updatedState = NONE

@@ -54,6 +54,10 @@ async function onSubmit() {
 }
 
 function onFilters() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   emit("update:filtersEnabled", !props.filtersEnabled)
 }
 </script>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { IndexFilterState, IndexSearchResult } from "@/types"
 
-import { ref } from "vue"
+import { onBeforeUnmount, ref } from "vue"
 import Button from "@/components/Button.vue"
 import { useIndexFilterValues, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
@@ -20,6 +20,12 @@ const emit = defineEmits<{
 
 const el = ref(null)
 
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 const progress = injectProgress()
 const { results, total, error, url } = useIndexFilterValues(el, progress)
 const { laterLoad } = useInitialLoad(progress)
@@ -27,6 +33,10 @@ const { laterLoad } = useInitialLoad(progress)
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 function onChange(event: Event, str: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   let updatedState = [...props.state]
   if ((event.target as HTMLInputElement).checked) {
     if (!updatedState.includes(str)) {
