@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue"
 import { useRouter } from "vue-router"
-import InputText from "@/components/InputText.vue"
-import Button from "@/components/Button.vue"
+import InputText from "@/general/InputText.vue"
+import Button from "@/general/Button.vue"
 import Footer from "@/components/Footer.vue"
 import { postSearch } from "@/search"
 import { injectProgress } from "@/progress"

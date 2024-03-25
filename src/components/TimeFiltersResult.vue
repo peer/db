@@ -4,7 +4,7 @@ import type { PeerDBDocument, TimeFilterState, TimeSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
-import WithDocument from "@/components/WithDocument.vue"
+import WithDocument from "@/general/WithDocument.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
 import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, getName, loadingWidth, useInitialLoad, loadingShortHeights } from "@/utils"
 import { injectProgress } from "@/progress"

@@ -2,7 +2,7 @@
 import type { IndexFilterState, IndexSearchResult } from "@/types"
 
 import { onBeforeUnmount, ref } from "vue"
-import Button from "@/components/Button.vue"
+import Button from "@/general/Button.vue"
 import { useIndexFilterValues, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"

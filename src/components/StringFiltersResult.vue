@@ -2,8 +2,8 @@
 import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed, onBeforeUnmount } from "vue"
-import Button from "@/components/Button.vue"
-import WithDocument from "@/components/WithDocument.vue"
+import Button from "@/general/Button.vue"
+import WithDocument from "@/general/WithDocument.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"

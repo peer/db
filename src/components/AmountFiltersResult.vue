@@ -4,7 +4,7 @@ import type { AmountFilterState, AmountSearchResult, PeerDBDocument } from "@/ty
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
-import WithDocument from "@/components/WithDocument.vue"
+import WithDocument from "@/general/WithDocument.vue"
 import { useAmountHistogramValues, NONE } from "@/search"
 import { formatValue, equals, getName, loadingWidth, useInitialLoad, loadingShortHeights } from "@/utils"
 import { injectProgress } from "@/progress"
