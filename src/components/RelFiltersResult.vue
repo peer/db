@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RelFilterState, RelSearchResult } from "@/types"
+import type { PeerDBDocument, RelFilterState, RelSearchResult } from "@/types"
 
 import { ref, computed, onBeforeUnmount } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
@@ -83,12 +83,14 @@ function onNoneChange(event: Event) {
 function stateHasNONE(): boolean {
   return props.state.includes(NONE)
 }
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithDocument :id="result.id">
+      <WithPeerDBDocument :id="result.id" name="DocumentGet">
         <template #default="{ doc, url }">
           <RouterLink
             :to="{ name: 'DocumentGet', params: { id: result.id } }"
@@ -100,7 +102,7 @@ function stateHasNONE(): boolean {
         <template #loading="{ url }">
           <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
         </template>
-      </WithDocument>
+      </WithPeerDBDocument>
       ({{ result.count }})
     </div>
     <ul ref="el">
@@ -128,7 +130,7 @@ function stateHasNONE(): boolean {
               class="my-1 self-center rounded"
               @change="onChange($event, res.id)"
             />
-            <WithDocument :id="res.id">
+            <WithPeerDBDocument :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <label
                   :for="'rel/' + result.id + '/' + res.id"
@@ -141,7 +143,7 @@ function stateHasNONE(): boolean {
               <template #loading="{ url }">
                 <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
-            </WithDocument>
+            </WithPeerDBDocument>
             <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
             >
@@ -151,14 +153,14 @@ function stateHasNONE(): boolean {
           </template>
           <template v-else-if="'id' in res && res.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-            <WithDocument :id="res.id">
+            <WithPeerDBDocument :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
               </template>
               <template #loading="{ url }">
                 <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
-            </WithDocument>
+            </WithPeerDBDocument>
             <div class="my-1 inline-block leading-none">({{ res.count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
               ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"

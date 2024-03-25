@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
-import type { ClaimTypes } from "@/types"
+import type { ClaimTypes, PeerDBDocument } from "@/types"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
@@ -15,6 +15,8 @@ withDefaults(
     level: 0,
   },
 )
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
@@ -25,7 +27,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -37,7 +39,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.id }}</td>
     </tr>
@@ -50,7 +52,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -62,7 +64,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <a :href="claim.iri" class="link">{{ claim.iri }}</a>
@@ -77,7 +79,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -89,7 +91,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <!-- eslint-disable vue/no-v-html -->
       <td
@@ -108,7 +110,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -120,7 +122,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.string }}
@@ -135,7 +137,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -147,7 +149,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.amount }} <template v-if="claim.unit !== '1'">{{ claim.unit }}</template>
@@ -162,7 +164,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -174,7 +176,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
@@ -189,7 +191,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -201,10 +203,10 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <WithDocument :id="claim.to.id">
+        <WithPeerDBDocument :id="claim.to.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.to.id } }"
@@ -216,7 +218,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.to.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" />
@@ -228,7 +230,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -240,7 +242,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <a v-if="claim.preview?.[0]" :href="claim.url">
@@ -258,7 +260,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -270,7 +272,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
     </tr>
@@ -283,7 +285,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -295,7 +297,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
     </tr>
@@ -308,7 +310,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -320,7 +322,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.timestamp }}
@@ -335,7 +337,7 @@ withDefaults(
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithDocument :id="claim.prop.id">
+        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
           <template #default="{ doc, url }">
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
@@ -347,7 +349,7 @@ withDefaults(
           <template #loading="{ url }">
             <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
           </template>
-        </WithDocument>
+        </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
     </tr>

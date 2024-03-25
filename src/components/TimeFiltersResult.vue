@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { TimeFilterState, TimeSearchResult } from "@/types"
+import type { PeerDBDocument, TimeFilterState, TimeSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
@@ -189,12 +189,14 @@ onBeforeUnmount(() => {
     slider = null
   }
 })
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithDocument :id="result.id">
+      <WithPeerDBDocument :id="result.id" name="DocumentGet">
         <template #default="{ doc, url }">
           <RouterLink
             :to="{ name: 'DocumentGet', params: { id: result.id } }"
@@ -206,7 +208,7 @@ onBeforeUnmount(() => {
         <template #loading="{ url }">
           <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
         </template>
-      </WithDocument>
+      </WithPeerDBDocument>
       ({{ result.count }})
     </div>
     <ul ref="el">

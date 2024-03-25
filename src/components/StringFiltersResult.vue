@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { StringFilterState, StringSearchResult } from "@/types"
+import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"
@@ -82,12 +82,14 @@ function onNoneChange(event: Event) {
 function stateHasNONE(): boolean {
   return props.state.includes(NONE)
 }
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithDocument :id="result.id">
+      <WithPeerDBDocument :id="result.id" name="DocumentGet">
         <template #default="{ doc, url }">
           <RouterLink
             :to="{ name: 'DocumentGet', params: { id: result.id } }"
@@ -99,7 +101,7 @@ function stateHasNONE(): boolean {
         <template #loading="{ url }">
           <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
         </template>
-      </WithDocument>
+      </WithPeerDBDocument>
       ({{ result.count }})
     </div>
     <ul ref="el">

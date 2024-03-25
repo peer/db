@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { PeerDBDocument } from "@/types"
+import type { ComponentExposed } from "vue-component-type-helpers"
+
 import { ref, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
@@ -27,7 +30,8 @@ const el = ref(null)
 const mainProgress = injectMainProgress()
 const progress = localProgress(mainProgress)
 
-const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
 const { results, query } = useSearchState(
   el,
@@ -123,7 +127,7 @@ const file = computed(() => {
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <div class="rounded border bg-white p-4 shadow">
-      <WithDocument :id="id" ref="withDocument">
+      <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
             TODO: Fix how hover interacts with focused tab.
@@ -190,7 +194,7 @@ const file = computed(() => {
         <template #error>
           <i class="text-error-600">loading data failed</i>
         </template>
-      </WithDocument>
+      </WithPeerDBDocument>
     </div>
   </div>
   <Teleport to="footer">

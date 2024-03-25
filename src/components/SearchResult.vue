@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { SearchResult } from "@/types"
+import type { PeerDBDocument, SearchResult } from "@/types"
+import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
@@ -30,7 +31,8 @@ defineProps<{
 
 const route = useRoute()
 
-const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
 const docName = computed(() => getName(withDocument.value?.doc?.claims))
 // TODO: Do not hard-code properties?
@@ -104,7 +106,7 @@ const rowSpan = computed(() => {
 
 <template>
   <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
-    <WithDocument :id="result.id" ref="withDocument">
+    <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
@@ -117,7 +119,7 @@ const rowSpan = computed(() => {
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
               <li v-if="'string' in tag" class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm">{{ tag.string }}</li>
-              <WithDocument v-else-if="'id' in tag" :id="tag.id">
+              <WithPeerDBDocument v-else-if="'id' in tag" :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li
                     class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm"
@@ -128,7 +130,7 @@ const rowSpan = computed(() => {
                 <template #loading="{ url }">
                   <li class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
-              </WithDocument>
+              </WithPeerDBDocument>
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
@@ -156,6 +158,6 @@ const rowSpan = computed(() => {
       <template #error>
         <i class="text-error-600">loading data failed</i>
       </template>
-    </WithDocument>
+    </WithPeerDBDocument>
   </div>
 </template>
