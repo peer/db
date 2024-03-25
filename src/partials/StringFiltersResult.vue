@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import type { PeerDBDocument, RelFilterState, RelSearchResult } from "@/types"
+import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed, onBeforeUnmount } from "vue"
-import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import Button from "@/general/Button.vue"
-import WithDocument from "@/general/WithDocument.vue"
-import { useRelFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import Button from "@/components/Button.vue"
+import WithDocument from "@/components/WithDocument.vue"
+import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   searchTotal: number
-  result: RelSearchResult
-  state: RelFilterState
+  result: StringSearchResult
+  state: StringFilterState
   updateProgress: number
 }>()
 
 const emit = defineEmits<{
-  (e: "update:state", state: RelFilterState): void
+  (e: "update:state", state: StringFilterState): void
 }>()
 
 const el = ref(null)
@@ -29,7 +28,7 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, total, error, url: resultsUrl } = useRelFilterValues(props.result, el, progress)
+const { results, total, error, url: resultsUrl } = useStringFilterValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
@@ -48,18 +47,18 @@ const limitedResultsWithNone = computed(() => {
   return res
 })
 
-function onChange(event: Event, id: string | typeof NONE) {
+function onChange(event: Event, str: string | typeof NONE) {
   if (abortController.signal.aborted) {
     return
   }
 
   let updatedState = [...props.state]
   if ((event.target as HTMLInputElement).checked) {
-    if (!updatedState.includes(id)) {
-      updatedState.push(id)
+    if (!updatedState.includes(str)) {
+      updatedState.push(str)
     }
   } else {
-    updatedState = updatedState.filter((x) => x !== id)
+    updatedState = updatedState.filter((x) => x !== str)
   }
   if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
@@ -117,58 +116,40 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </li>
       </template>
       <template v-else>
-        <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="flex items-baseline gap-x-1">
-          <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
+        <li v-for="res in limitedResultsWithNone" :key="'str' in res ? res.str : NONE" class="flex items-baseline gap-x-1">
+          <template v-if="'str' in res && (res.count != searchTotal || state.includes(res.str))">
             <input
-              :id="'rel/' + result.id + '/' + res.id"
+              :id="'string/' + result.id + '/' + res.str"
               :disabled="updateProgress > 0"
-              :checked="state.includes(res.id)"
+              :checked="state.includes(res.str)"
               :class="
                 updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
               "
               type="checkbox"
               class="my-1 self-center rounded"
-              @change="onChange($event, res.id)"
+              @change="onChange($event, res.str)"
             />
-            <WithPeerDBDocument :id="res.id" name="DocumentGet">
-              <template #default="{ doc, url }">
-                <label
-                  :for="'rel/' + result.id + '/' + res.id"
-                  class="my-1 leading-none"
-                  :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-                  :data-url="url"
-                  v-html="getName(doc.claims) || '<i>no name</i>'"
-                ></label>
-              </template>
-              <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
-              </template>
-            </WithPeerDBDocument>
-            <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label
+              :for="'string/' + result.id + '/' + res.str"
+              class="my-1 leading-none"
+              :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >{{ res.str }}</label
+            >
+            <label
+              :for="'string/' + result.id + '/' + res.str"
+              class="my-1 leading-none"
+              :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
             >
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
-            /></RouterLink>
           </template>
-          <template v-else-if="'id' in res && res.count == searchTotal">
+          <template v-else-if="'str' in res && res.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-            <WithPeerDBDocument :id="res.id" name="DocumentGet">
-              <template #default="{ doc, url }">
-                <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
-              </template>
-              <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
-              </template>
-            </WithPeerDBDocument>
-            <div class="my-1 inline-block leading-none">({{ res.count }})</div>
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
-            /></RouterLink>
+            <div class="my-1 leading-none">{{ res.str }}</div>
+            <div class="my-1 leading-none">({{ res.count }})</div>
           </template>
-          <template v-else-if="!('id' in res)">
+          <template v-else-if="!('str' in res)">
             <input
-              :id="'rel/' + result.id + '/none'"
+              :id="'string/' + result.id + '/none'"
               :disabled="updateProgress > 0"
               :checked="stateHasNONE()"
               :class="
@@ -178,10 +159,10 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               class="my-1 self-center rounded"
               @change="onNoneChange($event)"
             />
-            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >
-            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
             >
           </template>

@@ -4,7 +4,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
-import WithDocument from "@/general/WithDocument.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
 import {
   DESCRIPTION,

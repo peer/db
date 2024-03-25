@@ -2,7 +2,7 @@
 import type { DeepReadonly } from "vue"
 import type { ClaimTypes, PeerDBDocument } from "@/types"
 
-import WithDocument from "@/general/WithDocument.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
 
 withDefaults(

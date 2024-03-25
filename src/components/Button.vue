@@ -7,7 +7,7 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import ProgressBar from "@/general/ProgressBar.vue"
+import ProgressBar from "@/components/ProgressBar.vue"
 
 withDefaults(
   defineProps<{
