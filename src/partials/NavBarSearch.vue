@@ -64,7 +64,13 @@ function onFilters() {
 
 <template>
   <form ref="form" :disabled="progress > 0" class="flex flex-grow gap-x-1 sm:gap-x-4" @submit.prevent="onSubmit">
-    <InputText id="search-input-text" :progress="progress" name="q" class="max-w-xl flex-grow" :value="route.query.s ? route.query.q : null" />
+    <InputText
+      id="search-input-text"
+      :model-value="route.query.s ? (Array.isArray(route.query.q) ? route.query.q[0] : route.query.q) || undefined : undefined"
+      :progress="progress"
+      name="q"
+      class="max-w-xl flex-grow"
+    />
     <input v-if="route.query.s" type="hidden" name="s" :value="route.query.s" />
     <Button :progress="progress" type="submit" primary class="px-3.5">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />

@@ -102,7 +102,7 @@ const file = computed(() => {
   <Teleport to="header">
     <NavBar>
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :value="query.q" />
+        <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :model-value="query.q" />
         <InputTextLink v-else class="max-w-xl flex-grow" :to="{ name: 'DocumentSearch', query: { ...query, at: id } }" :after-click="afterClick">
           {{ query.q }}
         </InputTextLink>
