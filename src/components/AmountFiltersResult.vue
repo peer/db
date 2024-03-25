@@ -66,7 +66,7 @@ function onNoneChange(event: Event) {
 const chartWidth = 200
 const chartHeight = 30
 const barWidth = computed(() => {
-  // We assume here that there are at most 100 results so that returns at least 2.
+  // We assume here that there are at most 100 results so that we return at least 2.
   return chartWidth / results.value.length
 })
 const maxCount = computed(() => {
