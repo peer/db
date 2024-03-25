@@ -33,7 +33,7 @@ async function onSubmit() {
       return
     }
     // TODO: Show notification with error.
-    console.error("onSubmit", err)
+    console.error("Home.onSubmit", err)
   } finally {
     progress.value -= 1
   }

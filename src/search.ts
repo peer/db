@@ -811,7 +811,7 @@ export function useTimeHistogramValues(
         if (signal.aborted) {
           return
         }
-        console.error("getHistogramValues", newURL, err)
+        console.error("useTimeHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
         _min.value = null

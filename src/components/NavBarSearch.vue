@@ -47,7 +47,7 @@ async function onSubmit() {
       return
     }
     // TODO: Show notification with error.
-    console.error("onSubmit", err)
+    console.error("NavBarSearch.onSubmit", err)
   } finally {
     progress.value -= 1
   }

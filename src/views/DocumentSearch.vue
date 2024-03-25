@@ -179,7 +179,7 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("onRelFiltersStateUpdate", err)
+    console.error("DocumentSearch.onRelFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -201,7 +201,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
       return
     }
     // TODO: Show notification with error.
-    console.error("onAmountFiltersStateUpdate", err)
+    console.error("DocumentSearch.onAmountFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -223,7 +223,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("onTimeFiltersStateUpdate", err)
+    console.error("DocumentSearch.onTimeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -245,7 +245,7 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("onStringFiltersStateUpdate", err)
+    console.error("DocumentSearch.onStringFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -266,7 +266,7 @@ async function onIndexFiltersStateUpdate(s: IndexFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("onIndexFiltersStateUpdate", err)
+    console.error("DocumentSearch.onIndexFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -287,7 +287,7 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("onSizeFiltersStateUpdate", err)
+    console.error("DocumentSearch.onSizeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
