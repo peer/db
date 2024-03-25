@@ -4,7 +4,6 @@ import type { AmountFilterState, AmountSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
-import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useAmountHistogramValues, NONE } from "@/search"
 import { formatValue, equals, getName, loadingWidth, useInitialLoad, loadingShortHeights } from "@/utils"

@@ -2,7 +2,6 @@
 import type { DeepReadonly } from "vue"
 import type { ClaimTypes } from "@/types"
 
-import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
 

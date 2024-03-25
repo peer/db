@@ -4,7 +4,6 @@ import type { SearchResult } from "@/types"
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
 import WithDocument from "@/components/WithDocument.vue"
-import RouterLink from "@/components/RouterLink.vue"
 import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
 import {
   DESCRIPTION,

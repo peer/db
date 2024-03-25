@@ -3,7 +3,6 @@ import type { RelFilterState, RelSearchResult } from "@/types"
 
 import { ref, computed, onBeforeUnmount } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import RouterLink from "@/components/RouterLink.vue"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useRelFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"

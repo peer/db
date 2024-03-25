@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { GlobeAltIcon } from "@heroicons/vue/24/outline"
 import ProgressBar from "@/components/ProgressBar.vue"
-import RouterLink from "@/components/RouterLink.vue"
 import { useNavbar } from "@/navbar"
 
 defineProps<{
