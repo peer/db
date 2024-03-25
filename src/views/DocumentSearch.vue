@@ -336,7 +336,9 @@ const filtersEnabled = ref(false)
           </div>
           <SearchResult :ref="track(result.id) as any" :result="result" />
         </template>
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" class="w-1/4 min-w-fit self-center" @click="searchLoadMore">Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
+          >Load more</Button
+        >
         <div v-else class="my-1 sm:my-4">
           <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
           <div v-else-if="searchResults.length < searchTotal && !searchMoreThanTotal" class="text-center text-sm">
@@ -411,7 +413,7 @@ const filtersEnabled = ref(false)
             @update:state="onSizeFiltersStateUpdate($event)"
           />
         </template>
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
           >More filters</Button
         >
         <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">

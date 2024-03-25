@@ -167,7 +167,7 @@ function stateHasNONE(): boolean {
         </li>
       </template>
     </ul>
-    <Button v-if="total !== null && hasMore" class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - limitedResults.length }} more</Button>
+    <Button v-if="total !== null && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click="loadMore">{{ total - limitedResults.length }} more</Button>
     <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">{{ total - limitedResults.length }} values not shown.</div>
   </div>
 </template>
