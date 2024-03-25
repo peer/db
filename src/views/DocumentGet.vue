@@ -16,7 +16,7 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { useSearchState } from "@/search"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
-import { injectMainProgress, localProgress } from "@/progress"
+import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   id: string
@@ -27,8 +27,7 @@ const router = useRouter()
 
 const el = ref(null)
 
-const mainProgress = injectMainProgress()
-const progress = localProgress(mainProgress)
+const progress = injectProgress()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
@@ -100,7 +99,7 @@ const file = computed(() => {
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="mainProgress">
+    <NavBar>
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :value="query.q" />
         <RouterLink

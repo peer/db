@@ -298,7 +298,7 @@ const filtersEnabled = ref(false)
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="mainProgress">
+    <NavBar>
       <NavBarSearch v-model:filtersEnabled="filtersEnabled" />
     </NavBar>
   </Teleport>
