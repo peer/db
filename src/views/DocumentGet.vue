@@ -12,9 +12,9 @@ import NavBarSearch from "@/components/NavBarSearch.vue"
 import PropertiesRows from "@/components/PropertiesRows.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useSearchState } from "@/search"
-import { globalProgress } from "@/api"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
+import { injectMainProgress, localProgress } from "@/progress"
 
 const props = defineProps<{
   id: string
@@ -24,6 +24,9 @@ const route = useRoute()
 const router = useRouter()
 
 const el = ref(null)
+
+const mainProgress = injectMainProgress()
+const progress = localProgress(mainProgress)
 
 const withDocument = ref<InstanceType<typeof WithDocument> | null>(null)
 
@@ -44,7 +47,7 @@ const { results, query } = useSearchState(
       query: encodeQuery({ tab: route.query.tab || undefined }),
     })
   },
-  null,
+  progress,
 )
 
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
@@ -94,9 +97,9 @@ const file = computed(() => {
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="globalProgress">
+    <NavBar :progress="mainProgress">
       <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <InputText v-if="!query.s" :progress="1" class="max-w-xl flex-grow" :value="query.q" />
+        <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :value="query.q" />
         <RouterLink
           v-else
           class="max-w-xl flex-grow appearance-none rounded border-0 border-gray-500 bg-white px-3 py-2 text-left text-base shadow outline-none ring-2 ring-neutral-300 hover:ring-neutral-400 focus:border-blue-600 focus:ring-2 focus:ring-primary-500"

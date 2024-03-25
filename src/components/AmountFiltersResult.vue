@@ -8,6 +8,7 @@ import RouterLink from "@/components/RouterLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useAmountHistogramValues, NONE } from "@/search"
 import { formatValue, equals, getName, loadingWidth, useInitialLoad, loadingShortHeights } from "@/utils"
+import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   searchTotal: number
@@ -22,7 +23,7 @@ const emit = defineEmits<{
 
 const el = ref(null)
 
-const progress = ref(0)
+const progress = injectProgress()
 const { results, min, max, error, url: resultsUrl } = useAmountHistogramValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 

@@ -6,6 +6,7 @@ import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
+import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   searchTotal: number
@@ -20,7 +21,7 @@ const emit = defineEmits<{
 
 const el = ref(null)
 
-const progress = ref(0)
+const progress = injectProgress()
 const { results, total, error, url: resultsUrl } = useStringFilterValues(props.result, el, progress)
 const { laterLoad } = useInitialLoad(progress)
 

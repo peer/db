@@ -8,6 +8,7 @@ withDefaults(
   }>(),
   {
     progress: 0,
+    disabled: false,
   },
 )
 </script>

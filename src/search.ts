@@ -30,7 +30,7 @@ import type {
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { getURL, postURL } from "@/api"
-import { encodeQuery, timestampToSeconds } from "@/utils"
+import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
 import { NONE } from "@/symbols"
 
 export { NONE } from "@/symbols"
@@ -59,14 +59,18 @@ function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   return form
 }
 
-export async function postSearch(router: Router, form: HTMLFormElement, progress: Ref<number>) {
-  const query: ServerQuery = await postURL(
+export async function postSearch(router: Router, form: HTMLFormElement, abortSignal: AbortSignal, progress: Ref<number>) {
+  const query = await postURL<ServerQuery>(
     router.apiResolve({
       name: "DocumentSearch",
     }).href,
     new FormData(form),
+    abortSignal,
     progress,
   )
+  if (abortSignal.aborted) {
+    return
+  }
   await router.push({
     name: "DocumentSearch",
     query: encodeQuery({
@@ -77,7 +81,7 @@ export async function postSearch(router: Router, form: HTMLFormElement, progress
   })
 }
 
-export async function postFilters(router: Router, route: RouteLocationNormalizedLoaded, updatedState: FiltersState, progress: Ref<number>) {
+export async function postFilters(router: Router, route: RouteLocationNormalizedLoaded, updatedState: FiltersState, abortSignal: AbortSignal, progress: Ref<number>) {
   const filters: Filters = {
     and: [],
   }
@@ -147,8 +151,12 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
       name: "DocumentSearch",
     }).href,
     form,
+    abortSignal,
     progress,
   )
+  if (abortSignal.aborted) {
+    return
+  }
   if (route.query.s !== updatedQuery.s || route.query.q !== updatedQuery.q) {
     await router.push({
       name: "DocumentSearch",
@@ -462,6 +470,9 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     getURL,
@@ -484,11 +495,12 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getSearchResults<Type>(newURL, el, controller.signal, progress)
+        data = await getSearchResults<Type>(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useSearchResults", newURL, err)
@@ -497,6 +509,9 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       if (!("results" in data)) {
@@ -533,9 +548,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       immediate: true,
     },
   )
-
-  const controller = new AbortController()
-  onBeforeUnmount(() => controller.abort())
 
   return {
     results,
@@ -620,6 +632,9 @@ export function useAmountHistogramValues(
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     () => {
@@ -668,11 +683,12 @@ export function useAmountHistogramValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getHistogramValues(newURL, el, controller.signal, progress)
+        data = await getHistogramValues(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useAmountHistogramValues", newURL, err)
@@ -682,6 +698,9 @@ export function useAmountHistogramValues(
         _max.value = null
         _interval.value = null
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       _results.value = data.results as AmountValuesResult[]
@@ -737,6 +756,9 @@ export function useTimeHistogramValues(
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     () => {
@@ -781,11 +803,12 @@ export function useTimeHistogramValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getHistogramValues(newURL, el, controller.signal, progress)
+        data = await getHistogramValues(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("getHistogramValues", newURL, err)
@@ -795,6 +818,9 @@ export function useTimeHistogramValues(
         _max.value = null
         _interval.value = null
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       _results.value = data.results as TimeValuesResult[]
@@ -841,6 +867,9 @@ export function useStringFilterValues(
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     () => {
@@ -882,17 +911,21 @@ export function useStringFilterValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getStringValues<StringValuesResult>(newURL, el, controller.signal, progress)
+        data = await getStringValues<StringValuesResult>(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useStringFilterValues", newURL, err)
         _results.value = []
         _total.value = null
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       _results.value = data.results as StringValuesResult[]
@@ -932,6 +965,9 @@ export function useIndexFilterValues(
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     () => {
@@ -968,17 +1004,21 @@ export function useIndexFilterValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getStringValues<IndexValuesResult>(newURL, el, controller.signal, progress)
+        data = await getStringValues<IndexValuesResult>(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useIndexFilterValues", newURL, err)
         _results.value = []
         _total.value = null
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       _results.value = data.results as IndexValuesResult[]
@@ -1027,6 +1067,9 @@ export function useSizeHistogramValues(
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
+
   const initialRouteName = route.name
   watch(
     () => {
@@ -1066,11 +1109,12 @@ export function useSizeHistogramValues(
       }
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
         data = await getHistogramValues(newURL, el, controller.signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useSizeHistogramValues", newURL, err)
@@ -1080,6 +1124,9 @@ export function useSizeHistogramValues(
         _max.value = null
         _interval.value = null
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       _results.value = data.results as SizeValuesResult[]
@@ -1107,10 +1154,13 @@ export function useSizeHistogramValues(
 async function getSearchResults<T extends SearchResult | SearchFilterResult | RelSearchResult>(
   url: string,
   el: Ref<Element | null> | null,
-  abortSignal: AbortSignal | null,
-  progress: Ref<number> | null,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
 ): Promise<{ results: T[]; total: number | string; query?: string; filters?: Filters } | { q: string; s: string }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
+  if (abortSignal.aborted) {
+    return { q: "", s: "" }
+  }
 
   if (Array.isArray(doc)) {
     if (!("total" in metadata)) {
@@ -1133,8 +1183,8 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
 async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult | SizeValuesResult>(
   url: string,
   el: Ref<Element | null> | null,
-  abortSignal: AbortSignal | null,
-  progress: Ref<number> | null,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
 ): Promise<{
   results: Type[]
   total: number
@@ -1143,6 +1193,9 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   interval?: string
 }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
+  if (abortSignal.aborted) {
+    return { results: [], total: 0 }
+  }
 
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
@@ -1171,13 +1224,16 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
 async function getStringValues<Type extends StringValuesResult | IndexValuesResult>(
   url: string,
   el: Ref<Element | null> | null,
-  abortSignal: AbortSignal | null,
-  progress: Ref<number> | null,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
 ): Promise<{
   results: Type[]
   total: number
 }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
+  if (abortSignal.aborted) {
+    return { results: [], total: 0 }
+  }
 
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
@@ -1194,7 +1250,7 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
 export function useSearchState(
   el: Ref<Element | null>,
   redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
-  progress: Ref<number> | null,
+  progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   query: DeepReadonly<Ref<ClientQuery>>
@@ -1212,6 +1268,9 @@ export function useSearchState(
   const query = import.meta.env.DEV ? readonly(_query) : _query
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
+
+  const mainController = new AbortController()
+  onBeforeUnmount(() => mainController.abort())
 
   const initialRouteName = route.name
   watch(
@@ -1240,17 +1299,21 @@ export function useSearchState(
       _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())
+      const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getSearchResults<SearchResult>(newURL, el, controller.signal, progress)
+        data = await getSearchResults<SearchResult>(newURL, el, signal, progress)
       } catch (err) {
-        if (controller.signal.aborted) {
+        if (signal.aborted) {
           return
         }
         console.error("useSearchState", newURL, err)
         _results.value = []
         _query.value = {}
         _error.value = `${err}`
+        return
+      }
+      if (signal.aborted) {
         return
       }
       if (!("results" in data)) {

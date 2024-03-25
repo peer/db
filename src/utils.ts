@@ -336,3 +336,25 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
 
   return values
 }
+
+// Polyfill for AbortSignal.any.
+export function anySignal(...signals: AbortSignal[]): AbortSignal {
+  if ("any" in AbortSignal) {
+    return AbortSignal.any(signals)
+  }
+
+  const controller = new AbortController()
+
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort()
+      return signal
+    }
+
+    signal.addEventListener("abort", () => controller.abort(signal.reason), {
+      signal: controller.signal,
+    })
+  }
+
+  return controller.signal
+}

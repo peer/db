@@ -1,16 +1,12 @@
 import type { Ref } from "vue"
 import type { Metadata } from "@/types"
 
-import { ref, readonly } from "vue"
 import { Queue } from "@/queue"
-import { decodeMetadata } from "./metadata"
+import { decodeMetadata } from "@/metadata"
 
 const queue = new Queue({ concurrency: 100 })
 
 const localGetCache = new Map<string, WeakRef<{ doc: unknown; metadata: Metadata }>>()
-
-const _globalProgress = ref(0)
-export const globalProgress = import.meta.env.DEV ? readonly(_globalProgress) : _globalProgress
 
 export class FetchError extends Error {
   cause?: Error
@@ -51,7 +47,6 @@ export async function getURL<T>(
   if (progress) {
     progress.value += 1
   }
-  _globalProgress.value += 1
   try {
     const res = await queue.add(
       async () => {
@@ -69,8 +64,9 @@ export async function getURL<T>(
 
         const response = await fetch(url, {
           method: "GET",
-          mode: "same-origin",
-          credentials: "omit",
+          // Mode and credentials match crossorigin=anonymous in link preload header.
+          mode: "cors",
+          credentials: "same-origin",
           referrer: document.location.href,
           referrerPolicy: "strict-origin-when-cross-origin",
           signal: abortSignal,
@@ -94,18 +90,16 @@ export async function getURL<T>(
     localGetCache.set(url, new WeakRef(res))
     return res
   } finally {
-    _globalProgress.value -= 1
     if (progress) {
       progress.value -= 1
     }
   }
 }
 
-export async function postURL<T>(url: string, form: FormData, progress: Ref<number> | null): Promise<T> {
+export async function postURL<T>(url: string, form: FormData, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T> {
   if (progress) {
     progress.value += 1
   }
-  _globalProgress.value += 1
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -116,9 +110,11 @@ export async function postURL<T>(url: string, form: FormData, progress: Ref<numb
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       body: new URLSearchParams(form as any),
       mode: "same-origin",
-      credentials: "omit",
+      credentials: "same-origin",
+      redirect: "error",
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
     })
     const contentType = response.headers.get("Content-Type")
     if (!contentType || !contentType.includes("application/json")) {
@@ -132,7 +128,6 @@ export async function postURL<T>(url: string, form: FormData, progress: Ref<numb
     }
     return await response.json()
   } finally {
-    _globalProgress.value -= 1
     if (progress) {
       progress.value -= 1
     }

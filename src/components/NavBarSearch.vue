@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { onBeforeUnmount, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
+import { injectProgress } from "@/progress"
 
 const props = withDefaults(
   defineProps<{
     filtersEnabled?: boolean | null
   }>(),
-  { filtersEnabled: null },
+  {
+    filtersEnabled: null,
+  },
 )
 const emit = defineEmits<{
   (e: "update:filtersEnabled", value: boolean): void
@@ -20,15 +23,33 @@ const emit = defineEmits<{
 const route = useRoute()
 
 const router = useRouter()
+
+const abortController = new AbortController()
+
+const progress = injectProgress()
+
 const form = ref()
-const progress = ref(0)
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 async function onSubmit() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  progress.value += 1
   try {
-    await postSearch(router, form.value, progress)
+    await postSearch(router, form.value, abortController.signal, progress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onSubmit", err)
+  } finally {
+    progress.value -= 1
   }
 }
 

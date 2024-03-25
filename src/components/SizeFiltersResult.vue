@@ -6,6 +6,7 @@ import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import { useSizeHistogramValues, NONE } from "@/search"
 import { formatValue, equals, useInitialLoad, loadingShortHeights } from "@/utils"
+import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   searchTotal: number
@@ -20,7 +21,7 @@ const emit = defineEmits<{
 
 const el = ref(null)
 
-const progress = ref(0)
+const progress = injectProgress()
 const { results, min, max, error, url } = useSizeHistogramValues(el, progress)
 const { laterLoad } = useInitialLoad(progress)
 

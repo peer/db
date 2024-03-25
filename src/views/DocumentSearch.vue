@@ -30,15 +30,23 @@ import Button from "@/components/Button.vue"
 import NavBarSearch from "@/components/NavBarSearch.vue"
 import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
-import { globalProgress } from "@/api"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
+import { injectMainProgress, localProgress } from "@/progress"
 
 const router = useRouter()
 const route = useRoute()
 
+const mainProgress = injectMainProgress()
+
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 const searchEl = ref(null)
 
-const searchProgress = ref(0)
+const searchProgress = localProgress(mainProgress)
 const {
   results: searchResults,
   total: searchTotal,
@@ -58,7 +66,7 @@ const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: 
 
 const filtersEl = ref(null)
 
-const filtersProgress = ref(0)
+const filtersProgress = localProgress(mainProgress)
 const { results: filtersResults, total: filtersTotal, error: filtersError, url: filtersURL } = useFilters(filtersEl, filtersProgress)
 
 const {
@@ -143,7 +151,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll)
 })
 
-const updateFiltersProgress = ref(0)
+const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
 // We keep it in sync with upstream version.
@@ -153,13 +161,20 @@ watchEffect((onCleanup) => {
 })
 
 async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.rel = { ...updatedState.rel }
     updatedState.rel[id] = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onRelFiltersStateUpdate", err)
   } finally {
@@ -168,13 +183,20 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
 }
 
 async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.amount = { ...updatedState.amount }
     updatedState.amount[`${id}/${unit}`] = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onAmountFiltersStateUpdate", err)
   } finally {
@@ -183,13 +205,20 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
 }
 
 async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.time = { ...updatedState.time }
     updatedState.time[id] = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onTimeFiltersStateUpdate", err)
   } finally {
@@ -198,13 +227,20 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
 }
 
 async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.str = { ...updatedState.str }
     updatedState.str[id] = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onStringFiltersStateUpdate", err)
   } finally {
@@ -213,12 +249,19 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
 }
 
 async function onIndexFiltersStateUpdate(s: IndexFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.index = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onIndexFiltersStateUpdate", err)
   } finally {
@@ -227,12 +270,19 @@ async function onIndexFiltersStateUpdate(s: IndexFilterState) {
 }
 
 async function onSizeFiltersStateUpdate(s: SizeFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   updateFiltersProgress.value += 1
   try {
     const updatedState = { ...filtersState.value }
     updatedState.size = s
-    await postFilters(router, route, updatedState, updateFiltersProgress)
+    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("onSizeFiltersStateUpdate", err)
   } finally {
@@ -245,7 +295,7 @@ const filtersEnabled = ref(false)
 
 <template>
   <Teleport to="header">
-    <NavBar :progress="globalProgress">
+    <NavBar :progress="mainProgress">
       <NavBarSearch v-model:filtersEnabled="filtersEnabled" />
     </NavBar>
   </Teleport>

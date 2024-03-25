@@ -1,9 +1,9 @@
 import { createApp, ref } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
 import App from "@/App.vue"
-import { progressKey } from "./progress"
+import { progressKey } from "@/progress"
 import { routes } from "@/../routes.json"
-import "./app.css"
+import "@/app.css"
 import siteContext from "@/context"
 
 // During development when requests are proxied to Vite, placeholders
