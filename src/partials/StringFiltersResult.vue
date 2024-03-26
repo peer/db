@@ -57,6 +57,10 @@ const checkboxState = computed({
       return
     }
 
+    // TODO: Remove workaround for Vue not supporting Symbols for checkbox values.
+    //       See: https://github.com/vuejs/core/issues/10598
+    value = value.map((v) => (v === "__NONE__" ? NONE : v))
+
     if (!equals(props.state, value)) {
       emit("update:state", value)
     }
@@ -118,7 +122,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <div class="my-1 leading-none">({{ res.count }})</div>
           </template>
           <template v-else-if="!('str' in res)">
-            <CheckBox :id="'string/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" :value="NONE" class="my-1 self-center" />
+            <CheckBox :id="'string/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
             <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >
