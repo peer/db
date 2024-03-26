@@ -5,6 +5,7 @@ import { ref, computed, onBeforeUnmount } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import CheckBox from "@/components/CheckBox.vue"
 import { useRelFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
@@ -48,41 +49,20 @@ const limitedResultsWithNone = computed(() => {
   return res
 })
 
-function onChange(event: Event, id: string | typeof NONE) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  let updatedState = [...props.state]
-  if ((event.target as HTMLInputElement).checked) {
-    if (!updatedState.includes(id)) {
-      updatedState.push(id)
+const checkboxState = computed({
+  get(): RelFilterState {
+    return props.state
+  },
+  set(value: RelFilterState) {
+    if (abortController.signal.aborted) {
+      return
     }
-  } else {
-    updatedState = updatedState.filter((x) => x !== id)
-  }
-  if (!equals(props.state, updatedState)) {
-    emit("update:state", updatedState)
-  }
-}
 
-// Workaround for a bug in Vue where type of NONE changes inside template,
-// so we cannot simply use onChange($event, NONE) in the template.
-// See: https://github.com/vuejs/core/issues/6817
-function onNoneChange(event: Event) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  onChange(event, NONE)
-}
-
-// Workaround for a bug in Vue where type of NONE changes inside template,
-// so we cannot simply use state.includes(NONE) in the template.
-// See: https://github.com/vuejs/core/issues/6817
-function stateHasNONE(): boolean {
-  return props.state.includes(NONE)
-}
+    if (!equals(props.state, value)) {
+      emit("update:state", value)
+    }
+  },
+})
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
@@ -119,17 +99,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <template v-else>
         <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="flex items-baseline gap-x-1">
           <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
-            <input
-              :id="'rel/' + result.id + '/' + res.id"
-              :disabled="updateProgress > 0"
-              :checked="state.includes(res.id)"
-              :class="
-                updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-              "
-              type="checkbox"
-              class="my-1 self-center rounded"
-              @change="onChange($event, res.id)"
-            />
+            <CheckBox :id="'rel/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
             <WithPeerDBDocument :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <label
@@ -167,17 +137,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             /></RouterLink>
           </template>
           <template v-else-if="!('id' in res)">
-            <input
-              :id="'rel/' + result.id + '/none'"
-              :disabled="updateProgress > 0"
-              :checked="stateHasNONE()"
-              :class="
-                updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-              "
-              type="checkbox"
-              class="my-1 self-center rounded"
-              @change="onNoneChange($event)"
-            />
+            <CheckBox :id="'rel/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" :value="NONE" class="my-1 self-center" />
             <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >

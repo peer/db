@@ -4,6 +4,7 @@ import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/ty
 import { ref, computed, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import CheckBox from "@/components/CheckBox.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
@@ -47,41 +48,20 @@ const limitedResultsWithNone = computed(() => {
   return res
 })
 
-function onChange(event: Event, str: string | typeof NONE) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  let updatedState = [...props.state]
-  if ((event.target as HTMLInputElement).checked) {
-    if (!updatedState.includes(str)) {
-      updatedState.push(str)
+const checkboxState = computed({
+  get(): StringFilterState {
+    return props.state
+  },
+  set(value: StringFilterState) {
+    if (abortController.signal.aborted) {
+      return
     }
-  } else {
-    updatedState = updatedState.filter((x) => x !== str)
-  }
-  if (!equals(props.state, updatedState)) {
-    emit("update:state", updatedState)
-  }
-}
 
-// Workaround for a bug in Vue where type of NONE changes inside template,
-// so we cannot simply use onChange($event, NONE) in the template.
-// See: https://github.com/vuejs/core/issues/6817
-function onNoneChange(event: Event) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  onChange(event, NONE)
-}
-
-// Workaround for a bug in Vue where type of NONE changes inside template,
-// so we cannot simply use state.includes(NONE) in the template.
-// See: https://github.com/vuejs/core/issues/6817
-function stateHasNONE(): boolean {
-  return props.state.includes(NONE)
-}
+    if (!equals(props.state, value)) {
+      emit("update:state", value)
+    }
+  },
+})
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
@@ -118,17 +98,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <template v-else>
         <li v-for="res in limitedResultsWithNone" :key="'str' in res ? res.str : NONE" class="flex items-baseline gap-x-1">
           <template v-if="'str' in res && (res.count != searchTotal || state.includes(res.str))">
-            <input
-              :id="'string/' + result.id + '/' + res.str"
-              :disabled="updateProgress > 0"
-              :checked="state.includes(res.str)"
-              :class="
-                updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-              "
-              type="checkbox"
-              class="my-1 self-center rounded"
-              @change="onChange($event, res.str)"
-            />
+            <CheckBox :id="'string/' + result.id + '/' + res.str" v-model="checkboxState" :progress="updateProgress" :value="res.str" class="my-1 self-center" />
             <label
               :for="'string/' + result.id + '/' + res.str"
               class="my-1 leading-none"
@@ -148,17 +118,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <div class="my-1 leading-none">({{ res.count }})</div>
           </template>
           <template v-else-if="!('str' in res)">
-            <input
-              :id="'string/' + result.id + '/none'"
-              :disabled="updateProgress > 0"
-              :checked="stateHasNONE()"
-              :class="
-                updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-              "
-              type="checkbox"
-              class="my-1 self-center rounded"
-              @change="onNoneChange($event)"
-            />
+            <CheckBox :id="'string/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" :value="NONE" class="my-1 self-center" />
             <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
             >

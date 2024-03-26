@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { IndexFilterState, IndexSearchResult } from "@/types"
 
-import { onBeforeUnmount, ref } from "vue"
+import { computed, onBeforeUnmount, ref } from "vue"
 import Button from "@/components/Button.vue"
+import CheckBox from "@/components/CheckBox.vue"
 import { useIndexFilterValues, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
@@ -32,23 +33,20 @@ const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
-function onChange(event: Event, str: string) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  let updatedState = [...props.state]
-  if ((event.target as HTMLInputElement).checked) {
-    if (!updatedState.includes(str)) {
-      updatedState.push(str)
+const checkboxState = computed({
+  get(): IndexFilterState {
+    return props.state
+  },
+  set(value: IndexFilterState) {
+    if (abortController.signal.aborted) {
+      return
     }
-  } else {
-    updatedState = updatedState.filter((x) => x !== str)
-  }
-  if (!equals(props.state, updatedState)) {
-    emit("update:state", updatedState)
-  }
-}
+
+    if (!equals(props.state, value)) {
+      emit("update:state", value)
+    }
+  },
+})
 </script>
 
 <template>
@@ -71,17 +69,7 @@ function onChange(event: Event, str: string) {
       <template v-else>
         <li v-for="res in limitedResults" :key="res.str" class="flex items-baseline gap-x-1">
           <template v-if="res.count != props.searchTotal || state.includes(res.str)">
-            <input
-              :id="'index/' + res.str"
-              :disabled="updateProgress > 0"
-              :checked="state.includes(res.str)"
-              :class="
-                updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-              "
-              type="checkbox"
-              class="my-1 self-center rounded"
-              @change="onChange($event, res.str)"
-            />
+            <CheckBox :id="'index/' + res.str" v-model="checkboxState" :progress="updateProgress" :value="res.str" class="my-1 self-center" />
             <label :for="'index/' + res.str" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">{{
               res.str
             }}</label>

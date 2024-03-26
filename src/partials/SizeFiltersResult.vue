@@ -4,6 +4,7 @@ import type { SizeFilterState, SizeSearchResult } from "@/types"
 
 import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
+import CheckBox from "@/components/CheckBox.vue"
 import { useSizeHistogramValues, NONE } from "@/search"
 import { formatValue, equals, useInitialLoad, loadingShortHeights } from "@/utils"
 import { injectProgress } from "@/progress"
@@ -45,21 +46,21 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
   }
 }
 
-function onNoneChange(event: Event) {
-  if (abortController.signal.aborted) {
-    return
-  }
+const noneState = computed({
+  get(): boolean {
+    return props.state === NONE
+  },
+  set(value: boolean) {
+    if (abortController.signal.aborted) {
+      return
+    }
 
-  let updatedState: typeof NONE | null
-  if ((event.target as HTMLInputElement).checked) {
-    updatedState = NONE
-  } else {
-    updatedState = null
-  }
-  if (!equals(props.state, updatedState)) {
-    emit("update:state", updatedState)
-  }
-}
+    const updatedState = value ? NONE : null
+    if (!equals(props.state, updatedState)) {
+      emit("update:state", updatedState)
+    }
+  },
+})
 
 const chartWidth = 200
 const chartHeight = 30
@@ -200,17 +201,7 @@ onBeforeUnmount(() => {
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
-        <input
-          :id="'size/none'"
-          :disabled="updateProgress > 0"
-          :checked="state === NONE"
-          :class="
-            updateProgress > 0 ? 'cursor-not-allowed bg-gray-100 text-primary-300 focus:ring-primary-300' : 'cursor-pointer text-primary-600 focus:ring-primary-500'
-          "
-          type="checkbox"
-          class="my-1 self-center rounded"
-          @change="onNoneChange($event)"
-        />
+        <CheckBox :id="'size/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
         <label :for="'size/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"><i>none</i></label>
         <label :for="'size/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           >({{ searchTotal - result.count }})</label
