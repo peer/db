@@ -58,7 +58,7 @@ const checkboxState = computed({
     }
 
     // TODO: Remove workaround for Vue not supporting Symbols for checkbox values.
-    //       See: https://github.com/vuejs/core/issues/10598
+    //       See: https://github.com/vuejs/core/issues/10597
     value = value.map((v) => (v === "__NONE__" ? NONE : v))
 
     if (!equals(props.state, value)) {
