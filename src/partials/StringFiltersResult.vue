@@ -102,6 +102,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <template v-else>
         <li v-for="res in limitedResultsWithNone" :key="'str' in res ? res.str : NONE" class="flex items-baseline gap-x-1">
           <template v-if="'str' in res && (res.count != searchTotal || state.includes(res.str))">
+            <!-- TODO: Using raw res.str for element ID might lead to invalid characters in element ID. -->
             <CheckBox :id="'string/' + result.id + '/' + res.str" v-model="checkboxState" :progress="updateProgress" :value="res.str" class="my-1 self-center" />
             <label
               :for="'string/' + result.id + '/' + res.str"
@@ -122,6 +123,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <div class="my-1 leading-none">({{ res.count }})</div>
           </template>
           <template v-else-if="!('str' in res)">
+            <!-- TODO: /none in element ID here might conflict with "none" value as res.str above and create duplicate element IDs. -->
             <CheckBox :id="'string/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
             <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>none</i></label
