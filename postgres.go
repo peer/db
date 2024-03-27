@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -20,10 +21,26 @@ const (
 	statementTimeout                = 10 * time.Second
 )
 
+// See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
+// See: https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
+var noticeSeverityToLogLevel = map[string]zerolog.Level{
+	"DEBUG":   zerolog.DebugLevel,
+	"LOG":     zerolog.InfoLevel,
+	"INFO":    zerolog.InfoLevel,
+	"NOTICE":  zerolog.InfoLevel,
+	"WARNING": zerolog.WarnLevel,
+}
+
 func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgxpool.Pool, errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(string(globals.Database))
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
+		// TODO: Use SeverityUnlocalized instead of Severity.
+		//       See: https://github.com/jackc/pgx/issues/1971
+		globals.Logger.WithLevel(noticeSeverityToLogLevel[notice.Severity]).Fields(internal.ErrorDetails((*pgconn.PgError)(notice))).Bool("postgres", true).Send()
 	}
 
 	conn, err := pgx.ConnectConfig(ctx, dbconfig.ConnConfig)
