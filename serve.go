@@ -107,7 +107,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errors.WithStack(err)
 	}
 
-	dbpool, err := pgxpool.New(ctx, string(globals.Database))
+	dbconfig, err := pgxpool.ParseConfig(string(globals.Database))
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	dbpool, err := pgxpool.NewWithConfig(ctx, dbconfig)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
