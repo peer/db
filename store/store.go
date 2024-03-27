@@ -19,6 +19,7 @@ type Store struct {
 func New(ctx context.Context, dbpool *pgxpool.Pool, schema string) (*Store, errors.E) {
 	// We create a direct connection ourselves and do not use the pool
 	// because current ctx does not have Site or request ID set.
+	// TODO: Can it happen that there are no more connections left?
 	conn, err := pgx.ConnectConfig(ctx, dbpool.Config().ConnConfig)
 	if err != nil {
 		return nil, errors.WithStack(err)

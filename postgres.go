@@ -19,6 +19,8 @@ import (
 const (
 	idleInTransactionSessionTimeout = 10 * time.Second
 	statementTimeout                = 10 * time.Second
+
+	defaultApplicationName = "peerdb"
 )
 
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
@@ -37,11 +39,25 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 		return nil, errors.WithStack(err)
 	}
 
-	dbconfig.ConnConfig.Config.OnNotice = func(_ *pgconn.PgConn, notice *pgconn.Notice) {
+	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
 		// TODO: Use SeverityUnlocalized instead of Severity.
 		//       See: https://github.com/jackc/pgx/issues/1971
-		globals.Logger.WithLevel(noticeSeverityToLogLevel[notice.Severity]).Fields(internal.ErrorDetails((*pgconn.PgError)(notice))).Bool("postgres", true).Send()
+		l := globals.Logger.
+			WithLevel(noticeSeverityToLogLevel[notice.Severity]).
+			Fields(internal.ErrorDetails((*pgconn.PgError)(notice))).
+			Bool("postgres", true)
+		applicationName := conn.ParameterStatus("application_name")
+		if applicationName != defaultApplicationName {
+			schema, request, ok := lastCut(applicationName, "/")
+			if ok {
+				l = l.Str("schema", schema).Str("request", request)
+			}
+		}
+		l.Send()
 	}
+	dbconfig.ConnConfig.RuntimeParams["application_name"] = defaultApplicationName
+	dbconfig.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = strconv.FormatInt(idleInTransactionSessionTimeout.Milliseconds(), 10)
+	dbconfig.ConnConfig.RuntimeParams["statement_timeout"] = strconv.FormatInt(statementTimeout.Milliseconds(), 10)
 
 	conn, err := pgx.ConnectConfig(ctx, dbconfig.ConnConfig)
 	if err != nil {
@@ -80,20 +96,25 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	}
 
 	dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections)
-	dbconfig.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = strconv.FormatInt(idleInTransactionSessionTimeout.Milliseconds(), 10)
-	dbconfig.ConnConfig.RuntimeParams["statement_timeout"] = strconv.FormatInt(statementTimeout.Milliseconds(), 10)
+
+	globals.Logger.Info().
+		Str("serverVersion", conn.PgConn().ParameterStatus("server_version")).
+		Str("serverEncoding", conn.PgConn().ParameterStatus("server_encoding")).
+		Str("clientEncoding", conn.PgConn().ParameterStatus("client_encoding")).
+		Str("sessionAuthorization", conn.PgConn().ParameterStatus("session_authorization")).
+		Msg("database connection successful")
 
 	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
 		requestID := waf.MustRequestID(ctx)
 		site := waf.MustGetSite[*Site](ctx)
 
-		_, err := conn.Exec(ctx, `SET application_name TO $1`, fmt.Sprintf("%s/%s", site.Schema, requestID)) //nolint:govet
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s'`, site.Schema, requestID)) //nolint:govet
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(internal.WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
 			return false
 		}
 
-		_, err = conn.Exec(ctx, `SET search_path TO $1`, site.Schema)
+		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO %s`, site.Schema))
 		if err != nil {
 			zerolog.Ctx(ctx).Err(internal.WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
 			return false

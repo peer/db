@@ -41,3 +41,11 @@ func UpdateDocument(processor *elastic.BulkProcessor, index string, seqNo, prima
 	req := elastic.NewBulkIndexRequest().Index(index).Id(doc.ID.String()).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
 	processor.Add(req)
 }
+
+// See: https://github.com/golang/go/issues/46336
+func lastCut(s, sep string) (before, after string, found bool) {
+	if i := strings.LastIndex(s, sep); i >= 0 {
+		return s[:i], s[i+len(sep):], true
+	}
+	return s, "", false
+}
