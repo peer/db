@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -21,6 +22,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/search"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 //go:embed routes.json
@@ -36,7 +38,7 @@ type Service struct {
 }
 
 // Init is used primarily in tests. Use Run otherwise.
-func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler, *Service, errors.E) {
+func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.ReadFileFS) (http.Handler, *Service, errors.E) {
 	// Routes come from a single source of truth, e.g., a file.
 	var routesConfig struct {
 		Routes []waf.Route `json:"routes"`
@@ -63,8 +65,10 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 			},
 			Build:           nil,
 			Index:           globals.Index,
+			Schema:          globals.Schema,
 			Title:           c.Title,
 			SizeField:       globals.SizeField,
+			store:           nil,
 			propertiesTotal: 0,
 		}
 	}
@@ -80,6 +84,7 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 		// We set fields not set when sites are automatically constructed.
 		for _, site := range sites {
 			site.Index = globals.Index
+			site.Schema = globals.Schema
 			site.Title = c.Title
 			site.SizeField = globals.SizeField
 		}
@@ -100,6 +105,19 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 	f, err := fs.Sub(files, "dist")
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
+	}
+
+	dbpool, err := pgxpool.New(ctx, string(globals.Database))
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	context.AfterFunc(ctx, dbpool.Close)
+
+	for _, site := range sites {
+		site.store, errE = store.New(ctx, dbpool, site.Schema)
+		if errE != nil {
+			return nil, nil, errE
+		}
 	}
 
 	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
@@ -139,7 +157,7 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 		ESClient: esClient,
 	}
 
-	errE = service.populateProperties(context.Background())
+	errE = service.populatePropertiesTotal(ctx)
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -193,14 +211,14 @@ func (c *ServeCommand) Init(globals *Globals, files fs.ReadFileFS) (http.Handler
 }
 
 func (c *ServeCommand) Run(globals *Globals) errors.E {
-	handler, _, errE := c.Init(globals, files)
-	if errE != nil {
-		return errE
-	}
-
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	handler, _, errE := c.Init(ctx, globals, files)
+	if errE != nil {
+		return errE
+	}
 
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
 	return c.Server.Run(ctx, handler)

@@ -8,6 +8,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
+
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 type Build struct {
@@ -21,10 +23,13 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	Index string `json:"index" yaml:"index"`
-	Title string `json:"title" yaml:"title"`
+	Index  string `json:"index,omitempty"  yaml:"index,omitempty"`
+	Schema string `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
+
+	store *store.Store
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

@@ -14,6 +14,7 @@ func main() {
 		"defaultProxyTo":      peerdb.DefaultProxyTo,
 		"defaultTLSCache":     peerdb.DefaultTLSCache,
 		"defaultElastic":      peerdb.DefaultElastic,
+		"defaultSchema":       peerdb.DefaultSchema,
 		"defaultIndex":        peerdb.DefaultIndex,
 		"defaultTitle":        peerdb.DefaultTitle,
 		"developmentModeHelp": " Proxy unknown requests.",

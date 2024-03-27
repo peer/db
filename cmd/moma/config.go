@@ -7,8 +7,6 @@ import (
 
 const (
 	DefaultCacheDir    = ".cache"
-	DefaultElastic     = "http://127.0.0.1:9200"
-	DefaultIndex       = "docs"
 	DefaultArtistsURL  = "https://github.com/MuseumofModernArt/collection/raw/master/Artists.json"
 	DefaultArtworksURL = "https://github.com/MuseumofModernArt/collection/raw/master/Artworks.json"
 )

@@ -9,6 +9,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/foolin/pagser v0.1.5
 	github.com/hashicorp/go-cleanhttp v0.5.2
+	github.com/jackc/pgx/v5 v5.5.5
 	github.com/mitchellh/go-server-timing v1.0.1
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.31.1-0.20231108200417-bb14b8b9de11
@@ -18,7 +19,7 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20240319120849-eb6a32121198
 	gitlab.com/tozd/go/zerolog v0.6.0
 	gitlab.com/tozd/identifier v0.2.0
-	gitlab.com/tozd/waf v0.16.0
+	gitlab.com/tozd/waf v0.17.0
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b
 	golang.org/x/time v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -45,6 +46,9 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/justinas/alice v1.2.0 // indirect

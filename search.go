@@ -18,7 +18,7 @@ import (
 
 // TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
 
-func (s *Service) populateProperties(ctx context.Context) errors.E {
+func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
 		elastic.NewTermQuery("claims.rel.prop.id", "2fjzZyP7rv8E4aHnBc6KAa"),
 		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),

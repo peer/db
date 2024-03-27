@@ -1,6 +1,7 @@
 package peerdb_test
 
 import (
+	"context"
 	"crypto/tls"
 	"embed"
 	"io"
@@ -148,7 +149,9 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		Title: peerdb.DefaultTitle,
 	}
 
-	handler, service, errE := serve.Init(globals, testFiles)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	handler, service, errE := serve.Init(ctx, globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ts := httptest.NewUnstartedServer(nil)

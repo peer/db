@@ -127,7 +127,7 @@ obtain a HTTPS TLS certificate from [Let's Encrypt](https://letsencrypt.org) aut
 ```sh
 docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
- -D public.domain.example.com -E name@example.com -C /data/letsencrypt
+ --domain public.domain.example.com -E name@example.com -C /data/letsencrypt
 ```
 
 PeerDB would then be available at `https://public.domain.example.com`.
@@ -734,14 +734,14 @@ Then clone the repository and run:
 
 ```sh
 make peerdb
-./peerdb -d -k localhost+2.pem -K localhost+2-key.pem
+./peerdb -D -k localhost+2.pem -K localhost+2-key.pem
 ```
 
 `localhost+2.pem` and `localhost+2-key.pem` are files of a TLS certificate
 generated as described in the [Usage section](#usage).
 Backend listens at [https://localhost:8080/](https://localhost:8080/).
 
-`-d` CLI argument makes the backend proxy unknown requests (non-API requests)
+`-D` CLI argument makes the backend proxy unknown requests (non-API requests)
 to the frontend. In this mode any placeholders in HTML files are not rendered.
 
 You can also run `make watch` to reload the backend on file changes. You have to install

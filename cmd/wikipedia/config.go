@@ -11,8 +11,6 @@ import (
 const (
 	DefaultAPILimit = "50"
 	DefaultCacheDir = ".cache"
-	DefaultElastic  = "http://127.0.0.1:9200"
-	DefaultIndex    = "docs"
 )
 
 // Globals describes top-level (global) flags.
