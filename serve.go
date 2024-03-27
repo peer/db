@@ -14,7 +14,6 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/cli"
@@ -111,10 +110,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	dbconfig, err := pgxpool.ParseConfig(string(globals.Database))
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
-	}
-	dbconfig.AfterConnect = func(_ context.Context, conn *pgx.Conn) error {
-		store.RegisterIdentifier(conn.TypeMap())
-		return nil
 	}
 	dbpool, err := pgxpool.NewWithConfig(ctx, dbconfig)
 	if err != nil {
