@@ -23,7 +23,7 @@ const (
 
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
 // See: https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
-var noticeSeverityToLogLevel = map[string]zerolog.Level{
+var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknoglobals
 	"DEBUG":   zerolog.DebugLevel,
 	"LOG":     zerolog.InfoLevel,
 	"INFO":    zerolog.InfoLevel,
@@ -37,7 +37,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 		return nil, errors.WithStack(err)
 	}
 
-	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
+	dbconfig.ConnConfig.Config.OnNotice = func(_ *pgconn.PgConn, notice *pgconn.Notice) {
 		// TODO: Use SeverityUnlocalized instead of Severity.
 		//       See: https://github.com/jackc/pgx/issues/1971
 		globals.Logger.WithLevel(noticeSeverityToLogLevel[notice.Severity]).Fields(internal.ErrorDetails((*pgconn.PgError)(notice))).Bool("postgres", true).Send()
