@@ -14,7 +14,6 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -107,15 +106,10 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errors.WithStack(err)
 	}
 
-	dbconfig, err := pgxpool.ParseConfig(string(globals.Database))
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	dbpool, errE := c.initPostgres(ctx, globals)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	dbpool, err := pgxpool.NewWithConfig(ctx, dbconfig)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	context.AfterFunc(ctx, dbpool.Close)
 
 	for _, site := range sites {
 		site.store, errE = store.New(ctx, dbpool, site.Schema)
