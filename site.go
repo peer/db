@@ -1,6 +1,7 @@
 package peerdb
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 
@@ -29,7 +30,7 @@ type Site struct {
 
 	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
 
-	store *store.Store
+	store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

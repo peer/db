@@ -3,6 +3,7 @@ package peerdb
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -112,7 +113,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	}
 
 	for _, site := range sites {
-		site.store, errE = store.New(ctx, dbpool, site.Schema)
+		site.store, errE = store.New[json.RawMessage, json.RawMessage, json.RawMessage](ctx, dbpool, site.Schema)
 		if errE != nil {
 			return nil, nil, errE
 		}

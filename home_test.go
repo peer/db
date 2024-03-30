@@ -112,6 +112,10 @@ func TestRouteHome(t *testing.T) {
 func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	t.Helper()
 
+	if os.Getenv("ELASTIC") == "" {
+		t.Skip("ELASTIC is not available")
+	}
+
 	tempDir := t.TempDir()
 	certPath := filepath.Join(tempDir, "test_cert.pem")
 	keyPath := filepath.Join(tempDir, "test_key.pem")
@@ -121,16 +125,11 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	elastic := os.Getenv("ELASTIC")
-	if elastic == "" {
-		elastic = peerdb.DefaultElastic
-	}
-
 	globals := &peerdb.Globals{ //nolint:exhaustruct
 		LoggingConfig: z.LoggingConfig{ //nolint:exhaustruct
 			Logger: logger,
 		},
-		Elastic:   elastic,
+		Elastic:   os.Getenv("ELASTIC"),
 		Index:     peerdb.DefaultIndex,
 		SizeField: false,
 	}

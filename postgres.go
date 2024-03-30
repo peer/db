@@ -114,7 +114,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 			return false
 		}
 
-		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO %s`, site.Schema))
+		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, site.Schema))
 		if err != nil {
 			zerolog.Ctx(ctx).Err(internal.WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
 			return false

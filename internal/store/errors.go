@@ -1,4 +1,4 @@
-package pgx
+package store
 
 import (
 	"github.com/jackc/pgx/v5/pgconn"
@@ -65,6 +65,10 @@ func ErrorDetails(e *pgconn.PgError) map[string]interface{} {
 }
 
 func WithPgxError(err error) errors.E {
+	if err == nil {
+		return nil
+	}
+
 	errE := errors.WithStack(err)
 	var e *pgconn.PgError
 	if errors.As(err, &e) {
@@ -73,5 +77,6 @@ func WithPgxError(err error) errors.E {
 			details[key] = value
 		}
 	}
+
 	return errE
 }
