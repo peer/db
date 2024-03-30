@@ -10,6 +10,7 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// View is not a snapshot of the database but a dynamic named view of data to operate on.
 type View[Data, Metadata, Patch any] struct {
 	Name string
 
@@ -108,7 +109,16 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
-				errE = errors.WrapWith(errE, ErrValueNotFound)
+				// TODO: Is there a better way to check without doing another query?
+				var exists bool
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.Name).Scan(&exists)
+				if err != nil {
+					errE = errors.Join(errE, err)
+				} else if !exists {
+					errE = errors.WrapWith(errE, ErrViewNotFound)
+				} else {
+					errE = errors.WrapWith(errE, ErrValueNotFound)
+				}
 			}
 			details := errors.Details(errE)
 			details["view"] = v.Name
@@ -130,7 +140,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 		err := tx.QueryRow(
 			ctx, `
 				WITH "currentViewPath" AS (
-					-- We do not care about order of views here because we have en explicit version we are searsching for.
+					-- We do not care about order of views here because we have en explicit version we are searching for.
 					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
@@ -145,7 +155,16 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
-				errE = errors.WrapWith(errE, ErrValueNotFound)
+				// TODO: Is there a better way to check without doing another query?
+				var exists bool
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.Name).Scan(&exists)
+				if err != nil {
+					errE = errors.Join(errE, err)
+				} else if !exists {
+					errE = errors.WrapWith(errE, ErrViewNotFound)
+				} else {
+					errE = errors.WrapWith(errE, ErrValueNotFound)
+				}
 			}
 			details := errors.Details(errE)
 			details["view"] = v.Name
@@ -161,6 +180,8 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 }
 
 func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
+	// We do not care if the view exists at this point. It all
+	// depends what we will be doing with it and we do checks then.
 	return Changeset[Data, Metadata, Patch]{
 		Identifier: id,
 		view:       v,

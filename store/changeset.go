@@ -10,6 +10,8 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// Changeset is a batch of changes done to objects.
+// It can be prepared and later on committed to a view or discarded.
 type Changeset[Data, Metadata, Patch any] struct {
 	identifier.Identifier
 
@@ -151,9 +153,9 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // Commit adds the changelog to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `
+		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
-				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$3
 			), "currentViewChangesets" AS (
 				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
@@ -171,7 +173,56 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		`,
 			c.String(), metadata, c.view.Name,
 		)
-		return internal.WithPgxError(err)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between different EXISTS conditions instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, c.view.Name).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if !exists {
+				return errors.WithStack(ErrViewNotFound)
+			}
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if !exists {
+				// Committing an empty (or an already discarded) changeset is not an error.
+				return nil
+			}
+			err = tx.QueryRow(ctx, `
+				WITH "currentViewPath" AS (
+					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+				), "currentViewChangesets" AS (
+					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
+				), "parentChangesets" AS (
+					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "changeset"=$1
+				)
+				SELECT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
+			`,
+				c.view.Name,
+			).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrParentNotCommitted)
+			}
+			// This should not happen.
+			return errors.New("insert unexpectedly inserted no errors")
+		}
+		return nil
 	})
 	if errE != nil {
 		details := errors.Details(errE)
@@ -210,7 +261,7 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 			if exists {
 				return errors.WithStack(ErrAlreadyCommitted)
 			}
-			// Discarding an empty changeset is not an error.
+			// Discarding an empty (or an already discarded) changeset is not an error.
 		}
 		return nil
 	})
