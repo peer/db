@@ -89,13 +89,18 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		err := tx.QueryRow(
 			ctx, `
 			WITH "currentViewPath" AS (
+				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews", UNNEST("path") WITH ORDINALITY AS p("id", "depth") WHERE "name"=$1
 			), "currentViewChangesets" AS (
 				SELECT "changeset", "depth" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			)
-			SELECT "currentChanges"."changeset", "revision", "data", "metadata" FROM "currentChanges", "currentViewChangesets" WHERE
-				"id"=$2 AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+			SELECT "currentChanges"."changeset", "revision", "data", "metadata" FROM "currentChanges", "currentViewChangesets"
+				WHERE "id"=$2 AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+				-- It is important to search changesets in order in which views are listed in the path.
+				-- There might be newer changesets for object ID in ancestor views, but younger views have
+				-- to be explicitly rebased to include those newer changesets and until then we ignore them.
 				ORDER BY "depth" ASC
+				-- We care only about the first matching changeset.
 				LIMIT 1
 		`,
 			v.Name, id.String(),
@@ -125,12 +130,15 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 		err := tx.QueryRow(
 			ctx, `
 				WITH "currentViewPath" AS (
+					-- We do not care about order of views here because we have en explicit version we are searsching for.
 					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				)
-				SELECT "data", "metadata" FROM "changes", "currentViewChangesets" WHERE
-					"id"=$2 AND "changes"."changeset"=$3 AND "revision"=$4 AND "changes"."changeset"="currentViewChangesets"."changeset"
+				SELECT "data", "metadata" FROM "changes", "currentViewChangesets"
+					-- We require the object at given version has been committed to the view
+					-- which we check by checking that version's changelog is among view's changelogs.
+					WHERE "id"=$2 AND "changes"."changeset"=$3 AND "revision"=$4 AND "changes"."changeset"="currentViewChangesets"."changeset"
 			`,
 			v.Name, id.String(), version.Changeset.String(), version.Revision,
 		).Scan(&data, &metadata)
