@@ -4,9 +4,10 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 type View[Data, Metadata, Patch any] struct {

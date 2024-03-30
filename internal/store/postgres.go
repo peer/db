@@ -1,4 +1,4 @@
-package peerdb
+package store
 
 import (
 	"context"
@@ -11,9 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/waf"
-
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -33,8 +30,8 @@ var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknogloba
 	"WARNING": zerolog.WarnLevel,
 }
 
-func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgxpool.Pool, errors.E) {
-	dbconfig, err := pgxpool.ParseConfig(string(globals.Database))
+func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, errors.E) {
+	dbconfig, err := pgxpool.ParseConfig(databaseURI)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -42,9 +39,9 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
 		// TODO: Use SeverityUnlocalized instead of Severity.
 		//       See: https://github.com/jackc/pgx/issues/1971
-		l := globals.Logger.
+		l := logger.
 			WithLevel(noticeSeverityToLogLevel[notice.Severity]).
-			Fields(internal.ErrorDetails((*pgconn.PgError)(notice))).
+			Fields(ErrorDetails((*pgconn.PgError)(notice))).
 			Bool("postgres", true)
 		applicationName := conn.ParameterStatus("application_name")
 		if applicationName != defaultApplicationName {
@@ -68,7 +65,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	var maxConnectionsStr string
 	err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
 	if err != nil {
-		return nil, internal.WithPgxError(err)
+		return nil, WithPgxError(err)
 	}
 	maxConnections, err := strconv.Atoi(maxConnectionsStr)
 	if err != nil {
@@ -78,7 +75,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	var reservedConnectionsStr string
 	err = conn.QueryRow(ctx, `SHOW reserved_connections`).Scan(&reservedConnectionsStr)
 	if err != nil {
-		return nil, internal.WithPgxError(err)
+		return nil, WithPgxError(err)
 	}
 	reservedConnections, err := strconv.Atoi(reservedConnectionsStr)
 	if err != nil {
@@ -88,7 +85,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	var superuserReservedConnectionsStr string
 	err = conn.QueryRow(ctx, `SHOW superuser_reserved_connections`).Scan(&superuserReservedConnectionsStr)
 	if err != nil {
-		return nil, internal.WithPgxError(err)
+		return nil, WithPgxError(err)
 	}
 	superuserReservedConnections, err := strconv.Atoi(superuserReservedConnectionsStr)
 	if err != nil {
@@ -97,7 +94,7 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 
 	dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections)
 
-	globals.Logger.Info().
+	logger.Info().
 		Str("serverVersion", conn.PgConn().ParameterStatus("server_version")).
 		Str("serverEncoding", conn.PgConn().ParameterStatus("server_encoding")).
 		Str("clientEncoding", conn.PgConn().ParameterStatus("client_encoding")).
@@ -105,18 +102,17 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 		Msg("database connection successful")
 
 	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
-		requestID := waf.MustRequestID(ctx)
-		site := waf.MustGetSite[*Site](ctx)
+		schema, requestID := getRequest(ctx)
 
-		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s'`, site.Schema, requestID)) //nolint:govet
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s'`, schema, requestID)) //nolint:govet
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(internal.WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
+			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
 			return false
 		}
 
-		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, site.Schema))
+		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, schema))
 		if err != nil {
-			zerolog.Ctx(ctx).Err(internal.WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
+			zerolog.Ctx(ctx).Err(WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
 			return false
 		}
 
@@ -125,13 +121,13 @@ func (c *ServeCommand) initPostgres(ctx context.Context, globals *Globals) (*pgx
 	dbconfig.AfterRelease = func(conn *pgx.Conn) bool {
 		_, err := conn.Exec(ctx, `RESET application_name`) //nolint:govet
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(internal.WithPgxError(err)).Msg(`unable to reset "application_name" for PostgreSQL connection`)
+			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to reset "application_name" for PostgreSQL connection`)
 			return false
 		}
 
 		_, err = conn.Exec(ctx, `RESET search_path`)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(internal.WithPgxError(err)).Msg(`unable to reset "search_path" for PostgreSQL connection`)
+			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to reset "search_path" for PostgreSQL connection`)
 			return false
 		}
 

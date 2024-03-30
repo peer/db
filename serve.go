@@ -23,6 +23,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //go:embed routes.json
@@ -107,7 +109,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errors.WithStack(err)
 	}
 
-	dbpool, errE := c.initPostgres(ctx, globals)
+	dbpool, errE := internal.InitPostgres(ctx, string(globals.Database), globals.Logger, func(ctx context.Context) (string, string) {
+		requestID := waf.MustRequestID(ctx)
+		site := waf.MustGetSite[*Site](ctx)
+		return site.Schema, requestID.String()
+	})
 	if errE != nil {
 		return nil, nil, errE
 	}

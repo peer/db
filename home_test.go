@@ -115,6 +115,9 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	if os.Getenv("ELASTIC") == "" {
 		t.Skip("ELASTIC is not available")
 	}
+	if os.Getenv("POSTGRES") == "" {
+		t.Skip("POSTGRES is not available")
+	}
 
 	tempDir := t.TempDir()
 	certPath := filepath.Join(tempDir, "test_cert.pem")
@@ -129,8 +132,10 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		LoggingConfig: z.LoggingConfig{ //nolint:exhaustruct
 			Logger: logger,
 		},
+		Database:  []byte(os.Getenv("POSTGRES")),
 		Elastic:   os.Getenv("ELASTIC"),
 		Index:     peerdb.DefaultIndex,
+		Schema:    peerdb.DefaultSchema,
 		SizeField: false,
 	}
 
