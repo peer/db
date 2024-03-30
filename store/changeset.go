@@ -25,7 +25,6 @@ type Changeset[Data, Metadata, Patch any] struct {
 func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4, '{}'
 				-- The changeset should not yet be committed (to any view).
@@ -38,12 +37,27 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 			return internal.WithPgxError(err)
 		}
 		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
 			return errors.WithStack(ErrConflict)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
 		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+	}
 	return version, errE
 }
 
@@ -52,7 +66,6 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 ) (Version, errors.E) {
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
 		// TODO: Make sure parent changesets really contain object ID.
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, $6
@@ -66,19 +79,34 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 			return internal.WithPgxError(err)
 		}
 		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
 			return errors.WithStack(ErrConflict)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
 		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+		details["parentChangeset"] = parentChangeset.String()
+	}
 	return version, errE
 }
 
 func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
 		// TODO: Make sure parent changesets really contain object ID.
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4, '{}'
@@ -92,12 +120,28 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 			return internal.WithPgxError(err)
 		}
 		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
 			return errors.WithStack(ErrConflict)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
 		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+		details["parentChangeset"] = parentChangeset.String()
+	}
 	return version, errE
 }
 
@@ -106,7 +150,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 
 // Commit adds the changelog to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
-	return internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
 				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
@@ -129,6 +173,12 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		)
 		return internal.WithPgxError(err)
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["changeset"] = c.String()
+	}
+	return errE
 }
 
 // We allow discarding changesets even after they have been used as a parent changeset in some
@@ -138,9 +188,8 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 
 // Discard deletes the changelog if it has not already been committed.
 func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
-	return internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: Return ErrAlreadyCommitted if already committed.
-		_, err := tx.Exec(ctx, `
+	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		res, err := tx.Exec(ctx, `
 			DELETE FROM "changes"
 				WHERE "changeset"=$1
 				-- The changeset should not yet be committed (to any view).
@@ -148,8 +197,29 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 		`,
 			c.String(),
 		)
-		return internal.WithPgxError(err)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and an empty changeset instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
+			// Discarding an empty changeset is not an error.
+		}
+		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["changeset"] = c.String()
+	}
+	return errE
 }
 
 // Rollback discards the changelog but only if it has not already been committed.
