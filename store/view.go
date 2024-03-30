@@ -94,9 +94,13 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 				SELECT p.* FROM "currentViews", UNNEST("path") WITH ORDINALITY AS p("id", "depth") WHERE "name"=$1
 			), "currentViewChangesets" AS (
 				SELECT "changeset", "depth" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
+			), "parentChangesets" AS (
+				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "id"=$2 AND "changeset" IN (SELECT "changeset" FROM "currentViewChangesets")
 			)
 			SELECT "currentChanges"."changeset", "revision", "data", "metadata" FROM "currentChanges", "currentViewChangesets"
-				WHERE "id"=$2 AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+				WHERE "id"=$2
+				-- We collect all parent changesets for the object and make sure we do not select them.
+				AND "currentChanges"."changeset" IN (SELECT "changeset" FROM "currentViewChangesets" EXCEPT SELECT * FROM "parentChangesets")
 				-- It is important to search changesets in order in which views are listed in the path.
 				-- There might be newer changesets for object ID in ancestor views, but younger views have
 				-- to be explicitly rebased to include those newer changesets and until then we ignore them.
