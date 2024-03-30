@@ -52,7 +52,7 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 	}
 
 	// TODO: Use schema management/migration instead.
-	if exists {
+	if !exists {
 		_, err = tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, schema))
 		if err != nil {
 			return nil, internal.WithPgxError(err)

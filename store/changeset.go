@@ -29,7 +29,7 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4, '{}'
 				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
+				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
 		`,
 			id.String(), c.String(), value, metadata,
@@ -57,7 +57,7 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, $6
 				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
+				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
 		`,
 			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata, []Patch{patch},
@@ -83,7 +83,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4, '{}'
 				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
+				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
 		`,
 			id.String(), c.String(), []string{parentChangeset.String()}, metadata,
@@ -118,12 +118,12 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			INSERT INTO "viewChangesets" SELECT "id", $1, $2 FROM "currentViews"
 				WHERE	"name"=$3
 				-- The changeset should not yet be committed (to any view).
-				AND NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
+				AND NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
 				-- There must be at least one change in the changeset we want to commit.
-				AND EXIST (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)
+				AND EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)
 				-- That parent changesets really contain object IDs is checked in Update and Delete.
 				-- Here we only check that parent changesets are already committed for the current view.
-				AND NOT EXIST (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
+				AND NOT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
 		`,
 			c.String(), metadata, c.view.Name,
 		)
@@ -144,7 +144,7 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 			DELETE FROM "changes"
 				WHERE "changeset"=$1
 				-- The changeset should not yet be committed (to any view).
-				AND NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
+				AND NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
 		`,
 			c.String(),
 		)
