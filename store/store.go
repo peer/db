@@ -174,7 +174,7 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 
 		_, err = tx.Exec(ctx, `
 			CREATE VIEW "currentChanges" AS
-				SELECT DISTINCT ON ("id") * FROM "changes" ORDER BY "id", "revision" DESC
+				SELECT DISTINCT ON ("id", "changeset") * FROM "changes" ORDER BY "id", "changeset", "revision" DESC
 		`)
 		if err != nil {
 			return nil, internal.WithPgxError(err)
