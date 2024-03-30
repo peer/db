@@ -16,66 +16,70 @@ type View[Data, Metadata, Patch any] struct {
 	store *Store[Data, Metadata, Patch]
 }
 
-func (v *View[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (_ Version, errE errors.E) {
+func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
+	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata,
+) (_ Version, errE errors.E) {
 	changeset, errE := v.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Insert(ctx, id, value, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) Update(
+func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
-) (Version, errors.E) {
+) (_ Version, errE errors.E) {
 	changeset, errE := v.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Update(ctx, id, parentChangeset, value, patch, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
+func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
+	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata,
+) (_ Version, errE errors.E) {
 	changeset, errE := v.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Delete(ctx, id, parentChangeset, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
-		return Version{}, errE
+		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) {
+func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	var data Data
 	var metadata Metadata
 	var version Version
@@ -114,7 +118,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 	return data, metadata, version, errE
 }
 
-func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) {
+func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
 	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -148,7 +152,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 	return data, metadata, errE
 }
 
-func (v *View[Data, Metadata, Patch]) Changeset(ctx context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
+func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
 	return Changeset[Data, Metadata, Patch]{
 		Identifier: id,
 		view:       v,

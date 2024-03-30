@@ -26,7 +26,7 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
-		res, err := c.view.store.dbpool.Exec(ctx, `
+		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4, '{}'
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
@@ -47,12 +47,14 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	return version, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) Update(ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata) (Version, errors.E) {
+func (c *Changeset[Data, Metadata, Patch]) Update(
+	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
+) (Version, errors.E) {
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
 		// TODO: Make sure parent changesets really contain object ID.
-		res, err := c.view.store.dbpool.Exec(ctx, `
+		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, $6
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
@@ -78,7 +80,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: How to differentiate and return ErrAlreadyCommitted if row was not added because changeset is already in viewChangesets?
 		// TODO: Make sure parent changesets really contain object ID.
-		res, err := c.view.store.dbpool.Exec(ctx, `
+		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4, '{}'
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXIST (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
@@ -105,7 +107,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // Commit adds the changelog to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	return internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := c.view.store.dbpool.Exec(ctx, `
+		_, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
 				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
 			), "currentViewChangesets" AS (
@@ -138,7 +140,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
 	return internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Return ErrAlreadyCommitted if already committed.
-		_, err := c.view.store.dbpool.Exec(ctx, `
+		_, err := tx.Exec(ctx, `
 			DELETE FROM "changes"
 				WHERE "changeset"=$1
 				-- The changeset should not yet be committed (to any view).

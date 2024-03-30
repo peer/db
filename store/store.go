@@ -19,7 +19,7 @@ type Store[Data, Metadata, Patch any] struct {
 	schema string
 }
 
-func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, schema string) (*Store[Data, Metadata, Patch], errors.E) {
+func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, schema string) (_ *Store[Data, Metadata, Patch], errE errors.E) { //nolint:nonamedreturns
 	// We create a direct connection ourselves and do not use the pool
 	// because current ctx does not have Site or request ID set.
 	// TODO: Can it happen that there are no more connections left?
@@ -38,8 +38,12 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 	if err != nil {
 		return nil, internal.WithPgxError(err)
 	}
-	// We ignore any error here as it is doubtful that it adds any relevant information.
-	defer tx.Rollback(ctx)
+	defer func() {
+		err = tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			errE = errors.Join(errE, err)
+		}
+	}()
 
 	var exists bool
 	err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name=$1)`, schema).Scan(&exists)
