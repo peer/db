@@ -106,6 +106,49 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	return version, errE
 }
 
+func (c *Changeset[Data, Metadata, Patch]) Replace(
+	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
+) (Version, errors.E) {
+	var version Version
+	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// TODO: Make sure parent changesets really contain object ID.
+		res, err := tx.Exec(ctx, `
+			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, '{}'
+				-- The changeset should not yet be committed (to any view).
+				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
+				ON CONFLICT DO NOTHING
+		`,
+			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+		)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if res.RowsAffected() == 0 {
+			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			if exists {
+				return errors.WithStack(ErrAlreadyCommitted)
+			}
+			return errors.WithStack(ErrConflict)
+		}
+		version.Changeset = c.Identifier
+		version.Revision = 1
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.Name
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+		details["parentChangeset"] = parentChangeset.String()
+	}
+	return version, errE
+}
+
 func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {

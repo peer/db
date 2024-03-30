@@ -38,6 +38,27 @@ func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	return version, nil
 }
 
+func (v *View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
+	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
+) (_ Version, errE errors.E) {
+	changeset, errE := v.Begin(ctx)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	defer func() {
+		errE = errors.Join(errE, changeset.Rollback(ctx))
+	}()
+	version, errE := changeset.Replace(ctx, id, parentChangeset, value, metadata)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	errE = changeset.Commit(ctx, metadata)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	return version, nil
+}
+
 func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (_ Version, errE errors.E) {

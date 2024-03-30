@@ -90,11 +90,9 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 				"data" jsonb,
 				"metadata" jsonb NOT NULL,
 				-- Forward patches which bring parentChangesets versions of the value to
-				-- this version of the value. Number of patches and order matches
-				-- parentChangesets. All patches have to end up with the equal value.
-				-- It can be an empty array only when parentChangesets is of length zero
-				-- (a new value is being created) or parentChangesets point to a change
-				-- where data is NULL (the previous value has been deleted).
+				-- this version of the value. If patches are available, the number of patches
+				-- and their order must match that of parentChangesets. All patches have to
+				-- end up with the equal value.
 				"patches" jsonb[] NOT NULL,
 				PRIMARY KEY ("id", "changeset", "revision")
 			)

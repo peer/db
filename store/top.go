@@ -31,6 +31,14 @@ func (s *Store[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier
 	return view.Insert(ctx, id, value, metadata)
 }
 
+func (s *Store[Data, Metadata, Patch]) Replace(ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	return view.Replace(ctx, id, parentChangeset, value, metadata)
+}
+
 func (s *Store[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
