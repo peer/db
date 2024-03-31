@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
@@ -21,12 +22,36 @@ type testData struct {
 	Patch bool
 }
 
+func (t *testData) ScanBytes(v []byte) error {
+	return x.Unmarshal(v, t)
+}
+
+func (t testData) BytesValue() ([]byte, error) {
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type testMetadata struct {
 	Metadata string
 }
 
+func (t *testMetadata) ScanBytes(v []byte) error {
+	return x.Unmarshal(v, t)
+}
+
+func (t testMetadata) BytesValue() ([]byte, error) {
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type testPatch struct {
 	Patch bool
+}
+
+func (t *testPatch) ScanBytes(v []byte) error {
+	return x.Unmarshal(v, t)
+}
+
+func (t testPatch) BytesValue() ([]byte, error) {
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type testCase[Data, Metadata, Patch any] struct {
