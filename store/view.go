@@ -102,6 +102,9 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 }
 
 func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
+	arguments := []any{
+		v.Name, id.String(),
+	}
 	var data Data
 	var metadata Metadata
 	var version Version
@@ -129,9 +132,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 				ORDER BY "depth" ASC
 				-- We care only about the first matching changeset.
 				LIMIT 1
-		`,
-			v.Name, id.String(),
-		).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
+		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -166,6 +167,9 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 }
 
 func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
+	arguments := []any{
+		v.Name, id.String(), version.Changeset.String(), version.Revision,
+	}
 	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -182,9 +186,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 					-- We require the object at given version has been committed to the view
 					-- which we check by checking that version's changelog is among view's changelogs.
 					WHERE "id"=$2 AND "changes"."changeset"=$3 AND "revision"=$4 AND "changes"."changeset"="currentViewChangesets"."changeset"
-			`,
-			v.Name, id.String(), version.Changeset.String(), version.Revision,
-		).Scan(&data, &dataIsNull, &metadata)
+			`, arguments...).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {

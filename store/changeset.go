@@ -10,7 +10,7 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// TODO: We build query strings again and again based on PatchType. We should create them once during Init and reuse them here.
+// TODO: We build query strings again and again based on patchesEnabled. We should create them once during Init and reuse them here.
 
 // Changeset is a batch of changes done to objects.
 // It can be prepared and later on committed to a view or discarded.
@@ -27,8 +27,11 @@ type Changeset[Data, Metadata, Patch any] struct {
 // are committed before children.
 
 func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
+	arguments := []any{
+		id.String(), c.String(), value, metadata,
+	}
 	patches := ""
-	if c.view.store.PatchType != "" {
+	if c.view.store.patchesEnabled {
 		patches = ", '{}'" //nolint:goconst
 	}
 	var version Version
@@ -39,9 +42,7 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
-		`,
-			id.String(), c.String(), value, metadata,
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -73,22 +74,17 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 func (c *Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
-	var patches []Patch
+	arguments := []any{
+		id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+	}
 	patchesPlaceholders := ""
-	if c.view.store.PatchType != "" {
-		patches = []Patch{patch}
+	if c.view.store.patchesEnabled {
+		arguments = append(arguments, []Patch{patch})
 		patchesPlaceholders = ", $6"
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
-		arguments := []any{
-			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
-		}
-		if c.view.store.PatchType != "" {
-			arguments = append(arguments, patches)
-		}
-
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders+`
 				-- The changeset should not yet be committed (to any view).
@@ -127,8 +123,11 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 func (c *Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
+	arguments := []any{
+		id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+	}
 	patches := ""
-	if c.view.store.PatchType != "" {
+	if c.view.store.patchesEnabled {
 		patches = ", '{}'"
 	}
 	var version Version
@@ -140,9 +139,7 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
-		`,
-			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -173,8 +170,11 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 }
 
 func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
+	arguments := []any{
+		id.String(), c.String(), []string{parentChangeset.String()}, metadata,
+	}
 	patches := ""
-	if c.view.store.PatchType != "" {
+	if c.view.store.patchesEnabled {
 		patches = ", '{}'"
 	}
 	var version Version
@@ -186,9 +186,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
-		`,
-			id.String(), c.String(), []string{parentChangeset.String()}, metadata,
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -223,6 +221,9 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 
 // Commit adds the changelog to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
+	arguments := []any{
+		c.String(), metadata, c.view.Name,
+	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
@@ -241,9 +242,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				-- That parent changesets really contain object IDs is checked in Update and Delete.
 				-- Here we only check that parent changesets are already committed for the current view.
 				AND NOT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
-		`,
-			c.String(), metadata, c.view.Name,
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -310,15 +309,16 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 
 // Discard deletes the changelog if it has not already been committed.
 func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
+	arguments := []any{
+		c.String(),
+	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			DELETE FROM "changes"
 				WHERE "changeset"=$1
 				-- The changeset should not yet be committed (to any view).
 				AND NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
-		`,
-			c.String(),
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}

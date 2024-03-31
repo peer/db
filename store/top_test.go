@@ -30,9 +30,6 @@ type testPatch struct {
 }
 
 type testCase[Data, Metadata, Patch any] struct {
-	DataType        string
-	PatchType       string
-	MetadataType    string
 	InsertData      Data
 	InsertMetadata  Metadata
 	UpdateData      Data
@@ -57,9 +54,6 @@ func TestTop(t *testing.T) {
 	}
 
 	testTop(t, testCase[*testData, *testMetadata, *testPatch]{
-		DataType:        "jsonb",
-		PatchType:       "jsonb",
-		MetadataType:    "jsonb",
 		InsertData:      &testData{Data: 123, Patch: false},
 		InsertMetadata:  &testMetadata{Metadata: "foobar"},
 		UpdateData:      &testData{Data: 123, Patch: true},
@@ -72,9 +66,6 @@ func TestTop(t *testing.T) {
 	})
 
 	testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
-		DataType:        "jsonb",
-		PatchType:       "jsonb",
-		MetadataType:    "jsonb",
 		InsertData:      json.RawMessage(`{"data": 123}`),
 		InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
 		UpdateData:      json.RawMessage(`{"data": 123, "patch": true}`),
@@ -87,9 +78,6 @@ func TestTop(t *testing.T) {
 	})
 
 	testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
-		DataType:        "jsonb",
-		PatchType:       "jsonb",
-		MetadataType:    "jsonb",
 		InsertData:      toRawMessagePtr(`{"data": 123}`),
 		InsertMetadata:  toRawMessagePtr(`{"metadata": "foobar"}`),
 		UpdateData:      toRawMessagePtr(`{"data": 123, "patch": true}`),
@@ -102,9 +90,6 @@ func TestTop(t *testing.T) {
 	})
 
 	testTop(t, testCase[[]byte, string, any]{
-		DataType:        "bytea",
-		PatchType:       "",
-		MetadataType:    "jsonb",
 		InsertData:      []byte(`{"data": 123}`),
 		InsertMetadata:  `{"metadata": "foobar"}`,
 		UpdateData:      []byte(`{"data": 123, "patch": true}`),
@@ -132,10 +117,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &store.Store[Data, Metadata, Patch]{
-		Schema:       schema,
-		DataType:     d.DataType,
-		MetadataType: d.MetadataType,
-		PatchType:    d.PatchType,
+		Schema: schema,
 	}
 
 	errE = s.Init(ctx, dbpool)
