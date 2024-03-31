@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	z "gitlab.com/tozd/go/zerolog"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
@@ -124,7 +125,7 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	keyPath := filepath.Join(tempDir, "test_key.pem")
 
 	errE := x.CreateTempCertificateFiles(certPath, keyPath, []string{"localhost"})
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
@@ -134,10 +135,15 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		},
 		Database:  []byte(os.Getenv("POSTGRES")),
 		Elastic:   os.Getenv("ELASTIC"),
-		Index:     peerdb.DefaultIndex,
-		Schema:    peerdb.DefaultSchema,
+		Index:     identifier.New().String(),
+		Schema:    identifier.New().String(),
 		SizeField: false,
 	}
+
+	populate := peerdb.PopulateCommand{}
+
+	errE = populate.Run(globals)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	serve := peerdb.ServeCommand{ //nolint:exhaustruct
 		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
