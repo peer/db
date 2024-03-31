@@ -135,7 +135,7 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		},
 		Database:  []byte(os.Getenv("POSTGRES")),
 		Elastic:   os.Getenv("ELASTIC"),
-		Index:     identifier.New().String(),
+		Index:     strings.ToLower(identifier.New().String()),
 		Schema:    identifier.New().String(),
 		SizeField: false,
 	}
