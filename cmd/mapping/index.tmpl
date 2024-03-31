@@ -90,10 +90,6 @@
         "dynamic": true,
         "properties": {}
       },
-      "mnemonic": {
-        "type": "keyword",
-        "doc_values": false
-      },
       "claims": {
         "properties": {
           {{range $i, $claimType := $}}
@@ -101,10 +97,6 @@
             "{{$claimType.Name}}": {
               "type": "nested",
               "properties": {
-                "id": {
-                  "type": "keyword",
-                  "doc_values": false
-                },
                 "confidence": {
                   "type": "double"
                 }
