@@ -119,10 +119,14 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	}
 
 	for _, site := range sites {
-		site.store, errE = store.New[json.RawMessage, json.RawMessage, json.RawMessage](ctx, dbpool, site.Schema)
+		store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
+			Schema: site.Schema,
+		}
+		errE = store.Init(ctx, dbpool)
 		if errE != nil {
 			return nil, nil, errE
 		}
+		site.store = store
 	}
 
 	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)

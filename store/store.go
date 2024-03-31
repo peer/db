@@ -15,17 +15,22 @@ import (
 const MainView = "main"
 
 type Store[Data, Metadata, Patch any] struct {
+	Schema string
+
 	dbpool *pgxpool.Pool
-	schema string
 }
 
-func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, schema string) (_ *Store[Data, Metadata, Patch], errE errors.E) { //nolint:nonamedreturns
+func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns
+	if s.dbpool != nil {
+		return errors.New("already initialized")
+	}
+
 	// We create a direct connection ourselves and do not use the pool
 	// because current ctx does not have Site or request ID set.
 	// TODO: Can it happen that there are no more connections left?
 	conn, err := pgx.ConnectConfig(ctx, dbpool.Config().ConnConfig)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	defer conn.Close(ctx)
 
@@ -36,7 +41,7 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 		BeginQuery:     "",
 	})
 	if err != nil {
-		return nil, internal.WithPgxError(err)
+		return internal.WithPgxError(err)
 	}
 	defer func() {
 		err = tx.Rollback(ctx)
@@ -46,21 +51,21 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 	}()
 
 	var exists bool
-	err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name=$1)`, schema).Scan(&exists)
+	err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name=$1)`, s.Schema).Scan(&exists)
 	if err != nil {
-		return nil, internal.WithPgxError(err)
+		return internal.WithPgxError(err)
 	}
 
 	// TODO: Use schema management/migration instead.
 	if !exists {
-		_, err = tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, schema))
+		_, err = tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
-		_, err = tx.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, schema))
+		_, err = tx.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, s.Schema))
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		// TODO: Add a constraint that no two values with same ID should be created in multiple changesets.
@@ -98,7 +103,7 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 			)
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		// TODO: Add constraints on name field.
@@ -123,19 +128,19 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 			)
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 		_, err = tx.Exec(ctx, `
 			CREATE INDEX ON "views" USING btree ("name")
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 		_, err = tx.Exec(ctx, `
 			CREATE INDEX ON "views" USING gin ("path")
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		_, err = tx.Exec(ctx, `
@@ -153,13 +158,13 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 			)
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		viewID := identifier.New()
 		_, err = tx.Exec(ctx, `INSERT INTO "views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		_, err = tx.Exec(ctx, `
@@ -167,7 +172,7 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 				SELECT DISTINCT ON ("id") * FROM "views" ORDER BY "id", "revision" DESC
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		_, err = tx.Exec(ctx, `
@@ -175,17 +180,16 @@ func New[Data, Metadata, Patch any](ctx context.Context, dbpool *pgxpool.Pool, s
 				SELECT DISTINCT ON ("id", "changeset") * FROM "changes" ORDER BY "id", "changeset", "revision" DESC
 		`)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 
 		err = tx.Commit(ctx)
 		if err != nil {
-			return nil, internal.WithPgxError(err)
+			return internal.WithPgxError(err)
 		}
 	}
 
-	return &Store[Data, Metadata, Patch]{
-		dbpool: dbpool,
-		schema: schema,
-	}, nil
+	s.dbpool = dbpool
+
+	return nil
 }

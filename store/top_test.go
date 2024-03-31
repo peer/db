@@ -104,7 +104,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	s, errE := store.New[Data, Metadata, Patch](ctx, dbpool, schema)
+	s := &store.Store[Data, Metadata, Patch]{
+		Schema: schema,
+	}
+
+	errE = s.Init(ctx, dbpool)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, _, _, errE = s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
