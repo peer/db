@@ -71,6 +71,17 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			return internal.WithPgxError(err)
 		}
 
+		patches := ""
+		if s.PatchType != "" {
+			patches = `
+				-- Forward patches which bring parentChangesets versions of the value to
+				-- this version of the value. If patches are available, the number of patches
+				-- and their order must match that of parentChangesets. All patches have to
+				-- end up with the equal value.
+				"patches" ` + s.PatchType + `[] NOT NULL,
+			`
+		}
+
 		// TODO: Add a constraint that no two values with same ID should be created in multiple changesets.
 		// TODO: Check if DESC should be specified for revision column.
 		//       See: https://www.postgresql.org/message-id/CAKLmikNCFD44VjzRCRwuiVWDOE=T7zsOzygd5XakKNdRgLv-Aw@mail.gmail.com
@@ -97,11 +108,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- NULL if value has been deleted.
 				"data" `+s.DataType+`,
 				"metadata" `+s.MetadataType+` NOT NULL,
-				-- Forward patches which bring parentChangesets versions of the value to
-				-- this version of the value. If patches are available, the number of patches
-				-- and their order must match that of parentChangesets. All patches have to
-				-- end up with the equal value.
-				"patches" `+s.PatchType+`[] NOT NULL,
+				`+patches+`
 				PRIMARY KEY ("id", "changeset", "revision")
 			)
 		`)

@@ -10,6 +10,8 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// TODO: We build query strings again and again based on PatchType. We should create them once during Init and reuse them here.
+
 // Changeset is a batch of changes done to objects.
 // It can be prepared and later on committed to a view or discarded.
 type Changeset[Data, Metadata, Patch any] struct {
@@ -25,10 +27,15 @@ type Changeset[Data, Metadata, Patch any] struct {
 // are committed before children.
 
 func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
+	patches := ""
+	if c.view.store.PatchType != "" {
+		patches = ", '{}'" //nolint:goconst
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		//nolint:goconst
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4, '{}'
+			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4`+patches+`
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
@@ -66,17 +73,28 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 func (c *Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
+	var patches []Patch
+	patchesPlaceholders := ""
+	if c.view.store.PatchType != "" {
+		patches = []Patch{patch}
+		patchesPlaceholders = ", $6"
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
+		arguments := []any{
+			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+		}
+		if c.view.store.PatchType != "" {
+			arguments = append(arguments, patches)
+		}
+
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, $6
+			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders+`
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
-		`,
-			id.String(), c.String(), []string{parentChangeset.String()}, value, metadata, []Patch{patch},
-		)
+		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -109,11 +127,16 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 func (c *Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
+	patches := ""
+	if c.view.store.PatchType != "" {
+		patches = ", '{}'"
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
+
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5, '{}'
+			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patches+`
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
@@ -150,11 +173,16 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 }
 
 func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
+	patches := ""
+	if c.view.store.PatchType != "" {
+		patches = ", '{}'"
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
+
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4, '{}'
+			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4`+patches+`
 				-- The changeset should not yet be committed (to any view).
 				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
 				ON CONFLICT DO NOTHING
