@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -23,10 +24,24 @@ type Store[Data, Metadata, Patch any] struct {
 	patchesEnabled bool
 }
 
+func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx pgx.Tx) (bool, errors.E) {
+	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
+	if err != nil {
+		var e *pgconn.PgError
+		if errors.As(err, &e) && e.Code == "23505" { // unique_violation.
+			return false, nil
+		}
+		return false, internal.WithPgxError(err)
+	}
+	return true, nil
+}
+
 func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns
 	if s.dbpool != nil {
 		return errors.New("already initialized")
 	}
+
+	s.patchesEnabled = !isNoneType[Patch]()
 
 	// We create a direct connection ourselves and do not use the pool
 	// because current ctx does not have Site or request ID set.
@@ -53,21 +68,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 		}
 	}()
 
-	var exists bool
-	err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name=$1)`, s.Schema).Scan(&exists)
-	if err != nil {
-		return internal.WithPgxError(err)
+	created, errE := s.tryCreateSchema(ctx, tx)
+	if errE != nil {
+		return errE
 	}
 
-	s.patchesEnabled = !isNoneType[Patch]()
-
 	// TODO: Use schema management/migration instead.
-	if !exists {
-		_, err = tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
-		if err != nil {
-			return internal.WithPgxError(err)
-		}
-
+	if created {
 		_, err = tx.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, s.Schema))
 		if err != nil {
 			return internal.WithPgxError(err)
