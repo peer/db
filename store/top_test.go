@@ -64,6 +64,7 @@ type testCase[Data, Metadata, Patch any] struct {
 	ReplaceMetadata Metadata
 	DeleteData      Data
 	DeleteMetadata  Metadata
+	CommitMetadata  Metadata
 }
 
 func toRawMessagePtr(data string) *json.RawMessage {
@@ -88,6 +89,7 @@ func TestTop(t *testing.T) {
 		ReplaceMetadata: &testMetadata{Metadata: "another"},
 		DeleteData:      nil,
 		DeleteMetadata:  &testMetadata{Metadata: "admin"},
+		CommitMetadata:  &testMetadata{Metadata: "commit"},
 	})
 
 	testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -100,6 +102,7 @@ func TestTop(t *testing.T) {
 		ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
 		DeleteData:      nil,
 		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
+		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
 	})
 
 	testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
@@ -112,6 +115,7 @@ func TestTop(t *testing.T) {
 		ReplaceMetadata: toRawMessagePtr(`{"metadata": "another"}`),
 		DeleteData:      nil,
 		DeleteMetadata:  toRawMessagePtr(`{"metadata": "admin"}`),
+		CommitMetadata:  toRawMessagePtr(`{"metadata": "commit"}`),
 	})
 
 	// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
@@ -125,6 +129,7 @@ func TestTop(t *testing.T) {
 		ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
 		DeleteData:      nil,
 		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
+		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
 	})
 }
 
@@ -261,4 +266,93 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
+
+	newID := identifier.New()
+
+	// Test manual changeset management.
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newVersion, errE := changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), newVersion.Revision)
+	}
+
+	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	assert.ErrorIs(t, errE, store.ErrValueDeleted)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+	assert.Equal(t, d.DeleteData, data)
+	assert.Equal(t, d.DeleteMetadata, metadata)
+	assert.Equal(t, deleteVersion, version)
+
+	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	assert.NotErrorIs(t, errE, store.ErrValueDeleted)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+	assert.Nil(t, data)
+	assert.Nil(t, metadata)
+	assert.Empty(t, version)
+
+	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
+	errE = changeset.Commit(ctx, d.CommitMetadata)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	assert.ErrorIs(t, errE, store.ErrValueDeleted)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+	assert.Equal(t, d.DeleteData, data)
+	assert.Equal(t, d.DeleteMetadata, metadata)
+	assert.Equal(t, deleteVersion, version)
+
+	data, metadata, errE = s.Get(ctx, newID, newVersion)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, d.InsertData, data)
+		assert.Equal(t, d.InsertMetadata, metadata)
+	}
+
+	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, d.InsertData, data)
+		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, newVersion, version)
+	}
+
+	data, metadata, errE = s.Get(ctx, newID, store.Version{
+		Changeset: changeset.Identifier,
+		Revision:  1,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, d.InsertData, data)
+		assert.Equal(t, d.InsertMetadata, metadata)
+	}
+
+	newID = identifier.New()
+
+	changeset, errE = s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), newVersion.Revision)
+	}
+
+	// This time we recreate the changeset object.
+	changeset, errE = s.Changeset(ctx, changeset.Identifier)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
+	errE = changeset.Commit(ctx, d.CommitMetadata)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	data, metadata, errE = s.Get(ctx, newID, newVersion)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, d.InsertData, data)
+		assert.Equal(t, d.InsertMetadata, metadata)
+	}
+
+	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, d.InsertData, data)
+		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, newVersion, version)
+	}
 }

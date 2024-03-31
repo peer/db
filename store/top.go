@@ -73,6 +73,14 @@ func (s *Store[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Id
 	return view.Get(ctx, id, version)
 }
 
+func (s *Store[Data, Metadata, Patch]) Changeset(ctx context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return Changeset[Data, Metadata, Patch]{}, errE //nolint:exhaustruct
+	}
+	return view.Changeset(ctx, id)
+}
+
 func (s *Store[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Data, Metadata, Patch], errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
