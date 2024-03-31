@@ -56,6 +56,9 @@
     }
   },
   "mappings": {
+    "_source": {
+      "enabled": false
+    },
     "dynamic": false,
     "dynamic_templates": [
       {
@@ -77,8 +80,7 @@
     ],
     "properties": {
       "id": {
-        "type": "keyword",
-        "doc_values": false
+        "type": "keyword"
       },
       "score": {
         "type": "double"
@@ -87,19 +89,11 @@
         "dynamic": true,
         "properties": {}
       },
-      "mnemonic": {
-        "type": "keyword",
-        "doc_values": false
-      },
       "claims": {
         "properties": {
           "id": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -119,10 +113,6 @@
           "ref": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -142,10 +132,6 @@
           "text": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -169,10 +155,6 @@
           "string": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -191,10 +173,6 @@
           "amount": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -216,10 +194,6 @@
           "amountRange": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -244,10 +218,6 @@
           "enum": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -266,10 +236,6 @@
           "rel": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -292,10 +258,6 @@
           "file": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -318,10 +280,6 @@
           "none": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -337,10 +295,6 @@
           "unknown": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -356,10 +310,6 @@
           "time": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
@@ -383,10 +333,6 @@
           "timeRange": {
             "type": "nested",
             "properties": {
-              "id": {
-                "type": "keyword",
-                "doc_values": false
-              },
               "confidence": {
                 "type": "double"
               },
