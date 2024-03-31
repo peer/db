@@ -20,49 +20,49 @@
     },
     {
       "name": "DocumentSearch",
-      "path": "/d",
+      "path": "/s",
       "api": {},
       "get": {}
     },
     {
       "name": "DocumentSearchFilters",
-      "path": "/d/filters/:s",
+      "path": "/s/filters/:s",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchRelFilter",
-      "path": "/d/filters/:s/rel/:prop",
+      "path": "/s/filters/:s/rel/:prop",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchAmountFilter",
-      "path": "/d/filters/:s/amount/:prop/:unit",
+      "path": "/s/filters/:s/amount/:prop/:unit",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchTimeFilter",
-      "path": "/d/filters/:s/time/:prop",
+      "path": "/s/filters/:s/time/:prop",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchStringFilter",
-      "path": "/d/filters/:s/string/:prop",
+      "path": "/s/filters/:s/string/:prop",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchIndexFilter",
-      "path": "/d/filters/:s/index",
+      "path": "/s/filters/:s/index",
       "api": {},
       "get": null
     },
     {
       "name": "DocumentSearchSizeFilter",
-      "path": "/d/filters/:s/size",
+      "path": "/s/filters/:s/size",
       "api": {},
       "get": null
     },
