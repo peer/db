@@ -133,7 +133,7 @@ func TestTop(t *testing.T) {
 	})
 }
 
-func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch]) {
+func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch]) { //nolint:maintidx
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
