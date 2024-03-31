@@ -114,16 +114,17 @@ func TestTop(t *testing.T) {
 		DeleteMetadata:  toRawMessagePtr(`{"metadata": "admin"}`),
 	})
 
-	testTop(t, testCase[[]byte, string, any]{
+	// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
+	testTop(t, testCase[[]byte, json.RawMessage, any]{
 		InsertData:      []byte(`{"data": 123}`),
-		InsertMetadata:  `{"metadata": "foobar"}`,
+		InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
 		UpdateData:      []byte(`{"data": 123, "patch": true}`),
-		UpdateMetadata:  `{"metadata": "zoofoo"}`,
+		UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
 		UpdatePatch:     nil,
 		ReplaceData:     []byte(`{"data": 345}`),
-		ReplaceMetadata: `{"metadata": "another"}`,
+		ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
 		DeleteData:      nil,
-		DeleteMetadata:  `{"metadata": "admin"}`,
+		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
 	})
 }
 
