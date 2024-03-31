@@ -101,8 +101,8 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (*Data, Metadata, Version, errors.E) { //nolint:ireturn
-	var data *Data
+func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
+	var data Data
 	var metadata Metadata
 	var version Version
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -151,7 +151,6 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		version.Changeset = identifier.MustFromString(changeset)
 		version.Revision = revision
 		if dataIsNull {
-			data = nil
 			// We return an error because this method is asking for current version of the object
 			// but the object does not exist anymore. Other returned values are valid though.
 			return errors.WithStack(ErrValueDeleted)
@@ -166,8 +165,8 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 	return data, metadata, version, errE
 }
 
-func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (*Data, Metadata, errors.E) { //nolint:ireturn
-	var data *Data
+func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
+	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		var dataIsNull bool
@@ -203,7 +202,6 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 			return errE
 		}
 		if dataIsNull {
-			data = nil
 			// We return an error because this method is asking for a particular version of the object
 			// but the object does not exist anymore at this version. Other returned values are valid though.
 			return errors.WithStack(ErrValueDeleted)
