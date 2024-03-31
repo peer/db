@@ -120,7 +120,10 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 
 	for _, site := range sites {
 		store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
-			Schema: site.Schema,
+			Schema:       site.Schema,
+			DataType:     "jsonb",
+			MetadataType: "jsonb",
+			PatchType:    "jsonb",
 		}
 		errE = store.Init(ctx, dbpool)
 		if errE != nil {

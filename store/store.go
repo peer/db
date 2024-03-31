@@ -15,7 +15,10 @@ import (
 const MainView = "main"
 
 type Store[Data, Metadata, Patch any] struct {
-	Schema string
+	Schema       string
+	DataType     string
+	MetadataType string
+	PatchType    string
 
 	dbpool *pgxpool.Pool
 }
@@ -92,13 +95,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				"parentIds" text[] NOT NULL DEFAULT '{}',
 				-- Data of the value at this version of the value.
 				-- NULL if value has been deleted.
-				"data" jsonb,
-				"metadata" jsonb NOT NULL,
+				"data" `+s.DataType+`,
+				"metadata" `+s.MetadataType+` NOT NULL,
 				-- Forward patches which bring parentChangesets versions of the value to
 				-- this version of the value. If patches are available, the number of patches
 				-- and their order must match that of parentChangesets. All patches have to
 				-- end up with the equal value.
-				"patches" jsonb[] NOT NULL,
+				"patches" `+s.PatchType+`[] NOT NULL,
 				PRIMARY KEY ("id", "changeset", "revision")
 			)
 		`)
@@ -123,7 +126,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- Path of view IDs starting with the current view, then the
 				-- parent view, and then all further ancestors.
 				"path" text[] NOT NULL,
-				"metadata" jsonb NOT NULL,
+				"metadata" `+s.MetadataType+` NOT NULL,
 				PRIMARY KEY ("id", "revision")
 			)
 		`)
@@ -153,7 +156,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- consistent so that every time a new changeset is added to the view, all ancestor
 				-- changesets are added as well, unless they are already present in ancestor views.
 				"changeset" text NOT NULL,
-				"metadata" jsonb NOT NULL,
+				"metadata" `+s.MetadataType+` NOT NULL,
 				PRIMARY KEY ("id", "changeset")
 			)
 		`)
