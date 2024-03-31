@@ -20,7 +20,7 @@ type indexAggregations struct {
 	} `json:"buckets"`
 }
 
-func DocumentSearchIndexFilterGet(
+func IndexFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)

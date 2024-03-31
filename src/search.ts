@@ -62,7 +62,7 @@ function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
 export async function postSearch(router: Router, form: HTMLFormElement, abortSignal: AbortSignal, progress: Ref<number>) {
   const query = await postURL<ServerQuery>(
     router.apiResolve({
-      name: "DocumentSearch",
+      name: "Search",
     }).href,
     new FormData(form),
     abortSignal,
@@ -72,7 +72,7 @@ export async function postSearch(router: Router, form: HTMLFormElement, abortSig
     return
   }
   await router.push({
-    name: "DocumentSearch",
+    name: "Search",
     query: encodeQuery({
       // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
       s: query.s || undefined,
@@ -148,7 +148,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   form.set("filters", JSON.stringify(filters))
   const updatedQuery: ServerQuery = await postURL(
     router.apiResolve({
-      name: "DocumentSearch",
+      name: "Search",
     }).href,
     form,
     abortSignal,
@@ -159,7 +159,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   }
   if (route.query.s !== updatedQuery.s || route.query.q !== updatedQuery.q) {
     await router.push({
-      name: "DocumentSearch",
+      name: "Search",
       query: encodeQuery({
         // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
         s: updatedQuery.s || undefined,
@@ -171,7 +171,7 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
 
 function getSearchURL(router: Router, query: QueryValuesWithOptional): string {
   return router.apiResolve({
-    name: "DocumentSearch",
+    name: "Search",
     query: encodeQuery(query),
   }).href
 }
@@ -231,7 +231,7 @@ export function useFilters(
         return null
       }
       return router.apiResolve({
-        name: "DocumentSearchFilters",
+        name: "SearchFilters",
         params: {
           s,
         },
@@ -587,7 +587,7 @@ export function useRelFilterValues(
       }
       if (result.type === "rel") {
         return router.apiResolve({
-          name: "DocumentSearchRelFilter",
+          name: "SearchRelFilter",
           params: {
             s,
             prop: result.id,
@@ -652,7 +652,7 @@ export function useAmountHistogramValues(
           throw new Error(`property "${result.id}" is missing unit`)
         }
         return router.apiResolve({
-          name: "DocumentSearchAmountFilter",
+          name: "SearchAmountFilter",
           params: {
             s,
             prop: result.id,
@@ -773,7 +773,7 @@ export function useTimeHistogramValues(
       }
       if (result.type === "time") {
         return router.apiResolve({
-          name: "DocumentSearchTimeFilter",
+          name: "SearchTimeFilter",
           params: {
             s,
             prop: result.id,
@@ -884,7 +884,7 @@ export function useStringFilterValues(
       }
       if (result.type === "string") {
         return router.apiResolve({
-          name: "DocumentSearchStringFilter",
+          name: "SearchStringFilter",
           params: {
             s,
             prop: result.id,
@@ -981,7 +981,7 @@ export function useIndexFilterValues(
         return null
       }
       return router.apiResolve({
-        name: "DocumentSearchIndexFilter",
+        name: "SearchIndexFilter",
         params: {
           s,
         },
@@ -1083,7 +1083,7 @@ export function useSizeHistogramValues(
         return null
       }
       return router.apiResolve({
-        name: "DocumentSearchSizeFilter",
+        name: "SearchSizeFilter",
         params: {
           s,
         },

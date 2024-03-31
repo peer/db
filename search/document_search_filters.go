@@ -58,7 +58,7 @@ type searchFiltersResult struct {
 	Unit  string `json:"unit,omitempty"`
 }
 
-func DocumentSearchFiltersGet( //nolint:maintidx
+func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)

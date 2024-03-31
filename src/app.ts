@@ -14,8 +14,8 @@ document.title = siteContext.title
 const router = createRouter({
   history: createWebHistory(),
   scrollBehavior(to, from, savedPosition) {
-    // DocumentSearch route handles its own scrolling through "at" query parameter.
-    if (to.name === "DocumentSearch") {
+    // Search route handles its own scrolling through "at" query parameter.
+    if (to.name === "Search") {
       return false
     }
     if (savedPosition) {

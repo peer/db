@@ -56,7 +56,7 @@ const {
   url: searchURL,
 } = useSearch(searchEl, searchProgress, async (query) => {
   await router.replace({
-    name: "DocumentSearch",
+    name: "Search",
     // Maybe route.query has non-empty "at" parameter which we want to keep.
     query: encodeQuery({ at: route.query.at || undefined, ...query }),
   })
@@ -179,7 +179,7 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onRelFiltersStateUpdate", err)
+    console.error("Search.onRelFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -201,7 +201,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onAmountFiltersStateUpdate", err)
+    console.error("Search.onAmountFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -223,7 +223,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onTimeFiltersStateUpdate", err)
+    console.error("Search.onTimeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -245,7 +245,7 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onStringFiltersStateUpdate", err)
+    console.error("Search.onStringFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -266,7 +266,7 @@ async function onIndexFiltersStateUpdate(s: IndexFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onIndexFiltersStateUpdate", err)
+    console.error("Search.onIndexFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -287,7 +287,7 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentSearch.onSizeFiltersStateUpdate", err)
+    console.error("Search.onSizeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }

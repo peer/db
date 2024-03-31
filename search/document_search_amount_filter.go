@@ -54,7 +54,7 @@ type histogramAmountResult struct {
 	Count int64   `json:"count"`
 }
 
-func DocumentSearchAmountFilterGet(
+func AmountFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)

@@ -22,7 +22,7 @@ type searchRelFilterResult struct {
 }
 
 //nolint:dupl
-func DocumentSearchRelFilterGet(
+func RelFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)

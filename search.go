@@ -53,7 +53,7 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 	}
 }
 
-func (s *Service) DocumentSearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
@@ -66,7 +66,7 @@ func (s *Service) DocumentSearchAmountFilterGet(w http.ResponseWriter, req *http
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchAmountFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop, params["unit"])
+	data, metadata, errE := search.AmountFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop, params["unit"])
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -81,14 +81,14 @@ func (s *Service) DocumentSearchAmountFilterGet(w http.ResponseWriter, req *http
 	s.WriteJSON(w, req, data, metadata)
 }
 
-func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchFiltersGet(req.Context(), s.getSearchServiceClosure(req), id)
+	data, metadata, errE := search.FiltersGet(req.Context(), s.getSearchServiceClosure(req), id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -103,14 +103,14 @@ func (s *Service) DocumentSearchFiltersGet(w http.ResponseWriter, req *http.Requ
 	s.WriteJSON(w, req, data, metadata)
 }
 
-func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchIndexFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchIndexFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
+	data, metadata, errE := search.IndexFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -126,7 +126,7 @@ func (s *Service) DocumentSearchIndexFilterGet(w http.ResponseWriter, req *http.
 }
 
 //nolint:dupl
-func (s *Service) DocumentSearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
@@ -139,7 +139,7 @@ func (s *Service) DocumentSearchRelFilterGet(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchRelFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
+	data, metadata, errE := search.RelFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -154,14 +154,14 @@ func (s *Service) DocumentSearchRelFilterGet(w http.ResponseWriter, req *http.Re
 	s.WriteJSON(w, req, data, metadata)
 }
 
-func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchSizeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchSizeFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
+	data, metadata, errE := search.SizeFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -177,7 +177,7 @@ func (s *Service) DocumentSearchSizeFilterGet(w http.ResponseWriter, req *http.R
 }
 
 //nolint:dupl
-func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
@@ -190,7 +190,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchStringFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
+	data, metadata, errE := search.StringFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -206,7 +206,7 @@ func (s *Service) DocumentSearchStringFilterGet(w http.ResponseWriter, req *http
 }
 
 //nolint:dupl
-func (s *Service) DocumentSearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
@@ -219,7 +219,7 @@ func (s *Service) DocumentSearchTimeFilterGet(w http.ResponseWriter, req *http.R
 		return
 	}
 
-	data, metadata, errE := search.DocumentSearchTimeFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
+	data, metadata, errE := search.TimeFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -234,9 +234,9 @@ func (s *Service) DocumentSearchTimeFilterGet(w http.ResponseWriter, req *http.R
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// DocumentSearch is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+// Search is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
 // If search state is invalid, it redirects to a valid one.
-func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) Search(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -257,7 +257,7 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.Reverse("DocumentSearch", nil, sh.Values())
+		path, err := s.Reverse("Search", nil, sh.Values())
 		if err != nil {
 			s.InternalServerErrorWithError(w, req, err)
 			return
@@ -269,7 +269,7 @@ func (s *Service) DocumentSearch(w http.ResponseWriter, req *http.Request, _ waf
 		return
 	} else if !req.Form.Has("q") {
 		// "q" is missing, so we redirect to the correct URL.
-		path, err := s.Reverse("DocumentSearch", nil, sh.ValuesWithAt(req.Form.Get("at")))
+		path, err := s.Reverse("Search", nil, sh.ValuesWithAt(req.Form.Get("at")))
 		if err != nil {
 			s.InternalServerErrorWithError(w, req, err)
 			return
@@ -288,11 +288,11 @@ type searchResult struct {
 	ID string `json:"id"`
 }
 
-// DocumentSearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
+// SearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -358,9 +358,9 @@ func (s *Service) DocumentSearchGet(w http.ResponseWriter, req *http.Request, _ 
 	})
 }
 
-// DocumentSearchPost is a POST HTTP request handler which stores the search state and returns
+// SearchPost is a POST HTTP request handler which stores the search state and returns
 // query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
-func (s *Service) DocumentSearchPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 

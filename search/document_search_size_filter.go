@@ -25,7 +25,7 @@ type histogramSizeAggregations struct {
 	} `json:"buckets"`
 }
 
-func DocumentSearchSizeFilterGet(
+func SizeFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	timing := servertiming.FromContext(ctx)
