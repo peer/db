@@ -8,11 +8,12 @@ import (
 
 type testInterface interface{}
 
-func TestIsAnyType(t *testing.T) {
+func TestIsNoneType(t *testing.T) {
 	t.Parallel()
 
-	assert.True(t, isAnyType[any]())
-	assert.True(t, isAnyType[interface{}]())
-	assert.False(t, isAnyType[testInterface]())
-	assert.False(t, isAnyType[interface{ Foo() }]())
+	assert.True(t, isNoneType[None]())
+	assert.False(t, isNoneType[any]())
+	assert.False(t, isNoneType[interface{}]())
+	assert.False(t, isNoneType[testInterface]())
+	assert.False(t, isNoneType[interface{ Foo() }]())
 }

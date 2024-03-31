@@ -12,6 +12,8 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+type None *struct{}
+
 const MainView = "main"
 
 type Store[Data, Metadata, Patch any] struct {
@@ -57,6 +59,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 		return internal.WithPgxError(err)
 	}
 
+	s.patchesEnabled = !isNoneType[Patch]()
+
 	// TODO: Use schema management/migration instead.
 	if !exists {
 		_, err = tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
@@ -69,7 +73,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			return internal.WithPgxError(err)
 		}
 
-		s.patchesEnabled = isAnyType[Patch]()
 		patches := ""
 		if s.patchesEnabled {
 			patches = `

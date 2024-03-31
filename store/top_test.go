@@ -119,7 +119,7 @@ func TestTop(t *testing.T) {
 	})
 
 	// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
-	testTop(t, testCase[[]byte, json.RawMessage, any]{
+	testTop(t, testCase[[]byte, json.RawMessage, store.None]{
 		InsertData:      []byte(`{"data": 123}`),
 		InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
 		UpdateData:      []byte(`{"data": 123, "patch": true}`),

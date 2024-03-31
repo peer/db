@@ -2,7 +2,8 @@ package store
 
 import "reflect"
 
-func isAnyType[T any]() bool {
+func isNoneType[T any]() bool {
 	typ := reflect.TypeOf((*T)(nil)).Elem()
-	return typ.String() == "interface {}"
+	none := reflect.TypeOf((*None)(nil)).Elem()
+	return typ == none
 }
