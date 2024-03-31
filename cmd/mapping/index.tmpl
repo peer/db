@@ -92,10 +92,6 @@
         "type": "keyword",
         "doc_values": false
       },
-      "metaEmbeddedIds": {
-        "type": "keyword",
-        "doc_values": false
-      },
       "claims": {
         "properties": {
           {{range $i, $claimType := $}}
@@ -109,60 +105,6 @@
                 },
                 "confidence": {
                   "type": "double"
-                },
-                "meta": {
-                  "properties": {
-                    {{range $i, $metaClaimType := $}}
-                      {{if $i}},{{end}}
-                      "{{$metaClaimType.Name}}": {
-                        "properties": {
-                          "meta": {
-                            "properties": {
-                              {{range $i, $metaClaimType := $}}
-                                {{if $i}},{{end}}
-                                "{{$metaClaimType.Name}}": {
-                                  "properties": {
-                                    {{$needsComma := false}}
-                                    {{range $i, $field := $metaClaimType.Fields}}
-                                      {{if $field.EmbeddedID}}
-                                        {{if $needsComma}},{{end}}
-                                        {{$needsComma = true}}
-                                        "{{$field.Name}}": {
-                                          "properties": {
-                                            "{{$field.EmbeddedID}}": {
-                                              "index": false,
-                                              "doc_values": false,
-                                              "type": "keyword",
-                                              "copy_to": "metaEmbeddedIds"
-                                            }
-                                          }
-                                        }
-                                      {{end}}
-                                    {{end}}
-                                  }
-                                }
-                              {{end}}
-                            }
-                          }
-                          {{range $i, $field := $metaClaimType.Fields}}
-                            {{if $field.EmbeddedID}}
-                              ,
-                              "{{$field.Name}}": {
-                                "properties": {
-                                  "{{$field.EmbeddedID}}": {
-                                    "index": false,
-                                    "doc_values": false,
-                                    "type": "keyword",
-                                    "copy_to": "metaEmbeddedIds"
-                                  }
-                                }
-                              }
-                            {{end}}
-                          {{end}}
-                        }
-                      }
-                    {{end}}
-                  }
                 }
                 {{range $i, $field := $claimType.Fields}}
                   ,

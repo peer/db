@@ -16,7 +16,6 @@ var indexTemplate string
 
 type field struct {
 	Name       string
-	EmbeddedID string
 	Definition string
 }
 
@@ -32,7 +31,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -43,7 +41,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"id",
-				"",
 				`{
 					"type": "keyword",
 					"normalizer": "id_normalizer"
@@ -56,7 +53,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -67,7 +63,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"iri",
-				"",
 				`{
 					"type": "keyword",
 					"doc_values": false
@@ -80,7 +75,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -91,7 +85,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"html",
-				"",
 				`{
 					"properties": {
 						"en": {
@@ -108,7 +101,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -119,7 +111,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"string",
-				"",
 				`{
 					"type": "keyword"
 				}`,
@@ -131,7 +122,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -142,14 +132,12 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"amount",
-				"",
 				`{
 					"type": "double"
 				}`,
 			},
 			{
 				"unit",
-				"",
 				`{
 					"type": "keyword"
 				}`,
@@ -161,7 +149,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -172,21 +159,18 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"lower",
-				"",
 				`{
 					"type": "double"
 				}`,
 			},
 			{
 				"upper",
-				"",
 				`{
 					"type": "double"
 				}`,
 			},
 			{
 				"unit",
-				"",
 				`{
 					"type": "keyword"
 				}`,
@@ -198,7 +182,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -209,7 +192,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"enum",
-				"",
 				`{
 					"type": "keyword"
 				}`,
@@ -221,7 +203,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -232,7 +213,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"to",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -248,7 +228,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -259,14 +238,12 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"type",
-				"",
 				`{
 					"type": "keyword"
 				}`,
 			},
 			{
 				"url",
-				"",
 				`{
 					"type": "keyword",
 					"doc_values": false
@@ -279,7 +256,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -295,7 +271,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -311,7 +286,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -322,7 +296,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"timestamp",
-				"",
 				`{
 					"type": "date",
 					"format": "uuuu-MM-dd'T'HH:mm:ssX",
@@ -331,7 +304,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"precision",
-				"",
 				`{
 					"type": "keyword"
 				}`,
@@ -343,7 +315,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		[]field{
 			{
 				"prop",
-				"id",
 				`{
 					"properties": {
 						"id": {
@@ -354,7 +325,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"lower",
-				"",
 				`{
 					"type": "date",
 					"format": "uuuu-MM-dd'T'HH:mm:ssX",
@@ -363,7 +333,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"upper",
-				"",
 				`{
 					"type": "date",
 					"format": "uuuu-MM-dd'T'HH:mm:ssX",
@@ -372,7 +341,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"precision",
-				"",
 				`{
 					"type": "keyword"
 				}`,
