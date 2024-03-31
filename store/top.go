@@ -57,18 +57,18 @@ func (s *Store[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentCha
 	return view.Delete(ctx, id, parentChangeset, metadata)
 }
 
-func (s *Store[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
+func (s *Store[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (*Data, Metadata, Version, errors.E) { //nolint:ireturn
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return *new(Data), *new(Metadata), Version{}, errE //nolint:exhaustruct
+		return nil, *new(Metadata), Version{}, errE //nolint:exhaustruct
 	}
 	return view.GetCurrent(ctx, id)
 }
 
-func (s *Store[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
+func (s *Store[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (*Data, Metadata, errors.E) { //nolint:ireturn
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return *new(Data), *new(Metadata), errE
+		return nil, *new(Metadata), errE
 	}
 	return view.Get(ctx, id, version)
 }

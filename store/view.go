@@ -101,13 +101,14 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
-	var data Data
+func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (*Data, Metadata, Version, errors.E) { //nolint:ireturn
+	var data *Data
 	var metadata Metadata
 	var version Version
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		var changeset string
 		var revision int64
+		var dataIsNull bool
 		err := tx.QueryRow(
 			ctx, `
 			WITH "currentViewPath" AS (
@@ -118,7 +119,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "id"=$2 AND "changeset" IN (SELECT "changeset" FROM "currentViewChangesets")
 			)
-			SELECT "currentChanges"."changeset", "revision", "data", "metadata" FROM "currentChanges", "currentViewChangesets"
+			SELECT "currentChanges"."changeset", "revision", "data", "data" IS NULL, "metadata" FROM "currentChanges", "currentViewChangesets"
 				WHERE "id"=$2
 				-- We collect all parent changesets for the object and make sure we do not select them.
 				AND "currentChanges"."changeset" IN (SELECT "changeset" FROM "currentViewChangesets" EXCEPT SELECT * FROM "parentChangesets")
@@ -130,7 +131,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 				LIMIT 1
 		`,
 			v.Name, id.String(),
-		).Scan(&changeset, &revision, &data, &metadata)
+		).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -145,23 +146,31 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 					errE = errors.WrapWith(errE, ErrValueNotFound)
 				}
 			}
-			details := errors.Details(errE)
-			details["view"] = v.Name
-			details["id"] = id.String()
 			return errE
 		}
-		// TODO: Return ErrValueNotFound if "data" is NULL in returned row.
 		version.Changeset = identifier.MustFromString(changeset)
 		version.Revision = revision
+		if dataIsNull {
+			data = nil
+			// We return an error because this method is asking for current version of the object
+			// but the object does not exist anymore. Other returned values are valid though.
+			return errors.WithStack(ErrValueDeleted)
+		}
 		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.Name
+		details["id"] = id.String()
+	}
 	return data, metadata, version, errE
 }
 
-func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
-	var data Data
+func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (*Data, Metadata, errors.E) { //nolint:ireturn
+	var data *Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		var dataIsNull bool
 		err := tx.QueryRow(
 			ctx, `
 				WITH "currentViewPath" AS (
@@ -170,13 +179,13 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				)
-				SELECT "data", "metadata" FROM "changes", "currentViewChangesets"
+				SELECT "data", "data" IS NULL, "metadata" FROM "changes", "currentViewChangesets"
 					-- We require the object at given version has been committed to the view
 					-- which we check by checking that version's changelog is among view's changelogs.
 					WHERE "id"=$2 AND "changes"."changeset"=$3 AND "revision"=$4 AND "changes"."changeset"="currentViewChangesets"."changeset"
 			`,
 			v.Name, id.String(), version.Changeset.String(), version.Revision,
-		).Scan(&data, &metadata)
+		).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -191,18 +200,27 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 					errE = errors.WrapWith(errE, ErrValueNotFound)
 				}
 			}
-			details := errors.Details(errE)
-			details["view"] = v.Name
-			details["id"] = id.String()
-			details["changeset"] = version.Changeset.String()
-			details["revision"] = version.Revision
 			return errE
 		}
-		// TODO: Return ErrValueDeleted if "data" is NULL in returned row.
+		if dataIsNull {
+			data = nil
+			// We return an error because this method is asking for a particular version of the object
+			// but the object does not exist anymore at this version. Other returned values are valid though.
+			return errors.WithStack(ErrValueDeleted)
+		}
 		return nil
 	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.Name
+		details["id"] = id.String()
+		details["changeset"] = version.Changeset.String()
+		details["revision"] = version.Revision
+	}
 	return data, metadata, errE
 }
+
+// TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
 
 func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
 	// We do not care if the view exists at this point. It all
