@@ -27,9 +27,17 @@ type Store[Data, Metadata, Patch any] struct {
 func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx pgx.Tx) (bool, errors.E) {
 	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
 	if err != nil {
-		var e *pgconn.PgError
-		if errors.As(err, &e) && e.Code == "23505" { // unique_violation.
-			return false, nil
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			// See: https://www.postgresql.org/docs/current/errcodes-appendix.html
+			switch pgError.Code {
+			// unique_violation.
+			case "23505":
+				return false, nil
+			// duplicate_schema.
+			case "42P06":
+				return false, nil
+			}
 		}
 		return false, internal.WithPgxError(err)
 	}
