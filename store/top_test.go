@@ -84,66 +84,74 @@ func TestTop(t *testing.T) {
 		t.Skip("POSTGRES is not available")
 	}
 
-	testTop(t, testCase[*testData, *testMetadata, *testPatch]{
-		InsertData:      &testData{Data: 123, Patch: false},
-		InsertMetadata:  &testMetadata{Metadata: "foobar"},
-		UpdateData:      &testData{Data: 123, Patch: true},
-		UpdateMetadata:  &testMetadata{Metadata: "zoofoo"},
-		UpdatePatch:     &testPatch{Patch: true},
-		ReplaceData:     &testData{Data: 345, Patch: false},
-		ReplaceMetadata: &testMetadata{Metadata: "another"},
-		DeleteData:      nil,
-		DeleteMetadata:  &testMetadata{Metadata: "admin"},
-		CommitMetadata:  &testMetadata{Metadata: "commit"},
-		NoPatches:       []*testPatch{},
-		UpdatePatches:   []*testPatch{{Patch: true}},
-	})
+	for _, dataType := range []string{"jsonb", "bytea"} {
+		dataType := dataType
 
-	testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
-		InsertData:      json.RawMessage(`{"data": 123}`),
-		InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
-		UpdateData:      json.RawMessage(`{"data": 123, "patch": true}`),
-		UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
-		UpdatePatch:     json.RawMessage(`{"patch": true}`),
-		ReplaceData:     json.RawMessage(`{"data": 345}`),
-		ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
-		DeleteData:      nil,
-		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
-		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
-		NoPatches:       []json.RawMessage{},
-		UpdatePatches:   []json.RawMessage{json.RawMessage(`{"patch": true}`)},
-	})
+		t.Run(dataType, func(t *testing.T) {
+			t.Parallel()
 
-	testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
-		InsertData:      toRawMessagePtr(`{"data": 123}`),
-		InsertMetadata:  toRawMessagePtr(`{"metadata": "foobar"}`),
-		UpdateData:      toRawMessagePtr(`{"data": 123, "patch": true}`),
-		UpdateMetadata:  toRawMessagePtr(`{"metadata": "zoofoo"}`),
-		UpdatePatch:     toRawMessagePtr(`{"patch": true}`),
-		ReplaceData:     toRawMessagePtr(`{"data": 345}`),
-		ReplaceMetadata: toRawMessagePtr(`{"metadata": "another"}`),
-		DeleteData:      nil,
-		DeleteMetadata:  toRawMessagePtr(`{"metadata": "admin"}`),
-		CommitMetadata:  toRawMessagePtr(`{"metadata": "commit"}`),
-		NoPatches:       []*json.RawMessage{},
-		UpdatePatches:   []*json.RawMessage{toRawMessagePtr(`{"patch": true}`)},
-	})
+			testTop(t, testCase[*testData, *testMetadata, *testPatch]{
+				InsertData:      &testData{Data: 123, Patch: false},
+				InsertMetadata:  &testMetadata{Metadata: "foobar"},
+				UpdateData:      &testData{Data: 123, Patch: true},
+				UpdateMetadata:  &testMetadata{Metadata: "zoofoo"},
+				UpdatePatch:     &testPatch{Patch: true},
+				ReplaceData:     &testData{Data: 345, Patch: false},
+				ReplaceMetadata: &testMetadata{Metadata: "another"},
+				DeleteData:      nil,
+				DeleteMetadata:  &testMetadata{Metadata: "admin"},
+				CommitMetadata:  &testMetadata{Metadata: "commit"},
+				NoPatches:       []*testPatch{},
+				UpdatePatches:   []*testPatch{{Patch: true}},
+			}, dataType)
 
-	// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
-	testTop(t, testCase[[]byte, json.RawMessage, store.None]{
-		InsertData:      []byte(`{"data": 123}`),
-		InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
-		UpdateData:      []byte(`{"data": 123, "patch": true}`),
-		UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
-		UpdatePatch:     nil,
-		ReplaceData:     []byte(`{"data": 345}`),
-		ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
-		DeleteData:      nil,
-		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
-		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
-		NoPatches:       nil,
-		UpdatePatches:   nil,
-	})
+			testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
+				InsertData:      json.RawMessage(`{"data": 123}`),
+				InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
+				UpdateData:      json.RawMessage(`{"data": 123, "patch": true}`),
+				UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
+				UpdatePatch:     json.RawMessage(`{"patch": true}`),
+				ReplaceData:     json.RawMessage(`{"data": 345}`),
+				ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
+				DeleteData:      nil,
+				DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
+				CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
+				NoPatches:       []json.RawMessage{},
+				UpdatePatches:   []json.RawMessage{json.RawMessage(`{"patch": true}`)},
+			}, dataType)
+
+			testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
+				InsertData:      toRawMessagePtr(`{"data": 123}`),
+				InsertMetadata:  toRawMessagePtr(`{"metadata": "foobar"}`),
+				UpdateData:      toRawMessagePtr(`{"data": 123, "patch": true}`),
+				UpdateMetadata:  toRawMessagePtr(`{"metadata": "zoofoo"}`),
+				UpdatePatch:     toRawMessagePtr(`{"patch": true}`),
+				ReplaceData:     toRawMessagePtr(`{"data": 345}`),
+				ReplaceMetadata: toRawMessagePtr(`{"metadata": "another"}`),
+				DeleteData:      nil,
+				DeleteMetadata:  toRawMessagePtr(`{"metadata": "admin"}`),
+				CommitMetadata:  toRawMessagePtr(`{"metadata": "commit"}`),
+				NoPatches:       []*json.RawMessage{},
+				UpdatePatches:   []*json.RawMessage{toRawMessagePtr(`{"patch": true}`)},
+			}, dataType)
+
+			// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
+			testTop(t, testCase[[]byte, json.RawMessage, store.None]{
+				InsertData:      []byte(`{"data": 123}`),
+				InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
+				UpdateData:      []byte(`{"data": 123, "patch": true}`),
+				UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
+				UpdatePatch:     nil,
+				ReplaceData:     []byte(`{"data": 345}`),
+				ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
+				DeleteData:      nil,
+				DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
+				CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
+				NoPatches:       nil,
+				UpdatePatches:   nil,
+			}, dataType)
+		})
+	}
 }
 
 type lockableSlice[T any] struct {
@@ -165,7 +173,7 @@ func (l *lockableSlice[T]) Prune() []T {
 	return c
 }
 
-func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch]) { //nolint:maintidx
+func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch], dataType string) { //nolint:maintidx
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -191,8 +199,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	}()
 
 	s := &store.Store[Data, Metadata, Patch]{
-		Schema:    schema,
-		Committed: channel,
+		Schema:       schema,
+		Committed:    channel,
+		DataType:     dataType,
+		MetadataType: dataType,
+		PatchType:    dataType,
 	}
 
 	errE = s.Init(ctx, dbpool)

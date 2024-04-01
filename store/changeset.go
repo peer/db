@@ -311,6 +311,9 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				store: &Store[Data, Metadata, Patch]{
 					Schema:         c.view.store.Schema,
 					Committed:      nil,
+					DataType:       "",
+					MetadataType:   "",
+					PatchType:      "",
 					dbpool:         nil,
 					patchesEnabled: false,
 				},

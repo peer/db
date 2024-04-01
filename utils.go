@@ -84,8 +84,11 @@ func initForSite(
 	}
 
 	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
-		Schema:    schema,
-		Committed: channel,
+		Schema:       schema,
+		Committed:    channel,
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
+		PatchType:    "jsonb",
 	}
 	errE = store.Init(ctx, dbpool)
 	if errE != nil {
