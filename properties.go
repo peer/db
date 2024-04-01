@@ -2,9 +2,11 @@ package peerdb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/olivere/elastic/v7"
@@ -14,6 +16,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 //nolint:gochecknoglobals
@@ -380,7 +383,10 @@ func generateAllCoreProperties() {
 	}
 }
 
-func SaveCoreProperties(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, index string) errors.E {
+func SaveCoreProperties(
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	esClient *elastic.Client, processor *elastic.BulkProcessor, index string,
+) errors.E {
 	for _, property := range CoreProperties {
 		if ctx.Err() != nil {
 			break
@@ -388,8 +394,14 @@ func SaveCoreProperties(ctx context.Context, logger zerolog.Logger, esClient *el
 
 		property := property
 		logger.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
-		InsertOrReplaceDocument(processor, index, &property)
+		errE := InsertOrReplaceDocument(ctx, store, &property)
+		if errE != nil {
+			return errE
+		}
 	}
+
+	// We sleep to make sure all changesets are bridged.
+	time.Sleep(time.Second)
 
 	// Make sure all just added documents are available for search.
 	err := processor.Flush()

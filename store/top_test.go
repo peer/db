@@ -175,7 +175,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	schema := identifier.New().String()
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "123"
+		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -511,7 +511,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
-		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changelog, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changelog.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {

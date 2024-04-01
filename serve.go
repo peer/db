@@ -3,7 +3,6 @@ package peerdb
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"io/fs"
 	"net/http"
 	"os"
@@ -16,8 +15,6 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
-
-	"gitlab.com/peerdb/peerdb/store"
 
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
@@ -109,11 +106,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errors.WithStack(err)
 	}
 
-	dbpool, errE := internal.InitPostgres(ctx, string(globals.Database), globals.Logger, func(ctx context.Context) (string, string) {
-		requestID := waf.MustRequestID(ctx)
-		site := waf.MustGetSite[*Site](ctx)
-		return site.Schema, requestID.String()
-	})
+	dbpool, errE := internal.InitPostgres(ctx, string(globals.Database), globals.Logger, getRequestWithFallback(globals.Logger))
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -124,31 +117,17 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	}
 
 	for _, site := range sites {
-		// TODO: Add some monitoring of the channel contention.
-		channel := make(chan store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
-		context.AfterFunc(ctx, func() { close(channel) })
-		esProcessor, errE := es.Init(ctx, globals.Logger, esClient, site.Index, site.SizeField) //nolint:govet
+		// We set fallback context values which are used to set application name on PostgreSQL connections.
+		siteCtx := context.WithValue(ctx, requestIDContextKey, "serve")
+		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
+
+		store, esProcessor, errE := initForSite(siteCtx, globals, dbpool, esClient, site.Schema, site.Index, site.SizeField) //nolint:govet
 		if errE != nil {
 			return nil, nil, errE
 		}
-		store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
-			Schema:    site.Schema,
-			Committed: channel,
-		}
-		errE = store.Init(ctx, dbpool)
-		if errE != nil {
-			return nil, nil, errE
-		}
+
 		site.store = store
 		site.esProcessor = esProcessor
-		go es.Bridge(
-			ctx,
-			globals.Logger.With().Str("schema", site.Schema).Str("index", site.Index).Logger(),
-			store,
-			esProcessor,
-			site.Index,
-			channel,
-		)
 	}
 
 	service := &Service{ //nolint:forcetypeassert
