@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DefaultOutput = "search/index.json"
+	DefaultOutput = "internal/es/index.json"
 )
 
 // Config provides configuration.
