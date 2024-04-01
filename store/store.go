@@ -18,7 +18,8 @@ type None *struct{}
 const MainView = "main"
 
 type Store[Data, Metadata, Patch any] struct {
-	Schema string
+	Schema    string
+	Committed chan<- Changeset[Data, Metadata, Patch]
 
 	dbpool         *pgxpool.Pool
 	patchesEnabled bool

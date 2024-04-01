@@ -302,6 +302,8 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		details := errors.Details(errE)
 		details["view"] = c.view.name
 		details["changeset"] = c.String()
+	} else if c.view.store.Committed != nil {
+		c.view.store.Committed <- *c
 	}
 	return errE
 }

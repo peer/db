@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"slices"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -133,6 +136,25 @@ func TestTop(t *testing.T) {
 	})
 }
 
+type lockableSlice[T any] struct {
+	data []T
+	mu   sync.Mutex
+}
+
+func (l *lockableSlice[T]) Append(v T) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.data = append(l.data, v)
+}
+
+func (l *lockableSlice[T]) Prune() []T {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	c := slices.Clone(l.data)
+	l.data = nil
+	return c
+}
+
 func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch]) { //nolint:maintidx
 	t.Helper()
 
@@ -147,8 +169,22 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	channel := make(chan store.Changeset[Data, Metadata, Patch])
+	t.Cleanup(func() {
+		close(channel)
+	})
+
+	channelContents := new(lockableSlice[store.Changeset[Data, Metadata, Patch]])
+
+	go func() {
+		for c := range channel {
+			channelContents.Append(c)
+		}
+	}()
+
 	s := &store.Store[Data, Metadata, Patch]{
-		Schema: schema,
+		Schema:    schema,
+		Committed: channel,
 	}
 
 	errE = s.Init(ctx, dbpool)
@@ -177,6 +213,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, insertVersion, version)
 	}
 
+	// We sleep to make sure all changesets are retrieved.
+	time.Sleep(10 * time.Millisecond)
+	c := channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, insertVersion.Changeset, c[0].Identifier)
+	}
+
 	updateVersion, errE := s.Update(ctx, expectedID, insertVersion.Changeset, d.UpdateData, d.UpdatePatch, d.UpdateMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), updateVersion.Revision)
@@ -199,6 +242,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
 		assert.Equal(t, updateVersion, version)
+	}
+
+	// We sleep to make sure all changesets are retrieved.
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, updateVersion.Changeset, c[0].Identifier)
 	}
 
 	replaceVersion, errE := s.Replace(ctx, expectedID, updateVersion.Changeset, d.ReplaceData, d.ReplaceMetadata)
@@ -229,6 +279,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.ReplaceData, data)
 		assert.Equal(t, d.ReplaceMetadata, metadata)
 		assert.Equal(t, replaceVersion, version)
+	}
+
+	// We sleep to make sure all changesets are retrieved.
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, replaceVersion.Changeset, c[0].Identifier)
 	}
 
 	deleteVersion, errE := s.Delete(ctx, expectedID, replaceVersion.Changeset, d.DeleteMetadata)
@@ -267,6 +324,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
 
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, deleteVersion.Changeset, c[0].Identifier)
+	}
+
 	newID := identifier.New()
 
 	// Test manual changeset management.
@@ -291,6 +354,10 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Nil(t, data)
 	assert.Nil(t, metadata)
 	assert.Empty(t, version)
+
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	assert.Empty(t, c)
 
 	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
 	errE = changeset.Commit(ctx, d.CommitMetadata)
@@ -325,6 +392,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
+	}
+
 	newID = identifier.New()
 
 	changeset, errE = s.Begin(ctx)
@@ -354,5 +427,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
 		assert.Equal(t, newVersion, version)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+	c = channelContents.Prune()
+	if assert.Len(t, c, 1) {
+		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
 	}
 }
