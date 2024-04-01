@@ -294,7 +294,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				return errors.WithStack(ErrParentNotCommitted)
 			}
 			// This should not happen.
-			return errors.New("insert unexpectedly inserted no errors")
+			return errors.New("database insert unexpectedly inserted no rows")
 		}
 		return nil
 	})
