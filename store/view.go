@@ -40,6 +40,7 @@ func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
@@ -61,6 +62,7 @@ func (v *View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
@@ -82,6 +84,7 @@ func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
@@ -103,6 +106,7 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	}
 	errE = changeset.Commit(ctx, metadata)
 	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
 	}
 	return version, nil
