@@ -29,6 +29,9 @@ var routesConfiguration []byte
 //go:embed dist
 var files embed.FS
 
+// TODO: Determine reasonable size for the buffer.
+const bridgeBufferSize = 100
+
 type Service struct {
 	waf.Service[*Site]
 
@@ -121,19 +124,31 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	}
 
 	for _, site := range sites {
+		// TODO: Add some monitoring of the channel contention.
+		channel := make(chan store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
+		context.AfterFunc(ctx, func() { close(channel) })
+		esProcessor, errE := es.Init(ctx, globals.Logger, esClient, site.Index, site.SizeField) //nolint:govet
+		if errE != nil {
+			return nil, nil, errE
+		}
 		store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
-			Schema: site.Schema,
+			Schema:    site.Schema,
+			Committed: channel,
 		}
 		errE = store.Init(ctx, dbpool)
 		if errE != nil {
 			return nil, nil, errE
 		}
-		esProcessor, errE := es.Init(ctx, globals.Logger, esClient, site.Index, site.SizeField) //nolint:govet
-		if errE != nil {
-			return nil, nil, errE
-		}
 		site.store = store
 		site.esProcessor = esProcessor
+		go es.Bridge(
+			ctx,
+			globals.Logger.With().Str("schema", site.Schema).Str("index", site.Index).Logger(),
+			store,
+			esProcessor,
+			site.Index,
+			channel,
+		)
 	}
 
 	service := &Service{ //nolint:forcetypeassert

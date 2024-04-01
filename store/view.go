@@ -119,8 +119,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		var changeset string
 		var revision int64
 		var dataIsNull bool
-		err := tx.QueryRow(
-			ctx, `
+		err := tx.QueryRow(ctx, `
 			WITH "currentViewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews", UNNEST("path") WITH ORDINALITY AS p("id", "depth") WHERE "name"=$1
@@ -181,8 +180,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		var dataIsNull bool
-		err := tx.QueryRow(
-			ctx, `
+		err := tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
 					-- We do not care about order of views here because we have en explicit version we are searching for.
 					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1

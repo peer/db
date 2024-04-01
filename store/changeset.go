@@ -374,3 +374,73 @@ func (c *Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.
 // TODO: Should we provide also "archive" for archiving user-facing changesets (instead of discard).
 //       When they will not be used anymore, but we should keep them around (and we want to
 //       prevent accidentally changing them.)
+
+type Change[Data, Metadata, Patch any] struct {
+	ID       identifier.Identifier
+	Version  Version
+	Data     Data
+	Metadata Metadata
+	Patches  []Patch
+}
+
+func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change[Data, Metadata, Patch], errors.E) {
+	arguments := []any{
+		c.view.name, c.String(),
+	}
+	patches := ", NULL"
+	if c.view.store.patchesEnabled {
+		patches = `, "patches"`
+	}
+	var changes []Change[Data, Metadata, Patch]
+	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		changes = nil
+
+		rows, err := tx.Query(ctx, `
+			WITH "currentViewPath" AS (
+				-- We do not care about order of views here because we have en explicit version we are searching for.
+				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+			), "currentViewChangesets" AS (
+				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
+			)
+			SELECT "id", "revision", "data", "metadata"`+patches+` FROM "currentChanges", "currentViewChangesets"
+				WHERE "currentChanges"."changeset"=$2 AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+		`, arguments...)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		var id string
+		var revision int64
+		var data Data
+		var metadata Metadata
+		var patches []Patch
+		_, err = pgx.ForEachRow(rows, []any{&id, &revision, &data, &metadata, &patches}, func() error {
+			changes = append(changes, Change[Data, Metadata, Patch]{
+				ID: identifier.MustFromString(id),
+				Version: Version{
+					Changeset: c.Identifier,
+					Revision:  revision,
+				},
+				Data:     data,
+				Metadata: metadata,
+				Patches:  patches,
+			})
+			return nil
+		})
+		return errors.WithStack(err)
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.name
+		details["changeset"] = c.String()
+	}
+	return changes, errE
+}
+
+func (c *Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
+	view, errE := store.View(ctx, c.View().Name())
+	if errE != nil {
+		return Changeset[Data, Metadata, Patch]{}, errE //nolint:exhaustruct
+	}
+	return view.Changeset(ctx, c.Identifier)
+}

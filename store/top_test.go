@@ -68,6 +68,8 @@ type testCase[Data, Metadata, Patch any] struct {
 	DeleteData      Data
 	DeleteMetadata  Metadata
 	CommitMetadata  Metadata
+	NoPatches       []Patch
+	UpdatePatches   []Patch
 }
 
 func toRawMessagePtr(data string) *json.RawMessage {
@@ -93,6 +95,8 @@ func TestTop(t *testing.T) {
 		DeleteData:      nil,
 		DeleteMetadata:  &testMetadata{Metadata: "admin"},
 		CommitMetadata:  &testMetadata{Metadata: "commit"},
+		NoPatches:       []*testPatch{},
+		UpdatePatches:   []*testPatch{{Patch: true}},
 	})
 
 	testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -106,6 +110,8 @@ func TestTop(t *testing.T) {
 		DeleteData:      nil,
 		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
 		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
+		NoPatches:       []json.RawMessage{},
+		UpdatePatches:   []json.RawMessage{json.RawMessage(`{"patch": true}`)},
 	})
 
 	testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
@@ -119,6 +125,8 @@ func TestTop(t *testing.T) {
 		DeleteData:      nil,
 		DeleteMetadata:  toRawMessagePtr(`{"metadata": "admin"}`),
 		CommitMetadata:  toRawMessagePtr(`{"metadata": "commit"}`),
+		NoPatches:       []*json.RawMessage{},
+		UpdatePatches:   []*json.RawMessage{toRawMessagePtr(`{"patch": true}`)},
 	})
 
 	// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
@@ -133,6 +141,8 @@ func TestTop(t *testing.T) {
 		DeleteData:      nil,
 		DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
 		CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
+		NoPatches:       nil,
+		UpdatePatches:   nil,
 	})
 }
 
@@ -170,9 +180,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channel := make(chan store.Changeset[Data, Metadata, Patch])
-	t.Cleanup(func() {
-		close(channel)
-	})
+	t.Cleanup(func() { close(channel) })
 
 	channelContents := new(lockableSlice[store.Changeset[Data, Metadata, Patch]])
 
@@ -218,6 +226,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, insertVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, expectedID, changes[0].ID)
+					assert.Equal(t, insertVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, insertVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.InsertData, changes[0].Data)
+					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
+					assert.Equal(t, d.NoPatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 
 	updateVersion, errE := s.Update(ctx, expectedID, insertVersion.Changeset, d.UpdateData, d.UpdatePatch, d.UpdateMetadata)
@@ -249,6 +271,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, updateVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, expectedID, changes[0].ID)
+					assert.Equal(t, updateVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, updateVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.UpdateData, changes[0].Data)
+					assert.Equal(t, d.UpdateMetadata, changes[0].Metadata)
+					assert.Equal(t, d.UpdatePatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 
 	replaceVersion, errE := s.Replace(ctx, expectedID, updateVersion.Changeset, d.ReplaceData, d.ReplaceMetadata)
@@ -286,6 +322,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, replaceVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, expectedID, changes[0].ID)
+					assert.Equal(t, replaceVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, replaceVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.ReplaceData, changes[0].Data)
+					assert.Equal(t, d.ReplaceMetadata, changes[0].Metadata)
+					assert.Equal(t, d.NoPatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 
 	deleteVersion, errE := s.Delete(ctx, expectedID, replaceVersion.Changeset, d.DeleteMetadata)
@@ -328,6 +378,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, deleteVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, expectedID, changes[0].ID)
+					assert.Equal(t, deleteVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, deleteVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.DeleteData, changes[0].Data)
+					assert.Equal(t, d.DeleteMetadata, changes[0].Metadata)
+					assert.Equal(t, d.NoPatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 
 	newID := identifier.New()
@@ -396,6 +460,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, newID, changes[0].ID)
+					assert.Equal(t, newVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, newVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.InsertData, changes[0].Data)
+					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
+					assert.Equal(t, d.NoPatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 
 	newID = identifier.New()
@@ -433,5 +511,19 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
+		changelog, errE := c[0].WithStore(ctx, s) //nolint:govet
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			changes, errE := changelog.Changes(ctx)
+			if assert.NoError(t, errE, "% -+#.1v", errE) {
+				if assert.Len(t, changes, 1) {
+					assert.Equal(t, newID, changes[0].ID)
+					assert.Equal(t, newVersion.Changeset, changes[0].Version.Changeset)
+					assert.Equal(t, newVersion.Revision, changes[0].Version.Revision)
+					assert.Equal(t, d.InsertData, changes[0].Data)
+					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
+					assert.Equal(t, d.NoPatches, changes[0].Patches)
+				}
+			}
+		}
 	}
 }

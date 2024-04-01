@@ -28,6 +28,8 @@ var indexConfiguration []byte
 
 const (
 	bulkProcessorWorkers = 2
+	bulkActions          = 1000
+	flushInterval        = time.Second
 	clientRetryWaitMax   = 10 * 60 * time.Second
 	clientRetryMax       = 9
 )
@@ -140,7 +142,9 @@ func Init(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, 
 	}
 
 	// TODO: Make number of workers configurable.
-	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
+	// TODO: Make bulk actions configurable.
+	// TODO: Make flush interval configurable.
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).BulkActions(bulkActions).FlushInterval(flushInterval).After(
 		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				logger.Error().Err(err).Str("index", index).Msg("indexing error")
