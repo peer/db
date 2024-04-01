@@ -8,7 +8,7 @@
       <li><RouterLink :to="{ name: 'Home' }" class="link">API</RouterLink></li> -->
     </ul>
     <ul class="flex gap-x-2 sm:gap-x-4">
-      <li class="text-neutral-500">Powered by <a href="https://gitlab.com/peerdb/search" class="link">PeerDB Search</a></li>
+      <li class="text-neutral-500">Powered by <a href="https://gitlab.com/peerdb/peerdb" class="link">PeerDB</a></li>
     </ul>
   </div>
 </template>
