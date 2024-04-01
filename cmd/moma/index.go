@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html"
 	"io"
@@ -74,9 +73,9 @@ func parseMediaURL(path string) (string, int, int, errors.E) {
 		return "", 0, 0, errors.WithStack(err)
 	}
 	var decodedData [][]string
-	err = json.Unmarshal(matchData, &decodedData)
-	if err != nil {
-		return "", 0, 0, errors.WithStack(err)
+	errE := x.Unmarshal(matchData, &decodedData)
+	if errE != nil {
+		return "", 0, 0, errE
 	}
 
 	var mediaType string
@@ -126,9 +125,9 @@ func (p picture) Image() (image, errors.E) {
 	images := []imageSrc{}
 
 	if p.ImageSrc != "" {
-		mediaType, width, height, err := parseMediaURL(p.ImageSrc)
-		if err != nil {
-			return image{}, err //nolint:exhaustruct
+		mediaType, width, height, errE := parseMediaURL(p.ImageSrc)
+		if errE != nil {
+			return image{}, errE //nolint:exhaustruct
 		}
 		images = append(images, imageSrc{
 			Path:      p.ImageSrc,
@@ -138,9 +137,9 @@ func (p picture) Image() (image, errors.E) {
 		})
 	}
 	for _, path := range parseSrcSet(p.ImageSrcSet) {
-		mediaType, width, height, err := parseMediaURL(path)
-		if err != nil {
-			return image{}, err //nolint:exhaustruct
+		mediaType, width, height, errE := parseMediaURL(path)
+		if errE != nil {
+			return image{}, errE //nolint:exhaustruct
 		}
 		images = append(images, imageSrc{
 			Path:      path,
@@ -151,9 +150,9 @@ func (p picture) Image() (image, errors.E) {
 	}
 	for _, source := range p.Sources {
 		for _, path := range parseSrcSet(source) {
-			mediaType, width, height, err := parseMediaURL(path)
-			if err != nil {
-				return image{}, err //nolint:exhaustruct
+			mediaType, width, height, errE := parseMediaURL(path)
+			if errE != nil {
+				return image{}, errE //nolint:exhaustruct
 			}
 			images = append(images, imageSrc{
 				Path:      path,
@@ -328,7 +327,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 
 	if cachedReader == nil {
 		// File does not already exist. We download the file and optionally save it.
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil) //nolint:govet
+		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -364,11 +363,9 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	}()
 
 	var result []T
-	decoder := json.NewDecoder(countingReader)
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&result)
-	if err != nil {
-		return nil, errors.WithStack(err)
+	errE := x.DecodeJSONWithoutUnknownFields(countingReader, &result)
+	if errE != nil {
+		return nil, errE
 	}
 	return result, nil
 }
@@ -430,14 +427,14 @@ func index(config *Config) errors.E { //nolint:maintidx
 	}
 	defer stop()
 
-	artists, err := getJSON[Artist](ctx, httpClient, config.Logger, config.CacheDir, config.ArtistsURL)
-	if err != nil {
-		return err
+	artists, errE := getJSON[Artist](ctx, httpClient, config.Logger, config.CacheDir, config.ArtistsURL)
+	if errE != nil {
+		return errE
 	}
 
-	artworks, err := getJSON[Artwork](ctx, httpClient, config.Logger, config.CacheDir, config.ArtworksURL)
-	if err != nil {
-		return err
+	artworks, errE := getJSON[Artwork](ctx, httpClient, config.Logger, config.CacheDir, config.ArtworksURL)
+	if errE != nil {
+		return errE
 	}
 
 	count := x.Counter(0)
@@ -450,9 +447,9 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 	}()
 
-	err = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Index)
-	if err != nil {
-		return err
+	errE = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Index)
+	if errE != nil {
+		return errE
 	}
 
 	artistsMap := map[int]peerdb.Document{}
@@ -514,7 +511,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 
 		if artist.ArtistBio != "" {
-			err := doc.Add(&document.TextClaim{
+			errE = doc.Add(&document.TextClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DESCRIPTION", 0),
 					Confidence: es.HighConfidence,
@@ -522,12 +519,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("DESCRIPTION"),
 				HTML: document.TranslatableHTMLString{"en": html.EscapeString(artist.ArtistBio)},
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.Nationality != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "NATIONALITY", 0),
 					Confidence: es.HighConfidence,
@@ -535,12 +532,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("NATIONALITY"),
 				String: artist.Nationality,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.Gender != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "GENDER", 0),
 					Confidence: es.HighConfidence,
@@ -549,12 +546,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				// We convert to lower case because input data does not have uniform case.
 				String: strings.ToLower(artist.Gender),
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.BeginDate != 0 {
-			err := doc.Add(&document.TimeClaim{
+			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "BEGIN_DATE", 0),
 					Confidence: es.HighConfidence,
@@ -563,12 +560,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Timestamp: document.Timestamp(time.Date(artist.BeginDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Precision: document.TimePrecisionYear,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.EndDate != 0 {
-			err := doc.Add(&document.TimeClaim{
+			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "END_DATE", 0),
 					Confidence: es.HighConfidence,
@@ -577,12 +574,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Timestamp: document.Timestamp(time.Date(artist.EndDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Precision: document.TimePrecisionYear,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.WikiQID != "" {
-			err := doc.Add(&document.IdentifierClaim{
+			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "WIKIDATA_ITEM_ID", 0),
 					Confidence: es.HighConfidence,
@@ -590,10 +587,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:       peerdb.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
 				Identifier: artist.WikiQID,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
-			err = doc.Add(&document.ReferenceClaim{
+			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "WIKIDATA_ITEM_PAGE", 0),
 					Confidence: es.HighConfidence,
@@ -601,12 +598,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
 				IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", artist.WikiQID),
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artist.ULAN != "" {
-			err := doc.Add(&document.IdentifierClaim{
+			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ULAN_ID", 0),
 					Confidence: es.HighConfidence,
@@ -614,10 +611,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:       peerdb.GetCorePropertyReference("ULAN_ID"),
 				Identifier: artist.ULAN,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
-			err = doc.Add(&document.ReferenceClaim{
+			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ULAN_PAGE", 0),
 					Confidence: es.HighConfidence,
@@ -625,27 +622,27 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("ULAN_PAGE"),
 				IRI:  fmt.Sprintf("https://www.getty.edu/vow/ULANFullDisplay?find=&role=&nation=&subjectid=%s", artist.ULAN),
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 
 		if config.WebsiteData { //nolint:dupl,nestif
-			data, err := getArtist(ctx, httpClient, artist.ConstituentID)
-			if err != nil {
-				if errors.AllDetails(err)["code"] == http.StatusNotFound {
+			data, errE := getArtist(ctx, httpClient, artist.ConstituentID) //nolint:govet
+			if errE != nil {
+				if errors.AllDetails(errE)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
 					count.Increment()
 					continue
 				}
-				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
+				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
 			} else if data.ChallengeRunning {
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
-					image, err := picture.Image()
-					if err != nil {
-						config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
+					image, errE := picture.Image() //nolint:govet
+					if errE != nil {
+						config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
 					} else {
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
@@ -762,21 +759,21 @@ func index(config *Config) errors.E { //nolint:maintidx
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
 		if config.WebsiteData { //nolint:dupl,nestif
-			data, err := getArtwork(ctx, httpClient, artwork.ObjectID)
-			if err != nil {
-				if errors.AllDetails(err)["code"] == http.StatusNotFound {
+			data, errE := getArtwork(ctx, httpClient, artwork.ObjectID) //nolint:govet
+			if errE != nil {
+				if errors.AllDetails(errE)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")
 					count.Increment()
 					continue
 				}
-				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
+				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
 			} else if data.ChallengeRunning {
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
-					image, err := picture.Image()
-					if err != nil {
-						config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+					image, errE := picture.Image() //nolint:govet
+					if errE != nil {
+						config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 					} else {
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
@@ -824,7 +821,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			if strings.HasPrefix(url, "http://") {
 				url = strings.Replace(url, "http://", "https://", 1)
 			}
-			err := doc.Add(&document.FileClaim{
+			errE = doc.Add(&document.FileClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", 0),
 					Confidence: es.HighConfidence,
@@ -834,8 +831,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 				URL:     url,
 				Preview: []string{url},
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 
@@ -847,12 +844,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				continue
 			}
 			processedConstituentIDs[constituentID] = true
-			to, err := getArtistReference(artistsMap, constituentID)
-			if err != nil {
-				config.Logger.Warn().Err(err).Fields(errors.AllDetails(err)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+			to, errE := getArtistReference(artistsMap, constituentID) //nolint:govet
+			if errE != nil {
+				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 				continue
 			}
-			err = doc.Add(&document.RelationClaim{
+			errE = doc.Add(&document.RelationClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "BY_ARTIST", 0, constituentID),
 					Confidence: es.HighConfidence,
@@ -860,13 +857,13 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("BY_ARTIST"),
 				To:   to,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 
 		if artwork.Date != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE", 0),
 					Confidence: es.HighConfidence,
@@ -874,12 +871,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("DATE"),
 				String: artwork.Date,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Medium != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MEDIUM", 0),
 					Confidence: es.HighConfidence,
@@ -887,12 +884,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("MEDIUM"),
 				String: artwork.Medium,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Dimensions != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIMENSIONS", 0),
 					Confidence: es.HighConfidence,
@@ -900,12 +897,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("DIMENSIONS"),
 				String: artwork.Dimensions,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.CreditLine != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CREDIT", 0),
 					Confidence: es.HighConfidence,
@@ -913,12 +910,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("CREDIT"),
 				String: artwork.CreditLine,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.AccessionNumber != "" {
-			err := doc.Add(&document.IdentifierClaim{
+			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_ACCESSION_NUMBER", 0),
 					Confidence: es.HighConfidence,
@@ -926,12 +923,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:       peerdb.GetCorePropertyReference("MOMA_ACCESSION_NUMBER"),
 				Identifier: artwork.AccessionNumber,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Classification != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CLASSIFICATION", 0),
 					Confidence: es.HighConfidence,
@@ -939,12 +936,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("CLASSIFICATION"),
 				String: artwork.Classification,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Department != "" {
-			err := doc.Add(&document.StringClaim{
+			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPARTMENT", 0),
 					Confidence: es.HighConfidence,
@@ -952,8 +949,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop:   peerdb.GetCorePropertyReference("DEPARTMENT"),
 				String: artwork.Department,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.DateAcquired != "" {
@@ -984,7 +981,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			default:
 				return errors.Errorf(`unsupported cataloged value "%s"`, artwork.Cataloged)
 			}
-			err := doc.Add(&document.RelationClaim{
+			errE = doc.Add(&document.RelationClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LABEL", 0, "CATALOGED", 0),
 					Confidence: confidence,
@@ -992,12 +989,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("LABEL"),
 				To:   peerdb.GetCorePropertyReference("CATALOGED"),
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Depth != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPTH", 0),
 					Confidence: es.HighConfidence,
@@ -1006,12 +1003,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Depth * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Height != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "HEIGHT", 0),
 					Confidence: es.HighConfidence,
@@ -1020,12 +1017,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Height * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Width != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WIDTH", 0),
 					Confidence: es.HighConfidence,
@@ -1034,12 +1031,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Width * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Weight != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WEIGHT", 0),
 					Confidence: es.HighConfidence,
@@ -1048,12 +1045,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitKilogram,
 				Amount: artwork.Weight,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Diameter != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIAMETER", 0),
 					Confidence: es.HighConfidence,
@@ -1062,12 +1059,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Diameter * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Length != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LENGTH", 0),
 					Confidence: es.HighConfidence,
@@ -1076,12 +1073,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Length * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Circumference != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CIRCUMFERENCE", 0),
 					Confidence: es.HighConfidence,
@@ -1090,12 +1087,12 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitMetre,
 				Amount: artwork.Circumference * centimetreToMetre,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 		if artwork.Duration != 0 {
-			err := doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DURATION", 0),
 					Confidence: es.HighConfidence,
@@ -1104,8 +1101,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Unit:   document.AmountUnitSecond,
 				Amount: artwork.Duration,
 			})
-			if err != nil {
-				return err
+			if errE != nil {
+				return errE
 			}
 		}
 
