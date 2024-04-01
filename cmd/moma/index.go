@@ -635,14 +635,14 @@ func index(config *Config) errors.E { //nolint:maintidx
 					count.Increment()
 					continue
 				}
-				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
+				config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("error getting artist data")
 			} else if data.ChallengeRunning {
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
 					image, errE := picture.Image() //nolint:govet
 					if errE != nil {
-						config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
+						config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
 					} else {
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
@@ -766,14 +766,14 @@ func index(config *Config) errors.E { //nolint:maintidx
 					count.Increment()
 					continue
 				}
-				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
+				config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("error getting artwork data")
 			} else if data.ChallengeRunning {
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
 					image, errE := picture.Image() //nolint:govet
 					if errE != nil {
-						config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+						config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 					} else {
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
@@ -846,7 +846,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			processedConstituentIDs[constituentID] = true
 			to, errE := getArtistReference(artistsMap, constituentID) //nolint:govet
 			if errE != nil {
-				config.Logger.Warn().Err(errE).Fields(errors.AllDetails(errE)).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
+				config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 				continue
 			}
 			errE = doc.Add(&document.RelationClaim{
