@@ -26,9 +26,6 @@ var routesConfiguration []byte
 //go:embed dist
 var files embed.FS
 
-// TODO: Determine reasonable size for the buffer.
-const bridgeBufferSize = 100
-
 type Service struct {
 	waf.Service[*Site]
 
@@ -121,7 +118,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		siteCtx := context.WithValue(ctx, requestIDContextKey, "serve")
 		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
 
-		store, esProcessor, errE := initForSite(siteCtx, globals, dbpool, esClient, site.Schema, site.Index, site.SizeField) //nolint:govet
+		store, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index, site.SizeField) //nolint:govet
 		if errE != nil {
 			return nil, nil, errE
 		}

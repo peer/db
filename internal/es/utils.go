@@ -3,6 +3,7 @@ package es
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,11 +15,15 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // TODO: Generate index configuration automatically from document structs?
@@ -32,6 +37,8 @@ const (
 	flushInterval        = time.Second
 	clientRetryWaitMax   = 10 * 60 * time.Second
 	clientRetryMax       = 9
+	// TODO: Determine reasonable size for the buffer.
+	bridgeBufferSize = 100
 )
 
 func prepareFields(keysAndValues []interface{}) {
@@ -105,17 +112,17 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 // ensureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of ensureIndex would otherwise create.
-func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, sizeField bool) (*elastic.Client, errors.E) {
+func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, sizeField bool) errors.E {
 	exists, err := esClient.IndexExists(index).Do(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 
 	if !exists {
 		var config indexConfigurationStruct
 		errE := x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
 		if errE != nil {
-			return nil, errE
+			return errE
 		}
 
 		if sizeField {
@@ -124,23 +131,18 @@ func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, si
 
 		createIndex, err := esClient.CreateIndex(index).BodyJson(config).Do(ctx)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 		if !createIndex.Acknowledged {
 			// TODO: Wait for acknowledgment using Task API?
-			return nil, errors.New("create index not acknowledged")
+			return errors.New("create index not acknowledged")
 		}
 	}
 
-	return esClient, nil
+	return nil
 }
 
-func Init(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, index string, sizeField bool) (*elastic.BulkProcessor, errors.E) {
-	esClient, errE := ensureIndex(ctx, esClient, index, sizeField)
-	if errE != nil {
-		return nil, errE
-	}
-
+func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, index string) (*elastic.BulkProcessor, errors.E) {
 	// TODO: Make number of workers configurable.
 	// TODO: Make bulk actions configurable.
 	// TODO: Make flush interval configurable.
@@ -170,41 +172,31 @@ func Init(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, 
 	return processor, nil
 }
 
-func Standalone(logger zerolog.Logger, url, index string, sizeField bool) (
-	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client, *elastic.BulkProcessor, errors.E,
+func Standalone(logger zerolog.Logger, database, elastic, schema, index string, sizeField bool) (
+	context.Context, context.CancelFunc, *retryablehttp.Client,
+	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	*elastic.Client, *elastic.BulkProcessor, errors.E,
 ) {
-	ctx := context.Background()
+	// We stop the server gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	// We call cancel on SIGINT or SIGTERM signal.
-	ctx, cancel := context.WithCancel(ctx)
-
-	// Call cancel on SIGINT or SIGTERM signal.
-	go func() {
-		c := make(chan os.Signal, 1)
-		defer close(c)
-
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		defer signal.Stop(c)
-
-		// We wait for a signal or that the context is canceled
-		// or that all goroutines are done.
-		select {
-		case <-c:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
+	dbpool, errE := internal.InitPostgres(ctx, database, logger, func(_ context.Context) (string, string) {
+		return schema, "moma"
+	})
+	if errE != nil {
+		return nil, nil, nil, nil, nil, nil, errE
+	}
 
 	simpleHTTPClient := cleanhttp.DefaultPooledClient()
 
-	esClient, errE := GetClient(simpleHTTPClient, logger, url)
+	esClient, errE := GetClient(simpleHTTPClient, logger, elastic)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	processor, errE := Init(ctx, logger, esClient, index, sizeField)
+	store, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, errE
 	}
 
 	httpClient := retryablehttp.NewClient()
@@ -219,7 +211,7 @@ func Standalone(logger zerolog.Logger, url, index string, sizeField bool) (
 		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
 	}
 
-	return ctx, cancel, httpClient, esClient, processor, nil
+	return ctx, stop, httpClient, store, esClient, esProcessor, nil
 }
 
 func Progress(logger zerolog.Logger, processor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
@@ -242,4 +234,45 @@ func Progress(logger zerolog.Logger, processor *elastic.BulkProcessor, cache *Ca
 		}
 		e.Msgf("%s %0.2f%%", description, p.Percent())
 	}
+}
+
+func InitForSite(
+	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
+) (*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *elastic.BulkProcessor, errors.E) {
+	// TODO: Add some monitoring of the channel contention.
+	channel := make(chan store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
+	context.AfterFunc(ctx, func() { close(channel) })
+
+	errE := ensureIndex(ctx, esClient, index, sizeField)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	esProcessor, errE := initProcessor(ctx, logger, esClient, index)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
+		Schema:       schema,
+		Committed:    channel,
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
+		PatchType:    "jsonb",
+	}
+	errE = store.Init(ctx, dbpool)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	go Bridge(
+		ctx,
+		logger.With().Str("schema", schema).Str("index", index).Logger(),
+		store,
+		esProcessor,
+		index,
+		channel,
+	)
+
+	return store, esProcessor, nil
 }

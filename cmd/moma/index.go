@@ -422,10 +422,13 @@ func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID 
 }
 
 func index(config *Config) errors.E { //nolint:maintidx
-	ctx, _, httpClient, esClient, processor, errE := es.Standalone(config.Logger, config.Elastic, config.Index, config.SizeField)
+	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
+		config.Logger, string(config.Database), config.Elastic, config.Schema, config.Index, config.SizeField,
+	)
 	if errE != nil {
 		return errE
 	}
+	defer stop()
 
 	artists, err := getJSON[Artist](ctx, httpClient, config.Logger, config.CacheDir, config.ArtistsURL)
 	if err != nil {
@@ -438,7 +441,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 	}
 
 	count := x.Counter(0)
-	progress := es.Progress(config.Logger, processor, nil, nil, "indexing")
+	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
 	ticker := x.NewTicker(ctx, &count, int64(len(peerdb.CoreProperties))+int64(len(artists))+int64(len(artworks)), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -447,7 +450,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 	}()
 
-	err = peerdb.SaveCoreProperties(ctx, config.Logger, esClient, processor, config.Index)
+	err = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Index)
 	if err != nil {
 		return err
 	}
@@ -692,7 +695,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		count.Increment()
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-		peerdb.InsertOrReplaceDocument(processor, config.Index, &doc)
+		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	artworksMap := map[int]peerdb.Document{}
@@ -955,7 +961,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			errE := doc.Add(&document.TimeClaim{
+			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE_ACQUIRED", 0),
 					Confidence: es.HighConfidence,
@@ -1108,7 +1114,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		count.Increment()
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-		peerdb.InsertOrReplaceDocument(processor, config.Index, &doc)
+		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	return errors.WithStack(ctx.Err())
