@@ -12,9 +12,16 @@ import (
 
 // View is not a snapshot of the database but a dynamic named view of data to operate on.
 type View[Data, Metadata, Patch any] struct {
-	Name string
-
+	name  string
 	store *Store[Data, Metadata, Patch]
+}
+
+func (v *View[Data, Metadata, Patch]) Name() string {
+	return v.name
+}
+
+func (v *View[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
+	return v.store
 }
 
 func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
@@ -103,7 +110,7 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 
 func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	arguments := []any{
-		v.Name, id.String(),
+		v.name, id.String(),
 	}
 	var data Data
 	var metadata Metadata
@@ -138,7 +145,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.Name).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
 					errE = errors.Join(errE, err)
 				} else if !exists {
@@ -160,7 +167,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = v.Name
+		details["view"] = v.name
 		details["id"] = id.String()
 	}
 	return data, metadata, version, errE
@@ -168,7 +175,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 
 func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
-		v.Name, id.String(), version.Changeset.String(), version.Revision,
+		v.name, id.String(), version.Changeset.String(), version.Revision,
 	}
 	var data Data
 	var metadata Metadata
@@ -192,7 +199,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.Name).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
 					errE = errors.Join(errE, err)
 				} else if !exists {
@@ -212,7 +219,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = v.Name
+		details["view"] = v.name
 		details["id"] = id.String()
 		details["changeset"] = version.Changeset.String()
 		details["revision"] = version.Revision

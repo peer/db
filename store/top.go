@@ -18,7 +18,7 @@ func (s *Store[Data, Metadata, Patch]) View(_ context.Context, view string) (Vie
 	// racy as even if we check here it would not mean much until we really
 	// try to use the view (view could disappear or be created in meantime).
 	return View[Data, Metadata, Patch]{
-		Name:  view,
+		name:  view,
 		store: s,
 	}, nil
 }

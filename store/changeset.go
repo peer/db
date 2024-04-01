@@ -20,6 +20,10 @@ type Changeset[Data, Metadata, Patch any] struct {
 	view *View[Data, Metadata, Patch]
 }
 
+func (c *Changeset[Data, Metadata, Patch]) View() *View[Data, Metadata, Patch] {
+	return c.view
+}
+
 // We allow changing changesets even after they have been used as a parent changeset in some
 // other changeset to allow one to prepare a chain changesets to commit. It is up to the higher
 // levels to assure changesets and their patches are consistent before committing the chain.
@@ -64,7 +68,7 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 	}
@@ -112,7 +116,7 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -161,7 +165,7 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -208,7 +212,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -222,7 +226,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // Commit adds the changelog to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	arguments := []any{
-		c.String(), metadata, c.view.Name,
+		c.String(), metadata, c.view.name,
 	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
@@ -249,7 +253,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		if res.RowsAffected() == 0 {
 			// TODO: Is there a better way to differentiate between different EXISTS conditions instead of doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, c.view.Name).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, c.view.name).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
@@ -281,7 +285,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				)
 				SELECT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
 			`,
-				c.view.Name,
+				c.view.name,
 			).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
@@ -296,7 +300,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	}
 	return errE
@@ -338,7 +342,7 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.Name
+		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	}
 	return errE
