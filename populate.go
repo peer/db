@@ -7,7 +7,7 @@ import (
 )
 
 func (c *PopulateCommand) runIndex(globals *Globals, index string, sizeField bool) errors.E {
-	ctx, _, _, esClient, processor, err := es.Initialize(globals.Logger, globals.Elastic, index, sizeField)
+	ctx, _, _, esClient, processor, err := es.Standalone(globals.Logger, globals.Elastic, index, sizeField)
 	if err != nil {
 		return err
 	}

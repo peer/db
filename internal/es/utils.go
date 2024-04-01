@@ -139,7 +139,7 @@ func ensureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Lo
 	return esClient, nil
 }
 
-func Initialize(logger zerolog.Logger, url, index string, sizeField bool) (
+func Standalone(logger zerolog.Logger, url, index string, sizeField bool) (
 	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client, *elastic.BulkProcessor, errors.E,
 ) {
 	ctx := context.Background()
