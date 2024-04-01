@@ -303,7 +303,19 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	} else if c.view.store.Committed != nil {
-		c.view.store.Committed <- *c
+		// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
+		c.view.store.Committed <- Changeset[Data, Metadata, Patch]{
+			Identifier: c.Identifier,
+			view: &View[Data, Metadata, Patch]{
+				name: c.view.name,
+				store: &Store[Data, Metadata, Patch]{
+					Schema:         c.view.store.Schema,
+					Committed:      nil,
+					dbpool:         nil,
+					patchesEnabled: false,
+				},
+			},
+		}
 	}
 	return errE
 }
