@@ -19,12 +19,6 @@
       "get": {}
     },
     {
-      "name": "Search",
-      "path": "/s",
-      "api": {},
-      "get": {}
-    },
-    {
       "name": "SearchFilters",
       "path": "/s/filters/:s",
       "api": {},
@@ -65,6 +59,18 @@
       "path": "/s/filters/:s/size",
       "api": {},
       "get": null
+    },
+    {
+      "name": "SearchCreate",
+      "path": "/s/create",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "SearchGet",
+      "path": "/s/:s",
+      "api": {},
+      "get": {}
     },
     {
       "name": "DocumentGet",

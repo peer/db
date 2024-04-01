@@ -15,7 +15,7 @@ import type {
   SizeSearchResult,
 } from "@/types"
 
-import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
+import { ref, computed, toRef, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import Button from "@/components/Button.vue"
 import SearchResult from "@/partials/SearchResult.vue"
@@ -32,6 +32,10 @@ import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREA
 import { useVisibilityTracking } from "@/visibility"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
+
+const props = defineProps<{
+  s: string
+}>()
 
 const router = useRouter()
 const route = useRoute()
@@ -54,20 +58,37 @@ const {
   moreThanTotal: searchMoreThanTotal,
   error: searchError,
   url: searchURL,
-} = useSearch(searchEl, searchProgress, async (query) => {
-  await router.replace({
-    name: "Search",
-    // Maybe route.query has non-empty "at" parameter which we want to keep.
-    query: encodeQuery({ at: route.query.at || undefined, ...query }),
-  })
-})
+} = useSearch(
+  toRef(() => props.s),
+  searchEl,
+  searchProgress,
+  async (searchState) => {
+    await router.replace({
+      name: "SearchGet",
+      params: {
+        s: searchState.s,
+      },
+      // Maybe route.query has non-empty "at" parameter which we want to keep.
+      query: encodeQuery({ q: searchState.q, at: route.query.at || undefined }),
+    })
+  },
+)
 
 const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: searchLoadMore } = useLimitResults(searchResults, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
 
 const filtersEl = ref(null)
 
 const filtersProgress = localProgress(mainProgress)
-const { results: filtersResults, total: filtersTotal, error: filtersError, url: filtersURL } = useFilters(filtersEl, filtersProgress)
+const {
+  results: filtersResults,
+  total: filtersTotal,
+  error: filtersError,
+  url: filtersURL,
+} = useFilters(
+  toRef(() => props.s),
+  filtersEl,
+  filtersProgress,
+)
 
 const {
   limitedResults: limitedFiltersResults,
@@ -173,7 +194,7 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.rel = { ...updatedState.rel }
     updatedState.rel[id] = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -195,7 +216,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
     const updatedState = { ...filtersState.value }
     updatedState.amount = { ...updatedState.amount }
     updatedState.amount[`${id}/${unit}`] = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -217,7 +238,7 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.time = { ...updatedState.time }
     updatedState.time[id] = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -239,7 +260,7 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
     const updatedState = { ...filtersState.value }
     updatedState.str = { ...updatedState.str }
     updatedState.str[id] = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -260,7 +281,7 @@ async function onIndexFiltersStateUpdate(s: IndexFilterState) {
   try {
     const updatedState = { ...filtersState.value }
     updatedState.index = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -281,7 +302,7 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
   try {
     const updatedState = { ...filtersState.value }
     updatedState.size = s
-    await postFilters(router, route, updatedState, abortController.signal, updateFiltersProgress)
+    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -299,7 +320,7 @@ const filtersEnabled = ref(false)
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch v-model:filtersEnabled="filtersEnabled" />
+      <NavBarSearch v-model:filtersEnabled="filtersEnabled" :s="s" />
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
@@ -334,7 +355,7 @@ const filtersEnabled = ref(false)
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="track(result.id) as any" :result="result" />
+          <SearchResult :ref="track(result.id) as any" :s="s" :result="result" />
         </template>
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
           >Load more</Button
@@ -366,6 +387,7 @@ const filtersEnabled = ref(false)
         <template v-for="result in limitedFiltersResults" :key="result.id">
           <RelFiltersResult
             v-if="result.type === 'rel'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as RelSearchResult"
             :state="filtersState.rel[result.id] || (filtersState.rel[result.id] = [])"
@@ -374,6 +396,7 @@ const filtersEnabled = ref(false)
           />
           <AmountFiltersResult
             v-if="result.type === 'amount'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as AmountSearchResult"
             :state="filtersState.amount[`${result.id}/${result.unit}`] || (filtersState.amount[`${result.id}/${result.unit}`] = null)"
@@ -382,6 +405,7 @@ const filtersEnabled = ref(false)
           />
           <TimeFiltersResult
             v-if="result.type === 'time'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as TimeSearchResult"
             :state="filtersState.time[result.id] || (filtersState.time[result.id] = null)"
@@ -390,6 +414,7 @@ const filtersEnabled = ref(false)
           />
           <StringFiltersResult
             v-if="result.type === 'string'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as StringSearchResult"
             :state="filtersState.str[result.id] || (filtersState.str[result.id] = [])"
@@ -398,6 +423,7 @@ const filtersEnabled = ref(false)
           />
           <IndexFiltersResult
             v-if="result.type === 'index'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as IndexSearchResult"
             :state="filtersState.index"
@@ -406,6 +432,7 @@ const filtersEnabled = ref(false)
           />
           <SizeFiltersResult
             v-if="result.type === 'size'"
+            :s="s"
             :search-total="searchTotal"
             :result="result as SizeSearchResult"
             :state="filtersState.size"

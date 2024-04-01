@@ -1,5 +1,5 @@
 import type { Ref, DeepReadonly } from "vue"
-import type { RouteLocationNormalizedLoaded, LocationQueryRaw, Router } from "vue-router"
+import type { RouteLocationNormalizedLoaded, Router, RouteParams } from "vue-router"
 import type {
   SearchResult,
   SearchFilterResult,
@@ -17,13 +17,12 @@ import type {
   SizeFilter,
   Filters,
   FiltersState,
-  ClientQuery,
-  ServerQuery,
+  ClientSearchState,
+  ServerSearchState,
   RelSearchResult,
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
-  QueryValues,
   QueryValuesWithOptional,
 } from "@/types"
 
@@ -42,13 +41,6 @@ export const FILTERS_INCREASE = 10
 
 function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   const form = new FormData()
-  if (Array.isArray(route.query.s)) {
-    if (route.query.s[0] != null) {
-      form.set("s", route.query.s[0])
-    }
-  } else if (route.query.s != null) {
-    form.set("s", route.query.s)
-  }
   if (Array.isArray(route.query.q)) {
     if (route.query.q[0] != null) {
       form.set("q", route.query.q[0])
@@ -60,9 +52,9 @@ function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
 }
 
 export async function postSearch(router: Router, form: HTMLFormElement, abortSignal: AbortSignal, progress: Ref<number>) {
-  const query = await postURL<ServerQuery>(
+  const searchState = await postURL<ServerSearchState>(
     router.apiResolve({
-      name: "Search",
+      name: "SearchCreate",
     }).href,
     new FormData(form),
     abortSignal,
@@ -72,16 +64,24 @@ export async function postSearch(router: Router, form: HTMLFormElement, abortSig
     return
   }
   await router.push({
-    name: "Search",
+    name: "SearchGet",
+    params: {
+      s: searchState.s,
+    },
     query: encodeQuery({
-      // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
-      s: query.s || undefined,
-      q: query.q,
+      q: searchState.q,
     }),
   })
 }
 
-export async function postFilters(router: Router, route: RouteLocationNormalizedLoaded, updatedState: FiltersState, abortSignal: AbortSignal, progress: Ref<number>) {
+export async function postFilters(
+  router: Router,
+  route: RouteLocationNormalizedLoaded,
+  s: string,
+  updatedState: FiltersState,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
+) {
   const filters: Filters = {
     and: [],
   }
@@ -145,10 +145,11 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
     }
   }
   const form = queryToFormData(route)
+  form.set("s", s)
   form.set("filters", JSON.stringify(filters))
-  const updatedQuery: ServerQuery = await postURL(
+  const updatedSearchState: ServerSearchState = await postURL(
     router.apiResolve({
-      name: "Search",
+      name: "SearchCreate",
     }).href,
     form,
     abortSignal,
@@ -157,29 +158,32 @@ export async function postFilters(router: Router, route: RouteLocationNormalized
   if (abortSignal.aborted) {
     return
   }
-  if (route.query.s !== updatedQuery.s || route.query.q !== updatedQuery.q) {
+  if (s !== updatedSearchState.s || route.query.q !== updatedSearchState.q) {
     await router.push({
-      name: "Search",
+      name: "SearchGet",
+      params: {
+        s: updatedSearchState.s,
+      },
       query: encodeQuery({
-        // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
-        s: updatedQuery.s || undefined,
-        q: updatedQuery.q,
+        q: updatedSearchState.q,
       }),
     })
   }
 }
 
-function getSearchURL(router: Router, query: QueryValuesWithOptional): string {
+function getSearchURL(router: Router, params: RouteParams, query: QueryValuesWithOptional): string {
   return router.apiResolve({
-    name: "Search",
+    name: "SearchGet",
+    params,
     query: encodeQuery(query),
   }).href
 }
 
 export function useSearch(
+  s: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
-  redirect: (query: QueryValues) => Promise<void | undefined>,
+  redirect: (searchState: ServerSearchState) => Promise<void | undefined>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
@@ -195,17 +199,22 @@ export function useSearch(
     el,
     progress,
     () => {
-      return getSearchURL(router, {
-        // We do not want to keep an empty "s" query parameter, but we do want to keep "q".
-        s: route.query.s || undefined,
-        q: route.query.q,
-      })
+      return getSearchURL(
+        router,
+        {
+          s: s.value,
+        },
+        {
+          q: route.query.q,
+        },
+      )
     },
     redirect,
   )
 }
 
 export function useFilters(
+  s: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -215,25 +224,15 @@ export function useFilters(
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
-  const route = useRoute()
 
   return useSearchResults<SearchFilterResult>(
     el,
     progress,
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s) {
-        return null
-      }
       return router.apiResolve({
         name: "SearchFilters",
         params: {
-          s,
+          s: s.value,
         },
       }).href
     },
@@ -446,7 +445,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
-  redirect?: ((query: QueryValues) => Promise<void | undefined>) | null,
+  redirect?: ((searchState: ServerSearchState) => Promise<void | undefined>) | null,
 ): {
   results: DeepReadonly<Ref<Type[]>>
   total: DeepReadonly<Ref<number | null>>
@@ -560,7 +559,8 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
 }
 
 export function useRelFilterValues(
-  result: RelSearchResult,
+  s: Ref<string>,
+  result: Ref<RelSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -570,31 +570,25 @@ export function useRelFilterValues(
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
-  const route = useRoute()
 
   return useSearchResults<RelSearchResult>(
     el,
     progress,
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s || !result.id || !result.type) {
+      const r = result.value
+      if (!r.id || !r.type) {
         return null
       }
-      if (result.type === "rel") {
+      if (r.type === "rel") {
         return router.apiResolve({
           name: "SearchRelFilter",
           params: {
-            s,
-            prop: result.id,
+            s: s.value,
+            prop: r.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
+        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
     null,
@@ -602,7 +596,8 @@ export function useRelFilterValues(
 }
 
 export function useAmountHistogramValues(
-  result: AmountSearchResult,
+  s: Ref<string>,
+  result: Ref<AmountSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -638,29 +633,24 @@ export function useAmountHistogramValues(
   const initialRouteName = route.name
   watch(
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s || !result.id || !result.type) {
+      const r = result.value
+      if (!r.id || !r.type) {
         return null
       }
-      if (result.type === "amount") {
-        if (!result.unit) {
-          throw new Error(`property "${result.id}" is missing unit`)
+      if (r.type === "amount") {
+        if (!r.unit) {
+          throw new Error(`property "${r.id}" is missing unit`)
         }
         return router.apiResolve({
           name: "SearchAmountFilter",
           params: {
-            s,
-            prop: result.id,
-            unit: result.unit,
+            s: s.value,
+            prop: r.id,
+            unit: r.unit,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
+        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {
@@ -726,7 +716,8 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  result: TimeSearchResult,
+  s: Ref<string>,
+  result: Ref<TimeSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -762,25 +753,20 @@ export function useTimeHistogramValues(
   const initialRouteName = route.name
   watch(
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s || !result.id || !result.type) {
+      const r = result.value
+      if (!r.id || !r.type) {
         return null
       }
-      if (result.type === "time") {
+      if (r.type === "time") {
         return router.apiResolve({
           name: "SearchTimeFilter",
           params: {
-            s,
-            prop: result.id,
+            s: s.value,
+            prop: r.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
+        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {
@@ -846,7 +832,8 @@ export function useTimeHistogramValues(
 }
 
 export function useStringFilterValues(
-  result: StringSearchResult,
+  s: Ref<string>,
+  result: Ref<StringSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -873,25 +860,20 @@ export function useStringFilterValues(
   const initialRouteName = route.name
   watch(
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s || !result.id || !result.type) {
+      const r = result.value
+      if (!r.id || !r.type) {
         return null
       }
-      if (result.type === "string") {
+      if (r.type === "string") {
         return router.apiResolve({
           name: "SearchStringFilter",
           params: {
-            s,
-            prop: result.id,
+            s: s.value,
+            prop: r.id,
           },
         }).href
       } else {
-        throw new Error(`unexpected type "${result.type}" for property "${result.id}"`)
+        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
     async (newURL, oldURL, onCleanup) => {
@@ -945,6 +927,7 @@ export function useStringFilterValues(
 }
 
 export function useIndexFilterValues(
+  s: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -971,19 +954,10 @@ export function useIndexFilterValues(
   const initialRouteName = route.name
   watch(
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!screen) {
-        return null
-      }
       return router.apiResolve({
         name: "SearchIndexFilter",
         params: {
-          s,
+          s: s.value,
         },
       }).href
     },
@@ -1038,6 +1012,7 @@ export function useIndexFilterValues(
 }
 
 export function useSizeHistogramValues(
+  s: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -1073,19 +1048,10 @@ export function useSizeHistogramValues(
   const initialRouteName = route.name
   watch(
     () => {
-      let s
-      if (Array.isArray(route.query.s)) {
-        s = route.query.s[0]
-      } else {
-        s = route.query.s
-      }
-      if (!s) {
-        return null
-      }
       return router.apiResolve({
         name: "SearchSizeFilter",
         params: {
-          s,
+          s: s.value,
         },
       }).href
     },
@@ -1156,7 +1122,7 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
   progress: Ref<number>,
-): Promise<{ results: T[]; total: number | string; query?: string; filters?: Filters } | { q: string; s: string }> {
+): Promise<{ results: T[]; total: number | string; query?: string; filters?: Filters } | ServerSearchState> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
   if (abortSignal.aborted) {
     return { q: "", s: "" }
@@ -1248,12 +1214,13 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
 }
 
 export function useSearchState(
+  s: Ref<string | null | undefined>,
   el: Ref<Element | null>,
-  redirect: (query: LocationQueryRaw) => Promise<void | undefined>,
+  redirect: (searchState: ServerSearchState) => Promise<void | undefined>,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
-  query: DeepReadonly<Ref<ClientQuery>>
+  searchState: DeepReadonly<Ref<ClientSearchState>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
@@ -1261,11 +1228,11 @@ export function useSearchState(
   const route = useRoute()
 
   const _results = ref<SearchResult[]>([])
-  const _query = ref<ClientQuery>({})
+  const _searchState = ref<ClientSearchState>({})
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : _results
-  const query = import.meta.env.DEV ? readonly(_query) : _query
+  const searchState = import.meta.env.DEV ? readonly(_searchState) : _searchState
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
@@ -1274,12 +1241,7 @@ export function useSearchState(
 
   const initialRouteName = route.name
   watch(
-    () => {
-      if (Array.isArray(route.query.s)) {
-        return route.query.s[0]
-      }
-      return route.query.s
-    },
+    s,
     async (s, oldS, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
@@ -1291,11 +1253,11 @@ export function useSearchState(
 
       if (!s) {
         _results.value = []
-        _query.value = {}
+        _searchState.value = {}
         _url.value = null
         return
       }
-      const newURL = getSearchURL(router, { s })
+      const newURL = getSearchURL(router, { s }, {})
       _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())
@@ -1309,7 +1271,7 @@ export function useSearchState(
         }
         console.error("useSearchState", newURL, err)
         _results.value = []
-        _query.value = {}
+        _searchState.value = {}
         _error.value = `${err}`
         return
       }
@@ -1318,16 +1280,13 @@ export function useSearchState(
       }
       if (!("results" in data)) {
         _results.value = []
-        _query.value = {}
+        _searchState.value = {}
         await redirect(data)
         return
       }
       _results.value = data.results
-      // We know it is available because the query is without "q" parameter.
-      _query.value = {
-        s,
-        // We set "at" here to undefined so that we control its order in the query string.
-        at: undefined,
+      _searchState.value = {
+        s, // If "results" were returned, then s is valid.
         q: data.query,
       }
     },
@@ -1338,7 +1297,7 @@ export function useSearchState(
 
   return {
     results,
-    query,
+    searchState,
     error,
     url,
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
 
-import { ref, computed, onBeforeUnmount } from "vue"
+import { ref, computed, toRef, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import CheckBox from "@/components/CheckBox.vue"
@@ -10,6 +10,7 @@ import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
+  s: string
   searchTotal: number
   result: StringSearchResult
   state: StringFilterState
@@ -29,7 +30,17 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, total, error, url: resultsUrl } = useStringFilterValues(props.result, el, progress)
+const {
+  results,
+  total,
+  error,
+  url: resultsUrl,
+} = useStringFilterValues(
+  toRef(() => props.s),
+  toRef(() => props.result),
+  el,
+  progress,
+)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)

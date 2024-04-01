@@ -291,9 +291,9 @@ export type FiltersState = {
   size: SizeFilterState
 }
 
-export type ServerQuery = { s?: string; q?: string; filters?: Filters }
+export type ServerSearchState = { s: string; q: string }
 
-export type ClientQuery = { s?: string; at?: string; q?: string }
+export type ClientSearchState = { s?: string; q?: string }
 
 export type SiteContext = {
   domain: string

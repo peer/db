@@ -300,14 +300,6 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
   // We want keys in an alphabetical order (default in Go).
   keys.sort()
 
-  // We want the order of parameters to be "s", "at", and then "q" so that if "q" is cut,
-  // URL still works. So we just bring "s" to the front.
-  const i = keys.indexOf("s")
-  if (i >= 0) {
-    keys.splice(i, 1)
-    keys.unshift("s")
-  }
-
   const values: QueryValues = {}
   for (const key of keys) {
     const value = query[key]

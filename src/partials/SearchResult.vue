@@ -3,9 +3,8 @@ import type { PeerDBDocument, SearchResult } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { computed, ref } from "vue"
-import { useRoute } from "vue-router"
 import WithDocument from "@/components/WithDocument.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
+import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth, encodeQuery } from "@/utils"
 import {
   DESCRIPTION,
   ORIGINAL_CATALOG_DESCRIPTION,
@@ -26,10 +25,9 @@ import {
 } from "@/props"
 
 defineProps<{
+  s: string
   result: SearchResult
 }>()
-
-const route = useRoute()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
@@ -111,7 +109,7 @@ const rowSpan = computed(() => {
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: { s: route.query.s } }"
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s }) }"
               class="link"
               v-html="docName || '<i>no name</i>'"
             ></RouterLink>
@@ -134,7 +132,7 @@ const rowSpan = computed(() => {
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: { s: route.query.s } }"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s }) }"
               ><img :src="previewFiles[0]" class="mx-auto bg-white"
             /></RouterLink>
           </div>

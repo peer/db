@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { IndexFilterState, IndexSearchResult } from "@/types"
 
-import { computed, onBeforeUnmount, ref } from "vue"
+import { computed, toRef, onBeforeUnmount, ref } from "vue"
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import { useIndexFilterValues, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
@@ -9,6 +9,7 @@ import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
+  s: string
   searchTotal: number
   result: IndexSearchResult
   state: IndexFilterState
@@ -28,7 +29,11 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, total, error, url } = useIndexFilterValues(el, progress)
+const { results, total, error, url } = useIndexFilterValues(
+  toRef(() => props.s),
+  el,
+  progress,
+)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)

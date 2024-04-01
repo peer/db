@@ -341,7 +341,6 @@ type State struct {
 // Values returns search state as query string values.
 func (q *State) Values() url.Values {
 	values := url.Values{}
-	values.Set("s", q.ID.String())
 	values.Set("q", q.Text)
 	return values
 }

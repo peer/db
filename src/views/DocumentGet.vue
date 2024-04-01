@@ -2,11 +2,10 @@
 import type { PeerDBDocument } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import { ref, computed } from "vue"
+import { ref, computed, toRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
-import InputText from "@/components/InputText.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -33,9 +32,10 @@ const progress = injectProgress()
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const { results, query } = useSearchState(
+const { results, searchState } = useSearchState(
+  toRef(() => (Array.isArray(route.query.s) ? route.query.s[0] : route.query.s)),
   el,
-  async (query) => {
+  async (searchState) => {
     // Something was not OK, so we redirect to the URL without "s".
     // TODO: This has still created a new search state on the server, we should not do that.
 
@@ -101,17 +101,30 @@ const file = computed(() => {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="route.query.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <InputText v-if="!query.s" readonly class="max-w-xl flex-grow" :model-value="query.q" />
-        <InputTextLink v-else class="max-w-xl flex-grow" :to="{ name: 'Search', query: { ...query, at: id } }" :after-click="afterClick">
-          {{ query.q }}
+      <div v-if="searchState.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
+        <InputTextLink
+          class="max-w-xl flex-grow"
+          :to="{ name: 'SearchGet', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
+          :after-click="afterClick"
+        >
+          {{ searchState.q }}
         </InputTextLink>
         <div class="grid grid-cols-2 gap-x-1">
-          <ButtonLink primary class="px-3.5" :disabled="!prevNext.previous" :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: { s: query.s } }">
+          <ButtonLink
+            primary
+            class="px-3.5"
+            :disabled="!prevNext.previous"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchState.s }) }"
+          >
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
           </ButtonLink>
-          <ButtonLink primary class="px-3.5" :disabled="!prevNext.next" :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: { s: query.s } }">
+          <ButtonLink
+            primary
+            class="px-3.5"
+            :disabled="!prevNext.next"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchState.s }) }"
+          >
             <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>
           </ButtonLink>

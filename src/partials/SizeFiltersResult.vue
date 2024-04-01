@@ -2,7 +2,7 @@
 import type { API } from "nouislider"
 import type { SizeFilterState, SizeSearchResult } from "@/types"
 
-import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
+import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import CheckBox from "@/components/CheckBox.vue"
 import { useSizeHistogramValues, NONE } from "@/search"
@@ -10,6 +10,7 @@ import { formatValue, equals, useInitialLoad, loadingShortHeights } from "@/util
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
+  s: string
   searchTotal: number
   result: SizeSearchResult
   state: SizeFilterState
@@ -29,7 +30,11 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, min, max, error, url } = useSizeHistogramValues(el, progress)
+const { results, min, max, error, url } = useSizeHistogramValues(
+  toRef(() => props.s),
+  el,
+  progress,
+)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {

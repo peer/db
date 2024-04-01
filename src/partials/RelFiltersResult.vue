@@ -11,6 +11,7 @@ import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
+  s: string
   searchTotal: number
   result: RelSearchResult
   state: RelFilterState
@@ -30,7 +31,17 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, total, error, url: resultsUrl } = useRelFilterValues(props.result, el, progress)
+const {
+  results,
+  total,
+  error,
+  url: resultsUrl,
+} = useRelFilterValues(
+  computed(() => props.s),
+  computed(() => props.result),
+  el,
+  progress,
+)
 const { laterLoad } = useInitialLoad(progress)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)

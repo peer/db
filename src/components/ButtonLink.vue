@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router"
 
-import { computed } from "vue"
+import { toRef } from "vue"
 import { useLink } from "vue-router"
 
 const props = withDefaults(
@@ -21,8 +21,8 @@ const props = withDefaults(
 // We use fake "/" when disabled. The link is not really active then, so that is OK.
 // We have to make both be computed to retain reactivity.
 const { navigate, href } = useLink({
-  to: computed(() => (props.disabled ? "/" : props.to)),
-  replace: computed(() => props.replace),
+  to: toRef(() => (props.disabled ? "/" : props.to)),
+  replace: toRef(() => props.replace),
 })
 </script>
 

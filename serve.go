@@ -6,12 +6,8 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
-	"slices"
-	"sort"
-	"strings"
 	"syscall"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -171,46 +167,8 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errE
 	}
 
-	router := new(waf.Router)
-	// EncodeQuery should match implementation on the frontend.
-	router.EncodeQuery = func(query url.Values) string {
-		if len(query) == 0 {
-			return ""
-		}
-
-		// We want keys in an alphabetical order (default in Go).
-		keys := make([]string, 0, len(query))
-		for k := range query {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		// We want the order of parameters to be "s", "at", and then "q" so that if "q" is cut,
-		// URL still works. So we just bring "s" to the front.
-		i := slices.Index(keys, "s")
-		if i >= 0 {
-			keys = slices.Delete(keys, i, i+1)
-			keys = slices.Insert(keys, 0, "s")
-		}
-
-		var buf strings.Builder
-		for _, k := range keys {
-			vs := query[k]
-			keyEscaped := url.QueryEscape(k)
-			for _, v := range vs {
-				if buf.Len() > 0 {
-					buf.WriteByte('&')
-				}
-				buf.WriteString(keyEscaped)
-				buf.WriteByte('=')
-				buf.WriteString(url.QueryEscape(v))
-			}
-		}
-
-		return buf.String()
-	}
-
 	// Construct the main handler for the service using the router.
+	router := new(waf.Router)
 	handler, errE := service.RouteWith(service, router)
 	if errE != nil {
 		return nil, nil, errE

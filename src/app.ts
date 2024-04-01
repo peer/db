@@ -15,7 +15,7 @@ const router = createRouter({
   history: createWebHistory(),
   scrollBehavior(to, from, savedPosition) {
     // Search route handles its own scrolling through "at" query parameter.
-    if (to.name === "Search") {
+    if (to.name === "SearchGet") {
       return false
     }
     if (savedPosition) {

@@ -234,9 +234,9 @@ func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, 
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// Search is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+// SearchGet is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
 // If search state is invalid, it redirects to a valid one.
-func (s *Service) Search(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -253,11 +253,11 @@ func (s *Service) Search(w http.ResponseWriter, req *http.Request, _ waf.Params)
 	}
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := search.GetOrCreateState(req.Form.Get("s"), q, filters)
+	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.Reverse("Search", nil, sh.Values())
+		path, err := s.Reverse("SearchGet", waf.Params{"s": sh.ID.String()}, sh.Values())
 		if err != nil {
 			s.InternalServerErrorWithError(w, req, err)
 			return
@@ -269,7 +269,7 @@ func (s *Service) Search(w http.ResponseWriter, req *http.Request, _ waf.Params)
 		return
 	} else if !req.Form.Has("q") {
 		// "q" is missing, so we redirect to the correct URL.
-		path, err := s.Reverse("Search", nil, sh.ValuesWithAt(req.Form.Get("at")))
+		path, err := s.Reverse("SearchGet", waf.Params{"s": sh.ID.String()}, sh.ValuesWithAt(req.Form.Get("at")))
 		if err != nil {
 			s.InternalServerErrorWithError(w, req, err)
 			return
@@ -288,11 +288,11 @@ type searchResult struct {
 	ID string `json:"id"`
 }
 
-// SearchGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
+// SearchGetGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
 // search state and returns to the client a JSON with an array of IDs of found documents. If search state is
 // invalid, it returns correct query parameters as JSON. It supports compression based on accepted content
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 
@@ -309,7 +309,7 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, _ waf.Para
 	}
 
 	m := timing.NewMetric("s").Start()
-	sh, ok := search.GetOrCreateState(req.Form.Get("s"), q, filters)
+	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we return new query parameters.
@@ -358,9 +358,9 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, _ waf.Para
 	})
 }
 
-// SearchPost is a POST HTTP request handler which stores the search state and returns
+// SearchCreatePost is a POST HTTP request handler which stores the search state and returns
 // query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
-func (s *Service) SearchPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	timing := servertiming.FromContext(ctx)
 

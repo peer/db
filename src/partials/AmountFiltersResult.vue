@@ -2,7 +2,7 @@
 import type { API } from "nouislider"
 import type { AmountFilterState, AmountSearchResult, PeerDBDocument } from "@/types"
 
-import { ref, computed, watchEffect, onBeforeUnmount } from "vue"
+import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
 import WithDocument from "@/components/WithDocument.vue"
 import CheckBox from "@/components/CheckBox.vue"
@@ -11,6 +11,7 @@ import { formatValue, equals, getName, loadingWidth, useInitialLoad, loadingShor
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
+  s: string
   searchTotal: number
   result: AmountSearchResult
   state: AmountFilterState
@@ -30,7 +31,18 @@ onBeforeUnmount(() => {
 })
 
 const progress = injectProgress()
-const { results, min, max, error, url: resultsUrl } = useAmountHistogramValues(props.result, el, progress)
+const {
+  results,
+  min,
+  max,
+  error,
+  url: resultsUrl,
+} = useAmountHistogramValues(
+  toRef(() => props.s),
+  toRef(() => props.result),
+  el,
+  progress,
+)
 const { laterLoad } = useInitialLoad(progress)
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
