@@ -133,3 +133,9 @@ func getRequestWithFallback(logger zerolog.Logger) func(context.Context) (string
 		return schema, requestID
 	}
 }
+
+func (s *Service) getStore(req *http.Request) *store.Store[json.RawMessage, json.RawMessage, json.RawMessage] {
+	site := waf.MustGetSite[*Site](req.Context())
+
+	return site.store
+}

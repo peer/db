@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -10,6 +12,14 @@ import (
 type Version struct {
 	Changeset identifier.Identifier
 	Revision  int64
+}
+
+func (v Version) String() string {
+	s := new(strings.Builder)
+	s.WriteString(v.Changeset.String())
+	s.WriteString("-")
+	s.WriteString(strconv.FormatInt(v.Revision, 10))
+	return s.String()
 }
 
 func (s *Store[Data, Metadata, Patch]) View(_ context.Context, view string) (View[Data, Metadata, Patch], errors.E) {

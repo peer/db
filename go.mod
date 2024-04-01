@@ -10,10 +10,10 @@ require (
 	github.com/foolin/pagser v0.1.5
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/jackc/pgx/v5 v5.5.5
-	github.com/mitchellh/go-server-timing v1.0.1
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.31.1-0.20231108200417-bb14b8b9de11
 	github.com/stretchr/testify v1.8.4
+	github.com/tozd/go-server-timing v0.0.0-20231113225037-9110c404323f
 	gitlab.com/tozd/go/cli v0.3.0
 	gitlab.com/tozd/go/mediawiki v0.12.0
 	gitlab.com/tozd/go/x v0.0.0-20240319120849-eb6a32121198
@@ -67,7 +67,6 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
-	github.com/tozd/go-server-timing v0.0.0-20231113225037-9110c404323f // indirect
 	github.com/whilp/git-urls v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

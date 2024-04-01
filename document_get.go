@@ -3,20 +3,20 @@ package peerdb
 import (
 	"net/http"
 	"net/url"
-	"time"
 
-	servertiming "github.com/mitchellh/go-server-timing"
-	"github.com/olivere/elastic/v7"
-	"github.com/rs/zerolog/hlog"
+	servertiming "github.com/tozd/go-server-timing"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/search"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // TODO: Support slug per document.
-// TODO: JSON response should include id field.
+
+// TODO: Support "version" query string to fetch an exact version.
 
 // DocumentGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
@@ -71,20 +71,20 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	// TODO: If "s" is provided, should we validate that id is really part of search? Currently we do on the frontend.
 
 	// We check if document exists.
-	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(0).Query(elastic.NewTermQuery("id", id.String()))
+	st := s.getStore(req)
 
-	m := timing.NewMetric("es").Start()
-	res, err := searchService.Do(ctx)
+	m := timing.NewMetric("db").Start()
+	// TODO: Add API to store to just check if the value exists.
+	// TODO: To support "omni" instances, allow getting across multiple schemas.
+	_, _, _, errE = st.GetCurrent(ctx, id) //nolint:dogsled
 	m.Stop()
-	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
-	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	if res.Hits.TotalHits.Value == 0 {
-		s.NotFound(w, req)
+	if errE != nil {
+		if errors.Is(errE, store.ErrValueNotFound) {
+			s.NotFound(w, req)
+			return
+		}
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -106,30 +106,33 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	// We do not check "s" and "q" parameters because the expectation is that
 	// they are not provided with JSON request (because they are not used).
 
-	// We do a search query and not _doc or _source request to get the document
-	// so that it works also on aliases.
-	// See: https://github.com/elastic/elasticsearch/issues/69649
-	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(search.MaxResultsCount).FetchSource(true).Query(elastic.NewTermQuery("id", id.String()))
+	st := s.getStore(req)
 
-	m := timing.NewMetric("es").Start()
-	res, err := searchService.Do(ctx)
+	m := timing.NewMetric("db").Start()
+	// TODO: To support "omni" instances, allow getting across multiple schemas.
+	data, metadataJSON, version, errE := st.GetCurrent(ctx, id)
 	m.Stop()
-	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
-	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	if len(res.Hits.Hits) == 0 {
-		s.NotFound(w, req)
+	if errE != nil {
+		if errors.Is(errE, store.ErrValueNotFound) {
+			s.NotFound(w, req)
+			return
+		}
+		s.InternalServerErrorWithError(w, req, errE)
 		return
-	} else if len(res.Hits.Hits) > 1 {
-		hlog.FromRequest(req).Warn().Str("id", id.String()).Msg("found more than one document for ID")
 	}
+
+	var metadata map[string]interface{}
+	errE = x.Unmarshal(metadataJSON, &metadata)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	w.Header().Set("Version", version.String())
 
 	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
 
-	s.WriteJSON(w, req, res.Hits.Hits[0].Source, nil)
+	s.WriteJSON(w, req, data, metadata)
 }

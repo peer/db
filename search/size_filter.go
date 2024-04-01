@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/olivere/elastic/v7"
+	servertiming "github.com/tozd/go-server-timing"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
