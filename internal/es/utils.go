@@ -84,7 +84,7 @@ func (a loggerAdapter) Printf(format string, v ...interface{}) {
 
 var _ elastic.Logger = (*loggerAdapter)(nil)
 
-func getClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
+func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
 		elastic.SetURL(url),
 		elastic.SetHttpClient(httpClient),
@@ -100,16 +100,10 @@ func getClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 	return esClient, errors.WithStack(err)
 }
 
-// ensureIndex creates an instance of the ElasticSearch client and makes sure
-// the index for PeerDB documents exists. If not, it creates it.
+// ensureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of ensureIndex would otherwise create.
-func ensureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, url, index string, sizeField bool) (*elastic.Client, errors.E) {
-	esClient, errE := getClient(httpClient, logger, url)
-	if errE != nil {
-		return nil, errE
-	}
-
+func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, sizeField bool) (*elastic.Client, errors.E) {
 	exists, err := esClient.IndexExists(index).Do(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -117,7 +111,7 @@ func ensureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Lo
 
 	if !exists {
 		var config indexConfigurationStruct
-		errE = x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
+		errE := x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
 		if errE != nil {
 			return nil, errE
 		}
@@ -137,6 +131,39 @@ func ensureIndex(ctx context.Context, httpClient *http.Client, logger zerolog.Lo
 	}
 
 	return esClient, nil
+}
+
+func Init(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, index string, sizeField bool) (*elastic.BulkProcessor, errors.E) {
+	esClient, errE := ensureIndex(ctx, esClient, index, sizeField)
+	if errE != nil {
+		return nil, errE
+	}
+
+	// TODO: Make number of workers configurable.
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
+		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+			if err != nil {
+				logger.Error().Err(err).Str("index", index).Msg("indexing error")
+			} else if failed := response.Failed(); len(failed) > 0 {
+				for _, f := range failed {
+					logger.Error().
+						Str("index", index).
+						Str("id", f.Id).Int("code", f.Status).
+						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
+						Msg("indexing error")
+				}
+			}
+		},
+		// Do's documentation states that passed context should not be used for cancellation,
+		// so we pass a new context here and register context.AfterFunc later on.
+	).Do(context.Background()) //nolint:contextcheck
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	context.AfterFunc(ctx, func() { processor.Close() })
+
+	return processor, nil
 }
 
 func Standalone(logger zerolog.Logger, url, index string, sizeField bool) (
@@ -166,28 +193,14 @@ func Standalone(logger zerolog.Logger, url, index string, sizeField bool) (
 
 	simpleHTTPClient := cleanhttp.DefaultPooledClient()
 
-	esClient, errE := ensureIndex(ctx, simpleHTTPClient, logger, url, index, sizeField)
+	esClient, errE := GetClient(simpleHTTPClient, logger, url)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, errE
 	}
 
-	// TODO: Make number of workers configurable.
-	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).After(
-		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
-			if err != nil {
-				logger.Error().Err(err).Msg("indexing error")
-			} else if failed := response.Failed(); len(failed) > 0 {
-				for _, f := range failed {
-					logger.Error().
-						Str("id", f.Id).Int("code", f.Status).
-						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
-						Msg("indexing error")
-				}
-			}
-		},
-	).Do(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, nil, errors.WithStack(err)
+	processor, errE := Init(ctx, logger, esClient, index, sizeField)
+	if errE != nil {
+		return nil, nil, nil, nil, nil, errE
 	}
 
 	httpClient := retryablehttp.NewClient()

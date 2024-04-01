@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
@@ -30,7 +31,8 @@ type Site struct {
 
 	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
 
-	store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
+	store       *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
+	esProcessor *elastic.BulkProcessor
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

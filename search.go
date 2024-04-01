@@ -26,7 +26,7 @@ func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)
 
 	for _, site := range s.Sites {
-		total, err := s.ESClient.Count(site.Index).Query(query).Do(ctx)
+		total, err := s.esClient.Count(site.Index).Query(query).Do(ctx)
 		if err != nil {
 			return errors.Errorf(`site "%s": %w`, site.Index, err)
 		}
@@ -43,7 +43,7 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 
 	// The fact that TrackTotalHits is set to true is important because the count is used as the
 	// number of documents of the filter on the _index field.
-	return s.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
+	return s.esClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal
 }
 

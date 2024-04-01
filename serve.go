@@ -17,9 +17,9 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 
+	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -32,7 +32,7 @@ var files embed.FS
 type Service struct {
 	waf.Service[*Site]
 
-	ESClient *elastic.Client
+	esClient *elastic.Client
 }
 
 // Init is used primarily in tests. Use Run otherwise.
@@ -67,6 +67,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 			Title:           c.Title,
 			SizeField:       globals.SizeField,
 			store:           nil,
+			esProcessor:     nil,
 			propertiesTotal: 0,
 		}
 	}
@@ -114,6 +115,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errE
 	}
 
+	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
 	for _, site := range sites {
 		store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
 			Schema: site.Schema,
@@ -122,12 +128,12 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		if errE != nil {
 			return nil, nil, errE
 		}
+		esProcessor, errE := es.Init(ctx, globals.Logger, esClient, site.Index, site.SizeField) //nolint:govet
+		if errE != nil {
+			return nil, nil, errE
+		}
 		site.store = store
-	}
-
-	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
-	if errE != nil {
-		return nil, nil, errE
+		site.esProcessor = esProcessor
 	}
 
 	service := &Service{ //nolint:forcetypeassert
@@ -159,7 +165,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 				}
 			},
 		},
-		ESClient: esClient,
+		esClient: esClient,
 	}
 
 	errE = service.populatePropertiesTotal(ctx)
