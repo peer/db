@@ -134,16 +134,26 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"name" text UNIQUE,
 					PRIMARY KEY ("id")
 				);
+				CREATE FUNCTION "doNotAllow"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						RAISE EXCEPTION 'not allowed';
+					END;
+				$$;
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						INSERT INTO "currentViews" VALUES (NEW."id", NEW."revision", NEW."name")
-							ON CONFLICT ("id") DO UPDATE
-								SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
+						INSERT INTO "currentViews"
+							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW
+								ORDER BY "id", "revision" DESC
+								ON CONFLICT ("id") DO UPDATE
+									SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
 						RETURN NULL;
 					END;
 				$$;
 				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
-					FOR EACH ROW EXECUTE FUNCTION "viewsAfterInsertFunc"();
+					REFERENCING NEW TABLE AS NEW
+					FOR EACH STATEMENT EXECUTE FUNCTION "viewsAfterInsertFunc"();
+				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
 					"id" text NOT NULL,
@@ -153,27 +163,31 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						INSERT INTO "currentChanges" VALUES (NEW."id", NEW."changeset", NEW."revision")
-							ON CONFLICT ("id", "changeset") DO UPDATE
-								SET "revision"=EXCLUDED."revision";
+						INSERT INTO "currentChanges"
+							SELECT DISTINCT ON ("id", "changeset") "id", "changeset", "revision" FROM NEW
+								ORDER BY "id", "changeset", "revision" DESC
+								ON CONFLICT ("id", "changeset") DO UPDATE
+									SET "revision"=EXCLUDED."revision";
+						RETURN NULL;
+					END;
+				$$;
+				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Currently, in Discard, we delete all revisions for all changes for a changeset
+						-- at once. We take advantage of this here and just delete all changes for
+						-- deleted changesets from "currentChanges" as well.
+						DELETE FROM "currentChanges" WHERE "changeset"=OLD."changeset";
 						RETURN NULL;
 					END;
 				$$;
 				CREATE TRIGGER "changesAfterInsert" AFTER INSERT ON "changes"
-					FOR EACH ROW EXECUTE FUNCTION "changesAfterInsertFunc"();
-				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
-					BEGIN
-						DELETE FROM "currentChanges" WHERE "id"=OLD."id" AND "changeset"=OLD."changeset";
-						INSERT INTO "currentChanges"
-							SELECT "id", "changeset", "revision" FROM "changes"
-								WHERE "id"=OLD."id" AND "changeset"=OLD."changeset"
-							ORDER BY "revision" DESC
-							LIMIT 1;
-						RETURN NULL;
-					END;
-				$$;
+					REFERENCING NEW TABLE AS NEW
+					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterInsertFunc"();
 				CREATE TRIGGER "changesAfterDelete" AFTER DELETE ON "changes"
-					FOR EACH ROW EXECUTE FUNCTION "changesAfterDeleteFunc"();
+					REFERENCING OLD TABLE AS OLD
+					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterDeleteFunc"();
+				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)
