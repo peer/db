@@ -179,7 +179,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				return internal.WithPgxError(err)
 			}
 			_, err = tx.Exec(ctx, `
-				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views" FOR EACH ROW EXECUTE FUNCTION "syncCurrentViews"()
+				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
+					FOR EACH ROW EXECUTE FUNCTION "syncCurrentViews"()
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)
