@@ -75,8 +75,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			}
 
 			// TODO: Add a constraint that no two values with same ID should be created in multiple changesets.
-			// TODO: Check if DESC should be specified for revision column.
-			//       See: https://www.postgresql.org/message-id/CAKLmikNCFD44VjzRCRwuiVWDOE=T7zsOzygd5XakKNdRgLv-Aw@mail.gmail.com
 			_, err := tx.Exec(ctx, `
 				CREATE TABLE "changes" (
 					-- ID of the value.
@@ -102,13 +100,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"metadata" `+s.MetadataType+` NOT NULL,
 					`+patches+`
 					PRIMARY KEY ("id", "changeset", "revision")
-				)
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			_, err = tx.Exec(ctx, `
+				);
 				CREATE TABLE "views" (
 					-- ID of the view.
 					"id" text NOT NULL,
@@ -121,19 +113,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"path" text[] NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
 					PRIMARY KEY ("id", "revision")
-				)
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
-				CREATE INDEX ON "views" USING btree ("name")
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			_, err = tx.Exec(ctx, `
+				);
+				CREATE INDEX ON "views" USING btree ("name");
 				CREATE TABLE "viewChangesets" (
 					-- ID of the view.
 					"id" text NOT NULL,
@@ -145,25 +126,14 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"changeset" text NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
 					PRIMARY KEY ("id", "changeset")
-				)
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			_, err = tx.Exec(ctx, `
+				);
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
 					"id" text NOT NULL,
 					"revision" bigint NOT NULL,
 					"name" text UNIQUE,
 					PRIMARY KEY ("id")
-				)
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+				);
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentViews" VALUES (NEW."id", NEW."revision", NEW."name")
@@ -171,32 +141,16 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 								SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
 						RETURN NULL;
 					END;
-				$$
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+				$$;
 				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
-					FOR EACH ROW EXECUTE FUNCTION "viewsAfterInsertFunc"()
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			_, err = tx.Exec(ctx, `
+					FOR EACH ROW EXECUTE FUNCTION "viewsAfterInsertFunc"();
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
 					"id" text NOT NULL,
 					"changeset" text NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("id", "changeset")
-				)
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentChanges" VALUES (NEW."id", NEW."changeset", NEW."revision")
@@ -204,19 +158,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 								SET "revision"=EXCLUDED."revision";
 						RETURN NULL;
 					END;
-				$$
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+				$$;
 				CREATE TRIGGER "changesAfterInsert" AFTER INSERT ON "changes"
-					FOR EACH ROW EXECUTE FUNCTION "changesAfterInsertFunc"()
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+					FOR EACH ROW EXECUTE FUNCTION "changesAfterInsertFunc"();
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						DELETE FROM "currentChanges" WHERE "id"=OLD."id" AND "changeset"=OLD."changeset";
@@ -227,14 +171,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							LIMIT 1;
 						RETURN NULL;
 					END;
-				$$
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			_, err = tx.Exec(ctx, `
+				$$;
 				CREATE TRIGGER "changesAfterDelete" AFTER DELETE ON "changes"
-					FOR EACH ROW EXECUTE FUNCTION "changesAfterDeleteFunc"()
+					FOR EACH ROW EXECUTE FUNCTION "changesAfterDeleteFunc"();
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)
@@ -245,6 +184,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
+
 			err = tx.Commit(ctx)
 			if err != nil {
 				return internal.WithPgxError(err)
