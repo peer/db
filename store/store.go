@@ -17,6 +17,12 @@ type None *struct{}
 
 const MainView = "main"
 
+const (
+	// Our error codes.
+	errorCodeNotAllowed       = "P1000"
+	errorCodeAlreadyCommitted = "P1001"
+)
+
 type Store[Data, Metadata, Patch any] struct {
 	Schema       string
 	Committed    chan<- Changeset[Data, Metadata, Patch]
@@ -33,13 +39,10 @@ func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx p
 	if err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
-			// See: https://www.postgresql.org/docs/current/errcodes-appendix.html
 			switch pgError.Code {
-			// unique_violation.
-			case "23505":
+			case internal.ErrorCodeUniqueViolation:
 				return false, nil
-			// duplicate_schema.
-			case "42P06":
+			case internal.ErrorCodeDuplicateSchema:
 				return false, nil
 			}
 		}
@@ -136,13 +139,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE FUNCTION "doNotAllow"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						RAISE EXCEPTION 'not allowed';
+						RAISE EXCEPTION 'not allowed' USING ERRCODE = '`+errorCodeNotAllowed+`';
 					END;
 				$$;
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentViews"
-							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW
+							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW_ROWS
 								ORDER BY "id", "revision" DESC
 								ON CONFLICT ("id") DO UPDATE
 									SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
@@ -150,7 +153,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					END;
 				$$;
 				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
-					REFERENCING NEW TABLE AS NEW
+					REFERENCING NEW TABLE AS NEW_ROWS
 					FOR EACH STATEMENT EXECUTE FUNCTION "viewsAfterInsertFunc"();
 				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
@@ -164,7 +167,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentChanges"
-							SELECT DISTINCT ON ("id", "changeset") "id", "changeset", "revision" FROM NEW
+							SELECT DISTINCT ON ("id", "changeset") "id", "changeset", "revision" FROM NEW_ROWS
 								ORDER BY "id", "changeset", "revision" DESC
 								ON CONFLICT ("id", "changeset") DO UPDATE
 									SET "revision"=EXCLUDED."revision";
@@ -173,18 +176,25 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
+						-- None of deleted changesets should be committed (to any view).
+						PERFORM 1 FROM OLD_ROWS, "viewChangesets"
+							WHERE OLD_ROWS."changeset"="viewChangesets"."changeset"
+							LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
 						-- Currently, in Discard, we delete all revisions for all changes for a changeset
 						-- at once. We take advantage of this here and just delete all changes for
 						-- deleted changesets from "currentChanges" as well.
-						DELETE FROM "currentChanges" WHERE "changeset"=OLD."changeset";
+						DELETE FROM "currentChanges" USING OLD_ROWS WHERE "currentChanges"."changeset"=OLD_ROWS."changeset";
 						RETURN NULL;
 					END;
 				$$;
 				CREATE TRIGGER "changesAfterInsert" AFTER INSERT ON "changes"
-					REFERENCING NEW TABLE AS NEW
+					REFERENCING NEW TABLE AS NEW_ROWS
 					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterInsertFunc"();
 				CREATE TRIGGER "changesAfterDelete" AFTER DELETE ON "changes"
-					REFERENCING OLD TABLE AS OLD
+					REFERENCING OLD TABLE AS OLD_ROWS
 					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterDeleteFunc"();
 				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();

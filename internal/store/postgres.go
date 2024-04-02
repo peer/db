@@ -20,6 +20,15 @@ const (
 	defaultApplicationName = "peerdb"
 )
 
+// Standard error codes.
+// See: https://www.postgresql.org/docs/current/errcodes-appendix.html
+const (
+	ErrorCodeUniqueViolation      = "23505"
+	ErrorCodeDuplicateSchema      = "42P06"
+	ErrorCodeSerializationFailure = "40001"
+	ErrorCodeDeadlockDetected     = "40P01"
+)
+
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
 // See: https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html
 var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknoglobals

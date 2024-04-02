@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -348,27 +349,16 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 		c.String(),
 	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		res, err := tx.Exec(ctx, `
-			DELETE FROM "changes"
-				WHERE "changeset"=$1
-				-- The changeset should not yet be committed (to any view).
-				AND NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)
-		`, arguments...)
+		// We check that the changeset is not yet committed in the "changesAfterDeleteFunc" trigger.
+		_, err := tx.Exec(ctx, `DELETE FROM "changes" WHERE "changeset"=$1`, arguments...)
 		if err != nil {
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) && pgError.Code == errorCodeAlreadyCommitted {
+				return errors.WrapWith(err, ErrAlreadyCommitted)
+			}
 			return internal.WithPgxError(err)
 		}
-		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and an empty changeset instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			// Discarding an empty (or an already discarded) changeset is not an error.
-		}
+		// Discarding an empty (or an already discarded) changeset is not an error.
 		return nil
 	})
 	if errE != nil {

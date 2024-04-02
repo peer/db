@@ -63,11 +63,9 @@ func RetryTransaction(ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.
 			if errors.As(errE, &pgError) {
 				// See: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html
 				switch pgError.Code {
-				// serialization_failure.
-				case "40001":
+				case ErrorCodeSerializationFailure:
 					continue
-				// deadlock_detected.
-				case "40P01":
+				case ErrorCodeDeadlockDetected:
 					continue
 				}
 			}
