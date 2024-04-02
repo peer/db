@@ -121,8 +121,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- Changeset which belongs to this view. Also all changesets belonging to ancestors
 					-- (as defined by view's path) of this view belong to this view, but we do not store
 					-- them explicitly. The set of changesets belonging to the view should be kept
-					-- consistent so that every time a new changeset is added to the view, all ancestor
-					-- changesets are added as well, unless they are already present in ancestor views.
+					-- consistent so that a new changeset is added to the view only if all ancestor
+					-- changesets are already present in the view or in its ancestor views.
 					"changeset" text NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
 					PRIMARY KEY ("id", "changeset")
