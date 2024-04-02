@@ -207,9 +207,12 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				)
 				SELECT "data", "data" IS NULL, "metadata" FROM "changes", "currentViewChangesets"
+					WHERE "id"=$2
+					AND "changes"."changeset"=$3
+					AND "revision"=$4
 					-- We require the object at given version has been committed to the view
 					-- which we check by checking that version's changelog is among view's changelogs.
-					WHERE "id"=$2 AND "changes"."changeset"=$3 AND "revision"=$4 AND "changes"."changeset"="currentViewChangesets"."changeset"
+					AND "changes"."changeset"="currentViewChangesets"."changeset"
 			`, arguments...).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
