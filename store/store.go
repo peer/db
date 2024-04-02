@@ -166,6 +166,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
+						-- None of changed changesets should be committed (to any view).
+						PERFORM 1 FROM NEW_ROWS, "viewChangesets"
+							WHERE NEW_ROWS."changeset"="viewChangesets"."changeset"
+							LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("id", "changeset") "id", "changeset", "revision" FROM NEW_ROWS
 								ORDER BY "id", "changeset", "revision" DESC
@@ -186,7 +193,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Currently, in Discard, we delete all revisions for all changes for a changeset
 						-- at once. We take advantage of this here and just delete all changes for
 						-- deleted changesets from "currentChanges" as well.
-						DELETE FROM "currentChanges" USING OLD_ROWS WHERE "currentChanges"."changeset"=OLD_ROWS."changeset";
+						DELETE FROM "currentChanges" USING OLD_ROWS
+							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset";
 						RETURN NULL;
 					END;
 				$$;

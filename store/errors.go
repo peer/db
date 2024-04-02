@@ -9,4 +9,6 @@ var (
 	ErrAlreadyCommitted   = errors.Base("changeset already committed")
 	ErrParentNotCommitted = errors.Base("parent changeset not committed")
 	ErrConflict           = errors.Base("conflict")
+
+	errNoInserts = errors.Base("database insert unexpectedly inserted no rows")
 )

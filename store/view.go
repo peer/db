@@ -162,12 +162,11 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					errE = errors.Join(errE, err)
+					return errors.Join(errE, err)
 				} else if !exists {
-					errE = errors.WrapWith(errE, ErrViewNotFound)
-				} else {
-					errE = errors.WrapWith(errE, ErrValueNotFound)
+					return errors.WrapWith(errE, ErrViewNotFound)
 				}
+				return errors.WrapWith(errE, ErrValueNotFound)
 			}
 			return errE
 		}
@@ -221,12 +220,11 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					errE = errors.Join(errE, err)
+					return errors.Join(errE, err)
 				} else if !exists {
-					errE = errors.WrapWith(errE, ErrViewNotFound)
-				} else {
-					errE = errors.WrapWith(errE, ErrValueNotFound)
+					return errors.WrapWith(errE, ErrViewNotFound)
 				}
+				return errors.WrapWith(errE, ErrValueNotFound)
 			}
 			return errE
 		}

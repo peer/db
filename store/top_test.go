@@ -537,4 +537,21 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 			}
 		}
 	}
+
+	newID = identifier.New()
+
+	// Test errors.
+	changeset, errE = s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), newVersion.Revision)
+	}
+
+	_, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	errE = changeset.Discard(ctx)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 }

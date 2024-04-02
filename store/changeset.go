@@ -41,27 +41,23 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		//nolint:goconst
-		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4`+patches+`
-				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
-				ON CONFLICT DO NOTHING
-		`, arguments...)
+		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4`+patches, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
 		}
 		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			return errors.WithStack(ErrConflict)
+			// This should not happen.
+			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -90,26 +86,23 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
-		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders+`
-				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
-				ON CONFLICT DO NOTHING
-		`, arguments...)
+		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
 		}
 		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			return errors.WithStack(ErrConflict)
+			// This should not happen.
+			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -139,26 +132,23 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
 
-		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patches+`
-				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
-				ON CONFLICT DO NOTHING
-		`, arguments...)
+		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patches, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
 		}
 		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			return errors.WithStack(ErrConflict)
+			// This should not happen.
+			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -186,26 +176,23 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// TODO: Make sure parent changesets really contain object ID.
 
-		res, err := tx.Exec(ctx, `
-			INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4`+patches+`
-				-- The changeset should not yet be committed (to any view).
-				WHERE NOT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$2)
-				ON CONFLICT DO NOTHING
-		`, arguments...)
+		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4`+patches, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
 		}
 		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between WHERE NOT EXISTS and ON CONFLICT DO NOTHING instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "viewChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			return errors.WithStack(ErrConflict)
+			// This should not happen.
+			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -309,7 +296,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				return errors.WithStack(ErrParentNotCommitted)
 			}
 			// This should not happen.
-			return errors.New("database insert unexpectedly inserted no rows")
+			return errors.WithStack(errNoInserts)
 		}
 		return nil
 	})
@@ -352,11 +339,12 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 		// We check that the changeset is not yet committed in the "changesAfterDeleteFunc" trigger.
 		_, err := tx.Exec(ctx, `DELETE FROM "changes" WHERE "changeset"=$1`, arguments...)
 		if err != nil {
+			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
 			if errors.As(err, &pgError) && pgError.Code == errorCodeAlreadyCommitted {
-				return errors.WrapWith(err, ErrAlreadyCommitted)
+				return errors.WrapWith(errE, ErrAlreadyCommitted)
 			}
-			return internal.WithPgxError(err)
+			return errE
 		}
 		// Discarding an empty (or an already discarded) changeset is not an error.
 		return nil
