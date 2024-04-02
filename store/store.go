@@ -153,11 +153,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 			_, err = tx.Exec(ctx, `
 				CREATE TABLE "currentViews" (
-					-- ID of the view.
+					-- A subset of "views" columns.
 					"id" text NOT NULL,
-					-- Revision of this view.
 					"revision" bigint NOT NULL,
-					-- Name of the view. Optional.
 					"name" text UNIQUE,
 					PRIMARY KEY ("id")
 				)
@@ -166,12 +164,12 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				return internal.WithPgxError(err)
 			}
 			_, err = tx.Exec(ctx, `
-				CREATE FUNCTION "syncCurrentViews"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentViews" VALUES (NEW."id", NEW."revision", NEW."name")
 							ON CONFLICT ("id") DO UPDATE
 								SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
-						RETURN NEW;
+						RETURN NULL;
 					END;
 				$$
 			`)
@@ -180,15 +178,63 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			}
 			_, err = tx.Exec(ctx, `
 				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
-					FOR EACH ROW EXECUTE FUNCTION "syncCurrentViews"()
+					FOR EACH ROW EXECUTE FUNCTION "viewsAfterInsertFunc"()
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
 
 			_, err = tx.Exec(ctx, `
-				CREATE VIEW "currentChanges" AS
-					SELECT DISTINCT ON ("id", "changeset") * FROM "changes" ORDER BY "id", "changeset", "revision" DESC
+				CREATE TABLE "currentChanges" (
+					-- A subset of "changes" columns.
+					"id" text NOT NULL,
+					"changeset" text NOT NULL,
+					"revision" bigint NOT NULL,
+					PRIMARY KEY ("id", "changeset")
+				)
+			`)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			_, err = tx.Exec(ctx, `
+				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						INSERT INTO "currentChanges" VALUES (NEW."id", NEW."changeset", NEW."revision")
+							ON CONFLICT ("id", "changeset") DO UPDATE
+								SET "revision"=EXCLUDED."revision";
+						RETURN NULL;
+					END;
+				$$
+			`)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			_, err = tx.Exec(ctx, `
+				CREATE TRIGGER "changesAfterInsert" AFTER INSERT ON "changes"
+					FOR EACH ROW EXECUTE FUNCTION "changesAfterInsertFunc"()
+			`)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			_, err = tx.Exec(ctx, `
+				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						DELETE FROM "currentChanges" WHERE "id"=OLD."id" AND "changeset"=OLD."changeset";
+						INSERT INTO "currentChanges"
+							SELECT "id", "changeset", "revision" FROM "changes"
+								WHERE "id"=OLD."id" AND "changeset"=OLD."changeset"
+							ORDER BY "revision" DESC
+							LIMIT 1;
+						RETURN NULL;
+					END;
+				$$
+			`)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			_, err = tx.Exec(ctx, `
+				CREATE TRIGGER "changesAfterDelete" AFTER DELETE ON "changes"
+					FOR EACH ROW EXECUTE FUNCTION "changesAfterDeleteFunc"()
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)

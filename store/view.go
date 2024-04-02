@@ -133,12 +133,21 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 			), "currentViewChangesets" AS (
 				SELECT "changeset", "depth" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
-				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "id"=$2 AND "changeset" IN (SELECT "changeset" FROM "currentViewChangesets")
+				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
+					WHERE "currentChanges"."id"=$2
+					AND "currentChanges"."changeset" IN (SELECT "changeset" FROM "currentViewChangesets")
+					AND "currentChanges"."id"="changes"."id"
+					AND "currentChanges"."changeset"="changes"."changeset"
+					AND "currentChanges"."revision"="changes"."revision"
 			)
-			SELECT "currentChanges"."changeset", "revision", "data", "data" IS NULL, "metadata" FROM "currentChanges", "currentViewChangesets"
-				WHERE "id"=$2
-				-- We collect all parent changesets for the object and make sure we do not select them.
-				AND "currentChanges"."changeset" IN (SELECT "changeset" FROM "currentViewChangesets" EXCEPT SELECT * FROM "parentChangesets")
+			SELECT "currentChanges"."changeset", "currentChanges"."revision", "data", "data" IS NULL, "metadata"
+				FROM "currentChanges", "changes", "currentViewChangesets"
+					WHERE "currentChanges"."id"=$2
+					AND "currentChanges"."id"="changes"."id"
+					AND "currentChanges"."changeset"="changes"."changeset"
+					AND "currentChanges"."revision"="changes"."revision"
+					-- We collect all parent changesets for the object and make sure we do not select them.
+					AND "currentChanges"."changeset" IN (SELECT "changeset" FROM "currentViewChangesets" EXCEPT SELECT * FROM "parentChangesets")
 				-- It is important to search changesets in order in which views are listed in the path.
 				-- There might be newer changesets for object ID in ancestor views, but younger views have
 				-- to be explicitly rebased to include those newer changesets and until then we ignore them.

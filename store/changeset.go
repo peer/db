@@ -238,7 +238,11 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			), "currentViewChangesets" AS (
 				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
-				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "changeset"=$1
+				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
+					WHERE "currentChanges"."changeset"=$1
+					AND "currentChanges"."id"="changes"."id"
+					AND "currentChanges"."changeset"="changes"."changeset"
+					AND "currentChanges"."revision"="changes"."revision"
 			)
 			INSERT INTO "viewChangesets" SELECT "id", $1, $2 FROM "currentViews"
 				WHERE	"name"=$3
@@ -287,8 +291,12 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				), "parentChangesets" AS (
-					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges" WHERE "changeset"=$1
-				)
+					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
+						WHERE "currentChanges"."changeset"=$1
+						AND "currentChanges"."id"="changes"."id"
+						AND "currentChanges"."changeset"="changes"."changeset"
+						AND "currentChanges"."revision"="changes"."revision"
+					)
 				SELECT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
 			`,
 				c.view.name,
@@ -415,8 +423,13 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 			), "currentViewChangesets" AS (
 				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			)
-			SELECT "id", "revision", "data", "metadata"`+patches+` FROM "currentChanges", "currentViewChangesets"
-				WHERE "currentChanges"."changeset"=$2 AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+			SELECT "currentChanges"."id", "currentChanges"."revision", "data", "metadata"`+patches+`
+				FROM "currentChanges", "changes", "currentViewChangesets"
+					WHERE "currentChanges"."changeset"=$2
+					AND "currentChanges"."id"="changes"."id"
+					AND "currentChanges"."changeset"="changes"."changeset"
+					AND "currentChanges"."revision"="changes"."revision"
+					AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
 		`, arguments...)
 		if err != nil {
 			return errors.WithStack(err)
