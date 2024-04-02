@@ -231,7 +231,10 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
-				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$3
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+					WHERE "currentViews"."name"=$3
+					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
 				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
@@ -277,7 +280,10 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			}
 			err = tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
-					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+						WHERE "currentViews"."name"=$1
+						AND "currentViews"."id"="views"."id"
+						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				), "parentChangesets" AS (
@@ -402,7 +408,10 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		rows, err := tx.Query(ctx, `
 			WITH "currentViewPath" AS (
 				-- We do not care about order of views here because we have en explicit version we are searching for.
-				SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+					WHERE "currentViews"."name"=$1
+					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
 				SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			)

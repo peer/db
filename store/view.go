@@ -126,7 +126,10 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		err := tx.QueryRow(ctx, `
 			WITH "currentViewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews", UNNEST("path") WITH ORDINALITY AS p("id", "depth") WHERE "name"=$1
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") WITH ORDINALITY AS p("id", "depth")
+					WHERE "currentViews"."name"=$1
+					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
 				SELECT "changeset", "depth" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
@@ -187,7 +190,10 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 		err := tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
 					-- We do not care about order of views here because we have en explicit version we are searching for.
-					SELECT p.* FROM "currentViews", UNNEST("path") AS p("id") WHERE "name"=$1
+					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+						WHERE "currentViews"."name"=$1
+						AND "currentViews"."id"="views"."id"
+						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
 					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
 				)

@@ -108,12 +108,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				return internal.WithPgxError(err)
 			}
 
-			// TODO: Add constraints on name field.
-			//       We want a) to allow a name to be associated only with one view ID at its highest revision
-			//       b) view can start without name and name can be added later c) name can be removed from
-			//       a view at a later time d) some other view can then get the name.
-			// TODO: Check if DESC should be specified for revision column.
-			//       See: https://www.postgresql.org/message-id/CAKLmikNCFD44VjzRCRwuiVWDOE=T7zsOzygd5XakKNdRgLv-Aw@mail.gmail.com
 			_, err = tx.Exec(ctx, `
 				CREATE TABLE "views" (
 					-- ID of the view.
@@ -138,12 +132,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
-			_, err = tx.Exec(ctx, `
-				CREATE INDEX ON "views" USING gin ("path")
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
 
 			_, err = tx.Exec(ctx, `
 				CREATE TABLE "viewChangesets" (
@@ -163,15 +151,35 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				return internal.WithPgxError(err)
 			}
 
-			viewID := identifier.New()
-			_, err = tx.Exec(ctx, `INSERT INTO "views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
+			_, err = tx.Exec(ctx, `
+				CREATE TABLE "currentViews" (
+					-- ID of the view.
+					"id" text NOT NULL,
+					-- Revision of this view.
+					"revision" bigint NOT NULL,
+					-- Name of the view. Optional.
+					"name" text UNIQUE,
+					PRIMARY KEY ("id")
+				)
+			`)
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
-
 			_, err = tx.Exec(ctx, `
-				CREATE VIEW "currentViews" AS
-					SELECT DISTINCT ON ("id") * FROM "views" ORDER BY "id", "revision" DESC
+				CREATE FUNCTION "syncCurrentViews"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						INSERT INTO "currentViews" VALUES (NEW."id", NEW."revision", NEW."name")
+							ON CONFLICT ("id") DO UPDATE
+								SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
+						RETURN NEW;
+					END;
+				$$
+			`)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+			_, err = tx.Exec(ctx, `
+				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views" FOR EACH ROW EXECUTE FUNCTION "syncCurrentViews"()
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)
@@ -185,6 +193,11 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				return internal.WithPgxError(err)
 			}
 
+			viewID := identifier.New()
+			_, err = tx.Exec(ctx, `INSERT INTO "views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
 			err = tx.Commit(ctx)
 			if err != nil {
 				return internal.WithPgxError(err)
