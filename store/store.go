@@ -86,10 +86,10 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE TABLE "changes" (
-					-- ID of the value.
-					"id" text NOT NULL,
 					-- ID of the changeset this change belongs to.
 					"changeset" text NOT NULL,
+					-- ID of the value.
+					"id" text NOT NULL,
 					-- Revision of this change.
 					"revision" bigint NOT NULL,
 					-- IDs of changesets this value has been changed the last before this change.
@@ -108,21 +108,19 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"data" `+s.DataType+`,
 					"metadata" `+s.MetadataType+` NOT NULL,
 					`+patches+`
-					PRIMARY KEY ("id", "changeset", "revision")
+					PRIMARY KEY ("changeset", "id", "revision")
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of changed changesets should be committed (to any view).
-						PERFORM 1 FROM NEW_ROWS, "currentCommittedChangesets"
-							WHERE NEW_ROWS."changeset"="currentCommittedChangesets"."changeset"
-							LIMIT 1;
+						PERFORM 1 FROM NEW_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
 						INSERT INTO "currentChanges"
-							SELECT DISTINCT ON ("id", "changeset") "id", "changeset", "revision" FROM NEW_ROWS
-								ORDER BY "id", "changeset", "revision" DESC
-								ON CONFLICT ("id", "changeset") DO UPDATE
+							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "revision" FROM NEW_ROWS
+								ORDER BY "changeset", "id", "revision" DESC
+								ON CONFLICT ("changeset", "id") DO UPDATE
 									SET "revision"=EXCLUDED."revision";
 						RETURN NULL;
 					END;
@@ -130,9 +128,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of deleted changesets should be committed (to any view).
-						PERFORM 1 FROM OLD_ROWS, "currentCommittedChangesets"
-							WHERE OLD_ROWS."changeset"="currentCommittedChangesets"."changeset"
-							LIMIT 1;
+						PERFORM 1 FROM OLD_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
@@ -187,25 +183,25 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
 				CREATE TABLE "committedChangesets" (
-					-- ID of the view.
-					"view" text NOT NULL,
 					-- Changeset which belongs to the view. Also all changesets belonging to ancestors
 					-- (as defined by view's path) of the view belong to the view, but we do not store
 					-- them explicitly. The set of changesets belonging to the view should be kept
 					-- consistent so that a new changeset is added to the view only if all ancestor
 					-- changesets are already present in the view or in its ancestor views.
 					"changeset" text NOT NULL,
+					-- ID of the view.
+					"view" text NOT NULL,
 					-- Revision of this committed changeset.
 					"revision" bigint NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("view", "changeset", "revision")
+					PRIMARY KEY ("changeset", "view", "revision")
 				);
 				CREATE FUNCTION "committedChangesetsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentCommittedChangesets"
-							SELECT DISTINCT ON ("view", "changeset") "view", "changeset", "revision" FROM NEW_ROWS
-								ORDER BY "view", "changeset", "revision" DESC
-								ON CONFLICT ("view", "changeset") DO UPDATE
+							SELECT DISTINCT ON ("changeset", "view") "changeset", "view", "revision" FROM NEW_ROWS
+								ORDER BY "changeset", "view", "revision" DESC
+								ON CONFLICT ("changeset", "view") DO UPDATE
 									SET "revision"=EXCLUDED."revision";
 						RETURN NULL;
 					END;
@@ -230,20 +226,20 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
-					"id" text NOT NULL,
 					"changeset" text NOT NULL,
+					"id" text NOT NULL,
 					"revision" bigint NOT NULL,
-					PRIMARY KEY ("id", "changeset")
+					PRIMARY KEY ("changeset", "id")
 				);
 				CREATE TRIGGER "currentChangesNotAllowed" BEFORE TRUNCATE ON "currentChanges"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
 				CREATE TABLE "currentCommittedChangesets" (
 					-- A subset of "committedChangesets" columns.
-					"view" text NOT NULL,
 					"changeset" text NOT NULL,
+					"view" text NOT NULL,
 					"revision" bigint NOT NULL,
-					PRIMARY KEY ("view", "changeset")
+					PRIMARY KEY ("changeset", "view")
 				);
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();

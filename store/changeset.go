@@ -33,7 +33,7 @@ func (c *Changeset[Data, Metadata, Patch]) View() *View[Data, Metadata, Patch] {
 
 func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
-		id.String(), c.String(), value, metadata,
+		c.String(), id.String(), value, metadata,
 	}
 	patches := ""
 	if c.view.store.patchesEnabled {
@@ -76,7 +76,7 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
-		id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
 	patchesPlaceholders := ""
 	if c.view.store.patchesEnabled {
@@ -122,7 +122,7 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
-		id.String(), c.String(), []string{parentChangeset.String()}, value, metadata,
+		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
 	patches := ""
 	if c.view.store.patchesEnabled {
@@ -166,7 +166,7 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 
 func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
-		id.String(), c.String(), []string{parentChangeset.String()}, metadata,
+		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
 	}
 	patches := ""
 	if c.view.store.patchesEnabled {
@@ -232,7 +232,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					AND "currentChanges"."changeset"="changes"."changeset"
 					AND "currentChanges"."revision"="changes"."revision"
 			)
-			INSERT INTO "committedChangesets" SELECT "view", $1, 1, $2 FROM "currentViews"
+			INSERT INTO "committedChangesets" SELECT $1, "view", 1, $2 FROM "currentViews"
 				WHERE	"name"=$3
 				-- The changeset should not yet be committed (to any view).
 				AND NOT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)
