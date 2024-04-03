@@ -163,7 +163,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("view", "revision"),
 					-- We do not allow empty strings for names. Use NULL instead.
 					-- This allows us to use UNIQUE constraint in "currentViews.
-					CHECK ("name" <> '')
+					CHECK ("name"<>'')
 				);
 				CREATE INDEX ON "views" USING btree ("name");
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
