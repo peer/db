@@ -85,7 +85,6 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: Make sure parent changesets really contain object ID.
 		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -130,8 +129,6 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: Make sure parent changesets really contain object ID.
-
 		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patches, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -174,8 +171,6 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: Make sure parent changesets really contain object ID.
-
 		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4`+patches, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -217,6 +212,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		c.String(), metadata, c.view.name,
 	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// TODO: Make sure parent changesets really contain object ID.
 		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
