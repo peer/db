@@ -219,18 +219,14 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
-				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
+				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
 					WHERE "currentViews"."name"=$3
-					AND "currentViews"."view"="views"."view"
-					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
+				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
 			), "parentChangesets" AS (
-				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
-					WHERE "currentChanges"."changeset"=$1
-					AND "currentChanges"."id"="changes"."id"
-					AND "currentChanges"."changeset"="changes"."changeset"
-					AND "currentChanges"."revision"="changes"."revision"
+				SELECT UNNEST("parentChangesets") AS "changeset"
+					FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+					WHERE "changeset"=$1
 			)
 			INSERT INTO "committedChangesets" SELECT $1, "view", 1, $2 FROM "currentViews"
 				WHERE	"name"=$3
@@ -272,18 +268,14 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			}
 			err = tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
-					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
+					SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
 						WHERE "currentViews"."name"=$1
-						AND "currentViews"."view"="views"."view"
-						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
+					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
 				), "parentChangesets" AS (
-					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
-						WHERE "currentChanges"."changeset"=$1
-						AND "currentChanges"."id"="changes"."id"
-						AND "currentChanges"."changeset"="changes"."changeset"
-						AND "currentChanges"."revision"="changes"."revision"
+					SELECT UNNEST("parentChangesets") AS "changeset"
+						FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+						WHERE "changeset"=$1
 					)
 				SELECT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
 			`,
@@ -394,20 +386,15 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		rows, err := tx.Query(ctx, `
 			WITH "currentViewPath" AS (
 				-- We do not care about order of views here because we have en explicit version we are searching for.
-				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
+				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
 					WHERE "currentViews"."name"=$1
-					AND "currentViews"."view"="views"."view"
-					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
+				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
 			)
-			SELECT "currentChanges"."id", "currentChanges"."revision", "data", "metadata"`+patches+`
-				FROM "currentChanges", "changes", "currentViewChangesets"
-					WHERE "currentChanges"."changeset"=$2
-					AND "currentChanges"."id"="changes"."id"
-					AND "currentChanges"."changeset"="changes"."changeset"
-					AND "currentChanges"."revision"="changes"."revision"
-					AND "currentChanges"."changeset"="currentViewChangesets"."changeset"
+			SELECT "id", "revision", "data", "metadata"`+patches+`
+				FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+					JOIN "currentViewChangesets" USING ("changeset")
+				WHERE "changeset"=$2
 		`, arguments...)
 		if err != nil {
 			return errors.WithStack(err)
