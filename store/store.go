@@ -127,8 +127,10 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- consistent so that a new changeset is added to the view only if all ancestor
 					-- changesets are already present in the view or in its ancestor views.
 					"changeset" text NOT NULL,
+					-- Revision of this committed changeset.
+					"revision" bigint NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("view", "changeset")
+					PRIMARY KEY ("view", "changeset", "revision")
 				);
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
@@ -167,8 +169,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of changed changesets should be committed (to any view).
-						PERFORM 1 FROM NEW_ROWS, "committedChangesets"
-							WHERE NEW_ROWS."changeset"="committedChangesets"."changeset"
+						PERFORM 1 FROM NEW_ROWS, "currentCommittedChangesets"
+							WHERE NEW_ROWS."changeset"="currentCommittedChangesets"."changeset"
 							LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
@@ -184,8 +186,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of deleted changesets should be committed (to any view).
-						PERFORM 1 FROM OLD_ROWS, "committedChangesets"
-							WHERE OLD_ROWS."changeset"="committedChangesets"."changeset"
+						PERFORM 1 FROM OLD_ROWS, "currentCommittedChangesets"
+							WHERE OLD_ROWS."changeset"="currentCommittedChangesets"."changeset"
 							LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
@@ -205,6 +207,28 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					REFERENCING OLD TABLE AS OLD_ROWS
 					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterDeleteFunc"();
 				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+				CREATE TABLE "currentCommittedChangesets" (
+					-- A subset of "committedChangesets" columns.
+					"view" text NOT NULL,
+					"changeset" text NOT NULL,
+					"revision" bigint NOT NULL,
+					PRIMARY KEY ("view", "changeset")
+				);
+				CREATE FUNCTION "committedChangesetsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						INSERT INTO "currentCommittedChangesets"
+							SELECT DISTINCT ON ("view", "changeset") "view", "changeset", "revision" FROM NEW_ROWS
+								ORDER BY "view", "changeset", "revision" DESC
+								ON CONFLICT ("view", "changeset") DO UPDATE
+									SET "revision"=EXCLUDED."revision";
+						RETURN NULL;
+					END;
+				$$;
+				CREATE TRIGGER "committedChangesetsAfterInsert" AFTER INSERT ON "committedChangesets"
+					REFERENCING NEW TABLE AS NEW_ROWS
+					FOR EACH STATEMENT EXECUTE FUNCTION "committedChangesetsAfterInsertFunc"();
+				CREATE TRIGGER "committedChangesetsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "committedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 			`)
 			if err != nil {

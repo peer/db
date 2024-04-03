@@ -224,7 +224,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					AND "currentViews"."id"="views"."id"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
+				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 					WHERE "currentChanges"."changeset"=$1
@@ -232,10 +232,10 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					AND "currentChanges"."changeset"="changes"."changeset"
 					AND "currentChanges"."revision"="changes"."revision"
 			)
-			INSERT INTO "committedChangesets" SELECT "id", $1, $2 FROM "currentViews"
+			INSERT INTO "committedChangesets" SELECT "id", $1, 1, $2 FROM "currentViews"
 				WHERE	"name"=$3
 				-- The changeset should not yet be committed (to any view).
-				AND NOT EXISTS (SELECT 1 FROM "committedChangesets" WHERE "changeset"=$1)
+				AND NOT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)
 				-- There must be at least one change in the changeset we want to commit.
 				AND EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)
 				-- That parent changesets really contain object IDs is checked in Update and Delete.
@@ -255,7 +255,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "committedChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			}
@@ -277,7 +277,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 						AND "currentViews"."id"="views"."id"
 						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
+					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
 				), "parentChangesets" AS (
 					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 						WHERE "currentChanges"."changeset"=$1
@@ -399,7 +399,7 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 					AND "currentViews"."id"="views"."id"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
+				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
 			)
 			SELECT "currentChanges"."id", "currentChanges"."revision", "data", "metadata"`+patches+`
 				FROM "currentChanges", "changes", "currentViewChangesets"
