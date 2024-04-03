@@ -217,6 +217,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- A subset of "views" columns.
 					"id" text NOT NULL,
 					"revision" bigint NOT NULL,
+					-- Having "name" here allows easy querying by name and also makes it easy for us to enforce
+					-- the property we want: that each name is used by only one view at every given moment.
 					"name" text UNIQUE,
 					PRIMARY KEY ("id")
 				);
