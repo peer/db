@@ -120,7 +120,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE INDEX ON "views" USING btree ("name");
 				CREATE TABLE "committedChangesets" (
 					-- ID of the view.
-					"id" text NOT NULL,
+					"view" text NOT NULL,
 					-- Changeset which belongs to this view. Also all changesets belonging to ancestors
 					-- (as defined by view's path) of this view belong to this view, but we do not store
 					-- them explicitly. The set of changesets belonging to the view should be kept
@@ -128,7 +128,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- changesets are already present in the view or in its ancestor views.
 					"changeset" text NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("id", "changeset")
+					PRIMARY KEY ("view", "changeset")
 				);
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.

@@ -224,7 +224,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					AND "currentViews"."id"="views"."id"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."id"="currentViewPath"."id"
+				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 					WHERE "currentChanges"."changeset"=$1
@@ -277,7 +277,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 						AND "currentViews"."id"="views"."id"
 						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."id"="currentViewPath"."id"
+					SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
 				), "parentChangesets" AS (
 					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 						WHERE "currentChanges"."changeset"=$1
@@ -399,7 +399,7 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 					AND "currentViews"."id"="views"."id"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."id"="currentViewPath"."id"
+				SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."view"="currentViewPath"."id"
 			)
 			SELECT "currentChanges"."id", "currentChanges"."revision", "data", "metadata"`+patches+`
 				FROM "currentChanges", "changes", "currentViewChangesets"
