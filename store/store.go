@@ -21,6 +21,7 @@ const (
 	// Our error codes.
 	errorCodeNotAllowed       = "P1000"
 	errorCodeAlreadyCommitted = "P1001"
+	errorCodeInvalidParentIDs = "P1002"
 )
 
 type Store[Data, Metadata, Patch any] struct {
@@ -116,6 +117,12 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						PERFORM 1 FROM NEW_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Check that the lengths of "parentChangesets" and "parentIds" arrays match.
+						-- The content of arrays is checked when committing.
+						PERFORM 1 FROM NEW_ROWS WHERE "parentIds"<>'{}' AND array_length("parentChangesets", 1)<>array_length("parentIds", 1) LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'invalid parentIds' USING ERRCODE = '`+errorCodeInvalidParentIDs+`';
 						END IF;
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "revision" FROM NEW_ROWS
