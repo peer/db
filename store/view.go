@@ -126,12 +126,12 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		err := tx.QueryRow(ctx, `
 			WITH "currentViewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews", "views", UNNEST("path") WITH ORDINALITY AS p("id", "depth")
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
-					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."view"="views"."view"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset", "depth" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
+				SELECT "changeset", "depth" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 					WHERE "currentChanges"."id"=$2
@@ -198,12 +198,12 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 		err := tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
 					-- We do not care about order of views here because we have en explicit version we are searching for.
-					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
 						WHERE "currentViews"."name"=$1
-						AND "currentViews"."id"="views"."id"
+						AND "currentViews"."view"="views"."view"
 						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
+					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
 				)
 				SELECT "data", "data" IS NULL, "metadata" FROM "changes", "currentViewChangesets"
 					WHERE "id"=$2

@@ -219,12 +219,12 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			WITH "currentViewPath" AS (
-				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
 					WHERE "currentViews"."name"=$3
-					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."view"="views"."view"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
+				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 					WHERE "currentChanges"."changeset"=$1
@@ -232,7 +232,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					AND "currentChanges"."changeset"="changes"."changeset"
 					AND "currentChanges"."revision"="changes"."revision"
 			)
-			INSERT INTO "committedChangesets" SELECT "id", $1, 1, $2 FROM "currentViews"
+			INSERT INTO "committedChangesets" SELECT "view", $1, 1, $2 FROM "currentViews"
 				WHERE	"name"=$3
 				-- The changeset should not yet be committed (to any view).
 				AND NOT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)
@@ -272,12 +272,12 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 			}
 			err = tx.QueryRow(ctx, `
 				WITH "currentViewPath" AS (
-					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+					SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
 						WHERE "currentViews"."name"=$1
-						AND "currentViews"."id"="views"."id"
+						AND "currentViews"."view"="views"."view"
 						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
+					SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
 				), "parentChangesets" AS (
 					SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 						WHERE "currentChanges"."changeset"=$1
@@ -394,12 +394,12 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		rows, err := tx.Query(ctx, `
 			WITH "currentViewPath" AS (
 				-- We do not care about order of views here because we have en explicit version we are searching for.
-				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("id")
+				SELECT p.* FROM "currentViews", "views", UNNEST("path") AS p("view")
 					WHERE "currentViews"."name"=$1
-					AND "currentViews"."id"="views"."id"
+					AND "currentViews"."view"="views"."view"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."id"
+				SELECT "changeset" FROM "currentCommittedChangesets", "currentViewPath" WHERE "currentCommittedChangesets"."view"="currentViewPath"."view"
 			)
 			SELECT "currentChanges"."id", "currentChanges"."revision", "data", "metadata"`+patches+`
 				FROM "currentChanges", "changes", "currentViewChangesets"

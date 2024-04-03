@@ -155,7 +155,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 				CREATE TABLE "views" (
 					-- ID of the view.
-					"id" text NOT NULL,
+					"view" text NOT NULL,
 					-- Revision of this view.
 					"revision" bigint NOT NULL,
 					-- Name of the view. Optional.
@@ -164,15 +164,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- parent view, and then all further ancestors.
 					"path" text[] NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("id", "revision")
+					PRIMARY KEY ("view", "revision")
 				);
 				CREATE INDEX ON "views" USING btree ("name");
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentViews"
-							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW_ROWS
-								ORDER BY "id", "revision" DESC
-								ON CONFLICT ("id") DO UPDATE
+							SELECT DISTINCT ON ("view") "view", "revision", "name" FROM NEW_ROWS
+								ORDER BY "view", "revision" DESC
+								ON CONFLICT ("view") DO UPDATE
 									SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
 						RETURN NULL;
 					END;
@@ -215,12 +215,12 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
-					"id" text NOT NULL,
+					"view" text NOT NULL,
 					"revision" bigint NOT NULL,
 					-- Having "name" here allows easy querying by name and also makes it easy for us to enforce
 					-- the property we want: that each name is used by only one view at every given moment.
 					"name" text UNIQUE,
-					PRIMARY KEY ("id")
+					PRIMARY KEY ("view")
 				);
 				CREATE TRIGGER "currentViewsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentViews"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
