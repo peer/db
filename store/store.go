@@ -164,7 +164,10 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- parent view, and then all further ancestors.
 					"path" text[] NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("view", "revision")
+					PRIMARY KEY ("view", "revision"),
+					-- We do not allow empty strings for names. Use NULL instead.
+					-- This allows us to use UNIQUE constraint in "currentViews.
+					CHECK ("name" <> '')
 				);
 				CREATE INDEX ON "views" USING btree ("name");
 				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
