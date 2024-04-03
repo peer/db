@@ -131,7 +131,7 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 					AND "currentViews"."id"="views"."id"
 					AND "currentViews"."revision"="views"."revision"
 			), "currentViewChangesets" AS (
-				SELECT "changeset", "depth" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
+				SELECT "changeset", "depth" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."id"="currentViewPath"."id"
 			), "parentChangesets" AS (
 				SELECT UNNEST("parentChangesets") AS "changeset" FROM "currentChanges", "changes"
 					WHERE "currentChanges"."id"=$2
@@ -203,7 +203,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 						AND "currentViews"."id"="views"."id"
 						AND "currentViews"."revision"="views"."revision"
 				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "viewChangesets", "currentViewPath" WHERE "viewChangesets"."id"="currentViewPath"."id"
+					SELECT "changeset" FROM "committedChangesets", "currentViewPath" WHERE "committedChangesets"."id"="currentViewPath"."id"
 				)
 				SELECT "data", "data" IS NULL, "metadata" FROM "changes", "currentViewChangesets"
 					WHERE "id"=$2

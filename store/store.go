@@ -118,7 +118,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("id", "revision")
 				);
 				CREATE INDEX ON "views" USING btree ("name");
-				CREATE TABLE "viewChangesets" (
+				CREATE TABLE "committedChangesets" (
 					-- ID of the view.
 					"id" text NOT NULL,
 					-- Changeset which belongs to this view. Also all changesets belonging to ancestors
@@ -167,8 +167,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of changed changesets should be committed (to any view).
-						PERFORM 1 FROM NEW_ROWS, "viewChangesets"
-							WHERE NEW_ROWS."changeset"="viewChangesets"."changeset"
+						PERFORM 1 FROM NEW_ROWS, "committedChangesets"
+							WHERE NEW_ROWS."changeset"="committedChangesets"."changeset"
 							LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
@@ -184,8 +184,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						-- None of deleted changesets should be committed (to any view).
-						PERFORM 1 FROM OLD_ROWS, "viewChangesets"
-							WHERE OLD_ROWS."changeset"="viewChangesets"."changeset"
+						PERFORM 1 FROM OLD_ROWS, "committedChangesets"
+							WHERE OLD_ROWS."changeset"="committedChangesets"."changeset"
 							LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
