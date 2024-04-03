@@ -79,6 +79,12 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 			// TODO: Add a constraint that no two values with same ID should be created in multiple changesets.
 			_, err := tx.Exec(ctx, `
+				CREATE FUNCTION "doNotAllow"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						RAISE EXCEPTION 'not allowed' USING ERRCODE = '`+errorCodeNotAllowed+`';
+					END;
+				$$;
+
 				CREATE TABLE "changes" (
 					-- ID of the value.
 					"id" text NOT NULL,
@@ -103,68 +109,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"metadata" `+s.MetadataType+` NOT NULL,
 					`+patches+`
 					PRIMARY KEY ("id", "changeset", "revision")
-				);
-				CREATE TABLE "views" (
-					-- ID of the view.
-					"id" text NOT NULL,
-					-- Revision of this view.
-					"revision" bigint NOT NULL,
-					-- Name of the view. Optional.
-					"name" text,
-					-- Path of view IDs starting with the current view, then the
-					-- parent view, and then all further ancestors.
-					"path" text[] NOT NULL,
-					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("id", "revision")
-				);
-				CREATE INDEX ON "views" USING btree ("name");
-				CREATE TABLE "committedChangesets" (
-					-- ID of the view.
-					"view" text NOT NULL,
-					-- Changeset which belongs to the view. Also all changesets belonging to ancestors
-					-- (as defined by view's path) of the view belong to the view, but we do not store
-					-- them explicitly. The set of changesets belonging to the view should be kept
-					-- consistent so that a new changeset is added to the view only if all ancestor
-					-- changesets are already present in the view or in its ancestor views.
-					"changeset" text NOT NULL,
-					-- Revision of this committed changeset.
-					"revision" bigint NOT NULL,
-					"metadata" `+s.MetadataType+` NOT NULL,
-					PRIMARY KEY ("view", "changeset", "revision")
-				);
-				CREATE TABLE "currentViews" (
-					-- A subset of "views" columns.
-					"id" text NOT NULL,
-					"revision" bigint NOT NULL,
-					"name" text UNIQUE,
-					PRIMARY KEY ("id")
-				);
-				CREATE FUNCTION "doNotAllow"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
-					BEGIN
-						RAISE EXCEPTION 'not allowed' USING ERRCODE = '`+errorCodeNotAllowed+`';
-					END;
-				$$;
-				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
-					BEGIN
-						INSERT INTO "currentViews"
-							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW_ROWS
-								ORDER BY "id", "revision" DESC
-								ON CONFLICT ("id") DO UPDATE
-									SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
-						RETURN NULL;
-					END;
-				$$;
-				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
-					REFERENCING NEW TABLE AS NEW_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "viewsAfterInsertFunc"();
-				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
-				CREATE TABLE "currentChanges" (
-					-- A subset of "changes" columns.
-					"id" text NOT NULL,
-					"changeset" text NOT NULL,
-					"revision" bigint NOT NULL,
-					PRIMARY KEY ("id", "changeset")
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
@@ -208,12 +152,50 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterDeleteFunc"();
 				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
-				CREATE TABLE "currentCommittedChangesets" (
-					-- A subset of "committedChangesets" columns.
-					"view" text NOT NULL,
-					"changeset" text NOT NULL,
+
+				CREATE TABLE "views" (
+					-- ID of the view.
+					"id" text NOT NULL,
+					-- Revision of this view.
 					"revision" bigint NOT NULL,
-					PRIMARY KEY ("view", "changeset")
+					-- Name of the view. Optional.
+					"name" text,
+					-- Path of view IDs starting with the current view, then the
+					-- parent view, and then all further ancestors.
+					"path" text[] NOT NULL,
+					"metadata" `+s.MetadataType+` NOT NULL,
+					PRIMARY KEY ("id", "revision")
+				);
+				CREATE INDEX ON "views" USING btree ("name");
+				CREATE FUNCTION "viewsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						INSERT INTO "currentViews"
+							SELECT DISTINCT ON ("id") "id", "revision", "name" FROM NEW_ROWS
+								ORDER BY "id", "revision" DESC
+								ON CONFLICT ("id") DO UPDATE
+									SET "revision"=EXCLUDED."revision", "name"=EXCLUDED."name";
+						RETURN NULL;
+					END;
+				$$;
+				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
+					REFERENCING NEW TABLE AS NEW_ROWS
+					FOR EACH STATEMENT EXECUTE FUNCTION "viewsAfterInsertFunc"();
+				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE TABLE "committedChangesets" (
+					-- ID of the view.
+					"view" text NOT NULL,
+					-- Changeset which belongs to the view. Also all changesets belonging to ancestors
+					-- (as defined by view's path) of the view belong to the view, but we do not store
+					-- them explicitly. The set of changesets belonging to the view should be kept
+					-- consistent so that a new changeset is added to the view only if all ancestor
+					-- changesets are already present in the view or in its ancestor views.
+					"changeset" text NOT NULL,
+					-- Revision of this committed changeset.
+					"revision" bigint NOT NULL,
+					"metadata" `+s.MetadataType+` NOT NULL,
+					PRIMARY KEY ("view", "changeset", "revision")
 				);
 				CREATE FUNCTION "committedChangesetsAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
@@ -229,6 +211,36 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					REFERENCING NEW TABLE AS NEW_ROWS
 					FOR EACH STATEMENT EXECUTE FUNCTION "committedChangesetsAfterInsertFunc"();
 				CREATE TRIGGER "committedChangesetsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "committedChangesets"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE TABLE "currentViews" (
+					-- A subset of "views" columns.
+					"id" text NOT NULL,
+					"revision" bigint NOT NULL,
+					"name" text UNIQUE,
+					PRIMARY KEY ("id")
+				);
+				CREATE TRIGGER "currentViewsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentViews"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE TABLE "currentChanges" (
+					-- A subset of "changes" columns.
+					"id" text NOT NULL,
+					"changeset" text NOT NULL,
+					"revision" bigint NOT NULL,
+					PRIMARY KEY ("id", "changeset")
+				);
+				CREATE TRIGGER "currentChangesNotAllowed" BEFORE TRUNCATE ON "currentChanges"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE TABLE "currentCommittedChangesets" (
+					-- A subset of "committedChangesets" columns.
+					"view" text NOT NULL,
+					"changeset" text NOT NULL,
+					"revision" bigint NOT NULL,
+					PRIMARY KEY ("view", "changeset")
+				);
+				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 			`)
 			if err != nil {
