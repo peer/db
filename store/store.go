@@ -112,7 +112,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						-- None of changed changesets should be committed (to any view).
+						-- None of inserted changesets should be committed (to any view).
 						PERFORM 1 FROM NEW_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
