@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
-	servertiming "github.com/tozd/go-server-timing"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 	"golang.org/x/exp/slices"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -61,9 +61,9 @@ type searchFiltersResult struct {
 func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
-	timing := servertiming.FromContext(ctx)
+	metrics := waf.MustGetMetrics(ctx)
 
-	m := timing.NewMetric("s").Start()
+	m := metrics.Duration("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -145,15 +145,15 @@ func FiltersGet( //nolint:maintidx
 		Aggregation("index", indexAggregation).
 		Aggregation("size", sizeAggregation)
 
-	m = timing.NewMetric("es").Start()
+	m = metrics.Duration("es").Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = timing.NewMetric("d").Start()
+	m = metrics.Duration("d").Start()
 	var rel termAggregations
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	if err != nil {

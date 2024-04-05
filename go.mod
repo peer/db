@@ -13,13 +13,12 @@ require (
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.31.1-0.20231108200417-bb14b8b9de11
 	github.com/stretchr/testify v1.8.4
-	github.com/tozd/go-server-timing v0.0.0-20231113225037-9110c404323f
 	gitlab.com/tozd/go/cli v0.3.0
 	gitlab.com/tozd/go/mediawiki v0.12.0
 	gitlab.com/tozd/go/x v0.0.0-20240319120849-eb6a32121198
 	gitlab.com/tozd/go/zerolog v0.6.0
 	gitlab.com/tozd/identifier v0.2.0
-	gitlab.com/tozd/waf v0.17.1
+	gitlab.com/tozd/waf v0.18.0
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b
 	golang.org/x/time v0.1.0
 	gopkg.in/yaml.v3 v3.0.1

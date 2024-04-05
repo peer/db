@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
-	servertiming "github.com/tozd/go-server-timing"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -238,7 +237,7 @@ func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, 
 // If search state is invalid, it redirects to a valid one.
 func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
+	metrics := waf.MustGetMetrics(ctx)
 
 	var q *string
 	if req.Form.Has("q") {
@@ -252,7 +251,7 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf
 		filters = &f
 	}
 
-	m := timing.NewMetric("s").Start()
+	m := metrics.Duration("s").Start()
 	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
@@ -294,7 +293,7 @@ type searchResult struct {
 // encoding and range requests. It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
 func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
+	metrics := waf.MustGetMetrics(ctx)
 
 	var q *string
 	if req.Form.Has("q") {
@@ -308,7 +307,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 		filters = &f
 	}
 
-	m := timing.NewMetric("s").Start()
+	m := metrics.Duration("s").Start()
 	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
@@ -322,14 +321,14 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 	searchService, _ := s.getSearchService(req)
 	searchService = searchService.From(0).Size(search.MaxResultsCount).Query(sh.Query())
 
-	m = timing.NewMetric("es").Start()
+	m = metrics.Duration("es").Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	results := make([]searchResult, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {
@@ -362,7 +361,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 // query parameters for the GET endpoint as JSON or redirects to the GET endpoint based on search ID.
 func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
-	timing := servertiming.FromContext(ctx)
+	metrics := waf.MustGetMetrics(ctx)
 
 	var q *string
 	if req.Form.Has("q") {
@@ -376,7 +375,7 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 		filters = &f
 	}
 
-	m := timing.NewMetric("s").Start()
+	m := metrics.Duration("s").Start()
 	sh := search.CreateState(req.Form.Get("s"), q, filters)
 	m.Stop()
 

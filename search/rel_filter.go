@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
-	servertiming "github.com/tozd/go-server-timing"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 )
 
 type filteredTermAggregations struct {
@@ -25,9 +25,9 @@ type searchRelFilterResult struct {
 func RelFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
-	timing := servertiming.FromContext(ctx)
+	metrics := waf.MustGetMetrics(ctx)
 
-	m := timing.NewMetric("s").Start()
+	m := metrics.Duration("s").Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -58,15 +58,15 @@ func RelFilterGet(
 	)
 	searchService = searchService.Size(0).Query(query).Aggregation("rel", aggregation)
 
-	m = timing.NewMetric("es").Start()
+	m = metrics.Duration("es").Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	timing.NewMetric("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = timing.NewMetric("d").Start()
+	m = metrics.Duration("d").Start()
 	var rel filteredTermAggregations
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()
