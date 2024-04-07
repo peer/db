@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -251,7 +252,7 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf
 		filters = &f
 	}
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
@@ -307,7 +308,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 		filters = &f
 	}
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	sh, ok := search.GetOrCreateState(params["s"], q, filters)
 	m.Stop()
 	if !ok {
@@ -321,14 +322,14 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 	searchService, _ := s.getSearchService(req)
 	searchService = searchService.From(0).Size(search.MaxResultsCount).Query(sh.Query())
 
-	m = metrics.Duration("es").Start()
+	m = metrics.Duration(internal.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
 		return
 	}
-	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	results := make([]searchResult, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {
@@ -375,7 +376,7 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 		filters = &f
 	}
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	sh := search.CreateState(req.Form.Get("s"), q, filters)
 	m.Stop()
 

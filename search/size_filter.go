@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
@@ -30,7 +31,7 @@ func SizeFilterGet(
 ) (interface{}, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -46,15 +47,15 @@ func SizeFilterGet(
 	maxAggregation := elastic.NewMaxAggregation().Field("_size")
 	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("min", minAggregation).Aggregation("max", maxAggregation)
 
-	m = metrics.Duration("es1").Start()
+	m = metrics.Duration(internal.MetricElasticSearch1).Start()
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d1").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minSize floatValueAggregation
 	err = json.Unmarshal(res.Aggregations["min"], &minSize)
 	if err != nil {
@@ -96,15 +97,15 @@ func SizeFilterGet(
 	histogramAggregation := elastic.NewHistogramAggregation().Field("_size").Offset(min).Interval(interval)
 	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
-	m = metrics.Duration("es2").Start()
+	m = metrics.Duration(internal.MetricElasticSearch2).Start()
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d2").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramSizeAggregations
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()

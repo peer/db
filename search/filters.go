@@ -13,6 +13,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //nolint:tagliatelle
@@ -63,7 +64,7 @@ func FiltersGet( //nolint:maintidx
 ) (interface{}, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -145,15 +146,15 @@ func FiltersGet( //nolint:maintidx
 		Aggregation("index", indexAggregation).
 		Aggregation("size", sizeAggregation)
 
-	m = metrics.Duration("es").Start()
+	m = metrics.Duration(internal.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var rel termAggregations
 	err = json.Unmarshal(res.Aggregations["rel"], &rel)
 	if err != nil {

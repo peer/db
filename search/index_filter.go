@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
@@ -25,7 +26,7 @@ func IndexFilterGet(
 ) (interface{}, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -43,15 +44,15 @@ func IndexFilterGet(
 	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
 	searchService = searchService.Size(0).Query(query).Aggregation("terms", termsAggregation).Aggregation("index", indexAggregation)
 
-	m = metrics.Duration("es").Start()
+	m = metrics.Duration(internal.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var terms indexAggregations
 	err = json.Unmarshal(res.Aggregations["terms"], &terms)
 	if err != nil {

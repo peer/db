@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -37,7 +38,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 			q = &qq
 		}
 
-		m := metrics.Duration("s").Start()
+		m := metrics.Duration(internal.MetricSearchState).Start()
 		sh := search.GetState(req.Form.Get("s"), q)
 		m.Stop()
 		if sh == nil {
@@ -72,7 +73,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	// We check if document exists.
 	st := s.getStore(req)
 
-	m := metrics.Duration("db").Start()
+	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	// TODO: To support "omni" instances, allow getting across multiple schemas.
 	_, _, _, errE = st.GetCurrent(ctx, id) //nolint:dogsled
@@ -107,7 +108,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	st := s.getStore(req)
 
-	m := metrics.Duration("db").Start()
+	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: To support "omni" instances, allow getting across multiple schemas.
 	data, metadataJSON, version, errE := st.GetCurrent(ctx, id)
 	m.Stop()

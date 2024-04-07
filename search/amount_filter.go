@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -66,7 +67,7 @@ func AmountFilterGet(
 		return nil, nil, errors.Errorf(`%w: "unit" cannot be "@"`, ErrInvalidArgument)
 	}
 
-	m := metrics.Duration("s").Start()
+	m := metrics.Duration(internal.MetricSearchState).Start()
 	ss, ok := searches.Load(id)
 	m.Stop()
 	if !ok {
@@ -104,15 +105,15 @@ func AmountFilterGet(
 	)
 	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
 
-	m = metrics.Duration("es1").Start()
+	m = metrics.Duration(internal.MetricElasticSearch1).Start()
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi1").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d1").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxAmountAggregations
 	err = json.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
@@ -162,15 +163,15 @@ func AmountFilterGet(
 	)
 	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
-	m = metrics.Duration("es2").Start()
+	m = metrics.Duration(internal.MetricElasticSearch2).Start()
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration("esi2").Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internal.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration("d2").Start()
+	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramAmountAggregations
 	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
