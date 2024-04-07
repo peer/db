@@ -3,6 +3,7 @@ package store
 const (
 	MetricSearchState            = "s"
 	MetricDatabase               = "db"
+	MetricDatabaseRetries        = "dbr"
 	MetricElasticSearch          = "es"
 	MetricElasticSearch1         = "es1"
 	MetricElasticSearch2         = "es2"

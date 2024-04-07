@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/waf"
 )
 
 const maxRetries = 10
@@ -16,7 +17,12 @@ var ErrMaxRetriesReached = errors.Base("max retries reached")
 // TODO: For cases where only one query is made inside a transaction, we could make a query single-trip by making transaction and committing it ourselves.
 
 func RetryTransaction(ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.TxAccessMode, fn func(ctx context.Context, tx pgx.Tx) errors.E) errors.E {
-	for i := 0; i < maxRetries; i++ {
+	metrics, _ := waf.GetMetrics(ctx)
+	counter := metrics.Counter(MetricDatabaseRetries)
+
+	// We make i match the counter. That means that when loop
+	// reaches maxRetries, counter equals maxRetries, too.
+	for i := 0; i < maxRetries; i, _ = i+1, counter.Inc() {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}

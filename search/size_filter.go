@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/olivere/elastic/v7"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 type floatValueAggregation struct {
