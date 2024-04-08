@@ -67,6 +67,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 		// TODO: Use schema management/migration instead.
 		if created {
 			patches := ""
+			patchesEmptyValue := ""
+			patchesArgument := ""
+			patchesValue := ""
 			if s.patchesEnabled {
 				patches = `
 					-- Forward patches which bring parentChangesets versions of the value to
@@ -75,6 +78,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- end up with the equal value.
 					"patches" ` + s.PatchType + `[] NOT NULL,
 				`
+				patchesEmptyValue = ", '{}'"
+				patchesArgument = ", _patches " + s.PatchType + "[]"
+				patchesValue = ", _patches"
 			}
 
 			_, err := tx.Exec(ctx, `
@@ -237,6 +243,50 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE INDEX ON "currentCommittedChangesets" USING btree ("view");
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _value `+s.DataType+`, _metadata `+s.MetadataType+`) RETURNS void LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Changeset should not be committed (to any view).
+						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						INSERT INTO "changes" VALUES (_changeset, _id, 1, '{}', '{}', _value, _metadata`+patchesEmptyValue+`);
+					END;
+				$$;
+
+				CREATE FUNCTION "changesetUpdate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`) RETURNS void LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Changeset should not be committed (to any view).
+						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
+					END;
+				$$;
+
+				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+`) RETURNS void LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Changeset should not be committed (to any view).
+						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesEmptyValue+`);
+					END;
+				$$;
+
+				CREATE FUNCTION "changesetDelete"(_changeset text, _id text, _parentChangesets text[], _metadata `+s.MetadataType+`) RETURNS void LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Changeset should not be committed (to any view).
+						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', NULL, _metadata`+patchesEmptyValue+`);
+					END;
+				$$;
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)

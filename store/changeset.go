@@ -26,7 +26,7 @@ func (c *Changeset[Data, Metadata, Patch]) View() *View[Data, Metadata, Patch] {
 }
 
 // We allow changing changesets even after they have been used as a parent changeset in some
-// other changeset to allow one to prepare a chain changesets to commit. It is up to the higher
+// other changeset to allow one to prepare a chain of changesets to commit. It is up to the higher
 // levels to assure changesets and their patches are consistent before committing the chain.
 // We check just that the chain has a reasonable series of changesets and that parent changesets
 // are committed before children.
@@ -35,13 +35,9 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	arguments := []any{
 		c.String(), id.String(), value, metadata,
 	}
-	patches := ""
-	if c.view.store.patchesEnabled {
-		patches = ", '{}'" //nolint:goconst
-	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, '{}', '{}', $3, $4`+patches, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetInsert"($1, $2, $3, $4)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -54,10 +50,6 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 				}
 			}
 			return errE
-		}
-		if res.RowsAffected() == 0 {
-			// This should not happen.
-			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -85,7 +77,7 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patchesPlaceholders, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -98,10 +90,6 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 				}
 			}
 			return errE
-		}
-		if res.RowsAffected() == 0 {
-			// This should not happen.
-			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -123,13 +111,9 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
-	patches := ""
-	if c.view.store.patchesEnabled {
-		patches = ", '{}'"
-	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', $4, $5`+patches, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetInsert"($1, $2, $3, $4, $5)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -142,10 +126,6 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 				}
 			}
 			return errE
-		}
-		if res.RowsAffected() == 0 {
-			// This should not happen.
-			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
@@ -165,13 +145,9 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
 	}
-	patches := ""
-	if c.view.store.patchesEnabled {
-		patches = ", '{}'"
-	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		res, err := tx.Exec(ctx, `INSERT INTO "changes" SELECT $1, $2, 1, $3, '{}', NULL, $4`+patches, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetDelete"($1, $2, $3, $4)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -184,10 +160,6 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 				}
 			}
 			return errE
-		}
-		if res.RowsAffected() == 0 {
-			// This should not happen.
-			return errors.WithStack(errNoInserts)
 		}
 		version.Changeset = c.Identifier
 		version.Revision = 1
