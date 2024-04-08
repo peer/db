@@ -266,7 +266,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					END;
 				$$;
 
-				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+`) RETURNS void LANGUAGE plpgsql AS $$
+				CREATE FUNCTION "changesetReplace"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+`) RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;

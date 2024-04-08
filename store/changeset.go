@@ -113,7 +113,7 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetInsert"($1, $2, $3, $4, $5)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetReplace"($1, $2, $3, $4, $5)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
