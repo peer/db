@@ -793,7 +793,5 @@ Neither the European Union nor the granting authority can be held responsible fo
 Funded within the framework of the [NGI Search](https://www.ngisearch.eu/)
 project under grant agreement No 101069364.
 
-<div style="display: flex; flex-direction: row; gap: 1rem; flex-wrap: nowrap; align-items: center; max-width: 300px;">
-  <img src="EN_FundedbytheEU_RGB_POS.png" alt="Funded by the European Union emblem" style="width: 100%;" />
-  <img src="NGISearch_logo.svg" alt="NGI Search logo" style="width: 100%;" />
-</div>
+<img src="EN_FundedbytheEU_RGB_POS.png" alt="Funded by the European Union emblem" height="60" />
+<img src="NGISearch_logo.svg" alt="NGI Search logo" height="60" />
