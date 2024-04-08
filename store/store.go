@@ -287,6 +287,18 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', NULL, _metadata`+patchesEmptyValue+`);
 					END;
 				$$;
+
+				CREATE FUNCTION "changesetDiscard"(_changeset text) RETURNS void LANGUAGE plpgsql AS $$
+					BEGIN
+						-- Changeset should not be committed (to any view).
+						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Discarding an empty (or an already discarded) changeset is not an error.
+						DELETE FROM "changes" WHERE "changeset"=_changeset;
+					END;
+				$$;
 			`)
 			if err != nil {
 				return internal.WithPgxError(err)

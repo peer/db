@@ -296,8 +296,7 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 		c.String(),
 	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// We check that the changeset is not yet committed in the "changesAfterDeleteFunc" trigger.
-		_, err := tx.Exec(ctx, `DELETE FROM "changes" WHERE "changeset"=$1`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetDiscard"($1)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -306,7 +305,6 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 			}
 			return errE
 		}
-		// Discarding an empty (or an already discarded) changeset is not an error.
 		return nil
 	})
 	if errE != nil {
