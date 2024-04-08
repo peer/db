@@ -241,6 +241,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "view")
 				);
+				CREATE INDEX ON "currentCommittedChangesets" USING btree ("view");
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 			`)
