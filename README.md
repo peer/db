@@ -775,9 +775,25 @@ you to the backend which then proxies unknown requests (non-API requests) to the
 There is also a [read-only GitHub mirror available](https://github.com/peer/db),
 if you need to fork the project there.
 
-## Funding
+## Acknowledgements
 
 This project was funded through the [NGI0 Discovery Fund](https://nlnet.nl/discovery/), a
 fund established by [NLnet](https://nlnet.nl) with financial support from the European Commission's
 [Next Generation Internet](https://ngi.eu/) programme, under the aegis of DG Communications
 Networks, Content and Technology under grant agreement No 825322.
+
+The project gratefully acknowledge the [HPC RIVR consortium](https://www.hpc-rivr.si) and
+[EuroHPC JU](https://eurohpc-ju.europa.eu) for funding this project by providing computing
+resources of the HPC system Vega at the
+[Institute of Information Science](https://www.izum.si).
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only
+and do not necessarily reflect those of the European Union or European Commission.
+Neither the European Union nor the granting authority can be held responsible for them.
+Funded within the framework of the [NGI Search](https://www.ngisearch.eu/)
+project under grant agreement No 101069364.
+
+<div style="display: flex; flex-direction: row; gap: 1rem; flex-wrap: nowrap; align-items: center; max-width: 300px;">
+  <img src="EN_FundedbytheEU_RGB_POS.png" alt="Funded by the European Union emblem" style="width: 100%;" />
+  <img src="NGISearch_logo.svg" alt="NGI Search logo" style="width: 100%;" />
+</div>
