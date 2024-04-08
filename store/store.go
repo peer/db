@@ -121,11 +121,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						-- Currently, in Discard, we delete all revisions for all changes for a changeset
-						-- at once. We take advantage of this here and just delete all changes for
-						-- deleted changesets from "currentChanges" as well.
 						DELETE FROM "currentChanges" USING OLD_ROWS
-							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset";
+							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset"
+							AND "currentChanges"."id"=OLD_ROWS."id";
+						INSERT INTO "currentChanges"
+							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "changes"."revision"
+								FROM OLD_ROWS JOIN "changes" ON ("changeset", "id")
+								ORDER BY "changeset", "id", "changes"."revision" DESC
+								ON CONFLICT ("changeset", "id") DO UPDATE
+									SET "revision"=EXCLUDED."revision";
 						RETURN NULL;
 					END;
 				$$;
