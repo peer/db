@@ -126,7 +126,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							AND "currentChanges"."id"=OLD_ROWS."id";
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "changes"."revision"
-								FROM OLD_ROWS JOIN "changes" ON ("changeset", "id")
+								FROM OLD_ROWS JOIN "changes" USING ("changeset", "id")
 								ORDER BY "changeset", "id", "changes"."revision" DESC
 								ON CONFLICT ("changeset", "id") DO UPDATE
 									SET "revision"=EXCLUDED."revision";
