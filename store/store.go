@@ -77,7 +77,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				`
 			}
 
-			// TODO: Add a constraint that no two values with same ID should be created in multiple changesets.
 			_, err := tx.Exec(ctx, `
 				CREATE FUNCTION "doNotAllow"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
@@ -112,11 +111,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						-- None of inserted changesets should be committed (to any view).
-						PERFORM 1 FROM NEW_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
-						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
-						END IF;
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "revision" FROM NEW_ROWS
 								ORDER BY "changeset", "id", "revision" DESC
@@ -127,11 +121,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 				CREATE FUNCTION "changesAfterDeleteFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						-- None of deleted changesets should be committed (to any view).
-						PERFORM 1 FROM OLD_ROWS JOIN "currentCommittedChangesets" USING ("changeset") LIMIT 1;
-						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
-						END IF;
 						-- Currently, in Discard, we delete all revisions for all changes for a changeset
 						-- at once. We take advantage of this here and just delete all changes for
 						-- deleted changesets from "currentChanges" as well.
