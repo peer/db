@@ -305,16 +305,15 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		changes = nil
 
 		rows, err := tx.Query(ctx, `
-			WITH "currentViewPath" AS (
-				-- We do not care about order of views here because we have en explicit version we are searching for.
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
+			WITH "viewPath" AS (
+				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
 					WHERE "currentViews"."name"=$1
-			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
+			), "viewChangesets" AS (
+				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
 			)
 			SELECT "id", "revision", "data", "metadata"`+patches+`
 				FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-					JOIN "currentViewChangesets" USING ("changeset")
+					JOIN "viewChangesets" USING ("changeset")
 				WHERE "changeset"=$2
 		`, arguments...)
 		if err != nil {
