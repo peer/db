@@ -146,7 +146,7 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 	// TODO: Make number of workers configurable.
 	// TODO: Make bulk actions configurable.
 	// TODO: Make flush interval configurable.
-	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).BulkActions(bulkActions).FlushInterval(flushInterval).After(
+	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).BulkActions(bulkActions).FlushInterval(flushInterval).After(
 		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
 			if err != nil {
 				logger.Error().Err(err).Str("index", index).Msg("indexing error")
