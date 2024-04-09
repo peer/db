@@ -19,13 +19,12 @@ const MainView = "main"
 
 const (
 	// Our error codes.
-	errorCodeNotAllowed         = "P1000"
-	errorCodeAlreadyCommitted   = "P1001"
-	errorCodeInUse              = "P1002"
-	errorCodeParentInvalid      = "P1003"
-	errorCodeViewNotFound       = "P1004"
-	errorCodeParentNotCommitted = "P1005"
-	errorCodeChangesetNotFound  = "P1006"
+	errorCodeNotAllowed        = "P1000"
+	errorCodeAlreadyCommitted  = "P1001"
+	errorCodeInUse             = "P1002"
+	errorCodeParentInvalid     = "P1003"
+	errorCodeViewNotFound      = "P1004"
+	errorCodeChangesetNotFound = "P1006"
 )
 
 type Store[Data, Metadata, Patch any] struct {
@@ -360,26 +359,31 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'view not found' USING ERRCODE = '`+errorCodeViewNotFound+`';
 						END IF;
-						-- There must be at least one change in the changeset we want to commit.
+						-- There must be at least one change in the changeset we want to commit. We know that parent
+						-- changesets exist and do have (relevant) changes because we check that when creating changes.
 						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
 						END IF;
-						-- Parent changesets should already be committed for the view.
-						PERFORM 1 FROM
-							(
-								SELECT UNNEST("parentChangesets") AS "changeset"
-									FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-									WHERE "changeset"=_changeset
-							) AS l LEFT JOIN (
-								SELECT "changeset" FROM "currentCommittedChangesets"
-									WHERE "view"=ANY(_path)
-							) AS r ON (l."changeset"=r."changeset") WHERE r."changeset" IS NULL LIMIT 1;
-						IF FOUND THEN
-							RAISE EXCEPTION 'parent changeset not committed' USING ERRCODE = '`+errorCodeParentNotCommitted+`';
-						END IF;
-						-- This raises unique violation if changeset is already committed.
-						INSERT INTO "committedChangesets" VALUES (_changeset, _view, 1, _metadata);
+						-- Commit the changeset and any non-committed ancestor changesets as well.
+						WITH RECURSIVE "viewChangesets" AS (
+							SELECT "changeset" FROM "currentCommittedChangesets" WHERE "view"=ANY(_path)
+						), "changesetsToCommit"("changeset") AS (
+								VALUES (_changeset)
+							UNION
+								SELECT l."changeset"
+									FROM (
+										SELECT DISTINCT UNNEST("parentChangesets") AS "changeset"
+											FROM "currentChanges"
+											JOIN "changes" USING ("changeset", "id", "revision")
+											JOIN "changesetsToCommit" USING ("changeset")
+									) AS l
+									LEFT JOIN "viewChangesets" AS r
+									ON (l."changeset"=r."changeset")
+									WHERE r."changeset" IS NULL
+						)
+						-- This raises unique violation if provided changeset is already committed.
+						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM "changesetsToCommit";
 					END;
 				$$;
 			`)

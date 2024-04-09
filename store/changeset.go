@@ -184,17 +184,9 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // TODO: How to make sure is committing/discarding the version of changeset they expect?
 //       There is a race condition between decision to commit/discard and until it is done.
 
-// TODO: What if author of child changeset wants to commit before parent changesets are committed?
-//       Should we allow copying parent changesets into new changesets with the same content but different IDs and commit them?
-//       Or should we allow changes which are pointer to another change AND its revision?
-//       Do we even allow changesets to be changed? Or just added to?
-
 // Commit adds the changeset to the view.
 //
-// It requires that all parent changesets are already committed. We do not recursively
-// commit parent changesets to allow authors of parent changesets to decide when they
-// want them committed (which prevents those changesets from being changed further and
-// we do not want that child changesets could force that upon parent changesets).
+// It commits any non-committed ancestor changesets as well.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	arguments := []any{
 		c.String(), metadata, c.view.name,
@@ -210,8 +202,6 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					return errors.WrapWith(errE, ErrViewNotFound)
 				case errorCodeChangesetNotFound:
 					return errors.WrapWith(errE, ErrChangesetNotFound)
-				case errorCodeParentNotCommitted:
-					return errors.WrapWith(errE, ErrParentNotCommitted)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				}
