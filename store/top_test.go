@@ -522,9 +522,9 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
-		changeset, errE := c[0].WithStore(ctx, s)
+		changeset, errE = c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changes(ctx) //nolint:govet
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)
