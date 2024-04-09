@@ -19,10 +19,13 @@ const MainView = "main"
 
 const (
 	// Our error codes.
-	errorCodeNotAllowed       = "P1000"
-	errorCodeAlreadyCommitted = "P1001"
-	errorCodeInUse            = "P1002"
-	errorCodeParentInvalid    = "P1003"
+	errorCodeNotAllowed         = "P1000"
+	errorCodeAlreadyCommitted   = "P1001"
+	errorCodeInUse              = "P1002"
+	errorCodeParentInvalid      = "P1003"
+	errorCodeViewNotFound       = "P1004"
+	errorCodeParentNotCommitted = "P1005"
+	errorCodeChangesetNotFound  = "P1006"
 )
 
 type Store[Data, Metadata, Patch any] struct {
@@ -330,6 +333,37 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						END IF;
 						-- Discarding an empty (or an already discarded) changeset is not an error.
 						DELETE FROM "changes" WHERE "changeset"=_changeset;
+					END;
+				$$;
+
+				CREATE FUNCTION "changesetCommit"(_changeset text, _metadata `+s.MetadataType+`, _name text) RETURNS void LANGUAGE plpgsql AS $$
+					DECLARE
+						_view text;
+						_path text[];
+					BEGIN
+						-- The view should exist.
+						SELECT "view", "path" INTO _view, _path
+							FROM "currentViews" JOIN "views" USING ("view", "revision")
+							WHERE "currentViews"."name"=_name;
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'view not found' USING ERRCODE = '`+errorCodeViewNotFound+`';
+						END IF;
+						-- There must be at least one change in the changeset we want to commit.
+						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
+						END IF;
+						-- Parent changesets should already be committed for the view.
+						PERFORM UNNEST("parentChangesets") AS "changeset"
+							FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+							WHERE "changeset"=_changeset
+						EXCEPT SELECT "changeset" FROM "currentCommittedChangesets"
+							WHERE "view"=ANY(_path);
+						IF FOUND THEN
+							RAISE EXCEPTION 'parent changeset not committed' USING ERRCODE = '`+errorCodeParentNotCommitted+`';
+						END IF;
+						-- This raises unique violation if changeset is already committed.
+						INSERT INTO "committedChangesets" VALUES (_changeset, _view, 1, _metadata);
 					END;
 				$$;
 			`)

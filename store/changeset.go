@@ -184,85 +184,39 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // TODO: How to make sure is committing/discarding the version of changeset they expect?
 //       There is a race condition between decision to commit/discard and until it is done.
 
+// TODO: What if author of child changeset wants to commit before parent changesets are committed?
+//       Should we allow copying parent changesets into new changesets with the same content but different IDs and commit them?
+//       Or should we allow changes which are pointer to another change AND its revision?
+//       Do we even allow changesets to be changed? Or just added to?
+
 // Commit adds the changeset to the view.
+//
+// It requires that all parent changesets are already committed. We do not recursively
+// commit parent changesets to allow authors of parent changesets to decide when they
+// want them committed (which prevents those changesets from being changed further and
+// we do not want that child changesets could force that upon parent changesets).
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	arguments := []any{
 		c.String(), metadata, c.view.name,
 	}
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// TODO: Make sure parent changesets really contain object ID.
-		res, err := tx.Exec(ctx, `
-			WITH "currentViewPath" AS (
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
-					WHERE "currentViews"."name"=$3
-			), "currentViewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
-			), "parentChangesets" AS (
-				SELECT UNNEST("parentChangesets") AS "changeset"
-					FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-					WHERE "changeset"=$1
-			)
-			INSERT INTO "committedChangesets" SELECT $1, "view", 1, $2 FROM "currentViews"
-				WHERE	"name"=$3
-				-- The changeset should not yet be committed (to any view).
-				AND NOT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)
-				-- There must be at least one change in the changeset we want to commit.
-				AND EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)
-				-- That parent changesets really contain object IDs is checked in Update and Delete.
-				-- Here we only check that parent changesets are already committed for the current view.
-				AND NOT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
-		`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetCommit"($1, $2, $3)`, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
-		}
-		if res.RowsAffected() == 0 {
-			// TODO: Is there a better way to differentiate between different EXISTS conditions instead of doing another query?
-			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, c.view.name).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeViewNotFound:
+					return errors.WrapWith(errE, ErrViewNotFound)
+				case errorCodeChangesetNotFound:
+					return errors.WrapWith(errE, ErrChangesetNotFound)
+				case errorCodeParentNotCommitted:
+					return errors.WrapWith(errE, ErrParentNotCommitted)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				}
 			}
-			if !exists {
-				return errors.WithStack(ErrViewNotFound)
-			}
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentCommittedChangesets" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrAlreadyCommitted)
-			}
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if !exists {
-				// Committing an empty (or an already discarded) changeset is not an error.
-				return nil
-			}
-			err = tx.QueryRow(ctx, `
-				WITH "currentViewPath" AS (
-					SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
-						WHERE "currentViews"."name"=$1
-				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
-				), "parentChangesets" AS (
-					SELECT UNNEST("parentChangesets") AS "changeset"
-						FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-						WHERE "changeset"=$1
-					)
-				SELECT EXISTS (SELECT * FROM "parentChangesets" EXCEPT SELECT * FROM "currentViewChangesets")
-			`,
-				c.view.name,
-			).Scan(&exists)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-			if exists {
-				return errors.WithStack(ErrParentNotCommitted)
-			}
-			// This should not happen.
-			return errors.WithStack(errNoInserts)
+			return errE
 		}
 		return nil
 	})
