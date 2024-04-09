@@ -317,7 +317,7 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 				WHERE "changeset"=$2
 		`, arguments...)
 		if err != nil {
-			return errors.WithStack(err)
+			return internal.WithPgxError(err)
 		}
 		var id string
 		var revision int64
@@ -337,7 +337,13 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 			})
 			return nil
 		})
-		return errors.WithStack(err)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if len(patches) == 0 {
+			return errors.WithStack(ErrChangesetNotFound)
+		}
+		return nil
 	})
 	if errE != nil {
 		details := errors.Details(errE)
