@@ -354,11 +354,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
 						END IF;
 						-- Parent changesets should already be committed for the view.
-						PERFORM UNNEST("parentChangesets") AS "changeset"
-							FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-							WHERE "changeset"=_changeset
-						EXCEPT SELECT "changeset" FROM "currentCommittedChangesets"
-							WHERE "view"=ANY(_path);
+						PERFORM 1 FROM
+							(
+								SELECT UNNEST("parentChangesets") AS "changeset"
+									FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+									WHERE "changeset"=_changeset
+							) AS l LEFT JOIN (
+								SELECT "changeset" FROM "currentCommittedChangesets"
+									WHERE "view"=ANY(_path)
+							) AS r ON (l."changeset"=r."changeset") WHERE r."changeset" IS NULL LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'parent changeset not committed' USING ERRCODE = '`+errorCodeParentNotCommitted+`';
 						END IF;
