@@ -85,6 +85,8 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case errorCodeParentInvalid:
+					return errors.WrapWith(errE, ErrParentInvalid)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
@@ -121,6 +123,8 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case errorCodeParentInvalid:
+					return errors.WrapWith(errE, ErrParentInvalid)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
@@ -155,6 +159,8 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case errorCodeParentInvalid:
+					return errors.WrapWith(errE, ErrParentInvalid)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
@@ -300,8 +306,13 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) && pgError.Code == errorCodeAlreadyCommitted {
-				return errors.WrapWith(errE, ErrAlreadyCommitted)
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case errorCodeInUse:
+					return errors.WrapWith(errE, ErrInUse)
+				}
 			}
 			return errE
 		}

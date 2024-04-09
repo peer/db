@@ -21,6 +21,8 @@ const (
 	// Our error codes.
 	errorCodeNotAllowed       = "P1000"
 	errorCodeAlreadyCommitted = "P1001"
+	errorCodeInUse            = "P1002"
+	errorCodeParentInvalid    = "P1003"
 )
 
 type Store[Data, Metadata, Patch any] struct {
@@ -115,6 +117,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					`+patches+`
 					PRIMARY KEY ("changeset", "id", "revision")
 				);
+				CREATE INDEX ON "changes" USING gin ("parentChangesets");
 				CREATE FUNCTION "changesAfterInsertFunc"() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentChanges"
@@ -249,7 +252,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, '{}', '{}', _value, _metadata`+patchesEmptyValue+`);
 					END;
@@ -260,7 +263,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Parent changesets should exist for id. Query should work even if
+						-- changesets are repeated in _parentChangesets.
+						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
+							WHERE "id"=_id
+							HAVING COUNT(*)=array_length(_parentChangesets, 1);
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
 					END;
@@ -271,7 +282,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Parent changesets should exist for id. Query should work even if
+						-- changesets are repeated in _parentChangesets.
+						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
+							WHERE "id"=_id
+							HAVING COUNT(*)=array_length(_parentChangesets, 1);
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesEmptyValue+`);
 					END;
@@ -282,7 +301,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Parent changesets should exist for id. Query should work even if
+						-- changesets are repeated in _parentChangesets.
+						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
+							WHERE "id"=_id
+							HAVING COUNT(*)=array_length(_parentChangesets, 1);
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', NULL, _metadata`+patchesEmptyValue+`);
 					END;
@@ -293,7 +320,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+						END IF;
+						-- Changeset should not be in use.
+						PERFORM 1 FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+							WHERE "parentChangesets"@>ARRAY[_changeset] LIMIT 1;
+						IF FOUND THEN
+							RAISE EXCEPTION 'changeset in use' USING ERRCODE = '`+errorCodeInUse+`';
 						END IF;
 						-- Discarding an empty (or an already discarded) changeset is not an error.
 						DELETE FROM "changes" WHERE "changeset"=_changeset;
