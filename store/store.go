@@ -375,11 +375,11 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 									FROM (
 										SELECT DISTINCT UNNEST("parentChangesets") AS "changeset"
 											FROM "currentChanges"
-											JOIN "changes" USING ("changeset", "id", "revision")
-											JOIN "changesetsToCommit" USING ("changeset")
+												JOIN "changes" USING ("changeset", "id", "revision")
+												JOIN "changesetsToCommit" USING ("changeset")
 									) AS l
-									LEFT JOIN "viewChangesets" AS r
-									ON (l."changeset"=r."changeset")
+										LEFT JOIN "viewChangesets" AS r
+										ON (l."changeset"=r."changeset")
 									WHERE r."changeset" IS NULL
 						)
 						-- This raises unique violation if provided changeset is already committed.
