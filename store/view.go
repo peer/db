@@ -198,7 +198,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
 				)
 				-- We require the object at given version has been committed to the view
-				-- which we check by checking that version's changelog is among view's changelogs.
+				-- which we check by checking that version's changeset is among view's changesets.
 				SELECT "data", "data" IS NULL, "metadata" FROM "changes" JOIN "currentViewChangesets" USING ("changeset")
 					WHERE "id"=$2
 					AND "changeset"=$3

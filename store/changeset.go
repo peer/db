@@ -184,7 +184,7 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // TODO: How to make sure is committing/discarding the version of changeset they expect?
 //       There is a race condition between decision to commit/discard and until it is done.
 
-// Commit adds the changelog to the view.
+// Commit adds the changeset to the view.
 func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
 	arguments := []any{
 		c.String(), metadata, c.view.name,
@@ -296,7 +296,7 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 // levels to assure changesets and their patches are consistent before committing the chain.
 // Discarding should anyway not be used on user-facing changesets.
 
-// Discard deletes the changelog if it has not already been committed.
+// Discard deletes the changeset if it has not already been committed.
 func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
 	arguments := []any{
 		c.String(),
@@ -326,7 +326,7 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 	return errE
 }
 
-// Rollback discards the changelog but only if it has not already been committed.
+// Rollback discards the changeset but only if it has not already been committed.
 func (c *Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
 	errE := c.Discard(ctx)
 	if errE != nil && errors.Is(errE, ErrAlreadyCommitted) {
