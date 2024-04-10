@@ -340,7 +340,7 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
-		if len(patches) == 0 {
+		if len(changes) == 0 {
 			return errors.WithStack(ErrChangesetNotFound)
 		}
 		return nil
