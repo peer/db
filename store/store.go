@@ -90,7 +90,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			//nolint:goconst
 			_, err := tx.Exec(ctx, `
 				CREATE FUNCTION "doNotAllow"()
-				RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						RAISE EXCEPTION 'not allowed' USING ERRCODE = '`+errorCodeNotAllowed+`';
 					END;
@@ -123,7 +123,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE INDEX ON "changes" USING gin ("parentChangesets");
 				CREATE FUNCTION "changesAfterInsertFunc"()
-				RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "revision" FROM NEW_ROWS
@@ -134,7 +134,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					END;
 				$$;
 				CREATE FUNCTION "changesAfterDeleteFunc"()
-				RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						DELETE FROM "currentChanges" USING OLD_ROWS
 							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset"
@@ -175,7 +175,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				);
 				CREATE INDEX ON "views" USING btree ("name");
 				CREATE FUNCTION "viewsAfterInsertFunc"()
-				RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentViews"
 							SELECT DISTINCT ON ("view") "view", "revision", "name" FROM NEW_ROWS
@@ -206,7 +206,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("changeset", "view", "revision")
 				);
 				CREATE FUNCTION "committedChangesetsAfterInsertFunc"()
-				RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "currentCommittedChangesets"
 							SELECT DISTINCT ON ("changeset", "view") "changeset", "view", "revision" FROM NEW_ROWS
@@ -256,7 +256,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
 				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _value `+s.DataType+`, _metadata `+s.MetadataType+`)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
@@ -268,7 +268,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetUpdate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
@@ -288,7 +288,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetReplace"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+`)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
@@ -308,7 +308,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetDelete"(_changeset text, _id text, _parentChangesets text[], _metadata `+s.MetadataType+`)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
@@ -328,7 +328,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetDiscard"(_changeset text)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
@@ -347,7 +347,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetCommit"(_changeset text, _metadata `+s.MetadataType+`, _name text)
-				RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS void LANGUAGE plpgsql AS $$
 					DECLARE
 						_view text;
 						_path text[];
