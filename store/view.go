@@ -124,27 +124,17 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		var revision int64
 		var dataIsNull bool
 		err := tx.QueryRow(ctx, `
-			WITH "currentViewPath" AS (
+			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
-			), "currentViewChangesets" AS (
-				SELECT "changeset", "depth" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
-			), "parentChangesets" AS (
-				SELECT UNNEST("parentChangesets") AS "changeset"
-					FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-						JOIN "currentViewChangesets" USING ("changeset")
-					WHERE "id"=$2
 			)
 			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata"
-				FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-					JOIN "currentViewChangesets" USING ("changeset")
-				WHERE "currentChanges"."id"=$2
-				-- We collect all parent changesets for the object and make sure we do not select them.
-				AND "changeset" IN (SELECT "changeset" FROM "currentViewChangesets" EXCEPT SELECT * FROM "parentChangesets")
-				-- It is important to search changesets in order in which views are listed in the path.
-				-- There might be newer changesets for object ID in ancestor views, but younger views have
-				-- to be explicitly rebased to include those newer changesets and until then we ignore them.
+				FROM "viewPath"
+					JOIN "committedValues" USING ("view") JOIN (
+						"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+					) USING ("changeset", "id")
+				WHERE "id"=$2
 				ORDER BY "depth" ASC
 				-- We care only about the first matching changeset.
 				LIMIT 1
@@ -190,16 +180,16 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		var dataIsNull bool
 		err := tx.QueryRow(ctx, `
-				WITH "currentViewPath" AS (
-					-- We do not care about order of views here because we have en explicit version we are searching for.
-					SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") AS p("view")
-						WHERE "currentViews"."name"=$1
-				), "currentViewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "currentViewPath" USING ("view")
+			WITH "viewPath" AS (
+				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+					WHERE "currentViews"."name"=$1
+				), "viewChangesets" AS (
+					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
 				)
 				-- We require the object at given version has been committed to the view
 				-- which we check by checking that version's changeset is among view's changesets.
-				SELECT "data", "data" IS NULL, "metadata" FROM "changes" JOIN "currentViewChangesets" USING ("changeset")
+				SELECT "data", "data" IS NULL, "metadata"
+					FROM "changes" JOIN "viewChangesets" USING ("changeset")
 					WHERE "id"=$2
 					AND "changeset"=$3
 					AND "revision"=$4

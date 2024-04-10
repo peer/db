@@ -252,7 +252,33 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("changeset", "view")
 				);
 				CREATE INDEX ON "currentCommittedChangesets" USING btree ("view");
+				CREATE FUNCTION "currentCommittedChangesetsAfterInsertFunc"()
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					BEGIN
+						INSERT INTO "committedValues" SELECT "view", "id", "changeset"
+							FROM NEW_ROWS LEFT JOIN (
+								"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+							)	USING ("changeset")
+							-- WHERE "parentChangesets"='{}'
+							ON CONFLICT ("view", "id") DO UPDATE
+								SET "changeset"=EXCLUDED."changeset";
+						RETURN NULL;
+					END;
+				$$;
+				CREATE TRIGGER "currentCommittedChangesetsAfterInsert" AFTER INSERT ON "currentCommittedChangesets"
+					REFERENCING NEW TABLE AS NEW_ROWS
+					FOR EACH STATEMENT EXECUTE FUNCTION "currentCommittedChangesetsAfterInsertFunc"();
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
+					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+
+				CREATE TABLE "committedValues" (
+					"view" text NOT NULL,
+					"id" text NOT NULL,
+					"changeset" text NOT NULL,
+					PRIMARY KEY ("view", "id")
+				);
+				CREATE INDEX ON "committedValues" USING btree ("changeset");
+				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
 				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _value `+s.DataType+`, _metadata `+s.MetadataType+`)
