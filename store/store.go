@@ -397,6 +397,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						), "changesetsToCommit"("changeset") AS (
 								VALUES (_changeset)
 							UNION
+								-- We use LEFT JOIN with DISTINCT on the left table because it seems faster than EXCEPT,
+								-- but we should validate and keep validating this. DISTINCT here is not critical, but
+								-- its goal is to do less work in LEFT JOIN and later UNION.
 								SELECT l."changeset"
 									FROM (
 										SELECT DISTINCT UNNEST("parentChangesets") AS "changeset"
