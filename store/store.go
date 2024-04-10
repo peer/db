@@ -256,10 +256,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						INSERT INTO "committedValues" SELECT "view", "id", "changeset"
-							FROM NEW_ROWS LEFT JOIN (
-								"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-							)	USING ("changeset")
-							-- WHERE "parentChangesets"='{}'
+							-- We use LEFT JOIN so that the trigger fails if we are committing a changeset which does
+							-- not have any changes. This is already explicitly checked in "changesetCommit" though, so
+							-- it could be removed (here or there) if it shows that it is negatively impacting performance.
+							FROM NEW_ROWS LEFT JOIN "currentChanges" USING ("changeset")
+							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
+							-- combination, this still fails with exception. This can happen if NEW_ROWS are introducing multiple
+							-- parallel coexisting versions of a value which we do not allow. We want that at any point, i.e., after
+							-- a set of changesets are committed, there is only one version of a value per view. Branches can happen
+							-- but they have to be merged back together into one version before a set of changesets is committed.
 							ON CONFLICT ("view", "id") DO UPDATE
 								SET "changeset"=EXCLUDED."changeset";
 						RETURN NULL;
