@@ -144,3 +144,6 @@ issues:
     - path: internal/wikipedia/.*_test\.go
       linters:
         - testpackage
+    - path: store/.*_test\.go
+      linters:
+        - dupl
