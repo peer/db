@@ -13,7 +13,7 @@ import (
 
 // TODO: We build query strings again and again based on patchesEnabled. We should create them once during Init and reuse them here.
 
-// Changeset is a batch of changes done to objects.
+// Changeset is a batch of changes done to values.
 // It can be prepared and later on committed to a view or discarded.
 type Changeset[Data, Metadata, Patch any] struct {
 	identifier.Identifier

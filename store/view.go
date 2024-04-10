@@ -163,8 +163,8 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 		version.Changeset = identifier.MustFromString(changeset)
 		version.Revision = revision
 		if dataIsNull {
-			// We return an error because this method is asking for current version of the object
-			// but the object does not exist anymore. Other returned values are valid though.
+			// We return an error because this method is asking for the current version of the value
+			// but the value does not exist anymore. Other returned values are valid though.
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
@@ -192,7 +192,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 				), "viewChangesets" AS (
 					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
 				)
-				-- We require the object at given version has been committed to the view
+				-- We require the value at given version has been committed to the view (or its ancestors)
 				-- which we check by checking that version's changeset is among view's changesets.
 				SELECT "data", "data" IS NULL, "metadata"
 					FROM "changes" JOIN "viewChangesets" USING ("changeset")
@@ -216,8 +216,8 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 			return errE
 		}
 		if dataIsNull {
-			// We return an error because this method is asking for a particular version of the object
-			// but the object does not exist anymore at this version. Other returned values are valid though.
+			// We return an error because this method is asking for a particular version of the value
+			// but the value does not exist anymore at this version. Other returned values are valid though.
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
