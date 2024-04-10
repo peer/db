@@ -131,10 +131,16 @@ func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identif
 			)
 			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata"
 				FROM "viewPath"
-					JOIN "committedValues" USING ("view") JOIN (
+					-- This gives us the latest changesets for each view for each value.
+					JOIN "committedValues" USING ("view")
+					JOIN (
+						-- This gives us only current revisions. And corresponding data and metadata.
 						"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
 					) USING ("changeset", "id")
 				WHERE "id"=$2
+				-- We search views for the value in path order. This means that some later (ancestor)
+				-- view might have a newer value version, but we still use the one which is explicitly
+				-- committed to an earlier view.
 				ORDER BY "depth" ASC
 				-- We care only about the first matching changeset.
 				LIMIT 1
