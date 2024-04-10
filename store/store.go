@@ -28,8 +28,12 @@ const (
 )
 
 type Store[Data, Metadata, Patch any] struct {
-	Schema       string
-	Committed    chan<- Changeset[Data, Metadata, Patch]
+	Schema string
+
+	// The order in which changesets are send to the channel is not necessary
+	// the order in which they were committed. You should not relay on the order.
+	Committed chan<- Changeset[Data, Metadata, Patch]
+
 	DataType     string
 	MetadataType string
 	PatchType    string
@@ -252,27 +256,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("changeset", "view")
 				);
 				CREATE INDEX ON "currentCommittedChangesets" USING btree ("view");
-				CREATE FUNCTION "currentCommittedChangesetsAfterInsertFunc"()
-					RETURNS TRIGGER LANGUAGE plpgsql AS $$
-					BEGIN
-						INSERT INTO "committedValues" SELECT "view", "id", "changeset"
-							-- We use LEFT JOIN so that the trigger fails if we are committing a changeset which does
-							-- not have any changes. This is already explicitly checked in "changesetCommit" though, so
-							-- it could be removed (here or there) if it shows that it is negatively impacting performance.
-							FROM NEW_ROWS LEFT JOIN "currentChanges" USING ("changeset")
-							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
-							-- combination, this still fails with exception. This can happen if NEW_ROWS are introducing multiple
-							-- parallel coexisting versions of a value which we do not allow. We want that at any point, i.e., after
-							-- a set of changesets are committed, there is only one version of a value per view. Branches can happen
-							-- but they have to be merged back together into one version before a set of changesets is committed.
-							ON CONFLICT ("view", "id") DO UPDATE
-								SET "changeset"=EXCLUDED."changeset";
-						RETURN NULL;
-					END;
-				$$;
-				CREATE TRIGGER "currentCommittedChangesetsAfterInsert" AFTER INSERT ON "currentCommittedChangesets"
-					REFERENCING NEW TABLE AS NEW_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "currentCommittedChangesetsAfterInsertFunc"();
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
@@ -378,10 +361,11 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				$$;
 
 				CREATE FUNCTION "changesetCommit"(_changeset text, _metadata `+s.MetadataType+`, _name text)
-					RETURNS void LANGUAGE plpgsql AS $$
+					RETURNS text[] LANGUAGE plpgsql AS $$
 					DECLARE
 						_view text;
 						_path text[];
+						_changesetsToCommit text[];
 					BEGIN
 						-- The view should exist.
 						SELECT "view", "path" INTO _view, _path
@@ -390,17 +374,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'view not found' USING ERRCODE = '`+errorCodeViewNotFound+`';
 						END IF;
-						-- There must be at least one change in the changeset we want to commit. We know that parent
-						-- changesets exist and do have (relevant) changes because we check that when creating changes.
-						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
-						END IF;
-						-- Commit the changeset and any non-committed ancestor changesets as well.
+						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (
 							SELECT "changeset" FROM "currentCommittedChangesets" WHERE "view"=ANY(_path)
 						), "changesetsToCommit"("changeset") AS (
 								VALUES (_changeset)
+							-- We use UNION and not UNION ALL here because we need distinct values in _changesetsToCommit
+							-- because we have to insert only one row for each changeset into "committedChangesets".
 							UNION
 								-- We use LEFT JOIN with DISTINCT on the left table because it seems faster than EXCEPT,
 								-- but we should validate and keep validating this. DISTINCT here is not critical, but
@@ -416,8 +396,23 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 										ON (l."changeset"=r."changeset")
 									WHERE r."changeset" IS NULL
 						)
-						-- This raises unique violation if provided changeset is already committed.
-						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM "changesetsToCommit";
+						SELECT array_agg("changeset") INTO _changesetsToCommit FROM "changesetsToCommit";
+						-- This raises unique violation if the provided changeset is already committed.
+						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
+						INSERT INTO "committedValues" SELECT _view, "id", "changeset"
+							FROM UNNEST(_changesetsToCommit) AS "changeset"
+								-- We use LEFT JOIN so that the trigger fails if we are committing a changeset which does not have
+								-- any changes. We know that parent changesets exist and do have (relevant) changes because we
+								-- check that when creating changes so this really checks only the provided changeset.
+								LEFT JOIN "currentChanges" USING ("changeset")
+							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
+							-- combination, this still fails with exception. This can happen if _changesetsToCommit are introducing
+							-- multiple parallel coexisting versions of a value which we do not allow. We want that at any point, i.e.,
+							-- after a set of changesets are committed, there is only one version of a value per view. Branches can
+							-- happen but they have to be merged back together into one version before a set of changesets is committed.
+							ON CONFLICT ("view", "id") DO UPDATE
+								SET "changeset"=EXCLUDED."changeset";
+						RETURN _changesetsToCommit;
 					END;
 				$$;
 			`)

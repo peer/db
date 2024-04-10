@@ -187,12 +187,13 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // Commit adds the changeset to the view.
 //
 // It commits any non-committed ancestor changesets as well.
-func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) errors.E {
+func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
 	arguments := []any{
 		c.String(), metadata, c.view.name,
 	}
+	var committedChangesets []string
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCommit"($1, $2, $3)`, arguments...)
+		err := tx.QueryRow(ctx, `SELECT "changesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -215,24 +216,40 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	} else if c.view.store.Committed != nil {
-		// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
-		c.view.store.Committed <- Changeset[Data, Metadata, Patch]{
-			Identifier: c.Identifier,
-			view: &View[Data, Metadata, Patch]{
-				name: c.view.name,
-				store: &Store[Data, Metadata, Patch]{
-					Schema:         c.view.store.Schema,
-					Committed:      nil,
-					DataType:       "",
-					MetadataType:   "",
-					PatchType:      "",
-					dbpool:         nil,
-					patchesEnabled: false,
+		// There might be more than just this changeset committed if its parent changesets were not committed as well.
+		for _, changeset := range committedChangesets {
+			// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
+			c.view.store.Committed <- Changeset[Data, Metadata, Patch]{
+				Identifier: identifier.MustFromString(changeset),
+				view: &View[Data, Metadata, Patch]{
+					name: c.view.name,
+					store: &Store[Data, Metadata, Patch]{
+						Schema:         c.view.store.Schema,
+						Committed:      nil,
+						DataType:       "",
+						MetadataType:   "",
+						PatchType:      "",
+						dbpool:         nil,
+						patchesEnabled: false,
+					},
 				},
-			},
+			}
 		}
 	}
-	return errE
+	var chs []Changeset[Data, Metadata, Patch]
+	for _, changeset := range committedChangesets {
+		id := identifier.MustFromString(changeset)
+		if id == c.Identifier {
+			chs = append(chs, *c)
+		} else {
+			ch, e := c.view.Changeset(ctx, id)
+			if e != nil {
+				return nil, errors.Join(errE, e)
+			}
+			chs = append(chs, ch)
+		}
+	}
+	return chs, errE
 }
 
 // We allow discarding changesets even after they have been used as a parent changeset in some
