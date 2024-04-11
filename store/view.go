@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -245,4 +246,71 @@ func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier
 
 func (v *View[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Data, Metadata, Patch], errors.E) {
 	return v.Changeset(ctx, identifier.New())
+}
+
+// TODO: Support also name-less views (but the View has to store view ID instead).
+
+// Create creates a new view based on the current view.
+func (v *View[Data, Metadata, Patch]) Create(ctx context.Context, name string, metadata Metadata) (View[Data, Metadata, Patch], errors.E) {
+	arguments := []any{
+		identifier.New().String(), name, metadata, v.name,
+	}
+	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		res, err := tx.Exec(ctx, `
+			INSERT INFO "views" SELECT $1, 1, $2, array_prepend($2, "path"), $3
+				FROM "currentViews" JOIN "views" USING ("view", "revision")
+				WHERE "currentViews"."name"=$4;
+		`, arguments...)
+		if err != nil {
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code { //nolint:gocritic
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
+		}
+		if res.RowsAffected() == 0 {
+			return errors.WithStack(ErrViewNotFound)
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.name
+		details["name"] = name
+		return View[Data, Metadata, Patch]{}, errE //nolint:exhaustruct
+	}
+	return View[Data, Metadata, Patch]{
+		name:  name,
+		store: v.store,
+	}, nil
+}
+
+// Release releases (removes) the name of the view.
+func (v *View[Data, Metadata, Patch]) Release(ctx context.Context, metadata Metadata) errors.E {
+	arguments := []any{
+		v.name, metadata,
+	}
+	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		res, err := tx.Exec(ctx, `
+			INSERT INFO "views" SELECT "view", "revision"+1, NULL, "path", $2
+				FROM "currentViews" JOIN "views" USING ("view", "revision")
+				WHERE "currentViews"."name"=$1;
+		`, arguments...)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if res.RowsAffected() == 0 {
+			return errors.WithStack(ErrViewNotFound)
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.name
+	}
+	return errE
 }
