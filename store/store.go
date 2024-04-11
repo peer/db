@@ -24,7 +24,7 @@ const (
 	errorCodeInUse             = "P1002"
 	errorCodeParentInvalid     = "P1003"
 	errorCodeViewNotFound      = "P1004"
-	errorCodeChangesetNotFound = "P1006"
+	errorCodeChangesetNotFound = "P1005"
 )
 
 type Store[Data, Metadata, Patch any] struct {
@@ -289,7 +289,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
-						-- Parent changesets should exist for id. Query should work even if
+						-- Parent changesets should exist for ID. Query should work even if
 						-- changesets are repeated in _parentChangesets.
 						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
 							WHERE "id"=_id
@@ -309,7 +309,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
-						-- Parent changesets should exist for id. Query should work even if
+						-- Parent changesets should exist for ID. Query should work even if
 						-- changesets are repeated in _parentChangesets.
 						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
 							WHERE "id"=_id
@@ -329,7 +329,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
-						-- Parent changesets should exist for id. Query should work even if
+						-- Parent changesets should exist for ID. Query should work even if
 						-- changesets are repeated in _parentChangesets.
 						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
 							WHERE "id"=_id
@@ -374,6 +374,12 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'view not found' USING ERRCODE = '`+errorCodeViewNotFound+`';
 						END IF;
+						-- There must be at least one change in the changeset we want to commit. We know that parent
+						-- changesets exist and do have (relevant) changes because we check that when creating changes.
+						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
+						IF NOT FOUND THEN
+							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
+						END IF;
 						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (
 							SELECT "changeset" FROM "currentCommittedChangesets" WHERE "view"=ANY(_path)
@@ -397,14 +403,24 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 									WHERE r."changeset" IS NULL
 						)
 						SELECT array_agg("changeset") INTO _changesetsToCommit FROM "changesetsToCommit";
-						-- This raises unique violation if the provided changeset is already committed.
+						-- This raises unique violation if the provided changeset is already committed
+						-- (ancestor changesets we added to _changesetsToCommit because they are not).
 						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
-						INSERT INTO "committedValues" SELECT _view, "id", "changeset"
-							FROM UNNEST(_changesetsToCommit) AS "changeset"
-								-- We use LEFT JOIN so that the trigger fails if we are committing a changeset which does not have
-								-- any changes. We know that parent changesets exist and do have (relevant) changes because we
-								-- check that when creating changes so this really checks only the provided changeset.
-								LEFT JOIN "currentChanges" USING ("changeset")
+						WITH "values" AS (
+							SELECT "id" FROM "currentChanges" JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
+						)
+						-- For every ID in _changesetsToCommit we find the latest changeset.
+						INSERT INTO "committedValues" SELECT _view, "id", (
+								-- The latest changeset is among _changesetsToCommit.
+								SELECT UNNEST(_changesetsToCommit) AS "changeset"
+								EXCEPT
+								-- But it is not a parent changeset of another changeset for the value.
+								SELECT UNNEST("parentChangesets") AS "changeset"
+									FROM "currentChanges"
+										JOIN "changes" USING ("changeset", "id", "revision")
+										JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
+									WHERE "id"="values"."id"
+							) as "changeset" FROM "values"
 							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
 							-- combination, this still fails with exception. This can happen if _changesetsToCommit are introducing
 							-- multiple parallel coexisting versions of a value which we do not allow. We want that at any point, i.e.,
