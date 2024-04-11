@@ -91,6 +91,28 @@ func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	return version, nil
 }
 
+func (v *View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
+	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
+) (_ Version, errE errors.E) {
+	changeset, errE := v.Begin(ctx)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	defer func() {
+		errE = errors.Join(errE, changeset.Rollback(ctx))
+	}()
+	version, errE := changeset.Merge(ctx, id, parentChangesets, value, patches, metadata)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	_, errE = changeset.Commit(ctx, metadata)
+	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
+		return Version{}, errE //nolint:exhaustruct
+	}
+	return version, nil
+}
+
 func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata,
 ) (_ Version, errE errors.E) {

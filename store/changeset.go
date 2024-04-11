@@ -107,6 +107,53 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	return version, errE
 }
 
+func (c *Changeset[Data, Metadata, Patch]) Merge(
+	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
+) (Version, errors.E) {
+	parentChangesetsString := []string{}
+	for _, p := range parentChangesets {
+		parentChangesetsString = append(parentChangesetsString, p.String())
+	}
+	arguments := []any{
+		c.String(), id.String(), parentChangesetsString, value, metadata,
+	}
+	patchesPlaceholders := ""
+	if c.view.store.patchesEnabled {
+		arguments = append(arguments, patches)
+		patchesPlaceholders = ", $6"
+	}
+	var version Version
+	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
+		if err != nil {
+			errE := internal.WithPgxError(err)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				switch pgError.Code {
+				case errorCodeAlreadyCommitted:
+					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case errorCodeParentInvalid:
+					return errors.WrapWith(errE, ErrParentInvalid)
+				case internal.ErrorCodeUniqueViolation:
+					return errors.WrapWith(errE, ErrConflict)
+				}
+			}
+			return errE
+		}
+		version.Changeset = c.Identifier
+		version.Revision = 1
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = c.view.name
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+		details["parentChangesets"] = parentChangesetsString
+	}
+	return version, errE
+}
+
 func (c *Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {

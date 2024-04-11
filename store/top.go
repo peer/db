@@ -59,6 +59,16 @@ func (s *Store[Data, Metadata, Patch]) Update(
 	return view.Update(ctx, id, parentChangeset, value, patch, metadata)
 }
 
+func (s *Store[Data, Metadata, Patch]) Merge(
+	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
+) (Version, errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	return view.Merge(ctx, id, parentChangesets, value, patches, metadata)
+}
+
 func (s *Store[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
