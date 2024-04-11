@@ -111,7 +111,7 @@ func (c *Changeset[Data, Metadata, Patch]) Merge(
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
 	if c.view.store.patchesEnabled && len(parentChangesets) != len(patches) {
-		return Version{}, errors.WithStack(ErrParentInvalid)
+		return Version{}, errors.WithStack(ErrParentInvalid) //nolint:exhaustruct
 	}
 	parentChangesetsString := []string{}
 	for _, p := range parentChangesets {
