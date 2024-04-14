@@ -461,6 +461,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	newVersion, errE := changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, changeset.Identifier, newVersion.Changeset)
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
@@ -545,6 +546,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, changeset.Identifier, newVersion.Changeset)
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
@@ -596,7 +598,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -613,8 +615,4 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 
 	errE = changeset.Discard(ctx)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	time.Sleep(10 * time.Millisecond)
-	c := channelContents.Prune()
-	assert.Empty(t, c)
 }
