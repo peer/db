@@ -135,7 +135,7 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	return version, nil
 }
 
-func (v *View[Data, Metadata, Patch]) GetCurrent(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
+func (v *View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	arguments := []any{
 		v.name, id.String(),
 	}

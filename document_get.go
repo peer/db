@@ -76,7 +76,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	// TODO: To support "omni" instances, allow getting across multiple schemas.
-	_, _, _, errE = st.GetCurrent(ctx, id) //nolint:dogsled
+	_, _, _, errE = st.GetLatest(ctx, id) //nolint:dogsled
 	m.Stop()
 
 	if errE != nil {
@@ -110,7 +110,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: To support "omni" instances, allow getting across multiple schemas.
-	data, metadataJSON, version, errE := st.GetCurrent(ctx, id)
+	data, metadataJSON, version, errE := st.GetLatest(ctx, id)
 	m.Stop()
 
 	if errE != nil {

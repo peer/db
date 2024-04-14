@@ -27,6 +27,10 @@ func Bridge[Data, Metadata, Patch any](
 			if !ok {
 				return
 			}
+
+			// The order in which changesets are send to the channel is not necessary
+			// the order in which they were committed. We should not relay on the order.
+
 			// We have to reconstruct the changeset using our store.
 			changeset, errE := c.WithStore(ctx, store)
 			if errE != nil {
@@ -41,8 +45,15 @@ func Bridge[Data, Metadata, Patch any](
 			}
 
 			for _, change := range changes {
-				// TODO: Convert change.Data into searchable document for the general case.
-				req := elastic.NewBulkIndexRequest().Index(index).Id(change.ID.String()).Doc(change.Data)
+				// Because changesets are not necessary in order, we always get the latest version and index it.
+				data, _, _, errE := store.GetLatest(ctx, change.ID)
+				if errE != nil {
+					logger.Error().Err(errE).Str("view", c.View().Name()).Str("changeset", c.String()).Msg("bridge error: get current")
+					continue
+				}
+
+				// TODO: Convert data into searchable document for the general case.
+				req := elastic.NewBulkIndexRequest().Index(index).Id(change.ID.String()).Doc(data)
 				processor.Add(req)
 			}
 		}

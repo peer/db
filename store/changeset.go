@@ -352,25 +352,18 @@ func (c *Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.
 //       When they will not be used anymore, but we should keep them around (and we want to
 //       prevent accidentally changing them.)
 
-type Change[Data, Metadata, Patch any] struct {
-	ID       identifier.Identifier
-	Version  Version
-	Data     Data
-	Metadata Metadata
-	Patches  []Patch
+type Change struct {
+	ID      identifier.Identifier
+	Version Version
 }
 
 // TODO: Should Changes return also for non-committed changesets?
 
-func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change[Data, Metadata, Patch], errors.E) {
+func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change, errors.E) {
 	arguments := []any{
 		c.view.name, c.String(),
 	}
-	patches := ", NULL"
-	if c.view.store.patchesEnabled {
-		patches = `, "patches"`
-	}
-	var changes []Change[Data, Metadata, Patch]
+	var changes []Change
 	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changes = nil
@@ -382,9 +375,8 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 			), "viewChangesets" AS (
 				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
 			)
-			SELECT "id", "revision", "data", "metadata"`+patches+`
-				FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
-					JOIN "viewChangesets" USING ("changeset")
+			SELECT "id", "revision"
+				FROM "currentChanges" JOIN "viewChangesets" USING ("changeset")
 				WHERE "changeset"=$2
 		`, arguments...)
 		if err != nil {
@@ -392,19 +384,13 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 		}
 		var id string
 		var revision int64
-		var data Data
-		var metadata Metadata
-		var patches []Patch
-		_, err = pgx.ForEachRow(rows, []any{&id, &revision, &data, &metadata, &patches}, func() error {
-			changes = append(changes, Change[Data, Metadata, Patch]{
+		_, err = pgx.ForEachRow(rows, []any{&id, &revision}, func() error {
+			changes = append(changes, Change{
 				ID: identifier.MustFromString(id),
 				Version: Version{
 					Changeset: c.Identifier,
 					Revision:  revision,
 				},
-				Data:     data,
-				Metadata: metadata,
-				Patches:  patches,
 			})
 			return nil
 		})

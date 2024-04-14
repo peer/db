@@ -259,7 +259,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	ctx, s, channelContents := initDatabase[Data, Metadata, Patch](t, dataType)
 
-	_, _, _, errE := s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
+	_, _, _, errE := s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	expectedID := identifier.New()
@@ -275,7 +275,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	data, metadata, version, errE := s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE := s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
@@ -295,9 +295,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, expectedID, changes[0].ID)
 					assert.Equal(t, insertVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, insertVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.InsertData, changes[0].Data)
-					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
-					assert.Equal(t, d.NoPatches, changes[0].Patches)
 				}
 			}
 		}
@@ -320,7 +317,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.UpdateMetadata, metadata)
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
@@ -340,9 +337,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, expectedID, changes[0].ID)
 					assert.Equal(t, updateVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, updateVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.UpdateData, changes[0].Data)
-					assert.Equal(t, d.UpdateMetadata, changes[0].Metadata)
-					assert.Equal(t, d.UpdatePatches, changes[0].Patches)
 				}
 			}
 		}
@@ -371,7 +365,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.ReplaceMetadata, metadata)
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.ReplaceData, data)
 		assert.Equal(t, d.ReplaceMetadata, metadata)
@@ -391,9 +385,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, expectedID, changes[0].ID)
 					assert.Equal(t, replaceVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, replaceVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.ReplaceData, changes[0].Data)
-					assert.Equal(t, d.ReplaceMetadata, changes[0].Metadata)
-					assert.Equal(t, d.NoPatches, changes[0].Patches)
 				}
 			}
 		}
@@ -428,7 +419,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 
-	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
@@ -447,9 +438,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, expectedID, changes[0].ID)
 					assert.Equal(t, deleteVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, deleteVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.DeleteData, changes[0].Data)
-					assert.Equal(t, d.DeleteMetadata, changes[0].Metadata)
-					assert.Equal(t, d.NoPatches, changes[0].Patches)
 				}
 			}
 		}
@@ -467,14 +455,14 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
 
-	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	data, metadata, version, errE = s.GetLatest(ctx, newID)
 	assert.NotErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Nil(t, data)
@@ -492,7 +480,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, changeset, changesets[0])
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, expectedID)
+	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
@@ -505,7 +493,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	data, metadata, version, errE = s.GetLatest(ctx, newID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
@@ -533,9 +521,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, newID, changes[0].ID)
 					assert.Equal(t, newVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, newVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.InsertData, changes[0].Data)
-					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
-					assert.Equal(t, d.NoPatches, changes[0].Patches)
 				}
 			}
 		}
@@ -569,7 +554,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	data, metadata, version, errE = s.GetCurrent(ctx, newID)
+	data, metadata, version, errE = s.GetLatest(ctx, newID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
@@ -588,9 +573,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 					assert.Equal(t, newID, changes[0].ID)
 					assert.Equal(t, newVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, newVersion.Revision, changes[0].Version.Revision)
-					assert.Equal(t, d.InsertData, changes[0].Data)
-					assert.Equal(t, d.InsertMetadata, changes[0].Metadata)
-					assert.Equal(t, d.NoPatches, changes[0].Patches)
 				}
 			}
 		}
@@ -700,10 +682,10 @@ func TestGetCurrent(t *testing.T) {
 	v, errE := s.View(ctx, "notexist")
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	_, _, _, errE = v.GetCurrent(ctx, newID) //nolint:dogsled
+	_, _, _, errE = v.GetLatest(ctx, newID) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, _, _, errE = s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
+	_, _, _, errE = s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
