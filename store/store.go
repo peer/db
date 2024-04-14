@@ -407,7 +407,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- (ancestor changesets we added to _changesetsToCommit because they are not).
 						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
 						WITH "values" AS (
-							SELECT "id" FROM "currentChanges" JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
+							SELECT DISTINCT "id" FROM "currentChanges" JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
 						)
 						-- For every ID in _changesetsToCommit we find the latest changeset.
 						INSERT INTO "committedValues" SELECT _view, "id", (

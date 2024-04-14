@@ -651,3 +651,36 @@ func TestCycles(t *testing.T) {
 	// exist before new changesets can be made. And it is not possible to update a changeset
 	// to close a cycle.
 }
+
+func TestInterdependentChangesets(t *testing.T) {
+	// It is strange but we do support this.
+
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+	secondID := identifier.New()
+
+	changeset1, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset1.Insert(ctx, secondID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	changeset2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Update(ctx, secondID, changeset1.Identifier, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset1.Update(ctx, newID, changeset2.Identifier, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	changesets, errE := changeset1.Commit(ctx, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
+}
