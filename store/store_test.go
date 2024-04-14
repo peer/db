@@ -122,10 +122,6 @@ func toRawMessagePtr(data string) *json.RawMessage {
 func TestTop(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
-
 	for _, dataType := range []string{"jsonb", "bytea", "text"} {
 		dataType := dataType
 
@@ -216,6 +212,10 @@ func (l *lockableSlice[T]) Prune() []T {
 
 func initDatabase[Data, Metadata, Patch any](t *testing.T, dataType string) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]]) {
 	t.Helper()
+
+	if os.Getenv("POSTGRES") == "" {
+		t.Skip("POSTGRES is not available")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
