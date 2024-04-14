@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/tozd/go/cli v0.3.0
 	gitlab.com/tozd/go/mediawiki v0.12.0
-	gitlab.com/tozd/go/x v0.0.0-20240319120849-eb6a32121198
+	gitlab.com/tozd/go/x v0.0.0-20240414153458-c60a59ee413b
 	gitlab.com/tozd/go/zerolog v0.6.0
 	gitlab.com/tozd/identifier v0.2.0
 	gitlab.com/tozd/waf v0.18.1

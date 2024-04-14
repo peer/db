@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,19 @@ func (t testData) BytesValue() ([]byte, error) {
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+func (t *testData) ScanText(v pgtype.Text) error {
+	b := x.String2ByteSlice(v.String)
+	return t.ScanBytes(b)
+}
+
+func (t testData) TextValue() (pgtype.Text, error) {
+	b, err := t.BytesValue()
+	return pgtype.Text{
+		String: x.ByteSlice2String(b),
+		Valid:  err == nil,
+	}, err
+}
+
 type testMetadata struct {
 	Metadata string
 }
@@ -45,6 +59,19 @@ func (t testMetadata) BytesValue() ([]byte, error) {
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+func (t *testMetadata) ScanText(v pgtype.Text) error {
+	b := x.String2ByteSlice(v.String)
+	return t.ScanBytes(b)
+}
+
+func (t testMetadata) TextValue() (pgtype.Text, error) {
+	b, err := t.BytesValue()
+	return pgtype.Text{
+		String: x.ByteSlice2String(b),
+		Valid:  err == nil,
+	}, err
+}
+
 type testPatch struct {
 	Patch bool
 }
@@ -55,6 +82,19 @@ func (t *testPatch) ScanBytes(v []byte) error {
 
 func (t testPatch) BytesValue() ([]byte, error) {
 	return x.MarshalWithoutEscapeHTML(t)
+}
+
+func (t *testPatch) ScanText(v pgtype.Text) error {
+	b := x.String2ByteSlice(v.String)
+	return t.ScanBytes(b)
+}
+
+func (t testPatch) TextValue() (pgtype.Text, error) {
+	b, err := t.BytesValue()
+	return pgtype.Text{
+		String: x.ByteSlice2String(b),
+		Valid:  err == nil,
+	}, err
 }
 
 type testCase[Data, Metadata, Patch any] struct {
@@ -84,7 +124,7 @@ func TestTop(t *testing.T) {
 		t.Skip("POSTGRES is not available")
 	}
 
-	for _, dataType := range []string{"jsonb", "bytea"} {
+	for _, dataType := range []string{"jsonb", "bytea", "text"} {
 		dataType := dataType
 
 		t.Run(dataType, func(t *testing.T) {
