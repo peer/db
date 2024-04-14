@@ -684,3 +684,25 @@ func TestInterdependentChangesets(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
 }
+
+func TestDuplicateValues(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// Inserting another value with same ID should error.
+	_, errE = s.Insert(ctx, newID, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	_, errE = s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// Updating an old value should error.
+	_, errE = s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+}
