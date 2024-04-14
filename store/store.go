@@ -416,6 +416,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 								-- view and the value. It is not enough to look just in _changesetsToCommit changesets because there
 								-- might be diverging changes introducing multiple latest changesets using earlier changesets
 								-- (e.g., a changeset from _changesetsToCommit uses a parent changeset which is not the latest changeset).
+								-- TODO: Is it faster to use LEFT JOIN instead of EXCEPT here?
+								-- TODO: We are twice doing almost the same query, only selecting a different column. Is this an opportunity to optimize?
 								SELECT "changeset"
 									FROM "currentCommittedChangesets"
 										JOIN "currentChanges" USING ("changeset")
