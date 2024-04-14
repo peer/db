@@ -255,6 +255,8 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 					return errors.WrapWith(errE, ErrChangesetNotFound)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
+				case internal.ErrorCardinalityViolation:
+					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
 			return errE

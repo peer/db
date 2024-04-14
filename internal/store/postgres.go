@@ -27,6 +27,7 @@ const (
 	ErrorCodeDuplicateSchema      = "42P06"
 	ErrorCodeSerializationFailure = "40001"
 	ErrorCodeDeadlockDetected     = "40P01"
+	ErrorCardinalityViolation     = "21000"
 )
 
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
