@@ -245,6 +245,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "id")
 				);
+				CREATE INDEX ON "currentChanges" USING btree ("id");
 				CREATE TRIGGER "currentChangesNotAllowed" BEFORE TRUNCATE ON "currentChanges"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
@@ -411,15 +412,20 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						)
 						-- For every ID in _changesetsToCommit we find the latest changeset.
 						INSERT INTO "committedValues" SELECT _view, "id", (
-								-- The latest changeset is among _changesetsToCommit.
-								SELECT UNNEST(_changesetsToCommit) AS "changeset"
+								-- The latest changeset is among now updated "committedChangesets"/"currentCommittedChangesets" for the
+								-- view and the value. It is not enough to look just in _changesetsToCommit changesets because there
+								-- might be diverging changes introducing multiple latest changesets using earlier changesets
+								-- (e.g., a changeset from _changesetsToCommit uses a parent changeset which is not the latest changeset).
+								SELECT "changeset"
+									FROM "currentCommittedChangesets"
+										JOIN "currentChanges" USING ("changeset")
+									WHERE "view"=ANY(_path) AND "id"="values"."id"
 								EXCEPT
 								-- But it is not a parent changeset of another changeset for the value.
 								SELECT UNNEST("parentChangesets") AS "changeset"
-									FROM "currentChanges"
-										JOIN "changes" USING ("changeset", "id", "revision")
-										JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
-									WHERE "id"="values"."id"
+									FROM "currentCommittedChangesets"
+										JOIN ("currentChanges" JOIN "changes" USING ("changeset", "id", "revision")) USING ("changeset")
+										WHERE "view"=ANY(_path) AND "id"="values"."id"
 							) as "changeset" FROM "values"
 							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
 							-- combination, this still fails with exception. This can happen if _changesetsToCommit are introducing
