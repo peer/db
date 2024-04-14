@@ -21,7 +21,7 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-var dummyData = []byte(`{}`)
+var dummyData = []byte(`{}`) //nolint:gochecknoglobals
 
 type testData struct {
 	Data  int
@@ -210,7 +210,9 @@ func (l *lockableSlice[T]) Prune() []T {
 	return c
 }
 
-func initDatabase[Data, Metadata, Patch any](t *testing.T, dataType string) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]]) {
+func initDatabase[Data, Metadata, Patch any](t *testing.T, dataType string) (
+	context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]],
+) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -580,7 +582,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
 		changeset, errE = c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx) //nolint:govet
+			changes, errE := changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)
@@ -683,6 +685,52 @@ func TestInterdependentChangesets(t *testing.T) {
 	changesets, errE := changeset1.Commit(ctx, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
+}
+
+func TestGetCurrent(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	_, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE := s.View(ctx, "notexist")
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, _, _, errE = v.GetCurrent(ctx, newID) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, _, _, errE = s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+}
+
+func TestGet(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE := s.View(ctx, "notexist")
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, _, errE = v.Get(ctx, newID, version)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, _, errE = s.Get(ctx, identifier.New(), version)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	_, _, errE = s.Get(ctx, newID, store.Version{
+		Changeset: identifier.New(),
+		Revision:  1,
+	})
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
 func TestDuplicateValues(t *testing.T) {
