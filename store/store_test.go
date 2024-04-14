@@ -626,24 +626,28 @@ func TestCycles(t *testing.T) {
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
-	changeset1, errE := s.Begin(ctx)
+	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We use changeset.Identifier for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset1.Update(ctx, newID, changeset1.Identifier, dummyData, dummyData, dummyData)
+	_, errE = changeset.Update(ctx, newID, changeset.Identifier, dummyData, dummyData, dummyData)
+	// This is not possible for two reasons:
+	// Every changeset can have only one change per value ID.
+	// Parent changeset must contain a change for the same value ID - fails here.
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// Some insert, to make changeset exist.
+	_, errE = changeset.Insert(ctx, identifier.New(), dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We use changeset.Identifier for parent changeset, to try to make a zero length cycle.
+	_, errE = changeset.Update(ctx, newID, changeset.Identifier, dummyData, dummyData, dummyData)
 	// This is not possible for two reasons:
 	// Every changeset can have only one change per value ID - fails here.
 	// Parent changeset must contain a change for the same value ID.
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
-	// Some insert, to make changeset exist.
-	_, errE = changeset1.Insert(ctx, identifier.New(), dummyData, dummyData)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	// We use changeset.Identifier for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset1.Update(ctx, newID, changeset1.Identifier, dummyData, dummyData, dummyData)
-	// This is not possible for two reasons:
-	// Every changeset can have only one change per value ID.
-	// Parent changeset must contain a change for the same value ID - fails here.
-	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+	// Longer cycles are not possible because of construction. Parent changesets always have to
+	// exist before new changesets can be made. And it is not possible to update a changeset
+	// to close a cycle.
 }
