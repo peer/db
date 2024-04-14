@@ -279,7 +279,7 @@ func (v *View[Data, Metadata, Patch]) Create(ctx context.Context, name string, m
 	}
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
-			INSERT INFO "views" SELECT $1, 1, $2, array_prepend($2, "path"), $3
+			INSERT INTO "views" SELECT $1, 1, $2, array_prepend($2, "path"), $3
 				FROM "currentViews" JOIN "views" USING ("view", "revision")
 				WHERE "currentViews"."name"=$4;
 		`, arguments...)
@@ -318,7 +318,7 @@ func (v *View[Data, Metadata, Patch]) Release(ctx context.Context, metadata Meta
 	}
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
-			INSERT INFO "views" SELECT "view", "revision"+1, NULL, "path", $2
+			INSERT INTO "views" SELECT "view", "revision"+1, NULL, "path", $2
 				FROM "currentViews" JOIN "views" USING ("view", "revision")
 				WHERE "currentViews"."name"=$1;
 		`, arguments...)

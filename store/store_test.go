@@ -733,6 +733,36 @@ func TestGet(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
+func TestView(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	v, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	v2, errE := v.Create(ctx, "child", dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = v.Create(ctx, "child", dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	errE = v2.Release(ctx, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = v.Create(ctx, "child", dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE = s.View(ctx, "notexist")
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = v.Create(ctx, "child2", dummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	errE = v.Release(ctx, dummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+}
+
 func TestDuplicateValues(t *testing.T) {
 	t.Parallel()
 
