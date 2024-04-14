@@ -175,18 +175,17 @@ func TestTop(t *testing.T) {
 				UpdatePatches:   []*json.RawMessage{toRawMessagePtr(`{"patch": true}`)},
 			}, dataType)
 
-			// TODO: Make metadata as "string" work. See: https://github.com/jackc/pgx/issues/1977
-			testTop(t, testCase[[]byte, json.RawMessage, store.None]{
+			testTop(t, testCase[[]byte, []byte, store.None]{
 				InsertData:      []byte(`{"data": 123}`),
-				InsertMetadata:  json.RawMessage(`{"metadata": "foobar"}`),
+				InsertMetadata:  []byte(`{"metadata": "foobar"}`),
 				UpdateData:      []byte(`{"data": 123, "patch": true}`),
-				UpdateMetadata:  json.RawMessage(`{"metadata": "zoofoo"}`),
+				UpdateMetadata:  []byte(`{"metadata": "zoofoo"}`),
 				UpdatePatch:     nil,
 				ReplaceData:     []byte(`{"data": 345}`),
-				ReplaceMetadata: json.RawMessage(`{"metadata": "another"}`),
+				ReplaceMetadata: []byte(`{"metadata": "another"}`),
 				DeleteData:      nil,
-				DeleteMetadata:  json.RawMessage(`{"metadata": "admin"}`),
-				CommitMetadata:  json.RawMessage(`{"metadata": "commit"}`),
+				DeleteMetadata:  []byte(`{"metadata": "admin"}`),
+				CommitMetadata:  []byte(`{"metadata": "commit"}`),
 				NoPatches:       nil,
 				UpdatePatches:   nil,
 			}, dataType)
