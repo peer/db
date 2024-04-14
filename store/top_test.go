@@ -21,6 +21,8 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+var dummyData = []byte(`{}`)
+
 type testData struct {
 	Data  int
 	Patch bool
@@ -212,7 +214,7 @@ func (l *lockableSlice[T]) Prune() []T {
 	return c
 }
 
-func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch], dataType string) { //nolint:maintidx
+func initDatabase[Data, Metadata, Patch any](t *testing.T, dataType string) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]]) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -236,7 +238,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 			channelContents.Append(c)
 		}
 	}()
-
 	s := &store.Store[Data, Metadata, Patch]{
 		Schema:       schema,
 		Committed:    channel,
@@ -248,7 +249,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	errE = s.Init(ctx, dbpool)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, _, _, errE = s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
+	return ctx, s, channelContents
+}
+
+func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch], dataType string) { //nolint:maintidx
+	t.Helper()
+
+	ctx, s, channelContents := initDatabase[Data, Metadata, Patch](t, dataType)
+
+	_, _, _, errE := s.GetCurrent(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	expectedID := identifier.New()
@@ -582,21 +591,30 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 			}
 		}
 	}
+}
 
-	newID = identifier.New()
+func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
+	t.Parallel()
 
-	// Test errors.
-	changeset, errE = s.Begin(ctx)
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	newVersion, errE := changeset.Insert(ctx, newID, dummyData, dummyData)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
-	_, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
 	errE = changeset.Discard(ctx)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	time.Sleep(10 * time.Millisecond)
+	c := channelContents.Prune()
+	assert.Empty(t, c)
 }
