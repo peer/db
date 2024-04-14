@@ -360,6 +360,8 @@ type Change[Data, Metadata, Patch any] struct {
 	Patches  []Patch
 }
 
+// TODO: Should Changes return also for non-committed changesets?
+
 func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change[Data, Metadata, Patch], errors.E) {
 	arguments := []any{
 		c.view.name, c.String(),
