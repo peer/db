@@ -256,6 +256,7 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 }
 
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
+//       Maybe Get should return Change (without validating anything) which can then have methods to return different things.
 
 func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
 	// We do not care if the view exists at this point. It all

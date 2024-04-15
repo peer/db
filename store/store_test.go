@@ -713,6 +713,9 @@ func TestGet(t *testing.T) {
 		Revision:  1,
 	})
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// two versions in two views, the one in the other view should not be accessible.
+
 }
 
 func TestView(t *testing.T) {
