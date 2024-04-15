@@ -262,6 +262,8 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 // TODO: How to make sure is committing/discarding the version of changeset they expect?
 //       There is a race condition between decision to commit/discard and until it is done.
 
+// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
+
 // Commit commits the changeset to the view.
 //
 // It commits any non-committed ancestor changesets as well.

@@ -476,7 +476,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	mainView, errE := s.View(ctx, store.MainView)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
 	changesets, errE := changeset.Commit(ctx, mainView, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
@@ -544,7 +543,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	changeset, errE = s.Changeset(ctx, changeset.ID())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
 	changesets, errE = changeset.Commit(ctx, mainView, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
