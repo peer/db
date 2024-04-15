@@ -35,9 +35,18 @@ func (v View[Data, Metadata, Patch]) Name() string {
 	return v.name
 }
 
-// Store returns the underlying store instance of the view.
+func (v View[Data, Metadata, Patch]) String() string {
+	return v.name
+}
+
+// Store returns the Store associated with the view.
 func (v View[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
 	return v.store
+}
+
+// WithStore returns a new View object associated with the given Store.
+func (v View[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (View[Data, Metadata, Patch], errors.E) {
+	return store.View(ctx, v.name)
 }
 
 // Insert auto-commits the insert change into the view.

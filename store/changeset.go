@@ -20,8 +20,7 @@ import (
 //
 // Only one change per value is allowed for a changeset.
 type Changeset[Data, Metadata, Patch any] struct {
-	id identifier.Identifier
-
+	id    identifier.Identifier
 	store *Store[Data, Metadata, Patch]
 }
 
