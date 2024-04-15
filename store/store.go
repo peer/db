@@ -108,7 +108,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				patchesValue = ", _patches"
 			}
 
-			//nolint:goconst
 			_, err := tx.Exec(ctx, `
 				CREATE FUNCTION "doNotAllow"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -316,26 +315,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
-					END;
-				$$;
-
-				CREATE FUNCTION "changesetDelete"(_changeset text, _id text, _parentChangesets text[], _metadata `+s.MetadataType+`)
-					RETURNS void LANGUAGE plpgsql AS $$
-					BEGIN
-						-- Changeset should not be committed (to any view).
-						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
-						IF FOUND THEN
-							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
-						END IF;
-						-- Parent changesets should exist for ID. Query should work even if
-						-- changesets are repeated in _parentChangesets.
-						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
-							WHERE "id"=_id
-							HAVING COUNT(*)=array_length(_parentChangesets, 1);
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
-						END IF;
-						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', NULL, _metadata`+patchesEmptyValue+`);
 					END;
 				$$;
 

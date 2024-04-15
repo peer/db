@@ -243,9 +243,13 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
 	}
+	patchesEmptyValue := ""
+	if c.store.patchesEnabled {
+		patchesEmptyValue = ", '{}'"
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetDelete"($1, $2, $3, $4)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
