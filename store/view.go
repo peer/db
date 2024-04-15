@@ -11,9 +11,10 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// View is not a snapshot of the database but a dynamic named view of data to operate on.
+// View is not a snapshot of the database but a dynamic named view of a
+// set of committed changesets to expose together, forming a set of values.
 //
-// Each view can have only one version of a value for a given ID at every committed point.
+// Each view can have only one version of a value for a given ID at every committed point of time.
 // There might be uncommitted (to the view) divergent versions but when they are committed
 // they have all to merge back into one single version (this might mean an additional merge
 // changeset has to be introduced which combines multiple parent versions into one version).
@@ -299,7 +300,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
 //       Maybe Get should return Change (without validating anything) which can then have methods to return different things.
 
-// TODO: Support also name-less views (but the View has to store view ID instead).
+// TODO: Support also name-less views (like the View but has to store view ID instead).
 
 // TODO: Allow adding a name to an existing view.
 
