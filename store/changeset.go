@@ -375,11 +375,16 @@ func (c Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E
 //       When they will not be used anymore, but we should keep them around (and we want to
 //       prevent accidentally changing them.)
 
+// Change represents a change to the value.
 type Change struct {
-	ID      identifier.Identifier
+	// ID of the value.
+	ID identifier.Identifier
+
+	// Version of the change.
 	Version Version
 }
 
+// Changes returns a slice of changes of the changeset.
 func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change, errors.E) {
 	arguments := []any{
 		c.String(),
