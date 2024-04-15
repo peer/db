@@ -298,7 +298,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 }
 
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
-//       Maybe Get should return Change (without validating anything) which can then have methods to return different things.
+//       Maybe Changeset should have Get which returns Change (without validating anything) which can then have methods to return different things.
 
 // TODO: Support also name-less views (like the View but has to store view ID instead).
 
