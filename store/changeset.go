@@ -83,8 +83,8 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 // The parent changeset must include a change to the same value.
 //
 // Patch is a forward patch from the value at parent changeset version
-// to the new value version. The consistency of the patch is not checked
-// (from the perspective of the store it is an opaque value).
+// to the new value version. The consistency between the patch and values
+// is not checked (from the perspective of the Store it is an opaque value).
 func (c Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {

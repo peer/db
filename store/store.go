@@ -13,12 +13,15 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// None is a special type which can be used for Patch type parameter
+// to configure the Store instance to not use nor store patches.
 type None *struct{}
 
+// MainView is the name of the main view.
 const MainView = "main"
 
 const (
-	// Our error codes.
+	// Our PostgreSQL error codes.
 	errorCodeNotAllowed        = "P1000"
 	errorCodeAlreadyCommitted  = "P1001"
 	errorCodeInUse             = "P1002"
@@ -27,13 +30,24 @@ const (
 	errorCodeChangesetNotFound = "P1005"
 )
 
+// Store is a key-value store which preserves history of changes.
+//
+// For every change, a new value, its metadata, and optional forward
+// patches are stored. Go types for them you configure with type parameters.
+// You can use special None type to configure the Store instance to not
+// use nor store patches.
 type Store[Data, Metadata, Patch any] struct {
+	// PostgreSQL schema used by this store.
 	Schema string
 
 	// The order in which changesets are send to the channel is not necessary
 	// the order in which they were committed. You should not relay on the order.
 	Committed chan<- Changeset[Data, Metadata, Patch]
 
+	// PostgreSQL column types to store data, metadata, and patches.
+	// It should probably be one of the jsonb, bytea, or text.
+	// Go types used for Store type parameters should be compatible with
+	// column types chosen.
 	DataType     string
 	MetadataType string
 	PatchType    string
@@ -59,6 +73,9 @@ func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx p
 	return true, nil
 }
 
+// Init initializes the Store.
+//
+// It creates and configures the PostgreSQL schema if it does not yet exist.
 func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns,maintidx
 	if s.dbpool != nil {
 		return errors.New("already initialized")

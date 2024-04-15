@@ -12,16 +12,16 @@ import (
 )
 
 // View is not a snapshot of the database but a dynamic named view of a
-// set of committed changesets to expose together, forming a set of values.
+// set of committed changesets forming a set of values with their history of changes.
 //
-// Each view can have only one version of a value for a given ID at every committed point of time.
+// Each view can have only one version of a value for a given ID at every committed point in time.
 // There might be uncommitted (to the view) divergent versions but when they are committed
 // they have all to merge back into one single version (this might mean an additional merge
 // changeset has to be introduced which combines multiple parent versions into one version).
 //
 // All views (except the MainView) depend on ancestor views for all values they do not have
 // an explicit version of committed to them. The value is searched for in the ancestry order,
-// first the direct parent view.
+// first the parent view.
 type View[Data, Metadata, Patch any] struct {
 	name  string
 	store *Store[Data, Metadata, Patch]
@@ -164,7 +164,7 @@ func (v View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 //
 // A view might not have an explicitly committed version of a given value, but its
 // ancestor views might. In that case the value is searched for in the ancestry order,
-// first the direct parent view. This means that some further (older) view might have a
+// first the parent view. This means that some further (older) view might have a
 // newer value version, but GetLatest still returns the value version which is
 // explicitly committed to an earlier (younger) view, i.e., the view shadows values
 // and value versions from the parent view for those explicitly committed to the view.
@@ -233,10 +233,10 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 	return data, metadata, version, errE
 }
 
-// Get returns the value at a given version.
+// Get returns the value at a given version for the view.
 //
-// Get first searches for the view (including ancestor views) which have the value
-// and then return the value only for versions available for that view.
+// Get first searches for the view (including ancestor views) which has the value
+// and then returns the value only for versions available for that view.
 // This means that some further (older) view might have a
 // newer value version, but Get will not return it even if asked for if there is an
 // older version explicitly committed to an earlier (younger) view, i.e., the view
@@ -308,7 +308,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 //       For example, parent view might have resolved issues in its version of the value and the author of the current view
 //       might not want to have an explicit locked version anymore as they are satisfied with the parent version now.
 
-// Create creates a new view based on the current view.
+// Create creates a new view with the current view as its parent.
 func (v View[Data, Metadata, Patch]) Create(ctx context.Context, name string, metadata Metadata) (View[Data, Metadata, Patch], errors.E) {
 	arguments := []any{
 		identifier.New().String(), name, metadata, v.name,

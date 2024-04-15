@@ -9,9 +9,13 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// Version represents a version of the value.
 type Version struct {
+	// Changeset is an ID of the changeset which contains the change of the value at this version.
 	Changeset identifier.Identifier
-	Revision  int64
+
+	// Revision is a serial number of the change of the value at this version. It starts with 1.
+	Revision int64
 }
 
 func (v Version) String() string {
@@ -22,6 +26,7 @@ func (v Version) String() string {
 	return s.String()
 }
 
+// View returns a View instance for the provided name.
 func (s *Store[Data, Metadata, Patch]) View(_ context.Context, view string) (View[Data, Metadata, Patch], errors.E) {
 	// We do not check if the view exist at this point but only when we try to
 	// get from the view, or commit to the view. Otherwise it would just be
@@ -33,6 +38,7 @@ func (s *Store[Data, Metadata, Patch]) View(_ context.Context, view string) (Vie
 	}, nil
 }
 
+// Insert auto-commits the insert change into the MainView.
 func (s *Store[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -41,6 +47,7 @@ func (s *Store[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier
 	return view.Insert(ctx, id, value, metadata)
 }
 
+// Replace auto-commits the replace change into the MainView.
 func (s *Store[Data, Metadata, Patch]) Replace(ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -49,6 +56,7 @@ func (s *Store[Data, Metadata, Patch]) Replace(ctx context.Context, id, parentCh
 	return view.Replace(ctx, id, parentChangeset, value, metadata)
 }
 
+// Update auto-commits the update change into the MainView.
 func (s *Store[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
@@ -59,6 +67,7 @@ func (s *Store[Data, Metadata, Patch]) Update(
 	return view.Update(ctx, id, parentChangeset, value, patch, metadata)
 }
 
+// Merge auto-commits the merge change into the MainView.
 func (s *Store[Data, Metadata, Patch]) Merge(
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
@@ -69,6 +78,7 @@ func (s *Store[Data, Metadata, Patch]) Merge(
 	return view.Merge(ctx, id, parentChangesets, value, patches, metadata)
 }
 
+// Delete auto-commits the delete change into the MainView.
 func (s *Store[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -77,6 +87,7 @@ func (s *Store[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentCha
 	return view.Delete(ctx, id, parentChangeset, metadata)
 }
 
+// GetLatest returns the latest committed version of the value for the MainView.
 func (s *Store[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -85,6 +96,7 @@ func (s *Store[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identif
 	return view.GetLatest(ctx, id)
 }
 
+// Get returns the value at a given version for the MainView.
 func (s *Store[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -94,7 +106,7 @@ func (s *Store[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Id
 }
 
 // Changeset returns the requested changeset.
-func (s *Store[Data, Metadata, Patch]) Changeset(ctx context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
+func (s *Store[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
 	// We do not care if the changeset exists at this point. It all
 	// depends what we will be doing with it and we do checks then.
 	return Changeset[Data, Metadata, Patch]{
@@ -103,6 +115,7 @@ func (s *Store[Data, Metadata, Patch]) Changeset(ctx context.Context, id identif
 	}, nil
 }
 
+// Begin starts a new changeset.
 func (s *Store[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Data, Metadata, Patch], errors.E) {
 	return s.Changeset(ctx, identifier.New())
 }
