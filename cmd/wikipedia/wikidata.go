@@ -76,14 +76,14 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 func (c *WikidataCommand) processEntity(
 	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
-	if err != nil {
-		if errors.Is(err, wikipedia.ErrSilentSkipped) {
-			globals.Logger.Debug().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
-		} else if errors.Is(err, wikipedia.ErrSkipped) {
-			globals.Logger.Warn().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+	document, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	if errE != nil {
+		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
+			globals.Logger.Debug().Str("entity", entity.ID).Err(errE).Send()
+		} else if errors.Is(errE, wikipedia.ErrSkipped) {
+			globals.Logger.Warn().Str("entity", entity.ID).Err(errE).Send()
 		} else {
-			globals.Logger.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Logger.Error().Str("entity", entity.ID).Err(errE).Send()
 		}
 		id := wikipedia.GetWikidataDocumentID(entity.ID)
 		_, loaded := skippedWikidataEntities.LoadOrStore(id.String(), true)

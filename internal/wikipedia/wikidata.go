@@ -721,23 +721,23 @@ func addQualifiers(
 ) errors.E { //nolint:unparam
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
-			qualifierClaims, err := processSnak(
+			qualifierClaims, errE := processSnak(
 				ctx, index, esClient, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
 			)
-			if errors.Is(err, ErrSilentSkipped) {
+			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
-			} else if err != nil {
+			} else if errE != nil {
 				logger.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
 			}
 			for j, qualifierClaim := range qualifierClaims {
-				err = claim.AddMeta(qualifierClaim)
-				if err != nil {
+				errE = claim.AddMeta(qualifierClaim)
+				if errE != nil {
 					logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i).Int(j)).
-						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+						Err(errE).Msg("meta claim cannot be added")
 				}
 			}
 		}
@@ -776,33 +776,33 @@ func addReference(
 
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
-			cs, err := processSnak(
+			cs, errE := processSnak(
 				ctx, index, esClient, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
 			)
-			if errors.Is(err, ErrSilentSkipped) {
+			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
-			} else if err != nil {
+			} else if errE != nil {
 				logger.Warn().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
 			}
 			for k, c := range cs {
-				err = referenceClaim.AddMeta(c)
-				if err != nil {
+				errE = referenceClaim.AddMeta(c)
+				if errE != nil {
 					logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j).Int(k)).
-						Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+						Err(errE).Msg("meta claim cannot be added")
 				}
 			}
 		}
 	}
 
 	if len(reference.SnaksOrder) > 1 {
-		err := claim.AddMeta(referenceClaim)
-		if err != nil {
+		errE := claim.AddMeta(referenceClaim)
+		if errE != nil {
 			logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
-				Err(err).Fields(errors.AllDetails(err)).Msg("meta claim cannot be added")
+				Err(errE).Msg("meta claim cannot be added")
 		}
 	}
 
@@ -862,7 +862,7 @@ func ConvertEntity( //nolint:maintidx
 		},
 	}
 
-	err := doc.Add(&document.TextClaim{
+	errE := doc.Add(&document.TextClaim{
 		CoreClaim: document.CoreClaim{
 			ID: peerdb.GetID(namespace, entity.ID, "NAME", 0),
 			// The first added English label is added as a high confidence claim.
@@ -873,8 +873,8 @@ func ConvertEntity( //nolint:maintidx
 			"en": html.EscapeString(name),
 		},
 	})
-	if err != nil {
-		logger.Error().Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+	if errE != nil {
+		logger.Error().Str("entity", entity.ID).Err(errE).Msg("claim cannot be added")
 	}
 
 	if entity.Type == mediawiki.Property {
@@ -1102,39 +1102,39 @@ func ConvertEntity( //nolint:maintidx
 			}
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
-			claims, err := processSnak(
+			claims, errE := processSnak(
 				ctx, index, esClient, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
-			if errors.Is(err, ErrSilentSkipped) {
+			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
-			} else if err != nil {
+			} else if errE != nil {
 				logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
-					Err(err).Fields(errors.AllDetails(err)).Send()
+					Err(errE).Send()
 				continue
 			}
 			for j, claim := range claims {
-				err = addQualifiers(
+				errE = addQualifiers(
 					ctx, index, logger, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
 				)
-				if err != nil {
+				if errE != nil {
 					logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("qualifiers")).
-						Err(err).Fields(errors.AllDetails(err)).Send()
+						Err(errE).Send()
 					continue
 				}
 				for i, reference := range statement.References {
-					err = addReference(ctx, index, logger, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
-					if err != nil {
+					errE = addReference(ctx, index, logger, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+					if errE != nil {
 						logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("reference").Int(i)).
-							Err(err).Fields(errors.AllDetails(err)).Send()
+							Err(errE).Send()
 						continue
 					}
 				}
-				err = doc.Add(claim)
-				if err != nil {
+				errE = doc.Add(claim)
+				if errE != nil {
 					logger.Error().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j)).
-						Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+						Err(errE).Msg("claim cannot be added")
 				}
 			}
 		}

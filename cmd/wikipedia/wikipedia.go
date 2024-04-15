@@ -164,68 +164,68 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, hit, err := wikipedia.GetWikipediaFile(ctx, globals.Index, esClient, filename)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, hit, errE := wikipedia.GetWikipediaFile(ctx, globals.Index, esClient, filename)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["file"] = filename
 		details["title"] = article.Name
-		if errors.Is(err, wikipedia.ErrWikimediaCommonsFile) {
-			globals.Logger.Debug().Err(err).Fields(details).Send()
-		} else if errors.Is(err, wikipedia.ErrNotFound) {
-			globals.Logger.Warn().Err(err).Fields(details).Send()
+		if errors.Is(errE, wikipedia.ErrWikimediaCommonsFile) {
+			globals.Logger.Debug().Err(errE).Send()
+		} else if errors.Is(errE, wikipedia.ErrNotFound) {
+			globals.Logger.Warn().Err(errE).Send()
 		} else {
-			globals.Logger.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(errE).Send()
 		}
 		return nil
 	}
 
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.SetPageID(wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article.Identifier, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikipediaFile, "FROM_ENGLISH_WIKIPEDIA", filename, article.ArticleBody.HTML, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikipediaFile, "FROM_ENGLISH_WIKIPEDIA", filename, article.ArticleBody.HTML, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikipediaFile, "ENGLISH_WIKIPEDIA", filename, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikipediaFile, filename, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikipediaFile, filename, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
@@ -296,15 +296,15 @@ func wikipediaArticlesProcessArticle(
 		return nil
 	}
 
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, hit, errE := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["entity"] = article.MainEntity.Identifier
 		details["title"] = article.Name
-		if errors.Is(err, wikipedia.ErrNotFound) {
-			globals.Logger.Warn().Err(err).Fields(details).Send()
+		if errors.Is(errE, wikipedia.ErrNotFound) {
+			globals.Logger.Warn().Err(errE).Send()
 		} else {
-			globals.Logger.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(errE).Send()
 		}
 		return nil
 	}
@@ -314,53 +314,53 @@ func wikipediaArticlesProcessArticle(
 
 	id := article.MainEntity.Identifier
 
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article.Identifier, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = convertArticle(id, article.ArticleBody.HTML, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = convertArticle(id, article.ArticleBody.HTML, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "ENGLISH_WIKIPEDIA", id, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, article, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertArticleRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, article, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = article.Name
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 

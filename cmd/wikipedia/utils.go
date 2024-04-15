@@ -212,7 +212,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 				html, errE := wikipedia.GetPageHTML(ctx, httpClient, site, page.Title+"/doc")
 				if errE != nil {
 					if errors.AllDetails(errE)["code"] != http.StatusNotFound {
-						globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						globals.Logger.Error().Err(errE).Send()
 						continue
 					}
 
@@ -225,7 +225,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 					// And if it does not exist, without "/doc".
 					html, errE = wikipedia.GetPageHTML(ctx, httpClient, site, page.Title)
 					if errE != nil {
-						globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+						globals.Logger.Error().Err(errE).Send()
 						continue
 					}
 				}
@@ -256,15 +256,15 @@ func templatesCommandProcessPage(
 		return nil
 	}
 
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, hit, errE := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["entity"] = id
 		details["title"] = page.Title
-		if errors.Is(err, wikipedia.ErrNotFound) {
-			globals.Logger.Warn().Err(err).Fields(details).Send()
+		if errors.Is(errE, wikipedia.ErrNotFound) {
+			globals.Logger.Warn().Err(errE).Send()
 		} else {
-			globals.Logger.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(errE).Send()
 		}
 		return nil
 	}
@@ -273,53 +273,53 @@ func templatesCommandProcessPage(
 	// Wikidata entities (we have it there through site links on Wikidata entities), but not for
 	// Wikimedia Commons as they might not be in English.
 
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page.Identifier, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertTemplateDescription(id, from, html, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertTemplateDescription(id, from, html, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, mnemonicPrefix, id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
@@ -375,16 +375,16 @@ func filesCommandProcessImage(
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
 ) errors.E {
-	document, err := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, errE := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["file"] = image.Name
-		if errors.Is(err, wikipedia.ErrSilentSkipped) {
-			globals.Logger.Debug().Err(err).Fields(details).Send()
-		} else if errors.Is(err, wikipedia.ErrSkipped) {
-			globals.Logger.Warn().Err(err).Fields(details).Send()
+		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
+			globals.Logger.Debug().Err(errE).Send()
+		} else if errors.Is(errE, wikipedia.ErrSkipped) {
+			globals.Logger.Warn().Err(errE).Send()
 		} else {
-			globals.Logger.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(errE).Send()
 		}
 		_, loaded := skippedMap.LoadOrStore(image.Name, true)
 		if !loaded {

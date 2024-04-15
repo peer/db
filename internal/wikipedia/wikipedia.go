@@ -297,10 +297,10 @@ func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefi
 			Prop: peerdb.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
 			To:   getDocumentReference(category, mnemonicPrefix),
 		}
-		err := doc.Add(claim)
-		if err != nil {
+		errE := doc.Add(claim)
+		if errE != nil {
 			logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
-				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+				Err(errE).Msg("claim cannot be added")
 		}
 	}
 }
@@ -321,10 +321,10 @@ func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPre
 			Prop: peerdb.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
 			To:   getDocumentReference(template, mnemonicPrefix),
 		}
-		err := doc.Add(claim)
-		if err != nil {
+		errE := doc.Add(claim)
+		if errE != nil {
 			logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
-				Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+				Err(errE).Msg("claim cannot be added")
 		}
 	}
 }
@@ -372,9 +372,9 @@ func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redi
 			"en": escapedName,
 		},
 	}
-	err := doc.Add(claim)
-	if err != nil {
+	errE := doc.Add(claim)
+	if errE != nil {
 		logger.Error().Str("doc", doc.ID.String()).Str("entity", id).Str("claim", claimID.String()).Str("title", title).
-			Err(err).Fields(errors.AllDetails(err)).Msg("claim cannot be added")
+			Err(errE).Msg("claim cannot be added")
 	}
 }

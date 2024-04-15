@@ -91,23 +91,23 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
-	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, hit, errE := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["file"] = filename
 		details["entity"] = entity.ID
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	additionalDocument, err := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
-	if err != nil {
-		if errors.Is(err, wikipedia.ErrSilentSkipped) {
-			globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(err).Str("entity", entity.ID).Fields(errors.AllDetails(err)).Send()
-		} else if errors.Is(err, wikipedia.ErrSkipped) {
-			globals.Logger.Warn().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+	additionalDocument, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	if errE != nil {
+		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
+			globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(errE).Str("entity", entity.ID).Send()
+		} else if errors.Is(errE, wikipedia.ErrSkipped) {
+			globals.Logger.Warn().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(errE).Send()
 		} else {
-			globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+			globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(errE).Send()
 		}
 		return nil
 	}
@@ -121,9 +121,9 @@ func (c *CommonsCommand) processEntity(
 			Str("got", additionalDocument.ID.String()).Msg("document ID mismatch")
 	}
 
-	err = document.MergeFrom(additionalDocument)
-	if err != nil {
-		globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(err).Fields(errors.AllDetails(err)).Send()
+	errE = document.MergeFrom(additionalDocument)
+	if errE != nil {
+		globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(errE).Send()
 		return nil
 	}
 
@@ -243,7 +243,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 				html, errE := wikipedia.GetPageHTML(ctx, httpClient, "commons.wikimedia.org", page.Title)
 				if errE != nil {
-					globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+					globals.Logger.Error().Err(errE).Send()
 					continue
 				}
 
@@ -276,62 +276,62 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	document, hit, err := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
-	if err != nil {
-		details := errors.AllDetails(err)
+	document, hit, errE := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page.Identifier, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.SetPageID(wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page.Identifier, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, "FROM_WIKIMEDIA_COMMONS", filename, html, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertFileDescription(wikipedia.NameSpaceWikimediaCommonsFile, "FROM_WIKIMEDIA_COMMONS", filename, html, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, "WIKIMEDIA_COMMONS", filename, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, filename, page, document)
-	if err != nil {
-		details := errors.AllDetails(err)
+	errE = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikimediaCommonsFile, filename, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["file"] = filename
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
@@ -413,7 +413,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 				html, errE := wikipedia.GetPageHTML(ctx, httpClient, "commons.wikimedia.org", page.Title)
 				if errE != nil {
-					globals.Logger.Error().Err(errE).Fields(errors.AllDetails(errE)).Send()
+					globals.Logger.Error().Err(errE).Send()
 					continue
 				}
 
@@ -444,13 +444,13 @@ func (c *CommonsCategoriesCommand) processPage(
 
 	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["entity"] = id
 		details["title"] = page.Title
 		if errors.Is(err, wikipedia.ErrNotFound) {
-			globals.Logger.Warn().Err(err).Fields(details).Send()
+			globals.Logger.Warn().Err(err).Send()
 		} else {
-			globals.Logger.Error().Err(err).Fields(details).Send()
+			globals.Logger.Error().Err(err).Send()
 		}
 		return nil
 	}
@@ -461,51 +461,51 @@ func (c *CommonsCategoriesCommand) processPage(
 
 	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Send()
 		return nil
 	}
 
 	err = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Send()
 		return nil
 	}
 
 	err = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Send()
 		return nil
 	}
 
 	err = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Send()
 		return nil
 	}
 
 	err = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
 	if err != nil {
-		details := errors.AllDetails(err)
+		details := errors.Details(err)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Fields(details).Send()
+		globals.Logger.Error().Err(err).Send()
 		return nil
 	}
 

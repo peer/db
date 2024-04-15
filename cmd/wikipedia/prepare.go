@@ -137,19 +137,19 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	var doc peerdb.Document
 	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &doc)
 	if errE != nil {
-		details := errors.AllDetails(errE)
+		details := errors.Details(errE)
 		details["doc"] = hit.Id
-		logger.Error().Err(errE).Fields(details).Send()
+		logger.Error().Err(errE).Send()
 		return nil
 	}
 
 	// ID is not stored in the document, so we set it here ourselves.
 	doc.ID, errE = identifier.FromString(hit.Id)
 	if errE != nil {
-		details := errors.AllDetails(errE)
+		details := errors.Details(errE)
 		details["doc"] = doc.ID.String()
 		details["id"] = hit.Id
-		logger.Error().Err(errE).Fields(details).Msg("invalid hit ID")
+		logger.Error().Err(errE).Msg("invalid hit ID")
 		return nil
 	}
 
@@ -159,9 +159,9 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 		&doc,
 	)
 	if errE != nil {
-		details := errors.AllDetails(errE)
+		details := errors.Details(errE)
 		details["doc"] = doc.ID.String()
-		logger.Error().Err(errE).Fields(details).Msg("updating embedded documents failed")
+		logger.Error().Err(errE).Msg("updating embedded documents failed")
 		return nil
 	}
 

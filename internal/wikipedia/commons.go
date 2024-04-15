@@ -510,7 +510,7 @@ func convertImage( //nolint:maintidx
 		return nil, errors.WithStack(errors.BaseWrapf(ErrSkipped, `unsupported Mediawiki media type "%s"`, image.MediaType))
 	}
 
-	err := doc.Add(&document.StringClaim{
+	errE := doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         peerdb.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
@@ -518,10 +518,10 @@ func convertImage( //nolint:maintidx
 		Prop:   peerdb.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
 	})
-	if err != nil {
-		return nil, err
+	if errE != nil {
+		return nil, errE
 	}
-	err = doc.Add(&document.StringClaim{
+	errE = doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         peerdb.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
@@ -529,15 +529,15 @@ func convertImage( //nolint:maintidx
 		Prop:   peerdb.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
 	})
-	if err != nil {
-		return nil, err
+	if errE != nil {
+		return nil, errE
 	}
 
 	if image.Size == 0 {
 		logger.Warn().Str("file", image.Name).Msg("zero size")
 	}
 	// We set size even if it is zero.
-	err = doc.Add(&document.AmountClaim{
+	errE = doc.Add(&document.AmountClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         peerdb.GetID(namespace, image.Name, "SIZE", 0),
 			Confidence: es.HighConfidence,
@@ -546,22 +546,22 @@ func convertImage( //nolint:maintidx
 		Amount: float64(image.Size),
 		Unit:   document.AmountUnitByte,
 	})
-	if err != nil {
-		return nil, err
+	if errE != nil {
+		return nil, errE
 	}
 
 	pageCount := 0
 	if hasPages[mediaType] {
-		pageCount, err = getPageCount(ctx, httpClient, token, apiLimit, image)
-		if err != nil {
+		pageCount, errE = getPageCount(ctx, httpClient, token, apiLimit, image)
+		if errE != nil {
 			// Error happens if there was a problem using the API. This could mean that the file does not exist anymore.
-			logger.Warn().Str("file", image.Name).Err(err).Fields(errors.AllDetails(err)).Msg("error getting page count")
+			logger.Warn().Str("file", image.Name).Err(errE).Msg("error getting page count")
 		} else {
 			if pageCount == 0 {
 				logger.Warn().Str("file", image.Name).Msg("zero page count")
 			}
 			// We set page count even if it is zero, if the media type should have a page count.
-			err = doc.Add(&document.AmountClaim{
+			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 					Confidence: es.MediumConfidence,
@@ -570,8 +570,8 @@ func convertImage( //nolint:maintidx
 				Amount: float64(pageCount),
 				Unit:   document.AmountUnitNone,
 			})
-			if err != nil {
-				return nil, err
+			if errE != nil {
+				return nil, errE
 			}
 		}
 	}
@@ -582,7 +582,7 @@ func convertImage( //nolint:maintidx
 			logger.Warn().Str("file", image.Name).Msg("zero duration")
 		}
 		// We set duration even if it is zero and the media type should have a duration.
-		err = doc.Add(&document.AmountClaim{
+		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         peerdb.GetID(namespace, image.Name, "DURATION", 0),
 				Confidence: es.MediumConfidence,
@@ -591,8 +591,8 @@ func convertImage( //nolint:maintidx
 			Amount: duration,
 			Unit:   document.AmountUnitSecond,
 		})
-		if err != nil {
-			return nil, err
+		if errE != nil {
+			return nil, errE
 		}
 	}
 
@@ -674,7 +674,7 @@ func convertImage( //nolint:maintidx
 		}
 		previewsList := peerdb.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
 		for i, preview := range previews {
-			err = doc.Add(&document.ReferenceClaim{
+			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i),
 					Confidence: es.HighConfidence,
@@ -705,15 +705,15 @@ func convertImage( //nolint:maintidx
 				Prop: peerdb.GetCorePropertyReference("PREVIEW_URL"),
 				IRI:  preview,
 			})
-			if err != nil {
-				return nil, err
+			if errE != nil {
+				return nil, errE
 			}
 		}
 	}
 
 	// We set width and height even if it is zero, if the media type should have a preview (and thus width and height).
 	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
-		err = doc.Add(&document.AmountClaim{
+		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         peerdb.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: es.MediumConfidence,
@@ -722,10 +722,10 @@ func convertImage( //nolint:maintidx
 			Amount: float64(image.Width),
 			Unit:   document.AmountUnitPixel,
 		})
-		if err != nil {
-			return nil, err
+		if errE != nil {
+			return nil, errE
 		}
-		err = doc.Add(&document.AmountClaim{
+		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         peerdb.GetID(namespace, image.Name, "HEIGHT", 0),
 				Confidence: es.MediumConfidence,
@@ -734,12 +734,12 @@ func convertImage( //nolint:maintidx
 			Amount: float64(image.Height),
 			Unit:   document.AmountUnitPixel,
 		})
-		if err != nil {
-			return nil, err
+		if errE != nil {
+			return nil, errE
 		}
 	}
 
-	return doc, err
+	return doc, errE
 }
 
 func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
