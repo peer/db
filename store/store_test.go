@@ -473,8 +473,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	assert.Empty(t, c)
 
+	mainView, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
 	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
-	changesets, errE := changeset.Commit(ctx, d.CommitMetadata)
+	changesets, errE := changeset.Commit(ctx, mainView, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
 		assert.Equal(t, changeset, changesets[0])
@@ -542,7 +545,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
-	changesets, errE = changeset.Commit(ctx, d.CommitMetadata)
+	changesets, errE = changeset.Commit(ctx, mainView, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
 		assert.Equal(t, changeset, changesets[0])
@@ -637,11 +640,14 @@ func TestCycles(t *testing.T) {
 }
 
 func TestInterdependentChangesets(t *testing.T) {
-	// It is strange but we do support this.
+	// It is uncommon but we do support this.
 
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	newID := identifier.New()
 	secondID := identifier.New()
@@ -664,7 +670,7 @@ func TestInterdependentChangesets(t *testing.T) {
 	_, errE = changeset1.Update(ctx, newID, changeset2.Identifier, dummyData, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	changesets, errE := changeset1.Commit(ctx, dummyData)
+	changesets, errE := changeset1.Commit(ctx, mainView, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
 }

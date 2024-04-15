@@ -18,11 +18,11 @@ import (
 type Changeset[Data, Metadata, Patch any] struct {
 	identifier.Identifier
 
-	view *View[Data, Metadata, Patch]
+	store *Store[Data, Metadata, Patch]
 }
 
-func (c *Changeset[Data, Metadata, Patch]) View() *View[Data, Metadata, Patch] {
-	return c.view
+func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
+	return c.store
 }
 
 // We allow changing changesets even after they have been used as a parent changeset in some
@@ -31,12 +31,12 @@ func (c *Changeset[Data, Metadata, Patch]) View() *View[Data, Metadata, Patch] {
 // We check just that the chain has a reasonable series of changesets and that parent changesets
 // are committed before children.
 
-func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
+func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), value, metadata,
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetInsert"($1, $2, $3, $4)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -57,26 +57,25 @@ func (c *Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identi
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 	}
 	return version, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) Update(
+func (c Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
 	patchesPlaceholders := ""
-	if c.view.store.patchesEnabled {
+	if c.store.patchesEnabled {
 		arguments = append(arguments, []Patch{patch})
 		patchesPlaceholders = ", $6"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -99,7 +98,6 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -107,10 +105,10 @@ func (c *Changeset[Data, Metadata, Patch]) Update(
 	return version, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) Merge(
+func (c Changeset[Data, Metadata, Patch]) Merge(
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
-	if c.view.store.patchesEnabled && len(parentChangesets) != len(patches) {
+	if c.store.patchesEnabled && len(parentChangesets) != len(patches) {
 		return Version{}, errors.WithStack(ErrParentInvalid) //nolint:exhaustruct
 	}
 	parentChangesetsString := []string{}
@@ -121,12 +119,12 @@ func (c *Changeset[Data, Metadata, Patch]) Merge(
 		c.String(), id.String(), parentChangesetsString, value, metadata,
 	}
 	patchesPlaceholders := ""
-	if c.view.store.patchesEnabled {
+	if c.store.patchesEnabled {
 		arguments = append(arguments, patches)
 		patchesPlaceholders = ", $6"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -149,7 +147,6 @@ func (c *Changeset[Data, Metadata, Patch]) Merge(
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangesets"] = parentChangesetsString
@@ -157,14 +154,14 @@ func (c *Changeset[Data, Metadata, Patch]) Merge(
 	return version, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) Replace(
+func (c Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetReplace"($1, $2, $3, $4, $5)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -187,7 +184,6 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -195,12 +191,12 @@ func (c *Changeset[Data, Metadata, Patch]) Replace(
 	return version, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
+func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetDelete"($1, $2, $3, $4)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -223,7 +219,6 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["id"] = id.String()
 		details["changeset"] = c.String()
 		details["parentChangeset"] = parentChangeset.String()
@@ -237,12 +232,12 @@ func (c *Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, paren
 // Commit adds the changeset to the view.
 //
 // It commits any non-committed ancestor changesets as well.
-func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
+func (c Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, view View[Data, Metadata, Patch], metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
 	arguments := []any{
-		c.String(), metadata, c.view.name,
+		c.String(), metadata, view.name,
 	}
 	var committedChangesets []string
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `SELECT "changesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -265,26 +260,15 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
+		details["view"] = view.name
 		details["changeset"] = c.String()
-	} else if c.view.store.Committed != nil {
+	} else if c.store.Committed != nil {
 		// There might be more than just this changeset committed if its parent changesets were not committed as well.
 		for _, changeset := range committedChangesets {
 			// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
-			c.view.store.Committed <- Changeset[Data, Metadata, Patch]{
+			c.store.Committed <- Changeset[Data, Metadata, Patch]{
 				Identifier: identifier.MustFromString(changeset),
-				view: &View[Data, Metadata, Patch]{
-					name: c.view.name,
-					store: &Store[Data, Metadata, Patch]{
-						Schema:         c.view.store.Schema,
-						Committed:      nil,
-						DataType:       "",
-						MetadataType:   "",
-						PatchType:      "",
-						dbpool:         nil,
-						patchesEnabled: false,
-					},
-				},
+				store:      nil,
 			}
 		}
 	}
@@ -292,9 +276,9 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 	for _, changeset := range committedChangesets {
 		id := identifier.MustFromString(changeset)
 		if id == c.Identifier {
-			chs = append(chs, *c)
+			chs = append(chs, c)
 		} else {
-			ch, e := c.view.Changeset(ctx, id)
+			ch, e := c.store.Changeset(ctx, id)
 			if e != nil {
 				return nil, errors.Join(errE, e)
 			}
@@ -310,11 +294,11 @@ func (c *Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, metadata 
 // Discarding should anyway not be used on user-facing changesets.
 
 // Discard deletes the changeset if it has not already been committed.
-func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
+func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
 	arguments := []any{
 		c.String(),
 	}
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "changesetDiscard"($1)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -333,14 +317,13 @@ func (c *Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	}
 	return errE
 }
 
 // Rollback discards the changeset but only if it has not already been committed.
-func (c *Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
+func (c Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
 	errE := c.Discard(ctx)
 	if errE != nil && errors.Is(errE, ErrAlreadyCommitted) {
 		return nil
@@ -357,28 +340,16 @@ type Change struct {
 	Version Version
 }
 
-// TODO: Should Changes return also for non-committed changesets?
-
-func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change, errors.E) {
+func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change, errors.E) {
 	arguments := []any{
-		c.view.name, c.String(),
+		c.String(),
 	}
 	var changes []Change
-	errE := internal.RetryTransaction(ctx, c.view.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changes = nil
 
-		rows, err := tx.Query(ctx, `
-			WITH "viewPath" AS (
-				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
-					WHERE "currentViews"."name"=$1
-			), "viewChangesets" AS (
-				SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
-			)
-			SELECT "id", "revision"
-				FROM "currentChanges" JOIN "viewChangesets" USING ("changeset")
-				WHERE "changeset"=$2
-		`, arguments...)
+		rows, err := tx.Query(ctx, `SELECT "id", "revision"	FROM "currentChanges"	WHERE "changeset"=$1 ORDER BY "id"`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -404,16 +375,11 @@ func (c *Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Chang
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["view"] = c.view.name
 		details["changeset"] = c.String()
 	}
 	return changes, errE
 }
 
-func (c *Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
-	view, errE := store.View(ctx, c.View().Name())
-	if errE != nil {
-		return Changeset[Data, Metadata, Patch]{}, errE //nolint:exhaustruct
-	}
-	return view.Changeset(ctx, c.Identifier)
+func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
+	return store.Changeset(ctx, c.Identifier)
 }

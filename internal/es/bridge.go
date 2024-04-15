@@ -34,13 +34,13 @@ func Bridge[Data, Metadata, Patch any](
 			// We have to reconstruct the changeset using our store.
 			changeset, errE := c.WithStore(ctx, store)
 			if errE != nil {
-				logger.Error().Err(errE).Str("view", c.View().Name()).Str("changeset", c.String()).Msg("bridge error: with store")
+				logger.Error().Err(errE).Str("changeset", c.String()).Msg("bridge error: with store")
 				continue
 			}
 
 			changes, errE := changeset.Changes(ctx)
 			if errE != nil {
-				logger.Error().Err(errE).Str("view", c.View().Name()).Str("changeset", c.String()).Msg("bridge error: changes")
+				logger.Error().Err(errE).Str("changeset", c.String()).Msg("bridge error: changes")
 				continue
 			}
 
@@ -48,7 +48,7 @@ func Bridge[Data, Metadata, Patch any](
 				// Because changesets are not necessary in order, we always get the latest version and index it.
 				data, _, _, errE := store.GetLatest(ctx, change.ID)
 				if errE != nil {
-					logger.Error().Err(errE).Str("view", c.View().Name()).Str("changeset", c.String()).Msg("bridge error: get current")
+					logger.Error().Err(errE).Str("changeset", c.String()).Msg("bridge error: get current")
 					continue
 				}
 
