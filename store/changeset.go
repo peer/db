@@ -83,8 +83,9 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 // The parent changeset must include a change to the same value.
 //
 // Patch is a forward patch from the value at parent changeset version
-// to the new value version. The consistency between the patch and values
-// is not checked (from the perspective of the Store it is an opaque value).
+// to the new value version. It is up to the higher levels to assure
+// consistency between the patch and values (from the perspective of
+// the Store the patch is an opaque value to store).
 func (c Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
@@ -251,10 +252,16 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 // TODO: How to make sure is committing/discarding the version of changeset they expect?
 //       There is a race condition between decision to commit/discard and until it is done.
 
-// Commit adds the changeset to the view.
+// Commit commits the changeset to the view.
 //
 // It commits any non-committed ancestor changesets as well.
-func (c Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, view View[Data, Metadata, Patch], metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
+// It returns a slice of committed changesets.
+//
+// The changeset together with any non-committed ancestor changesets must
+// not introduce multiple concurrent versions of a value.
+func (c Changeset[Data, Metadata, Patch]) Commit(
+	ctx context.Context, view View[Data, Metadata, Patch], metadata Metadata,
+) ([]Changeset[Data, Metadata, Patch], errors.E) {
 	arguments := []any{
 		c.String(), metadata, view.name,
 	}
@@ -310,12 +317,10 @@ func (c Changeset[Data, Metadata, Patch]) Commit(ctx context.Context, view View[
 	return chs, errE
 }
 
-// We allow discarding changesets even after they have been used as a parent changeset in some
-// other changeset to allow one to prepare a chain changesets to commit. It is up to the higher
-// levels to assure changesets and their patches are consistent before committing the chain.
-// Discarding should anyway not be used on user-facing changesets.
-
-// Discard deletes the changeset if it has not already been committed.
+// Discard deletes the changeset.
+//
+// The changeset must not be already committed to any view.
+// The changeset must not be used as a parent changeset by any other changeset.
 func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
 	arguments := []any{
 		c.String(),
@@ -345,6 +350,9 @@ func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E 
 }
 
 // Rollback discards the changeset but only if it has not already been committed.
+//
+// If the changeset has already been committed to any view, it is a noop.
+// The changeset must not be used as a parent changeset by any other changeset.
 func (c Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
 	errE := c.Discard(ctx)
 	if errE != nil && errors.Is(errE, ErrAlreadyCommitted) {
