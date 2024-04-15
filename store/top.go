@@ -110,8 +110,8 @@ func (s *Store[Data, Metadata, Patch]) Changeset(_ context.Context, id identifie
 	// We do not care if the changeset exists at this point. It all
 	// depends what we will be doing with it and we do checks then.
 	return Changeset[Data, Metadata, Patch]{
-		Identifier: id,
-		store:      s,
+		id:    id,
+		store: s,
 	}, nil
 }
 

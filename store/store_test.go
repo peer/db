@@ -286,7 +286,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, insertVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, insertVersion.Changeset, c[0].ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -328,7 +328,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, updateVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, updateVersion.Changeset, c[0].ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -376,7 +376,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, replaceVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, replaceVersion.Changeset, c[0].ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -429,7 +429,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, deleteVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, deleteVersion.Changeset, c[0].ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -451,7 +451,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	newVersion, errE := changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.Equal(t, changeset.Identifier, newVersion.Changeset)
+		assert.Equal(t, changeset.ID(), newVersion.Changeset)
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
@@ -504,7 +504,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	}
 
 	data, metadata, errE = s.Get(ctx, newID, store.Version{
-		Changeset: changeset.Identifier,
+		Changeset: changeset.ID(),
 		Revision:  1,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -515,7 +515,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, newVersion.Changeset, c[0].ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -536,12 +536,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.Equal(t, changeset.Identifier, newVersion.Changeset)
+		assert.Equal(t, changeset.ID(), newVersion.Changeset)
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
 	// This time we recreate the changeset object.
-	changeset, errE = s.Changeset(ctx, changeset.Identifier)
+	changeset, errE = s.Changeset(ctx, changeset.ID())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// TODO: Provide a way to access commit metadata (e.g., list all commits for a view).
@@ -567,7 +567,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, newVersion.Changeset, c[0].Identifier)
+		assert.Equal(t, newVersion.Changeset, c[0].ID())
 		changeset, errE = c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changes(ctx)
@@ -616,8 +616,8 @@ func TestCycles(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// We use changeset.Identifier for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset.Update(ctx, newID, changeset.Identifier, dummyData, dummyData, dummyData)
+	// We use changeset.ID() for parent changeset, to try to make a zero length cycle.
+	_, errE = changeset.Update(ctx, newID, changeset.ID(), dummyData, dummyData, dummyData)
 	// This is not possible for two reasons:
 	// Every changeset can have only one change per value ID.
 	// Parent changeset must contain a change for the same value ID - fails here.
@@ -627,8 +627,8 @@ func TestCycles(t *testing.T) {
 	_, errE = changeset.Insert(ctx, identifier.New(), dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	// We use changeset.Identifier for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset.Update(ctx, newID, changeset.Identifier, dummyData, dummyData, dummyData)
+	// We use changeset.ID() for parent changeset, to try to make a zero length cycle.
+	_, errE = changeset.Update(ctx, newID, changeset.ID(), dummyData, dummyData, dummyData)
 	// This is not possible for two reasons:
 	// Every changeset can have only one change per value ID - fails here.
 	// Parent changeset must contain a change for the same value ID.
@@ -661,13 +661,13 @@ func TestInterdependentChangesets(t *testing.T) {
 	changeset2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Update(ctx, secondID, changeset1.Identifier, dummyData, dummyData, dummyData)
+	_, errE = changeset2.Update(ctx, secondID, changeset1.ID(), dummyData, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = changeset2.Insert(ctx, newID, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset1.Update(ctx, newID, changeset2.Identifier, dummyData, dummyData, dummyData)
+	_, errE = changeset1.Update(ctx, newID, changeset2.ID(), dummyData, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	changesets, errE := changeset1.Commit(ctx, mainView, dummyData)

@@ -20,10 +20,20 @@ import (
 //
 // Only one change per value is allowed for a changeset.
 type Changeset[Data, Metadata, Patch any] struct {
-	// Each changeset has an immutable randomly generated ID.
-	identifier.Identifier
+	id identifier.Identifier
 
 	store *Store[Data, Metadata, Patch]
+}
+
+// ID of this changeset.
+//
+// Each changeset has an immutable randomly generated ID.
+func (c Changeset[Data, Metadata, Patch]) ID() identifier.Identifier {
+	return c.id
+}
+
+func (c Changeset[Data, Metadata, Patch]) String() string {
+	return c.id.String()
 }
 
 // Store returns the Store associated with the changeset.
@@ -33,7 +43,7 @@ func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] 
 
 // WithStore returns a new Changeset object associated with the given Store.
 func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
-	return store.Changeset(ctx, c.Identifier)
+	return store.Changeset(ctx, c.id)
 }
 
 // We allow changing changesets even after they have been used as a parent changeset in some
@@ -65,7 +75,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 			}
 			return errE
 		}
-		version.Changeset = c.Identifier
+		version.Changeset = c.id
 		version.Revision = 1
 		return nil
 	})
@@ -115,7 +125,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 			}
 			return errE
 		}
-		version.Changeset = c.Identifier
+		version.Changeset = c.id
 		version.Revision = 1
 		return nil
 	})
@@ -164,7 +174,7 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 			}
 			return errE
 		}
-		version.Changeset = c.Identifier
+		version.Changeset = c.id
 		version.Revision = 1
 		return nil
 	})
@@ -201,7 +211,7 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 			}
 			return errE
 		}
-		version.Changeset = c.Identifier
+		version.Changeset = c.id
 		version.Revision = 1
 		return nil
 	})
@@ -236,7 +246,7 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 			}
 			return errE
 		}
-		version.Changeset = c.Identifier
+		version.Changeset = c.id
 		version.Revision = 1
 		return nil
 	})
@@ -296,15 +306,15 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 		for _, changeset := range committedChangesets {
 			// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
 			c.store.Committed <- Changeset[Data, Metadata, Patch]{
-				Identifier: identifier.MustFromString(changeset),
-				store:      nil,
+				id:    identifier.MustFromString(changeset),
+				store: nil,
 			}
 		}
 	}
 	var chs []Changeset[Data, Metadata, Patch]
 	for _, changeset := range committedChangesets {
 		id := identifier.MustFromString(changeset)
-		if id == c.Identifier {
+		if id == c.id {
 			chs = append(chs, c)
 		} else {
 			ch, e := c.store.Changeset(ctx, id)
@@ -389,7 +399,7 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change
 			changes = append(changes, Change{
 				ID: identifier.MustFromString(id),
 				Version: Version{
-					Changeset: c.Identifier,
+					Changeset: c.id,
 					Revision:  revision,
 				},
 			})
