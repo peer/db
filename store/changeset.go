@@ -14,15 +14,26 @@ import (
 // TODO: We build query strings again and again based on patchesEnabled. We should create them once during Init and reuse them here.
 
 // Changeset is a batch of changes done to values.
+//
 // It can be prepared and later on committed to a view or discarded.
+// It can be committed to multiple views.
+//
+// Only one change per value is allowed for a changeset.
 type Changeset[Data, Metadata, Patch any] struct {
+	// Each changeset has an immutable randomly generated ID.
 	identifier.Identifier
 
 	store *Store[Data, Metadata, Patch]
 }
 
+// Store returns the Store associated with the changeset.
 func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
 	return c.store
+}
+
+// WithStore returns a new Changeset object associated with the given Store.
+func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
+	return store.Changeset(ctx, c.Identifier)
 }
 
 // We allow changing changesets even after they have been used as a parent changeset in some
@@ -31,6 +42,9 @@ func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] 
 // We check just that the chain has a reasonable series of changesets and that parent changesets
 // are committed before children.
 
+// Insert adds the insert change to the changeset.
+//
+// The changeset must not be already committed to any view.
 func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), value, metadata,
@@ -63,6 +77,14 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 	return version, errE
 }
 
+// Update adds the update change to the changeset.
+//
+// The changeset must not be already committed to any view.
+// The parent changeset must include a change to the same value.
+//
+// Patch is a forward patch from the value at parent changeset version
+// to the new value version. The consistency of the patch is not checked
+// (from the perspective of the store it is an opaque value).
 func (c Changeset[Data, Metadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
@@ -378,8 +400,4 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change
 		details["changeset"] = c.String()
 	}
 	return changes, errE
-}
-
-func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
-	return store.Changeset(ctx, c.Identifier)
 }
