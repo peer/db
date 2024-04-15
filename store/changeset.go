@@ -138,6 +138,18 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 	return version, errE
 }
 
+// Merge adds the merge change to the changeset.
+//
+// The changeset must not be already committed to any view.
+// The parent changesets must include a change to the same value.
+//
+// Merge is similar to Update only that multiple parent changesets
+// and patches can be provided. The number and order of parent changesets
+// and patches should match. Each patch should be a forward patch from
+// the corresponding value at that parent changeset version to the new
+// value version. All patches must result in the same value. It is up
+// to the higher levels to assure consistency between patches and values
+// (from the perspective of the Store patches are opaque values to store).
 func (c Changeset[Data, Metadata, Patch]) Merge(
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
@@ -239,6 +251,14 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 	return version, errE
 }
 
+// Delete adds the delete change to the changeset.
+//
+// The changeset must not be already committed to any view.
+// The parent changeset must include a change to the same value.
+//
+// Delete does not really delete anything from the store, it only
+// marks the value as deleted. Previous versions of the value are
+// still available.
 func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
