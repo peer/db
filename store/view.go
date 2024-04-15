@@ -12,19 +12,34 @@ import (
 )
 
 // View is not a snapshot of the database but a dynamic named view of data to operate on.
+//
+// Each view can have only one version of a value for a given ID at every committed point.
+// There might be uncommitted (to the view) divergent versions but when they are committed
+// they have all to merge back into one single version (this might mean an additional merge
+// changeset has to be introduced which combines multiple parent versions into one version).
+//
+// All views (except the MainView) depend on ancestor views for all values they do not have
+// an explicit version of committed to them. The value is searched for in the ancestry order,
+// first the direct parent view.
 type View[Data, Metadata, Patch any] struct {
 	name  string
 	store *Store[Data, Metadata, Patch]
 }
 
+// Name of this named view.
+//
+// Name is unique across all named views at every point in time. A view can release a
+// name and another view can then be created with that name.
 func (v *View[Data, Metadata, Patch]) Name() string {
 	return v.name
 }
 
+// Store returns the underlying store instance of the view.
 func (v *View[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
 	return v.store
 }
 
+// Insert auto-commits the insert change into the view.
 func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata,
 ) (_ Version, errE errors.E) {
@@ -47,6 +62,7 @@ func (v *View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	return version, nil
 }
 
+// Replace auto-commits the replace change into the view.
 func (v *View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (_ Version, errE errors.E) {
@@ -69,6 +85,7 @@ func (v *View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
 	return version, nil
 }
 
+// Update auto-commits the update change into the view.
 func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (_ Version, errE errors.E) {
@@ -91,6 +108,7 @@ func (v *View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	return version, nil
 }
 
+// Merge auto-commits the merge change into the view.
 func (v *View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (_ Version, errE errors.E) {
@@ -113,6 +131,7 @@ func (v *View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
 	return version, nil
 }
 
+// Delete auto-commits the delete change into the view.
 func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata,
 ) (_ Version, errE errors.E) {
@@ -135,6 +154,19 @@ func (v *View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	return version, nil
 }
 
+// GetLatest returns the latest committed version of the value for the view.
+//
+// The latest committed version is not the latest based on the time it was made,
+// but that it is the latest in the graph of committed changes to the value
+// (i.e., no other change for the value has this version of the value as the parent
+// version). Each view can have only one latest committed version for each value.
+//
+// A view might not have an explicitly committed version of a given value, but its
+// ancestor views might. In that case the value is searched for in the ancestry order,
+// first the direct parent view. This means that some further (older) view might have a
+// newer value version, but GetLatest still returns the value version which is
+// explicitly committed to an earlier (younger) view, i.e., the view shadows values
+// and value versions from the parent view for those explicitly committed to the view.
 func (v *View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	arguments := []any{
 		v.name, id.String(),
@@ -200,6 +232,15 @@ func (v *View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifi
 	return data, metadata, version, errE
 }
 
+// Get returns the value at a given version.
+//
+// Get first searches for the view (including ancestor views) which have the value
+// and then return the value only for versions available for that view.
+// This means that some further (older) view might have a
+// newer value version, but Get will not return it even if asked for if there is an
+// older version explicitly committed to an earlier (younger) view, i.e., the view
+// shadows values and value versions from the parent view for those explicitly
+// committed to the view.
 func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		v.name, id.String(), version.Changeset.String(), version.Revision,
@@ -258,6 +299,11 @@ func (v *View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Ide
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
 //       Maybe Get should return Change (without validating anything) which can then have methods to return different things.
 
+// Changeset returns the requested changeset.
+//
+// The returned object remembers the view on which Changeset was called
+// so that it is possible to then use Commit to commit the changeset to the view.
+// A changeset can be committed to multiple views.
 func (v *View[Data, Metadata, Patch]) Changeset(_ context.Context, id identifier.Identifier) (Changeset[Data, Metadata, Patch], errors.E) {
 	// We do not care if the view exists at this point. It all
 	// depends what we will be doing with it and we do checks then.
@@ -272,6 +318,12 @@ func (v *View[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Data
 }
 
 // TODO: Support also name-less views (but the View has to store view ID instead).
+
+// TODO: Allow adding a name to an existing view.
+
+// TODO: Allow views to start remove a value so that the value from the parent view is again automatically available.
+//       For example, parent view might have resolved issues in its version of the value and the author of the current view
+//       might not want to have an explicit locked version anymore as they are satisfied with the parent version now.
 
 // Create creates a new view based on the current view.
 func (v *View[Data, Metadata, Patch]) Create(ctx context.Context, name string, metadata Metadata) (View[Data, Metadata, Patch], errors.E) {

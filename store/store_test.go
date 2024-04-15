@@ -702,12 +702,15 @@ func TestGet(t *testing.T) {
 	v, errE := s.View(ctx, "notexist")
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	// View does not really exist.
 	_, _, errE = v.Get(ctx, newID, version)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
+	// Value at existing changeset does not exist for arbitrary ID.
 	_, _, errE = s.Get(ctx, identifier.New(), version)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
+	// Value at arbitrary changeset does not exist for existing ID.
 	_, _, errE = s.Get(ctx, newID, store.Version{
 		Changeset: identifier.New(),
 		Revision:  1,
@@ -758,14 +761,16 @@ func TestDuplicateValues(t *testing.T) {
 	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	// Inserting another value with same ID should error.
+	// Inserting another value with same ID should error when using top-level methods
+	// which auto-commit to original view.
 	_, errE = s.Insert(ctx, newID, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
 	_, errE = s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	// Updating an old value should error.
+	// Updating an old value should error when using top-level methods
+	// which auto-commit to original view.
 	_, errE = s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
