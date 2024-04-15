@@ -187,15 +187,30 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 	return version, errE
 }
 
+// Replace adds the replace change to the changeset.
+//
+// The changeset must not be already committed to any view.
+// The parent changeset must include a change to the same value.
+//
+// Replace is similar to Update only that the forward patch is not stored.
+// Replace is useful when Store is configured with patches, but for a
+// particular change the patch makes little sense, e.g., the whole value
+// is replaced with a new value and the patch would be a copy of the
+// whole new value or even larger than the value itself. Or maybe the
+// patch is simply not available.
 func (c Changeset[Data, Metadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, value, metadata,
 	}
+	patchesEmptyValue := ""
+	if c.store.patchesEnabled {
+		patchesEmptyValue = ", '{}'"
+	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetReplace"($1, $2, $3, $4, $5)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetUpdate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
