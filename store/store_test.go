@@ -786,7 +786,7 @@ func TestMultipleViews(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// It should not be possible to get the new updated value in the second (child) view.
-	_, _, errE = s.Get(ctx, newID, updated2)
+	_, _, errE = v.Get(ctx, newID, updated2)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// Committing from the main view into the second (child) view should not be possible
@@ -905,7 +905,7 @@ func TestChangeAcrossViews(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// It should not be possible to get the new updated value in the second (child) view.
-	_, _, errE = s.Get(ctx, newID, updated2)
+	_, _, errE = v.Get(ctx, newID, updated2)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We can explicitly update the second (child) view with the new changeset from the main view.
