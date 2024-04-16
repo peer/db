@@ -766,6 +766,160 @@ func TestMultipleViews(t *testing.T) {
 	// It should not be possible to get the new updated value in the main view.
 	_, _, errE = s.Get(ctx, newID, updated)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// We update the value in the main view.
+	updated2, errE := s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the main view should now be updated.
+	_, _, latest, errE = s.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, latest)
+	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should be what was there before.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, latest)
+	_, _, errE = v.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// It should not be possible to get the new updated value in the second (child) view.
+	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// Committing from the main view into the second (child) view should not be possible
+	// because that would introduce two versions of the same value.
+	changeset, errE := s.Changeset(ctx, updated2.Changeset)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	// Committing from the second (child) view into the main view should not be possible
+	// because that would introduce two versions of the same value.
+	changeset, errE = s.Changeset(ctx, updated.Changeset)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = changeset.Commit(ctx, mainView, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	// But we can merge into the main view.
+	merged, errE := s.Merge(
+		ctx,
+		newID,
+		[]identifier.Identifier{updated2.Changeset, updated.Changeset},
+		dummyData,
+		[]json.RawMessage{dummyData, dummyData},
+		dummyData,
+	)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the main view should now be merged.
+	_, _, latest, errE = s.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, merged, latest)
+	_, _, errE = s.Get(ctx, newID, merged)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should be what was there before.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, latest)
+	_, _, errE = v.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We can now commit the merged changeset into the second (child) view.
+	changeset, errE = s.Changeset(ctx, merged.Changeset)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should now be merged.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, merged, latest)
+	_, _, errE = v.Get(ctx, newID, merged)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestChangeAcrossViews(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	mainView, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We create another (child) view.
+	v, errE := mainView.Create(ctx, "second", dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We update the value in the second (child view).
+	updated, errE := v.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the main view should be what was there before.
+	_, _, latest, errE := s.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, version, latest)
+	_, _, errE = s.Get(ctx, newID, version)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should be the new updated version.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, latest)
+	_, _, errE = v.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// It should not be possible to get the new updated value in the main view.
+	_, _, errE = s.Get(ctx, newID, updated)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// We update the value in the main view by using the change from the second (child) view.
+	// This should commit two changesets to the main view.
+	updated2, errE := s.Update(ctx, newID, updated.Changeset, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the main view should now be updated.
+	_, _, latest, errE = s.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, latest)
+	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// It should now be possible to get the previously updated version as well in the main view.
+	_, _, errE = s.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should stay the previously updated version.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, latest)
+	_, _, errE = v.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// It should not be possible to get the new updated value in the second (child) view.
+	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// We can explicitly update the second (child) view with the new changeset from the main view.
+	changeset, errE := s.Changeset(ctx, updated2.Changeset)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should now be updated.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, latest)
+	_, _, errE = v.Get(ctx, newID, updated2)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 }
 
 func TestView(t *testing.T) {
