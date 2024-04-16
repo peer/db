@@ -316,6 +316,66 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 	return data, metadata, errE
 }
 
+// List returns up to 5000 value IDs committed to the view, ordered by ID, after optional ID to support keyset pagination.
+func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	arguments := []any{
+		v.name,
+	}
+	afterCondition := ""
+	if after != nil {
+		arguments = append(arguments, after.String())
+		afterCondition = `WHERE "id">$2`
+	}
+	var values []identifier.Identifier
+	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		values = nil
+
+		rows, err := tx.Query(ctx, `
+			WITH "viewPath" AS (
+				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+					WHERE "currentViews"."name"=$1
+			)
+			SELECT DISTINCT "id"
+				FROM "viewPath" JOIN "committedValues" USING ("view")
+				`+afterCondition+`
+				ORDER BY "id"
+				LIMIT 5000
+			`, arguments...)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		var id string
+		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+			values = append(values, identifier.MustFromString(id))
+			return nil
+		})
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if len(values) == 0 {
+			// TODO: Is there a better way to check without doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrViewNotFound)
+			}
+			// There is nothing wrong with having no values.
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.name
+		if after != nil {
+			details["after"] = after.String()
+		}
+	}
+	return values, errE
+}
+
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
 //       Maybe Changeset should have Get which returns Change (without validating anything) which can then have methods to return different things.
 //       Add to View.Get docstring that to get values of any changeset, you should then go through Changeset and not View.
