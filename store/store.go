@@ -114,7 +114,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 		// TODO: Use schema management/migration instead.
 		if created {
 			patches := ""
-			patchesEmptyValue := ""
 			patchesArgument := ""
 			patchesValue := ""
 			if s.patchesEnabled {
@@ -125,7 +124,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- end up with the equal value.
 					"patches" ` + s.PatchType + `[] NOT NULL,
 				`
-				patchesEmptyValue = ", '{}'"
 				patchesArgument = ", _patches " + s.PatchType + "[]"
 				patchesValue = ", _patches"
 			}
@@ -308,7 +306,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
-				CREATE FUNCTION "changesetInsert"(_changeset text, _id text, _value `+s.DataType+`, _metadata `+s.MetadataType+`)
+				CREATE FUNCTION "changesetUpsert"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
 					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
@@ -316,25 +314,15 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
 						END IF;
-						INSERT INTO "changes" VALUES (_changeset, _id, 1, '{}', '{}', _value, _metadata`+patchesEmptyValue+`);
-					END;
-				$$;
-
-				CREATE FUNCTION "changesetUpdate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
-					RETURNS void LANGUAGE plpgsql AS $$
-					BEGIN
-						-- Changeset should not be committed (to any view).
-						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
-						IF FOUND THEN
-							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
-						END IF;
-						-- Parent changesets should exist for ID. Query should work even if
-						-- changesets are repeated in _parentChangesets.
-						PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
-							WHERE "id"=_id
-							HAVING COUNT(*)=array_length(_parentChangesets, 1);
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
+						IF _parentChangesets<>'{}' THEN
+							-- Parent changesets should exist for ID. Query should work even if
+							-- changesets are repeated in _parentChangesets.
+							PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
+								WHERE "id"=_id
+								HAVING COUNT(*)=array_length(_parentChangesets, 1);
+							IF NOT FOUND THEN
+								RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
+							END IF;
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
 					END;
