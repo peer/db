@@ -266,15 +266,20 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 		var dataIsNull bool
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
-				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+				-- We care about order of views so we annotate views in the path with view's index.
+				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
-				), "viewChangesets" AS (
-					SELECT "changeset" FROM "currentCommittedChangesets" JOIN "viewPath" USING ("view")
+			), "firstViewWithValue" AS (
+					SELECT "view" FROM "committedValues" JOIN "viewPath" USING ("view")
+						WHERE "id"=$2
+						ORDER BY "viewPath"."depth"
+						LIMIT 1
 				)
 				-- We require the value at given version has been committed to the view (or its ancestors)
 				-- which we check by checking that version's changeset is among view's changesets.
 				SELECT "data", "data" IS NULL, "metadata"
-					FROM "changes" JOIN "viewChangesets" USING ("changeset")
+					FROM "firstViewWithValue" JOIN "committedValues" USING ("view")
+						JOIN "changes" USING ("changeset", "id")
 					WHERE "id"=$2
 					AND "changeset"=$3
 					AND "revision"=$4
