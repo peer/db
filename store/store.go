@@ -30,6 +30,25 @@ const (
 	errorCodeChangesetNotFound = "P1005"
 )
 
+// CommittedChangeset represents a changeset committed to a view.
+type CommittedChangeset[Data, Metadata, Patch any] struct {
+	Changeset Changeset[Data, Metadata, Patch]
+	View      View[Data, Metadata, Patch]
+}
+
+// WithStore returns a new CommittedChangeset object with
+// changeset and view associated with the given Store.
+func (c CommittedChangeset[Data, Metadata, Patch]) WithStore(
+	ctx context.Context, store *Store[Data, Metadata, Patch],
+) (CommittedChangeset[Data, Metadata, Patch], errors.E) {
+	changeset, errE1 := c.Changeset.WithStore(ctx, store)
+	view, errE2 := c.View.WithStore(ctx, store)
+	return CommittedChangeset[Data, Metadata, Patch]{
+		Changeset: changeset,
+		View:      view,
+	}, errors.Join(errE1, errE2)
+}
+
 // Store is a key-value store which preserves history of changes.
 //
 // For every change, a new value, its metadata, and optional forward
@@ -41,11 +60,11 @@ type Store[Data, Metadata, Patch any] struct {
 	Schema string
 
 	// A channel to which changesets are send when they are committed.
-	// The changesets objects sent do not have an associated Store.
+	// The changesets and view objects sent do not have an associated Store.
 	//
 	// The order in which they are send is not necessary the order in which
 	// they were committed. You should not relay on the order.
-	Committed chan<- Changeset[Data, Metadata, Patch]
+	Committed chan<- CommittedChangeset[Data, Metadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
 	// It should probably be one of the jsonb, bytea, or text.

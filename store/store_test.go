@@ -212,7 +212,7 @@ func (l *lockableSlice[T]) Prune() []T {
 
 func initDatabase[Data, Metadata, Patch any](
 	t *testing.T, dataType string,
-) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]]) {
+) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.CommittedChangeset[Data, Metadata, Patch]]) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -230,10 +230,10 @@ func initDatabase[Data, Metadata, Patch any](
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.Changeset[Data, Metadata, Patch])
+	channel := make(chan store.CommittedChangeset[Data, Metadata, Patch])
 	t.Cleanup(func() { close(channel) })
 
-	channelContents := new(lockableSlice[store.Changeset[Data, Metadata, Patch]])
+	channelContents := new(lockableSlice[store.CommittedChangeset[Data, Metadata, Patch]])
 
 	go func() {
 		for c := range channel {
@@ -286,10 +286,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, insertVersion.Changeset, c[0].ID())
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, insertVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -328,10 +329,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, updateVersion.Changeset, c[0].ID())
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, updateVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -376,10 +378,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, replaceVersion.Changeset, c[0].ID())
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, replaceVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -429,10 +432,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, deleteVersion.Changeset, c[0].ID())
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, deleteVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -514,10 +518,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, newVersion.Changeset, c[0].ID())
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)
@@ -565,10 +570,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
-		assert.Equal(t, newVersion.Changeset, c[0].ID())
-		changeset, errE = c[0].WithStore(ctx, s)
+		assert.Equal(t, store.MainView, c[0].View.Name())
+		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
+		committedChangeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changes(ctx)
+			changes, errE := committedChangeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)

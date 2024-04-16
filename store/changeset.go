@@ -347,10 +347,16 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 	} else if c.store.Committed != nil {
 		// There might be more than just this changeset committed if its parent changesets were not committed as well.
 		for _, changeset := range committedChangesets {
-			// We send over a Changeset without store, requiring the receiver to use WithStore on it.
-			c.store.Committed <- Changeset[Data, Metadata, Patch]{
-				id:    identifier.MustFromString(changeset),
-				store: nil,
+			// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
+			c.store.Committed <- CommittedChangeset[Data, Metadata, Patch]{
+				Changeset: Changeset[Data, Metadata, Patch]{
+					id:    identifier.MustFromString(changeset),
+					store: nil,
+				},
+				View: View[Data, Metadata, Patch]{
+					name:  view.name,
+					store: nil,
+				},
 			}
 		}
 	}

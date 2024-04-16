@@ -240,7 +240,7 @@ func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
 ) (*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *elastic.BulkProcessor, errors.E) {
 	// TODO: Add some monitoring of the channel contention.
-	channel := make(chan store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
+	channel := make(chan store.CommittedChangeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
 	context.AfterFunc(ctx, func() { close(channel) })
 
 	errE := ensureIndex(ctx, esClient, index, sizeField)
