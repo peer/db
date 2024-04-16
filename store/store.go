@@ -136,6 +136,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					END;
 				$$;
 
+				-- "changes" table contains all changes to values.
 				CREATE TABLE "changes" (
 					-- ID of the changeset this change belongs to.
 					"changeset" text NOT NULL,
@@ -197,6 +198,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "views" table contains all changes to views.
 				CREATE TABLE "views" (
 					-- ID of the view.
 					"view" text NOT NULL,
@@ -231,6 +233,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "committedChangesets" table contains which changesets are explicitly committed to which views.
 				CREATE TABLE "committedChangesets" (
 					-- Changeset which belongs to the view. Also all changesets belonging to ancestors
 					-- (as defined by view's path) of the view belong to the view, but we do not store
@@ -262,6 +265,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "committedChangesetsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "committedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "currentViews" is automatically maintained table with the current (highest)
+				-- revision of each view from table "views".
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
 					"view" text NOT NULL,
@@ -274,6 +279,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "currentViewsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentViews"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "currentChanges" is automatically maintained table with the current (highest)
+				-- revision of each change from table "changes".
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
 					"changeset" text NOT NULL,
@@ -285,6 +292,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "currentChangesNotAllowed" BEFORE TRUNCATE ON "currentChanges"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "currentCommittedChangesets" is automatically maintained table with the current (highest)
+				-- revision of each committed changeset from table "committedChangesets".
 				CREATE TABLE "currentCommittedChangesets" (
 					-- A subset of "committedChangesets" columns.
 					"changeset" text NOT NULL,
