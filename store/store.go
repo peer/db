@@ -139,9 +139,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "changes" table contains all changes to values.
 				CREATE TABLE "changes" (
 					-- ID of the changeset this change belongs to.
-					"changeset" text NOT NULL,
+					"changeset" text STORAGE PLAIN NOT NULL,
 					-- ID of the value.
-					"id" text NOT NULL,
+					"id" text STORAGE PLAIN NOT NULL,
 					-- Revision of this change.
 					"revision" bigint NOT NULL,
 					-- IDs of changesets this value has been changed the last before this change.
@@ -201,7 +201,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "views" table contains all changes to views.
 				CREATE TABLE "views" (
 					-- ID of the view.
-					"view" text NOT NULL,
+					"view" text STORAGE PLAIN NOT NULL,
 					-- Revision of this view.
 					"revision" bigint NOT NULL,
 					-- Name of the view. Optional.
@@ -240,9 +240,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- them explicitly. The set of changesets belonging to the view should be kept
 					-- consistent so that a new changeset is added to the view only if all ancestor
 					-- changesets are already present in the view or in its ancestor views.
-					"changeset" text NOT NULL,
+					"changeset" text STORAGE PLAIN NOT NULL,
 					-- ID of the view.
-					"view" text NOT NULL,
+					"view" text STORAGE PLAIN NOT NULL,
 					-- Revision of this committed changeset.
 					"revision" bigint NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
@@ -269,7 +269,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each view from table "views".
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
-					"view" text NOT NULL,
+					"view" text STORAGE PLAIN NOT NULL,
 					"revision" bigint NOT NULL,
 					-- Having "name" here allows easy querying by name and also makes it easy for us to enforce
 					-- the property we want: that each name is used by only one view at every given moment.
@@ -283,8 +283,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each change from table "changes".
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
-					"changeset" text NOT NULL,
-					"id" text NOT NULL,
+					"changeset" text STORAGE PLAIN NOT NULL,
+					"id" text STORAGE PLAIN NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "id")
 				);
@@ -296,8 +296,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each committed changeset from table "committedChangesets".
 				CREATE TABLE "currentCommittedChangesets" (
 					-- A subset of "committedChangesets" columns.
-					"changeset" text NOT NULL,
-					"view" text NOT NULL,
+					"changeset" text STORAGE PLAIN NOT NULL,
+					"view" text STORAGE PLAIN NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "view")
 				);
@@ -308,9 +308,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "committedValues" is automatically maintained table of all changesets reachable from
 				-- changesets explicitly committed to each view.
 				CREATE TABLE "committedValues" (
-					"view" text NOT NULL,
-					"id" text NOT NULL,
-					"changeset" text NOT NULL,
+					"view" text STORAGE PLAIN NOT NULL,
+					"id" text STORAGE PLAIN NOT NULL,
+					"changeset" text STORAGE PLAIN NOT NULL,
 					"depth" bigint NOT NULL,
 					PRIMARY KEY ("view", "id", "changeset"),
 					-- We allow only one version of the value per view at depth 0.
