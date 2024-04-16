@@ -380,6 +380,8 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 //
 // The changeset must not be already committed to any view.
 // The changeset must not be used as a parent changeset by any other changeset.
+//
+// Discard cannot be undone.
 func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
 	arguments := []any{
 		c.String(),
@@ -412,6 +414,8 @@ func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E 
 //
 // If the changeset has already been committed to any view, it is a noop.
 // The changeset must not be used as a parent changeset by any other changeset.
+//
+// Rollback cannot be undone.
 func (c Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
 	errE := c.Discard(ctx)
 	if errE != nil && errors.Is(errE, ErrAlreadyCommitted) {
