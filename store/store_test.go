@@ -726,9 +726,46 @@ func TestGet(t *testing.T) {
 		Revision:  1,
 	})
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+}
 
-	// two versions in two views, the one in the other view should not be accessible.
+func TestMultipleViews(t *testing.T) {
+	t.Parallel()
 
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	mainView, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We create another (child) view.
+	v, errE := mainView.Create(ctx, "second", dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// We update the value in the second (child view).
+	updated, errE := v.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the main view should be what was there before.
+	_, _, latest, errE := s.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, version, latest)
+	_, _, errE = s.Get(ctx, newID, version)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// The version in the second (child) view should be the new updated version.
+	_, _, latest, errE = v.GetLatest(ctx, newID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, latest)
+	_, _, errE = v.Get(ctx, newID, updated)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	// It should not be possible to get the new updated value in the main view.
+	_, _, errE = s.Get(ctx, newID, updated)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
 func TestView(t *testing.T) {
