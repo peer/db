@@ -315,7 +315,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
-				CREATE FUNCTION "changesetUpsert"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
+				CREATE FUNCTION "changesetCreate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
 					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
