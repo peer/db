@@ -222,7 +222,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, err)
+					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
@@ -291,7 +291,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, err)
+					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
