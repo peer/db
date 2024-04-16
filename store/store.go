@@ -421,6 +421,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 									FROM "currentChanges"
 										JOIN "changes" USING ("changeset", "id", "revision")
 										JOIN "reachableChangesets" USING ("changeset", "id"),
+										-- We have to use LATERAL plus a sub-query to be able to use DISTINCT.
 										LATERAL (SELECT DISTINCT UNNEST("parentChangesets")) AS p("changeset")
 						)
 						INSERT INTO "committedValues" SELECT DISTINCT ON ("changeset", "id") _view, "id", "changeset", "depth"
