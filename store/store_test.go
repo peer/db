@@ -210,9 +210,9 @@ func (l *lockableSlice[T]) Prune() []T {
 	return c
 }
 
-func initDatabase[Data, Metadata, Patch any](t *testing.T, dataType string) (
-	context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]],
-) {
+func initDatabase[Data, Metadata, Patch any](
+	t *testing.T, dataType string,
+) (context.Context, *store.Store[Data, Metadata, Patch], *lockableSlice[store.Changeset[Data, Metadata, Patch]]) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
