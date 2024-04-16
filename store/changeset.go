@@ -36,6 +36,9 @@ func (c Changeset[Data, Metadata, Patch]) String() string {
 }
 
 // Store returns the Store associated with the changeset.
+//
+// It can return nil if Store is not associated with the changeset.
+// You can use WithStore to associate it.
 func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
 	return c.store
 }
@@ -344,7 +347,7 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 	} else if c.store.Committed != nil {
 		// There might be more than just this changeset committed if its parent changesets were not committed as well.
 		for _, changeset := range committedChangesets {
-			// We send over a non-initialized Changeset, requiring the receiver to reconstruct it.
+			// We send over a Changeset without store, requiring the receiver to use WithStore on it.
 			c.store.Committed <- Changeset[Data, Metadata, Patch]{
 				id:    identifier.MustFromString(changeset),
 				store: nil,

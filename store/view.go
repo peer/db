@@ -40,6 +40,9 @@ func (v View[Data, Metadata, Patch]) String() string {
 }
 
 // Store returns the Store associated with the view.
+//
+// It can return nil if Store is not associated with the view.
+// You can use WithStore to associate it.
 func (v View[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
 	return v.store
 }

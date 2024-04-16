@@ -40,8 +40,11 @@ type Store[Data, Metadata, Patch any] struct {
 	// PostgreSQL schema used by this store.
 	Schema string
 
-	// The order in which changesets are send to the channel is not necessary
-	// the order in which they were committed. You should not relay on the order.
+	// A channel to which changesets are send when they are committed.
+	// The changesets objects sent do not have an associated Store.
+	//
+	// The order in which they are send is not necessary the order in which
+	// they were committed. You should not relay on the order.
 	Committed chan<- Changeset[Data, Metadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
