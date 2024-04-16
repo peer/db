@@ -417,7 +417,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 									FROM "currentChanges" WHERE "changeset"=_changeset
 							UNION ALL
 								-- "parentChangesets" can contain duplicates.
-								SELECT p."changeset", "id", "depth"+1
+								SELECT p.*, "id", "depth"+1
 									FROM "currentChanges"
 										JOIN "changes" USING ("changeset", "id", "revision")
 										JOIN "reachableChangesets" USING ("changeset", "id"),
