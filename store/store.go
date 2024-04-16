@@ -305,13 +305,21 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
+				-- "committedValues" is automatically maintained table of all changesets reachable from
+				-- changesets explicitly committed to each view.
 				CREATE TABLE "committedValues" (
 					"view" text NOT NULL,
 					"id" text NOT NULL,
 					"changeset" text NOT NULL,
-					PRIMARY KEY ("view", "id")
+					"depth" bigint NOT NULL,
+					PRIMARY KEY ("view", "id", "changeset"),
+					-- We allow only one version of the value per view at depth 0.
+					-- We cannot use UNIQUE constraint because we want a WHERE predicate and we cannot use UNIQUE index
+					-- because we want a deferred constraint which is checked after all changes to "committedValues" are
+					-- done and not after every individual change (otherwise it can happen that the UNIQUE index raises
+					-- an exception because duplicate values are encountered before everything is updated).
+					CONSTRAINT "committedValuesLatest" EXCLUDE USING btree ("view" WITH =, "id" WITH =) WHERE ("depth"=0) DEFERRABLE INITIALLY DEFERRED
 				);
-				CREATE INDEX ON "committedValues" USING btree ("changeset");
 				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
@@ -402,36 +410,37 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- This raises unique violation if the provided changeset is already committed
 						-- (ancestor changesets we added to _changesetsToCommit because they are not).
 						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
-						WITH "values" AS (
-							SELECT DISTINCT "id" FROM "currentChanges" JOIN UNNEST(_changesetsToCommit) AS "changeset" USING ("changeset")
+						-- Determine reachable changesets for all values in the changeset we want to commit.
+						-- Other changesets from _changesetsToCommit should be found again as well.
+						WITH RECURSIVE "reachableChangesets"("changeset", "id", "depth") AS (
+								SELECT "changeset", "id", 0
+									FROM "currentChanges" WHERE "changeset"=_changeset
+							UNION ALL
+								-- "parentChangesets" can contain duplicates.
+								SELECT p."changeset", "id", "depth"+1
+									FROM "currentChanges"
+										JOIN "changes" USING ("changeset", "id", "revision")
+										JOIN "reachableChangesets" USING ("changeset", "id"),
+										LATERAL (SELECT DISTINCT UNNEST("parentChangesets")) AS p("changeset")
 						)
-						-- For every ID in _changesetsToCommit we find the latest changeset.
-						INSERT INTO "committedValues" SELECT _view, "id", (
-								-- The latest changeset is among now updated "committedChangesets"/"currentCommittedChangesets" for the
-								-- view and the value. It is not enough to look just in _changesetsToCommit changesets because there
-								-- might be diverging changes introducing multiple latest changesets using earlier changesets
-								-- (e.g., a changeset from _changesetsToCommit uses a parent changeset which is not the latest changeset).
-								-- TODO: Is it faster to use LEFT JOIN instead of EXCEPT here?
-								-- TODO: We are twice doing almost the same query, only selecting a different column. Is this an opportunity to optimize?
-								SELECT "changeset"
-									FROM "currentCommittedChangesets"
-										JOIN "currentChanges" USING ("changeset")
-									WHERE "view"=ANY(_path) AND "id"="values"."id"
-								EXCEPT
-								-- But it is not a parent changeset of another changeset for the value.
-								SELECT UNNEST("parentChangesets") AS "changeset"
-									FROM "currentCommittedChangesets"
-										JOIN ("currentChanges" JOIN "changes" USING ("changeset", "id", "revision")) USING ("changeset")
-										WHERE "view"=ANY(_path) AND "id"="values"."id"
-							) as "changeset" FROM "values"
-							-- Here we rely on the fact that if there are multiple rows to be inserted with same ("view", "id")
-							-- combination, this still fails with exception. This can happen if _changesetsToCommit are introducing
-							-- multiple parallel coexisting versions of a value which we do not allow. We want that at any point, i.e.,
-							-- after a set of changesets are committed, there is only one version of a value per view. Branches can
-							-- happen but they have to be merged back together into one version before a set of changesets is committed.
-							ON CONFLICT ("view", "id") DO UPDATE
-								SET "changeset"=EXCLUDED."changeset";
-						RETURN _changesetsToCommit;
+						INSERT INTO "committedValues" SELECT DISTINCT ON ("changeset", "id") _view, "id", "changeset", "depth"
+							FROM "reachableChangesets"
+							-- We pick the smallest depth to be deterministic when there are multiple paths to the same changeset.
+							ORDER BY "changeset", "id", "depth" ASC
+							ON CONFLICT ("view", "id", "changeset") DO UPDATE
+								SET "depth"=EXCLUDED."depth"
+								-- No need to update if nothing has changed.
+								WHERE "committedValues"."depth"<>EXCLUDED."depth";
+					-- If we now have multiple rows with same ("view", "id", *, 0) combination we want an exception
+					-- and we have for that an EXCLUDE constraint with such condition. We use a DEFERRABLE INITIALLY
+					-- DEFERRED constraint so that INSERT above have time to modify multiple rows and only after it
+					-- has done its work we force the constraint using SET CONSTRAINTS.
+					-- This can happen if _changesetsToCommit are introducing multiple parallel coexisting versions
+					-- of a value which we do not allow. We want that at any point, i.e., after a set of changesets
+					-- are committed, there is only one version of a value per view. Branching can happen but everything
+					-- has to be merged back together into one version before a set of changesets is committed.
+					SET CONSTRAINTS "committedValuesLatest" IMMEDIATE;
+					RETURN _changesetsToCommit;
 					END;
 				$$;
 			`)

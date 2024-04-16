@@ -336,7 +336,7 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 					return errors.WrapWith(errE, ErrChangesetNotFound)
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case internal.ErrorCardinalityViolation:
+				case internal.ErrorExclusionViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
