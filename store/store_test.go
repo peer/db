@@ -981,3 +981,47 @@ func TestDuplicateValues(t *testing.T) {
 	_, errE = s.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
+
+func TestDiscardAfterCommit(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = changeset.Discard(ctx)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+}
+
+func TestEmptyChangeset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE := s.View(ctx, store.MainView)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
+
+	errE = changeset.Discard(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = changeset.Discard(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
