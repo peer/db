@@ -603,6 +603,12 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 
 	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	_, errE = changeset.Delete(ctx, newID, changeset.ID(), dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	_, errE = changeset.Update(ctx, newID, changeset.ID(), dummyData, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
 }
 
 func TestCycles(t *testing.T) {
