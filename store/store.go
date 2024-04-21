@@ -62,8 +62,8 @@ type Store[Data, Metadata, Patch any] struct {
 	// A channel to which changesets are send when they are committed.
 	// The changesets and view objects sent do not have an associated Store.
 	//
-	// The order in which they are send is not necessary the order in which
-	// they were committed. You should not relay on the order.
+	// The order in which they are sent is not necessary the order in which
+	// they were committed. You should not rely on the order.
 	Committed chan<- CommittedChangeset[Data, Metadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
