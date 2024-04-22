@@ -62,8 +62,8 @@ type Store[Data, Metadata, Patch any] struct {
 	// A channel to which changesets are send when they are committed.
 	// The changesets and view objects sent do not have an associated Store.
 	//
-	// The order in which they are send is not necessary the order in which
-	// they were committed. You should not relay on the order.
+	// The order in which they are sent is not necessary the order in which
+	// they were committed. You should not rely on the order.
 	Committed chan<- CommittedChangeset[Data, Metadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
@@ -384,7 +384,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- changesets exist and do have (relevant) changes because we check that when creating changes.
 						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
 						IF NOT FOUND THEN
-							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
+							RAISE EXCEPTION 'cannot commit empty changeset' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
 						END IF;
 						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (
