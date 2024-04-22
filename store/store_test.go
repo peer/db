@@ -1020,8 +1020,8 @@ func TestEmptyChangeset(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 
 	errE = changeset.Discard(ctx)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = changeset.Discard(ctx)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 }
