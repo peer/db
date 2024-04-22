@@ -384,7 +384,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- changesets exist and do have (relevant) changes because we check that when creating changes.
 						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
 						IF NOT FOUND THEN
-							RAISE EXCEPTION 'cannot commit empty changeset' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
+							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
 						END IF;
 						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (
