@@ -793,5 +793,9 @@ Neither the European Union nor the granting authority can be held responsible fo
 Funded within the framework of the [NGI Search](https://www.ngisearch.eu/)
 project under grant agreement No 101069364.
 
+<!-- markdownlint-disable MD033 -->
+
 <img src="EN_FundedbytheEU_RGB_POS.png" alt="Funded by the European Union emblem" height="60" />
 <img src="NGISearch_logo.svg" alt="NGI Search logo" height="60" />
+
+<!-- markdownlint-enable MD033 -->
