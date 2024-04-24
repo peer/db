@@ -82,7 +82,8 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, cache *es.Cache, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	esClient *elastic.Client, cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
 	filename := strings.TrimPrefix(entity.Title, "File:")
 	filename = strings.ReplaceAll(filename, " ", "_")
@@ -102,7 +103,7 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
-	additionalDocument, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	additionalDocument, errE := wikipedia.ConvertEntity(ctx, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if errE != nil {
 		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(errE).Str("entity", entity.ID).Send()
@@ -130,7 +131,11 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }
@@ -251,7 +256,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 				count.Increment()
 
-				errE = c.processPage(ctx, globals, store, esClient, esProcessor, page, html)
+				errE = c.processPage(ctx, globals, store, esClient, page, html)
 				if errE != nil {
 					return errE
 				}
@@ -265,7 +270,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 func (c *CommonsFileDescriptionsCommand) processPage(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+	esClient *elastic.Client, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	filename := strings.TrimPrefix(page.Title, "File:")
 	// First we make sure we do not have spaces.
@@ -338,7 +343,11 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		globals.Logger.Error().Str("doc", document.ID.String()).Str("file", filename).Str("title", page.Title).Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }
@@ -421,7 +430,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 				count.Increment()
 
-				errE = c.processPage(ctx, globals, store, esClient, esProcessor, page, html)
+				errE = c.processPage(ctx, globals, store, esClient, page, html)
 				if errE != nil {
 					return errE
 				}
@@ -435,7 +444,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 func (c *CommonsCategoriesCommand) processPage(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+	page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -445,15 +454,15 @@ func (c *CommonsCategoriesCommand) processPage(
 		return nil
 	}
 
-	document, version, err := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
-	if err != nil {
-		details := errors.Details(err)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["entity"] = id
 		details["title"] = page.Title
-		if errors.Is(err, wikipedia.ErrNotFound) {
-			globals.Logger.Warn().Err(err).Send()
+		if errors.Is(errE, wikipedia.ErrNotFound) {
+			globals.Logger.Warn().Err(errE).Send()
 		} else {
-			globals.Logger.Error().Err(err).Send()
+			globals.Logger.Error().Err(errE).Send()
 		}
 		return nil
 	}
@@ -462,58 +471,66 @@ func (c *CommonsCategoriesCommand) processPage(
 	// Wikidata entities (we have it there through site links on Wikidata entities), nor we add it here,
 	// but we rely on Wikidata entities' labels only.
 
-	err = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
-	if err != nil {
-		details := errors.Details(err)
+	errE = wikipedia.SetPageID(wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page.Identifier, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
-	if err != nil {
-		details := errors.Details(err)
+	errE = wikipedia.ConvertCategoryDescription(id, "FROM_WIKIMEDIA_COMMONS", html, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
-	if err != nil {
-		details := errors.Details(err)
+	errE = wikipedia.ConvertPageInCategories(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
-	if err != nil {
-		details := errors.Details(err)
+	errE = wikipedia.ConvertPageUsedTemplates(globals.Logger, wikipedia.NameSpaceWikidata, "WIKIMEDIA_COMMONS", id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	err = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
-	if err != nil {
-		details := errors.Details(err)
+	errE = wikipedia.ConvertPageRedirects(globals.Logger, wikipedia.NameSpaceWikidata, id, page, document)
+	if errE != nil {
+		details := errors.Details(errE)
 		details["doc"] = document.ID.String()
 		details["entity"] = id
 		details["title"] = page.Title
-		globals.Logger.Error().Err(err).Send()
+		globals.Logger.Error().Err(errE).Send()
 		return nil
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		details := errors.Details(errE)
+		details["doc"] = document.ID.String()
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Logger.Error().Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }

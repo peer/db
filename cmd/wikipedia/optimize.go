@@ -7,7 +7,7 @@ import (
 type OptimizeCommand struct{}
 
 func (c *OptimizeCommand) Run(globals *Globals) errors.E {
-	ctx, stop, _, _, esClient, esProcessor, _, errE := initializeElasticSearch(globals)
+	ctx, stop, _, _, esClient, esProcessor, _, errE := initializeElasticSearch(globals) //nolint:dogsled
 	if errE != nil {
 		return errE
 	}

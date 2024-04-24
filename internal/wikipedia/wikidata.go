@@ -226,7 +226,9 @@ func getDocumentReference(id, source string) document.Reference {
 	panic(errors.Errorf("unsupported ID for source \"%s\": %s", source, id))
 }
 
-func getDocumentFromByProp(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, property, id string) (*peerdb.Document, store.Version, errors.E) {
+func getDocumentFromByProp(
+	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, property, id string,
+) (*peerdb.Document, store.Version, errors.E) {
 	searchResult, err := esClient.Search(index).FetchSource(false).AllowPartialSearchResults(false).
 		Query(elastic.NewNestedQuery("claims.id",
 			elastic.NewBoolQuery().Must(
@@ -236,7 +238,7 @@ func getDocumentFromByProp(ctx context.Context, s *store.Store[json.RawMessage, 
 		)).Do(ctx)
 	if err != nil {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errors.WithStack(err)
+		return nil, store.Version{}, errors.WithStack(err) //nolint:exhaustruct
 	}
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
@@ -244,7 +246,7 @@ func getDocumentFromByProp(ctx context.Context, s *store.Store[json.RawMessage, 
 		doc, version, errE := getDocumentFromByID(ctx, s, identifier.MustFromString(hit.Id))
 		if errE != nil {
 			// Caller should add details to the error.
-			return nil, store.Version{}, errE
+			return nil, store.Version{}, errE //nolint:exhaustruct
 		}
 
 		found := false
@@ -264,33 +266,37 @@ func getDocumentFromByProp(ctx context.Context, s *store.Store[json.RawMessage, 
 	}
 
 	// Caller should add details to the error.
-	return nil, store.Version{}, errors.WithStack(ErrNotFound)
+	return nil, store.Version{}, errors.WithStack(ErrNotFound) //nolint:exhaustruct
 }
 
-func getDocumentFromByID(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], id identifier.Identifier) (*peerdb.Document, store.Version, errors.E) {
+func getDocumentFromByID(
+	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], id identifier.Identifier,
+) (*peerdb.Document, store.Version, errors.E) {
 	data, _, version, errE := s.GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errors.WithStack(ErrNotFound)
+		return nil, store.Version{}, errors.WithStack(ErrNotFound) //nolint:exhaustruct
 	} else if errE != nil {
-		return nil, store.Version{}, errE
+		return nil, store.Version{}, errE //nolint:exhaustruct
 	}
 
 	var doc peerdb.Document
 	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errE
+		return nil, store.Version{}, errE //nolint:exhaustruct
 	}
 
 	return &doc, version, nil
 }
 
-func GetWikidataItem(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, id string) (*peerdb.Document, store.Version, errors.E) {
+func GetWikidataItem(
+	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, id string,
+) (*peerdb.Document, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if errE != nil {
 		errors.Details(errE)["entity"] = id
-		return nil, store.Version{}, errE
+		return nil, store.Version{}, errE //nolint:exhaustruct
 	}
 
 	return doc, version, nil
@@ -350,7 +356,7 @@ func resolveDataTypeFromPropertyDocument(doc *peerdb.Document, prop string, valu
 }
 
 func getDataTypeForProperty(
-	ctx context.Context, index string, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	prop string, valueType *mediawiki.WikiBaseEntityType,
 ) (mediawiki.DataType, errors.E) {
 	id := GetWikidataDocumentID(prop)
@@ -389,7 +395,7 @@ func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
 }
 
 func processSnak( //nolint:ireturn,nolintlint,maintidx
-	ctx context.Context, index string, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
 ) ([]document.Claim, errors.E) {
 	id := peerdb.GetID(namespace, idArgs...)
@@ -428,7 +434,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 		// Wikimedia Commons might not have the datatype field set, so we have to fetch it ourselves.
 		// See: https://phabricator.wikimedia.org/T311977
 		var err errors.E
-		dataType, err = getDataTypeForProperty(ctx, index, store, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
+		dataType, err = getDataTypeForProperty(ctx, store, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "unable to resolve data type for property with value %T", snak.DataValue.Value)
 		}
@@ -704,13 +710,13 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 }
 
 func addQualifiers(
-	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E { //nolint:unparam
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaims, errE := processSnak(
-				ctx, index, store, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
+				ctx, store, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
@@ -737,7 +743,7 @@ func addQualifiers(
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
 // TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E { //nolint:unparam
 	// Edge case.
@@ -765,7 +771,7 @@ func addReference(
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
 			cs, errE := processSnak(
-				ctx, index, store, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
+				ctx, store, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
@@ -800,7 +806,7 @@ func addReference(
 // ConvertEntity converts both Wikidata entities and Wikimedia Commons entities.
 // Entities can reference only Wikimedia Commons files and not Wikipedia files.
 func ConvertEntity( //nolint:maintidx
-	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, entity mediawiki.Entity,
 ) (*peerdb.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
@@ -1091,7 +1097,7 @@ func ConvertEntity( //nolint:maintidx
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claims, errE := processSnak(
-				ctx, index, store, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, store, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
@@ -1104,7 +1110,7 @@ func ConvertEntity( //nolint:maintidx
 			}
 			for j, claim := range claims {
 				errE = addQualifiers(
-					ctx, index, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+					ctx, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
 				)
 				if errE != nil {
 					logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("qualifiers")).
@@ -1112,7 +1118,7 @@ func ConvertEntity( //nolint:maintidx
 					continue
 				}
 				for i, reference := range statement.References {
-					errE = addReference(ctx, index, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+					errE = addReference(ctx, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
 					if errE != nil {
 						logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("reference").Int(i)).
 							Err(errE).Send()

@@ -140,7 +140,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, store, esClient, esProcessor, article)
+		return c.processArticle(ctx, globals, store, esClient, article)
 	})
 	if errE != nil {
 		return errE
@@ -150,8 +150,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaFileDescriptionsCommand) processArticle(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
 	// First we make sure we do not have spaces.
@@ -233,7 +232,15 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		details := errors.Details(errE)
+		details["doc"] = document.ID.String()
+		details["file"] = filename
+		details["title"] = article.Name
+		globals.Logger.Error().Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }
@@ -266,7 +273,7 @@ func wikipediaArticlesRun(
 	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return wikipediaArticlesProcessArticle(ctx, globals, store, esClient, esProcessor, article, convertArticle)
+		return wikipediaArticlesProcessArticle(ctx, globals, store, esClient, article, convertArticle)
 	})
 	if errE != nil {
 		return errE
@@ -277,7 +284,7 @@ func wikipediaArticlesRun(
 
 func wikipediaArticlesProcessArticle(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, article mediawiki.Article, convertArticle func(string, string, *peerdb.Document) errors.E,
+	article mediawiki.Article, convertArticle func(string, string, *peerdb.Document) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
@@ -368,7 +375,15 @@ func wikipediaArticlesProcessArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		details := errors.Details(errE)
+		details["doc"] = document.ID.String()
+		details["entity"] = id
+		details["title"] = article.Name
+		globals.Logger.Error().Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }

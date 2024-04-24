@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 
@@ -61,7 +60,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikidataDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, store, cache, esProcessor, entity)
+		return c.processEntity(ctx, globals, store, cache, entity)
 	})
 	if errE != nil {
 		return errE
@@ -76,9 +75,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, esProcessor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
-	document, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	document, errE := wikipedia.ConvertEntity(ctx, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if errE != nil {
 		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("entity", entity.ID).Err(errE).Send()
@@ -96,7 +95,11 @@ func (c *WikidataCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
-	peerdb.InsertOrReplaceDocument(ctx, store, document)
+	errE = peerdb.InsertOrReplaceDocument(ctx, store, document)
+	if errE != nil {
+		globals.Logger.Error().Str("entity", entity.ID).Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }

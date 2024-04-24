@@ -744,11 +744,13 @@ func convertImage( //nolint:maintidx
 	return doc, errE
 }
 
-func GetWikimediaCommonsFile(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string) (*peerdb.Document, store.Version, errors.E) {
+func GetWikimediaCommonsFile(
+	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string,
+) (*peerdb.Document, store.Version, errors.E) {
 	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name
-		return nil, store.Version{}, err
+		return nil, store.Version{}, err //nolint:exhaustruct
 	}
 
 	return document, version, nil

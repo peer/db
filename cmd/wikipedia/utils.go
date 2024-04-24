@@ -238,7 +238,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 
 				count.Increment()
 
-				errE = templatesCommandProcessPage(ctx, globals, store, esClient, esProcessor, page, html, mnemonicPrefix, from)
+				errE = templatesCommandProcessPage(ctx, globals, store, esClient, page, html, mnemonicPrefix, from)
 				if errE != nil {
 					return errE
 				}
@@ -252,7 +252,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 
 func templatesCommandProcessPage(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
+	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -330,7 +330,15 @@ func templatesCommandProcessPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(ctx, store, document, version)
+	errE = peerdb.UpdateDocument(ctx, store, document, version)
+	if errE != nil {
+		details := errors.Details(errE)
+		details["doc"] = document.ID.String()
+		details["entity"] = id
+		details["title"] = page.Title
+		globals.Logger.Error().Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }
@@ -400,7 +408,11 @@ func filesCommandProcessImage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
-	peerdb.InsertOrReplaceDocument(ctx, store, document)
+	errE = peerdb.InsertOrReplaceDocument(ctx, store, document)
+	if errE != nil {
+		globals.Logger.Error().Err(errE).Send()
+		return nil
+	}
 
 	return nil
 }

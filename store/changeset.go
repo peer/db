@@ -63,7 +63,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 	}
 	patchesEmptyValue := ""
 	if c.store.patchesEnabled {
-		patchesEmptyValue = ", '{}'"
+		patchesEmptyValue = ", '{}'" //nolint:goconst
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -115,7 +115,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...) //nolint:goconst
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError

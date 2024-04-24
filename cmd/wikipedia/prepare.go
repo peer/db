@@ -53,16 +53,18 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	return c.updateEmbeddedDocuments(ctx, globals, store, esClient, esProcessor, cache)
+	return c.updateEmbeddedDocuments(ctx, globals, store, esClient, cache)
 }
 
-func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, esProcessor *elastic.BulkProcessor) errors.E {
+func (c *PrepareCommand) saveCoreProperties(
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	esClient *elastic.Client, esProcessor *elastic.BulkProcessor,
+) errors.E {
 	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
-	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, cache *es.Cache,
+	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -115,7 +117,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, s, esClient, esProcessor, cache, d)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, s, esClient, cache, d)
 					if err != nil {
 						return err
 					}
@@ -132,7 +134,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	esProcessor *elastic.BulkProcessor, cache *es.Cache, id identifier.Identifier,
+	cache *es.Cache, id identifier.Identifier,
 ) errors.E { //nolint:unparam
 	data, _, version, errE := store.GetLatest(ctx, id)
 	if errE != nil {
@@ -165,7 +167,13 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 
 	if changed {
 		logger.Debug().Str("doc", id.String()).Msg("updating document")
-		peerdb.UpdateDocument(ctx, store, &doc, version)
+		errE = peerdb.UpdateDocument(ctx, store, &doc, version)
+		if errE != nil {
+			details := errors.Details(errE)
+			details["doc"] = id.String()
+			logger.Error().Err(errE).Msg("updating document failed")
+			return nil
+		}
 	}
 
 	return nil
