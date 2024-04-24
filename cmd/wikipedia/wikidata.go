@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 
@@ -13,6 +14,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 //nolint:gochecknoglobals
@@ -51,15 +53,15 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestWikidataEntitiesRun
 	}
 
-	ctx, cancel, _, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
+	ctx, stop, _, store, _, esProcessor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikidataDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, esClient, cache, processor, entity)
+		return c.processEntity(ctx, globals, store, cache, esProcessor, entity)
 	})
 	if errE != nil {
 		return errE
@@ -74,9 +76,9 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, esProcessor *elastic.BulkProcessor, entity mediawiki.Entity,
 ) errors.E {
-	document, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	document, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if errE != nil {
 		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("entity", entity.ID).Err(errE).Send()
@@ -94,7 +96,7 @@ func (c *WikidataCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", entity.ID).Msg("saving document")
-	peerdb.InsertOrReplaceDocument(processor, globals.Index, document)
+	peerdb.InsertOrReplaceDocument(ctx, store, document)
 
 	return nil
 }

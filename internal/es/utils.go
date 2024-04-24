@@ -214,14 +214,14 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string, 
 	return ctx, stop, httpClient, store, esClient, esProcessor, nil
 }
 
-func Progress(logger zerolog.Logger, processor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
+func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
 	if description == "" {
 		description = "progress"
 	}
 	return func(_ context.Context, p x.Progress) {
 		e := logger.Info()
-		if processor != nil {
-			stats := processor.Stats()
+		if esProcessor != nil {
+			stats := esProcessor.Stats()
 			e = e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
 		}
 		e = e.Int64("count", p.Count)

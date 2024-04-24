@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -98,20 +100,23 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 }
 
 func initializeElasticSearch(globals *Globals) (
-	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
-	*elastic.BulkProcessor, *es.Cache, errors.E,
+	context.Context, context.CancelFunc, *retryablehttp.Client,
+	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	*elastic.Client, *elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
-	ctx, cancel, httpClient, esClient, processor, errE := es.Standalone(globals.Logger, globals.Elastic, globals.Index, globals.SizeField)
+	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
+		globals.Logger, string(globals.Database), globals.Elastic, globals.Schema, globals.Index, globals.SizeField,
+	)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, nil, errE
 	}
 
 	cache, errE := es.NewCache(lruCacheSize)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, nil, errE
 	}
 
-	return ctx, cancel, httpClient, esClient, processor, cache, errE
+	return ctx, stop, httpClient, store, esClient, esProcessor, cache, errE
 }
 
 func initializeRun(
@@ -119,18 +124,19 @@ func initializeRun(
 	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
 	count *int64,
 ) (
-	context.Context, context.CancelFunc, *retryablehttp.Client, *elastic.Client,
+	context.Context, context.CancelFunc, *retryablehttp.Client,
+	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *elastic.Client,
 	*elastic.BulkProcessor, *es.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
-	ctx, cancel, httpClient, esClient, processor, cache, errE := initializeElasticSearch(globals)
+	ctx, stop, httpClient, store, esClient, esProcessor, cache, errE := initializeElasticSearch(globals)
 	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, nil, errE
+		return nil, nil, nil, nil, nil, nil, nil, nil, errE
 	}
 
 	if urlFunc != nil {
 		url, errE := urlFunc(ctx, httpClient)
 		if errE != nil {
-			return nil, nil, nil, nil, nil, nil, nil, errE
+			return nil, nil, nil, nil, nil, nil, nil, nil, errE
 		}
 
 		// Is URL in fact a path to a local file?
@@ -143,18 +149,18 @@ func initializeRun(
 			url = ""
 		}
 
-		return ctx, cancel, httpClient, esClient, processor, cache, &mediawiki.ProcessDumpConfig{
+		return ctx, stop, httpClient, store, esClient, esProcessor, cache, &mediawiki.ProcessDumpConfig{
 			URL:                    url,
 			Path:                   dumpPath,
 			Client:                 httpClient,
 			DecompressionThreads:   globals.DecodingThreads,
 			DecodingThreads:        globals.DecodingThreads,
 			ItemsProcessingThreads: globals.ItemsProcessingThreads,
-			Progress:               es.Progress(globals.Logger, processor, cache, count, ""),
+			Progress:               es.Progress(globals.Logger, esProcessor, cache, count, ""),
 		}, nil
 	}
 
-	return ctx, cancel, httpClient, esClient, processor, cache, nil, nil
+	return ctx, stop, httpClient, store, esClient, esProcessor, cache, nil, nil
 }
 
 func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mnemonicPrefix, from string) errors.E {
@@ -163,12 +169,12 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 		return errE
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	ctx, stop, httpClient, store, esClient, esProcessor, _, _, errE := initializeRun(globals, nil, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
@@ -185,7 +191,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
-			stats := processor.Stats()
+			stats := esProcessor.Stats()
 			globals.Logger.Info().
 				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
@@ -232,7 +238,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 
 				count.Increment()
 
-				errE = templatesCommandProcessPage(ctx, globals, esClient, processor, page, html, mnemonicPrefix, from)
+				errE = templatesCommandProcessPage(ctx, globals, store, esClient, esProcessor, page, html, mnemonicPrefix, from)
 				if errE != nil {
 					return errE
 				}
@@ -245,8 +251,8 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 }
 
 func templatesCommandProcessPage(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor,
-	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -256,7 +262,7 @@ func templatesCommandProcessPage(
 		return nil
 	}
 
-	document, hit, errE := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["entity"] = id
@@ -324,7 +330,7 @@ func templatesCommandProcessPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }
@@ -335,12 +341,12 @@ func filesCommandRun(
 	token string, apiLimit int, saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
 ) errors.E {
-	ctx, cancel, httpClient, _, processor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
+	ctx, stop, httpClient, store, _, esProcessor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig[wikipedia.Image]{
 		URL:                    config.URL,
@@ -351,7 +357,7 @@ func filesCommandRun(
 		ItemsProcessingThreads: config.ItemsProcessingThreads,
 		Process: func(ctx context.Context, i wikipedia.Image) errors.E {
 			return filesCommandProcessImage(
-				ctx, globals, httpClient, processor, token, apiLimit, skippedMap, skippedCount, i, convertImage,
+				ctx, globals, httpClient, store, token, apiLimit, skippedMap, skippedCount, i, convertImage,
 			)
 		},
 		Progress:    config.Progress,
@@ -371,7 +377,7 @@ func filesCommandRun(
 }
 
 func filesCommandProcessImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, processor *elastic.BulkProcessor,
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
 ) errors.E {
@@ -394,7 +400,7 @@ func filesCommandProcessImage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", image.Name).Msg("saving document")
-	peerdb.InsertOrReplaceDocument(processor, globals.Index, document)
+	peerdb.InsertOrReplaceDocument(ctx, store, document)
 
 	return nil
 }

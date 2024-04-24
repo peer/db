@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -62,11 +61,18 @@ func InsertOrReplaceDocument(ctx context.Context, store *store.Store[json.RawMes
 	return errE
 }
 
-// UpdateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on seqNo and primaryTerm).
-func UpdateDocument(processor *elastic.BulkProcessor, index string, seqNo, primaryTerm int64, doc *Document) {
-	// TODO: Update to use PostgreSQL store.
-	req := elastic.NewBulkIndexRequest().Index(index).Id(doc.ID.String()).IfSeqNo(seqNo).IfPrimaryTerm(primaryTerm).Doc(&doc)
-	processor.Add(req)
+// UpdateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on its current version).
+func UpdateDocument(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], doc *Document, version store.Version) errors.E {
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	if errE != nil {
+		return errE
+	}
+
+	// Store does not allow multiple latest versions so if document has been updated in meantime it cannot be updated again and the call will fail.
+	// TODO: Set patch. Or update revision?
+	//       Especially if this is done while preparing for a commit a changeset of multiple changes? But then we should not be calling store.Update but changeset.Update.
+	_, errE = store.Update(ctx, doc.ID, version.Changeset, data, json.RawMessage(`{}`), json.RawMessage(`{}`))
+	return errE
 }
 
 func getRequestWithFallback(logger zerolog.Logger) func(context.Context) (string, string) {

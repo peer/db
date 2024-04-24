@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"html"
@@ -24,6 +25,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -742,12 +744,12 @@ func convertImage( //nolint:maintidx
 	return doc, errE
 }
 
-func GetWikimediaCommonsFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
-	document, hit, err := getDocumentFromESByProp(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+func GetWikimediaCommonsFile(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string) (*peerdb.Document, store.Version, errors.E) {
+	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name
-		return nil, nil, err
+		return nil, store.Version{}, err
 	}
 
-	return document, hit, nil
+	return document, version, nil
 }

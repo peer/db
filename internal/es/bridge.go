@@ -17,7 +17,7 @@ import (
 
 func Bridge[Data, Metadata, Patch any](
 	ctx context.Context, logger zerolog.Logger, store *store.Store[Data, Metadata, Patch],
-	processor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, Patch],
+	esProcessor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, Patch],
 ) {
 	for {
 		select {
@@ -55,7 +55,7 @@ func Bridge[Data, Metadata, Patch any](
 				// TODO: Convert data into searchable document for the general case.
 				// TODO: Use also information about the view so that documents are searchable by view as well.
 				req := elastic.NewBulkIndexRequest().Index(index).Id(change.ID.String()).Doc(data)
-				processor.Add(req)
+				esProcessor.Add(req)
 			}
 		}
 	}

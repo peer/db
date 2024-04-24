@@ -385,7 +385,7 @@ func generateAllCoreProperties() {
 
 func SaveCoreProperties(
 	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	esClient *elastic.Client, processor *elastic.BulkProcessor, index string,
+	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
 ) errors.E {
 	for _, property := range CoreProperties {
 		if ctx.Err() != nil {
@@ -404,7 +404,7 @@ func SaveCoreProperties(
 	time.Sleep(time.Second)
 
 	// Make sure all just added documents are available for search.
-	err := processor.Flush()
+	err := esProcessor.Flush()
 	if err != nil {
 		return errors.WithStack(err)
 	}

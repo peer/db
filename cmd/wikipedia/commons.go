@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 //nolint:gochecknoglobals
@@ -62,15 +64,15 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 		urlFunc = mediawiki.LatestCommonsEntitiesRun
 	}
 
-	ctx, cancel, _, esClient, processor, cache, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, stop, _, store, esClient, esProcessor, cache, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessCommonsEntitiesDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
-		return c.processEntity(ctx, globals, esClient, cache, processor, entity)
+		return c.processEntity(ctx, globals, store, esClient, cache, entity)
 	})
 	if errE != nil {
 		return errE
@@ -80,7 +82,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, cache *es.Cache, processor *elastic.BulkProcessor, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
 	filename := strings.TrimPrefix(entity.Title, "File:")
 	filename = strings.ReplaceAll(filename, " ", "_")
@@ -91,7 +93,7 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
-	document, hit, errE := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -100,7 +102,7 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
-	additionalDocument, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, esClient, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
+	additionalDocument, errE := wikipedia.ConvertEntity(ctx, globals.Index, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if errE != nil {
 		if errors.Is(errE, wikipedia.ErrSilentSkipped) {
 			globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Err(errE).Str("entity", entity.ID).Send()
@@ -128,7 +130,7 @@ func (c *CommonsCommand) processEntity(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("entity", entity.ID).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }
@@ -201,12 +203,12 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	ctx, stop, httpClient, store, esClient, esProcessor, _, _, errE := initializeRun(globals, nil, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
@@ -223,7 +225,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
-			stats := processor.Stats()
+			stats := esProcessor.Stats()
 			globals.Logger.Info().
 				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
@@ -249,7 +251,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 				count.Increment()
 
-				errE = c.processPage(ctx, globals, esClient, processor, page, html)
+				errE = c.processPage(ctx, globals, store, esClient, esProcessor, page, html)
 				if errE != nil {
 					return errE
 				}
@@ -262,8 +264,8 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsFileDescriptionsCommand) processPage(
-	ctx context.Context, globals *Globals, esClient *elastic.Client,
-	processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	filename := strings.TrimPrefix(page.Title, "File:")
 	// First we make sure we do not have spaces.
@@ -276,7 +278,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	document, hit, errE := wikipedia.GetWikimediaCommonsFile(ctx, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -336,7 +338,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }
@@ -366,12 +368,12 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	ctx, cancel, httpClient, esClient, processor, _, _, errE := initializeRun(globals, nil, nil)
+	ctx, stop, httpClient, store, esClient, esProcessor, _, _, errE := initializeRun(globals, nil, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
@@ -388,7 +390,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
-			stats := processor.Stats()
+			stats := esProcessor.Stats()
 			globals.Logger.Info().
 				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
@@ -419,7 +421,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 				count.Increment()
 
-				errE = c.processPage(ctx, globals, esClient, processor, page, html)
+				errE = c.processPage(ctx, globals, store, esClient, esProcessor, page, html)
 				if errE != nil {
 					return errE
 				}
@@ -432,7 +434,8 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCategoriesCommand) processPage(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -442,7 +445,7 @@ func (c *CommonsCategoriesCommand) processPage(
 		return nil
 	}
 
-	document, hit, err := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, id)
+	document, version, err := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
 	if err != nil {
 		details := errors.Details(err)
 		details["entity"] = id
@@ -510,7 +513,7 @@ func (c *CommonsCategoriesCommand) processPage(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", id).Str("title", page.Title).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }

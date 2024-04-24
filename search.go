@@ -20,8 +20,8 @@ import (
 
 func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop.id", "2fjzZyP7rv8E4aHnBc6KAa"),
-		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),
+		elastic.NewTermQuery("claims.rel.prop.id", "2fjzZyP7rv8E4aHnBc6KAa"), // IS.
+		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),   // PROPERTY.
 	)
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)
 
@@ -263,7 +263,7 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		//       Maybe we should cache response ourselves so that we do not hit store twice?
 		w.Header().Set("Location", path)
 		w.WriteHeader(http.StatusSeeOther)
 		return
@@ -275,7 +275,7 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf
 			return
 		}
 		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		//       Maybe we should cache response ourselves so that we do not hit store twice?
 		w.Header().Set("Location", path)
 		w.WriteHeader(http.StatusSeeOther)
 		return
@@ -314,7 +314,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 	if !ok {
 		// Something was not OK, so we return new query parameters.
 		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit ES twice?
+		//       Maybe we should cache response ourselves so that we do not hit store twice?
 		s.WriteJSON(w, req, sh, nil)
 		return
 	}
@@ -381,6 +381,6 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 	m.Stop()
 
 	// TODO: Should we already do the query, to warm up ES cache?
-	//       Maybe we should cache response ourselves so that we do not hit ES twice?
+	//       Maybe we should cache response ourselves so that we do not hit store twice?
 	s.WriteJSON(w, req, sh, nil)
 }

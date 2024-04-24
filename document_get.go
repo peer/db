@@ -48,8 +48,8 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 				s.InternalServerErrorWithError(w, req, err)
 				return
 			}
-			// TODO: Should we already do the query, to warm up ES cache?
-			//       Maybe we should cache response ourselves so that we do not hit ES twice?
+			// TODO: Should we already do the query, to warm up store cache?
+			//       Maybe we should cache response ourselves so that we do not hit store twice?
 			w.Header().Set("Location", path)
 			w.WriteHeader(http.StatusSeeOther)
 			return
@@ -60,8 +60,8 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 				s.InternalServerErrorWithError(w, req, err)
 				return
 			}
-			// TODO: Should we already do the query, to warm up ES cache?
-			//       Maybe we should cache response ourselves so that we do not hit ES twice?
+			// TODO: Should we already do the query, to warm up store cache?
+			//       Maybe we should cache response ourselves so that we do not hit store twice?
 			w.Header().Set("Location", path)
 			w.WriteHeader(http.StatusSeeOther)
 			return

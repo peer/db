@@ -2,6 +2,7 @@ package wikipedia
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"math"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -224,32 +226,25 @@ func getDocumentReference(id, source string) document.Reference {
 	panic(errors.Errorf("unsupported ID for source \"%s\": %s", source, id))
 }
 
-func getDocumentFromESByProp(ctx context.Context, index string, esClient *elastic.Client, property, id string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
-	searchResult, err := esClient.Search(index).Query(elastic.NewNestedQuery("claims.id",
-		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.id.prop.id", peerdb.GetCorePropertyID(property).String()),
-			elastic.NewTermQuery("claims.id.id", id),
-		),
-	)).SeqNoAndPrimaryTerm(true).Do(ctx)
+func getDocumentFromByProp(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, property, id string) (*peerdb.Document, store.Version, errors.E) {
+	searchResult, err := esClient.Search(index).FetchSource(false).AllowPartialSearchResults(false).
+		Query(elastic.NewNestedQuery("claims.id",
+			elastic.NewBoolQuery().Must(
+				elastic.NewTermQuery("claims.id.prop.id", peerdb.GetCorePropertyID(property).String()),
+				elastic.NewTermQuery("claims.id.id", id),
+			),
+		)).Do(ctx)
 	if err != nil {
 		// Caller should add details to the error.
-		return nil, nil, errors.WithStack(err)
+		return nil, store.Version{}, errors.WithStack(err)
 	}
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
 	for _, hit := range searchResult.Hits.Hits {
-		var doc peerdb.Document
-		err = x.UnmarshalWithoutUnknownFields(hit.Source, &doc)
-		if err != nil {
-			// Caller should add details to the error.
-			return nil, nil, errors.WithStack(err)
-		}
-
-		// ID is not stored in the document, so we set it here ourselves.
-		var errE errors.E
-		doc.ID, errE = identifier.FromString(hit.Id)
+		doc, version, errE := getDocumentFromByID(ctx, s, identifier.MustFromString(hit.Id))
 		if errE != nil {
-			return nil, nil, errE
+			// Caller should add details to the error.
+			return nil, store.Version{}, errE
 		}
 
 		found := false
@@ -265,47 +260,40 @@ func getDocumentFromESByProp(ctx context.Context, index string, esClient *elasti
 			continue
 		}
 
-		return &doc, hit, nil
+		return doc, version, nil
 	}
 
 	// Caller should add details to the error.
-	return nil, nil, errors.WithStack(ErrNotFound)
+	return nil, store.Version{}, errors.WithStack(ErrNotFound)
 }
 
-func getDocumentFromESByID(ctx context.Context, index string, esClient *elastic.Client, id identifier.Identifier) (*peerdb.Document, errors.E) {
-	esDoc, err := esClient.Get().Index(index).Id(id.String()).Do(ctx)
-	if elastic.IsNotFound(err) {
+func getDocumentFromByID(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], id identifier.Identifier) (*peerdb.Document, store.Version, errors.E) {
+	data, _, version, errE := s.GetLatest(ctx, id)
+	if errors.Is(errE, store.ErrValueNotFound) {
 		// Caller should add details to the error.
-		return nil, errors.WithStack(ErrNotFound)
-	} else if err != nil {
-		// Caller should add details to the error.
-		return nil, errors.WithStack(err)
-	} else if !esDoc.Found {
-		// Caller should add details to the error.
-		return nil, errors.WithStack(ErrNotFound)
+		return nil, store.Version{}, errors.WithStack(ErrNotFound)
+	} else if errE != nil {
+		return nil, store.Version{}, errE
 	}
 
 	var doc peerdb.Document
-	err = x.UnmarshalWithoutUnknownFields(esDoc.Source, &doc)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+	if errE != nil {
 		// Caller should add details to the error.
-		return nil, errors.WithStack(err)
+		return nil, store.Version{}, errE
 	}
 
-	// ID is not stored in the document, so we set it here ourselves.
-	doc.ID = id
-
-	return &doc, nil
+	return &doc, version, nil
 }
 
-func GetWikidataItem(ctx context.Context, index string, esClient *elastic.Client, id string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
-	doc, hit, err := getDocumentFromESByProp(ctx, index, esClient, "WIKIDATA_ITEM_ID", id)
-	if err != nil {
-		errors.Details(err)["entity"] = id
-		return nil, nil, err
+func GetWikidataItem(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, id string) (*peerdb.Document, store.Version, errors.E) {
+	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "WIKIDATA_ITEM_ID", id)
+	if errE != nil {
+		errors.Details(errE)["entity"] = id
+		return nil, store.Version{}, errE
 	}
 
-	return doc, hit, nil
+	return doc, version, nil
 }
 
 func clampConfidence(c document.Score) document.Score {
@@ -362,7 +350,7 @@ func resolveDataTypeFromPropertyDocument(doc *peerdb.Document, prop string, valu
 }
 
 func getDataTypeForProperty(
-	ctx context.Context, index string, esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, index string, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	prop string, valueType *mediawiki.WikiBaseEntityType,
 ) (mediawiki.DataType, errors.E) {
 	id := GetWikidataDocumentID(prop)
@@ -377,7 +365,7 @@ func getDataTypeForProperty(
 		return resolveDataTypeFromPropertyDocument(maybeDocument.(*peerdb.Document), prop, valueType) //nolint:forcetypeassert
 	}
 
-	doc, err := getDocumentFromESByID(ctx, index, esClient, id)
+	doc, _, err := getDocumentFromByID(ctx, store, id)
 	if errors.Is(err, ErrNotFound) {
 		cache.Add(id, nil)
 		errors.Details(err)["prop"] = prop
@@ -401,7 +389,7 @@ func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
 }
 
 func processSnak( //nolint:ireturn,nolintlint,maintidx
-	ctx context.Context, index string, esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, index string, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
 ) ([]document.Claim, errors.E) {
 	id := peerdb.GetID(namespace, idArgs...)
@@ -440,7 +428,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 		// Wikimedia Commons might not have the datatype field set, so we have to fetch it ourselves.
 		// See: https://phabricator.wikimedia.org/T311977
 		var err errors.E
-		dataType, err = getDataTypeForProperty(ctx, index, esClient, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
+		dataType, err = getDataTypeForProperty(ctx, index, store, cache, prop, getWikiBaseEntityType(snak.DataValue.Value))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "unable to resolve data type for property with value %T", snak.DataValue.Value)
 		}
@@ -716,13 +704,13 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 }
 
 func addQualifiers(
-	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E { //nolint:unparam
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaims, errE := processSnak(
-				ctx, index, esClient, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
+				ctx, index, store, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
@@ -749,7 +737,7 @@ func addQualifiers(
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
 // TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E { //nolint:unparam
 	// Edge case.
@@ -777,7 +765,7 @@ func addReference(
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
 			cs, errE := processSnak(
-				ctx, index, esClient, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
+				ctx, index, store, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
@@ -812,7 +800,7 @@ func addReference(
 // ConvertEntity converts both Wikidata entities and Wikimedia Commons entities.
 // Entities can reference only Wikimedia Commons files and not Wikipedia files.
 func ConvertEntity( //nolint:maintidx
-	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, entity mediawiki.Entity,
 ) (*peerdb.Document, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
@@ -1103,7 +1091,7 @@ func ConvertEntity( //nolint:maintidx
 
 			confidence := getConfidence(entity.ID, prop, statement.ID, statement.Rank)
 			claims, errE := processSnak(
-				ctx, index, esClient, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
+				ctx, index, store, cache, namespace, prop, []interface{}{entity.ID, prop, statement.ID, "mainsnak"}, confidence, statement.MainSnak,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Str("mainsnak")).
@@ -1116,7 +1104,7 @@ func ConvertEntity( //nolint:maintidx
 			}
 			for j, claim := range claims {
 				errE = addQualifiers(
-					ctx, index, logger, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
+					ctx, index, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, statement.Qualifiers, statement.QualifiersOrder,
 				)
 				if errE != nil {
 					logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("qualifiers")).
@@ -1124,7 +1112,7 @@ func ConvertEntity( //nolint:maintidx
 					continue
 				}
 				for i, reference := range statement.References {
-					errE = addReference(ctx, index, logger, esClient, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
+					errE = addReference(ctx, index, logger, store, cache, namespace, claim, entity.ID, prop, statement.ID, i, reference)
 					if errE != nil {
 						logger.Warn().Str("entity", entity.ID).Array("path", zerolog.Arr().Str(prop).Str(statement.ID).Int(j).Str("reference").Int(i)).
 							Err(errE).Send()

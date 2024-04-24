@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -130,15 +132,15 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, stop, _, store, esClient, esProcessor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return c.processArticle(ctx, globals, esClient, processor, article)
+		return c.processArticle(ctx, globals, store, esClient, esProcessor, article)
 	})
 	if errE != nil {
 		return errE
@@ -148,7 +150,8 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaFileDescriptionsCommand) processArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
 	// First we make sure we do not have spaces.
@@ -164,7 +167,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, hit, errE := wikipedia.GetWikipediaFile(ctx, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikipediaFile(ctx, store, globals.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -230,7 +233,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("file", filename).Str("title", article.Name).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }
@@ -255,15 +258,15 @@ func wikipediaArticlesRun(
 		}
 	}
 
-	ctx, cancel, _, esClient, processor, _, config, errE := initializeRun(globals, urlFunc, nil)
+	ctx, stop, _, store, esClient, esProcessor, _, config, errE := initializeRun(globals, urlFunc, nil)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
-		return wikipediaArticlesProcessArticle(ctx, globals, esClient, processor, article, convertArticle)
+		return wikipediaArticlesProcessArticle(ctx, globals, store, esClient, esProcessor, article, convertArticle)
 	})
 	if errE != nil {
 		return errE
@@ -273,8 +276,8 @@ func wikipediaArticlesRun(
 }
 
 func wikipediaArticlesProcessArticle(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, article mediawiki.Article,
-	convertArticle func(string, string, *peerdb.Document) errors.E,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, article mediawiki.Article, convertArticle func(string, string, *peerdb.Document) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
@@ -296,7 +299,7 @@ func wikipediaArticlesProcessArticle(
 		return nil
 	}
 
-	document, hit, errE := wikipedia.GetWikidataItem(ctx, globals.Index, esClient, article.MainEntity.Identifier)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, article.MainEntity.Identifier)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["entity"] = article.MainEntity.Identifier
@@ -365,7 +368,7 @@ func wikipediaArticlesProcessArticle(
 	}
 
 	globals.Logger.Debug().Str("doc", document.ID.String()).Str("entity", article.MainEntity.Identifier).Str("title", article.Name).Msg("updating document")
-	peerdb.UpdateDocument(processor, globals.Index, *hit.SeqNo, *hit.PrimaryTerm, document)
+	peerdb.UpdateDocument(ctx, store, document, version)
 
 	return nil
 }

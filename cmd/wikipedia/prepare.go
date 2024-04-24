@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io"
+	"encoding/json"
 	"runtime"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -40,27 +41,28 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	ctx, cancel, _, esClient, processor, cache, errE := initializeElasticSearch(globals)
+	ctx, top, _, store, esClient, esProcessor, cache, errE := initializeElasticSearch(globals)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer top()
+	defer esProcessor.Close()
 
-	errE = c.saveCoreProperties(ctx, globals, esClient, processor)
+	errE = c.saveCoreProperties(ctx, globals, store, esClient, esProcessor)
 	if errE != nil {
 		return errE
 	}
 
-	return c.updateEmbeddedDocuments(ctx, globals, esClient, processor, cache)
+	return c.updateEmbeddedDocuments(ctx, globals, store, esClient, esProcessor, cache)
 }
 
-func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor) errors.E {
-	return peerdb.SaveCoreProperties(ctx, globals.Logger, esClient, processor, globals.Index)
+func (c *PrepareCommand) saveCoreProperties(ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, esProcessor *elastic.BulkProcessor) errors.E {
+	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
-	ctx context.Context, globals *Globals, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache,
+	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -73,7 +75,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	g, ctx := errgroup.WithContext(ctx)
 
 	count := x.Counter(0)
-	progress := es.Progress(globals.Logger, processor, cache, nil, "")
+	progress := es.Progress(globals.Logger, nil, cache, nil, "")
 	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -82,28 +84,25 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 		}
 	}()
 
-	hits := make(chan *elastic.SearchHit, documentProcessingThreads)
+	documents := make(chan identifier.Identifier, documentProcessingThreads)
 	g.Go(func() error {
-		defer close(hits)
+		defer close(documents)
 
-		scroll := esClient.Scroll(globals.Index).
-			Size(documentProcessingThreads*scrollingMultiplier).
-			Sort("_doc", true).
-			SearchSource(elastic.NewSearchSource().SeqNoAndPrimaryTerm(true))
+		var after *identifier.Identifier
 		for {
-			results, err := scroll.Do(ctx)
-			if errors.Is(err, io.EOF) {
-				return nil
-			} else if err != nil {
-				return errors.WithStack(err)
+			docs, errE := s.List(ctx, after)
+			if errE != nil {
+				return errE
 			}
 
-			for _, hit := range results.Hits.Hits {
+			for _, d := range docs {
+				d := d
 				select {
-				case hits <- hit:
+				case documents <- d:
 				case <-ctx.Done():
 					return errors.WithStack(ctx.Err())
 				}
+				after = &d
 			}
 		}
 	})
@@ -112,11 +111,11 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 		g.Go(func() error {
 			for {
 				select {
-				case hit, ok := <-hits:
+				case d, ok := <-documents:
 					if !ok {
 						return nil
 					}
-					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, esClient, processor, cache, hit)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, s, esClient, esProcessor, cache, d)
 					if err != nil {
 						return err
 					}
@@ -132,42 +131,41 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, processor *elastic.BulkProcessor, cache *es.Cache, hit *elastic.SearchHit,
+	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	esProcessor *elastic.BulkProcessor, cache *es.Cache, id identifier.Identifier,
 ) errors.E { //nolint:unparam
-	var doc peerdb.Document
-	errE := x.UnmarshalWithoutUnknownFields(hit.Source, &doc)
+	data, _, version, errE := store.GetLatest(ctx, id)
 	if errE != nil {
 		details := errors.Details(errE)
-		details["doc"] = hit.Id
+		details["doc"] = id.String()
 		logger.Error().Err(errE).Send()
 		return nil
 	}
 
-	// ID is not stored in the document, so we set it here ourselves.
-	doc.ID, errE = identifier.FromString(hit.Id)
+	var doc peerdb.Document
+	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		details := errors.Details(errE)
-		details["doc"] = doc.ID.String()
-		details["id"] = hit.Id
-		logger.Error().Err(errE).Msg("invalid hit ID")
+		details["doc"] = id.String()
+		logger.Error().Err(errE).Send()
 		return nil
 	}
 
 	changed, errE := wikipedia.UpdateEmbeddedDocuments(
-		ctx, index, logger, esClient, cache,
+		ctx, logger, store, index, esClient, cache,
 		&skippedWikidataEntities, &skippedWikimediaCommonsFiles,
 		&doc,
 	)
 	if errE != nil {
 		details := errors.Details(errE)
-		details["doc"] = doc.ID.String()
+		details["doc"] = id.String()
 		logger.Error().Err(errE).Msg("updating embedded documents failed")
 		return nil
 	}
 
 	if changed {
-		logger.Debug().Str("doc", doc.ID.String()).Msg("updating document")
-		peerdb.UpdateDocument(processor, index, *hit.SeqNo, *hit.PrimaryTerm, &doc)
+		logger.Debug().Str("doc", id.String()).Msg("updating document")
+		peerdb.UpdateDocument(ctx, store, &doc, version)
 	}
 
 	return nil

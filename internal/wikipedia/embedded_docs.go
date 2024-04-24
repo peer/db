@@ -2,6 +2,7 @@ package wikipedia
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 var (
@@ -27,6 +29,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	Context                      context.Context //nolint:containedctx
 	Log                          zerolog.Logger
 	Index                        string
+	Store                        *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
 	Cache                        *es.Cache
 	SkippedWikidataEntities      *sync.Map
 	SkippedWikimediaCommonsFiles *sync.Map
@@ -155,7 +158,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
 	}
 
-	document, _, err := getDocumentFromESByProp(v.Context, v.Index, v.ESClient, property, title)
+	document, _, err := getDocumentFromByProp(v.Context, v.Store, v.Index, v.ESClient, property, title)
 	if errors.Is(err, ErrNotFound) {
 		v.Cache.Add(title, nil)
 		return nil, err
@@ -180,7 +183,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
 	}
 
-	document, err := getDocumentFromESByID(v.Context, v.Index, v.ESClient, id)
+	document, _, err := getDocumentFromByID(v.Context, v.Store, id)
 	if errors.Is(err, ErrNotFound) {
 		v.Cache.Add(id, nil)
 		return nil, err
@@ -530,8 +533,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, index string, logger zerolog.Logger, esClient *elastic.Client, cache *es.Cache,
-	skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *peerdb.Document,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client,
+	cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *peerdb.Document,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []document.Claim{}
@@ -560,6 +563,7 @@ func UpdateEmbeddedDocuments(
 		Context:                      ctx,
 		Log:                          logger,
 		Index:                        index,
+		Store:                        store,
 		Cache:                        cache,
 		SkippedWikidataEntities:      skippedWikidataEntities,
 		SkippedWikimediaCommonsFiles: skippedWikimediaCommonsFiles,

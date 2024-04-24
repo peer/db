@@ -119,3 +119,12 @@ func (s *Store[Data, Metadata, Patch]) Changeset(_ context.Context, id identifie
 func (s *Store[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Data, Metadata, Patch], errors.E) {
 	return s.Changeset(ctx, identifier.New())
 }
+
+// List returns up to 5000 value IDs committed to the MainView, ordered by ID, after optional ID to support keyset pagination.
+func (s *Store[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return nil, errE
+	}
+	return view.List(ctx, after)
+}

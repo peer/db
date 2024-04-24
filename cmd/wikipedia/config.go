@@ -19,14 +19,16 @@ const (
 type Globals struct {
 	zerolog.LoggingConfig
 
-	Version                kong.VersionFlag `                             help:"Show program's version and exit."                                                                                            short:"V"`
-	CacheDir               string           `default:"${defaultCacheDir}" help:"Where to cache files to. Default: ${defaultCacheDir}."                                       name:"cache" placeholder:"DIR"  short:"C" type:"path"`
-	Elastic                string           `default:"${defaultElastic}"  help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                           placeholder:"URL"  short:"e"`
-	Index                  string           `default:"${defaultIndex}"    help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                            placeholder:"NAME" short:"i"`
-	SizeField              bool             `                             help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
-	DecompressionThreads   int              `default:"0"                  help:"The number of threads used for decompression. Defaults to the number of available cores."                 placeholder:"INT"`
-	DecodingThreads        int              `default:"0"                  help:"The number of threads used for decoding. Defaults to the number of available cores."                      placeholder:"INT"`
-	ItemsProcessingThreads int              `default:"0"                  help:"The number of threads used for items processing. Defaults to the number of available cores."              placeholder:"INT"`
+	Version                kong.VersionFlag     `                                                 help:"Show program's version and exit."                                                                                                        short:"V"`
+	CacheDir               string               `default:"${defaultCacheDir}"                     help:"Where to cache files to. Default: ${defaultCacheDir}."                                       name:"cache" placeholder:"DIR"              short:"C" type:"path"`
+	Database               kong.FileContentFlag `                             env:"DATABASE_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                                         placeholder:"PATH" required:"" short:"d"`
+	Elastic                string               `default:"${defaultElastic}"                      help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                           placeholder:"URL"              short:"e"`
+	Index                  string               `default:"${defaultIndex}"                        help:"Name of ElasticSearch index to use. Default: ${defaultIndex}."                                            placeholder:"NAME"             short:"i"`
+	Schema                 string               `default:"${defaultSchema}"                       help:"Name of PostgreSQL schema to use Default: ${defaultSchema}."                                              placeholder:"NAME"             short:"s"`
+	SizeField              bool                 `                                                 help:"Enable size field on documents.. Requires mapper-size ElasticSearch plugin installed."`
+	DecompressionThreads   int                  `default:"0"                                      help:"The number of threads used for decompression. Defaults to the number of available cores."                 placeholder:"INT"`
+	DecodingThreads        int                  `default:"0"                                      help:"The number of threads used for decoding. Defaults to the number of available cores."                      placeholder:"INT"`
+	ItemsProcessingThreads int                  `default:"0"                                      help:"The number of threads used for items processing. Defaults to the number of available cores."              placeholder:"INT"`
 }
 
 // Config provides configuration.

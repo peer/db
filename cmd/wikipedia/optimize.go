@@ -7,12 +7,12 @@ import (
 type OptimizeCommand struct{}
 
 func (c *OptimizeCommand) Run(globals *Globals) errors.E {
-	ctx, cancel, _, esClient, processor, _, errE := initializeElasticSearch(globals)
+	ctx, stop, _, _, esClient, esProcessor, _, errE := initializeElasticSearch(globals)
 	if errE != nil {
 		return errE
 	}
-	defer cancel()
-	defer processor.Close()
+	defer stop()
+	defer esProcessor.Close()
 
 	_, err := esClient.Forcemerge(globals.Index).Do(ctx)
 	if err != nil {

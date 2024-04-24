@@ -2,6 +2,7 @@ package wikipedia
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 var (
@@ -216,15 +218,15 @@ func ConvertTemplateDescription(id, from string, html string, doc *peerdb.Docume
 	return convertDescription(NameSpaceWikidata, id, from, html, doc, ExtractTemplateDescription)
 }
 
-func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Client, name string) (*peerdb.Document, *elastic.SearchHit, errors.E) {
-	doc, hit, errE := getDocumentFromESByProp(ctx, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
+func GetWikipediaFile(ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string) (*peerdb.Document, store.Version, errors.E) {
+	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, ErrNotFound) { //nolint:revive
 		// Passthrough.
 	} else if errE != nil {
 		errors.Details(errE)["file"] = name
-		return nil, nil, errE
+		return nil, store.Version{}, errE
 	} else {
-		return doc, hit, nil
+		return doc, version, nil
 	}
 
 	// Is there a Wikimedia Commons file under that name? Most files with article on Wikipedia
@@ -232,21 +234,21 @@ func GetWikipediaFile(ctx context.Context, index string, esClient *elastic.Clien
 	// from Wikimedia Commons which have different names so this can have false negatives.
 	// False positives might also be possible but are probably harmless: we already did not
 	// find a Wikipedia file, so we are primarily trying to understand why not.
-	_, _, errE2 := getDocumentFromESByProp(ctx, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
+	_, _, errE2 := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if errors.Is(errE2, ErrNotFound) {
 		// We have not found a Wikimedia Commons file. Return the original error.
 		errors.Details(errE)["file"] = name
-		return nil, nil, errE
+		return nil, store.Version{}, errE
 	} else if errE2 != nil {
 		errors.Details(errE2)["file"] = name
-		return nil, nil, errors.WithMessage(errE2, "checking for Wikimedia Commons")
+		return nil, store.Version{}, errors.WithMessage(errE2, "checking for Wikimedia Commons")
 	}
 
 	// We found a Wikimedia Commons file.
 	errE = errors.WithStack(ErrWikimediaCommonsFile)
 	errors.Details(errE)["file"] = name
 	errors.Details(errE)["url"] = fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", name)
-	return nil, nil, errE
+	return nil, store.Version{}, errE
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
