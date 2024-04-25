@@ -18,6 +18,19 @@ const (
 	DefaultTitle    = "PeerDB"
 )
 
+//nolint:lll
+type PostgresConfig struct {
+	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                           placeholder:"PATH" required:"" short:"d" yaml:"database"`
+	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${defaultSchema}." placeholder:"NAME"                       yaml:"schema"`
+}
+
+//nolint:lll
+type ElasticConfig struct {
+	URL       string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                     placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index     string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                        placeholder:"NAME"           yaml:"index"`
+	SizeField bool   `                            help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                              yaml:"sizeField"`
+}
+
 // Globals describes top-level (global) flags.
 //
 //nolint:lll
@@ -27,12 +40,10 @@ type Globals struct {
 	Version kong.VersionFlag `help:"Show program's version and exit."                                              short:"V" yaml:"-"`
 	Config  cli.ConfigFlag   `help:"Load configuration from a JSON or YAML file." name:"config" placeholder:"PATH" short:"c" yaml:"-"`
 
-	Database  kong.FileContentFlag `                            env:"DATABASE_PATH"                help:"File with PostgreSQL database URL. Environment variable: ${env}."                                                                                                               placeholder:"PATH" required:""            short:"d" yaml:"database"`
-	Elastic   string               `default:"${defaultElastic}"                                    help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                                                                                 placeholder:"URL"                         short:"e" yaml:"elastic"`
-	Index     string               `default:"${defaultIndex}"                       group:"Sites:" help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                                                                                    placeholder:"NAME"                                  yaml:"index"`
-	Schema    string               `default:"${defaultSchema}"                      group:"Sites:" help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${defaultSchema}."                                                                                     placeholder:"NAME"                                  yaml:"schema"`
-	SizeField bool                 `                                                group:"Sites:" help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                                                                                                                 yaml:"sizeField"`
-	Sites     []Site               `                                                group:"Sites:" help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site" placeholder:"SITE"             sep:"none" short:"s" yaml:"sites"`
+	Postgres PostgresConfig `embed:"" envprefix:"POSTGRES_" prefix:"postgres." yaml:"postgres"`
+	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
+
+	Sites []Site `help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 func (g *Globals) Validate() error {
@@ -78,7 +89,7 @@ type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured."   name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
-	Title  string `default:"${defaultTitle}" group:"Sites:"         help:"Title to be shown to the users when sites are not configured. Default: ${defaultTitle}."                   placeholder:"NAME"   short:"T" yaml:"title"`
+	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${defaultTitle}."                   placeholder:"NAME"   short:"T" yaml:"title"`
 }
 
 func (c *ServeCommand) Validate() error {

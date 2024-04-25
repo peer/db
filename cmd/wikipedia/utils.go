@@ -105,7 +105,7 @@ func initializeElasticSearch(globals *Globals) (
 	*elastic.Client, *elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
 	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
-		globals.Logger, string(globals.Database), globals.Elastic, globals.Schema, globals.Index, globals.SizeField,
+		globals.Logger, string(globals.Postgres.URL), globals.Elastic.URL, globals.Postgres.Schema, globals.Elastic.Index, globals.Elastic.SizeField,
 	)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, nil, errE
@@ -262,7 +262,7 @@ func templatesCommandProcessPage(
 		return nil
 	}
 
-	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Elastic.Index, esClient, id)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["entity"] = id

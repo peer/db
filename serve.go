@@ -59,10 +59,10 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 				KeyFile:  "",
 			},
 			Build:           nil,
-			Index:           globals.Index,
-			Schema:          globals.Schema,
+			Index:           globals.Elastic.Index,
+			Schema:          globals.Postgres.Schema,
 			Title:           c.Title,
-			SizeField:       globals.SizeField,
+			SizeField:       globals.Elastic.SizeField,
 			store:           nil,
 			esProcessor:     nil,
 			propertiesTotal: 0,
@@ -79,10 +79,10 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	if !sitesProvided {
 		// We set fields not set when sites are automatically constructed.
 		for _, site := range sites {
-			site.Index = globals.Index
-			site.Schema = globals.Schema
+			site.Index = globals.Elastic.Index
+			site.Schema = globals.Postgres.Schema
 			site.Title = c.Title
-			site.SizeField = globals.SizeField
+			site.SizeField = globals.Elastic.SizeField
 		}
 	}
 
@@ -103,12 +103,12 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		return nil, nil, errors.WithStack(err)
 	}
 
-	dbpool, errE := internal.InitPostgres(ctx, string(globals.Database), globals.Logger, getRequestWithFallback(globals.Logger))
+	dbpool, errE := internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 	if errE != nil {
 		return nil, nil, errE
 	}
 
-	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
+	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 	if errE != nil {
 		return nil, nil, errE
 	}

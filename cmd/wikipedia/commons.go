@@ -94,7 +94,7 @@ func (c *CommonsCommand) processEntity(
 		return nil
 	}
 
-	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Elastic.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -283,7 +283,7 @@ func (c *CommonsFileDescriptionsCommand) processPage(
 		return nil
 	}
 
-	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikimediaCommonsFile(ctx, store, globals.Elastic.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -454,7 +454,7 @@ func (c *CommonsCategoriesCommand) processPage(
 		return nil
 	}
 
-	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, id)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Elastic.Index, esClient, id)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["entity"] = id

@@ -37,12 +37,12 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	dbpool, errE := internal.InitPostgres(ctx, string(globals.Database), globals.Logger, getRequestWithFallback(globals.Logger))
+	dbpool, errE := internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 	if errE != nil {
 		return errE
 	}
 
-	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic)
+	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 	if errE != nil {
 		return errE
 	}
@@ -55,7 +55,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			}
 		}
 	} else {
-		err := c.runIndex(ctx, globals.Logger, dbpool, esClient, globals.Schema, globals.Index, globals.SizeField)
+		err := c.runIndex(ctx, globals.Logger, dbpool, esClient, globals.Postgres.Schema, globals.Elastic.Index, globals.Elastic.SizeField)
 		if err != nil {
 			return err
 		}

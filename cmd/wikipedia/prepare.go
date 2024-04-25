@@ -60,7 +60,7 @@ func (c *PrepareCommand) saveCoreProperties(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor,
 ) errors.E {
-	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Index)
+	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Elastic.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
@@ -69,7 +69,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
 
-	total, err := esClient.Count(globals.Index).Do(ctx)
+	total, err := esClient.Count(globals.Elastic.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -117,7 +117,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 					if !ok {
 						return nil
 					}
-					err := c.updateEmbeddedDocumentsOne(ctx, globals.Index, globals.Logger, s, esClient, cache, d)
+					err := c.updateEmbeddedDocumentsOne(ctx, globals.Elastic.Index, globals.Logger, s, esClient, cache, d)
 					if err != nil {
 						return err
 					}

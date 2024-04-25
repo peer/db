@@ -166,7 +166,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 	// Dump contains descriptions of Wikipedia files and of Wikimedia Commons files (used on Wikipedia).
 	// We want to use descriptions of just Wikipedia files, so when a file is not found among Wikipedia files,
 	// we check if it is a Wikimedia Commons file.
-	document, version, errE := wikipedia.GetWikipediaFile(ctx, store, globals.Index, esClient, filename)
+	document, version, errE := wikipedia.GetWikipediaFile(ctx, store, globals.Elastic.Index, esClient, filename)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["file"] = filename
@@ -306,7 +306,7 @@ func wikipediaArticlesProcessArticle(
 		return nil
 	}
 
-	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Index, esClient, article.MainEntity.Identifier)
+	document, version, errE := wikipedia.GetWikidataItem(ctx, store, globals.Elastic.Index, esClient, article.MainEntity.Identifier)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["entity"] = article.MainEntity.Identifier

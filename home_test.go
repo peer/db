@@ -133,11 +133,15 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 		LoggingConfig: z.LoggingConfig{ //nolint:exhaustruct
 			Logger: logger,
 		},
-		Database:  []byte(os.Getenv("POSTGRES")),
-		Elastic:   os.Getenv("ELASTIC"),
-		Index:     strings.ToLower(identifier.New().String()),
-		Schema:    identifier.New().String(),
-		SizeField: false,
+		Postgres: peerdb.PostgresConfig{
+			URL:    []byte(os.Getenv("POSTGRES")),
+			Schema: identifier.New().String(),
+		},
+		Elastic: peerdb.ElasticConfig{
+			URL:       os.Getenv("ELASTIC"),
+			Index:     strings.ToLower(identifier.New().String()),
+			SizeField: false,
+		},
 	}
 
 	populate := peerdb.PopulateCommand{}

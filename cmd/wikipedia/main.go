@@ -15,6 +15,7 @@ func main() {
 		"defaultCacheDir": DefaultCacheDir,
 		"defaultElastic":  peerdb.DefaultElastic,
 		"defaultIndex":    peerdb.DefaultIndex,
+		"defaultSchema":   peerdb.DefaultSchema,
 	}, func(ctx *kong.Context) errors.E {
 		return errors.WithStack(ctx.Run(&config.Globals))
 	})
