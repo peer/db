@@ -281,8 +281,8 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 					FROM "firstViewWithValue" JOIN "committedValues" USING ("view")
 						JOIN "changes" USING ("changeset", "id")
 					WHERE "id"=$2
-					AND "changeset"=$3
-					AND "revision"=$4
+						AND "changeset"=$3
+						AND "revision"=$4
 			`, arguments...).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)

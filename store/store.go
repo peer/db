@@ -179,7 +179,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					BEGIN
 						DELETE FROM "currentChanges" USING OLD_ROWS
 							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset"
-							AND "currentChanges"."id"=OLD_ROWS."id";
+								AND "currentChanges"."id"=OLD_ROWS."id";
 						INSERT INTO "currentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "changes"."revision"
 								FROM OLD_ROWS JOIN "changes" USING ("changeset", "id")
