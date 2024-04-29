@@ -478,10 +478,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	c = channelContents.Prune()
 	assert.Empty(t, c)
 
-	mainView, errE := s.View(ctx, store.MainView)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	changesets, errE := changeset.Commit(ctx, mainView, d.CommitMetadata)
+	changesets, errE := s.Commit(ctx, changeset, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
 		assert.Equal(t, changeset, changesets[0])
@@ -549,7 +546,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	changeset, errE = s.Changeset(ctx, changeset.ID())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	changesets, errE = changeset.Commit(ctx, mainView, d.CommitMetadata)
+	changesets, errE = s.Commit(ctx, changeset, d.CommitMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, changesets, 1) {
 		assert.Equal(t, changeset, changesets[0])
@@ -612,9 +609,6 @@ func TestListPagination(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	view, errE := s.View(ctx, store.MainView)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	for i := 0; i < 6000; i++ {
 		newID := identifier.New()
 		_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
@@ -623,7 +617,7 @@ func TestListPagination(t *testing.T) {
 		ids = append(ids, newID)
 	}
 
-	_, errE = changeset.Commit(ctx, view, dummyData)
+	_, errE = s.Commit(ctx, changeset, dummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	page1, errE := s.List(ctx, nil)
@@ -638,9 +632,7 @@ func TestListPagination(t *testing.T) {
 	inserted = append(inserted, page1...)
 	inserted = append(inserted, page2...)
 
-	slices.SortFunc(ids, func(a, b identifier.Identifier) int {
-		return bytes.Compare(a[:], b[:])
-	})
+	ids = sortIDs(ids...)
 
 	assert.Equal(t, ids, inserted)
 
@@ -673,9 +665,6 @@ func TestChangesPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	changesets = append(changesets, version.Changeset)
 
-	view, errE := s.View(ctx, store.MainView)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	var changeset store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]
 	for i := 0; i < 6000; i++ {
 		changeset, errE = s.Begin(ctx)
@@ -687,7 +676,7 @@ func TestChangesPagination(t *testing.T) {
 		changesets = append(changesets, version.Changeset)
 	}
 
-	_, errE = changeset.Commit(ctx, view, dummyData)
+	_, errE = s.Commit(ctx, changeset, dummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	page1, errE := s.Changes(ctx, newID, nil)
@@ -803,9 +792,6 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
-	mainView, errE := s.View(ctx, store.MainView)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	newID := identifier.New()
 	secondID := identifier.New()
 
@@ -827,7 +813,7 @@ func TestInterdependentChangesets(t *testing.T) {
 	_, errE = changeset1.Update(ctx, newID, changeset2.ID(), dummyData, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	changesets, errE := changeset1.Commit(ctx, mainView, dummyData)
+	changesets, errE := s.Commit(ctx, changeset1, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
 }
@@ -1139,13 +1125,10 @@ func TestDiscardAfterCommit(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	v, errE := s.View(ctx, store.MainView)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
 	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Commit(ctx, v, dummyData)
+	_, errE = s.Commit(ctx, changeset, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = changeset.Discard(ctx)
@@ -1160,10 +1143,7 @@ func TestEmptyChangeset(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	v, errE := s.View(ctx, store.MainView)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	_, errE = changeset.Commit(ctx, v, dummyData)
+	_, errE = s.Commit(ctx, changeset, dummyData)
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 
 	errE = changeset.Discard(ctx)
@@ -1171,4 +1151,109 @@ func TestEmptyChangeset(t *testing.T) {
 
 	errE = changeset.Discard(ctx)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
+	slices.SortFunc(ids, func(a, b identifier.Identifier) int {
+		return bytes.Compare(a[:], b[:])
+	})
+	return ids
+}
+
+func testChanges(
+	t *testing.T, ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	id identifier.Identifier, expected []identifier.Identifier,
+) {
+	t.Helper()
+
+	changes, errE := s.Changes(ctx, id, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, expected, changes)
+
+	for i, c := range changes {
+		c := c
+		cs, errE := s.Changes(ctx, id, &c)
+		assert.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, changes[i+1:], cs, "%d %#v", i, c)
+	}
+}
+
+func TestMultiplePathsToSameChangeset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changesetA, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changesetA.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changesetB1, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changesetB1.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changesetB2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changesetB2.Update(ctx, newID, changesetB1.ID(), dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	merged, errE := s.Merge(ctx, newID, []identifier.Identifier{changesetA.ID(), changesetB2.ID()}, dummyData, []json.RawMessage{dummyData, dummyData}, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		// Depth 0.
+		merged.Changeset,
+		// Depth 1.
+		sortIDs(changesetB2.ID(), changesetA.ID())[0],
+		sortIDs(changesetB2.ID(), changesetA.ID())[1],
+		// Depth 2.
+		sortIDs(version.Changeset, changesetB1.ID())[0],
+		sortIDs(version.Changeset, changesetB1.ID())[1],
+	})
+}
+
+func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changesetA, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changesetA.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changesetB, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changesetB.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	merged, errE := s.Merge(ctx, newID, []identifier.Identifier{changesetA.ID(), changesetB.ID()}, dummyData, []json.RawMessage{dummyData, dummyData}, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		// Depth 0.
+		merged.Changeset,
+		// Depth 1.
+		sortIDs(changesetA.ID(), changesetB.ID())[0],
+		sortIDs(changesetA.ID(), changesetB.ID())[1],
+		// Depth 2.
+		version.Changeset,
+	})
 }

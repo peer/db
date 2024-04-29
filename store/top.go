@@ -120,6 +120,17 @@ func (s *Store[Data, Metadata, Patch]) Begin(ctx context.Context) (Changeset[Dat
 	return s.Changeset(ctx, identifier.New())
 }
 
+// Commit commits a changeset to the MainView.
+func (s *Store[Data, Metadata, Patch]) Commit(
+	ctx context.Context, changeset Changeset[Data, Metadata, Patch], metadata Metadata,
+) ([]Changeset[Data, Metadata, Patch], errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return nil, errE
+	}
+	return view.Commit(ctx, changeset, metadata)
+}
+
 // List returns up to 5000 value IDs committed to the MainView, ordered by ID, after optional ID to support keyset pagination.
 func (s *Store[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	view, errE := s.View(ctx, MainView)

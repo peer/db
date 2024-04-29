@@ -52,6 +52,11 @@ func (v View[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store
 	return store.View(ctx, v.name)
 }
 
+// Commit commits a changeset to the view.
+func (v View[Data, Metadata, Patch]) Commit(ctx context.Context, changeset Changeset[Data, Metadata, Patch], metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
+	return changeset.Commit(ctx, v, metadata)
+}
+
 // Insert auto-commits the insert change into the view.
 func (v View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata,
@@ -330,7 +335,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		values = nil
+		values = make([]identifier.Identifier, 0, 5000)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -409,7 +414,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = nil
+		changesets = make([]identifier.Identifier, 0, 5000)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -479,7 +484,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = nil
+		changesets = make([]identifier.Identifier, 0, 5000)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -522,7 +527,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 						-- but it is sorted later.
 						"distinctChangesets"."viewDepth"="depths"."viewDepth"
 						AND "distinctChangesets"."committedValuesDepth"="depths"."committedValuesDepth"
-						AND "changeset">'UkhtMZPoSP4Snz3GdLdHba'
+						AND "changeset">$3
 					)
 				-- We return distinct "changeset" in the order we want.
 				ORDER BY "distinctChangesets"."viewDepth" ASC, "distinctChangesets"."committedValuesDepth" ASC,
