@@ -573,7 +573,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
-		committedChangeset, errE := c[0].WithStore(ctx, s)
+		committedChangeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := committedChangeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {

@@ -324,7 +324,8 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	afterCondition := ""
 	if after != nil {
 		arguments = append(arguments, after.String())
-		afterCondition = `WHERE "id">$2`
+		// We want to make sure that after value really exists.
+		afterCondition = `WHERE EXISTS (SELECT 1 FROM c WHERE "id"=$2) AND "id">$2`
 	}
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -337,7 +338,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 					WHERE "currentViews"."name"=$1
 			)
 			SELECT DISTINCT "id"
-				FROM "viewPath" JOIN "committedValues" USING ("view")
+				FROM "viewPath" JOIN "committedValues" USING ("view") AS c
 				`+afterCondition+`
 				-- We order by ID to enable keyset pagination.
 				ORDER BY "id"
@@ -346,9 +347,9 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
-		var id string
-		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-			values = append(values, identifier.MustFromString(id))
+		var i string
+		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
+			values = append(values, identifier.MustFromString(i))
 			return nil
 		})
 		if err != nil {
@@ -362,6 +363,20 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 				return internal.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
+			}
+			if after != nil {
+				err = tx.QueryRow(ctx, `SELECT EXISTS (
+					WITH "viewPath" AS (
+						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+							WHERE "currentViews"."name"=$1
+					)
+					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2
+				)`, arguments...).Scan(&exists)
+				if err != nil {
+					return internal.WithPgxError(err)
+				} else if !exists {
+					return errors.WithStack(ErrValueNotFound)
+				}
 			}
 			// There is nothing wrong with having no values.
 		}
@@ -427,9 +442,9 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
-		var id string
-		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-			changesets = append(changesets, identifier.MustFromString(id))
+		var i string
+		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
+			changesets = append(changesets, identifier.MustFromString(i))
 			return nil
 		})
 		if err != nil {
@@ -444,6 +459,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
+			// There should be at least one change if value exists, the change inserting the value.
 			return errors.WithStack(ErrValueNotFound)
 		}
 		return nil
@@ -517,9 +533,9 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
-		var id string
-		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-			changesets = append(changesets, identifier.MustFromString(id))
+		var i string
+		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
+			changesets = append(changesets, identifier.MustFromString(i))
 			return nil
 		})
 		if err != nil {
@@ -534,7 +550,35 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
-			return errors.WithStack(ErrValueNotFound)
+			err = tx.QueryRow(ctx, `
+				SELECT EXISTS (
+					WITH "viewPath" AS (
+						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+							WHERE "currentViews"."name"=$1
+					)
+					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2
+				)
+			`, v.name, id.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrValueNotFound)
+			}
+			err = tx.QueryRow(ctx, `
+				SELECT EXISTS (
+					WITH "viewPath" AS (
+						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+							WHERE "currentViews"."name"=$1
+					)
+					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2 AND "changeset"=$3
+				)
+			`, arguments...).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrChangesetNotFound)
+			}
+			// There is nothing wrong with having no changes anymore for valid value ID and after a valid after changeset.
 		}
 		return nil
 	})

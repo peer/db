@@ -98,7 +98,7 @@ func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx p
 // Init initializes the Store.
 //
 // It creates and configures the PostgreSQL schema if it does not yet exist.
-func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns
+func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns,maintidx
 	if s.dbpool != nil {
 		return errors.New("already initialized")
 	}
