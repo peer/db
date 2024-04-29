@@ -643,6 +643,22 @@ func TestListPagination(t *testing.T) {
 	})
 
 	assert.Equal(t, ids, inserted)
+
+	v, errE := s.View(ctx, "unknown")
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		_, errE = v.List(ctx, nil)
+		assert.ErrorIs(t, errE, store.ErrViewNotFound)
+	}
+
+	// Having no more values is not an error.
+	page3, errE := s.List(ctx, &page2[999])
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, page3, 0)
+
+	// Using unknown after ID is an error.
+	newID := identifier.New()
+	_, errE = s.List(ctx, &newID)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
 func TestChangesPagination(t *testing.T) {
@@ -688,6 +704,33 @@ func TestChangesPagination(t *testing.T) {
 	slices.Reverse(changes)
 
 	assert.Equal(t, changesets, changes)
+
+	changesetID := identifier.New()
+
+	v, errE := s.View(ctx, "unknown")
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		_, errE = v.Changes(ctx, newID, nil)
+		assert.ErrorIs(t, errE, store.ErrViewNotFound)
+		// Same for the code path with after changeset.
+		_, errE = v.Changes(ctx, newID, &changesetID)
+		assert.ErrorIs(t, errE, store.ErrViewNotFound)
+	}
+
+	// Having no more changes is not an error.
+	page3, errE := s.Changes(ctx, newID, &page2[1000])
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, page3, 0)
+
+	// Changes for unknown value is an error.
+	_, errE = s.Changes(ctx, identifier.New(), nil)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+	// Same for the code path with after changeset.
+	_, errE = s.Changes(ctx, identifier.New(), &changesetID)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// Using unknown after changeset is an error.
+	_, errE = s.Changes(ctx, newID, &changesetID)
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }
 
 func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
