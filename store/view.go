@@ -325,7 +325,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	if after != nil {
 		arguments = append(arguments, after.String())
 		// We want to make sure that after value really exists.
-		afterCondition = `WHERE EXISTS (SELECT 1 FROM c WHERE "id"=$2) AND "id">$2`
+		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
 	}
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -338,7 +338,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 					WHERE "currentViews"."name"=$1
 			)
 			SELECT DISTINCT "id"
-				FROM "viewPath" JOIN "committedValues" USING ("view") AS c
+				FROM "viewPath" JOIN "committedValues" USING ("view")
 				`+afterCondition+`
 				-- We order by ID to enable keyset pagination.
 				ORDER BY "id"
