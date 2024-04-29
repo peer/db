@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -533,12 +534,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
-	newID = identifier.New()
+	newID2 := identifier.New()
 
 	changeset, errE = s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	newVersion, errE = changeset.Insert(ctx, newID, d.InsertData, d.InsertMetadata)
+	newVersion, errE = changeset.Insert(ctx, newID2, d.InsertData, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, changeset.ID(), newVersion.Changeset)
 		assert.Equal(t, int64(1), newVersion.Revision)
@@ -554,13 +555,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, changeset, changesets[0])
 	}
 
-	data, metadata, errE = s.Get(ctx, newID, newVersion)
+	data, metadata, errE = s.Get(ctx, newID2, newVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, newID)
+	data, metadata, version, errE = s.GetLatest(ctx, newID2)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
@@ -577,13 +578,116 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 			changes, errE := committedChangeset.Changeset.Changes(ctx)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
-					assert.Equal(t, newID, changes[0].ID)
+					assert.Equal(t, newID2, changes[0].ID)
 					assert.Equal(t, newVersion.Changeset, changes[0].Version.Changeset)
 					assert.Equal(t, newVersion.Revision, changes[0].Version.Revision)
 				}
 			}
 		}
 	}
+
+	ids, errE := s.List(ctx, nil)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.ElementsMatch(t, []identifier.Identifier{expectedID, newID, newID2}, ids)
+	}
+
+	ids, errE = s.Changes(ctx, expectedID, nil)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, []identifier.Identifier{
+			deleteVersion.Changeset,
+			replaceVersion.Changeset,
+			updateVersion.Changeset,
+			insertVersion.Changeset,
+		}, ids)
+	}
+}
+
+func TestListPagination(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	ids := []identifier.Identifier{}
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	view, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for i := 0; i < 6000; i++ {
+		newID := identifier.New()
+		_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
+		require.NoError(t, errE, "%d % -+#.1v", errE)
+
+		ids = append(ids, newID)
+	}
+
+	_, errE = changeset.Commit(ctx, view, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	page1, errE := s.List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page1, 5000)
+
+	page2, errE := s.List(ctx, &page1[4999])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page2, 1000)
+
+	inserted := []identifier.Identifier{}
+	inserted = append(inserted, page1...)
+	inserted = append(inserted, page2...)
+
+	slices.SortFunc(ids, func(a, b identifier.Identifier) int {
+		return bytes.Compare(a[:], b[:])
+	})
+
+	assert.Equal(t, ids, inserted)
+}
+
+func TestChangesPagination(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	changesets := []identifier.Identifier{}
+
+	newID := identifier.New()
+	version, errE := s.Insert(ctx, newID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	changesets = append(changesets, version.Changeset)
+
+	view, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	var changeset store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]
+	for i := 0; i < 6000; i++ {
+		changeset, errE = s.Begin(ctx)
+		require.NoError(t, errE, "% -+#.1v", errE)
+
+		version, errE = changeset.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+		require.NoError(t, errE, "%d % -+#.1v", errE)
+
+		changesets = append(changesets, version.Changeset)
+	}
+
+	_, errE = changeset.Commit(ctx, view, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	page1, errE := s.Changes(ctx, newID, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page1, 5000)
+
+	page2, errE := s.Changes(ctx, newID, &page1[4999])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page2, 1001)
+
+	changes := []identifier.Identifier{}
+	changes = append(changes, page1...)
+	changes = append(changes, page2...)
+	slices.Reverse(changes)
+
+	assert.Equal(t, changesets, changes)
 }
 
 func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {

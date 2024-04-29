@@ -128,3 +128,13 @@ func (s *Store[Data, Metadata, Patch]) List(ctx context.Context, after *identifi
 	}
 	return view.List(ctx, after)
 }
+
+// Changes returns up to 5000 changesets for the value committed to the MainView, ordered by first depth and then
+// changeset ID, after optional changeset ID to support keyset pagination.
+func (s *Store[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return nil, errE
+	}
+	return view.Changes(ctx, id, after)
+}

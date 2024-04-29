@@ -339,6 +339,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 			SELECT DISTINCT "id"
 				FROM "viewPath" JOIN "committedValues" USING ("view")
 				`+afterCondition+`
+				-- We order by ID to enable keyset pagination.
 				ORDER BY "id"
 				LIMIT 5000
 			`, arguments...)
@@ -374,6 +375,176 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 		}
 	}
 	return values, errE
+}
+
+// Changes returns up to 5000 changesets for the value committed to the view, ordered by first depth and then
+// changeset ID, after optional changeset ID to support keyset pagination.
+func (v View[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	if after != nil {
+		return v.changesAfter(ctx, id, *after)
+	}
+
+	return v.changesInitial(ctx, id)
+}
+
+func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	arguments := []any{
+		v.name, id.String(),
+	}
+	var changesets []identifier.Identifier
+	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		changesets = nil
+
+		rows, err := tx.Query(ctx, `
+			WITH "viewPath" AS (
+				-- We care about order of views so we annotate views in the path with view's index.
+				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "currentViews"."name"=$1
+			), "distinctChangesets" AS (
+				SELECT DISTINCT ON ("changeset")
+					"changeset", "viewPath"."depth" AS "viewDepth", "committedValues"."depth" AS "committedValuesDepth"
+				FROM "viewPath"
+					-- This gives us changesets for each view for each value.
+					JOIN "committedValues" USING ("view")
+				WHERE "id"=$2
+				ORDER BY
+					-- We order by "changeset" first to be able to do DISTINCT ON.
+					"changeset",
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					"viewPath"."depth" ASC,
+					-- Then we search inside each view in the order of tree traversal.
+					"committedValues"."depth" ASC
+			)
+			SELECT "changeset"
+				FROM "distinctChangesets"
+				-- We return distinct "changeset" in the order we want.
+				ORDER BY "viewDepth" ASC, "committedValuesDepth" ASC
+				LIMIT 5000
+			`, arguments...)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		var id string
+		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+			changesets = append(changesets, identifier.MustFromString(id))
+			return nil
+		})
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if len(changesets) == 0 {
+			// TODO: Is there a better way to check without doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrViewNotFound)
+			}
+			return errors.WithStack(ErrValueNotFound)
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.name
+		details["id"] = id.String()
+	}
+	return changesets, errE
+}
+
+func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	arguments := []any{
+		v.name, id.String(), after.String(),
+	}
+	var changesets []identifier.Identifier
+	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		changesets = nil
+
+		rows, err := tx.Query(ctx, `
+			WITH "viewPath" AS (
+				-- We care about order of views so we annotate views in the path with view's index.
+				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "currentViews"."name"=$1
+			), "distinctChangesets" AS (
+				SELECT DISTINCT ON ("changeset")
+					"changeset", "viewPath"."depth" AS "viewDepth", "committedValues"."depth" AS "committedValuesDepth"
+				FROM "viewPath"
+					-- This gives us changesets for each view for each value.
+					JOIN "committedValues" USING ("view")
+				WHERE "id"=$2
+				ORDER BY
+					-- We order by "changeset" first to be able to do DISTINCT ON.
+					"changeset",
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					"viewPath"."depth" ASC,
+					-- Then we search inside each view in the order of tree traversal.
+					"committedValues"."depth" ASC
+			), "depths" AS (
+				-- This should return at most one row.
+				SELECT "viewDepth", "committedValuesDepth"
+					FROM "distinctChangesets"
+					WHERE "changeset"=$3
+			)
+			SELECT "changeset"
+				FROM "distinctChangesets", "depths"
+				WHERE (
+						-- Or a changeset is in a deeper view than the after changeset.
+						"distinctChangesets"."viewDepth">"depths"."viewDepth"
+					) OR (
+						-- Or a changeset is in the same view, but deeper than the after changeset.
+						"distinctChangesets"."viewDepth"="depths"."viewDepth"
+						AND "distinctChangesets"."committedValuesDepth">"depths"."committedValuesDepth"
+					) OR (
+						-- Or a changeset is in the same view and at the same depth than the after changeset,
+						-- but it is sorted later.
+						"distinctChangesets"."viewDepth"="depths"."viewDepth"
+						AND "distinctChangesets"."committedValuesDepth"="depths"."committedValuesDepth"
+						AND "changeset">'UkhtMZPoSP4Snz3GdLdHba'
+					)
+				-- We return distinct "changeset" in the order we want.
+				ORDER BY "distinctChangesets"."viewDepth" ASC, "distinctChangesets"."committedValuesDepth" ASC,
+					-- If there are multiple changesets at the same depth,
+					-- we order by ID to enable keyset pagination at the depth.
+					"changeset" ASC
+		`, arguments...)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		var id string
+		_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+			changesets = append(changesets, identifier.MustFromString(id))
+			return nil
+		})
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		if len(changesets) == 0 {
+			// TODO: Is there a better way to check without doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrViewNotFound)
+			}
+			return errors.WithStack(ErrValueNotFound)
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["view"] = v.name
+		details["id"] = id.String()
+		details["after"] = after.String()
+	}
+	return changesets, errE
 }
 
 // TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.

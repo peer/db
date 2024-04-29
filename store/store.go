@@ -139,22 +139,22 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "changes" table contains all changes to values.
 				CREATE TABLE "changes" (
 					-- ID of the changeset this change belongs to.
-					"changeset" text STORAGE PLAIN NOT NULL,
+					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- ID of the value.
-					"id" text STORAGE PLAIN NOT NULL,
+					"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- Revision of this change.
 					"revision" bigint NOT NULL,
 					-- IDs of changesets this value has been changed the last before this change.
 					-- The same changeset ID can happen to repeat when melding multiple values
 					-- (parentIds is then set, too).
-					"parentChangesets" text[] NOT NULL,
+					"parentChangesets" text[] COLLATE "C" NOT NULL,
 					-- Direct previous IDs of this value. Multiple if this change is melding multiple
 					-- values (number of IDs and order matches parentChangesets). Only one ID if a new
 					-- value is being forked from the existing one (in this case history is preserved,
 					-- but a new identity is made). An empty array means that the ID has not changed.
 					-- The same parent ID can happen to repeat when both merging and melding at the
 					-- same time.
-					"parentIds" text[] NOT NULL DEFAULT '{}',
+					"parentIds" text[] COLLATE "C" NOT NULL DEFAULT '{}',
 					-- Data of the value at this version of the value.
 					-- NULL if value has been deleted.
 					"data" `+s.DataType+`,
@@ -201,14 +201,14 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "views" table contains all changes to views.
 				CREATE TABLE "views" (
 					-- ID of the view.
-					"view" text STORAGE PLAIN NOT NULL,
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- Revision of this view.
 					"revision" bigint NOT NULL,
 					-- Name of the view. Optional.
 					"name" text,
 					-- Path of view IDs starting with the current view, then the
 					-- parent view, and then all further ancestors.
-					"path" text[] NOT NULL,
+					"path" text[] COLLATE "C" NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
 					PRIMARY KEY ("view", "revision"),
 					-- We do not allow empty strings for names. Use NULL instead.
@@ -240,9 +240,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- them explicitly. The set of changesets belonging to the view should be kept
 					-- consistent so that a new changeset is added to the view only if all ancestor
 					-- changesets are already present in the view or in its ancestor views.
-					"changeset" text STORAGE PLAIN NOT NULL,
+					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- ID of the view.
-					"view" text STORAGE PLAIN NOT NULL,
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- Revision of this committed changeset.
 					"revision" bigint NOT NULL,
 					"metadata" `+s.MetadataType+` NOT NULL,
@@ -269,7 +269,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each view from table "views".
 				CREATE TABLE "currentViews" (
 					-- A subset of "views" columns.
-					"view" text STORAGE PLAIN NOT NULL,
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					-- Having "name" here allows easy querying by name and also makes it easy for us to enforce
 					-- the property we want: that each name is used by only one view at every given moment.
@@ -283,8 +283,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each change from table "changes".
 				CREATE TABLE "currentChanges" (
 					-- A subset of "changes" columns.
-					"changeset" text STORAGE PLAIN NOT NULL,
-					"id" text STORAGE PLAIN NOT NULL,
+					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
+					"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "id")
 				);
@@ -296,8 +296,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- revision of each committed changeset from table "committedChangesets".
 				CREATE TABLE "currentCommittedChangesets" (
 					-- A subset of "committedChangesets" columns.
-					"changeset" text STORAGE PLAIN NOT NULL,
-					"view" text STORAGE PLAIN NOT NULL,
+					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "view")
 				);
@@ -308,9 +308,9 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				-- "committedValues" is automatically maintained table of all changesets reachable from
 				-- changesets explicitly committed to each view.
 				CREATE TABLE "committedValues" (
-					"view" text STORAGE PLAIN NOT NULL,
-					"id" text STORAGE PLAIN NOT NULL,
-					"changeset" text STORAGE PLAIN NOT NULL,
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
+					"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
+					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"depth" bigint NOT NULL,
 					PRIMARY KEY ("view", "id", "changeset"),
 					-- We allow only one version of the value per view at depth 0.
@@ -390,7 +390,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						WITH RECURSIVE "viewChangesets" AS (
 							SELECT "changeset" FROM "currentCommittedChangesets" WHERE "view"=ANY(_path)
 						), "changesetsToCommit"("changeset") AS (
-								VALUES (_changeset)
+								VALUES (_changeset COLLATE "C")
 							-- We use UNION and not UNION ALL here because we need distinct values in _changesetsToCommit
 							-- because we have to insert only one row for each changeset into "committedChangesets".
 							UNION
@@ -410,7 +410,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						)
 						SELECT array_agg("changeset") INTO _changesetsToCommit FROM "changesetsToCommit";
 						-- This raises unique violation if the provided changeset is already committed
-						-- (ancestor changesets we added to _changesetsToCommit because they are not).
+						-- (we added ancestor changesets to _changesetsToCommit because they are not committed so
+						-- we know they are not the ones raising unique violation, only the provided changeset can).
 						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
 						-- Determine reachable changesets for all values in the changeset we want to commit.
 						-- Other changesets from _changesetsToCommit should be found again as well.
@@ -429,6 +430,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						INSERT INTO "committedValues" SELECT DISTINCT ON ("changeset", "id") _view, "id", "changeset", "depth"
 							FROM "reachableChangesets"
 							-- We pick the smallest depth to be deterministic when there are multiple paths to the same changeset.
+							-- If multiple paths lead to the same changeset at the same depth, we also insert a changeset
+							-- only once (we have DISTINCT ON "changeset").
 							ORDER BY "changeset", "id", "depth" ASC
 							ON CONFLICT ("view", "id", "changeset") DO UPDATE
 								SET "depth"=EXCLUDED."depth"
