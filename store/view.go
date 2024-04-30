@@ -201,24 +201,29 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
+			), "valueView" AS (
+				SELECT "view"
+					FROM "viewPath" JOIN "committedValues" USING ("view")
+					WHERE "id"=$2
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					ORDER BY "viewPath"."depth" ASC
+					-- We want only the first view with the value.
+					LIMIT 1
 			)
 			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata"
-				FROM "viewPath"
-					-- This gives us changesets for each view for each value.
-					JOIN "committedValues" USING ("view")
+				FROM
+					-- This gives us changesets for the value's view.
+					"valueView" JOIN "committedValues" USING ("view")
 					JOIN (
 						-- This gives us current revisions. And corresponding data and metadata.
 						"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
 					) USING ("changeset", "id")
 				WHERE "id"=$2
-					-- We are searching only for the latest explicitly committed version in each view.
-					AND "committedValues"."depth"=0
-				-- We search views for the value in path order. This means that some later (ancestor)
-				-- view might have a newer value version, but we still use the one which is explicitly
-				-- committed to an earlier view.
-				ORDER BY "viewPath"."depth" ASC
-				-- We care only about the first matching changeset.
-				LIMIT 1
+					-- We want the latest explicitly committed version of the value.
+					-- We know there can be at most one row because we have a CONSTRAINT to ensure that.
+					AND "depth"=0
 		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -274,21 +279,27 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
-			), "firstViewWithValue" AS (
-					SELECT "view" FROM "committedValues" JOIN "viewPath" USING ("view")
-						WHERE "id"=$2
-						ORDER BY "viewPath"."depth"
-						LIMIT 1
-				)
-				-- We require the value at given version has been committed to the view (or its ancestors)
-				-- which we check by checking that version's changeset is among view's changesets.
-				SELECT "data", "data" IS NULL, "metadata"
-					FROM "firstViewWithValue" JOIN "committedValues" USING ("view")
-						JOIN "changes" USING ("changeset", "id")
+			), "valueView" AS (
+				SELECT "view"
+					FROM "viewPath" JOIN "committedValues" USING ("view")
 					WHERE "id"=$2
-						AND "changeset"=$3
-						AND "revision"=$4
-			`, arguments...).Scan(&data, &dataIsNull, &metadata)
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					ORDER BY "viewPath"."depth" ASC
+					-- We want only the first view with the value.
+					LIMIT 1
+			)
+			SELECT "data", "data" IS NULL, "metadata"
+				FROM
+					-- This gives us changesets for the value's view.
+					"valueView" JOIN "committedValues" USING ("view")
+					-- This gives us corresponding data and metadata.
+					JOIN "changes" USING ("changeset", "id")
+				WHERE "id"=$2
+					AND "changeset"=$3
+					AND "revision"=$4
+		`, arguments...).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -421,27 +432,32 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
+			), "valueView" AS (
+				SELECT "view"
+					FROM "viewPath" JOIN "committedValues" USING ("view")
+					WHERE "id"=$2
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					ORDER BY "viewPath"."depth" ASC
+					-- We want only the first view with the value.
+					LIMIT 1
 			), "distinctChangesets" AS (
-				SELECT DISTINCT ON ("changeset")
-					"changeset", "viewPath"."depth" AS "viewDepth", "committedValues"."depth" AS "committedValuesDepth"
-				FROM "viewPath"
-					-- This gives us changesets for each view for each value.
-					JOIN "committedValues" USING ("view")
+				SELECT DISTINCT ON ("changeset") "changeset", "depth"
+				FROM
+					-- This gives us changesets for the value's view.
+					"valueView" JOIN "committedValues" USING ("view")
 				WHERE "id"=$2
 				ORDER BY
 					-- We order by "changeset" first to be able to do DISTINCT ON.
 					"changeset",
-					-- We search views for the value in path order. This means that some later (ancestor)
-					-- view might have a newer value version, but we still use the one which is explicitly
-					-- committed to an earlier view.
-					"viewPath"."depth" ASC,
-					-- Then we search inside each view in the order of tree traversal.
-					"committedValues"."depth" ASC
+					-- Then we order in the order of graph traversal.
+					"depth" ASC
 			)
 			SELECT "changeset"
 				FROM "distinctChangesets"
-				-- We return distinct "changeset" in the order we want.
-				ORDER BY "viewDepth" ASC, "committedValuesDepth" ASC
+				-- We return distinct "changeset" in the order of graph traversal.
+				ORDER BY "depth" ASC
 				LIMIT 5000
 			`, arguments...)
 		if err != nil {
@@ -491,46 +507,45 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 				-- We care about order of views so we annotate views in the path with view's index.
 				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 					WHERE "currentViews"."name"=$1
+			), "valueView" AS (
+				SELECT "view"
+					FROM "viewPath" JOIN "committedValues" USING ("view")
+					WHERE "id"=$2
+					-- We search views for the value in path order. This means that some later (ancestor)
+					-- view might have a newer value version, but we still use the one which is explicitly
+					-- committed to an earlier view.
+					ORDER BY "viewPath"."depth" ASC
+					-- We want only the first view with the value.
+					LIMIT 1
 			), "distinctChangesets" AS (
-				SELECT DISTINCT ON ("changeset")
-					"changeset", "viewPath"."depth" AS "viewDepth", "committedValues"."depth" AS "committedValuesDepth"
-				FROM "viewPath"
-					-- This gives us changesets for each view for each value.
-					JOIN "committedValues" USING ("view")
+				SELECT DISTINCT ON ("changeset") "changeset", "depth"
+				FROM
+					-- This gives us changesets for the value's view.
+					"valueView" JOIN "committedValues" USING ("view")
 				WHERE "id"=$2
 				ORDER BY
 					-- We order by "changeset" first to be able to do DISTINCT ON.
 					"changeset",
-					-- We search views for the value in path order. This means that some later (ancestor)
-					-- view might have a newer value version, but we still use the one which is explicitly
-					-- committed to an earlier view.
-					"viewPath"."depth" ASC,
-					-- Then we search inside each view in the order of tree traversal.
-					"committedValues"."depth" ASC
-			), "depths" AS (
+					-- Then we order in the order of graph traversal.
+					"depth" ASC
+			), "changesetDepth" AS (
 				-- This should return at most one row.
-				SELECT "viewDepth", "committedValuesDepth"
-					FROM "distinctChangesets"
-					WHERE "changeset"=$3
+				SELECT "depth" FROM "distinctChangesets" WHERE "changeset"=$3
 			)
 			SELECT "changeset"
-				FROM "distinctChangesets", "depths"
+				FROM "distinctChangesets", "changesetDepth"
 				WHERE (
-						-- Or a changeset is in a deeper view than the after changeset.
-						"distinctChangesets"."viewDepth">"depths"."viewDepth"
+						-- Or a changeset is deeper than the after changeset.
+						"distinctChangesets"."depth">"changesetDepth"."depth"
 					) OR (
-						-- Or a changeset is in the same view, but deeper than the after changeset.
-						"distinctChangesets"."viewDepth"="depths"."viewDepth"
-						AND "distinctChangesets"."committedValuesDepth">"depths"."committedValuesDepth"
-					) OR (
-						-- Or a changeset is in the same view and at the same depth than the after changeset,
+						-- Or a changeset is at the same depth than the after changeset,
 						-- but it is sorted later.
-						"distinctChangesets"."viewDepth"="depths"."viewDepth"
-						AND "distinctChangesets"."committedValuesDepth"="depths"."committedValuesDepth"
+						"distinctChangesets"."depth"="changesetDepth"."depth"
 						AND "changeset">$3
 					)
-				-- We return distinct "changeset" in the order we want.
-				ORDER BY "distinctChangesets"."viewDepth" ASC, "distinctChangesets"."committedValuesDepth" ASC,
+				ORDER BY
+					-- We return distinct "changeset" in the order of graph traversal.
+					"distinctChangesets"."depth" ASC,
 					-- If there are multiple changesets at the same depth,
 					-- we order by ID to enable keyset pagination at the depth.
 					"changeset" ASC
@@ -572,10 +587,21 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 			err = tx.QueryRow(ctx, `
 				SELECT EXISTS (
 					WITH "viewPath" AS (
-						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
+						-- We care about order of views so we annotate views in the path with view's index.
+						SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
 							WHERE "currentViews"."name"=$1
+					), "valueView" AS (
+						SELECT "view"
+							FROM "viewPath" JOIN "committedValues" USING ("view")
+							WHERE "id"=$2
+							-- We search views for the value in path order. This means that some later (ancestor)
+							-- view might have a newer value version, but we still use the one which is explicitly
+							-- committed to an earlier view.
+							ORDER BY "viewPath"."depth" ASC
+							-- We want only the first view with the value.
+							LIMIT 1
 					)
-					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2 AND "changeset"=$3
+					SELECT 1 FROM "valueView" JOIN "committedValues" USING ("view") WHERE "id"=$2 AND "changeset"=$3
 				)
 			`, arguments...).Scan(&exists)
 			if err != nil {
