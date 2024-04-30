@@ -320,8 +320,6 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- an exception because duplicate values are encountered before everything is updated).
 					CONSTRAINT "committedValuesLatest" EXCLUDE USING btree ("view" WITH =, "id" WITH =) WHERE ("depth"=0) DEFERRABLE INITIALLY DEFERRED
 				);
-				CREATE INDEX ON "committedValues" USING btree ("id");
-				CREATE INDEX ON "committedValues" USING btree ("depth", "id");
 				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
 					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
 
