@@ -283,6 +283,10 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, insertVersion, version)
 	}
 
+	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
+		insertVersion.Changeset,
+	})
+
 	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
 	c := channelContents.Prune()
@@ -325,6 +329,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.UpdateMetadata, metadata)
 		assert.Equal(t, updateVersion, version)
 	}
+
+	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
+		updateVersion.Changeset,
+		insertVersion.Changeset,
+	})
 
 	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
@@ -374,6 +383,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.ReplaceMetadata, metadata)
 		assert.Equal(t, replaceVersion, version)
 	}
+
+	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
+		replaceVersion.Changeset,
+		updateVersion.Changeset,
+		insertVersion.Changeset,
+	})
 
 	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
@@ -429,6 +444,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
+
+	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
+		deleteVersion.Changeset,
+		replaceVersion.Changeset,
+		updateVersion.Changeset,
+		insertVersion.Changeset,
+	})
 
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
@@ -504,6 +526,10 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, newVersion, version)
 	}
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		newVersion.Changeset,
+	})
+
 	data, metadata, errE = s.Get(ctx, newID, store.Version{
 		Changeset: changeset.ID(),
 		Revision:  1,
@@ -565,6 +591,10 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, newVersion, version)
 	}
 
+	testChanges(t, ctx, s, newID2, []identifier.Identifier{
+		newVersion.Changeset,
+	})
+
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
@@ -586,16 +616,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	ids, errE := s.List(ctx, nil)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.ElementsMatch(t, []identifier.Identifier{expectedID, newID, newID2}, ids)
-	}
-
-	ids, errE = s.Changes(ctx, expectedID, nil)
-	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.Equal(t, []identifier.Identifier{
-			deleteVersion.Changeset,
-			replaceVersion.Changeset,
-			updateVersion.Changeset,
-			insertVersion.Changeset,
-		}, ids)
 	}
 }
 
@@ -895,12 +915,21 @@ func TestMultipleViews(t *testing.T) {
 	_, _, errE = s.Get(ctx, newID, version)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		version.Changeset,
+	})
+
 	// The version in the second (child) view should be the new updated version.
 	_, _, latest, errE = v.GetLatest(ctx, newID)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
 	_, _, errE = v.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated.Changeset,
+		version.Changeset,
+	})
 
 	// It should not be possible to get the new updated value in the main view.
 	_, _, errE = s.Get(ctx, newID, updated)
@@ -917,12 +946,22 @@ func TestMultipleViews(t *testing.T) {
 	_, _, errE = s.Get(ctx, newID, updated2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		updated2.Changeset,
+		version.Changeset,
+	})
+
 	// The version in the second (child) view should be what was there before.
 	_, _, latest, errE = v.GetLatest(ctx, newID)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
 	_, _, errE = v.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated.Changeset,
+		version.Changeset,
+	})
 
 	// It should not be possible to get the new updated value in the second (child) view.
 	_, _, errE = v.Get(ctx, newID, updated2)
@@ -960,12 +999,24 @@ func TestMultipleViews(t *testing.T) {
 	_, _, errE = s.Get(ctx, newID, merged)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		merged.Changeset,
+		sortIDs(updated.Changeset, updated2.Changeset)[0],
+		sortIDs(updated.Changeset, updated2.Changeset)[1],
+		version.Changeset,
+	})
+
 	// The version in the second (child) view should be what was there before.
 	_, _, latest, errE = v.GetLatest(ctx, newID)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
 	_, _, errE = v.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated.Changeset,
+		version.Changeset,
+	})
 
 	// We can now commit the merged changeset into the second (child) view.
 	changeset, errE = s.Changeset(ctx, merged.Changeset)
@@ -979,6 +1030,13 @@ func TestMultipleViews(t *testing.T) {
 	assert.Equal(t, merged, latest)
 	_, _, errE = v.Get(ctx, newID, merged)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		merged.Changeset,
+		sortIDs(updated.Changeset, updated2.Changeset)[0],
+		sortIDs(updated.Changeset, updated2.Changeset)[1],
+		version.Changeset,
+	})
 }
 
 func TestChangeAcrossViews(t *testing.T) {
@@ -1009,12 +1067,21 @@ func TestChangeAcrossViews(t *testing.T) {
 	_, _, errE = s.Get(ctx, newID, version)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		version.Changeset,
+	})
+
 	// The version in the second (child) view should be the new updated version.
 	_, _, latest, errE = v.GetLatest(ctx, newID)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
 	_, _, errE = v.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated.Changeset,
+		version.Changeset,
+	})
 
 	// It should not be possible to get the new updated value in the main view.
 	_, _, errE = s.Get(ctx, newID, updated)
@@ -1032,6 +1099,12 @@ func TestChangeAcrossViews(t *testing.T) {
 	_, _, errE = s.Get(ctx, newID, updated2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
+	testChanges(t, ctx, s, newID, []identifier.Identifier{
+		updated2.Changeset,
+		updated.Changeset,
+		version.Changeset,
+	})
+
 	// It should now be possible to get the previously updated version as well in the main view.
 	_, _, errE = s.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
@@ -1042,6 +1115,11 @@ func TestChangeAcrossViews(t *testing.T) {
 	assert.Equal(t, updated, latest)
 	_, _, errE = v.Get(ctx, newID, updated)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated.Changeset,
+		version.Changeset,
+	})
 
 	// It should not be possible to get the new updated value in the second (child) view.
 	_, _, errE = v.Get(ctx, newID, updated2)
@@ -1059,6 +1137,12 @@ func TestChangeAcrossViews(t *testing.T) {
 	assert.Equal(t, updated2, latest)
 	_, _, errE = v.Get(ctx, newID, updated2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, newID, []identifier.Identifier{
+		updated2.Changeset,
+		updated.Changeset,
+		version.Changeset,
+	})
 }
 
 func TestView(t *testing.T) {
@@ -1160,20 +1244,32 @@ func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
 	return ids
 }
 
-func testChanges(
-	t *testing.T, ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+func testChanges[Data, Metadata, Patch any](
+	t *testing.T, ctx context.Context, s *store.Store[Data, Metadata, Patch],
 	id identifier.Identifier, expected []identifier.Identifier,
 ) {
 	t.Helper()
 
-	changes, errE := s.Changes(ctx, id, nil)
+	v, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	testChangesView(t, ctx, v, id, expected)
+}
+
+func testChangesView[Data, Metadata, Patch any](
+	t *testing.T, ctx context.Context, v store.View[Data, Metadata, Patch],
+	id identifier.Identifier, expected []identifier.Identifier,
+) {
+	t.Helper()
+
+	changes, errE := v.Changes(ctx, id, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, expected, changes)
 
 	for i, c := range changes {
 		c := c
-		cs, errE := s.Changes(ctx, id, &c)
+		cs, errE := v.Changes(ctx, id, &c)
 		assert.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, changes[i+1:], cs, "%d %#v", i, c)
 	}
