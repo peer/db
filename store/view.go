@@ -11,6 +11,11 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+const (
+	maxPageLength    = 5000
+	maxPageLengthStr = "5000"
+)
+
 // View is not a snapshot of the database but a dynamic named view of a
 // set of committed changesets forming a set of values with their history of changes.
 //
@@ -53,7 +58,9 @@ func (v View[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store
 }
 
 // Commit commits a changeset to the view.
-func (v View[Data, Metadata, Patch]) Commit(ctx context.Context, changeset Changeset[Data, Metadata, Patch], metadata Metadata) ([]Changeset[Data, Metadata, Patch], errors.E) {
+func (v View[Data, Metadata, Patch]) Commit(
+	ctx context.Context, changeset Changeset[Data, Metadata, Patch], metadata Metadata,
+) ([]Changeset[Data, Metadata, Patch], errors.E) {
 	return changeset.Commit(ctx, v, metadata)
 }
 
@@ -346,7 +353,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		values = make([]identifier.Identifier, 0, 5000)
+		values = make([]identifier.Identifier, 0, maxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -358,8 +365,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 				`+afterCondition+`
 				-- We order by ID to enable keyset pagination.
 				ORDER BY "id"
-				LIMIT 5000
-			`, arguments...)
+				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -425,7 +431,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, 5000)
+		changesets = make([]identifier.Identifier, 0, maxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -458,8 +464,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 				FROM "distinctChangesets"
 				-- We return distinct "changeset" in the order of graph traversal.
 				ORDER BY "depth" ASC
-				LIMIT 5000
-			`, arguments...)
+				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -500,7 +505,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, 5000)
+		changesets = make([]identifier.Identifier, 0, maxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (

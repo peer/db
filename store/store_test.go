@@ -1245,7 +1245,7 @@ func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
 }
 
 func testChanges[Data, Metadata, Patch any](
-	t *testing.T, ctx context.Context, s *store.Store[Data, Metadata, Patch],
+	t *testing.T, ctx context.Context, s *store.Store[Data, Metadata, Patch], //nolint:revive
 	id identifier.Identifier, expected []identifier.Identifier,
 ) {
 	t.Helper()
@@ -1257,7 +1257,7 @@ func testChanges[Data, Metadata, Patch any](
 }
 
 func testChangesView[Data, Metadata, Patch any](
-	t *testing.T, ctx context.Context, v store.View[Data, Metadata, Patch],
+	t *testing.T, ctx context.Context, v store.View[Data, Metadata, Patch], //nolint:revive
 	id identifier.Identifier, expected []identifier.Identifier,
 ) {
 	t.Helper()
