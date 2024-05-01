@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxPageLength    = 5000
+	MaxPageLength    = 5000
 	maxPageLengthStr = "5000"
 )
 
@@ -339,7 +339,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 	return data, metadata, errE
 }
 
-// List returns up to 5000 value IDs committed to the view, ordered by ID, after optional ID to support keyset pagination.
+// List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID to support keyset pagination.
 func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name,
@@ -353,7 +353,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		values = make([]identifier.Identifier, 0, maxPageLength)
+		values = make([]identifier.Identifier, 0, MaxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -414,7 +414,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	return values, errE
 }
 
-// Changes returns up to 5000 changesets for the value committed to the view, ordered by first depth and then
+// Changes returns up to MaxPageLength changesets for the value committed to the view, ordered by first depth and then
 // changeset ID, after optional changeset ID to support keyset pagination.
 func (v View[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	if after != nil {
@@ -431,7 +431,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, maxPageLength)
+		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -505,7 +505,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 	var changesets []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, maxPageLength)
+		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (

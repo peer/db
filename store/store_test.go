@@ -642,7 +642,7 @@ func TestListPagination(t *testing.T) {
 
 	page1, errE := s.List(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, page1, 5000)
+	require.Len(t, page1, store.MaxPageLength)
 
 	page2, errE := s.List(ctx, &page1[4999])
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -673,7 +673,7 @@ func TestListPagination(t *testing.T) {
 
 	csPage1, errE := changeset.Changes(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, csPage1, 5000)
+	require.Len(t, csPage1, store.MaxPageLength)
 
 	csPage2, errE := changeset.Changes(ctx, &csPage1[4999].ID)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -746,7 +746,7 @@ func TestChangesPagination(t *testing.T) {
 
 	page1, errE := s.Changes(ctx, newID, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, page1, 5000)
+	require.Len(t, page1, store.MaxPageLength)
 
 	page2, errE := s.Changes(ctx, newID, &page1[4999])
 	require.NoError(t, errE, "% -+#.1v", errE)
