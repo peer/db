@@ -622,7 +622,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 func TestListPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	ids := []identifier.Identifier{}
 
@@ -655,6 +655,10 @@ func TestListPagination(t *testing.T) {
 	ids = sortIDs(ids...)
 
 	assert.Equal(t, ids, inserted)
+
+	time.Sleep(10 * time.Millisecond)
+	c := channelContents.Prune()
+	assert.Len(t, c, 1)
 
 	v, errE := s.View(ctx, "unknown")
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -719,7 +723,7 @@ func TestListPagination(t *testing.T) {
 func TestChangesPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	changesets := []identifier.Identifier{}
 
@@ -743,6 +747,10 @@ func TestChangesPagination(t *testing.T) {
 	committed, errE := s.Commit(ctx, changeset, dummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 6000)
+
+	time.Sleep(10 * time.Millisecond)
+	c := channelContents.Prune()
+	assert.Len(t, c, 6001)
 
 	page1, errE := s.Changes(ctx, newID, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
