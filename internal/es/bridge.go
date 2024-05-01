@@ -6,8 +6,9 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 
-	"gitlab.com/peerdb/peerdb/store"
 	"gitlab.com/tozd/identifier"
+
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // TODO: Address the issue of what happens if bridge fails before ES indexed the document.
@@ -48,7 +49,7 @@ func Bridge[Data, Metadata, Patch any](
 					break
 				}
 				changes = append(changes, page...)
-				if len(page) < 5000 {
+				if len(page) < store.MaxPageLength {
 					break
 				}
 				after = &page[4999].ID
