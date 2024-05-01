@@ -295,7 +295,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, insertVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -343,7 +343,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, updateVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -398,7 +398,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, replaceVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -459,7 +459,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, deleteVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -546,7 +546,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
 		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx)
+			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)
@@ -602,7 +602,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
 		committedChangeset, errE := c[0].WithStore(ctx, s) //nolint:govet
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := committedChangeset.Changeset.Changes(ctx)
+			changes, errE := committedChangeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID2, changes[0].ID)
@@ -657,10 +657,9 @@ func TestListPagination(t *testing.T) {
 	assert.Equal(t, ids, inserted)
 
 	v, errE := s.View(ctx, "unknown")
-	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		_, errE = v.List(ctx, nil)
-		assert.ErrorIs(t, errE, store.ErrViewNotFound)
-	}
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = v.List(ctx, nil)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	// Having no more values is not an error.
 	page3, errE := s.List(ctx, &page2[999])
@@ -671,6 +670,50 @@ func TestListPagination(t *testing.T) {
 	newID := identifier.New()
 	_, errE = s.List(ctx, &newID)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	csPage1, errE := changeset.Changes(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, csPage1, 5000)
+
+	csPage2, errE := changeset.Changes(ctx, &csPage1[4999].ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, csPage2, 1000)
+
+	changes := []store.Change{}
+	changes = append(changes, csPage1...)
+	changes = append(changes, csPage2...)
+
+	expected := []store.Change{}
+	for _, id := range ids {
+		expected = append(expected, store.Change{
+			ID: id,
+			Version: store.Version{
+				Changeset: changeset.ID(),
+				Revision:  1,
+			},
+		})
+	}
+
+	assert.Equal(t, expected, changes)
+
+	// Having no more changes is not an error.
+	csPage3, errE := changeset.Changes(ctx, &csPage2[999].ID)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, csPage3, 0)
+
+	// Using unknown after ID is an error.
+	newID = identifier.New()
+	_, errE = changeset.Changes(ctx, &newID)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	changeset, errE = s.Begin(ctx)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Changes(ctx, nil)
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
+
+	_, errE = changeset.Changes(ctx, &newID)
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }
 
 func TestChangesPagination(t *testing.T) {
@@ -696,8 +739,10 @@ func TestChangesPagination(t *testing.T) {
 		changesets = append(changesets, version.Changeset)
 	}
 
-	_, errE = s.Commit(ctx, changeset, dummyData)
+	// We commit only once (the last changeset in the chain) for test to run faster.
+	committed, errE := s.Commit(ctx, changeset, dummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, committed, 6000)
 
 	page1, errE := s.Changes(ctx, newID, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1472,6 +1517,6 @@ func TestErrors(t *testing.T) {
 	changeset, errE = s.Changeset(ctx, identifier.New())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Changes(ctx)
+	_, errE = changeset.Changes(ctx, nil)
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }

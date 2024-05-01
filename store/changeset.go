@@ -441,17 +441,28 @@ type Change struct {
 	Version Version
 }
 
-// Changes returns a slice of changes of the changeset.
-func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change, errors.E) {
+// Changes returns up to 5000 changes of the changeset, ordered by ID, after optional ID to support keyset pagination.
+func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *identifier.Identifier) ([]Change, errors.E) {
 	arguments := []any{
 		c.String(),
+	}
+	afterCondition := ""
+	if after != nil {
+		arguments = append(arguments, after.String())
+		// We want to make sure that after value really exists.
+		afterCondition = `AND EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
 	}
 	var changes []Change
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changes = nil
 
-		rows, err := tx.Query(ctx, `SELECT "id", "revision"	FROM "currentChanges"	WHERE "changeset"=$1 ORDER BY "id"`, arguments...)
+		rows, err := tx.Query(ctx, `
+			SELECT "id", "revision"	FROM "currentChanges"
+			WHERE "changeset"=$1
+			`+afterCondition+`
+			ORDER BY "id"
+			LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)
 		}
@@ -471,7 +482,24 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context) ([]Change
 			return internal.WithPgxError(err)
 		}
 		if len(changes) == 0 {
-			return errors.WithStack(ErrChangesetNotFound)
+			if after == nil {
+				return errors.WithStack(ErrChangesetNotFound)
+			}
+			// TODO: Is there a better way to check without doing another query?
+			var exists bool
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrChangesetNotFound)
+			}
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
+			if err != nil {
+				return internal.WithPgxError(err)
+			} else if !exists {
+				return errors.WithStack(ErrValueNotFound)
+			}
+			// There is nothing wrong with having no values.
 		}
 		return nil
 	})

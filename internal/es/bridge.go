@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"gitlab.com/peerdb/peerdb/store"
+	"gitlab.com/tozd/identifier"
 )
 
 // TODO: Address the issue of what happens if bridge fails before ES indexed the document.
@@ -16,7 +17,7 @@ import (
 //       At the same time make it work when peerdb process is horizontally scaled.
 
 func Bridge[Data, Metadata, Patch any](
-	ctx context.Context, logger zerolog.Logger, store *store.Store[Data, Metadata, Patch],
+	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, Patch],
 	esProcessor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, Patch],
 ) {
 	for {
@@ -32,21 +33,30 @@ func Bridge[Data, Metadata, Patch any](
 			// the order in which they were committed. We should not relay on the order.
 
 			// We have to reconstruct the committedChangeset and the view using our store.
-			committedChangeset, errE := c.WithStore(ctx, store)
+			committedChangeset, errE := c.WithStore(ctx, s)
 			if errE != nil {
 				logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: with store")
 				continue
 			}
 
-			changes, errE := committedChangeset.Changeset.Changes(ctx)
-			if errE != nil {
-				logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: changes")
-				continue
+			var after *identifier.Identifier
+			changes := []store.Change{}
+			for {
+				page, errE := committedChangeset.Changeset.Changes(ctx, after)
+				if errE != nil {
+					logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: changes")
+					break
+				}
+				changes = append(changes, page...)
+				if len(page) < 5000 {
+					break
+				}
+				after = &page[4999].ID
 			}
 
 			for _, change := range changes {
 				// Because changesets are not necessary in order, we always get the latest version and index it.
-				data, _, _, errE := store.GetLatest(ctx, change.ID)
+				data, _, _, errE := s.GetLatest(ctx, change.ID)
 				if errE != nil {
 					logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: get current")
 					continue
