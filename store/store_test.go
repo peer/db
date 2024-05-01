@@ -1528,3 +1528,44 @@ func TestErrors(t *testing.T) {
 	_, errE = changeset.Changes(ctx, nil)
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }
+
+func TestParallelChange(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	firstID := identifier.New()
+	secondID := identifier.New()
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Insert(ctx, firstID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Insert(ctx, secondID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = s.Commit(ctx, changeset, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changeset1, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset1.Update(ctx, firstID, changeset.ID(), dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changeset2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Update(ctx, secondID, changeset.ID(), dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// No error because both changesets are changing different values from the same parent changeset.
+
+	_, errE = s.Commit(ctx, changeset1, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = s.Commit(ctx, changeset2, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
