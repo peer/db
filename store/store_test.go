@@ -760,10 +760,25 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Delete(ctx, newID, changeset.ID(), dummyData)
+	_, errE = s.Commit(ctx, changeset, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changeset, errE = s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Delete(ctx, newID, newVersion.Changeset, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Update(ctx, newID, changeset.ID(), dummyData, dummyData, dummyData)
+	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, dummyData, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{newVersion.Changeset}, dummyData, []json.RawMessage{dummyData}, dummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	_, errE = changeset.Replace(ctx, newID, newVersion.Changeset, dummyData, dummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
 
@@ -1237,6 +1252,35 @@ func TestEmptyChangeset(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE)
 }
 
+func TestDiscardInUseChangeset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	newID := identifier.New()
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Insert(ctx, newID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	changeset2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Update(ctx, newID, changeset.ID(), dummyData, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = changeset.Discard(ctx)
+	assert.ErrorIs(t, errE, store.ErrInUse)
+
+	errE = changeset2.Discard(ctx)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = changeset.Discard(ctx)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+}
+
 func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
 	slices.SortFunc(ids, func(a, b identifier.Identifier) int {
 		return bytes.Compare(a[:], b[:])
@@ -1352,4 +1396,82 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 		// Depth 2.
 		version.Changeset,
 	})
+}
+
+func TestErrors(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	anotherVersion, errE := s.Insert(ctx, identifier.New(), dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newID := identifier.New()
+
+	changeset, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	version, errE := changeset.Insert(ctx, newID, dummyData, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	v, errE := s.View(ctx, "unknown")
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Commit(ctx, v, dummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = s.Commit(ctx, changeset, dummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = s.Commit(ctx, changeset, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	_, errE = changeset.Insert(ctx, identifier.New(), dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	_, errE = changeset.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, dummyData, []json.RawMessage{dummyData}, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	_, errE = changeset.Replace(ctx, newID, version.Changeset, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	_, errE = changeset.Delete(ctx, newID, version.Changeset, dummyData)
+	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	// The number of parent changesets have to match the number of patches.
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, dummyData, nil, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent has to exist.
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{identifier.New()}, dummyData, []json.RawMessage{dummyData}, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent changeset has to contain a change for newID.
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{anotherVersion.Changeset}, dummyData, []json.RawMessage{dummyData}, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent has to exist.
+	_, errE = s.Replace(ctx, newID, identifier.New(), dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent changeset has to contain a change for newID.
+	_, errE = s.Replace(ctx, newID, anotherVersion.Changeset, dummyData, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent has to exist.
+	_, errE = s.Delete(ctx, newID, identifier.New(), dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	// The parent changeset has to contain a change for newID.
+	_, errE = s.Delete(ctx, newID, anotherVersion.Changeset, dummyData)
+	assert.ErrorIs(t, errE, store.ErrParentInvalid)
+
+	changeset, errE = s.Changeset(ctx, identifier.New())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset.Changes(ctx)
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }
