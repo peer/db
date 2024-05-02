@@ -192,6 +192,9 @@ func (v View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 // newer value version, but GetLatest still returns the value version which is
 // explicitly committed to an earlier (younger) view, i.e., the view shadows values
 // and value versions from the parent view for those explicitly committed to the view.
+//
+// If value has been deleted, ErrValueDeleted error is returned, but other returned
+// values are valid as well.
 func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
 	arguments := []any{
 		v.name, id.String(),
@@ -273,6 +276,9 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 // older version explicitly committed to an earlier (younger) view, i.e., the view
 // shadows values and value versions from the parent view for those explicitly
 // committed to the view.
+//
+// If value has been deleted at a given version, ErrValueDeleted error is returned,
+// but other returned values are valid as well.
 func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		v.name, id.String(), version.Changeset.String(), version.Revision,

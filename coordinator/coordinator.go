@@ -366,23 +366,21 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 
 // GetData returns data and metadata for the operation from the session.
 //
-// If no data is available for the operation, ErrNoData error is returned
-// but metadata value is valid.
+// Data might be nil if the operation does not contain data.
 //
 // Data and metadata are not available anymore once the session ends.
-func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (*Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
-	var data Data
+	var data *Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-		var dataIsNull bool
 		err := tx.QueryRow(ctx, `
-			SELECT "data", "data is NULL", "metadata"
+			SELECT "data", "metadata"
 				FROM "operations"
 				WHERE "session"=$1 AND "operation"=$2
-		`, arguments...).Scan(&data, &dataIsNull, &metadata)
+		`, arguments...).Scan(&data, &metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -400,11 +398,6 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 				return errors.WrapWith(errE, ErrOperationNotFound)
 			}
 			return errE
-		}
-		if dataIsNull {
-			// We return an error because this method is asking for the data of the operation,
-			// but the operation does not have data. Other returned values are valid though.
-			return errors.WithStack(ErrNoData)
 		}
 		return nil
 	})
@@ -456,4 +449,34 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 		details["operation"] = operation
 	}
 	return metadata, errE
+}
+
+// Get returns initial and ending (once session has ended, otherwise it is nil)
+// metadata for the session.
+func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifier.Identifier) (Metadata, *Metadata, errors.E) { //nolint:ireturn
+	arguments := []any{
+		session.String(),
+	}
+	var beginMetadata Metadata
+	var endMetadata *Metadata
+	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		err := tx.QueryRow(ctx, `
+			SELECT "beginMetadata", "endMetadata"
+				FROM "sessions"
+				WHERE "session"=$1
+		`, arguments...).Scan(&beginMetadata, &endMetadata)
+		if err != nil {
+			errE := internal.WithPgxError(err)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.WrapWith(errE, ErrSessionNotFound)
+			}
+			return errE
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["session"] = session.String()
+	}
+	return beginMetadata, endMetadata, errE
 }
