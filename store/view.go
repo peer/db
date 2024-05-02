@@ -206,6 +206,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 		var changeset string
 		var revision int64
 		var dataIsNull bool
+		//nolint:goconst
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
@@ -240,7 +241,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists) //nolint:goconst
 				if err != nil {
 					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
@@ -279,7 +280,9 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 //
 // If value has been deleted at a given version, ErrValueDeleted error is returned,
 // but other returned values are valid as well.
-func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) { //nolint:ireturn
+//
+//nolint:ireturn
+func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) {
 	arguments := []any{
 		v.name, id.String(), version.Changeset.String(), version.Revision,
 	}

@@ -105,6 +105,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 			patchesValue = ", _patches"
 		}
 
+		//nolint:lll,goconst
 		_, err := tx.Exec(ctx, `
 				CREATE FUNCTION "`+s.Prefix+`DoNotAllow"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$

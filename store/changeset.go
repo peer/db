@@ -67,7 +67,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...) //nolint:goconst
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -487,7 +487,7 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *id
 			}
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists) //nolint:goconst
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {

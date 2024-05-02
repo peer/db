@@ -195,7 +195,7 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 		} else {
 			m = metadata
 		}
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m)
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m) //nolint:goconst
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -332,7 +332,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 		if len(operations) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var sessionEnded bool
-			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded) //nolint:goconst
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					return errors.WithStack(ErrSessionNotFound)
