@@ -16,7 +16,7 @@ var ErrMaxRetriesReached = errors.Base("max retries reached")
 
 // TODO: For cases where only one query is made inside a transaction, we could make a query single-trip by making transaction and committing it ourselves.
 
-func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context.Context, tx pgx.Tx) errors.E) (errE errors.E) {
+func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context.Context, tx pgx.Tx) errors.E) (errE errors.E) { //nolint:nonamedreturns
 	tx, err := parentTx.Begin(ctx)
 	if err != nil {
 		return WithPgxError(err)

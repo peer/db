@@ -87,7 +87,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 	s.patchesEnabled = !isNoneType[Patch]()
 
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		created, errE := internal.TryCreateSchema(ctx, tx, s.Schema) 
+		created, errE := internal.TryCreateSchema(ctx, tx, s.Schema)
 		if errE != nil {
 			return errE
 		}

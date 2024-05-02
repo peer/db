@@ -52,6 +52,7 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 
 		// TODO: Use schema management/migration instead.
 		if created {
+			//nolint:goconst
 			_, err := tx.Exec(ctx, `
 				CREATE TABLE "sessions" (
 					-- ID of the session.
@@ -327,7 +328,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 	return operations, errE
 }
 
-func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, Metadata, errors.E) {
+func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
@@ -373,7 +374,7 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 	return data, metadata, errE
 }
 
-func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session identifier.Identifier, operation int64) (Metadata, errors.E) {
+func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session identifier.Identifier, operation int64) (Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
