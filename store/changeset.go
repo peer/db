@@ -67,7 +67,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -115,7 +115,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...) //nolint:goconst
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...) //nolint:goconst
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -176,7 +176,7 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -228,7 +228,7 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -275,7 +275,7 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 	}
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -324,7 +324,7 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 	}
 	var committedChangesets []string
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		err := tx.QueryRow(ctx, `SELECT "changesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
+		err := tx.QueryRow(ctx, `SELECT "`+c.store.Prefix+`ChangesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -391,7 +391,7 @@ func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E 
 		c.String(),
 	}
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "changesetDiscard"($1)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetDiscard"($1)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -450,7 +450,7 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *id
 	if after != nil {
 		arguments = append(arguments, after.String())
 		// We want to make sure that after value really exists.
-		afterCondition = `AND EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
+		afterCondition = `AND EXISTS (SELECT 1 FROM "` + c.store.Prefix + `CurrentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
 	}
 	var changes []Change
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -458,7 +458,7 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *id
 		changes = nil
 
 		rows, err := tx.Query(ctx, `
-			SELECT "id", "revision"	FROM "currentChanges"
+			SELECT "id", "revision"	FROM "`+c.store.Prefix+`CurrentChanges"
 			WHERE "changeset"=$1
 			`+afterCondition+`
 			ORDER BY "id"
@@ -487,13 +487,13 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *id
 			}
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrChangesetNotFound)
 			}
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {

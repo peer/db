@@ -209,11 +209,11 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-					WHERE "currentViews"."name"=$1
+				SELECT p.* FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 			), "valueView" AS (
 				SELECT "view"
-					FROM "viewPath" JOIN "committedValues" USING ("view")
+					FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					WHERE "id"=$2
 					-- We search views for the value in path order. This means that some later (ancestor)
 					-- view might have a newer value version, but we still use the one which is explicitly
@@ -225,10 +225,10 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata"
 				FROM
 					-- This gives us changesets for the value's view.
-					"valueView" JOIN "committedValues" USING ("view")
+					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					JOIN (
 						-- This gives us current revisions. And corresponding data and metadata.
-						"currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+						"`+v.store.Prefix+`CurrentChanges" JOIN "`+v.store.Prefix+`Changes" USING ("changeset", "id", "revision")
 					) USING ("changeset", "id")
 				WHERE "id"=$2
 					-- We want the latest explicitly committed version of the value.
@@ -240,7 +240,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
 					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
@@ -290,11 +290,11 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-					WHERE "currentViews"."name"=$1
+				SELECT p.* FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 			), "valueView" AS (
 				SELECT "view"
-					FROM "viewPath" JOIN "committedValues" USING ("view")
+					FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					WHERE "id"=$2
 					-- We search views for the value in path order. This means that some later (ancestor)
 					-- view might have a newer value version, but we still use the one which is explicitly
@@ -306,9 +306,9 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 			SELECT "data", "data" IS NULL, "metadata"
 				FROM
 					-- This gives us changesets for the value's view.
-					"valueView" JOIN "committedValues" USING ("view")
+					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					-- This gives us corresponding data and metadata.
-					JOIN "changes" USING ("changeset", "id")
+					JOIN "`+v.store.Prefix+`Changes" USING ("changeset", "id")
 				WHERE "id"=$2
 					AND "changeset"=$3
 					AND "revision"=$4
@@ -318,7 +318,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
 					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
@@ -354,7 +354,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	if after != nil {
 		arguments = append(arguments, after.String())
 		// We want to make sure that after value really exists.
-		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
+		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
 	}
 	var values []identifier.Identifier
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -363,11 +363,11 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
-				SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
-					WHERE "currentViews"."name"=$1
+				SELECT UNNEST("path") AS "view" FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
+					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 			)
 			SELECT DISTINCT "id"
-				FROM "viewPath" JOIN "committedValues" USING ("view")
+				FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 				`+afterCondition+`
 				-- We order by "id" to enable keyset pagination.
 				ORDER BY "id"
@@ -386,7 +386,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 		if len(values) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {
@@ -395,10 +395,10 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 			if after != nil {
 				err = tx.QueryRow(ctx, `SELECT EXISTS (
 					WITH "viewPath" AS (
-						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
-							WHERE "currentViews"."name"=$1
+						SELECT UNNEST("path") AS "view" FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
+							WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 					)
-					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2
+					SELECT 1 FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2
 				)`, arguments...).Scan(&exists)
 				if err != nil {
 					return internal.WithPgxError(err)
@@ -443,11 +443,11 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-					WHERE "currentViews"."name"=$1
+				SELECT p.* FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 			), "valueView" AS (
 				SELECT "view"
-					FROM "viewPath" JOIN "committedValues" USING ("view")
+					FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					WHERE "id"=$2
 					-- We search views for the value in path order. This means that some later (ancestor)
 					-- view might have a newer value version, but we still use the one which is explicitly
@@ -459,7 +459,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 				SELECT DISTINCT ON ("changeset") "changeset", "depth"
 				FROM
 					-- This gives us changesets for the value's view.
-					"valueView" JOIN "committedValues" USING ("view")
+					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 				WHERE "id"=$2
 				ORDER BY
 					-- We order by "changeset" first to be able to do DISTINCT ON.
@@ -486,7 +486,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {
@@ -517,11 +517,11 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-					WHERE "currentViews"."name"=$1
+				SELECT p.* FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 			), "valueView" AS (
 				SELECT "view"
-					FROM "viewPath" JOIN "committedValues" USING ("view")
+					FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 					WHERE "id"=$2
 					-- We search views for the value in path order. This means that some later (ancestor)
 					-- view might have a newer value version, but we still use the one which is explicitly
@@ -533,7 +533,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 				SELECT DISTINCT ON ("changeset") "changeset", "depth"
 				FROM
 					-- This gives us changesets for the value's view.
-					"valueView" JOIN "committedValues" USING ("view")
+					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 				WHERE "id"=$2
 				ORDER BY
 					-- We order by "changeset" first to be able to do DISTINCT ON.
@@ -576,7 +576,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "currentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {
@@ -585,10 +585,10 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 			err = tx.QueryRow(ctx, `
 				SELECT EXISTS (
 					WITH "viewPath" AS (
-						SELECT UNNEST("path") AS "view" FROM "currentViews" JOIN "views" USING ("view", "revision")
-							WHERE "currentViews"."name"=$1
+						SELECT UNNEST("path") AS "view" FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
+							WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 					)
-					SELECT 1 FROM "viewPath" JOIN "committedValues" USING ("view") WHERE "id"=$2
+					SELECT 1 FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2
 				)
 			`, v.name, id.String()).Scan(&exists)
 			if err != nil {
@@ -600,11 +600,11 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 				SELECT EXISTS (
 					WITH "viewPath" AS (
 						-- We care about order of views so we annotate views in the path with view's index.
-						SELECT p.* FROM "currentViews" JOIN "views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-							WHERE "currentViews"."name"=$1
+						SELECT p.* FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"), UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+							WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 					), "valueView" AS (
 						SELECT "view"
-							FROM "viewPath" JOIN "committedValues" USING ("view")
+							FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
 							WHERE "id"=$2
 							-- We search views for the value in path order. This means that some later (ancestor)
 							-- view might have a newer value version, but we still use the one which is explicitly
@@ -613,7 +613,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 							-- We want only the first view with the value.
 							LIMIT 1
 					)
-					SELECT 1 FROM "valueView" JOIN "committedValues" USING ("view") WHERE "id"=$2 AND "changeset"=$3
+					SELECT 1 FROM "valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2 AND "changeset"=$3
 				)
 			`, arguments...).Scan(&exists)
 			if err != nil {
@@ -653,9 +653,9 @@ func (v View[Data, Metadata, Patch]) Create(ctx context.Context, name string, me
 	}
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "views" SELECT $1, 1, $2, array_prepend($1, "path"), $3
-				FROM "currentViews" JOIN "views" USING ("view", "revision")
-				WHERE "currentViews"."name"=$4;
+			INSERT INTO "`+v.store.Prefix+`Views" SELECT $1, 1, $2, array_prepend($1, "path"), $3
+				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
+				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$4;
 		`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -692,9 +692,9 @@ func (v View[Data, Metadata, Patch]) Release(ctx context.Context, metadata Metad
 	}
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
-			INSERT INTO "views" SELECT "view", "revision"+1, NULL, "path", $2
-				FROM "currentViews" JOIN "views" USING ("view", "revision")
-				WHERE "currentViews"."name"=$1;
+			INSERT INTO "`+v.store.Prefix+`Views" SELECT "view", "revision"+1, NULL, "path", $2
+				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
+				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1;
 		`, arguments...)
 		if err != nil {
 			return internal.WithPgxError(err)

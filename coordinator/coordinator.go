@@ -29,8 +29,8 @@ const (
 // For every operation, its metadata and optional data are stored.
 // Go types for them you configure with type parameters.
 type Coordinator[Data, Metadata any] struct {
-	// PostgreSQL schema used by this coordinator.
-	Schema string
+	// Prefix to use when initializing PostgreSQL objects used by this store.
+	Prefix string
 
 	// PostgreSQL column types to store data and metadata.
 	// It should probably be one of the jsonb, bytea, or text.
@@ -55,103 +55,103 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 		return errors.New("already initialized")
 	}
 
+	// TODO: Use schema management/migration instead.
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		created, errE := internal.TryCreateSchema(ctx, tx, c.Schema)
-		if errE != nil {
-			return errE
-		}
+		//nolint:goconst
+		_, err := tx.Exec(ctx, `
+			CREATE TABLE "`+c.Prefix+`Sessions" (
+				-- ID of the session.
+				"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				"beginMetadata" `+c.MetadataType+` NOT NULL,
+				"endMetadata" `+c.MetadataType+`,
+				PRIMARY KEY ("session")
+			)
+			CREATE TABLE "`+c.Prefix+`Operations" (
+				-- ID of the session this operation belongs to.
+				"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Sequence number of this operation.
+				"operation" bigint NOT NULL,
+				"data" `+c.DataType+`,
+				"metadata" `+c.MetadataType+` NOT NULL,
+				PRIMARY KEY ("session", "operation")
+			)
 
-		// TODO: Use schema management/migration instead.
-		if created {
-			//nolint:goconst
-			_, err := tx.Exec(ctx, `
-				CREATE TABLE "sessions" (
-					-- ID of the session.
-					"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
-					"beginMetadata" `+c.MetadataType+` NOT NULL,
-					"endMetadata" `+c.MetadataType+`,
-					PRIMARY KEY ("session")
-				)
-				CREATE TABLE "operations" (
-					-- ID of the session this operation belongs to.
-					"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
-					-- Sequence number of this operation.
-					"operation" bigint NOT NULL,
-					"data" `+c.DataType+`,
-					"metadata" `+c.MetadataType+` NOT NULL,
-					PRIMARY KEY ("session", "operation")
-				)
+			CREATE FUNCTION "`+c.Prefix+`EndSession"(_session text, _metadata `+c.MetadataType+`)
+				RETURNS void LANGUAGE plpgsql AS $$
+				DECLARE
+					_sessionEnded boolean;
+				BEGIN
+					-- Does session exist and has not ended.
+					SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
+						FROM "`+c.Prefix+`Sessions" WHERE "session"=_session;
+					IF NOT FOUND THEN
+						RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
+					ELSIF _sessionEnded THEN
+						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
+					END IF;
+					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
+					UPDATE "`+c.Prefix+`Sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
+				END;
+			$$;
 
-				CREATE FUNCTION "endSession"(_session text, _metadata `+c.MetadataType+`)
-					RETURNS void LANGUAGE plpgsql AS $$
-					DECLARE
-						_sessionEnded boolean;
-					BEGIN
-						-- Does session exist and has not ended.
-						SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
-							FROM "sessions" WHERE "session"=_session;
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
-						ELSIF _sessionEnded THEN
-							RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
-						END IF;
-						DELETE FROM "operations" WHERE "session"=_session;
-						UPDATE "sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
-					END;
-				$$;
+			CREATE FUNCTION "`+c.Prefix+`PushOperation"(_session text, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
+				RETURNS bigint LANGUAGE plpgsql AS $$
+				DECLARE
+					_sessionEnded boolean;
+					_operation bigint;
+				BEGIN
+					-- Does session exist and has not ended.
+					SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
+						FROM "`+c.Prefix+`Sessions" WHERE "session"=_session;
+					IF NOT FOUND THEN
+						RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
+					ELSIF _sessionEnded THEN
+						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
+					END IF;
+					INSERT INTO "operations" SELECT _session, MAX("operation")+1, _data, _metadata
+						FROM "`+c.Prefix+`Operations" WHERE "session"=_session
+						RETURNING "operation" INTO _operation;
+					RETURN _operation;
+				END;
+			$$;
 
-				CREATE FUNCTION "pushOperation"(_session text, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
-					RETURNS bigint LANGUAGE plpgsql AS $$
-					DECLARE
-						_sessionEnded boolean;
-						_operation bigint;
-					BEGIN
-						-- Does session exist and has not ended.
-						SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
-							FROM "sessions" WHERE "session"=_session;
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
-						ELSIF _sessionEnded THEN
-							RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
-						END IF;
-						INSERT INTO "operations" SELECT _session, MAX("operation")+1, _data, _metadata
-							FROM "operations" WHERE "session"=_session
-							RETURNING "operation" INTO _operation;
-						RETURN _operation;
-					END;
-				$$;
-
-				CREATE FUNCTION "setOperation"(_session text, _operation bigint, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
-					RETURNS void LANGUAGE plpgsql AS $$
-					DECLARE
-						_sessionEnded boolean;
-					BEGIN
-						-- Does session exist and has not ended.
-						SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
-							FROM "sessions" WHERE "session"=_session;
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
-						ELSIF _sessionEnded THEN
-							RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
-						END IF;
-						INSERT INTO "operations" VALUES (_session, _operation, _data, _metadata);
-					END;
-				$$;
-			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			err = tx.Commit(ctx)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
+			CREATE FUNCTION "`+c.Prefix+`SetOperation"(_session text, _operation bigint, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
+				RETURNS void LANGUAGE plpgsql AS $$
+				DECLARE
+					_sessionEnded boolean;
+				BEGIN
+					-- Does session exist and has not ended.
+					SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
+						FROM "`+c.Prefix+`Sessions" WHERE "session"=_session;
+					IF NOT FOUND THEN
+						RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
+					ELSIF _sessionEnded THEN
+						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
+					END IF;
+					INSERT INTO "`+c.Prefix+`Operations" VALUES (_session, _operation, _data, _metadata);
+				END;
+			$$;
+		`)
+		if err != nil {
+			return internal.WithPgxError(err)
 		}
 
 		return nil
 	})
 	if errE != nil {
-		return errE
+		var pgError *pgconn.PgError
+		if errors.As(errE, &pgError) {
+			switch pgError.Code {
+			case internal.ErrorCodeUniqueViolation:
+				// Nothing.
+			case internal.ErrorCodeDuplicateFunction:
+				// Nothing.
+			default:
+				return errE
+			}
+		} else {
+			return errE
+		}
 	}
 
 	c.dbpool = dbpool
@@ -168,7 +168,7 @@ func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metada
 		session.String(), metadata,
 	}
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `INSERT INTO "sessions" VALUES ($1, $2, NULL)`, arguments...)
+		_, err := tx.Exec(ctx, `INSERT INTO "`+c.Prefix+`Sessions" VALUES ($1, $2, NULL)`, arguments...)
 		return internal.WithPgxError(err)
 	})
 	if errE != nil {
@@ -195,7 +195,7 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 		} else {
 			m = metadata
 		}
-		_, err := tx.Exec(ctx, `SELECT "endSession"($1, $2)`, session.String(), m)
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -232,7 +232,7 @@ func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifi
 	}
 	var operation int64
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		err := tx.QueryRow(ctx, `SELECT "pushOperation"($1, $2`+dataPlaceholder+`)`, arguments...).Scan(&operation)
+		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`PushOperation"($1, $2`+dataPlaceholder+`)`, arguments...).Scan(&operation)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -269,7 +269,7 @@ func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifie
 		dataPlaceholder = ", $4"
 	}
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "setOperation"($1, $2, $3`+dataPlaceholder+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`SetOperation"($1, $2, $3`+dataPlaceholder+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -304,7 +304,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 	if before != nil {
 		arguments = append(arguments, *before)
 		// We want to make sure that before operation really exists.
-		beforeCondition = `AND EXISTS (SELECT 1 FROM "operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"<$2`
+		beforeCondition = `AND EXISTS (SELECT 1 FROM "` + c.Prefix + `Operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"<$2`
 	}
 	var operations []int64
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -312,7 +312,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 		operations = make([]int64, 0, MaxPageLength)
 
 		rows, err := tx.Query(ctx, `
-			SELECT "operation" FROM "operations"
+			SELECT "operation" FROM "`+c.Prefix+`Operations"
 				WHERE "session"=$1
 				`+beforeCondition+`
 				-- We order by "operation" to enable keyset pagination.
@@ -332,7 +332,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 		if len(operations) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var sessionEnded bool
-			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					return errors.WithStack(ErrSessionNotFound)
@@ -343,7 +343,7 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 			}
 			if before != nil {
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "operations" WHERE "session"=$1 AND "operation"=$2)`, arguments...).Scan(&exists)
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.Prefix+`Operations" WHERE "session"=$1 AND "operation"=$2)`, arguments...).Scan(&exists)
 				if err != nil {
 					return internal.WithPgxError(err)
 				} else if !exists {
@@ -378,7 +378,7 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `
 			SELECT "data", "metadata"
-				FROM "operations"
+				FROM "`+c.Prefix+`Operations"
 				WHERE "session"=$1 AND "operation"=$2
 		`, arguments...).Scan(&data, &metadata)
 		if err != nil {
@@ -386,7 +386,7 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var sessionEnded bool
-				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
 				if err != nil {
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
@@ -420,7 +420,7 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `
 			SELECT "metadata"
-				FROM "operations"
+				FROM "`+c.Prefix+`Operations"
 				WHERE "session"=$1 AND "operation"=$2
 		`, arguments...).Scan(&metadata)
 		if err != nil {
@@ -428,7 +428,7 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var sessionEnded bool
-				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
 				if err != nil {
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
@@ -462,7 +462,7 @@ func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifie
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `
 			SELECT "beginMetadata", "endMetadata"
-				FROM "sessions"
+				FROM "`+c.Prefix+`Sessions"
 				WHERE "session"=$1
 		`, arguments...).Scan(&beginMetadata, &endMetadata)
 		if err != nil {

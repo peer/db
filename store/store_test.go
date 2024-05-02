@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
@@ -224,10 +226,16 @@ func initDatabase[Data, Metadata, Patch any](
 	t.Cleanup(cancel)
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	schema := identifier.New().String()
+	schema := "store"
+	prefix := identifier.New().String() + "_"
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -242,7 +250,7 @@ func initDatabase[Data, Metadata, Patch any](
 		}
 	}()
 	s := &store.Store[Data, Metadata, Patch]{
-		Schema:       schema,
+		Prefix:       prefix,
 		Committed:    channel,
 		DataType:     dataType,
 		MetadataType: dataType,
@@ -970,7 +978,7 @@ func TestMultipleViews(t *testing.T) {
 
 	// We create another (child) view.
 	v, errE := mainView.Create(ctx, "second", dummyData)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
 	updated, errE := v.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
@@ -1122,7 +1130,7 @@ func TestChangeAcrossViews(t *testing.T) {
 
 	// We create another (child) view.
 	v, errE := mainView.Create(ctx, "second", dummyData)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
 	updated, errE := v.Update(ctx, newID, version.Changeset, dummyData, dummyData, dummyData)
@@ -1222,22 +1230,22 @@ func TestView(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	v2, errE := v.Create(ctx, "child", dummyData)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = v.Create(ctx, "child", dummyData)
-	assert.ErrorIs(t, errE, store.ErrConflict)
+	require.ErrorIs(t, errE, store.ErrConflict)
 
 	errE = v2.Release(ctx, dummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = v.Create(ctx, "child", dummyData)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE = s.View(ctx, "notexist")
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = v.Create(ctx, "child2", dummyData)
-	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+	require.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	errE = v.Release(ctx, dummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)

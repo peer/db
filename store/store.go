@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -54,8 +55,8 @@ func (c CommittedChangeset[Data, Metadata, Patch]) WithStore(
 // You can use special None type to configure the Store instance to not
 // use nor store patches.
 type Store[Data, Metadata, Patch any] struct {
-	// PostgreSQL schema used by this store.
-	Schema string
+	// Prefix to use when initializing PostgreSQL objects used by this store.
+	Prefix string
 
 	// A channel to which changesets are send when they are committed.
 	// The changesets and view objects sent do not have an associated Store.
@@ -87,39 +88,33 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 
 	s.patchesEnabled = !isNoneType[Patch]()
 
+	// TODO: Use schema management/migration instead.
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		created, errE := internal.TryCreateSchema(ctx, tx, s.Schema)
-		if errE != nil {
-			return errE
-		}
-
-		// TODO: Use schema management/migration instead.
-		if created {
-			patches := ""
-			patchesArgument := ""
-			patchesValue := ""
-			if s.patchesEnabled {
-				patches = `
+		patches := ""
+		patchesArgument := ""
+		patchesValue := ""
+		if s.patchesEnabled {
+			patches = `
 					-- Forward patches which bring parentChangesets versions of the value to
 					-- this version of the value. If patches are available, the number of patches
 					-- and their order must match that of parentChangesets. All patches have to
 					-- end up with the equal value.
 					"patches" ` + s.PatchType + `[] NOT NULL,
 				`
-				patchesArgument = ", _patches " + s.PatchType + "[]"
-				patchesValue = ", _patches"
-			}
+			patchesArgument = ", _patches " + s.PatchType + "[]"
+			patchesValue = ", _patches"
+		}
 
-			_, err := tx.Exec(ctx, `
-				CREATE FUNCTION "doNotAllow"()
+		_, err := tx.Exec(ctx, `
+				CREATE FUNCTION "`+s.Prefix+`DoNotAllow"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
 						RAISE EXCEPTION 'not allowed' USING ERRCODE='`+errorCodeNotAllowed+`';
 					END;
 				$$;
 
-				-- "changes" table contains all changes to values.
-				CREATE TABLE "changes" (
+				-- "Changes" table contains all changes to values.
+				CREATE TABLE "`+s.Prefix+`Changes" (
 					-- ID of the changeset this change belongs to.
 					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- ID of the value.
@@ -144,11 +139,11 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					`+patches+`
 					PRIMARY KEY ("changeset", "id", "revision")
 				);
-				CREATE INDEX ON "changes" USING gin ("parentChangesets");
-				CREATE FUNCTION "changesAfterInsertFunc"()
+				CREATE INDEX ON "`+s.Prefix+`Changes" USING gin ("parentChangesets");
+				CREATE FUNCTION "`+s.Prefix+`ChangesAfterInsertFunc"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						INSERT INTO "currentChanges"
+						INSERT INTO "`+s.Prefix+`CurrentChanges"
 							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "revision" FROM NEW_ROWS
 								ORDER BY "changeset", "id", "revision" DESC
 								ON CONFLICT ("changeset", "id") DO UPDATE
@@ -156,32 +151,32 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						RETURN NULL;
 					END;
 				$$;
-				CREATE FUNCTION "changesAfterDeleteFunc"()
+				CREATE FUNCTION "`+s.Prefix+`ChangesAfterDeleteFunc"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						DELETE FROM "currentChanges" USING OLD_ROWS
-							WHERE "currentChanges"."changeset"=OLD_ROWS."changeset"
-								AND "currentChanges"."id"=OLD_ROWS."id";
-						INSERT INTO "currentChanges"
-							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "changes"."revision"
-								FROM OLD_ROWS JOIN "changes" USING ("changeset", "id")
-								ORDER BY "changeset", "id", "changes"."revision" DESC
+						DELETE FROM "`+s.Prefix+`CurrentChanges" USING OLD_ROWS
+							WHERE "`+s.Prefix+`CurrentChanges"."changeset"=OLD_ROWS."changeset"
+								AND "`+s.Prefix+`CurrentChanges"."id"=OLD_ROWS."id";
+						INSERT INTO "`+s.Prefix+`CurrentChanges"
+							SELECT DISTINCT ON ("changeset", "id") "changeset", "id", "`+s.Prefix+`Changes"."revision"
+								FROM OLD_ROWS JOIN "`+s.Prefix+`Changes" USING ("changeset", "id")
+								ORDER BY "changeset", "id", "`+s.Prefix+`Changes"."revision" DESC
 								ON CONFLICT ("changeset", "id") DO UPDATE
 									SET "revision"=EXCLUDED."revision";
 						RETURN NULL;
 					END;
 				$$;
-				CREATE TRIGGER "changesAfterInsert" AFTER INSERT ON "changes"
+				CREATE TRIGGER "`+s.Prefix+`ChangesAfterInsert" AFTER INSERT ON "`+s.Prefix+`Changes"
 					REFERENCING NEW TABLE AS NEW_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterInsertFunc"();
-				CREATE TRIGGER "changesAfterDelete" AFTER DELETE ON "changes"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`ChangesAfterInsertFunc"();
+				CREATE TRIGGER "`+s.Prefix+`ChangesAfterDelete" AFTER DELETE ON "`+s.Prefix+`Changes"
 					REFERENCING OLD TABLE AS OLD_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "changesAfterDeleteFunc"();
-				CREATE TRIGGER "changesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "changes"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`ChangesAfterDeleteFunc"();
+				CREATE TRIGGER "`+s.Prefix+`ChangesNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+s.Prefix+`Changes"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "views" table contains all changes to views.
-				CREATE TABLE "views" (
+				-- "Views" table contains all changes to views.
+				CREATE TABLE "`+s.Prefix+`Views" (
 					-- ID of the view.
 					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					-- Revision of this view.
@@ -197,11 +192,11 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- This allows us to use UNIQUE constraint in "currentViews.
 					CHECK ("name"<>'')
 				);
-				CREATE INDEX ON "views" USING btree ("name");
-				CREATE FUNCTION "viewsAfterInsertFunc"()
+				CREATE INDEX ON "`+s.Prefix+`Views" USING btree ("name");
+				CREATE FUNCTION "`+s.Prefix+`ViewsAfterInsertFunc"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						INSERT INTO "currentViews"
+						INSERT INTO "`+s.Prefix+`CurrentViews"
 							SELECT DISTINCT ON ("view") "view", "revision", "name" FROM NEW_ROWS
 								ORDER BY "view", "revision" DESC
 								ON CONFLICT ("view") DO UPDATE
@@ -209,14 +204,14 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						RETURN NULL;
 					END;
 				$$;
-				CREATE TRIGGER "viewsAfterInsert" AFTER INSERT ON "views"
+				CREATE TRIGGER "`+s.Prefix+`ViewsAfterInsert" AFTER INSERT ON "`+s.Prefix+`Views"
 					REFERENCING NEW TABLE AS NEW_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "viewsAfterInsertFunc"();
-				CREATE TRIGGER "viewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "views"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`ViewsAfterInsertFunc"();
+				CREATE TRIGGER "`+s.Prefix+`ViewsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "`+s.Prefix+`Views"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "committedChangesets" table contains which changesets are explicitly committed to which views.
-				CREATE TABLE "committedChangesets" (
+				-- "CommittedChangesets" table contains which changesets are explicitly committed to which views.
+				CREATE TABLE "`+s.Prefix+`CommittedChangesets" (
 					-- Changeset which belongs to the view. Also all changesets belonging to ancestors
 					-- (as defined by view's path) of the view belong to the view, but we do not store
 					-- them explicitly. The set of changesets belonging to the view should be kept
@@ -230,10 +225,10 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"metadata" `+s.MetadataType+` NOT NULL,
 					PRIMARY KEY ("changeset", "view", "revision")
 				);
-				CREATE FUNCTION "committedChangesetsAfterInsertFunc"()
+				CREATE FUNCTION "`+s.Prefix+`CommittedChangesetsAfterInsertFunc"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						INSERT INTO "currentCommittedChangesets"
+						INSERT INTO "`+s.Prefix+`CurrentCommittedChangesets"
 							SELECT DISTINCT ON ("changeset", "view") "changeset", "view", "revision" FROM NEW_ROWS
 								ORDER BY "changeset", "view", "revision" DESC
 								ON CONFLICT ("changeset", "view") DO UPDATE
@@ -241,16 +236,16 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						RETURN NULL;
 					END;
 				$$;
-				CREATE TRIGGER "committedChangesetsAfterInsert" AFTER INSERT ON "committedChangesets"
+				CREATE TRIGGER "`+s.Prefix+`CommittedChangesetsAfterInsert" AFTER INSERT ON "`+s.Prefix+`CommittedChangesets"
 					REFERENCING NEW TABLE AS NEW_ROWS
-					FOR EACH STATEMENT EXECUTE FUNCTION "committedChangesetsAfterInsertFunc"();
-				CREATE TRIGGER "committedChangesetsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "committedChangesets"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`CommittedChangesetsAfterInsertFunc"();
+				CREATE TRIGGER "`+s.Prefix+`CommittedChangesetsNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "`+s.Prefix+`CommittedChangesets"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "currentViews" is automatically maintained table with the current (highest)
-				-- revision of each view from table "views".
-				CREATE TABLE "currentViews" (
-					-- A subset of "views" columns.
+				-- "CurrentViews" is automatically maintained table with the current (highest)
+				-- revision of each view from table "Views".
+				CREATE TABLE "`+s.Prefix+`CurrentViews" (
+					-- A subset of "Views" columns.
 					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					-- Having "name" here allows easy querying by name and also makes it easy for us to enforce
@@ -258,38 +253,38 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					"name" text UNIQUE,
 					PRIMARY KEY ("view")
 				);
-				CREATE TRIGGER "currentViewsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentViews"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+				CREATE TRIGGER "`+s.Prefix+`CurrentViewsNotAllowed" BEFORE DELETE OR TRUNCATE ON "`+s.Prefix+`CurrentViews"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "currentChanges" is automatically maintained table with the current (highest)
-				-- revision of each change from table "changes".
-				CREATE TABLE "currentChanges" (
-					-- A subset of "changes" columns.
+				-- "`+s.Prefix+`CurrentChanges" is automatically maintained table with the current (highest)
+				-- revision of each change from table "Changes".
+				CREATE TABLE "`+s.Prefix+`CurrentChanges" (
+					-- A subset of "Changes" columns.
 					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "id")
 				);
-				CREATE INDEX ON "currentChanges" USING btree ("id");
-				CREATE TRIGGER "currentChangesNotAllowed" BEFORE TRUNCATE ON "currentChanges"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+				CREATE INDEX ON "`+s.Prefix+`CurrentChanges" USING btree ("id");
+				CREATE TRIGGER "`+s.Prefix+`CurrentChangesNotAllowed" BEFORE TRUNCATE ON "`+s.Prefix+`CurrentChanges"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "currentCommittedChangesets" is automatically maintained table with the current (highest)
-				-- revision of each committed changeset from table "committedChangesets".
-				CREATE TABLE "currentCommittedChangesets" (
-					-- A subset of "committedChangesets" columns.
+				-- "CurrentCommittedChangesets" is automatically maintained table with the current (highest)
+				-- revision of each committed changeset from table "CommittedChangesets".
+				CREATE TABLE "`+s.Prefix+`CurrentCommittedChangesets" (
+					-- A subset of "CommittedChangesets" columns.
 					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"revision" bigint NOT NULL,
 					PRIMARY KEY ("changeset", "view")
 				);
-				CREATE INDEX ON "currentCommittedChangesets" USING btree ("view");
-				CREATE TRIGGER "currentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "currentCommittedChangesets"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+				CREATE INDEX ON "`+s.Prefix+`CurrentCommittedChangesets" USING btree ("view");
+				CREATE TRIGGER "`+s.Prefix+`CurrentCommittedChangesetsNotAllowed" BEFORE DELETE OR TRUNCATE ON "`+s.Prefix+`CurrentCommittedChangesets"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				-- "committedValues" is automatically maintained table of all changesets reachable from
+				-- "CommittedValues" is automatically maintained table of all changesets reachable from
 				-- changesets explicitly committed to each view.
-				CREATE TABLE "committedValues" (
+				CREATE TABLE "`+s.Prefix+`CommittedValues" (
 					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
 					"changeset" text STORAGE PLAIN COLLATE "C" NOT NULL,
@@ -297,56 +292,56 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					PRIMARY KEY ("view", "id", "changeset"),
 					-- We allow only one version of the value per view at depth 0.
 					-- We cannot use UNIQUE constraint because we want a WHERE predicate and we cannot use UNIQUE index
-					-- because we want a deferred constraint which is checked after all changes to "committedValues" are
+					-- because we want a deferred constraint which is checked after all changes to "CommittedValues" are
 					-- done and not after every individual change (otherwise it can happen that the UNIQUE index raises
 					-- an exception because duplicate values are encountered before everything is updated).
-					CONSTRAINT "committedValuesLatest" EXCLUDE USING btree ("view" WITH =, "id" WITH =) WHERE ("depth"=0) DEFERRABLE INITIALLY DEFERRED
+					CONSTRAINT "`+s.Prefix+`CommittedValuesLatest" EXCLUDE USING btree ("view" WITH =, "id" WITH =) WHERE ("depth"=0) DEFERRABLE INITIALLY DEFERRED
 				);
-				CREATE TRIGGER "committedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "committedValues"
-					FOR EACH STATEMENT EXECUTE FUNCTION "doNotAllow"();
+				CREATE TRIGGER "`+s.Prefix+`CommittedValuesNotAllowed" BEFORE DELETE OR TRUNCATE ON "`+s.Prefix+`CommittedValues"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 
-				CREATE FUNCTION "changesetCreate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
+				CREATE FUNCTION "`+s.Prefix+`ChangesetCreate"(_changeset text, _id text, _parentChangesets text[], _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
 					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
-						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						PERFORM 1 FROM "`+s.Prefix+`CurrentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE='`+errorCodeAlreadyCommitted+`';
 						END IF;
 						IF _parentChangesets<>'{}' THEN
 							-- Parent changesets should exist for ID. Query should work even if
 							-- changesets are repeated in _parentChangesets.
-							PERFORM 1 FROM "currentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
+							PERFORM 1 FROM "`+s.Prefix+`CurrentChanges" JOIN UNNEST(_parentChangesets) AS "changeset" USING ("changeset")
 								WHERE "id"=_id
 								HAVING COUNT(*)=array_length(_parentChangesets, 1);
 							IF NOT FOUND THEN
 								RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE='`+errorCodeParentInvalid+`';
 							END IF;
 						END IF;
-						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
+						INSERT INTO "`+s.Prefix+`Changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
 					END;
 				$$;
 
-				CREATE FUNCTION "changesetDiscard"(_changeset text)
+				CREATE FUNCTION "`+s.Prefix+`ChangesetDiscard"(_changeset text)
 					RETURNS void LANGUAGE plpgsql AS $$
 					BEGIN
 						-- Changeset should not be committed (to any view).
-						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
+						PERFORM 1 FROM "`+s.Prefix+`CurrentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset already committed' USING ERRCODE='`+errorCodeAlreadyCommitted+`';
 						END IF;
 						-- Changeset should not be in use.
-						PERFORM 1 FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
+						PERFORM 1 FROM "`+s.Prefix+`CurrentChanges" JOIN "`+s.Prefix+`Changes" USING ("changeset", "id", "revision")
 							WHERE "parentChangesets"@>ARRAY[_changeset] LIMIT 1;
 						IF FOUND THEN
 							RAISE EXCEPTION 'changeset in use' USING ERRCODE='`+errorCodeInUse+`';
 						END IF;
 						-- Discarding an empty (or an already discarded) changeset is not an error.
-						DELETE FROM "changes" WHERE "changeset"=_changeset;
+						DELETE FROM "`+s.Prefix+`Changes" WHERE "changeset"=_changeset;
 					END;
 				$$;
 
-				CREATE FUNCTION "changesetCommit"(_changeset text, _metadata `+s.MetadataType+`, _name text)
+				CREATE FUNCTION "`+s.Prefix+`ChangesetCommit"(_changeset text, _metadata `+s.MetadataType+`, _name text)
 					RETURNS text[] LANGUAGE plpgsql AS $$
 					DECLARE
 						_view text;
@@ -355,24 +350,24 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					BEGIN
 						-- The view should exist.
 						SELECT "view", "path" INTO _view, _path
-							FROM "currentViews" JOIN "views" USING ("view", "revision")
-							WHERE "currentViews"."name"=_name;
+							FROM "`+s.Prefix+`CurrentViews" JOIN "`+s.Prefix+`Views" USING ("view", "revision")
+							WHERE "`+s.Prefix+`CurrentViews"."name"=_name;
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'view not found' USING ERRCODE='`+errorCodeViewNotFound+`';
 						END IF;
 						-- There must be at least one change in the changeset we want to commit. We know that parent
 						-- changesets exist and do have (relevant) changes because we check that when creating changes.
-						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
+						PERFORM 1 FROM "`+s.Prefix+`CurrentChanges" WHERE "changeset"=_changeset LIMIT 1;
 						IF NOT FOUND THEN
 							RAISE EXCEPTION 'changeset not found' USING ERRCODE='`+errorCodeChangesetNotFound+`';
 						END IF;
 						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (
-							SELECT "changeset" FROM "currentCommittedChangesets" WHERE "view"=ANY(_path)
+							SELECT "changeset" FROM "`+s.Prefix+`CurrentCommittedChangesets" WHERE "view"=ANY(_path)
 						), "changesetsToCommit"("changeset") AS (
 								VALUES (_changeset COLLATE "C")
 							-- We use UNION and not UNION ALL here because we need distinct values in _changesetsToCommit
-							-- because we have to insert only one row for each changeset into "committedChangesets".
+							-- because we have to insert only one row for each changeset into "CommittedChangesets".
 							UNION
 								-- We use LEFT JOIN with DISTINCT on the left table because it seems faster than EXCEPT,
 								-- but we should validate and keep validating this. DISTINCT here is not critical, but
@@ -380,8 +375,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 								SELECT l."changeset"
 									FROM (
 										SELECT DISTINCT UNNEST("parentChangesets") AS "changeset"
-											FROM "currentChanges"
-												JOIN "changes" USING ("changeset", "id", "revision")
+											FROM "`+s.Prefix+`CurrentChanges"
+												JOIN "`+s.Prefix+`Changes" USING ("changeset", "id", "revision")
 												JOIN "changesetsToCommit" USING ("changeset")
 									) AS l
 										LEFT JOIN "viewChangesets" AS r
@@ -392,22 +387,22 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- This raises unique violation if the provided changeset is already committed
 						-- (we added ancestor changesets to _changesetsToCommit because they are not committed so
 						-- we know they are not the ones raising unique violation, only the provided changeset can).
-						INSERT INTO "committedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
+						INSERT INTO "`+s.Prefix+`CommittedChangesets" SELECT "changeset", _view, 1, _metadata FROM UNNEST(_changesetsToCommit) AS "changeset";
 						-- Determine reachable changesets for all values in the changeset we want to commit.
 						-- Other changesets from _changesetsToCommit should be found again as well.
 						WITH RECURSIVE "reachableChangesets"("changeset", "id", "depth") AS (
 								SELECT "changeset", "id", 0
-									FROM "currentChanges" WHERE "changeset"=_changeset
+									FROM "`+s.Prefix+`CurrentChanges" WHERE "changeset"=_changeset
 							UNION ALL
 								-- "parentChangesets" can contain duplicates.
 								SELECT p.*, "id", "depth"+1
-									FROM "currentChanges"
-										JOIN "changes" USING ("changeset", "id", "revision")
+									FROM "`+s.Prefix+`CurrentChanges"
+										JOIN "`+s.Prefix+`Changes" USING ("changeset", "id", "revision")
 										JOIN "reachableChangesets" USING ("changeset", "id"),
 										-- We have to use LATERAL plus a sub-query to be able to use DISTINCT.
 										LATERAL (SELECT DISTINCT UNNEST("parentChangesets")) AS p("changeset")
 						)
-						INSERT INTO "committedValues" SELECT DISTINCT ON ("changeset", "id") _view, "id", "changeset", "depth"
+						INSERT INTO "`+s.Prefix+`CommittedValues" SELECT DISTINCT ON ("changeset", "id") _view, "id", "changeset", "depth"
 							FROM "reachableChangesets"
 							-- We pick the smallest depth to be deterministic when there are multiple paths to the same changeset.
 							-- If multiple paths lead to the same changeset at the same depth, we also insert a changeset
@@ -416,7 +411,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							ON CONFLICT ("view", "id", "changeset") DO UPDATE
 								SET "depth"=EXCLUDED."depth"
 								-- No need to update if nothing has changed.
-								WHERE "committedValues"."depth"<>EXCLUDED."depth";
+								WHERE "`+s.Prefix+`CommittedValues"."depth"<>EXCLUDED."depth";
 					-- If we now have multiple rows with same ("view", "id", *, 0) combination we want an exception
 					-- and we have for that an EXCLUDE constraint with such condition. We use a DEFERRABLE INITIALLY
 					-- DEFERRED constraint so that INSERT above have time to modify multiple rows and only after it
@@ -425,31 +420,37 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 					-- of a value which we do not allow. We want that at any point, i.e., after a set of changesets
 					-- are committed, there is only one version of a value per view. Branching can happen but everything
 					-- has to be merged back together into one version before a set of changesets is committed.
-					SET CONSTRAINTS "committedValuesLatest" IMMEDIATE;
+					SET CONSTRAINTS "`+s.Prefix+`CommittedValuesLatest" IMMEDIATE;
 					RETURN _changesetsToCommit;
 					END;
 				$$;
 			`)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
 
-			viewID := identifier.New()
-			_, err = tx.Exec(ctx, `INSERT INTO "views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
-
-			err = tx.Commit(ctx)
-			if err != nil {
-				return internal.WithPgxError(err)
-			}
+		viewID := identifier.New()
+		_, err = tx.Exec(ctx, `INSERT INTO "`+s.Prefix+`Views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
+		if err != nil {
+			return internal.WithPgxError(err)
 		}
 
 		return nil
 	})
 	if errE != nil {
-		return errE
+		var pgError *pgconn.PgError
+		if errors.As(errE, &pgError) {
+			switch pgError.Code {
+			case internal.ErrorCodeUniqueViolation:
+				// Nothing.
+			case internal.ErrorCodeDuplicateFunction:
+				// Nothing.
+			default:
+				return errE
+			}
+		} else {
+			return errE
+		}
 	}
 
 	s.dbpool = dbpool

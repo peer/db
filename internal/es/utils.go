@@ -254,7 +254,7 @@ func InitForSite(
 	}
 
 	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
-		Schema:       schema,
+		Prefix:       "docs",
 		Committed:    channel,
 		DataType:     "jsonb",
 		MetadataType: "jsonb",

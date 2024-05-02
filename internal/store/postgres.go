@@ -25,6 +25,7 @@ const (
 const (
 	ErrorCodeUniqueViolation      = "23505"
 	ErrorCodeDuplicateSchema      = "42P06"
+	ErrorCodeDuplicateFunction    = "42723"
 	ErrorCodeSerializationFailure = "40001"
 	ErrorCodeDeadlockDetected     = "40P01"
 	ErrorExclusionViolation       = "23P01"
@@ -153,19 +154,21 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	return dbpool, nil
 }
 
-func TryCreateSchema(ctx context.Context, tx pgx.Tx, schema string) (bool, errors.E) {
+func EnsureSchema(ctx context.Context, tx pgx.Tx, schema string) errors.E {
+	// TODO: Could we just use "CREATE SCHEMA IF NOT EXISTS" here?
+	//       See: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error
 	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, schema))
 	if err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
 			switch pgError.Code {
 			case ErrorCodeUniqueViolation:
-				return false, nil
+				return nil
 			case ErrorCodeDuplicateSchema:
-				return false, nil
+				return nil
 			}
 		}
-		return false, WithPgxError(err)
+		return WithPgxError(err)
 	}
-	return true, nil
+	return nil
 }
