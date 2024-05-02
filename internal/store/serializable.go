@@ -16,7 +16,37 @@ var ErrMaxRetriesReached = errors.Base("max retries reached")
 
 // TODO: For cases where only one query is made inside a transaction, we could make a query single-trip by making transaction and committing it ourselves.
 
+func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context.Context, tx pgx.Tx) errors.E) (errE errors.E) {
+	tx, err := parentTx.Begin(ctx)
+	if err != nil {
+		return WithPgxError(err)
+	}
+	defer func() {
+		err = tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			errE = errors.Join(errE, err)
+		}
+	}()
+
+	errE = fn(ctx, tx)
+	if errE != nil {
+		return errE
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil && (errors.Is(err, pgx.ErrTxClosed) || errors.Is(err, pgx.ErrTxCommitRollback)) {
+		// We allow for fn to commit or rollback already.
+		return nil
+	}
+	return WithPgxError(err)
+}
+
 func RetryTransaction(ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.TxAccessMode, fn func(ctx context.Context, tx pgx.Tx) errors.E) errors.E {
+	nestedTx, ok := ctx.Value(transactionContextKey).(pgx.Tx)
+	if ok {
+		return nestedTransaction(ctx, nestedTx, fn)
+	}
+
 	metrics, _ := waf.GetMetrics(ctx)
 	counter := metrics.Counter(MetricDatabaseRetries)
 
@@ -44,7 +74,7 @@ func RetryTransaction(ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.
 				}
 			}()
 
-			errE = fn(ctx, tx)
+			errE = fn(context.WithValue(ctx, transactionContextKey, tx), tx)
 			if errE != nil {
 				return errE
 			}

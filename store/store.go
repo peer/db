@@ -2,10 +2,8 @@ package store
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -78,35 +76,18 @@ type Store[Data, Metadata, Patch any] struct {
 	patchesEnabled bool
 }
 
-func (s *Store[Data, Metadata, Patch]) tryCreateSchema(ctx context.Context, tx pgx.Tx) (bool, errors.E) {
-	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, s.Schema))
-	if err != nil {
-		var pgError *pgconn.PgError
-		if errors.As(err, &pgError) {
-			switch pgError.Code {
-			case internal.ErrorCodeUniqueViolation:
-				return false, nil
-			case internal.ErrorCodeDuplicateSchema:
-				return false, nil
-			}
-		}
-		return false, internal.WithPgxError(err)
-	}
-	return true, nil
-}
-
 // Init initializes the Store.
 //
 // It creates and configures the PostgreSQL schema if it does not yet exist.
-func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) (errE errors.E) { //nolint:nonamedreturns,maintidx
+func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E { //nolint:maintidx
 	if s.dbpool != nil {
 		return errors.New("already initialized")
 	}
 
 	s.patchesEnabled = !isNoneType[Patch]()
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		created, errE := s.tryCreateSchema(ctx, tx) //nolint:govet
+	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		created, errE := internal.TryCreateSchema(ctx, tx, s.Schema) 
 		if errE != nil {
 			return errE
 		}
@@ -132,7 +113,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				CREATE FUNCTION "doNotAllow"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN
-						RAISE EXCEPTION 'not allowed' USING ERRCODE = '`+errorCodeNotAllowed+`';
+						RAISE EXCEPTION 'not allowed' USING ERRCODE='`+errorCodeNotAllowed+`';
 					END;
 				$$;
 
@@ -329,7 +310,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE='`+errorCodeAlreadyCommitted+`';
 						END IF;
 						IF _parentChangesets<>'{}' THEN
 							-- Parent changesets should exist for ID. Query should work even if
@@ -338,7 +319,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 								WHERE "id"=_id
 								HAVING COUNT(*)=array_length(_parentChangesets, 1);
 							IF NOT FOUND THEN
-								RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE = '`+errorCodeParentInvalid+`';
+								RAISE EXCEPTION 'invalid parent changeset' USING ERRCODE='`+errorCodeParentInvalid+`';
 							END IF;
 						END IF;
 						INSERT INTO "changes" VALUES (_changeset, _id, 1, _parentChangesets, '{}', _value, _metadata`+patchesValue+`);
@@ -351,13 +332,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 						-- Changeset should not be committed (to any view).
 						PERFORM 1 FROM "currentCommittedChangesets" WHERE "changeset"=_changeset LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'changeset already committed' USING ERRCODE = '`+errorCodeAlreadyCommitted+`';
+							RAISE EXCEPTION 'changeset already committed' USING ERRCODE='`+errorCodeAlreadyCommitted+`';
 						END IF;
 						-- Changeset should not be in use.
 						PERFORM 1 FROM "currentChanges" JOIN "changes" USING ("changeset", "id", "revision")
 							WHERE "parentChangesets"@>ARRAY[_changeset] LIMIT 1;
 						IF FOUND THEN
-							RAISE EXCEPTION 'changeset in use' USING ERRCODE = '`+errorCodeInUse+`';
+							RAISE EXCEPTION 'changeset in use' USING ERRCODE='`+errorCodeInUse+`';
 						END IF;
 						-- Discarding an empty (or an already discarded) changeset is not an error.
 						DELETE FROM "changes" WHERE "changeset"=_changeset;
@@ -376,13 +357,13 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 							FROM "currentViews" JOIN "views" USING ("view", "revision")
 							WHERE "currentViews"."name"=_name;
 						IF NOT FOUND THEN
-							RAISE EXCEPTION 'view not found' USING ERRCODE = '`+errorCodeViewNotFound+`';
+							RAISE EXCEPTION 'view not found' USING ERRCODE='`+errorCodeViewNotFound+`';
 						END IF;
 						-- There must be at least one change in the changeset we want to commit. We know that parent
 						-- changesets exist and do have (relevant) changes because we check that when creating changes.
 						PERFORM 1 FROM "currentChanges" WHERE "changeset"=_changeset LIMIT 1;
 						IF NOT FOUND THEN
-							RAISE EXCEPTION 'changeset not found' USING ERRCODE = '`+errorCodeChangesetNotFound+`';
+							RAISE EXCEPTION 'changeset not found' USING ERRCODE='`+errorCodeChangesetNotFound+`';
 						END IF;
 						-- Determine the list of changesets to commit: the changeset and any non-committed ancestor changesets.
 						WITH RECURSIVE "viewChangesets" AS (

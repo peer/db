@@ -152,3 +152,20 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 	return dbpool, nil
 }
+
+func TryCreateSchema(ctx context.Context, tx pgx.Tx, schema string) (bool, errors.E) {
+	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, schema))
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case ErrorCodeUniqueViolation:
+				return false, nil
+			case ErrorCodeDuplicateSchema:
+				return false, nil
+			}
+		}
+		return false, WithPgxError(err)
+	}
+	return true, nil
+}

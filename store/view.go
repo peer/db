@@ -363,7 +363,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 			SELECT DISTINCT "id"
 				FROM "viewPath" JOIN "committedValues" USING ("view")
 				`+afterCondition+`
-				-- We order by ID to enable keyset pagination.
+				-- We order by "id" to enable keyset pagination.
 				ORDER BY "id"
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
@@ -552,7 +552,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 					-- We return distinct "changeset" in the order of graph traversal.
 					"distinctChangesets"."depth" ASC,
 					-- If there are multiple changesets at the same depth,
-					-- we order by ID to enable keyset pagination at the depth.
+					-- we order by "id" to enable keyset pagination at the depth.
 					"changeset" ASC
 		`, arguments...)
 		if err != nil {
