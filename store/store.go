@@ -78,7 +78,8 @@ type Store[Data, Metadata, Patch any] struct {
 
 // Init initializes the Store.
 //
-// It creates and configures the PostgreSQL schema if it does not yet exist.
+// It creates and configures the PostgreSQL tables, indices, and
+// stored procedures if they do not already exist.
 func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E { //nolint:maintidx
 	if s.dbpool != nil {
 		return errors.New("already initialized")

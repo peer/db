@@ -19,10 +19,10 @@ Demos:
 
 ## Components
 
-- PeerDB Store is key-value store with features enabling collaboration. It supports versioning, forking and merging,
+- PeerDB Store is a key-value store with features enabling collaboration. It supports versioning, forking and merging,
   transactions at human-scale (i.e., to support merge requests), concurrent different views over the data.
-- PeerDB Coordinator provides append-only log of operations to support synchronizing real-time collaboration sessions.
-- PeerDB Search is search for semantic, structured, and full-text data. It is opinionated open source search system incorporating
+- PeerDB Coordinator provides an append-only log of operations to support synchronizing real-time collaboration sessions.
+- PeerDB Search is a search for semantic, structured, and full-text data. It is opinionated open source search system incorporating
   best practices in search and user interfaces/experience to provide an intuitive, fast, and easy to use search over semantic,
   structured, and full-text data. Its user interface automatically adapts to data and search results and provides relevant
   filters. The goal of the user interface is to allow users without technical knowledge to easily find results they want,

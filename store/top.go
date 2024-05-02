@@ -131,7 +131,7 @@ func (s *Store[Data, Metadata, Patch]) Commit(
 	return view.Commit(ctx, changeset, metadata)
 }
 
-// List returns up to MaxPageLength value IDs committed to the MainView, ordered by ID, after optional ID to support keyset pagination.
+// List returns up to MaxPageLength value IDs committed to the MainView, ordered by ID, after optional ID, to support keyset pagination.
 func (s *Store[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
@@ -140,8 +140,9 @@ func (s *Store[Data, Metadata, Patch]) List(ctx context.Context, after *identifi
 	return view.List(ctx, after)
 }
 
-// Changes returns up to MaxPageLength changesets for the value committed to the MainView, ordered by first depth and then
-// changeset ID, after optional changeset ID to support keyset pagination.
+// Changes returns up to MaxPageLength changesets for the value committed to the MainView, ordered first by depth
+// in increasing order (newest changes first) and then by changeset ID, after optional changeset ID, to
+// support keyset pagination.
 func (s *Store[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {

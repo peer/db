@@ -339,7 +339,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 	return data, metadata, errE
 }
 
-// List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID to support keyset pagination.
+// List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID, to support keyset pagination.
 func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name,
@@ -414,8 +414,9 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 	return values, errE
 }
 
-// Changes returns up to MaxPageLength changesets for the value committed to the view, ordered by first depth and then
-// changeset ID, after optional changeset ID to support keyset pagination.
+// Changes returns up to MaxPageLength changesets for the value committed to the view, ordered first by depth
+// in increasing order (newest changes first) and then by changeset ID, after optional changeset ID, to
+// support keyset pagination.
 func (v View[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	if after != nil {
 		return v.changesAfter(ctx, id, *after)

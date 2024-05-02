@@ -441,7 +441,7 @@ type Change struct {
 	Version Version
 }
 
-// Changes returns up to MaxPageLength changes of the changeset, ordered by ID, after optional ID to support keyset pagination.
+// Changes returns up to MaxPageLength changes of the changeset, ordered by ID, after optional ID, to support keyset pagination.
 func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *identifier.Identifier) ([]Change, errors.E) {
 	arguments := []any{
 		c.String(),
