@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -181,7 +182,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string, 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	dbpool, errE := internal.InitPostgres(ctx, database, logger, func(_ context.Context) (string, string) {
-		return schema, "moma"
+		return schema, "standalone"
 	})
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
@@ -244,6 +245,13 @@ func InitForSite(
 	context.AfterFunc(ctx, func() { close(channel) })
 
 	errE := ensureIndex(ctx, esClient, index, sizeField)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
+	})
 	if errE != nil {
 		return nil, nil, errE
 	}
