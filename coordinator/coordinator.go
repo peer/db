@@ -23,6 +23,12 @@ const (
 	errorCodeAlreadyEnded    = "P1021"
 )
 
+// AppendedOperation represents an operation appended to a session.
+type AppendedOperation struct {
+	Session   identifier.Identifier
+	Operation int64
+}
+
 // Coordinator provides an append-only log of operations to support
 // synchronizing real-time collaboration sessions.
 //
@@ -42,6 +48,18 @@ type Coordinator[Data, Metadata any] struct {
 	// EndCallback is called inside a transaction before all operations
 	// for the session are deleted and session is ended.
 	EndCallback func(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E)
+
+	// A channel to which operations are send when they are appended.
+	//
+	// The order in which they are sent is not necessary the order in which
+	// they were appended. You should not rely on the order.
+	Appended chan<- AppendedOperation
+
+	// A channel to which sessions are send when they end.
+	//
+	// The order in which they are sent is not necessary the order in which
+	// they ended. You should not rely on the order.
+	Ended chan<- identifier.Identifier
 
 	dbpool *pgxpool.Pool
 }
@@ -183,7 +201,7 @@ func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metada
 // Once the session has ended no more operations can be appended to it.
 //
 // Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) (identifier.Identifier, errors.E) {
+func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) errors.E {
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		var m Metadata
 		var errE errors.E
@@ -213,9 +231,10 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 	})
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
-		return identifier.Identifier{}, errE
+	} else if c.Ended != nil {
+		c.Ended <- session
 	}
-	return session, nil
+	return errE
 }
 
 // Push appends a new operation into the log with the next available operation number.
@@ -250,6 +269,11 @@ func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifi
 	})
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
+	} else if c.Appended != nil {
+		c.Appended <- AppendedOperation{
+			Session:   session,
+			Operation: operation,
+		}
 	}
 	return operation, errE
 }
@@ -290,6 +314,11 @@ func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifie
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
 		errors.Details(errE)["operation"] = operation
+	} else if c.Appended != nil {
+		c.Appended <- AppendedOperation{
+			Session:   session,
+			Operation: operation,
+		}
 	}
 	return errE
 }
