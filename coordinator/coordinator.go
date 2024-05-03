@@ -240,18 +240,13 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 // Push appends a new operation into the log with the next available operation number.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifier.Identifier, data *Data, metadata Metadata) (int64, errors.E) {
+func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifier.Identifier, data Data, metadata Metadata) (int64, errors.E) {
 	arguments := []any{
-		session.String(), metadata,
-	}
-	dataPlaceholder := ", NULL"
-	if data != nil {
-		arguments = append(arguments, *data)
-		dataPlaceholder = ", $3"
+		session.String(), metadata, data,
 	}
 	var operation int64
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`PushOperation"($1, $2`+dataPlaceholder+`)`, arguments...).Scan(&operation)
+		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`PushOperation"($1, $2, $3)`, arguments...).Scan(&operation)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -283,17 +278,12 @@ func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifi
 // The provided operation number has to be available for the call to succeed.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifier.Identifier, operation int64, data *Data, metadata Metadata) errors.E {
+func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata Metadata) errors.E {
 	arguments := []any{
-		session.String(), operation, metadata,
-	}
-	dataPlaceholder := ", NULL"
-	if data != nil {
-		arguments = append(arguments, *data)
-		dataPlaceholder = ", $4"
+		session.String(), operation, metadata, data,
 	}
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`SetOperation"($1, $2, $3`+dataPlaceholder+`)`, arguments...)
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`SetOperation"($1, $2, $3, $4)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -398,11 +388,11 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 // Data might be nil if the operation does not contain data.
 //
 // Data and metadata are not available anymore once the session ends.
-func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (*Data, Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
-	var data *Data
+	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `
@@ -482,12 +472,12 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 
 // Get returns initial and ending (once session has ended, otherwise it is nil)
 // metadata for the session.
-func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifier.Identifier) (Metadata, *Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifier.Identifier) (Metadata, Metadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(),
 	}
 	var beginMetadata Metadata
-	var endMetadata *Metadata
+	var endMetadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `
 			SELECT "beginMetadata", "endMetadata"
