@@ -163,10 +163,13 @@ func testTop[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataT
 	t.Helper()
 
 	endedSessions := []identifier.Identifier{}
-	ctx, c, appendedChannelContents, endedChannelContents := initDatabase[Data, Metadata](t, dataType, func(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) {
-		endedSessions = append(endedSessions, session)
-		return metadata, nil
-	})
+	ctx, c, appendedChannelContents, endedChannelContents := initDatabase[Data, Metadata](
+		t, dataType,
+		func(_ context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) {
+			endedSessions = append(endedSessions, session)
+			return metadata, nil
+		},
+	)
 
 	session, errE := c.Begin(ctx, d.BeginMetadata)
 	require.NoError(t, errE, "% -+#.1v", errE)

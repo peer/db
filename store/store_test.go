@@ -1301,7 +1301,13 @@ func TestMultiplePathsToSameChangeset(t *testing.T) {
 	_, errE = changesetB2.Update(ctx, newID, changesetB1.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	merged, errE := s.Merge(ctx, newID, []identifier.Identifier{changesetA.ID(), changesetB2.ID()}, internal.DummyData, []json.RawMessage{internal.DummyData, internal.DummyData}, internal.DummyData)
+	merged, errE := s.Merge(
+		ctx, newID,
+		[]identifier.Identifier{changesetA.ID(), changesetB2.ID()},
+		internal.DummyData,
+		[]json.RawMessage{internal.DummyData, internal.DummyData},
+		internal.DummyData,
+	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
@@ -1338,7 +1344,13 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 	_, errE = changesetB.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	merged, errE := s.Merge(ctx, newID, []identifier.Identifier{changesetA.ID(), changesetB.ID()}, internal.DummyData, []json.RawMessage{internal.DummyData, internal.DummyData}, internal.DummyData)
+	merged, errE := s.Merge(
+		ctx, newID,
+		[]identifier.Identifier{changesetA.ID(), changesetB.ID()},
+		internal.DummyData,
+		[]json.RawMessage{internal.DummyData, internal.DummyData},
+		internal.DummyData,
+	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
