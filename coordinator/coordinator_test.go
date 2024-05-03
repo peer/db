@@ -32,7 +32,7 @@ type testCase[Data, Metadata any] struct {
 	EndMetadata   Metadata
 }
 
-func TestTop(t *testing.T) {
+func TestHappyPath(t *testing.T) {
 	t.Parallel()
 
 	for _, dataType := range []string{"jsonb", "bytea", "text"} {
@@ -41,7 +41,7 @@ func TestTop(t *testing.T) {
 		t.Run(dataType, func(t *testing.T) {
 			t.Parallel()
 
-			testTop(t, testCase[*internal.TestData, *internal.TestMetadata]{
+			testHappyPath(t, testCase[*internal.TestData, *internal.TestMetadata]{
 				BeginMetadata: &internal.TestMetadata{Metadata: "begin"},
 				Push1Data:     &internal.TestData{Data: 123, Patch: false},
 				Push1Metadata: &internal.TestMetadata{Metadata: "push1"},
@@ -54,7 +54,7 @@ func TestTop(t *testing.T) {
 				EndMetadata:   &internal.TestMetadata{Metadata: "end"},
 			}, dataType)
 
-			testTop(t, testCase[json.RawMessage, json.RawMessage]{
+			testHappyPath(t, testCase[json.RawMessage, json.RawMessage]{
 				BeginMetadata: json.RawMessage(`{"metadata": "begin"}`),
 				Push1Data:     json.RawMessage(`{"data": 123}`),
 				Push1Metadata: json.RawMessage(`{"metadata": "push1"}`),
@@ -67,7 +67,7 @@ func TestTop(t *testing.T) {
 				EndMetadata:   json.RawMessage(`{"metadata": "end"}`),
 			}, dataType)
 
-			testTop(t, testCase[*json.RawMessage, *json.RawMessage]{
+			testHappyPath(t, testCase[*json.RawMessage, *json.RawMessage]{
 				BeginMetadata: internal.ToRawMessagePtr(`{"metadata": "begin"}`),
 				Push1Data:     internal.ToRawMessagePtr(`{"data": 123}`),
 				Push1Metadata: internal.ToRawMessagePtr(`{"metadata": "push1"}`),
@@ -80,7 +80,7 @@ func TestTop(t *testing.T) {
 				EndMetadata:   internal.ToRawMessagePtr(`{"metadata": "end"}`),
 			}, dataType)
 
-			testTop(t, testCase[[]byte, []byte]{
+			testHappyPath(t, testCase[[]byte, []byte]{
 				BeginMetadata: []byte(`{"metadata": "begin"}`),
 				Push1Data:     []byte(`{"data": 123}`),
 				Push1Metadata: []byte(`{"metadata": "push1"}`),
@@ -159,7 +159,7 @@ func initDatabase[Data, Metadata any](
 	return ctx, c, appendedChannelContents, endedChannelContents
 }
 
-func testTop[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
+func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
 	t.Helper()
 
 	endedSessions := []identifier.Identifier{}

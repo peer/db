@@ -35,7 +35,7 @@ type AppendedOperation struct {
 // For every operation, its metadata and optional data are stored.
 // Go types for them you configure with type parameters.
 type Coordinator[Data, Metadata any] struct {
-	// Prefix to use when initializing PostgreSQL objects used by this store.
+	// Prefix to use when initializing PostgreSQL objects used by this coordinator.
 	Prefix string
 
 	// PostgreSQL column types to store data and metadata.
