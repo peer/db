@@ -24,10 +24,11 @@ type fileMetadata struct {
 }
 
 type endMetadata struct {
-	At     time.Time `json:"at"`
-	Chunks int64     `json:"chunks"`
+	At        time.Time `json:"at"`
+	Discarded bool      `json:"discarded,omitempty"`
+	Chunks    int64     `json:"chunks,omitempty"`
 	// Processing time in milliseconds.
-	Time int64 `json:"time"`
+	Time int64 `json:"time,omitempty"`
 }
 
 type chunkMetadata struct {
@@ -111,6 +112,10 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 	errE = x.UnmarshalWithoutUnknownFields(endMetadataJSON, &endMetadata)
 	if errE != nil {
 		return endMetadataJSON, errE
+	}
+
+	if endMetadata.Discarded {
+		return endMetadataJSON, nil
 	}
 
 	chunksList, errE := s.ListChunks(ctx, session)
@@ -245,9 +250,24 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := endMetadata{
-		At:     time.Now().UTC(),
-		Chunks: 0,
-		Time:   0,
+		At:        time.Now().UTC(),
+		Discarded: false,
+		Chunks:    0,
+		Time:      0,
+	}
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
+	if errE != nil {
+		return errE
+	}
+	return s.coordinator.End(ctx, session, metadataJSON)
+}
+
+func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
+	metadata := endMetadata{
+		At:        time.Now().UTC(),
+		Discarded: true,
+		Chunks:    0,
+		Time:      0,
 	}
 	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
 	if errE != nil {

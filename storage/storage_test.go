@@ -85,6 +85,30 @@ func TestHappyPath(t *testing.T) {
 	errE = s.UploadChunk(ctx, session, []byte("foo"), 2)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	chunks, errE := s.ListChunks(ctx, session)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []int64{4, 3, 2, 1}, chunks)
+
+	start, length, errE := s.GetChunk(ctx, session, 1)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), start)
+	assert.Equal(t, int64(3), length)
+
+	start, length, errE = s.GetChunk(ctx, session, 2)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), start)
+	assert.Equal(t, int64(3), length)
+
+	start, length, errE = s.GetChunk(ctx, session, 3)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(5), start)
+	assert.Equal(t, int64(5), length)
+
+	start, length, errE = s.GetChunk(ctx, session, 4)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(2), start)
+	assert.Equal(t, int64(3), length)
+
 	errE = s.EndUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -119,4 +143,37 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "text/plain", m.MediaType)
 	assert.Equal(t, "test.txt", m.Filename)
 	assert.False(t, m.At.IsZero())
+}
+
+func TestErrors(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase(t)
+
+	session, errE := s.BeginUpload(ctx, 10, "text/plain", "test.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = s.UploadChunk(ctx, session, []byte("foo"), 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = s.UploadChunk(ctx, session, []byte("bar"), 5)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = s.EndUpload(ctx, session)
+	assert.ErrorContains(t, errE, "gap between chunks")
+
+	errE = s.UploadChunk(ctx, session, []byte("zy"), 3)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = s.EndUpload(ctx, session)
+	assert.ErrorContains(t, errE, "chunks smaller than file")
+
+	errE = s.UploadChunk(ctx, session, []byte("large"), 8)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = s.EndUpload(ctx, session)
+	assert.ErrorContains(t, errE, "chunk larger than file")
+
+	errE = s.DiscardUpload(ctx, session)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 }
