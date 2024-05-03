@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -287,4 +288,116 @@ func testTop[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataT
 	// Nothing new since the last time.
 	appended = appendedChannelContents.Prune()
 	assert.Empty(t, appended)
+}
+
+func TestErrors(t *testing.T) {
+	t.Parallel()
+
+	ctx, c, _, _ := initDatabase[json.RawMessage, json.RawMessage](t, "jsonb", nil)
+
+	_, _, errE := c.Get(ctx, identifier.New())
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	errE = c.End(ctx, identifier.New(), internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	_, errE = c.Push(ctx, identifier.New(), internal.DummyData, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	errE = c.Set(ctx, identifier.New(), 1, internal.DummyData, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	_, _, errE = c.GetData(ctx, identifier.New(), 1)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	_, errE = c.GetMetadata(ctx, identifier.New(), 1)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	session, errE := c.Begin(ctx, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = c.Set(ctx, session, 1, internal.DummyData, internal.DummyData)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = c.Set(ctx, session, 1, internal.DummyData, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrConflict)
+
+	_, _, errE = c.GetData(ctx, session, 2)
+	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
+
+	_, errE = c.GetMetadata(ctx, session, 2)
+	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
+
+	errE = c.End(ctx, session, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = c.Push(ctx, session, internal.DummyData, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	errE = c.Set(ctx, session, 2, internal.DummyData, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	_, _, errE = c.GetData(ctx, session, 1)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	_, errE = c.GetMetadata(ctx, session, 1)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	errE = c.End(ctx, session, internal.DummyData)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	_, errE = c.List(ctx, session, nil)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+}
+
+func TestListPagination(t *testing.T) {
+	t.Parallel()
+
+	ctx, c, appendedChannelContents, _ := initDatabase[json.RawMessage, json.RawMessage](t, "jsonb", nil)
+
+	operations := []int64{}
+
+	session, errE := c.Begin(ctx, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for i := 0; i < 6000; i++ {
+		o, errE := c.Push(ctx, session, internal.DummyData, internal.DummyData) //nolint:govet
+		require.NoError(t, errE, "%d % -+#.1v", errE)
+
+		operations = append(operations, o)
+	}
+
+	page1, errE := c.List(ctx, session, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page1, coordinator.MaxPageLength)
+
+	page2, errE := c.List(ctx, session, &page1[4999])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, page2, 1000)
+
+	pushed := []int64{}
+	pushed = append(pushed, page1...)
+	pushed = append(pushed, page2...)
+
+	slices.Sort(operations)
+	slices.Reverse(operations)
+
+	assert.Equal(t, operations, pushed)
+
+	time.Sleep(10 * time.Millisecond)
+	appended := appendedChannelContents.Prune()
+	assert.Len(t, appended, 6000)
+
+	_, errE = c.List(ctx, identifier.New(), nil)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	// Having no more values is not an error.
+	page3, errE := c.List(ctx, session, &page2[999])
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, page3, 0)
+
+	// Using unknown before operation is an error.
+	before := int64(10000)
+	_, errE = c.List(ctx, session, &before)
+	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 }
