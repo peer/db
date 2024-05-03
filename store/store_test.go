@@ -191,7 +191,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
@@ -239,7 +238,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {
@@ -294,7 +292,6 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	// We sleep to make sure all changesets are retrieved.
 	time.Sleep(10 * time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) {

@@ -83,7 +83,7 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 				"beginMetadata" `+c.MetadataType+` NOT NULL,
 				"endMetadata" `+c.MetadataType+`,
 				PRIMARY KEY ("session")
-			)
+			);
 			CREATE TABLE "`+c.Prefix+`Operations" (
 				-- ID of the session this operation belongs to.
 				"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
@@ -92,7 +92,7 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 				"data" `+c.DataType+`,
 				"metadata" `+c.MetadataType+` NOT NULL,
 				PRIMARY KEY ("session", "operation")
-			)
+			);
 
 			CREATE FUNCTION "`+c.Prefix+`EndSession"(_session text, _metadata `+c.MetadataType+`)
 				RETURNS void LANGUAGE plpgsql AS $$
@@ -126,7 +126,7 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 					ELSIF _sessionEnded THEN
 						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
 					END IF;
-					INSERT INTO "operations" SELECT _session, MAX("operation")+1, _data, _metadata
+					INSERT INTO "`+c.Prefix+`Operations" SELECT _session, COALESCE(MAX("operation"), 0)+1, _data, _metadata
 						FROM "`+c.Prefix+`Operations" WHERE "session"=_session
 						RETURNING "operation" INTO _operation;
 					RETURN _operation;
