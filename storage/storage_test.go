@@ -11,12 +11,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/storage"
-	"gitlab.com/peerdb/peerdb/store"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/storage"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 func initDatabase(t *testing.T) (context.Context, *storage.Storage, *internal.LockableSlice[store.CommittedChangeset[[]byte, json.RawMessage, store.None]]) {
