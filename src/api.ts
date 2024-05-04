@@ -120,3 +120,64 @@ export async function postURL<T>(url: string, form: FormData, abortSignal: Abort
     progress.value -= 1
   }
 }
+
+export async function postJSON<T>(url: string, data: object, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
+  progress.value += 1
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      mode: "same-origin",
+      credentials: "same-origin",
+      redirect: "error",
+      referrer: document.location.href,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
+    })
+    const contentType = response.headers.get("Content-Type")
+    if (!contentType || !contentType.includes("application/json")) {
+      const body = await response.text()
+      throw new FetchError(`fetch POST error ${response.status}: ${body}`, {
+        status: response.status,
+        body,
+        url,
+        requestID: response.headers.get("Request-ID"),
+      })
+    }
+    return await response.json()
+  } finally {
+    progress.value -= 1
+  }
+}
+
+export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
+  progress.value += 1
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body: data,
+      mode: "same-origin",
+      credentials: "same-origin",
+      redirect: "error",
+      referrer: document.location.href,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
+    })
+    const contentType = response.headers.get("Content-Type")
+    if (!contentType || !contentType.includes("application/json")) {
+      const body = await response.text()
+      throw new FetchError(`fetch POST error ${response.status}: ${body}`, {
+        status: response.status,
+        body,
+        url,
+        requestID: response.headers.get("Request-ID"),
+      })
+    }
+    return await response.json()
+  } finally {
+    progress.value -= 1
+  }
+}

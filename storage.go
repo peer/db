@@ -29,7 +29,7 @@ type beginUploadRequest struct {
 }
 
 // TODO: Add Validate to beginUploadRequest.
-//       We should validate that Size is non-negative.
+//       We should validate that Size is non-negative and under some limit.
 //       That media type looks correct (or is of allowlisted media type.
 //       We should UTF8 normalize filename and sanitize it to really be a filename only.
 

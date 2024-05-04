@@ -74,11 +74,11 @@ function onFilters() {
       class="max-w-xl flex-grow"
     />
     <input v-if="s" type="hidden" name="s" :value="s" />
-    <Button :progress="progress" type="submit" primary class="px-3.5">
+    <Button :progress="progress" type="submit" primary class="!px-3.5">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>
-    <Button v-if="filtersEnabled != null" primary class="px-3.5 sm:hidden" type="button" @click="onFilters">
+    <Button v-if="filtersEnabled != null" primary class="!px-3.5 sm:hidden" type="button" @click="onFilters">
       <FunnelIcon class="h-5 w-5" alt="Filters" />
     </Button>
   </form>

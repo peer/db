@@ -315,6 +315,16 @@ export type QueryValues = Record<string, string | string[]>
 
 export type QueryValuesWithOptional = Record<string, string | (string | null)[] | undefined | null>
 
+export type BeginUploadRequest = {
+  size: number
+  mediaType: string
+  filename: string
+}
+
+export type BeginUploadResponse = {
+  session: string
+}
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>
