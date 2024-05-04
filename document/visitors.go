@@ -14,15 +14,6 @@ const (
 	DropAndStop
 )
 
-type Claim interface {
-	GetID() identifier.Identifier
-	GetConfidence() Confidence
-	AddMeta(claim Claim) errors.E
-	GetMetaByID(id identifier.Identifier) Claim
-	RemoveMetaByID(id identifier.Identifier) Claim
-	VisitMeta(visitor Visitor) errors.E
-}
-
 type Visitor interface { //nolint:interfacebloat
 	VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E)
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
@@ -372,39 +363,25 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	return nil
 }
 
-func (c *ClaimTypes) Size() int {
-	if c == nil {
-		return 0
-	}
-
-	s := 0
-	s += len(c.Identifier)
-	s += len(c.Reference)
-	s += len(c.Text)
-	s += len(c.String)
-	s += len(c.Amount)
-	s += len(c.AmountRange)
-	s += len(c.Relation)
-	s += len(c.File)
-	s += len(c.NoValue)
-	s += len(c.UnknownValue)
-	s += len(c.Time)
-	s += len(c.TimeRange)
-	return s
-}
-
+// GetByIDVisitor recurses into meta claims.
 type GetByIDVisitor struct {
 	ID     identifier.Identifier
 	Action VisitResult
 	Result Claim
 }
 
+var _ Visitor = (*GetByIDVisitor)(nil)
+
 func (v *GetByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
@@ -412,7 +389,11 @@ func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
@@ -420,7 +401,11 @@ func (v *GetByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
@@ -428,7 +413,11 @@ func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E)
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
@@ -436,7 +425,11 @@ func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
@@ -444,7 +437,11 @@ func (v *GetByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult,
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
@@ -452,7 +449,11 @@ func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
@@ -460,7 +461,11 @@ func (v *GetByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
@@ -468,7 +473,11 @@ func (v *GetByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
@@ -476,7 +485,11 @@ func (v *GetByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResul
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
@@ -484,7 +497,11 @@ func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
 func (v *GetByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
@@ -492,9 +509,16 @@ func (v *GetByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, err
 		v.Result = claim
 		return v.Action, nil
 	}
-	return Keep, nil
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
 }
 
+var _ Visitor = (*GetByPropIDVisitor)(nil)
+
+// GetByPropIDVisitor does not recurse into meta claims.
 type GetByPropIDVisitor struct {
 	ID     identifier.Identifier
 	Action VisitResult
@@ -597,6 +621,11 @@ func (v *GetByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult,
 	return Keep, nil
 }
 
+var _ Visitor = (*AllClaimsVisitor)(nil)
+
+// AllClaimsVisitor returns all claims.
+//
+// AllClaimsVisitor does not recurse into meta claims.
 type AllClaimsVisitor struct {
 	Result []Claim
 }

@@ -727,7 +727,7 @@ func addQualifiers(
 				continue
 			}
 			for j, qualifierClaim := range qualifierClaims {
-				errE = claim.AddMeta(qualifierClaim)
+				errE = claim.Add(qualifierClaim)
 				if errE != nil {
 					logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i).Int(j)).
 						Err(errE).Msg("meta claim cannot be added")
@@ -782,7 +782,7 @@ func addReference(
 				continue
 			}
 			for k, c := range cs {
-				errE = referenceClaim.AddMeta(c)
+				errE = referenceClaim.Add(c)
 				if errE != nil {
 					logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j).Int(k)).
 						Err(errE).Msg("meta claim cannot be added")
@@ -792,7 +792,7 @@ func addReference(
 	}
 
 	if len(reference.SnaksOrder) > 1 {
-		errE := claim.AddMeta(referenceClaim)
+		errE := claim.Add(referenceClaim)
 		if errE != nil {
 			logger.Error().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i)).
 				Err(errE).Msg("meta claim cannot be added")

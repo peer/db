@@ -228,14 +228,14 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReferenceByID(ref document.R
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -247,14 +247,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitIdentifier(claim *document.Identif
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -266,14 +266,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitReference(claim *document.Referenc
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *document.TextClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -285,14 +285,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitText(claim *document.TextClaim) (d
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -304,14 +304,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitString(claim *document.StringClaim
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -323,14 +323,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmount(claim *document.AmountClaim
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *document.AmountRangeClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -342,14 +342,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitAmountRange(claim *document.Amount
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -357,9 +357,9 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *document.RelationC
 		v.Changed++
 	}
 
-	ref, err = v.getDocumentReference(claim.To, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.To)
+	ref, errE = v.getDocumentReference(claim.To, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.To)
 	}
 
 	if !reflect.DeepEqual(&claim.To, ref) {
@@ -371,14 +371,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitRelation(claim *document.RelationC
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *document.NoValueClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -390,14 +390,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitNoValue(claim *document.NoValueCla
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *document.UnknownValueClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -409,14 +409,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitUnknownValue(claim *document.Unkno
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -428,14 +428,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTime(claim *document.TimeClaim) (d
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *document.TimeRangeClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -447,14 +447,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitTimeRange(claim *document.TimeRang
 }
 
 func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (document.VisitResult, errors.E) {
-	err := claim.VisitMeta(v)
-	if err != nil {
-		return document.Keep, err
+	errE := claim.Visit(v)
+	if errE != nil {
+		return document.Keep, errE
 	}
 
-	ref, err := v.getDocumentReference(claim.Prop, claim.ID)
-	if err != nil {
-		return v.handleError(err, claim.Prop)
+	ref, errE := v.getDocumentReference(claim.Prop, claim.ID)
+	if errE != nil {
+		return v.handleError(errE, claim.Prop)
 	}
 
 	if !reflect.DeepEqual(&claim.Prop, ref) {
@@ -463,14 +463,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 	}
 
 	var fileDocument *document.D
-	for _, cc := range claim.GetMeta(document.GetCorePropertyID("IS")) {
+	for _, cc := range claim.Get(document.GetCorePropertyID("IS")) {
 		if c, ok := cc.(*document.RelationClaim); ok {
-			// c.To.ID should be non-nil ID because we called claim.VisitMeta(v) above.
-			fileDocument, err = v.getDocumentByID(*c.To.ID)
-			if errors.Is(err, ErrNotFound) {
+			// c.To.ID should be non-nil ID because we called claim.Visit(v) above.
+			fileDocument, errE = v.getDocumentByID(*c.To.ID)
+			if errors.Is(errE, ErrNotFound) {
 				return v.handleError(v.makeError(errReferenceNotFound, c.To, c.ID), c.To)
-			} else if err != nil {
-				return v.handleError(v.makeError(err, c.To, c.ID), c.To)
+			} else if errE != nil {
+				return v.handleError(v.makeError(errE, c.To, c.ID), c.To)
 			}
 
 			break

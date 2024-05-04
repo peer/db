@@ -105,7 +105,7 @@ func TestDocument(t *testing.T) {
 
 	id2 := identifier.New()
 
-	err = claim.AddMeta(&document.UnknownValueClaim{
+	err = claim.Add(&document.UnknownValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
@@ -131,7 +131,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	metaClaim := claim.GetMetaByID(id2)
+	metaClaim := claim.GetByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
@@ -139,7 +139,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
-	metaClaim = claim.RemoveMetaByID(id2)
+	metaClaim = claim.RemoveByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,

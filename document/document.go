@@ -14,6 +14,20 @@ type D struct {
 	Claims   *ClaimTypes `exhaustruct:"optional" json:"claims,omitempty"`
 }
 
+type ClaimsContainer interface {
+	GetID() identifier.Identifier
+	Visit(visitor Visitor) errors.E
+	Get(propID identifier.Identifier) []Claim
+	Remove(propID identifier.Identifier) []Claim
+	GetByID(id identifier.Identifier) Claim
+	RemoveByID(id identifier.Identifier) Claim
+	Add(claim Claim) errors.E
+	Size() int
+	AllClaims() []Claim
+}
+
+var _ ClaimsContainer = (*D)(nil)
+
 func (d D) Reference() Reference {
 	return Reference{
 		ID:    &d.ID,
@@ -111,6 +125,10 @@ func (d *D) Add(claim Claim) errors.E {
 		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
 	return nil
+}
+
+func (d *D) Size() int {
+	return d.Claims.Size()
 }
 
 func (d *D) AllClaims() []Claim {

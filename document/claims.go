@@ -13,10 +13,35 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+type Claim interface {
+	ClaimsContainer
+
+	GetConfidence() Confidence
+}
+
+var (
+	_ Claim = (*IdentifierClaim)(nil)
+	_ Claim = (*ReferenceClaim)(nil)
+	_ Claim = (*TextClaim)(nil)
+	_ Claim = (*StringClaim)(nil)
+	_ Claim = (*AmountClaim)(nil)
+	_ Claim = (*AmountRangeClaim)(nil)
+	_ Claim = (*RelationClaim)(nil)
+	_ Claim = (*FileClaim)(nil)
+	_ Claim = (*NoValueClaim)(nil)
+	_ Claim = (*UnknownValueClaim)(nil)
+	_ Claim = (*TimeClaim)(nil)
+	_ Claim = (*TimeRangeClaim)(nil)
+)
+
 type CoreDocument struct {
 	ID     identifier.Identifier `                       json:"id"`
 	Score  Score                 `                       json:"score"`
 	Scores Scores                `exhaustruct:"optional" json:"scores,omitempty"`
+}
+
+func (d CoreDocument) GetID() identifier.Identifier {
+	return d.ID
 }
 
 type Mnemonic string
@@ -109,6 +134,27 @@ type ClaimTypes struct {
 	TimeRange    TimeRangeClaims    `exhaustruct:"optional" json:"timeRange,omitempty"`
 }
 
+func (c *ClaimTypes) Size() int {
+	if c == nil {
+		return 0
+	}
+
+	s := 0
+	s += len(c.Identifier)
+	s += len(c.Reference)
+	s += len(c.Text)
+	s += len(c.String)
+	s += len(c.Amount)
+	s += len(c.AmountRange)
+	s += len(c.Relation)
+	s += len(c.File)
+	s += len(c.NoValue)
+	s += len(c.UnknownValue)
+	s += len(c.Time)
+	s += len(c.TimeRange)
+	return s
+}
+
 type (
 	IdentifierClaims   = []IdentifierClaim
 	ReferenceClaims    = []ReferenceClaim
@@ -138,9 +184,63 @@ func (cc CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
 }
 
-func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
-	if claimID := claim.GetID(); cc.GetMetaByID(claimID) != nil {
-		return errors.Errorf(`meta claim with ID "%s" already exists`, claimID)
+func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
+	if cc.Meta != nil {
+		err := cc.Meta.Visit(visitor)
+		if err != nil {
+			return err
+		}
+		// If meta claims became empty after visiting, we set them to nil.
+		if cc.Meta.Size() == 0 {
+			cc.Meta = nil
+		}
+	}
+	return nil
+}
+
+func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
+	v := GetByPropIDVisitor{
+		ID:     propID,
+		Action: Keep,
+		Result: []Claim{},
+	}
+	_ = cc.Visit(&v)
+	return v.Result
+}
+
+func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
+	v := GetByPropIDVisitor{
+		ID:     propID,
+		Action: Drop,
+		Result: []Claim{},
+	}
+	_ = cc.Visit(&v)
+	return v.Result
+}
+
+func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
+	v := GetByIDVisitor{
+		ID:     id,
+		Action: KeepAndStop,
+		Result: nil,
+	}
+	_ = cc.Visit(&v)
+	return v.Result
+}
+
+func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
+	v := GetByIDVisitor{
+		ID:     id,
+		Action: DropAndStop,
+		Result: nil,
+	}
+	_ = cc.Visit(&v)
+	return v.Result
+}
+
+func (cc *CoreClaim) Add(claim Claim) errors.E {
+	if claimID := claim.GetID(); cc.GetByID(claimID) != nil {
+		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
 	}
 	if cc.Meta == nil {
 		cc.Meta = new(ClaimTypes)
@@ -171,52 +271,20 @@ func (cc *CoreClaim) AddMeta(claim Claim) errors.E {
 	case *TimeRangeClaim:
 		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
 	default:
-		return errors.Errorf(`meta claim of type %T is not supported`, claim)
+		return errors.Errorf(`claim of type %T is not supported`, claim)
 	}
 	return nil
 }
 
-func (cc *CoreClaim) VisitMeta(visitor Visitor) errors.E {
-	if cc.Meta != nil {
-		err := cc.Meta.Visit(visitor)
-		if err != nil {
-			return err
-		}
-		// If meta claims became empty after visiting, we set them to nil.
-		if cc.Meta.Size() == 0 {
-			cc.Meta = nil
-		}
-	}
-	return nil
+func (cc *CoreClaim) Size() int {
+	return cc.Meta.Size()
 }
 
-func (cc *CoreClaim) GetMetaByID(id identifier.Identifier) Claim { //nolint:ireturn
-	v := GetByIDVisitor{
-		ID:     id,
-		Result: nil,
-		Action: Keep,
-	}
-	_ = cc.VisitMeta(&v)
-	return v.Result
-}
-
-func (cc *CoreClaim) GetMeta(propID identifier.Identifier) []Claim {
-	v := GetByPropIDVisitor{
-		ID:     propID,
-		Action: Keep,
+func (cc *CoreClaim) AllClaims() []Claim {
+	v := AllClaimsVisitor{
 		Result: []Claim{},
 	}
-	_ = cc.VisitMeta(&v)
-	return v.Result
-}
-
-func (cc *CoreClaim) RemoveMetaByID(id identifier.Identifier) Claim { //nolint:ireturn
-	v := GetByIDVisitor{
-		ID:     id,
-		Result: nil,
-		Action: Drop,
-	}
-	_ = cc.VisitMeta(&v)
+	_ = cc.Visit(&v)
 	return v.Result
 }
 
