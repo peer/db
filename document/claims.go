@@ -135,7 +135,7 @@ type ClaimTypes struct {
 }
 
 func (c *ClaimTypes) Add(claim Claim) errors.E {
-	switch cl := claim.(type) { //nolint:dupl
+	switch cl := claim.(type) {
 	case *IdentifierClaim:
 		c.Identifier = append(c.Identifier, *cl)
 	case *ReferenceClaim:

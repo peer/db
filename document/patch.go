@@ -1,9 +1,83 @@
 package document
 
 import (
+	"bytes"
+
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 )
+
+func addClaimPatchUnmarshalJSON[T ClaimPatch](p *AddClaimPatch, data []byte) errors.E {
+	var d struct {
+		Type  string                 `json:"type"`
+		Under *identifier.Identifier `json:"under,omitempty"`
+		Patch T                      `json:"patch"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &d)
+	if errE != nil {
+		return errE
+	}
+	p.Under = d.Under
+	p.Patch = d.Patch
+	return nil
+}
+
+func setClaimPatchUnmarshalJSON[T ClaimPatch](p *SetClaimPatch, data []byte) errors.E {
+	var d struct {
+		Type  string                `json:"type"`
+		ID    identifier.Identifier `json:"id"`
+		Patch T                     `json:"patch"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &d)
+	if errE != nil {
+		return errE
+	}
+	p.ID = d.ID
+	p.Patch = d.Patch
+	return nil
+}
+
+func appendPatchType(data []byte, patch ClaimPatch) ([]byte, errors.E) {
+	buffer := bytes.NewBuffer(data)
+
+	// We remove trailing }.
+	buffer.Truncate(buffer.Len() - 1)
+	buffer.WriteString(`,"type":`)
+
+	switch patch.(type) {
+	case IdentifierClaimPatch:
+		buffer.WriteString(`"id"`)
+	case ReferenceClaimPatch:
+		buffer.WriteString(`"ref"`)
+	case TextClaimPatch:
+		buffer.WriteString(`"text"`)
+	case StringClaimPatch:
+		buffer.WriteString(`"string"`)
+	case AmountClaimPatch:
+		buffer.WriteString(`"amount"`)
+	case AmountRangeClaimPatch:
+		buffer.WriteString(`"amountRange"`)
+	case RelationClaimPatch:
+		buffer.WriteString(`"rel"`)
+	case FileClaimPatch:
+		buffer.WriteString(`"file"`)
+	case NoValueClaimPatch:
+		buffer.WriteString(`"none"`)
+	case UnknownValueClaimPatch:
+		buffer.WriteString(`"unknown"`)
+	case TimeClaimPatch:
+		buffer.WriteString(`"time"`)
+	case TimeRangeClaimPatch:
+		buffer.WriteString(`"timeRange"`)
+	default:
+		return nil, errors.Errorf(`patch of type %T is not supported`, patch)
+	}
+
+	buffer.WriteString(`}`)
+
+	return buffer.Bytes(), nil
+}
 
 type ClaimPatch interface {
 	New(id identifier.Identifier) (Claim, errors.E)
@@ -30,6 +104,54 @@ type AddClaimPatch struct {
 	Patch ClaimPatch             `json:"patch"`
 }
 
+func (p *AddClaimPatch) UnmarshalJSON(data []byte) error { //nolint:dupl
+	var t struct {
+		Type string `json:"type"`
+	}
+	errE := x.Unmarshal(data, &t)
+	if errE != nil {
+		return errE
+	}
+	switch t.Type {
+	case "id":
+		return addClaimPatchUnmarshalJSON[IdentifierClaimPatch](p, data)
+	case "ref":
+		return addClaimPatchUnmarshalJSON[ReferenceClaimPatch](p, data)
+	case "text":
+		return addClaimPatchUnmarshalJSON[TextClaimPatch](p, data)
+	case "string":
+		return addClaimPatchUnmarshalJSON[StringClaimPatch](p, data)
+	case "amount":
+		return addClaimPatchUnmarshalJSON[AmountClaimPatch](p, data)
+	case "amountRange":
+		return addClaimPatchUnmarshalJSON[AmountRangeClaimPatch](p, data)
+	case "rel":
+		return addClaimPatchUnmarshalJSON[RelationClaimPatch](p, data)
+	case "file":
+		return addClaimPatchUnmarshalJSON[FileClaimPatch](p, data)
+	case "none":
+		return addClaimPatchUnmarshalJSON[NoValueClaimPatch](p, data)
+	case "unknown":
+		return addClaimPatchUnmarshalJSON[UnknownValueClaimPatch](p, data)
+	case "time":
+		return addClaimPatchUnmarshalJSON[TimeClaimPatch](p, data)
+	case "timeRange":
+		return addClaimPatchUnmarshalJSON[TimeRangeClaimPatch](p, data)
+	default:
+		return errors.Errorf(`patch of type "%s" is not supported`, t.Type)
+	}
+}
+
+func (p AddClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AddClaimPatch
+	data, errE := x.MarshalWithoutEscapeHTML(P(p))
+	if errE != nil {
+		return nil, errE
+	}
+	return appendPatchType(data, p.Patch)
+}
+
 func (p AddClaimPatch) Apply(doc *D, id identifier.Identifier) errors.E {
 	c, errE := p.Patch.New(id)
 	if errE != nil {
@@ -50,6 +172,54 @@ func (p AddClaimPatch) Apply(doc *D, id identifier.Identifier) errors.E {
 type SetClaimPatch struct {
 	ID    identifier.Identifier `json:"id"`
 	Patch ClaimPatch            `json:"patch"`
+}
+
+func (p *SetClaimPatch) UnmarshalJSON(data []byte) error { //nolint:dupl
+	var t struct {
+		Type string `json:"type"`
+	}
+	errE := x.Unmarshal(data, &t)
+	if errE != nil {
+		return errE
+	}
+	switch t.Type {
+	case "id":
+		return setClaimPatchUnmarshalJSON[IdentifierClaimPatch](p, data)
+	case "ref":
+		return setClaimPatchUnmarshalJSON[ReferenceClaimPatch](p, data)
+	case "text":
+		return setClaimPatchUnmarshalJSON[TextClaimPatch](p, data)
+	case "string":
+		return setClaimPatchUnmarshalJSON[StringClaimPatch](p, data)
+	case "amount":
+		return setClaimPatchUnmarshalJSON[AmountClaimPatch](p, data)
+	case "amountRange":
+		return setClaimPatchUnmarshalJSON[AmountRangeClaimPatch](p, data)
+	case "rel":
+		return setClaimPatchUnmarshalJSON[RelationClaimPatch](p, data)
+	case "file":
+		return setClaimPatchUnmarshalJSON[FileClaimPatch](p, data)
+	case "none":
+		return setClaimPatchUnmarshalJSON[NoValueClaimPatch](p, data)
+	case "unknown":
+		return setClaimPatchUnmarshalJSON[UnknownValueClaimPatch](p, data)
+	case "time":
+		return setClaimPatchUnmarshalJSON[TimeClaimPatch](p, data)
+	case "timeRange":
+		return setClaimPatchUnmarshalJSON[TimeRangeClaimPatch](p, data)
+	default:
+		return errors.Errorf(`patch of type "%s" is not supported`, t.Type)
+	}
+}
+
+func (p SetClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P SetClaimPatch
+	data, errE := x.MarshalWithoutEscapeHTML(P(p))
+	if errE != nil {
+		return nil, errE
+	}
+	return appendPatchType(data, p.Patch)
 }
 
 func (p SetClaimPatch) Apply(doc *D) errors.E {
