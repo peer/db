@@ -77,6 +77,48 @@
       "path": "/d/:id",
       "api": {},
       "get": {}
+    },
+    {
+      "name": "StorageBeginUpload",
+      "path": "/f/beginUpload",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageUploadChunk",
+      "path": "/f/uploadChunk/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageListChunks",
+      "path": "/f/listChunks/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageGetChunk",
+      "path": "/f/getChunk/:session/:chunk",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageEndUpload",
+      "path": "/f/endUpload/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageDiscardUpload",
+      "path": "/f/discardUpload/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "StorageGet",
+      "path": "/f/:id",
+      "api": null,
+      "get": {}
     }
   ]
 }

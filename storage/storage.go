@@ -20,7 +20,8 @@ type fileMetadata struct {
 	At        time.Time `json:"at"`
 	Size      int64     `json:"size"`
 	MediaType string    `json:"mediaType"`
-	Filename  string    `json:"filename"`
+	Filename  string    `json:"filename,omitempty"`
+	Etag      string    `json:"etag,omitempty"`
 }
 
 type endMetadata struct {
@@ -155,7 +156,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 
 	for _, c := range chunks {
 		if c.Metadata.Start > size {
-			errE = errors.New("gap between chunks")
+			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
 			errors.Details(errE)["end"] = size
 			errors.Details(errE)["start"] = c.Metadata.Start
 			errors.Details(errE)["chunk"] = c.Chunk
@@ -163,9 +164,10 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		}
 		end := c.Metadata.Start + c.Metadata.Length
 		if end > beginMetadata.Size {
+			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
 			errE = errors.New("chunk larger than file")
 			errors.Details(errE)["start"] = c.Metadata.Start
-			errors.Details(errE)["end"] = c.Metadata.Start + c.Metadata.Length
+			errors.Details(errE)["end"] = end
 			errors.Details(errE)["size"] = beginMetadata.Size
 			errors.Details(errE)["chunk"] = c.Chunk
 			return endMetadataJSON, errE
@@ -180,13 +182,13 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 	}
 
 	if size < beginMetadata.Size {
-		errE = errors.New("chunks smaller than file")
+		errE = errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
 		errors.Details(errE)["chunks"] = size
 		errors.Details(errE)["size"] = beginMetadata.Size
 		return endMetadataJSON, errE
 	}
 
-	beginMetadata.At = time.Now().UTC()
+	beginMetadata.Etag = computeEtag(buffer)
 	beginMetadataJSON, errE = x.MarshalWithoutEscapeHTML(beginMetadata)
 	if errE != nil {
 		return endMetadataJSON, errE
@@ -208,6 +210,7 @@ func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filena
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
+		Etag:      "",
 	}
 	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
 	if errE != nil {
@@ -217,6 +220,28 @@ func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filena
 }
 
 func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier, chunk []byte, start int64) errors.E {
+	if len(chunk) == 0 {
+		return errors.Errorf("%w: zero length chunk", ErrInvalidChunk)
+	}
+
+	beginMetadataJSON, _, errE := s.coordinator.Get(ctx, session)
+	if errE != nil {
+		return errE
+	}
+	var beginMetadata fileMetadata
+	errE = x.UnmarshalWithoutUnknownFields(beginMetadataJSON, &beginMetadata)
+	if errE != nil {
+		return errE
+	}
+	end := start + int64(len(chunk))
+	if end > beginMetadata.Size {
+		errE = errors.Errorf("%w: chunk larger than file", ErrInvalidChunk)
+		errors.Details(errE)["start"] = start
+		errors.Details(errE)["end"] = end
+		errors.Details(errE)["size"] = beginMetadata.Size
+		return errE
+	}
+
 	metadata := chunkMetadata{
 		At:     time.Now().UTC(),
 		Start:  start,

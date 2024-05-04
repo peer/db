@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
 
+	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -32,6 +33,7 @@ type Site struct {
 	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
 
 	store       *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
+	storage     *storage.Storage
 	esProcessor *elastic.BulkProcessor
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?

@@ -24,6 +24,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -195,7 +196,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string, 
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	store, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
+	store, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -239,26 +240,26 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 
 func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
-) (*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *elastic.BulkProcessor, errors.E) {
+) (*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *storage.Storage, *elastic.BulkProcessor, errors.E) {
 	// TODO: Add some monitoring of the channel contention.
 	channel := make(chan store.CommittedChangeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
 	context.AfterFunc(ctx, func() { close(channel) })
 
 	errE := ensureIndex(ctx, esClient, index, sizeField)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
 	})
 	if errE != nil {
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	esProcessor, errE := initProcessor(ctx, logger, esClient, index)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -270,7 +271,16 @@ func InitForSite(
 	}
 	errE = store.Init(ctx, dbpool)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, nil, nil, errE
+	}
+
+	storage := &storage.Storage{
+		Prefix:    "storage",
+		Committed: nil,
+	}
+	errE = storage.Init(ctx, dbpool)
+	if errE != nil {
+		return nil, nil, nil, errE
 	}
 
 	go Bridge(
@@ -282,5 +292,5 @@ func InitForSite(
 		channel,
 	)
 
-	return store, esProcessor, nil
+	return store, storage, esProcessor, nil
 }
