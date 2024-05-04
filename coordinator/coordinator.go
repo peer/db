@@ -164,6 +164,8 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 				// Nothing.
 			case internal.ErrorCodeDuplicateFunction:
 				// Nothing.
+			case internal.ErrorCodeDuplicateTable:
+				// Nothing.
 			default:
 				return errE
 			}

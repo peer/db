@@ -446,6 +446,8 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 				// Nothing.
 			case internal.ErrorCodeDuplicateFunction:
 				// Nothing.
+			case internal.ErrorCodeDuplicateTable:
+				// Nothing.
 			default:
 				return errE
 			}

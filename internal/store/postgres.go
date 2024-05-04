@@ -25,6 +25,7 @@ const (
 const (
 	ErrorCodeUniqueViolation      = "23505"
 	ErrorCodeDuplicateSchema      = "42P06"
+	ErrorCodeDuplicateTable       = "42P07"
 	ErrorCodeDuplicateFunction    = "42723"
 	ErrorCodeSerializationFailure = "40001"
 	ErrorCodeDeadlockDetected     = "40P01"
