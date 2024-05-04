@@ -22,7 +22,6 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/store"
@@ -406,22 +405,22 @@ func fitBoxWidth(width, height float64) int {
 
 func ConvertWikimediaCommonsImage(
 	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
-) (*peerdb.Document, errors.E) {
+) (*document.D, errors.E) {
 	return convertImage(ctx, logger, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
 func convertImage( //nolint:maintidx
 	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
 	token string, apiLimit int, image Image,
-) (*peerdb.Document, errors.E) {
-	id := peerdb.GetID(namespace, image.Name)
+) (*document.D, errors.E) {
+	id := document.GetID(namespace, image.Name)
 
 	name := strings.ReplaceAll(image.Name, "_", " ")
 	name = strings.TrimSuffix(name, path.Ext(name))
 
 	prefix := GetMediawikiFilePrefix(image.Name)
 
-	doc := &peerdb.Document{
+	doc := &document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
 			Score: es.LowConfidence,
@@ -430,10 +429,10 @@ func convertImage( //nolint:maintidx
 			Text: document.TextClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, image.Name, "NAME", 0),
+						ID:         document.GetID(namespace, image.Name, "NAME", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("NAME"),
+					Prop: document.GetCorePropertyReference("NAME"),
 					HTML: document.TranslatableHTMLString{
 						"en": html.EscapeString(name),
 					},
@@ -442,39 +441,39 @@ func convertImage( //nolint:maintidx
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
+						ID:         document.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop:       peerdb.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
+					Prop:       document.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
 				},
 			},
 			Reference: document.ReferenceClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
+						ID:         document.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
+					Prop: document.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, image.Name, "FILE_URL", 0),
+						ID:         document.GetID(namespace, image.Name, "FILE_URL", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("FILE_URL"),
+					Prop: document.GetCorePropertyReference("FILE_URL"),
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 				},
 			},
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
+						ID:         document.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("IS"),
-					To:   peerdb.GetCorePropertyReference("FILE"),
+					Prop: document.GetCorePropertyReference("IS"),
+					To:   document.GetCorePropertyReference("FILE"),
 				},
 			},
 		},
@@ -514,10 +513,10 @@ func convertImage( //nolint:maintidx
 
 	errE := doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
-			ID:         peerdb.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
+			ID:         document.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   peerdb.GetCorePropertyReference("MEDIA_TYPE"),
+		Prop:   document.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
 	})
 	if errE != nil {
@@ -525,10 +524,10 @@ func convertImage( //nolint:maintidx
 	}
 	errE = doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
-			ID:         peerdb.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
+			ID:         document.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   peerdb.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
+		Prop:   document.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
 	})
 	if errE != nil {
@@ -541,10 +540,10 @@ func convertImage( //nolint:maintidx
 	// We set size even if it is zero.
 	errE = doc.Add(&document.AmountClaim{
 		CoreClaim: document.CoreClaim{
-			ID:         peerdb.GetID(namespace, image.Name, "SIZE", 0),
+			ID:         document.GetID(namespace, image.Name, "SIZE", 0),
 			Confidence: es.HighConfidence,
 		},
-		Prop:   peerdb.GetCorePropertyReference("SIZE"),
+		Prop:   document.GetCorePropertyReference("SIZE"),
 		Amount: float64(image.Size),
 		Unit:   document.AmountUnitByte,
 	})
@@ -565,10 +564,10 @@ func convertImage( //nolint:maintidx
 			// We set page count even if it is zero, if the media type should have a page count.
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         peerdb.GetID(namespace, image.Name, "PAGE_COUNT", 0),
+					ID:         document.GetID(namespace, image.Name, "PAGE_COUNT", 0),
 					Confidence: es.MediumConfidence,
 				},
-				Prop:   peerdb.GetCorePropertyReference("PAGE_COUNT"),
+				Prop:   document.GetCorePropertyReference("PAGE_COUNT"),
 				Amount: float64(pageCount),
 				Unit:   document.AmountUnitNone,
 			})
@@ -586,10 +585,10 @@ func convertImage( //nolint:maintidx
 		// We set duration even if it is zero and the media type should have a duration.
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         peerdb.GetID(namespace, image.Name, "DURATION", 0),
+				ID:         document.GetID(namespace, image.Name, "DURATION", 0),
 				Confidence: es.MediumConfidence,
 			},
-			Prop:   peerdb.GetCorePropertyReference("DURATION"),
+			Prop:   document.GetCorePropertyReference("DURATION"),
 			Amount: duration,
 			Unit:   document.AmountUnitSecond,
 		})
@@ -674,37 +673,37 @@ func convertImage( //nolint:maintidx
 			}
 			previews = previewsSubset
 		}
-		previewsList := peerdb.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
+		previewsList := document.GetID(namespace, image.Name, "PREVIEW_URL", "LIST")
 		for i, preview := range previews {
 			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i),
+					ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i),
 					Confidence: es.HighConfidence,
 					Meta: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
 							{
 								CoreClaim: document.CoreClaim{
-									ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
+									ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
 									Confidence: es.HighConfidence,
 								},
-								Prop:       peerdb.GetCorePropertyReference("LIST"),
+								Prop:       document.GetCorePropertyReference("LIST"),
 								Identifier: previewsList.String(),
 							},
 						},
 						Amount: document.AmountClaims{
 							{
 								CoreClaim: document.CoreClaim{
-									ID:         peerdb.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
+									ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
 									Confidence: es.HighConfidence,
 								},
-								Prop:   peerdb.GetCorePropertyReference("ORDER"),
+								Prop:   document.GetCorePropertyReference("ORDER"),
 								Amount: float64(i),
 								Unit:   document.AmountUnitNone,
 							},
 						},
 					},
 				},
-				Prop: peerdb.GetCorePropertyReference("PREVIEW_URL"),
+				Prop: document.GetCorePropertyReference("PREVIEW_URL"),
 				IRI:  preview,
 			})
 			if errE != nil {
@@ -717,10 +716,10 @@ func convertImage( //nolint:maintidx
 	if (image.Width > 0 && image.Height > 0) || !noPreview[mediaType] {
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         peerdb.GetID(namespace, image.Name, "WIDTH", 0),
+				ID:         document.GetID(namespace, image.Name, "WIDTH", 0),
 				Confidence: es.MediumConfidence,
 			},
-			Prop:   peerdb.GetCorePropertyReference("WIDTH"),
+			Prop:   document.GetCorePropertyReference("WIDTH"),
 			Amount: float64(image.Width),
 			Unit:   document.AmountUnitPixel,
 		})
@@ -729,10 +728,10 @@ func convertImage( //nolint:maintidx
 		}
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         peerdb.GetID(namespace, image.Name, "HEIGHT", 0),
+				ID:         document.GetID(namespace, image.Name, "HEIGHT", 0),
 				Confidence: es.MediumConfidence,
 			},
-			Prop:   peerdb.GetCorePropertyReference("HEIGHT"),
+			Prop:   document.GetCorePropertyReference("HEIGHT"),
 			Amount: float64(image.Height),
 			Unit:   document.AmountUnitPixel,
 		})
@@ -746,7 +745,7 @@ func convertImage( //nolint:maintidx
 
 func GetWikimediaCommonsFile(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string,
-) (*peerdb.Document, store.Version, errors.E) {
+) (*document.D, store.Version, errors.E) {
 	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name

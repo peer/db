@@ -16,7 +16,6 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/store"
@@ -31,7 +30,7 @@ var (
 
 func ConvertWikipediaImage(
 	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
-) (*peerdb.Document, errors.E) {
+) (*document.D, errors.E) {
 	return convertImage(ctx, logger, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }
 
@@ -42,7 +41,7 @@ func ConvertWikipediaImage(
 // TODO: Clean custom tags and attributes used in HTML to add metadata into HTML, potentially extract and store that. See: https://www.mediawiki.org/wiki/Specs/HTML/2.4.0
 // TODO: Remove some templates (e.g., infobox, top-level notices) and convert them to claims.
 // TODO: Extract all links pointing out of the article into claims and reverse claims (so if they point to other documents, they should have backlink as claim).
-func ConvertWikipediaArticle(id, html string, doc *peerdb.Document) errors.E {
+func ConvertWikipediaArticle(id, html string, doc *document.D) errors.E {
 	body, article, err := ExtractArticle(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "article extraction failed")
@@ -50,13 +49,13 @@ func ConvertWikipediaArticle(id, html string, doc *peerdb.Document) errors.E {
 		return errE
 	}
 
-	claimID := peerdb.GetID(NameSpaceWikidata, id, "ARTICLE", 0)
+	claimID := document.GetID(NameSpaceWikidata, id, "ARTICLE", 0)
 	err = updateTextClaim(claimID, doc, "ARTICLE", body)
 	if err != nil {
 		return err
 	}
 
-	claimID = peerdb.GetID(NameSpaceWikidata, id, "LABEL", 0, "HAS_ARTICLE", 0)
+	claimID = document.GetID(NameSpaceWikidata, id, "LABEL", 0, "HAS_ARTICLE", 0)
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &document.RelationClaim{
@@ -64,8 +63,8 @@ func ConvertWikipediaArticle(id, html string, doc *peerdb.Document) errors.E {
 				ID:         claimID,
 				Confidence: es.HighConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("LABEL"),
-			To:   peerdb.GetCorePropertyReference("HAS_ARTICLE"),
+			Prop: document.GetCorePropertyReference("LABEL"),
+			To:   document.GetCorePropertyReference("HAS_ARTICLE"),
 		}
 		err = doc.Add(claim)
 		if err != nil {
@@ -94,7 +93,7 @@ func ConvertWikipediaArticle(id, html string, doc *peerdb.Document) errors.E {
 	return nil
 }
 
-func ConvertFileDescription(namespace uuid.UUID, id, from, html string, doc *peerdb.Document) errors.E {
+func ConvertFileDescription(namespace uuid.UUID, id, from, html string, doc *document.D) errors.E {
 	descriptions, err := ExtractFileDescriptions(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "descriptions extraction failed")
@@ -113,11 +112,11 @@ func ConvertFileDescription(namespace uuid.UUID, id, from, html string, doc *pee
 	return nil
 }
 
-func ConvertCategoryDescription(id, from, html string, doc *peerdb.Document) errors.E {
+func ConvertCategoryDescription(id, from, html string, doc *document.D) errors.E {
 	return convertDescription(NameSpaceWikidata, id, from, html, doc, ExtractCategoryDescription)
 }
 
-func updateTextClaim(claimID identifier.Identifier, doc *peerdb.Document, prop, value string) errors.E {
+func updateTextClaim(claimID identifier.Identifier, doc *document.D, prop, value string) errors.E {
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim != nil {
 		claim, ok := existingClaim.(*document.TextClaim)
@@ -136,7 +135,7 @@ func updateTextClaim(claimID identifier.Identifier, doc *peerdb.Document, prop, 
 				ID:         claimID,
 				Confidence: es.HighConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference(prop),
+			Prop: document.GetCorePropertyReference(prop),
 			HTML: document.TranslatableHTMLString{
 				"en": value,
 			},
@@ -153,13 +152,13 @@ func updateTextClaim(claimID identifier.Identifier, doc *peerdb.Document, prop, 
 	return nil
 }
 
-func updateDescription(namespace uuid.UUID, id, from string, i int, description string, doc *peerdb.Document) errors.E {
+func updateDescription(namespace uuid.UUID, id, from string, i int, description string, doc *document.D) errors.E {
 	// A slightly different construction for claimID so that it does not overlap with any other descriptions.
-	claimID := peerdb.GetID(namespace, id, from, 0, "DESCRIPTION", i)
+	claimID := document.GetID(namespace, id, from, 0, "DESCRIPTION", i)
 	return updateTextClaim(claimID, doc, "DESCRIPTION", description)
 }
 
-func convertDescription(namespace uuid.UUID, id, from, html string, doc *peerdb.Document, extract func(string) (string, errors.E)) errors.E {
+func convertDescription(namespace uuid.UUID, id, from, html string, doc *document.D, extract func(string) (string, errors.E)) errors.E {
 	description, err := extract(html)
 	if err != nil {
 		errE := errors.WithMessage(err, "description extraction failed")
@@ -178,8 +177,8 @@ func convertDescription(namespace uuid.UUID, id, from, html string, doc *peerdb.
 	return nil
 }
 
-func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int64, doc *peerdb.Document) errors.E {
-	claimID := peerdb.GetID(namespace, id, mnemonicPrefix+"_PAGE_ID", 0)
+func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int64, doc *document.D) errors.E {
+	claimID := document.GetID(namespace, id, mnemonicPrefix+"_PAGE_ID", 0)
 	existingClaim := doc.GetByID(claimID)
 
 	if existingClaim != nil {
@@ -199,7 +198,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 				ID:         claimID,
 				Confidence: es.HighConfidence,
 			},
-			Prop:       peerdb.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
+			Prop:       document.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
 			Identifier: strconv.FormatInt(pageID, 10),
 		}
 		err := doc.Add(claim)
@@ -214,13 +213,13 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 	return nil
 }
 
-func ConvertTemplateDescription(id, from string, html string, doc *peerdb.Document) errors.E {
+func ConvertTemplateDescription(id, from string, html string, doc *document.D) errors.E {
 	return convertDescription(NameSpaceWikidata, id, from, html, doc, ExtractTemplateDescription)
 }
 
 func GetWikipediaFile(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string,
-) (*peerdb.Document, store.Version, errors.E) {
+) (*document.D, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, ErrNotFound) { //nolint:revive
 		// Passthrough.
@@ -254,7 +253,7 @@ func GetWikipediaFile(
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
-func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, category := range article.Categories {
 		convertInCategory(logger, namespace, mnemonicPrefix, id, article.Name, category.Name, doc)
 	}
@@ -262,7 +261,7 @@ func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnem
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
-func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, template := range article.Templates {
 		convertUsedTemplate(logger, namespace, mnemonicPrefix, id, article.Name, template.Name, doc)
 	}
@@ -270,7 +269,7 @@ func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mne
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?
-func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, category := range page.Categories {
 		convertInCategory(logger, namespace, mnemonicPrefix, id, page.Title, category.Title, doc)
 	}
@@ -278,19 +277,19 @@ func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemoni
 }
 
 // TODO: How to remove templates which has previously been added but are later on removed?
-func ConvertPageUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, template := range page.Templates {
 		convertUsedTemplate(logger, namespace, mnemonicPrefix, id, page.Title, template.Title, doc)
 	}
 	return nil
 }
 
-func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, category string, doc *peerdb.Document) {
+func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, category string, doc *document.D) {
 	if !strings.HasPrefix(category, "Category:") {
 		return
 	}
 
-	claimID := peerdb.GetID(namespace, id, "IN_"+mnemonicPrefix+"_CATEGORY", 0, category, 0)
+	claimID := document.GetID(namespace, id, "IN_"+mnemonicPrefix+"_CATEGORY", 0, category, 0)
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &document.RelationClaim{
@@ -298,7 +297,7 @@ func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefi
 				ID:         claimID,
 				Confidence: es.HighConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
+			Prop: document.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
 			To:   getDocumentReference(category, mnemonicPrefix),
 		}
 		errE := doc.Add(claim)
@@ -309,12 +308,12 @@ func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefi
 	}
 }
 
-func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, template string, doc *peerdb.Document) {
+func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id, title, template string, doc *document.D) {
 	if !strings.HasPrefix(template, "Template:") && !strings.HasPrefix(template, "Module:") {
 		return
 	}
 
-	claimID := peerdb.GetID(namespace, id, "USES_"+mnemonicPrefix+"_TEMPLATE", template, 0)
+	claimID := document.GetID(namespace, id, "USES_"+mnemonicPrefix+"_TEMPLATE", template, 0)
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim == nil {
 		claim := &document.RelationClaim{
@@ -322,7 +321,7 @@ func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPre
 				ID:         claimID,
 				Confidence: es.HighConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
+			Prop: document.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
 			To:   getDocumentReference(template, mnemonicPrefix),
 		}
 		errE := doc.Add(claim)
@@ -334,7 +333,7 @@ func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPre
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, doc *peerdb.Document) errors.E {
+func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, redirect := range article.Redirects {
 		convertRedirect(logger, namespace, id, article.Name, redirect.Name, doc)
 	}
@@ -342,22 +341,22 @@ func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id stri
 }
 
 // TODO: How to remove redirects which has previously been added but are later on removed?
-func ConvertPageRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, doc *peerdb.Document) errors.E {
+func ConvertPageRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, redirect := range page.Redirects {
 		convertRedirect(logger, namespace, id, page.Title, redirect.Title, doc)
 	}
 	return nil
 }
 
-func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redirect string, doc *peerdb.Document) {
-	claimID := peerdb.GetID(namespace, id, "NAME", redirect)
+func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redirect string, doc *document.D) {
+	claimID := document.GetID(namespace, id, "NAME", redirect)
 	existingClaim := doc.GetByID(claimID)
 	if existingClaim != nil {
 		return
 	}
 	escapedName := html.EscapeString(strings.ReplaceAll(redirect, "_", " "))
 	found := false
-	for _, claim := range doc.Get(peerdb.GetCorePropertyID("NAME")) {
+	for _, claim := range doc.Get(document.GetCorePropertyID("NAME")) {
 		if c, ok := claim.(*document.TextClaim); ok && c.HTML["en"] == escapedName {
 			found = true
 			break
@@ -371,7 +370,7 @@ func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redi
 			ID:         claimID,
 			Confidence: es.MediumConfidence,
 		},
-		Prop: peerdb.GetCorePropertyReference("NAME"),
+		Prop: document.GetCorePropertyReference("NAME"),
 		HTML: document.TranslatableHTMLString{
 			"en": escapedName,
 		},

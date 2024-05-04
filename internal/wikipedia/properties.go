@@ -1,8 +1,6 @@
 package wikipedia
 
-import (
-	"gitlab.com/peerdb/peerdb"
-)
+import "gitlab.com/peerdb/peerdb/document"
 
 //nolint:gochecknoglobals
 var wikipediaProperties = []struct {
@@ -119,5 +117,5 @@ var wikipediaProperties = []struct {
 }
 
 func init() { //nolint:gochecknoinits
-	peerdb.GenerateCoreProperties(wikipediaProperties)
+	document.GenerateCoreProperties(wikipediaProperties)
 }

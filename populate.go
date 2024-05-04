@@ -2,9 +2,11 @@ package peerdb
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,9 +14,44 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
+
+func SaveCoreProperties(
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
+) errors.E {
+	for _, property := range document.CoreProperties {
+		if ctx.Err() != nil {
+			break
+		}
+
+		property := property
+		logger.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
+		errE := InsertOrReplaceDocument(ctx, store, &property)
+		if errE != nil {
+			return errE
+		}
+	}
+
+	// We sleep to make sure all changesets are bridged.
+	time.Sleep(time.Second)
+
+	// Make sure all just added documents are available for search.
+	err := esProcessor.Flush()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	_, err = esClient.Refresh(index).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
 
 func (c *PopulateCommand) runIndex(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client,

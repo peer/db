@@ -14,7 +14,6 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/store"
@@ -60,7 +59,7 @@ func (v *updateEmbeddedDocumentsVisitor) makeError(err error, ref document.Refer
 	return errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *peerdb.Document, claimID identifier.Identifier, msg string) {
+func (v *updateEmbeddedDocumentsVisitor) logWarning(fileDoc *document.D, claimID identifier.Identifier, msg string) {
 	l := v.Log.Warn().Str("doc", v.DocumentID.String()) //nolint:zerologlint
 	if len(v.EntityIDs) == 1 {
 		l = l.Str("entity", v.EntityIDs[0])
@@ -147,7 +146,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref document.Refer
 	return nil, errE
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*peerdb.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*document.D, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
 	// by getDocumentByID, which uses Identifier type.
 	maybeDocument, ok := v.Cache.Get(title)
@@ -155,7 +154,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 		if maybeDocument == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
+		return maybeDocument.(*document.D), nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromByProp(v.Context, v.Store, v.Index, v.ESClient, property, title)
@@ -172,7 +171,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 	return document, nil
 }
 
-func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*peerdb.Document, errors.E) {
+func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*document.D, errors.E) {
 	// Here we check cache with Identifier type, so values cannot conflict with caching done
 	// by getDocumentByTitle, which uses string type.
 	maybeDocument, ok := v.Cache.Get(id)
@@ -180,7 +179,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 		if maybeDocument == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*peerdb.Document), nil //nolint:forcetypeassert
+		return maybeDocument.(*document.D), nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromByID(v.Context, v.Store, id)
@@ -463,8 +462,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 		v.Changed++
 	}
 
-	var fileDocument *peerdb.Document
-	for _, cc := range claim.GetMeta(peerdb.GetCorePropertyID("IS")) {
+	var fileDocument *document.D
+	for _, cc := range claim.GetMeta(document.GetCorePropertyID("IS")) {
 		if c, ok := cc.(*document.RelationClaim); ok {
 			// c.To.ID should be non-nil ID because we called claim.VisitMeta(v) above.
 			fileDocument, err = v.getDocumentByID(*c.To.ID)
@@ -480,7 +479,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 
 	if fileDocument != nil {
 		var mediaType string
-		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("MEDIA_TYPE")) {
+		for _, cc := range fileDocument.Get(document.GetCorePropertyID("MEDIA_TYPE")) {
 			if c, ok := cc.(*document.StringClaim); ok {
 				mediaType = c.String
 				break
@@ -498,7 +497,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 		}
 
 		var fileURL string
-		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("FILE_URL")) {
+		for _, cc := range fileDocument.Get(document.GetCorePropertyID("FILE_URL")) {
 			if c, ok := cc.(*document.ReferenceClaim); ok {
 				fileURL = c.IRI
 				break
@@ -517,7 +516,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 
 		// TODO: First extract individual lists, then sort each least by order, and then concatenate lists.
 		var previews []string
-		for _, cc := range fileDocument.Get(peerdb.GetCorePropertyID("PREVIEW_URL")) {
+		for _, cc := range fileDocument.Get(document.GetCorePropertyID("PREVIEW_URL")) {
 			if c, ok := cc.(*document.ReferenceClaim); ok {
 				previews = append(previews, c.IRI)
 			}
@@ -534,14 +533,14 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 
 func UpdateEmbeddedDocuments(
 	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client,
-	cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *peerdb.Document,
+	cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *document.D,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []document.Claim{}
-	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
-	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
-	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
-	entityIDClaims = append(entityIDClaims, doc.Get(peerdb.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(document.GetCorePropertyID("WIKIDATA_ITEM_ID"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(document.GetCorePropertyID("WIKIDATA_PROPERTY_ID"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(document.GetCorePropertyID("WIKIMEDIA_COMMONS_FILE_NAME"))...)
+	entityIDClaims = append(entityIDClaims, doc.Get(document.GetCorePropertyID("ENGLISH_WIKIPEDIA_FILE_NAME"))...)
 
 	entityIDs := []string{}
 	for _, entityIDClaim := range entityIDClaims {

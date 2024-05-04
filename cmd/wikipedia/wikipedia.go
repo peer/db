@@ -14,6 +14,7 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -247,7 +248,7 @@ func (c *WikipediaFileDescriptionsCommand) processArticle(
 
 func wikipediaArticlesRun(
 	globals *Globals, skippedWikidataEntitiesPath, url string, namespace int,
-	convertArticle func(string, string, *peerdb.Document) errors.E,
+	convertArticle func(string, string, *document.D) errors.E,
 ) errors.E {
 	errE := populateSkippedMap(skippedWikidataEntitiesPath, &skippedWikidataEntities, &skippedWikidataEntitiesCount)
 	if errE != nil {
@@ -284,7 +285,7 @@ func wikipediaArticlesRun(
 
 func wikipediaArticlesProcessArticle(
 	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
-	article mediawiki.Article, convertArticle func(string, string, *peerdb.Document) errors.E,
+	article mediawiki.Article, convertArticle func(string, string, *document.D) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {
@@ -437,7 +438,7 @@ type WikipediaCategoriesCommand struct {
 }
 
 func (c *WikipediaCategoriesCommand) Run(globals *Globals) errors.E {
-	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, doc *peerdb.Document) errors.E {
+	return wikipediaArticlesRun(globals, c.SkippedEntities, c.URL, categoriesWikipediaNamespace, func(id, html string, doc *document.D) errors.E {
 		return wikipedia.ConvertCategoryDescription(id, "FROM_ENGLISH_WIKIPEDIA", html, doc)
 	})
 }

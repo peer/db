@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -52,7 +53,7 @@ func getHost(hostPort string) string {
 }
 
 // InsertOrReplaceDocument inserts or replaces the document based on its ID.
-func InsertOrReplaceDocument(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], doc *Document) errors.E {
+func InsertOrReplaceDocument(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], doc *document.D) errors.E {
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		return errE
@@ -62,7 +63,7 @@ func InsertOrReplaceDocument(ctx context.Context, store *store.Store[json.RawMes
 }
 
 // UpdateDocument updates the document in the index, if it has not changed in the database since it was fetched (based on its current version).
-func UpdateDocument(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], doc *Document, version store.Version) errors.E {
+func UpdateDocument(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], doc *document.D, version store.Version) errors.E {
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		return errE

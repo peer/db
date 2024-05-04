@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -144,7 +145,7 @@ func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 		return nil
 	}
 
-	var doc peerdb.Document
+	var doc document.D
 	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		details := errors.Details(errE)

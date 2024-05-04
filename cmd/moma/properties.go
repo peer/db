@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 //nolint:gochecknoglobals
@@ -138,5 +138,5 @@ var momaProperties = []struct {
 }
 
 func init() { //nolint:gochecknoinits
-	peerdb.GenerateCoreProperties(momaProperties)
+	document.GenerateCoreProperties(momaProperties)
 }

@@ -18,7 +18,6 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/store"
@@ -96,7 +95,7 @@ func init() { //nolint:gochecknoinits
 }
 
 func GetWikidataDocumentID(id string) identifier.Identifier {
-	return peerdb.GetID(NameSpaceWikidata, id)
+	return document.GetID(NameSpaceWikidata, id)
 }
 
 func deduplicate(data []string) []string {
@@ -228,11 +227,11 @@ func getDocumentReference(id, source string) document.Reference {
 
 func getDocumentFromByProp(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, property, id string,
-) (*peerdb.Document, store.Version, errors.E) {
+) (*document.D, store.Version, errors.E) {
 	searchResult, err := esClient.Search(index).FetchSource(false).AllowPartialSearchResults(false).
 		Query(elastic.NewNestedQuery("claims.id",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.id.prop.id", peerdb.GetCorePropertyID(property).String()),
+				elastic.NewTermQuery("claims.id.prop.id", document.GetCorePropertyID(property).String()),
 				elastic.NewTermQuery("claims.id.id", id),
 			),
 		)).Do(ctx)
@@ -250,7 +249,7 @@ func getDocumentFromByProp(
 		}
 
 		found := false
-		for _, claim := range doc.Get(peerdb.GetCorePropertyID(property)) {
+		for _, claim := range doc.Get(document.GetCorePropertyID(property)) {
 			if c, ok := claim.(*document.IdentifierClaim); ok && c.Identifier == id {
 				found = true
 				break
@@ -271,7 +270,7 @@ func getDocumentFromByProp(
 
 func getDocumentFromByID(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], id identifier.Identifier,
-) (*peerdb.Document, store.Version, errors.E) {
+) (*document.D, store.Version, errors.E) {
 	data, _, version, errE := s.GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// Caller should add details to the error.
@@ -280,7 +279,7 @@ func getDocumentFromByID(
 		return nil, store.Version{}, errE //nolint:exhaustruct
 	}
 
-	var doc peerdb.Document
+	var doc document.D
 	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		// Caller should add details to the error.
@@ -292,7 +291,7 @@ func getDocumentFromByID(
 
 func GetWikidataItem(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, id string,
-) (*peerdb.Document, store.Version, errors.E) {
+) (*document.D, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if errE != nil {
 		errors.Details(errE)["entity"] = id
@@ -317,11 +316,11 @@ func clampConfidence(c document.Score) document.Score {
 	return es.HighConfidence
 }
 
-func resolveDataTypeFromPropertyDocument(doc *peerdb.Document, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
-	for _, claim := range doc.Get(peerdb.GetCorePropertyID("IS")) {
+func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
+	for _, claim := range doc.Get(document.GetCorePropertyID("IS")) {
 		if c, ok := claim.(*document.RelationClaim); ok {
 			for claimType, dataTypes := range claimTypeToDataTypesMap {
-				if c.To.ID != nil && *c.To.ID == peerdb.GetCorePropertyID(claimType) {
+				if c.To.ID != nil && *c.To.ID == document.GetCorePropertyID(claimType) {
 					if len(dataTypes) == 1 {
 						return dataTypes[0], nil
 					} else if claimType == "RELATION_CLAIM_TYPE" && valueType != nil {
@@ -368,7 +367,7 @@ func getDataTypeForProperty(
 			errors.Details(err)["prop"] = prop
 			return 0, err
 		}
-		return resolveDataTypeFromPropertyDocument(maybeDocument.(*peerdb.Document), prop, valueType) //nolint:forcetypeassert
+		return resolveDataTypeFromPropertyDocument(maybeDocument.(*document.D), prop, valueType) //nolint:forcetypeassert
 	}
 
 	doc, _, err := getDocumentFromByID(ctx, store, id)
@@ -398,7 +397,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 	ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
 ) ([]document.Claim, errors.E) {
-	id := peerdb.GetID(namespace, idArgs...)
+	id := document.GetID(namespace, idArgs...)
 
 	switch snak.SnakType {
 	case mediawiki.Value:
@@ -478,7 +477,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 
 			args := append([]interface{}{}, idArgs...)
 			args = append(args, "IS", 0, title, 0)
-			claimID := peerdb.GetID(namespace, args...)
+			claimID := document.GetID(namespace, args...)
 
 			return []document.Claim{
 				// An invalid claim we post-process later.
@@ -493,7 +492,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 										ID:         claimID,
 										Confidence: es.HighConfidence,
 									},
-									Prop: peerdb.GetCorePropertyReference("IS"),
+									Prop: document.GetCorePropertyReference("IS"),
 									To:   getDocumentReference(title, ""),
 								},
 							},
@@ -627,7 +626,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 				unit = document.AmountUnitCustom
 				args := append([]interface{}{}, idArgs...)
 				args = append(args, "UNIT", 0)
-				claimID := peerdb.GetID(NameSpaceWikidata, args...)
+				claimID := document.GetID(NameSpaceWikidata, args...)
 				var unitID string
 				if strings.HasPrefix(value.Unit, "http://www.wikidata.org/entity/") {
 					unitID = strings.TrimPrefix(value.Unit, "http://www.wikidata.org/entity/")
@@ -643,7 +642,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 								ID:         claimID,
 								Confidence: es.HighConfidence,
 							},
-							Prop: peerdb.GetCorePropertyReference("UNIT"),
+							Prop: document.GetCorePropertyReference("UNIT"),
 							To:   getDocumentReference(unitID, ""),
 						},
 					},
@@ -758,10 +757,10 @@ func addReference(
 	} else {
 		referenceClaim = &document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         peerdb.GetID(namespace, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
+				ID:         document.GetID(namespace, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
 				Confidence: es.NoConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("WIKIDATA_REFERENCE"),
+			Prop: document.GetCorePropertyReference("WIKIDATA_REFERENCE"),
 			HTML: document.TranslatableHTMLString{
 				"XX": html.EscapeString("A temporary group of multiple Wikidata reference statements for later processing."),
 			},
@@ -808,7 +807,7 @@ func addReference(
 func ConvertEntity( //nolint:maintidx
 	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
 	namespace uuid.UUID, entity mediawiki.Entity,
-) (*peerdb.Document, errors.E) {
+) (*document.D, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)
 	// We are processing just English Wikidata entities for now.
 	// We do not require from Wikimedia Commons to have labels, so we skip the check for them.
@@ -828,7 +827,7 @@ func ConvertEntity( //nolint:maintidx
 		filename = strings.ReplaceAll(filename, " ", "_")
 		filename = FirstUpperCase(filename)
 
-		id = peerdb.GetID(NameSpaceWikimediaCommonsFile, filename)
+		id = document.GetID(NameSpaceWikimediaCommonsFile, filename)
 
 		// We make a name from the title by removing prefix and file extension.
 		name = strings.TrimPrefix(entity.Title, "File:")
@@ -849,7 +848,7 @@ func ConvertEntity( //nolint:maintidx
 
 	// TODO: Set mnemonic if it is a property and the name is unique (it should be).
 	// TODO: Store last item revision and last modification time somewhere. To every claim from input entity?
-	doc := peerdb.Document{
+	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
 			Score: es.LowConfidence,
@@ -858,11 +857,11 @@ func ConvertEntity( //nolint:maintidx
 
 	errE := doc.Add(&document.TextClaim{
 		CoreClaim: document.CoreClaim{
-			ID: peerdb.GetID(namespace, entity.ID, "NAME", 0),
+			ID: document.GetID(namespace, entity.ID, "NAME", 0),
 			// The first added English label is added as a high confidence claim.
 			Confidence: es.HighConfidence,
 		},
-		Prop: peerdb.GetCorePropertyReference("NAME"),
+		Prop: document.GetCorePropertyReference("NAME"),
 		HTML: document.TranslatableHTMLString{
 			"en": html.EscapeString(name),
 		},
@@ -876,31 +875,31 @@ func ConvertEntity( //nolint:maintidx
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
+						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop:       peerdb.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
+					Prop:       document.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
 					Identifier: entity.ID,
 				},
 			},
 			Reference: document.ReferenceClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
+						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("WIKIDATA_PROPERTY_PAGE"),
+					Prop: document.GetCorePropertyReference("WIKIDATA_PROPERTY_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
 				},
 			},
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
+						ID:         document.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("IS"),
-					To:   peerdb.GetCorePropertyReference("PROPERTY"),
+					Prop: document.GetCorePropertyReference("IS"),
+					To:   document.GetCorePropertyReference("PROPERTY"),
 				},
 			},
 		}
@@ -909,31 +908,31 @@ func ConvertEntity( //nolint:maintidx
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
+						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop:       peerdb.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
+					Prop:       document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
 					Identifier: entity.ID,
 				},
 			},
 			Reference: document.ReferenceClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
+						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
+					Prop: document.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
 				},
 			},
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
+						ID:         document.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop: peerdb.GetCorePropertyReference("IS"),
-					To:   peerdb.GetCorePropertyReference("ITEM"),
+					Prop: document.GetCorePropertyReference("IS"),
+					To:   document.GetCorePropertyReference("ITEM"),
 				},
 			},
 		}
@@ -945,10 +944,10 @@ func ConvertEntity( //nolint:maintidx
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         peerdb.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
+						ID:         document.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
 						Confidence: es.HighConfidence,
 					},
-					Prop:       peerdb.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
+					Prop:       document.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
 					Identifier: entity.ID,
 				},
 			},
@@ -996,18 +995,18 @@ func ConvertEntity( //nolint:maintidx
 			}
 			doc.Claims.Identifier = append(doc.Claims.Identifier, document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         peerdb.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
+					ID:         document.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
 					Confidence: es.HighConfidence,
 				},
-				Prop:       peerdb.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
+				Prop:       document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
 				Identifier: siteLink.Title,
 			})
 			doc.Claims.Reference = append(doc.Claims.Reference, document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         peerdb.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
+					ID:         document.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
 					Confidence: es.HighConfidence,
 				},
-				Prop: peerdb.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE"),
+				Prop: document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE"),
 				IRI:  url,
 			})
 			// Here we add English Wikipedia page title to labels to be included as another NAME claim on the document.
@@ -1024,14 +1023,14 @@ func ConvertEntity( //nolint:maintidx
 		if claimTypeMnemonic != "" {
 			doc.Claims.Relation = append(doc.Claims.Relation, document.RelationClaim{
 				CoreClaim: document.CoreClaim{
-					ID: peerdb.GetID(namespace, entity.ID, "IS", 0, claimTypeMnemonic, 0),
+					ID: document.GetID(namespace, entity.ID, "IS", 0, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					// TODO: Decide what should really be confidence here or implement "later on" part described above.
 					Confidence: es.LowConfidence,
 				},
-				Prop: peerdb.GetCorePropertyReference("IS"),
-				To:   peerdb.GetCorePropertyReference(claimTypeMnemonic),
+				Prop: document.GetCorePropertyReference("IS"),
+				To:   document.GetCorePropertyReference(claimTypeMnemonic),
 			})
 		}
 	}
@@ -1055,11 +1054,11 @@ func ConvertEntity( //nolint:maintidx
 		doc.Claims.Text = append(doc.Claims.Text, document.TextClaim{
 			CoreClaim: document.CoreClaim{
 				// We add +1 to i to make sure we do not repeat claim ID (we use the same form for name value NAME claim).
-				ID: peerdb.GetID(namespace, entity.ID, "NAME", i+1),
+				ID: document.GetID(namespace, entity.ID, "NAME", i+1),
 				// Other English labels and aliases are added with the medium confidence.
 				Confidence: es.MediumConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("NAME"),
+			Prop: document.GetCorePropertyReference("NAME"),
 			HTML: document.TranslatableHTMLString{
 				"en": html.EscapeString(label),
 			},
@@ -1070,10 +1069,10 @@ func ConvertEntity( //nolint:maintidx
 	for i, description := range englishDescriptions {
 		doc.Claims.Text = append(doc.Claims.Text, document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         peerdb.GetID(namespace, entity.ID, "DESCRIPTION", i),
+				ID:         document.GetID(namespace, entity.ID, "DESCRIPTION", i),
 				Confidence: es.MediumConfidence,
 			},
-			Prop: peerdb.GetCorePropertyReference("DESCRIPTION"),
+			Prop: document.GetCorePropertyReference("DESCRIPTION"),
 			HTML: document.TranslatableHTMLString{
 				"en": html.EscapeString(description),
 			},

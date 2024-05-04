@@ -1,4 +1,4 @@
-package peerdb_test
+package document_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 )
 
@@ -50,8 +49,8 @@ func TestTimestampMarshal(t *testing.T) {
 func TestDocument(t *testing.T) {
 	t.Parallel()
 
-	doc := peerdb.Document{}                //nolint:exhaustruct
-	assert.Equal(t, peerdb.Document{}, doc) //nolint:exhaustruct
+	doc := document.D{}                //nolint:exhaustruct
+	assert.Equal(t, document.D{}, doc) //nolint:exhaustruct
 
 	id := identifier.New()
 
@@ -60,10 +59,10 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, peerdb.Document{ //nolint:exhaustruct
+	assert.Equal(t, document.D{ //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			NoValue: document.NoValueClaims{
 				{
@@ -71,7 +70,7 @@ func TestDocument(t *testing.T) {
 						ID:         id,
 						Confidence: 1.0,
 					},
-					Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+					Prop: document.GetCorePropertyReference("ARTICLE"),
 				},
 			},
 		},
@@ -82,16 +81,16 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	claims := doc.Get(peerdb.GetCorePropertyID("ARTICLE"))
+	claims := doc.Get(document.GetCorePropertyID("ARTICLE"))
 	assert.Equal(t, []document.Claim{
 		&document.NoValueClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         id,
 				Confidence: 1.0,
 			},
-			Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+			Prop: document.GetCorePropertyReference("ARTICLE"),
 		},
 	}, claims)
 	claim = doc.RemoveByID(id)
@@ -100,9 +99,9 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	assert.Equal(t, peerdb.Document{}, doc) //nolint:exhaustruct
+	assert.Equal(t, document.D{}, doc) //nolint:exhaustruct
 
 	id2 := identifier.New()
 
@@ -111,7 +110,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, &document.NoValueClaim{
@@ -125,12 +124,12 @@ func TestDocument(t *testing.T) {
 							ID:         id2,
 							Confidence: 1.0,
 						},
-						Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+						Prop: document.GetCorePropertyReference("ARTICLE"),
 					},
 				},
 			},
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 	metaClaim := claim.GetMetaByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
@@ -138,7 +137,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
 	metaClaim = claim.RemoveMetaByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
@@ -146,13 +145,13 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, metaClaim)
 	assert.Equal(t, &document.NoValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: peerdb.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
 }

@@ -27,6 +27,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -347,7 +348,7 @@ func filesCommandRun(
 	globals *Globals,
 	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
 	token string, apiLimit int, saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {
 	ctx, stop, httpClient, store, _, esProcessor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
 	if errE != nil {
@@ -387,7 +388,7 @@ func filesCommandRun(
 func filesCommandProcessImage(
 	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*peerdb.Document, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {
 	document, errE := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
 	if errE != nil {

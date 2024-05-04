@@ -1,22 +1,15 @@
-package peerdb
+package document
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/olivere/elastic/v7"
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 //nolint:gochecknoglobals
@@ -184,10 +177,10 @@ var (
 	// TODO: Use sync.Map?
 
 	// CoreProperties is a map from a core property ID to a document describing it.
-	CoreProperties = map[identifier.Identifier]Document{}
+	CoreProperties = map[identifier.Identifier]D{}
 )
 
-func GetCorePropertyReference(mnemonic string) document.Reference {
+func GetCorePropertyReference(mnemonic string) Reference {
 	property, ok := CoreProperties[GetCorePropertyID(mnemonic)]
 	if !ok {
 		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
@@ -231,52 +224,52 @@ func GenerateCoreProperties(properties []struct {
 	for _, property := range properties {
 		mnemonic := getMnemonic(property.Name)
 		id := GetCorePropertyID(mnemonic)
-		CoreProperties[id] = Document{
-			CoreDocument: document.CoreDocument{
+		CoreProperties[id] = D{
+			CoreDocument: CoreDocument{
 				ID:    id,
 				Score: es.LowConfidence,
 			},
-			Mnemonic: document.Mnemonic(mnemonic),
-			Claims: &document.ClaimTypes{
-				Text: document.TextClaims{
+			Mnemonic: Mnemonic(mnemonic),
+			Claims: &ClaimTypes{
+				Text: TextClaims{
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "NAME", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
 							Score: es.LowConfidence,
 						},
-						HTML: document.TranslatableHTMLString{
+						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(property.Name),
 						},
 					},
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
 							Score: es.LowConfidence,
 						},
-						HTML: document.TranslatableHTMLString{
+						HTML: TranslatableHTMLString{
 							"en": property.DescriptionHTML,
 						},
 					},
 				},
-				Relation: document.RelationClaims{
+				Relation: RelationClaims{
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: es.LowConfidence,
 						},
-						To: document.Reference{
+						To: Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
 							Score: es.LowConfidence,
 						},
@@ -287,16 +280,16 @@ func GenerateCoreProperties(properties []struct {
 
 		for _, isClaim := range property.Is {
 			isClaimMnemonic := getMnemonic(isClaim)
-			CoreProperties[id].Claims.Relation = append(CoreProperties[id].Claims.Relation, document.RelationClaim{
-				CoreClaim: document.CoreClaim{
+			CoreProperties[id].Claims.Relation = append(CoreProperties[id].Claims.Relation, RelationClaim{
+				CoreClaim: CoreClaim{
 					ID:         getPropertyClaimID(mnemonic, "IS", 0, isClaimMnemonic, 0),
 					Confidence: 1.0,
 				},
-				Prop: document.Reference{
+				Prop: Reference{
 					ID:    getPointer(GetCorePropertyID("IS")),
 					Score: es.LowConfidence,
 				},
-				To: document.Reference{
+				To: Reference{
 					ID:    getPointer(GetCorePropertyID(isClaimMnemonic)),
 					Score: es.LowConfidence,
 				},
@@ -313,66 +306,66 @@ func generateAllCoreProperties() {
 		mnemonic := getMnemonic(name)
 		id := GetCorePropertyID(mnemonic)
 		description := fmt.Sprintf(`The property is useful with the "%s" claim type.`, claimType)
-		CoreProperties[id] = Document{
-			CoreDocument: document.CoreDocument{
+		CoreProperties[id] = D{
+			CoreDocument: CoreDocument{
 				ID:    id,
 				Score: es.LowConfidence,
 			},
-			Mnemonic: document.Mnemonic(mnemonic),
-			Claims: &document.ClaimTypes{
-				Text: document.TextClaims{
+			Mnemonic: Mnemonic(mnemonic),
+			Claims: &ClaimTypes{
+				Text: TextClaims{
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "NAME", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
 							Score: es.LowConfidence,
 						},
-						HTML: document.TranslatableHTMLString{
+						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(name),
 						},
 					},
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "DESCRIPTION", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
 							Score: es.LowConfidence,
 						},
-						HTML: document.TranslatableHTMLString{
+						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(description),
 						},
 					},
 				},
-				Relation: document.RelationClaims{
+				Relation: RelationClaims{
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: es.LowConfidence,
 						},
-						To: document.Reference{
+						To: Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
 							Score: es.LowConfidence,
 						},
 					},
 					{
-						CoreClaim: document.CoreClaim{
+						CoreClaim: CoreClaim{
 							ID:         getPropertyClaimID(mnemonic, "IS", 0, "CLAIM_TYPE", 0),
 							Confidence: 1.0,
 						},
-						Prop: document.Reference{
+						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
 							Score: es.LowConfidence,
 						},
-						To: document.Reference{
+						To: Reference{
 							ID:    getPointer(GetCorePropertyID("CLAIM_TYPE")),
 							Score: es.LowConfidence,
 						},
@@ -381,39 +374,6 @@ func generateAllCoreProperties() {
 			},
 		}
 	}
-}
-
-func SaveCoreProperties(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
-) errors.E {
-	for _, property := range CoreProperties {
-		if ctx.Err() != nil {
-			break
-		}
-
-		property := property
-		logger.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
-		errE := InsertOrReplaceDocument(ctx, store, &property)
-		if errE != nil {
-			return errE
-		}
-	}
-
-	// We sleep to make sure all changesets are bridged.
-	time.Sleep(time.Second)
-
-	// Make sure all just added documents are available for search.
-	err := esProcessor.Flush()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	_, err = esClient.Refresh(index).Do(ctx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
 }
 
 func init() { //nolint:gochecknoinits
