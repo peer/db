@@ -61,7 +61,7 @@ func (c *PopulateCommand) runIndex(
 	ctx = context.WithValue(ctx, requestIDContextKey, "populate")
 	ctx = context.WithValue(ctx, schemaContextKey, schema)
 
-	store, _, esProcessor, errE := es.InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
+	store, _, _, esProcessor, errE := es.InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
 	if errE != nil {
 		return errE
 	}

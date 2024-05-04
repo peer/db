@@ -22,7 +22,9 @@ import (
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/coordinator"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -174,6 +176,9 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 	return processor, nil
 }
 
+func endDocumentSession(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], session identifier.Identifier, metadata json.RawMessage) (json.RawMessage, errors.E) {
+}
+
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string, sizeField bool) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
 	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
@@ -196,7 +201,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string, 
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	store, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
+	store, _, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -240,26 +245,32 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 
 func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
-) (*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *storage.Storage, *elastic.BulkProcessor, errors.E) {
+) (
+	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	*coordinator.Coordinator[json.RawMessage, json.RawMessage],
+	*storage.Storage,
+	*elastic.BulkProcessor,
+	errors.E,
+) {
 	// TODO: Add some monitoring of the channel contention.
 	channel := make(chan store.CommittedChangeset[json.RawMessage, json.RawMessage, json.RawMessage], bridgeBufferSize)
 	context.AfterFunc(ctx, func() { close(channel) })
 
 	errE := ensureIndex(ctx, esClient, index, sizeField)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, nil, nil, errE
 	}
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
 	})
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, nil, nil, errE
 	}
 
 	esProcessor, errE := initProcessor(ctx, logger, esClient, index)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, nil, nil, errE
 	}
 
 	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -271,7 +282,18 @@ func InitForSite(
 	}
 	errE = store.Init(ctx, dbpool)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, nil, nil, errE
+	}
+
+	coordinator := &coordinator.Coordinator[json.RawMessage, json.RawMessage]{
+		Prefix:       "docs",
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
+		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata json.RawMessage) (json.RawMessage, errors.E) {
+			return endDocumentSession(ctx, store, session, metadata)
+		},
+		Appended: nil,
+		Ended:    nil,
 	}
 
 	storage := &storage.Storage{
@@ -280,7 +302,7 @@ func InitForSite(
 	}
 	errE = storage.Init(ctx, dbpool)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, nil, nil, errE
 	}
 
 	go Bridge(
@@ -292,5 +314,5 @@ func InitForSite(
 		channel,
 	)
 
-	return store, storage, esProcessor, nil
+	return store, coordinator, storage, esProcessor, nil
 }

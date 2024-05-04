@@ -64,6 +64,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 			Title:           c.Title,
 			SizeField:       globals.Elastic.SizeField,
 			store:           nil,
+			coordinator:     nil,
 			storage:         nil,
 			esProcessor:     nil,
 			propertiesTotal: 0,
@@ -119,12 +120,13 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		siteCtx := context.WithValue(ctx, requestIDContextKey, "serve")
 		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
 
-		store, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index, site.SizeField) //nolint:govet
+		store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index, site.SizeField) //nolint:govet
 		if errE != nil {
 			return nil, nil, errE
 		}
 
 		site.store = store
+		site.coordinator = coordinator
 		site.storage = storage
 		site.esProcessor = esProcessor
 	}
