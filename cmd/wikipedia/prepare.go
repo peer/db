@@ -42,11 +42,11 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	ctx, top, _, store, esClient, esProcessor, cache, errE := initializeElasticSearch(globals)
+	ctx, stop, _, store, esClient, esProcessor, cache, errE := initializeElasticSearch(globals)
 	if errE != nil {
 		return errE
 	}
-	defer top()
+	defer stop()
 	defer esProcessor.Close()
 
 	errE = c.saveCoreProperties(ctx, globals, store, esClient, esProcessor)
