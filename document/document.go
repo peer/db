@@ -96,35 +96,7 @@ func (d *D) Add(claim Claim) errors.E {
 	if d.Claims == nil {
 		d.Claims = &ClaimTypes{}
 	}
-	switch c := claim.(type) { //nolint:dupl
-	case *IdentifierClaim:
-		d.Claims.Identifier = append(d.Claims.Identifier, *c)
-	case *ReferenceClaim:
-		d.Claims.Reference = append(d.Claims.Reference, *c)
-	case *TextClaim:
-		d.Claims.Text = append(d.Claims.Text, *c)
-	case *StringClaim:
-		d.Claims.String = append(d.Claims.String, *c)
-	case *AmountClaim:
-		d.Claims.Amount = append(d.Claims.Amount, *c)
-	case *AmountRangeClaim:
-		d.Claims.AmountRange = append(d.Claims.AmountRange, *c)
-	case *RelationClaim:
-		d.Claims.Relation = append(d.Claims.Relation, *c)
-	case *FileClaim:
-		d.Claims.File = append(d.Claims.File, *c)
-	case *NoValueClaim:
-		d.Claims.NoValue = append(d.Claims.NoValue, *c)
-	case *UnknownValueClaim:
-		d.Claims.UnknownValue = append(d.Claims.UnknownValue, *c)
-	case *TimeClaim:
-		d.Claims.Time = append(d.Claims.Time, *c)
-	case *TimeRangeClaim:
-		d.Claims.TimeRange = append(d.Claims.TimeRange, *c)
-	default:
-		return errors.Errorf(`claim of type %T is not supported`, claim)
-	}
-	return nil
+	return d.Claims.Add(claim)
 }
 
 func (d *D) Size() int {

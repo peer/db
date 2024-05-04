@@ -134,6 +134,38 @@ type ClaimTypes struct {
 	TimeRange    TimeRangeClaims    `exhaustruct:"optional" json:"timeRange,omitempty"`
 }
 
+func (c *ClaimTypes) Add(claim Claim) errors.E {
+	switch cl := claim.(type) { //nolint:dupl
+	case *IdentifierClaim:
+		c.Identifier = append(c.Identifier, *cl)
+	case *ReferenceClaim:
+		c.Reference = append(c.Reference, *cl)
+	case *TextClaim:
+		c.Text = append(c.Text, *cl)
+	case *StringClaim:
+		c.String = append(c.String, *cl)
+	case *AmountClaim:
+		c.Amount = append(c.Amount, *cl)
+	case *AmountRangeClaim:
+		c.AmountRange = append(c.AmountRange, *cl)
+	case *RelationClaim:
+		c.Relation = append(c.Relation, *cl)
+	case *FileClaim:
+		c.File = append(c.File, *cl)
+	case *NoValueClaim:
+		c.NoValue = append(c.NoValue, *cl)
+	case *UnknownValueClaim:
+		c.UnknownValue = append(c.UnknownValue, *cl)
+	case *TimeClaim:
+		c.Time = append(c.Time, *cl)
+	case *TimeRangeClaim:
+		c.TimeRange = append(c.TimeRange, *cl)
+	default:
+		return errors.Errorf(`claim of type %T is not supported`, claim)
+	}
+	return nil
+}
+
 func (c *ClaimTypes) Size() int {
 	if c == nil {
 		return 0
@@ -245,35 +277,7 @@ func (cc *CoreClaim) Add(claim Claim) errors.E {
 	if cc.Meta == nil {
 		cc.Meta = new(ClaimTypes)
 	}
-	switch c := claim.(type) { //nolint:dupl
-	case *IdentifierClaim:
-		cc.Meta.Identifier = append(cc.Meta.Identifier, *c)
-	case *ReferenceClaim:
-		cc.Meta.Reference = append(cc.Meta.Reference, *c)
-	case *TextClaim:
-		cc.Meta.Text = append(cc.Meta.Text, *c)
-	case *StringClaim:
-		cc.Meta.String = append(cc.Meta.String, *c)
-	case *AmountClaim:
-		cc.Meta.Amount = append(cc.Meta.Amount, *c)
-	case *AmountRangeClaim:
-		cc.Meta.AmountRange = append(cc.Meta.AmountRange, *c)
-	case *RelationClaim:
-		cc.Meta.Relation = append(cc.Meta.Relation, *c)
-	case *FileClaim:
-		cc.Meta.File = append(cc.Meta.File, *c)
-	case *NoValueClaim:
-		cc.Meta.NoValue = append(cc.Meta.NoValue, *c)
-	case *UnknownValueClaim:
-		cc.Meta.UnknownValue = append(cc.Meta.UnknownValue, *c)
-	case *TimeClaim:
-		cc.Meta.Time = append(cc.Meta.Time, *c)
-	case *TimeRangeClaim:
-		cc.Meta.TimeRange = append(cc.Meta.TimeRange, *c)
-	default:
-		return errors.Errorf(`claim of type %T is not supported`, claim)
-	}
-	return nil
+	return cc.Meta.Add(claim)
 }
 
 func (cc *CoreClaim) Size() int {
