@@ -25,7 +25,7 @@ func TestPatchJSON(t *testing.T) {
 	}
 	out, errE := x.MarshalWithoutEscapeHTML(p)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `{"under":"HpPn1Ra6SLdjWaDxaJJYx3","patch":{"prop":"XkbTJqwFCFkfoxMBXow4HU","id":"foobar"},"type":"id"}`, string(out))
+	assert.Equal(t, `{"type":"add","under":"HpPn1Ra6SLdjWaDxaJJYx3","patch":{"type":"id","prop":"XkbTJqwFCFkfoxMBXow4HU","id":"foobar"}}`, string(out))
 
 	var p2 document.AddClaimPatch
 	errE = x.UnmarshalWithoutUnknownFields(out, &p2)

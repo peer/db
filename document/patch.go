@@ -1,82 +1,58 @@
 package document
 
 import (
-	"bytes"
+	"encoding/json"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 )
 
-func addClaimPatchUnmarshalJSON[T ClaimPatch](p *AddClaimPatch, data []byte) errors.E {
-	var d struct {
-		Type  string                 `json:"type"`
-		Under *identifier.Identifier `json:"under,omitempty"`
-		Patch T                      `json:"patch"`
-	}
+func patchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //nolint:ireturn
+	var d T
 	errE := x.UnmarshalWithoutUnknownFields(data, &d)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
-	p.Under = d.Under
-	p.Patch = d.Patch
-	return nil
+	return d, nil
 }
 
-func setClaimPatchUnmarshalJSON[T ClaimPatch](p *SetClaimPatch, data []byte) errors.E {
-	var d struct {
-		Type  string                `json:"type"`
-		ID    identifier.Identifier `json:"id"`
-		Patch T                     `json:"patch"`
+func switchPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
+	var t struct {
+		Type string `json:"type"`
 	}
-	errE := x.UnmarshalWithoutUnknownFields(data, &d)
+	errE := x.Unmarshal(data, &t)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
-	p.ID = d.ID
-	p.Patch = d.Patch
-	return nil
-}
-
-func appendPatchType(data []byte, patch ClaimPatch) ([]byte, errors.E) {
-	buffer := bytes.NewBuffer(data)
-
-	// We remove trailing }.
-	buffer.Truncate(buffer.Len() - 1)
-	buffer.WriteString(`,"type":`)
-
-	switch patch.(type) {
-	case IdentifierClaimPatch:
-		buffer.WriteString(`"id"`)
-	case ReferenceClaimPatch:
-		buffer.WriteString(`"ref"`)
-	case TextClaimPatch:
-		buffer.WriteString(`"text"`)
-	case StringClaimPatch:
-		buffer.WriteString(`"string"`)
-	case AmountClaimPatch:
-		buffer.WriteString(`"amount"`)
-	case AmountRangeClaimPatch:
-		buffer.WriteString(`"amountRange"`)
-	case RelationClaimPatch:
-		buffer.WriteString(`"rel"`)
-	case FileClaimPatch:
-		buffer.WriteString(`"file"`)
-	case NoValueClaimPatch:
-		buffer.WriteString(`"none"`)
-	case UnknownValueClaimPatch:
-		buffer.WriteString(`"unknown"`)
-	case TimeClaimPatch:
-		buffer.WriteString(`"time"`)
-	case TimeRangeClaimPatch:
-		buffer.WriteString(`"timeRange"`)
+	switch t.Type {
+	case "id":
+		return patchUnmarshalJSON[IdentifierClaimPatch](data)
+	case "ref":
+		return patchUnmarshalJSON[ReferenceClaimPatch](data)
+	case "text":
+		return patchUnmarshalJSON[TextClaimPatch](data)
+	case "string":
+		return patchUnmarshalJSON[StringClaimPatch](data)
+	case "amount":
+		return patchUnmarshalJSON[AmountClaimPatch](data)
+	case "amountRange":
+		return patchUnmarshalJSON[AmountRangeClaimPatch](data)
+	case "rel":
+		return patchUnmarshalJSON[RelationClaimPatch](data)
+	case "file":
+		return patchUnmarshalJSON[FileClaimPatch](data)
+	case "none":
+		return patchUnmarshalJSON[NoValueClaimPatch](data)
+	case "unknown":
+		return patchUnmarshalJSON[UnknownValueClaimPatch](data)
+	case "time":
+		return patchUnmarshalJSON[TimeClaimPatch](data)
+	case "timeRange":
+		return patchUnmarshalJSON[TimeRangeClaimPatch](data)
 	default:
-		return nil, errors.Errorf(`patch of type %T is not supported`, patch)
+		return nil, errors.Errorf(`patch of type "%s" is not supported`, t.Type)
 	}
-
-	buffer.WriteString(`}`)
-
-	return buffer.Bytes(), nil
 }
 
 type ClaimPatch interface {
@@ -104,54 +80,6 @@ type AddClaimPatch struct {
 	Patch ClaimPatch             `json:"patch"`
 }
 
-func (p *AddClaimPatch) UnmarshalJSON(data []byte) error { //nolint:dupl
-	var t struct {
-		Type string `json:"type"`
-	}
-	errE := x.Unmarshal(data, &t)
-	if errE != nil {
-		return errE
-	}
-	switch t.Type {
-	case "id":
-		return addClaimPatchUnmarshalJSON[IdentifierClaimPatch](p, data)
-	case "ref":
-		return addClaimPatchUnmarshalJSON[ReferenceClaimPatch](p, data)
-	case "text":
-		return addClaimPatchUnmarshalJSON[TextClaimPatch](p, data)
-	case "string":
-		return addClaimPatchUnmarshalJSON[StringClaimPatch](p, data)
-	case "amount":
-		return addClaimPatchUnmarshalJSON[AmountClaimPatch](p, data)
-	case "amountRange":
-		return addClaimPatchUnmarshalJSON[AmountRangeClaimPatch](p, data)
-	case "rel":
-		return addClaimPatchUnmarshalJSON[RelationClaimPatch](p, data)
-	case "file":
-		return addClaimPatchUnmarshalJSON[FileClaimPatch](p, data)
-	case "none":
-		return addClaimPatchUnmarshalJSON[NoValueClaimPatch](p, data)
-	case "unknown":
-		return addClaimPatchUnmarshalJSON[UnknownValueClaimPatch](p, data)
-	case "time":
-		return addClaimPatchUnmarshalJSON[TimeClaimPatch](p, data)
-	case "timeRange":
-		return addClaimPatchUnmarshalJSON[TimeRangeClaimPatch](p, data)
-	default:
-		return errors.Errorf(`patch of type "%s" is not supported`, t.Type)
-	}
-}
-
-func (p AddClaimPatch) MarshalJSON() ([]byte, error) {
-	// We define a new type to not recurse into this same MarshalJSON.
-	type P AddClaimPatch
-	data, errE := x.MarshalWithoutEscapeHTML(P(p))
-	if errE != nil {
-		return nil, errE
-	}
-	return appendPatchType(data, p.Patch)
-}
-
 func (p AddClaimPatch) Apply(doc *D, id identifier.Identifier) errors.E {
 	c, errE := p.Patch.New(id)
 	if errE != nil {
@@ -169,57 +97,46 @@ func (p AddClaimPatch) Apply(doc *D, id identifier.Identifier) errors.E {
 	return claim.Add(c)
 }
 
-type SetClaimPatch struct {
-	ID    identifier.Identifier `json:"id"`
-	Patch ClaimPatch            `json:"patch"`
-}
-
-func (p *SetClaimPatch) UnmarshalJSON(data []byte) error { //nolint:dupl
+func (p *AddClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AddClaimPatch
 	var t struct {
-		Type string `json:"type"`
+		Type  string          `json:"type"`
+		Patch json.RawMessage `json:"patch"`
+		P
 	}
-	errE := x.Unmarshal(data, &t)
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
 		return errE
 	}
-	switch t.Type {
-	case "id":
-		return setClaimPatchUnmarshalJSON[IdentifierClaimPatch](p, data)
-	case "ref":
-		return setClaimPatchUnmarshalJSON[ReferenceClaimPatch](p, data)
-	case "text":
-		return setClaimPatchUnmarshalJSON[TextClaimPatch](p, data)
-	case "string":
-		return setClaimPatchUnmarshalJSON[StringClaimPatch](p, data)
-	case "amount":
-		return setClaimPatchUnmarshalJSON[AmountClaimPatch](p, data)
-	case "amountRange":
-		return setClaimPatchUnmarshalJSON[AmountRangeClaimPatch](p, data)
-	case "rel":
-		return setClaimPatchUnmarshalJSON[RelationClaimPatch](p, data)
-	case "file":
-		return setClaimPatchUnmarshalJSON[FileClaimPatch](p, data)
-	case "none":
-		return setClaimPatchUnmarshalJSON[NoValueClaimPatch](p, data)
-	case "unknown":
-		return setClaimPatchUnmarshalJSON[UnknownValueClaimPatch](p, data)
-	case "time":
-		return setClaimPatchUnmarshalJSON[TimeClaimPatch](p, data)
-	case "timeRange":
-		return setClaimPatchUnmarshalJSON[TimeRangeClaimPatch](p, data)
-	default:
-		return errors.Errorf(`patch of type "%s" is not supported`, t.Type)
+	if t.Type != "add" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
+	patch, errE := switchPatchUnmarshalJSON(t.Patch)
+	if errE != nil {
+		return errE
+	}
+	p.Under = t.Under
+	p.Patch = patch
+	return nil
 }
 
-func (p SetClaimPatch) MarshalJSON() ([]byte, error) {
+func (p AddClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P SetClaimPatch
-	data, errE := x.MarshalWithoutEscapeHTML(P(p))
-	if errE != nil {
-		return nil, errE
+	type P AddClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "add",
+		P:    P(p),
 	}
-	return appendPatchType(data, p.Patch)
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
+type SetClaimPatch struct {
+	ID    identifier.Identifier `json:"id"`
+	Patch ClaimPatch            `json:"patch"`
 }
 
 func (p SetClaimPatch) Apply(doc *D) errors.E {
@@ -228,6 +145,43 @@ func (p SetClaimPatch) Apply(doc *D) errors.E {
 		return errors.Errorf(`claim with ID "%s" not found`, p.ID)
 	}
 	return p.Patch.Apply(claim)
+}
+
+func (p *SetClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P SetClaimPatch
+	var t struct {
+		Type  string          `json:"type"`
+		Patch json.RawMessage `json:"patch"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "set" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	patch, errE := switchPatchUnmarshalJSON(t.Patch)
+	if errE != nil {
+		return errE
+	}
+	p.ID = t.ID
+	p.Patch = patch
+	return nil
+}
+
+func (p SetClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P SetClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "set",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type RemoveClaimPatch struct {
@@ -240,6 +194,37 @@ func (p RemoveClaimPatch) Apply(doc *D) errors.E {
 		return errors.Errorf(`claim with ID "%s" not found`, p.ID)
 	}
 	return nil
+}
+
+func (p *RemoveClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P RemoveClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "remove" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	p.ID = t.ID
+	return nil
+}
+
+func (p RemoveClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P RemoveClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "remove",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type IdentifierClaimPatch struct {
@@ -285,6 +270,37 @@ func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+func (p *IdentifierClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P IdentifierClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "id" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = IdentifierClaimPatch(t.P)
+	return nil
+}
+
+func (p IdentifierClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P IdentifierClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "id",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type ReferenceClaimPatch struct {
 	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	IRI  *string                `exhaustruct:"optional" json:"iri,omitempty"`
@@ -326,6 +342,37 @@ func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *ReferenceClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P ReferenceClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "ref" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = ReferenceClaimPatch(t.P)
+	return nil
+}
+
+func (p ReferenceClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P ReferenceClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "ref",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type TextClaimPatch struct {
@@ -378,6 +425,37 @@ func (p TextClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+func (p *TextClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TextClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "text" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = TextClaimPatch(t.P)
+	return nil
+}
+
+func (p TextClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TextClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "text",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type StringClaimPatch struct {
 	Prop   *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	String *string                `exhaustruct:"optional" json:"string,omitempty"`
@@ -419,6 +497,37 @@ func (p StringClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *StringClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P StringClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "string" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = StringClaimPatch(t.P)
+	return nil
+}
+
+func (p StringClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P StringClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "string",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type AmountClaimPatch struct {
@@ -467,6 +576,37 @@ func (p AmountClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *AmountClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AmountClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "amount" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = AmountClaimPatch(t.P)
+	return nil
+}
+
+func (p AmountClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AmountClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "amount",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type AmountRangeClaimPatch struct {
@@ -522,6 +662,37 @@ func (p AmountRangeClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+func (p *AmountRangeClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AmountRangeClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "amountRange" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = AmountRangeClaimPatch(t.P)
+	return nil
+}
+
+func (p AmountRangeClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P AmountRangeClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "amountRange",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type RelationClaimPatch struct {
 	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	To   *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
@@ -566,6 +737,37 @@ func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P RelationClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "rel" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = RelationClaimPatch(t.P)
+	return nil
+}
+
+func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P RelationClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "rel",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type FileClaimPatch struct {
@@ -621,6 +823,37 @@ func (p FileClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+func (p *FileClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P FileClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "file" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = FileClaimPatch(t.P)
+	return nil
+}
+
+func (p FileClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P FileClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "file",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
 type NoValueClaimPatch struct {
 	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 }
@@ -659,6 +892,41 @@ func (p NoValueClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+func (p *NoValueClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P NoValueClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "none" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = NoValueClaimPatch(t.P)
+	return nil
+}
+
+func (p NoValueClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P NoValueClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "none",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
+type UnknownValueClaimPatch struct {
+	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+}
+
 func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Prop == nil {
 		return nil, errors.New("incomplete patch")
@@ -676,10 +944,6 @@ func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 	}, nil
 }
 
-type UnknownValueClaimPatch struct {
-	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-}
-
 func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop == nil {
 		return errors.New("empty patch")
@@ -695,6 +959,37 @@ func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *UnknownValueClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P UnknownValueClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "unknown" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = UnknownValueClaimPatch(t.P)
+	return nil
+}
+
+func (p UnknownValueClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P UnknownValueClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "unknown",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type TimeClaimPatch struct {
@@ -743,6 +1038,37 @@ func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *TimeClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TimeClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "time" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = TimeClaimPatch(t.P)
+	return nil
+}
+
+func (p TimeClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TimeClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "time",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
 
 type TimeRangeClaimPatch struct {
@@ -796,4 +1122,35 @@ func (p TimeRangeClaimPatch) Apply(claim Claim) errors.E {
 	}
 
 	return nil
+}
+
+func (p *TimeRangeClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TimeRangeClaimPatch
+	var t struct {
+		Type string `json:"type"`
+		P
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "timeRange" {
+		return errors.Errorf(`invalid type "%s"`, t.Type)
+	}
+	*p = TimeRangeClaimPatch(t.P)
+	return nil
+}
+
+func (p TimeRangeClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P TimeRangeClaimPatch
+	t := struct {
+		Type string `json:"type"`
+		P
+	}{
+		Type: "timeRange",
+		P:    P(p),
+	}
+	return x.MarshalWithoutEscapeHTML(t)
 }
