@@ -338,6 +338,12 @@ export type DocumentEndEditResponse = {
   changeset: string
 }
 
+export type DocumentBeginMetadata = {
+  at: string
+  id: string
+  version: string
+}
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>
