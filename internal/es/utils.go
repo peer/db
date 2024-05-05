@@ -377,6 +377,10 @@ func InitForSite(
 		Appended: nil,
 		Ended:    nil,
 	}
+	errE = c.Init(ctx, dbpool)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
 
 	storage := &storage.Storage{
 		Prefix:    "storage",
