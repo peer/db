@@ -3,13 +3,33 @@ package document
 import (
 	"bytes"
 	"encoding/json"
+	"strconv"
 
+	"github.com/google/uuid"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 )
 
+func isJSONArray(data []byte) bool {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	t, err := dec.Token()
+	if err != nil {
+		return false
+	}
+	return t == '['
+}
+
 func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
+	if isJSONArray(data) {
+		var changes Changes
+		errE := x.UnmarshalWithoutUnknownFields(data, &changes)
+		if errE != nil {
+			return nil, errE
+		}
+		return changes, nil
+	}
+
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -31,7 +51,7 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 
 func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
-	case AddClaimChange, SetClaimChange, RemoveClaimChange:
+	case AddClaimChange, SetClaimChange, RemoveClaimChange, Changes:
 	default:
 		return nil, errors.Errorf(`change of type %T is not supported`, change)
 	}
@@ -73,6 +93,20 @@ func (c Changes) MarshalJSON() ([]byte, error) {
 	}
 	buffer.WriteString("]")
 	return buffer.Bytes(), nil
+}
+
+func (c Changes) Apply(doc *D, base identifier.Identifier) errors.E {
+	namespace := uuid.UUID(base)
+	for i, change := range c {
+		res := uuid.NewSHA1(namespace, []byte(strconv.Itoa(i)))
+		id := identifier.FromUUID(res)
+		errE := change.Apply(doc, id)
+		if errE != nil {
+			errors.Details(errE)["change"] = i
+			return errE
+		}
+	}
+	return nil
 }
 
 func changeUnmarshalJSON[T Change](data []byte) (Change, errors.E) { //nolint:ireturn
@@ -149,6 +183,7 @@ var (
 	_ Change = AddClaimChange{}    //nolint:exhaustruct
 	_ Change = SetClaimChange{}    //nolint:exhaustruct
 	_ Change = RemoveClaimChange{} //nolint:exhaustruct
+	_ Change = Changes{}
 )
 
 type ClaimPatch interface {
