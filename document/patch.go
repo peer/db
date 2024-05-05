@@ -9,7 +9,7 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
-func ChangeUnmarshalJSON(data []byte) (any, errors.E) {
+func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -29,7 +29,7 @@ func ChangeUnmarshalJSON(data []byte) (any, errors.E) {
 	}
 }
 
-func ChangeMarshalJSON(change any) ([]byte, errors.E) {
+func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
 	case AddClaimChange, SetClaimChange, RemoveClaimChange:
 	default:
@@ -38,7 +38,7 @@ func ChangeMarshalJSON(change any) ([]byte, errors.E) {
 	return x.MarshalWithoutEscapeHTML(change)
 }
 
-type Changes []any
+type Changes []Change
 
 func (c *Changes) UnmarshalJSON(data []byte) error {
 	var changes []json.RawMessage
@@ -75,7 +75,7 @@ func (c Changes) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func changeUnmarshalJSON[T any](data []byte) (any, errors.E) {
+func changeUnmarshalJSON[T Change](data []byte) (Change, errors.E) { //nolint:ireturn
 	var d T
 	errE := x.UnmarshalWithoutUnknownFields(data, &d)
 	if errE != nil {
@@ -84,7 +84,7 @@ func changeUnmarshalJSON[T any](data []byte) (any, errors.E) {
 	return d, nil
 }
 
-func patchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //nolint:ireturn
+func claimPatchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //nolint:ireturn
 	var d T
 	errE := x.UnmarshalWithoutUnknownFields(data, &d)
 	if errE != nil {
@@ -93,7 +93,7 @@ func patchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //no
 	return d, nil
 }
 
-func PatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
+func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -103,35 +103,35 @@ func PatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:
 	}
 	switch t.Type {
 	case "id":
-		return patchUnmarshalJSON[IdentifierClaimPatch](data)
+		return claimPatchUnmarshalJSON[IdentifierClaimPatch](data)
 	case "ref":
-		return patchUnmarshalJSON[ReferenceClaimPatch](data)
+		return claimPatchUnmarshalJSON[ReferenceClaimPatch](data)
 	case "text":
-		return patchUnmarshalJSON[TextClaimPatch](data)
+		return claimPatchUnmarshalJSON[TextClaimPatch](data)
 	case "string":
-		return patchUnmarshalJSON[StringClaimPatch](data)
+		return claimPatchUnmarshalJSON[StringClaimPatch](data)
 	case "amount":
-		return patchUnmarshalJSON[AmountClaimPatch](data)
+		return claimPatchUnmarshalJSON[AmountClaimPatch](data)
 	case "amountRange":
-		return patchUnmarshalJSON[AmountRangeClaimPatch](data)
+		return claimPatchUnmarshalJSON[AmountRangeClaimPatch](data)
 	case "rel":
-		return patchUnmarshalJSON[RelationClaimPatch](data)
+		return claimPatchUnmarshalJSON[RelationClaimPatch](data)
 	case "file":
-		return patchUnmarshalJSON[FileClaimPatch](data)
+		return claimPatchUnmarshalJSON[FileClaimPatch](data)
 	case "none":
-		return patchUnmarshalJSON[NoValueClaimPatch](data)
+		return claimPatchUnmarshalJSON[NoValueClaimPatch](data)
 	case "unknown":
-		return patchUnmarshalJSON[UnknownValueClaimPatch](data)
+		return claimPatchUnmarshalJSON[UnknownValueClaimPatch](data)
 	case "time":
-		return patchUnmarshalJSON[TimeClaimPatch](data)
+		return claimPatchUnmarshalJSON[TimeClaimPatch](data)
 	case "timeRange":
-		return patchUnmarshalJSON[TimeRangeClaimPatch](data)
+		return claimPatchUnmarshalJSON[TimeRangeClaimPatch](data)
 	default:
 		return nil, errors.Errorf(`patch of type "%s" is not supported`, t.Type)
 	}
 }
 
-func PatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
+func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	switch patch.(type) {
 	case IdentifierClaimPatch, ReferenceClaimPatch, TextClaimPatch, StringClaimPatch, AmountClaimPatch, AmountRangeClaimPatch,
 		RelationClaimPatch, FileClaimPatch, NoValueClaimPatch, UnknownValueClaimPatch, TimeClaimPatch, TimeRangeClaimPatch:
@@ -140,6 +140,16 @@ func PatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	}
 	return x.MarshalWithoutEscapeHTML(patch)
 }
+
+type Change interface {
+	Apply(doc *D, id identifier.Identifier) errors.E
+}
+
+var (
+	_ Change = AddClaimChange{}    //nolint:exhaustruct
+	_ Change = SetClaimChange{}    //nolint:exhaustruct
+	_ Change = RemoveClaimChange{} //nolint:exhaustruct
+)
 
 type ClaimPatch interface {
 	New(id identifier.Identifier) (Claim, errors.E)
@@ -198,7 +208,7 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	if t.Type != "add" {
 		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
-	patch, errE := PatchUnmarshalJSON(t.Patch)
+	patch, errE := ClaimPatchUnmarshalJSON(t.Patch)
 	if errE != nil {
 		return errE
 	}
@@ -225,7 +235,7 @@ type SetClaimChange struct {
 	Patch ClaimPatch            `json:"patch"`
 }
 
-func (c SetClaimChange) Apply(doc *D) errors.E {
+func (c SetClaimChange) Apply(doc *D, _ identifier.Identifier) errors.E {
 	claim := doc.GetByID(c.ID)
 	if claim == nil {
 		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
@@ -248,7 +258,7 @@ func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 	if t.Type != "set" {
 		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
-	patch, errE := PatchUnmarshalJSON(t.Patch)
+	patch, errE := ClaimPatchUnmarshalJSON(t.Patch)
 	if errE != nil {
 		return errE
 	}
@@ -274,7 +284,7 @@ type RemoveClaimChange struct {
 	ID identifier.Identifier `json:"id"`
 }
 
-func (c RemoveClaimChange) Apply(doc *D) errors.E {
+func (c RemoveClaimChange) Apply(doc *D, _ identifier.Identifier) errors.E {
 	claim := doc.RemoveByID(c.ID)
 	if claim == nil {
 		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
