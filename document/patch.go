@@ -1,12 +1,81 @@
 package document
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 )
+
+type Changes []any
+
+func (c *Changes) UnmarshalJSON(data []byte) error {
+	var changes []json.RawMessage
+	errE := x.UnmarshalWithoutUnknownFields(data, &changes)
+	if errE != nil {
+		return errE
+	}
+	*c = nil
+	for _, changeJSON := range changes {
+		var t struct {
+			Type string `json:"type"`
+		}
+		errE := x.Unmarshal(changeJSON, &t)
+		if errE != nil {
+			return errE
+		}
+		var change any
+		switch t.Type {
+		case "add":
+			change, errE = changeUnmarshalJSON[AddClaimChange](changeJSON)
+		case "set":
+			change, errE = changeUnmarshalJSON[SetClaimChange](changeJSON)
+		case "remove":
+			change, errE = changeUnmarshalJSON[RemoveClaimChange](changeJSON)
+		default:
+			return errors.Errorf(`change of type "%s" is not supported`, t.Type)
+		}
+		if errE != nil {
+			return errE
+		}
+		*c = append(*c, change)
+	}
+	return nil
+}
+
+func (c Changes) MarshalJSON() ([]byte, error) {
+	buffer := bytes.Buffer{}
+	buffer.WriteString("[")
+	for i, change := range c {
+		if i != 0 {
+			buffer.WriteString(",")
+		}
+		// We manually iterate over the slice to make sure only supported changes are in the slice.
+		switch change.(type) {
+		case AddClaimChange, SetClaimChange, RemoveClaimChange:
+		default:
+			return nil, errors.Errorf(`change of type %T is not supported`, change)
+		}
+		data, errE := x.MarshalWithoutEscapeHTML(change)
+		if errE != nil {
+			return nil, errE
+		}
+		buffer.Write(data)
+	}
+	buffer.WriteString("]")
+	return buffer.Bytes(), nil
+}
+
+func changeUnmarshalJSON[T any](data []byte) (any, errors.E) { //nolint:ireturn
+	var d T
+	errE := x.UnmarshalWithoutUnknownFields(data, &d)
+	if errE != nil {
+		return nil, errE
+	}
+	return d, nil
+}
 
 func patchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //nolint:ireturn
 	var d T
@@ -75,35 +144,35 @@ var (
 	_ ClaimPatch = TimeRangeClaimPatch{}
 )
 
-type AddClaimPatch struct {
+type AddClaimChange struct {
 	Under *identifier.Identifier `json:"under,omitempty"`
 	Patch ClaimPatch             `json:"patch"`
 }
 
-func (p AddClaimPatch) Apply(doc *D, id identifier.Identifier) errors.E {
-	c, errE := p.Patch.New(id)
+func (c AddClaimChange) Apply(doc *D, id identifier.Identifier) errors.E {
+	newClaim, errE := c.Patch.New(id)
 	if errE != nil {
 		return errE
 	}
 
-	if p.Under == nil {
-		return doc.Add(c)
+	if c.Under == nil {
+		return doc.Add(newClaim)
 	}
 
-	claim := doc.GetByID(*p.Under)
+	claim := doc.GetByID(*c.Under)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, *p.Under)
+		return errors.Errorf(`claim with ID "%s" not found`, *c.Under)
 	}
-	return claim.Add(c)
+	return claim.Add(newClaim)
 }
 
-func (p *AddClaimPatch) UnmarshalJSON(data []byte) error {
+func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P AddClaimPatch
+	type C AddClaimChange
 	var t struct {
 		Type  string          `json:"type"`
 		Patch json.RawMessage `json:"patch"`
-		P
+		C
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -116,44 +185,44 @@ func (p *AddClaimPatch) UnmarshalJSON(data []byte) error {
 	if errE != nil {
 		return errE
 	}
-	p.Under = t.Under
-	p.Patch = patch
+	c.Under = t.Under
+	c.Patch = patch
 	return nil
 }
 
-func (p AddClaimPatch) MarshalJSON() ([]byte, error) {
+func (c AddClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P AddClaimPatch
+	type C AddClaimChange
 	t := struct {
 		Type string `json:"type"`
-		P
+		C
 	}{
 		Type: "add",
-		P:    P(p),
+		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
-type SetClaimPatch struct {
+type SetClaimChange struct {
 	ID    identifier.Identifier `json:"id"`
 	Patch ClaimPatch            `json:"patch"`
 }
 
-func (p SetClaimPatch) Apply(doc *D) errors.E {
-	claim := doc.GetByID(p.ID)
+func (c SetClaimChange) Apply(doc *D) errors.E {
+	claim := doc.GetByID(c.ID)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, p.ID)
+		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
 	}
-	return p.Patch.Apply(claim)
+	return c.Patch.Apply(claim)
 }
 
-func (p *SetClaimPatch) UnmarshalJSON(data []byte) error {
+func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P SetClaimPatch
+	type C SetClaimChange
 	var t struct {
 		Type  string          `json:"type"`
 		Patch json.RawMessage `json:"patch"`
-		P
+		C
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -166,42 +235,42 @@ func (p *SetClaimPatch) UnmarshalJSON(data []byte) error {
 	if errE != nil {
 		return errE
 	}
-	p.ID = t.ID
-	p.Patch = patch
+	c.ID = t.ID
+	c.Patch = patch
 	return nil
 }
 
-func (p SetClaimPatch) MarshalJSON() ([]byte, error) {
+func (c SetClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P SetClaimPatch
+	type C SetClaimChange
 	t := struct {
 		Type string `json:"type"`
-		P
+		C
 	}{
 		Type: "set",
-		P:    P(p),
+		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
-type RemoveClaimPatch struct {
+type RemoveClaimChange struct {
 	ID identifier.Identifier `json:"id"`
 }
 
-func (p RemoveClaimPatch) Apply(doc *D) errors.E {
-	claim := doc.RemoveByID(p.ID)
+func (c RemoveClaimChange) Apply(doc *D) errors.E {
+	claim := doc.RemoveByID(c.ID)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, p.ID)
+		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
 	}
 	return nil
 }
 
-func (p *RemoveClaimPatch) UnmarshalJSON(data []byte) error {
+func (c *RemoveClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P RemoveClaimPatch
+	type C RemoveClaimChange
 	var t struct {
 		Type string `json:"type"`
-		P
+		C
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -210,19 +279,19 @@ func (p *RemoveClaimPatch) UnmarshalJSON(data []byte) error {
 	if t.Type != "remove" {
 		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
-	p.ID = t.ID
+	c.ID = t.ID
 	return nil
 }
 
-func (p RemoveClaimPatch) MarshalJSON() ([]byte, error) {
+func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
-	type P RemoveClaimPatch
+	type C RemoveClaimChange
 	t := struct {
 		Type string `json:"type"`
-		P
+		C
 	}{
 		Type: "remove",
-		P:    P(p),
+		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }

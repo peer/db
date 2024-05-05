@@ -16,19 +16,21 @@ func TestPatchJSON(t *testing.T) {
 	under := identifier.MustFromString("HpPn1Ra6SLdjWaDxaJJYx3")
 	prop := identifier.MustFromString("XkbTJqwFCFkfoxMBXow4HU")
 	value := "foobar"
-	p := document.AddClaimPatch{
-		Under: &under,
-		Patch: document.IdentifierClaimPatch{
-			Prop:       &prop,
-			Identifier: &value,
+	changes := document.Changes{
+		document.AddClaimChange{
+			Under: &under,
+			Patch: document.IdentifierClaimPatch{
+				Prop:       &prop,
+				Identifier: &value,
+			},
 		},
 	}
-	out, errE := x.MarshalWithoutEscapeHTML(p)
+	out, errE := x.MarshalWithoutEscapeHTML(changes)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `{"type":"add","under":"HpPn1Ra6SLdjWaDxaJJYx3","patch":{"type":"id","prop":"XkbTJqwFCFkfoxMBXow4HU","id":"foobar"}}`, string(out))
+	assert.Equal(t, `[{"type":"add","under":"HpPn1Ra6SLdjWaDxaJJYx3","patch":{"type":"id","prop":"XkbTJqwFCFkfoxMBXow4HU","id":"foobar"}}]`, string(out))
 
-	var p2 document.AddClaimPatch
-	errE = x.UnmarshalWithoutUnknownFields(out, &p2)
+	var changes2 document.Changes
+	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, p, p2)
+	assert.Equal(t, changes, changes2)
 }
