@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import type { DocumentBeginEditResponse, PeerDBDocument } from "@/types"
+import type { PeerDBDocument } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import { ref, computed, toRef, onBeforeUnmount } from "vue"
+import { ref, computed, toRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import InputTextLink from "@/components/InputTextLink.vue"
-import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -15,13 +14,13 @@ import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { useSearchState } from "@/search"
-import { postJSON } from "@/api"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 import { injectProgress } from "@/progress"
 
 const props = defineProps<{
   id: string
+  session: string
 }>()
 
 const route = useRoute()
@@ -30,13 +29,6 @@ const router = useRouter()
 const el = ref(null)
 
 const progress = injectProgress()
-const editProgress = injectProgress()
-
-const abortController = new AbortController()
-
-onBeforeUnmount(() => {
-  abortController.abort()
-})
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
@@ -105,45 +97,6 @@ const file = computed(() => {
   }
   return null
 })
-
-async function onEdit() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  editProgress.value += 1
-  try {
-    const editResponse = await postJSON<DocumentBeginEditResponse>(
-      router.apiResolve({
-        name: "DocumentBeginEdit",
-        params: {
-          id: props.id,
-        },
-      }).href,
-      {},
-      abortController.signal,
-      editProgress,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
-    await router.push({
-      name: "DocumentEdit",
-      params: {
-        id: props.id,
-        session: editResponse.session,
-      },
-    })
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("DocumentGet.onEdit", err)
-  } finally {
-    editProgress.value -= 1
-  }
-}
 </script>
 
 <template>
@@ -160,7 +113,7 @@ async function onEdit() {
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5"
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchState.s }) }"
           >
@@ -169,7 +122,7 @@ async function onEdit() {
           </ButtonLink>
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5"
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchState.s }) }"
           >
@@ -179,10 +132,6 @@ async function onEdit() {
         </div>
       </div>
       <NavBarSearch v-else />
-      <Button :progress="editProgress" type="button" primary class="!px-3.5" @click.prevent="onEdit">
-        <PencilIcon class="h-5 w-5 sm:hidden" alt="Edit" />
-        <span class="hidden sm:inline">Edit</span>
-      </Button>
     </NavBar>
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">

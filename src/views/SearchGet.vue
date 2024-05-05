@@ -19,8 +19,7 @@ import type {
 
 import { ref, computed, toRef, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ArrowUpTrayIcon } from "@heroicons/vue/20/solid"
-import { PlusIcon } from "@heroicons/vue/20/solid"
+import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import RelFiltersResult from "@/partials/RelFiltersResult.vue"
@@ -47,11 +46,10 @@ const router = useRouter()
 const route = useRoute()
 
 const mainProgress = injectMainProgress()
-
-const abortController = new AbortController()
-
 const createProgress = localProgress(mainProgress)
 const uploadProgress = localProgress(mainProgress)
+
+const abortController = new AbortController()
 
 const upload = ref<HTMLInputElement>()
 
@@ -371,7 +369,7 @@ async function onCreate() {
       return
     }
     // TODO: Show notification with error.
-    console.error("NavBar.onCreate", err)
+    console.error("SearchGet.onCreate", err)
   } finally {
     createProgress.value -= 1
   }
@@ -400,7 +398,7 @@ async function onChange() {
         return
       }
       // TODO: Show notification with error.
-      console.error("NavBar.onChange", err)
+      console.error("SearchGet.onChange", err)
     } finally {
       uploadProgress.value -= 1
     }
