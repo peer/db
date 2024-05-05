@@ -9,6 +9,35 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+func ChangeUnmarshalJSON(data []byte) (any, errors.E) {
+	var t struct {
+		Type string `json:"type"`
+	}
+	errE := x.Unmarshal(data, &t)
+	if errE != nil {
+		return nil, errE
+	}
+	switch t.Type {
+	case "add":
+		return changeUnmarshalJSON[AddClaimChange](data)
+	case "set":
+		return changeUnmarshalJSON[SetClaimChange](data)
+	case "remove":
+		return changeUnmarshalJSON[RemoveClaimChange](data)
+	default:
+		return nil, errors.Errorf(`change of type "%s" is not supported`, t.Type)
+	}
+}
+
+func ChangeMarshalJSON(change any) ([]byte, errors.E) {
+	switch change.(type) {
+	case AddClaimChange, SetClaimChange, RemoveClaimChange:
+	default:
+		return nil, errors.Errorf(`change of type %T is not supported`, change)
+	}
+	return x.MarshalWithoutEscapeHTML(change)
+}
+
 type Changes []any
 
 func (c *Changes) UnmarshalJSON(data []byte) error {
@@ -19,24 +48,7 @@ func (c *Changes) UnmarshalJSON(data []byte) error {
 	}
 	*c = nil
 	for _, changeJSON := range changes {
-		var t struct {
-			Type string `json:"type"`
-		}
-		errE := x.Unmarshal(changeJSON, &t)
-		if errE != nil {
-			return errE
-		}
-		var change any
-		switch t.Type {
-		case "add":
-			change, errE = changeUnmarshalJSON[AddClaimChange](changeJSON)
-		case "set":
-			change, errE = changeUnmarshalJSON[SetClaimChange](changeJSON)
-		case "remove":
-			change, errE = changeUnmarshalJSON[RemoveClaimChange](changeJSON)
-		default:
-			return errors.Errorf(`change of type "%s" is not supported`, t.Type)
-		}
+		change, errE := ChangeUnmarshalJSON(changeJSON)
 		if errE != nil {
 			return errE
 		}
@@ -48,17 +60,12 @@ func (c *Changes) UnmarshalJSON(data []byte) error {
 func (c Changes) MarshalJSON() ([]byte, error) {
 	buffer := bytes.Buffer{}
 	buffer.WriteString("[")
+	// We manually iterate over the slice to make sure only supported changes are in the slice.
 	for i, change := range c {
 		if i != 0 {
 			buffer.WriteString(",")
 		}
-		// We manually iterate over the slice to make sure only supported changes are in the slice.
-		switch change.(type) {
-		case AddClaimChange, SetClaimChange, RemoveClaimChange:
-		default:
-			return nil, errors.Errorf(`change of type %T is not supported`, change)
-		}
-		data, errE := x.MarshalWithoutEscapeHTML(change)
+		data, errE := ChangeMarshalJSON(change)
 		if errE != nil {
 			return nil, errE
 		}
@@ -86,7 +93,7 @@ func patchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) { //no
 	return d, nil
 }
 
-func switchPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
+func PatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -122,6 +129,16 @@ func switchPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //n
 	default:
 		return nil, errors.Errorf(`patch of type "%s" is not supported`, t.Type)
 	}
+}
+
+func PatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
+	switch patch.(type) {
+	case IdentifierClaimPatch, ReferenceClaimPatch, TextClaimPatch, StringClaimPatch, AmountClaimPatch, AmountRangeClaimPatch,
+		RelationClaimPatch, FileClaimPatch, NoValueClaimPatch, UnknownValueClaimPatch, TimeClaimPatch, TimeRangeClaimPatch:
+	default:
+		return nil, errors.Errorf(`patch of type %T is not supported`, patch)
+	}
+	return x.MarshalWithoutEscapeHTML(patch)
 }
 
 type ClaimPatch interface {
@@ -181,7 +198,7 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	if t.Type != "add" {
 		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
-	patch, errE := switchPatchUnmarshalJSON(t.Patch)
+	patch, errE := PatchUnmarshalJSON(t.Patch)
 	if errE != nil {
 		return errE
 	}
@@ -231,7 +248,7 @@ func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 	if t.Type != "set" {
 		return errors.Errorf(`invalid type "%s"`, t.Type)
 	}
-	patch, errE := switchPatchUnmarshalJSON(t.Patch)
+	patch, errE := PatchUnmarshalJSON(t.Patch)
 	if errE != nil {
 		return errE
 	}
