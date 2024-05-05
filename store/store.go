@@ -437,7 +437,7 @@ func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool
 		}
 
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		var pgError *pgconn.PgError
 		if errors.As(errE, &pgError) {

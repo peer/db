@@ -87,7 +87,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -140,7 +140,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -204,7 +204,7 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -259,7 +259,7 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -309,7 +309,7 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -361,26 +361,28 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 			return errE
 		}
 		return nil
+	}, func() {
+		if c.store.Committed != nil {
+			// There might be more than just this changeset committed if its parent changesets were not committed as well.
+			for _, changeset := range committedChangesets {
+				// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
+				c.store.Committed <- CommittedChangeset[Data, Metadata, Patch]{
+					Changeset: Changeset[Data, Metadata, Patch]{
+						id:    identifier.MustFromString(changeset),
+						store: nil,
+					},
+					View: View[Data, Metadata, Patch]{
+						name:  view.name,
+						store: nil,
+					},
+				}
+			}
+		}
 	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = view.name
 		details["changeset"] = c.String()
-	} else if c.store.Committed != nil {
-		// There might be more than just this changeset committed if its parent changesets were not committed as well.
-		for _, changeset := range committedChangesets {
-			// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
-			c.store.Committed <- CommittedChangeset[Data, Metadata, Patch]{
-				Changeset: Changeset[Data, Metadata, Patch]{
-					id:    identifier.MustFromString(changeset),
-					store: nil,
-				},
-				View: View[Data, Metadata, Patch]{
-					name:  view.name,
-					store: nil,
-				},
-			}
-		}
 	}
 	var chs []Changeset[Data, Metadata, Patch]
 	for _, changeset := range committedChangesets {
@@ -424,7 +426,7 @@ func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E 
 			return errE
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["changeset"] = c.String()
@@ -520,7 +522,7 @@ func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *id
 			// There is nothing wrong with having no values.
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["changeset"] = c.String()

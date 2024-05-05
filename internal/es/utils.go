@@ -344,7 +344,7 @@ func InitForSite(
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	})
+	}, nil)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}

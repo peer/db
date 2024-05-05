@@ -125,7 +125,7 @@ func initDatabase[Data, Metadata any](
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	})
+	}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	appendedChannel := make(chan coordinator.AppendedOperation)

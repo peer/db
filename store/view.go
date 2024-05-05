@@ -264,7 +264,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -346,7 +346,7 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -421,7 +421,7 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 			// There is nothing wrong with having no values.
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -508,7 +508,7 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 			return errors.WithStack(ErrValueNotFound)
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -636,7 +636,7 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 			// There is nothing wrong with having no changes anymore for valid value ID and after a valid after changeset.
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -684,7 +684,7 @@ func (v View[Data, Metadata, Patch]) Create(ctx context.Context, name string, me
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -715,7 +715,7 @@ func (v View[Data, Metadata, Patch]) Release(ctx context.Context, metadata Metad
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name

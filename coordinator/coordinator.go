@@ -155,7 +155,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 		}
 
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		var pgError *pgconn.PgError
 		if errors.As(errE, &pgError) {
@@ -190,7 +190,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Begin
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `INSERT INTO "`+c.Prefix+`Sessions" VALUES ($1, $2, NULL)`, arguments...)
 		return internal.WithPgxError(err)
-	})
+	}, nil)
 	if errE != nil {
 		return identifier.Identifier{}, errE
 	}
@@ -235,11 +235,13 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 			return errE
 		}
 		return nil
+	}, func() {
+		if c.Ended != nil {
+			c.Ended <- session
+		}
 	})
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
-	} else if c.Ended != nil {
-		c.Ended <- session
 	}
 	return m, errE
 }
@@ -273,14 +275,16 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
 			return errE
 		}
 		return nil
+	}, func() {
+		if c.Appended != nil {
+			c.Appended <- AppendedOperation{
+				Session:   session,
+				Operation: operation,
+			}
+		}
 	})
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
-	} else if c.Appended != nil {
-		c.Appended <- AppendedOperation{
-			Session:   session,
-			Operation: operation,
-		}
 	}
 	return operation, errE
 }
@@ -314,15 +318,17 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Set(
 			return errE
 		}
 		return nil
+	}, func() {
+		if c.Appended != nil {
+			c.Appended <- AppendedOperation{
+				Session:   session,
+				Operation: operation,
+			}
+		}
 	})
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
 		errors.Details(errE)["operation"] = operation
-	} else if c.Appended != nil {
-		c.Appended <- AppendedOperation{
-			Session:   session,
-			Operation: operation,
-		}
 	}
 	return errE
 }
@@ -386,7 +392,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(
 			// There is nothing wrong with having no operations.
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["session"] = session.String()
@@ -439,7 +445,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetDa
 			return errE
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["session"] = session.String()
@@ -486,7 +492,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMe
 			return errE
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["session"] = session.String()
@@ -523,7 +529,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( 
 			return errE
 		}
 		return nil
-	})
+	}, nil)
 	if errE != nil {
 		details := errors.Details(errE)
 		details["session"] = session.String()
