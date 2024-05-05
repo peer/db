@@ -6,7 +6,7 @@ import { ArrowUpTrayIcon } from "@heroicons/vue/20/solid"
 import ProgressBar from "@/components/ProgressBar.vue"
 import Button from "@/components/Button.vue"
 import { useNavbar } from "@/navbar"
-import { injectMainProgress, injectProgress } from "@/progress"
+import { injectMainProgress, localProgress } from "@/progress"
 import { uploadFile } from "@/upload"
 
 const { ref: navbar, attrs: navbarAttrs } = useNavbar()
@@ -17,7 +17,7 @@ const router = useRouter()
 
 const abortController = new AbortController()
 
-const progress = injectProgress()
+const uploadProgress = localProgress(mainProgress)
 
 const upload = ref<HTMLInputElement>()
 
@@ -39,9 +39,9 @@ async function onChange() {
   }
 
   for (const file of upload.value?.files || []) {
-    progress.value += 1
+    uploadProgress.value += 1
     try {
-      await uploadFile(router, file, abortController.signal, progress)
+      await uploadFile(router, file, abortController.signal, uploadProgress)
       // TODO: Create a document for the file and redirect there.
     } catch (err) {
       if (abortController.signal.aborted) {
@@ -50,7 +50,7 @@ async function onChange() {
       // TODO: Show notification with error.
       console.error("NavBar.onChange", err)
     } finally {
-      progress.value -= 1
+      uploadProgress.value -= 1
     }
 
     // TODO: Support uploading multiple files.
@@ -75,7 +75,7 @@ async function onChange() {
     </RouterLink>
     <slot />
     <input ref="upload" type="file" class="hidden" @change="onChange" />
-    <Button :progress="progress" type="button" primary class="!px-3.5" @click.prevent="onUpload">
+    <Button :progress="uploadProgress" type="button" primary class="!px-3.5" @click.prevent="onUpload">
       <ArrowUpTrayIcon class="h-5 w-5 sm:hidden" alt="Upload" />
       <span class="hidden sm:inline">Upload</span>
     </Button>
