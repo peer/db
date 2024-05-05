@@ -1,6 +1,6 @@
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
-import type { BeginUploadResponse, BeginUploadRequest } from "@/types"
+import type { StorageBeginUploadResponse, StorageBeginUploadRequest } from "@/types"
 
 // 10 MB.
 const maxChunkSize = 10 << 20
@@ -12,12 +12,12 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
   // TODO: If abortSignal is aborted, we should attempt to discard the upload (with fetch's keepalive set).
 
   // TODO: Pass and store lastModified timestamp for the file (as different timestamp than current uploaded "at" timestamp).
-  const beginUploadRequest: BeginUploadRequest = {
+  const beginUploadRequest: StorageBeginUploadRequest = {
     size: file.size,
     mediaType: file.type || "application/octet-stream",
     filename: file.name || "",
   }
-  const beginUploadResponse = await postJSON<BeginUploadResponse>(
+  const beginUploadResponse = await postJSON<StorageBeginUploadResponse>(
     router.apiResolve({
       name: "StorageBeginUpload",
     }).href,

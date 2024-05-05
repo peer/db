@@ -315,13 +315,13 @@ export type QueryValues = Record<string, string | string[]>
 
 export type QueryValuesWithOptional = Record<string, string | (string | null)[] | undefined | null>
 
-export type BeginUploadRequest = {
+export type StorageBeginUploadRequest = {
   size: number
   mediaType: string
   filename: string
 }
 
-export type BeginUploadResponse = {
+export type StorageBeginUploadResponse = {
   session: string
 }
 
