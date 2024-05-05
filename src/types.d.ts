@@ -325,6 +325,15 @@ export type StorageBeginUploadResponse = {
   session: string
 }
 
+export type DocumentCreateResponse = {
+  id: string
+}
+
+export type DocumentBeginEditResponse = {
+  session: string
+  version: string
+}
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>

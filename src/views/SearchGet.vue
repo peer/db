@@ -13,10 +13,14 @@ import type {
   StringSearchResult,
   IndexSearchResult,
   SizeSearchResult,
+  DocumentBeginEditResponse,
+  DocumentCreateResponse,
 } from "@/types"
 
 import { ref, computed, toRef, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { ArrowUpTrayIcon } from "@heroicons/vue/20/solid"
+import { PlusIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import RelFiltersResult from "@/partials/RelFiltersResult.vue"
@@ -30,6 +34,8 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
 import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
+import { postJSON } from "@/api"
+import { uploadFile } from "@/upload"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
 
@@ -43,6 +49,11 @@ const route = useRoute()
 const mainProgress = injectMainProgress()
 
 const abortController = new AbortController()
+
+const createProgress = localProgress(mainProgress)
+const uploadProgress = localProgress(mainProgress)
+
+const upload = ref<HTMLInputElement>()
 
 onBeforeUnmount(() => {
   abortController.abort()
@@ -315,12 +326,105 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
 }
 
 const filtersEnabled = ref(false)
+
+async function onCreate() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  createProgress.value += 1
+  try {
+    const createResponse = await postJSON<DocumentCreateResponse>(
+      router.apiResolve({
+        name: "DocumentCreate",
+      }).href,
+      {},
+      abortController.signal,
+      createProgress,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+    const editResponse = await postJSON<DocumentBeginEditResponse>(
+      router.apiResolve({
+        name: "DocumentBeginEdit",
+        params: {
+          id: createResponse.id,
+        },
+      }).href,
+      {},
+      abortController.signal,
+      createProgress,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+    await router.push({
+      name: "DocumentEdit",
+      params: {
+        id: createResponse.id,
+        session: editResponse.session,
+      },
+    })
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("NavBar.onCreate", err)
+  } finally {
+    createProgress.value -= 1
+  }
+}
+
+async function onUpload() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  upload.value?.click()
+}
+
+async function onChange() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  for (const file of upload.value?.files || []) {
+    uploadProgress.value += 1
+    try {
+      await uploadFile(router, file, abortController.signal, uploadProgress)
+      // TODO: Create a document for the file and redirect there.
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        return
+      }
+      // TODO: Show notification with error.
+      console.error("NavBar.onChange", err)
+    } finally {
+      uploadProgress.value -= 1
+    }
+
+    // TODO: Support uploading multiple files.
+    //       Input element does not have "multiple" set, so there should be only one file.
+    break
+  }
+}
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar>
       <NavBarSearch v-model:filtersEnabled="filtersEnabled" :s="s" />
+      <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
+        <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
+        <span class="hidden sm:inline">Create</span>
+      </Button>
+      <input ref="upload" type="file" class="hidden" @change="onChange" />
+      <Button :progress="uploadProgress" type="button" primary class="!px-3.5" @click.prevent="onUpload">
+        <ArrowUpTrayIcon class="h-5 w-5 sm:hidden" alt="Upload" />
+        <span class="hidden sm:inline">Upload</span>
+      </Button>
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
