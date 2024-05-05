@@ -48,33 +48,14 @@ export async function getURL<T>(url: string, el: Ref<Element | null> | null, abo
         if (weakRef) {
           const cached = weakRef.deref()
           if (cached) {
-            return cached
+            return cached as { doc: T; metadata: Metadata }
           } else {
             // Weak reference's target has been reclaimed.
             localGetCache.delete(url)
           }
         }
 
-        const response = await fetch(url, {
-          method: "GET",
-          // Mode and credentials match crossorigin=anonymous in link preload header.
-          mode: "cors",
-          credentials: "same-origin",
-          referrer: document.location.href,
-          referrerPolicy: "strict-origin-when-cross-origin",
-          signal: abortSignal,
-        })
-        const contentType = response.headers.get("Content-Type")
-        if (!contentType || !contentType.includes("application/json")) {
-          const body = await response.text()
-          throw new FetchError(`fetch GET error ${response.status}: ${body}`, {
-            status: response.status,
-            body,
-            url,
-            requestID: response.headers.get("Request-ID"),
-          })
-        }
-        return { doc: await response.json(), metadata: decodeMetadata(response.headers) }
+        return await getURLDirect<T>(url, abortSignal, progress)
       },
       {
         signal: abortSignal,
@@ -84,6 +65,38 @@ export async function getURL<T>(url: string, el: Ref<Element | null> | null, abo
     return res
   } finally {
     progress.value -= 1
+  }
+}
+
+export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<{ doc: T; metadata: Metadata }> {
+  if (progress) {
+    progress.value += 1
+  }
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      // Mode and credentials match crossorigin=anonymous in link preload header.
+      mode: "cors",
+      credentials: "same-origin",
+      referrer: document.location.href,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
+    })
+    const contentType = response.headers.get("Content-Type")
+    if (!contentType || !contentType.includes("application/json")) {
+      const body = await response.text()
+      throw new FetchError(`fetch GET error ${response.status}: ${body}`, {
+        status: response.status,
+        body,
+        url,
+        requestID: response.headers.get("Request-ID"),
+      })
+    }
+    return { doc: await response.json(), metadata: decodeMetadata(response.headers) }
+  } finally {
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }
 

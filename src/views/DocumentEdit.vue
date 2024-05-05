@@ -11,7 +11,7 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { getName, anySignal, encodeQuery } from "@/utils"
 import { injectProgress } from "@/progress"
-import { getURL, postJSON } from "@/api"
+import { getURL, postJSON, getURLDirect } from "@/api"
 
 const props = defineProps<{
   id: string
@@ -26,12 +26,15 @@ const saveProgress = injectProgress()
 
 const abortController = new AbortController()
 
-const _doc = ref<PeerDBDocument | null>(null)
+const _initialDoc = ref<PeerDBDocument | null>(null)
+const _changesList = ref<number[]>([])
 const _error = ref<string | null>(null)
-const doc = import.meta.env.DEV ? readonly(_doc) : _doc
+const initialDoc = import.meta.env.DEV ? readonly(_initialDoc) : _initialDoc
+const changesList = import.meta.env.DEV ? readonly(_changesList) : _changesList
 const error = import.meta.env.DEV ? readonly(_error) : _error
 
 const initialRouteName = route.name
+
 watch(
   props,
   async (newProps, oldProps, onCleanup) => {
@@ -83,22 +86,67 @@ watch(
       if (signal.aborted) {
         return
       }
-      console.error("DocumentEdit", err)
-      _doc.value = null
+      console.error("DocumentEdit.watch1", err)
+      _initialDoc.value = null
       _error.value = `${err}`
       return
     }
     if (signal.aborted) {
       return
     }
-    _doc.value = data.doc
+    _initialDoc.value = data.doc
   },
   {
     immediate: true,
   },
 )
 
-const docName = computed(() => getName(doc.value?.claims))
+watch(
+  props,
+  async (newProps, oldProps, onCleanup) => {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    const signal = anySignal(abortController.signal, controller.signal)
+    let data
+    try {
+      data = await getURLDirect<number[]>(
+        router.apiResolve({
+          name: "DocumentListChanges",
+          params: {
+            session: newProps.session,
+          },
+        }).href,
+        signal,
+        null,
+      )
+      if (signal.aborted) {
+        return
+      }
+    } catch (err) {
+      if (signal.aborted) {
+        return
+      }
+      console.error("DocumentEdit.watch2", err)
+      _initialDoc.value = null
+      _error.value = `${err}`
+      return
+    }
+    if (signal.aborted) {
+      return
+    }
+    _changesList.value = data.doc
+  },
+  {
+    immediate: true,
+  },
+)
+
+const docName = computed(() => getName(initialDoc.value?.claims))
 
 async function onSave() {
   if (abortController.signal.aborted) {
@@ -151,7 +199,7 @@ async function onSave() {
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
-      <template v-if="doc">
+      <template v-if="initialDoc">
         <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>no name</i>'"></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
@@ -161,7 +209,7 @@ async function onSave() {
             </tr>
           </thead>
           <tbody>
-            <PropertiesRows :claims="doc.claims" />
+            <PropertiesRows :claims="initialDoc.claims" />
           </tbody>
         </table>
       </template>
