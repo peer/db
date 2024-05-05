@@ -43,14 +43,14 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 
 	ctx := req.Context()
 
-	site := waf.MustGetSite[*Site](ctx)
-
 	var payload beginUploadRequest
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &payload)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
+
+	site := waf.MustGetSite[*Site](ctx)
 
 	session, errE := site.storage.BeginUpload(ctx, payload.Size, payload.MediaType, payload.Filename)
 	if errE != nil {
@@ -201,14 +201,14 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
-
 	var ea emptyRequest
 	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
+
+	site := waf.MustGetSite[*Site](ctx)
 
 	errE = site.storage.EndUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -240,14 +240,14 @@ func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
-
 	var ea emptyRequest
 	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
+
+	site := waf.MustGetSite[*Site](ctx)
 
 	errE = site.storage.DiscardUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
