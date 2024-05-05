@@ -34,7 +34,7 @@ type AppendedOperation struct {
 //
 // For every operation, its metadata and optional data are stored.
 // Go types for them you configure with type parameters.
-type Coordinator[Data, Metadata any] struct {
+type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct {
 	// Prefix to use when initializing PostgreSQL objects used by this coordinator.
 	Prefix string
 
@@ -47,7 +47,7 @@ type Coordinator[Data, Metadata any] struct {
 
 	// EndCallback is called inside a transaction before all operations
 	// for the session are deleted and session is ended.
-	EndCallback func(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E)
+	EndCallback func(ctx context.Context, session identifier.Identifier, metadata EndMetadata) (EndMetadata, errors.E)
 
 	// A channel to which operations are send when they are appended.
 	//
@@ -68,7 +68,7 @@ type Coordinator[Data, Metadata any] struct {
 //
 // It creates and configures the PostgreSQL tables, indices, and
 // stored procedures if they do not already exist.
-func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
@@ -182,7 +182,7 @@ func (c *Coordinator[Data, Metadata]) Init(ctx context.Context, dbpool *pgxpool.
 // Begin starts a new session.
 //
 // The session has to be explicitly ended by calling End.
-func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metadata) (identifier.Identifier, errors.E) {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Begin(ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E) {
 	session := identifier.New()
 	arguments := []any{
 		session.String(), metadata,
@@ -203,11 +203,11 @@ func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metada
 // Once the session has ended no more operations can be appended to it.
 //
 // Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) { //nolint:ireturn
-	var m Metadata
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End(ctx context.Context, session identifier.Identifier, metadata EndMetadata) (EndMetadata, errors.E) { //nolint:ireturn
+	var m EndMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		m = *new(Metadata)
+		m = *new(EndMetadata)
 
 		var errE errors.E
 		if c.EndCallback != nil {
@@ -245,7 +245,7 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 // Push appends a new operation into the log with the next available operation number.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifier.Identifier, data Data, metadata Metadata) (int64, errors.E) {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata) (int64, errors.E) {
 	arguments := []any{
 		session.String(), metadata, data,
 	}
@@ -286,7 +286,7 @@ func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifi
 // The provided operation number has to be available for the call to succeed.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata Metadata) errors.E {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Set(ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata OperationMetadata) errors.E {
 	arguments := []any{
 		session.String(), operation, metadata, data,
 	}
@@ -323,7 +323,7 @@ func (c *Coordinator[Data, Metadata]) Set(ctx context.Context, session identifie
 
 // List returns up to MaxPageLength operation numbers appended to the session, in decreasing order
 // (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifier.Identifier, before *int64) ([]int64, errors.E) {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(ctx context.Context, session identifier.Identifier, before *int64) ([]int64, errors.E) {
 	arguments := []any{
 		session.String(),
 	}
@@ -396,16 +396,16 @@ func (c *Coordinator[Data, Metadata]) List(ctx context.Context, session identifi
 // Data might be nil if the operation does not contain data.
 //
 // Data and metadata are not available anymore once the session ends.
-func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, OperationMetadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
 	var data Data
-	var metadata Metadata
+	var metadata OperationMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
-		metadata = *new(Metadata)
+		metadata = *new(OperationMetadata)
 
 		err := tx.QueryRow(ctx, `
 			SELECT "data", "metadata"
@@ -443,14 +443,14 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 // GetMetadata returns metadata for the operation from the session.
 //
 // Metadata is not available anymore once the session ends.
-func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session identifier.Identifier, operation int64) (Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMetadata(ctx context.Context, session identifier.Identifier, operation int64) (OperationMetadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(), operation,
 	}
-	var metadata Metadata
+	var metadata OperationMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		metadata = *new(Metadata)
+		metadata = *new(OperationMetadata)
 
 		err := tx.QueryRow(ctx, `
 			SELECT "metadata"
@@ -487,16 +487,16 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 
 // Get returns initial and ending (once session has ended, otherwise it is nil)
 // metadata for the session.
-func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifier.Identifier) (Metadata, Metadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get(ctx context.Context, session identifier.Identifier) (BeginMetadata, EndMetadata, errors.E) { //nolint:ireturn
 	arguments := []any{
 		session.String(),
 	}
-	var beginMetadata Metadata
-	var endMetadata Metadata
+	var beginMetadata BeginMetadata
+	var endMetadata EndMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		beginMetadata = *new(Metadata)
-		endMetadata = *new(Metadata)
+		beginMetadata = *new(BeginMetadata)
+		endMetadata = *new(EndMetadata)
 
 		err := tx.QueryRow(ctx, `
 			SELECT "beginMetadata", "endMetadata"

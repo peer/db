@@ -99,7 +99,7 @@ func TestHappyPath(t *testing.T) {
 func initDatabase[Data, Metadata any](
 	t *testing.T, dataType string,
 	endCallback func(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E),
-) (context.Context, *coordinator.Coordinator[Data, Metadata], *internal.LockableSlice[coordinator.AppendedOperation], *internal.LockableSlice[identifier.Identifier]) {
+) (context.Context, *coordinator.Coordinator[Data, Metadata, Metadata, Metadata], *internal.LockableSlice[coordinator.AppendedOperation], *internal.LockableSlice[identifier.Identifier]) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -144,7 +144,7 @@ func initDatabase[Data, Metadata any](
 		}
 	}()
 
-	c := &coordinator.Coordinator[Data, Metadata]{
+	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
 		Prefix:       prefix,
 		Appended:     appendedChannel,
 		Ended:        endedChannel,

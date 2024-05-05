@@ -176,7 +176,12 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 	return processor, nil
 }
 
-func endDocumentSession(ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], session identifier.Identifier, metadata json.RawMessage) (json.RawMessage, errors.E) {
+func endDocumentSession(
+	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	c *coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata],
+	session identifier.Identifier, endMetadata *DocumentEndMetadata,
+) (*DocumentEndMetadata, errors.E) {
+	return endMetadata, nil
 }
 
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string, sizeField bool) (
@@ -247,7 +252,7 @@ func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
 ) (
 	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	*coordinator.Coordinator[json.RawMessage, json.RawMessage],
+	*coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata],
 	*storage.Storage,
 	*elastic.BulkProcessor,
 	errors.E,
@@ -273,24 +278,25 @@ func InitForSite(
 		return nil, nil, nil, nil, errE
 	}
 
-	store := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
+	s := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage]{
 		Prefix:       "docs",
 		Committed:    channel,
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
 		PatchType:    "jsonb",
 	}
-	errE = store.Init(ctx, dbpool)
+	errE = s.Init(ctx, dbpool)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
 
-	coordinator := &coordinator.Coordinator[json.RawMessage, json.RawMessage]{
+	var c *coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata]
+	c = &coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata]{
 		Prefix:       "docs",
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
-		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata json.RawMessage) (json.RawMessage, errors.E) {
-			return endDocumentSession(ctx, store, session, metadata)
+		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *DocumentEndMetadata) (*DocumentEndMetadata, errors.E) {
+			return endDocumentSession(ctx, s, c, session, metadata)
 		},
 		Appended: nil,
 		Ended:    nil,
@@ -308,11 +314,11 @@ func InitForSite(
 	go Bridge(
 		ctx,
 		logger.With().Str("schema", schema).Str("index", index).Logger(),
-		store,
+		s,
 		esProcessor,
 		index,
 		channel,
 	)
 
-	return store, coordinator, storage, esProcessor, nil
+	return s, c, storage, esProcessor, nil
 }

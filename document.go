@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
@@ -179,18 +180,6 @@ type documentMetadata struct {
 	At time.Time `json:"at"`
 }
 
-type documentBeginMetadata struct {
-	At      time.Time             `json:"at"`
-	ID      identifier.Identifier `json:"id"`
-	Version store.Version         `json:"version"`
-}
-
-type documentEndMetadata struct {
-	At        time.Time              `json:"at"`
-	Discarded bool                   `json:"discarded,omitempty"`
-	Changeset *identifier.Identifier `json:"changeset,omitempty"`
-}
-
 func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -236,7 +225,6 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 	s.WriteJSON(w, req, documentCreateResponse{ID: id}, nil)
 }
 
-// TODO: Include also the version of the document at the point of edit.
 type documentBeginEditResponse struct {
 	Session identifier.Identifier `json:"session"`
 	Version store.Version         `json:"version"`
@@ -272,14 +260,10 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	metadata, errE := x.MarshalWithoutEscapeHTML(documentBeginMetadata{
+	metadata := &es.DocumentBeginMetadata{
 		At:      time.Now().UTC(),
 		ID:      id,
 		Version: version,
-	})
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
 	}
 
 	session, errE := site.coordinator.Begin(ctx, metadata)
@@ -289,10 +273,6 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 	}
 
 	s.WriteJSON(w, req, documentBeginEditResponse{Session: session, Version: version}, nil)
-}
-
-type documentChangeMetadata struct {
-	At time.Time `json:"at"`
 }
 
 func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
@@ -344,16 +324,11 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadata := documentChangeMetadata{
+	metadata := &es.DocumentChangeMetadata{
 		At: time.Now().UTC(),
 	}
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
 
-	errE = site.coordinator.Set(ctx, session, change, buffer, metadataJSON)
+	errE = site.coordinator.Set(ctx, session, change, buffer, metadata)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -466,17 +441,13 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(documentEndMetadata{
+	metadata := &es.DocumentEndMetadata{
 		At:        time.Now().UTC(),
 		Discarded: discard,
 		Changeset: nil,
-	})
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
 	}
 
-	metadataJSON, errE = site.coordinator.End(ctx, session, metadataJSON)
+	metadata, errE = site.coordinator.End(ctx, session, metadata)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -490,13 +461,6 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	if discard {
 		s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
-		return
-	}
-
-	var metadata documentEndMetadata
-	errE = x.UnmarshalWithoutUnknownFields(metadataJSON, &metadata)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -522,7 +486,7 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadataJSON, endMetadataJSON, errE := site.coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, errE := site.coordinator.Get(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -531,15 +495,8 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 		return
 	}
 
-	if endMetadataJSON != nil {
+	if endMetadata != nil {
 		s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyEnded))
-		return
-	}
-
-	var beginMetadata documentBeginMetadata
-	errE = x.UnmarshalWithoutUnknownFields(beginMetadataJSON, &beginMetadata)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 

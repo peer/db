@@ -56,7 +56,7 @@ type Storage struct {
 	Committed chan<- store.CommittedChangeset[[]byte, json.RawMessage, store.None]
 
 	store       *store.Store[[]byte, json.RawMessage, store.None]
-	coordinator *coordinator.Coordinator[[]byte, json.RawMessage]
+	coordinator *coordinator.Coordinator[[]byte, *fileMetadata, *endMetadata, *chunkMetadata]
 }
 
 func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
@@ -76,7 +76,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, json.RawMessage]{
+	storageCoordinator := &coordinator.Coordinator[[]byte, *fileMetadata, *endMetadata, *chunkMetadata]{
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
@@ -99,48 +99,32 @@ func (s *Storage) Store() *store.Store[[]byte, json.RawMessage, store.None] {
 	return s.store
 }
 
-func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadataJSON json.RawMessage) (json.RawMessage, errors.E) {
-	beginMetadataJSON, _, errE := s.coordinator.Get(ctx, session)
+func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadata *endMetadata) (*endMetadata, errors.E) {
+	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
-		return endMetadataJSON, errE
-	}
-	var beginMetadata fileMetadata
-	errE = x.UnmarshalWithoutUnknownFields(beginMetadataJSON, &beginMetadata)
-	if errE != nil {
-		return endMetadataJSON, errE
-	}
-	var endMetadata endMetadata //nolint:govet
-	errE = x.UnmarshalWithoutUnknownFields(endMetadataJSON, &endMetadata)
-	if errE != nil {
-		return endMetadataJSON, errE
+		return nil, errE
 	}
 
 	if endMetadata.Discarded {
-		return endMetadataJSON, nil
+		return nil, nil
 	}
 
 	chunksList, errE := s.ListChunks(ctx, session)
 	if errE != nil {
-		return endMetadataJSON, errE
+		return nil, errE
 	}
 
 	chunks := make([]chunk, 0, len(chunksList))
 	for _, c := range chunksList {
-		data, metadataJSON, errE := s.coordinator.GetData(ctx, session, c) //nolint:govet
+		data, metadata, errE := s.coordinator.GetData(ctx, session, c) //nolint:govet
 		if errE != nil {
 			errors.Details(errE)["chunk"] = c
-			return endMetadataJSON, errE
-		}
-		var metadata chunkMetadata
-		errE = x.UnmarshalWithoutUnknownFields(metadataJSON, &metadata)
-		if errE != nil {
-			errors.Details(errE)["chunk"] = c
-			return endMetadataJSON, errE
+			return nil, errE
 		}
 		chunks = append(chunks, chunk{
 			Chunk:    c,
 			Data:     data,
-			Metadata: metadata,
+			Metadata: *metadata,
 		})
 	}
 	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
@@ -160,7 +144,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 			errors.Details(errE)["end"] = size
 			errors.Details(errE)["start"] = c.Metadata.Start
 			errors.Details(errE)["chunk"] = c.Chunk
-			return endMetadataJSON, errE
+			return nil, errE
 		}
 		end := c.Metadata.Start + c.Metadata.Length
 		if end > beginMetadata.Size {
@@ -170,7 +154,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 			errors.Details(errE)["end"] = end
 			errors.Details(errE)["size"] = beginMetadata.Size
 			errors.Details(errE)["chunk"] = c.Chunk
-			return endMetadataJSON, errE
+			return nil, errE
 		}
 		if end <= size {
 			// We already have this data.
@@ -185,38 +169,34 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		errE = errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
 		errors.Details(errE)["chunks"] = size
 		errors.Details(errE)["size"] = beginMetadata.Size
-		return endMetadataJSON, errE
+		return nil, errE
 	}
 
 	beginMetadata.Etag = computeEtag(buffer)
-	beginMetadataJSON, errE = x.MarshalWithoutEscapeHTML(beginMetadata)
+	beginMetadataJSON, errE := x.MarshalWithoutEscapeHTML(beginMetadata)
 	if errE != nil {
-		return endMetadataJSON, errE
+		return nil, errE
 	}
 
 	_, errE = s.store.Insert(ctx, session, buffer, beginMetadataJSON)
 	if errE != nil {
-		return endMetadataJSON, errE
+		return nil, errE
 	}
 
 	endMetadata.Chunks = int64(len(chunksList))
 	endMetadata.Time = time.Since(endMetadata.At).Milliseconds()
-	return x.MarshalWithoutEscapeHTML(endMetadata)
+	return endMetadata, nil
 }
 
 func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
-	metadata := fileMetadata{
+	metadata := &fileMetadata{
 		At:        time.Now().UTC(),
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
 		Etag:      "",
 	}
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
-	if errE != nil {
-		return identifier.Identifier{}, errE
-	}
-	return s.coordinator.Begin(ctx, metadataJSON)
+	return s.coordinator.Begin(ctx, metadata)
 }
 
 func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier, chunk []byte, start int64) errors.E {
@@ -224,12 +204,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		return errors.Errorf("%w: zero length chunk", ErrInvalidChunk)
 	}
 
-	beginMetadataJSON, _, errE := s.coordinator.Get(ctx, session)
-	if errE != nil {
-		return errE
-	}
-	var beginMetadata fileMetadata
-	errE = x.UnmarshalWithoutUnknownFields(beginMetadataJSON, &beginMetadata)
+	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return errE
 	}
@@ -242,16 +217,12 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		return errE
 	}
 
-	metadata := chunkMetadata{
+	metadata := &chunkMetadata{
 		At:     time.Now().UTC(),
 		Start:  start,
 		Length: int64(len(chunk)),
 	}
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
-	if errE != nil {
-		return errE
-	}
-	_, errE = s.coordinator.Push(ctx, session, chunk, metadataJSON)
+	_, errE = s.coordinator.Push(ctx, session, chunk, metadata)
 	return errE
 }
 
@@ -261,12 +232,7 @@ func (s *Storage) ListChunks(ctx context.Context, session identifier.Identifier)
 }
 
 func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, chunk int64) (int64, int64, errors.E) {
-	metadataJSON, errE := s.coordinator.GetMetadata(ctx, session, chunk)
-	if errE != nil {
-		return 0, 0, errE
-	}
-	var metadata chunkMetadata
-	errE = x.UnmarshalWithoutUnknownFields(metadataJSON, &metadata)
+	metadata, errE := s.coordinator.GetMetadata(ctx, session, chunk)
 	if errE != nil {
 		return 0, 0, errE
 	}
@@ -274,31 +240,23 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 }
 
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
-	metadata := endMetadata{
+	metadata := &endMetadata{
 		At:        time.Now().UTC(),
 		Discarded: false,
 		Chunks:    0,
 		Time:      0,
 	}
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
-	if errE != nil {
-		return errE
-	}
-	_, errE = s.coordinator.End(ctx, session, metadataJSON)
+	_, errE := s.coordinator.End(ctx, session, metadata)
 	return errE
 }
 
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
-	metadata := endMetadata{
+	metadata := &endMetadata{
 		At:        time.Now().UTC(),
 		Discarded: true,
 		Chunks:    0,
 		Time:      0,
 	}
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
-	if errE != nil {
-		return errE
-	}
-	_, errE = s.coordinator.End(ctx, session, metadataJSON)
+	_, errE := s.coordinator.End(ctx, session, metadata)
 	return errE
 }
