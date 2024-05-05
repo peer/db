@@ -423,14 +423,14 @@ func convertImage( //nolint:maintidx
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
-			Score: es.LowConfidence,
+			Score: document.LowConfidence,
 		},
 		Claims: &document.ClaimTypes{
 			Text: document.TextClaims{
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, image.Name, "NAME", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("NAME"),
 					HTML: document.TranslatableHTMLString{
@@ -442,7 +442,7 @@ func convertImage( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop:       document.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
 					Identifier: image.Name,
@@ -452,7 +452,7 @@ func convertImage( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, image.Name, mnemonicPrefix+"_FILE", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference(mnemonicPrefix + "_FILE"),
 					IRI:  fmt.Sprintf("https://%s/wiki/File:%s", fileDomain, image.Name),
@@ -460,7 +460,7 @@ func convertImage( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, image.Name, "FILE_URL", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("FILE_URL"),
 					IRI:  fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
@@ -470,7 +470,7 @@ func convertImage( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("IS"),
 					To:   document.GetCorePropertyReference("FILE"),
@@ -514,7 +514,7 @@ func convertImage( //nolint:maintidx
 	errE := doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         document.GetID(namespace, image.Name, "MEDIA_TYPE", 0),
-			Confidence: es.HighConfidence,
+			Confidence: document.HighConfidence,
 		},
 		Prop:   document.GetCorePropertyReference("MEDIA_TYPE"),
 		String: mediaType,
@@ -525,7 +525,7 @@ func convertImage( //nolint:maintidx
 	errE = doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         document.GetID(namespace, image.Name, "MEDIAWIKI_MEDIA_TYPE", 0),
-			Confidence: es.HighConfidence,
+			Confidence: document.HighConfidence,
 		},
 		Prop:   document.GetCorePropertyReference("MEDIAWIKI_MEDIA_TYPE"),
 		String: strings.ToLower(image.MediaType),
@@ -541,7 +541,7 @@ func convertImage( //nolint:maintidx
 	errE = doc.Add(&document.AmountClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         document.GetID(namespace, image.Name, "SIZE", 0),
-			Confidence: es.HighConfidence,
+			Confidence: document.HighConfidence,
 		},
 		Prop:   document.GetCorePropertyReference("SIZE"),
 		Amount: float64(image.Size),
@@ -565,7 +565,7 @@ func convertImage( //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(namespace, image.Name, "PAGE_COUNT", 0),
-					Confidence: es.MediumConfidence,
+					Confidence: document.MediumConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("PAGE_COUNT"),
 				Amount: float64(pageCount),
@@ -586,7 +586,7 @@ func convertImage( //nolint:maintidx
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(namespace, image.Name, "DURATION", 0),
-				Confidence: es.MediumConfidence,
+				Confidence: document.MediumConfidence,
 			},
 			Prop:   document.GetCorePropertyReference("DURATION"),
 			Amount: duration,
@@ -678,13 +678,13 @@ func convertImage( //nolint:maintidx
 			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 					Meta: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
 							{
 								CoreClaim: document.CoreClaim{
 									ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
-									Confidence: es.HighConfidence,
+									Confidence: document.HighConfidence,
 								},
 								Prop:       document.GetCorePropertyReference("LIST"),
 								Identifier: previewsList.String(),
@@ -694,7 +694,7 @@ func convertImage( //nolint:maintidx
 							{
 								CoreClaim: document.CoreClaim{
 									ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i, "ORDER", 0),
-									Confidence: es.HighConfidence,
+									Confidence: document.HighConfidence,
 								},
 								Prop:   document.GetCorePropertyReference("ORDER"),
 								Amount: float64(i),
@@ -717,7 +717,7 @@ func convertImage( //nolint:maintidx
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(namespace, image.Name, "WIDTH", 0),
-				Confidence: es.MediumConfidence,
+				Confidence: document.MediumConfidence,
 			},
 			Prop:   document.GetCorePropertyReference("WIDTH"),
 			Amount: float64(image.Width),
@@ -729,7 +729,7 @@ func convertImage( //nolint:maintidx
 		errE = doc.Add(&document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(namespace, image.Name, "HEIGHT", 0),
-				Confidence: es.MediumConfidence,
+				Confidence: document.MediumConfidence,
 			},
 			Prop:   document.GetCorePropertyReference("HEIGHT"),
 			Amount: float64(image.Height),

@@ -17,7 +17,6 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -61,7 +60,7 @@ func ConvertWikipediaArticle(id, html string, doc *document.D) errors.E {
 		claim := &document.RelationClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: es.HighConfidence,
+				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("LABEL"),
 			To:   document.GetCorePropertyReference("HAS_ARTICLE"),
@@ -133,7 +132,7 @@ func updateTextClaim(claimID identifier.Identifier, doc *document.D, prop, value
 		claim := &document.TextClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: es.HighConfidence,
+				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference(prop),
 			HTML: document.TranslatableHTMLString{
@@ -196,7 +195,7 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 		claim := &document.IdentifierClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: es.HighConfidence,
+				Confidence: document.HighConfidence,
 			},
 			Prop:       document.GetCorePropertyReference(mnemonicPrefix + "_PAGE_ID"),
 			Identifier: strconv.FormatInt(pageID, 10),
@@ -295,7 +294,7 @@ func convertInCategory(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefi
 		claim := &document.RelationClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: es.HighConfidence,
+				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("IN_" + mnemonicPrefix + "_CATEGORY"),
 			To:   getDocumentReference(category, mnemonicPrefix),
@@ -319,7 +318,7 @@ func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPre
 		claim := &document.RelationClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: es.HighConfidence,
+				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("USES_" + mnemonicPrefix + "_TEMPLATE"),
 			To:   getDocumentReference(template, mnemonicPrefix),
@@ -368,7 +367,7 @@ func convertRedirect(logger zerolog.Logger, namespace uuid.UUID, id, title, redi
 	claim := &document.TextClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         claimID,
-			Confidence: es.MediumConfidence,
+			Confidence: document.MediumConfidence,
 		},
 		Prop: document.GetCorePropertyReference("NAME"),
 		HTML: document.TranslatableHTMLString{

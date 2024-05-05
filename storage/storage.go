@@ -100,13 +100,13 @@ func (s *Storage) Store() *store.Store[[]byte, json.RawMessage, store.None] {
 }
 
 func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadata *endMetadata) (*endMetadata, errors.E) {
+	if endMetadata.Discarded {
+		return nil, nil
+	}
+
 	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
-	}
-
-	if endMetadata.Discarded {
-		return nil, nil
 	}
 
 	chunksList, errE := s.ListChunks(ctx, session)

@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-
-	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 //nolint:gochecknoglobals
@@ -227,7 +225,7 @@ func GenerateCoreProperties(properties []struct {
 		CoreProperties[id] = D{
 			CoreDocument: CoreDocument{
 				ID:    id,
-				Score: es.LowConfidence,
+				Score: LowConfidence,
 			},
 			Mnemonic: Mnemonic(mnemonic),
 			Claims: &ClaimTypes{
@@ -239,7 +237,7 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(property.Name),
@@ -252,7 +250,7 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						HTML: TranslatableHTMLString{
 							"en": property.DescriptionHTML,
@@ -267,11 +265,11 @@ func GenerateCoreProperties(properties []struct {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						To: Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 					},
 				},
@@ -287,11 +285,11 @@ func GenerateCoreProperties(properties []struct {
 				},
 				Prop: Reference{
 					ID:    getPointer(GetCorePropertyID("IS")),
-					Score: es.LowConfidence,
+					Score: LowConfidence,
 				},
 				To: Reference{
 					ID:    getPointer(GetCorePropertyID(isClaimMnemonic)),
-					Score: es.LowConfidence,
+					Score: LowConfidence,
 				},
 			})
 		}
@@ -309,7 +307,7 @@ func generateAllCoreProperties() {
 		CoreProperties[id] = D{
 			CoreDocument: CoreDocument{
 				ID:    id,
-				Score: es.LowConfidence,
+				Score: LowConfidence,
 			},
 			Mnemonic: Mnemonic(mnemonic),
 			Claims: &ClaimTypes{
@@ -321,7 +319,7 @@ func generateAllCoreProperties() {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(name),
@@ -334,7 +332,7 @@ func generateAllCoreProperties() {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(description),
@@ -349,11 +347,11 @@ func generateAllCoreProperties() {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						To: Reference{
 							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 					},
 					{
@@ -363,11 +361,11 @@ func generateAllCoreProperties() {
 						},
 						Prop: Reference{
 							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 						To: Reference{
 							ID:    getPointer(GetCorePropertyID("CLAIM_TYPE")),
-							Score: es.LowConfidence,
+							Score: LowConfidence,
 						},
 					},
 				},

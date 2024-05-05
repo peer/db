@@ -3,8 +3,9 @@ package es
 import (
 	"time"
 
-	"gitlab.com/peerdb/peerdb/store"
 	"gitlab.com/tozd/identifier"
+
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 type DocumentBeginMetadata struct {

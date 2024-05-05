@@ -160,11 +160,11 @@ func getPropertyClaimType(dataType mediawiki.DataType) string {
 func getConfidence(entityID, prop, statementID string, rank mediawiki.StatementRank) document.Confidence {
 	switch rank {
 	case mediawiki.Preferred:
-		return es.HighConfidence
+		return document.HighConfidence
 	case mediawiki.Normal:
-		return es.MediumConfidence
+		return document.MediumConfidence
 	case mediawiki.Deprecated:
-		return es.NoConfidence
+		return document.NoConfidence
 	}
 	panic(errors.Errorf(`statement %s of property %s for entity %s has invalid rank: %d`, statementID, prop, entityID, rank))
 }
@@ -303,17 +303,17 @@ func GetWikidataItem(
 
 func clampConfidence(c document.Score) document.Score {
 	if c < 0 {
-		// max(c, es.HighNegationConfidence).
-		if c < es.HighNegationConfidence {
-			return es.HighNegationConfidence
+		// max(c, document.HighNegationConfidence).
+		if c < document.HighNegationConfidence {
+			return document.HighNegationConfidence
 		}
 		return c
 	}
-	// min(c, es.HighConfidence).
-	if c < es.HighConfidence {
+	// min(c, document.HighConfidence).
+	if c < document.HighConfidence {
 		return c
 	}
-	return es.HighConfidence
+	return document.HighConfidence
 }
 
 func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
@@ -490,7 +490,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 								{
 									CoreClaim: document.CoreClaim{
 										ID:         claimID,
-										Confidence: es.HighConfidence,
+										Confidence: document.HighConfidence,
 									},
 									Prop: document.GetCorePropertyReference("IS"),
 									To:   getDocumentReference(title, ""),
@@ -640,7 +640,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 						{
 							CoreClaim: document.CoreClaim{
 								ID:         claimID,
-								Confidence: es.HighConfidence,
+								Confidence: document.HighConfidence,
 							},
 							Prop: document.GetCorePropertyReference("UNIT"),
 							To:   getDocumentReference(unitID, ""),
@@ -715,7 +715,7 @@ func addQualifiers(
 	for _, p := range qualifiersOrder {
 		for i, qualifier := range qualifiers[p] {
 			qualifierClaims, errE := processSnak(
-				ctx, store, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, es.MediumConfidence, qualifier,
+				ctx, store, cache, namespace, p, []interface{}{entityID, prop, statementID, "qualifier", p, i}, document.MediumConfidence, qualifier,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("qualifier").Str(p).Int(i)).
@@ -758,7 +758,7 @@ func addReference(
 		referenceClaim = &document.TextClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(namespace, entityID, prop, statementID, "reference", i, "WIKIDATA_REFERENCE", 0),
-				Confidence: es.NoConfidence,
+				Confidence: document.NoConfidence,
 			},
 			Prop: document.GetCorePropertyReference("WIKIDATA_REFERENCE"),
 			HTML: document.TranslatableHTMLString{
@@ -770,7 +770,7 @@ func addReference(
 	for _, property := range reference.SnaksOrder {
 		for j, snak := range reference.Snaks[property] {
 			cs, errE := processSnak(
-				ctx, store, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, es.MediumConfidence, snak,
+				ctx, store, cache, namespace, property, []interface{}{entityID, prop, statementID, "reference", i, property, j}, document.MediumConfidence, snak,
 			)
 			if errors.Is(errE, ErrSilentSkipped) {
 				logger.Debug().Str("entity", entityID).Array("path", zerolog.Arr().Str(prop).Str(statementID).Str("reference").Int(i).Str(property).Int(j)).
@@ -851,7 +851,7 @@ func ConvertEntity( //nolint:maintidx
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    id,
-			Score: es.LowConfidence,
+			Score: document.LowConfidence,
 		},
 	}
 
@@ -859,7 +859,7 @@ func ConvertEntity( //nolint:maintidx
 		CoreClaim: document.CoreClaim{
 			ID: document.GetID(namespace, entity.ID, "NAME", 0),
 			// The first added English label is added as a high confidence claim.
-			Confidence: es.HighConfidence,
+			Confidence: document.HighConfidence,
 		},
 		Prop: document.GetCorePropertyReference("NAME"),
 		HTML: document.TranslatableHTMLString{
@@ -876,7 +876,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop:       document.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
 					Identifier: entity.ID,
@@ -886,7 +886,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_PAGE", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("WIKIDATA_PROPERTY_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
@@ -896,7 +896,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("IS"),
 					To:   document.GetCorePropertyReference("PROPERTY"),
@@ -909,7 +909,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop:       document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
 					Identifier: entity.ID,
@@ -919,7 +919,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_ITEM_PAGE", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
 					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
@@ -929,7 +929,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("IS"),
 					To:   document.GetCorePropertyReference("ITEM"),
@@ -945,7 +945,7 @@ func ConvertEntity( //nolint:maintidx
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
-						Confidence: es.HighConfidence,
+						Confidence: document.HighConfidence,
 					},
 					Prop:       document.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
 					Identifier: entity.ID,
@@ -996,7 +996,7 @@ func ConvertEntity( //nolint:maintidx
 			doc.Claims.Identifier = append(doc.Claims.Identifier, document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:       document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
 				Identifier: siteLink.Title,
@@ -1004,7 +1004,7 @@ func ConvertEntity( //nolint:maintidx
 			doc.Claims.Reference = append(doc.Claims.Reference, document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE"),
 				IRI:  url,
@@ -1027,7 +1027,7 @@ func ConvertEntity( //nolint:maintidx
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					// TODO: Decide what should really be confidence here or implement "later on" part described above.
-					Confidence: es.LowConfidence,
+					Confidence: document.LowConfidence,
 				},
 				Prop: document.GetCorePropertyReference("IS"),
 				To:   document.GetCorePropertyReference(claimTypeMnemonic),
@@ -1056,7 +1056,7 @@ func ConvertEntity( //nolint:maintidx
 				// We add +1 to i to make sure we do not repeat claim ID (we use the same form for name value NAME claim).
 				ID: document.GetID(namespace, entity.ID, "NAME", i+1),
 				// Other English labels and aliases are added with the medium confidence.
-				Confidence: es.MediumConfidence,
+				Confidence: document.MediumConfidence,
 			},
 			Prop: document.GetCorePropertyReference("NAME"),
 			HTML: document.TranslatableHTMLString{
@@ -1070,7 +1070,7 @@ func ConvertEntity( //nolint:maintidx
 		doc.Claims.Text = append(doc.Claims.Text, document.TextClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(namespace, entity.ID, "DESCRIPTION", i),
-				Confidence: es.MediumConfidence,
+				Confidence: document.MediumConfidence,
 			},
 			Prop: document.GetCorePropertyReference("DESCRIPTION"),
 			HTML: document.TranslatableHTMLString{

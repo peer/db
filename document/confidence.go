@@ -1,4 +1,4 @@
-package es
+package document
 
 const (
 	HighConfidence           = 1.0
@@ -8,6 +8,4 @@ const (
 	HighNegationConfidence   = -1.0
 	MediumNegationConfidence = -0.75
 	LowNegationConfidence    = -0.5
-
-	PreviewSize = 256
 )

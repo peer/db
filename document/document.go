@@ -3,8 +3,6 @@ package document
 import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-
-	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 type D struct {
@@ -125,7 +123,7 @@ func (d *D) MergeFrom(other ...*D) errors.E {
 		}
 	}
 	// TODO: What to do about scores after merging?
-	d.Score = es.LowConfidence
+	d.Score = LowConfidence
 	d.Scores = nil
 	return nil
 }

@@ -462,14 +462,14 @@ func index(config *Config) errors.E { //nolint:maintidx
 		doc := document.D{ //nolint:dupl
 			CoreDocument: document.CoreDocument{
 				ID:    document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID),
-				Score: es.LowConfidence,
+				Score: document.LowConfidence,
 			},
 			Claims: &document.ClaimTypes{
 				Text: document.TextClaims{
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "NAME", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("NAME"),
 						HTML: document.TranslatableHTMLString{
@@ -481,7 +481,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "MOMA_CONSTITUENT_ID", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop:       document.GetCorePropertyReference("MOMA_CONSTITUENT_ID"),
 						Identifier: strconv.Itoa(artist.ConstituentID),
@@ -491,7 +491,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "MOMA_CONSTITUENT_PAGE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("MOMA_CONSTITUENT_PAGE"),
 						IRI:  fmt.Sprintf("https://www.moma.org/artists/%d", artist.ConstituentID),
@@ -501,7 +501,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "IS", 0, "ARTIST", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("IS"),
 						To:   document.GetCorePropertyReference("ARTIST"),
@@ -514,7 +514,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.TextClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DESCRIPTION", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("DESCRIPTION"),
 				HTML: document.TranslatableHTMLString{"en": html.EscapeString(artist.ArtistBio)},
@@ -527,7 +527,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "NATIONALITY", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("NATIONALITY"),
 				String: artist.Nationality,
@@ -540,7 +540,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "GENDER", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("GENDER"),
 				// We convert to lower case because input data does not have uniform case.
@@ -554,7 +554,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "BEGIN_DATE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:      document.GetCorePropertyReference("BEGIN_DATE"),
 				Timestamp: document.Timestamp(time.Date(artist.BeginDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
@@ -568,7 +568,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "END_DATE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:      document.GetCorePropertyReference("END_DATE"),
 				Timestamp: document.Timestamp(time.Date(artist.EndDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
@@ -582,7 +582,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "WIKIDATA_ITEM_ID", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:       document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
 				Identifier: artist.WikiQID,
@@ -593,7 +593,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "WIKIDATA_ITEM_PAGE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
 				IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", artist.WikiQID),
@@ -606,7 +606,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ULAN_ID", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:       document.GetCorePropertyReference("ULAN_ID"),
 				Identifier: artist.ULAN,
@@ -617,7 +617,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ULAN_PAGE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("ULAN_PAGE"),
 				IRI:  fmt.Sprintf("https://www.getty.edu/vow/ULANFullDisplay?find=&role=&nation=&subjectid=%s", artist.ULAN),
@@ -647,7 +647,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
 								ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "IMAGE", i),
-								Confidence: es.HighConfidence,
+								Confidence: document.HighConfidence,
 							},
 							Prop:    document.GetCorePropertyReference("IMAGE"),
 							Type:    image.MediaType,
@@ -664,7 +664,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					errE = doc.Add(&document.TextClaim{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ARTICLE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("ARTICLE"),
 						HTML: document.TranslatableHTMLString{"en": data.Article},
@@ -675,7 +675,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					errE = doc.Add(&document.RelationClaim{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "LABEL", 0, "HAS_ARTICLE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("LABEL"),
 						To:   document.GetCorePropertyReference("HAS_ARTICLE"),
@@ -708,14 +708,14 @@ func index(config *Config) errors.E { //nolint:maintidx
 		doc := document.D{ //nolint:dupl
 			CoreDocument: document.CoreDocument{
 				ID:    document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID),
-				Score: es.LowConfidence,
+				Score: document.LowConfidence,
 			},
 			Claims: &document.ClaimTypes{
 				Text: document.TextClaims{
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "NAME", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("NAME"),
 						HTML: document.TranslatableHTMLString{
@@ -727,7 +727,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_OBJECT_ID", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop:       document.GetCorePropertyReference("MOMA_OBJECT_ID"),
 						Identifier: strconv.Itoa(artwork.ObjectID),
@@ -737,7 +737,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_OBJECT_PAGE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("MOMA_OBJECT_PAGE"),
 						IRI:  fmt.Sprintf("https://www.moma.org/collection/works/%d", artwork.ObjectID),
@@ -747,7 +747,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IS", 0, "ARTWORK", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("IS"),
 						To:   document.GetCorePropertyReference("ARTWORK"),
@@ -778,7 +778,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 						errE = doc.Add(&document.FileClaim{
 							CoreClaim: document.CoreClaim{
 								ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", i),
-								Confidence: es.HighConfidence,
+								Confidence: document.HighConfidence,
 							},
 							Prop:    document.GetCorePropertyReference("IMAGE"),
 							Type:    image.MediaType,
@@ -795,7 +795,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					errE = doc.Add(&document.TextClaim{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "ARTICLE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("ARTICLE"),
 						HTML: document.TranslatableHTMLString{"en": data.Article},
@@ -806,7 +806,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					errE = doc.Add(&document.RelationClaim{
 						CoreClaim: document.CoreClaim{
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LABEL", 0, "HAS_ARTICLE", 0),
-							Confidence: es.HighConfidence,
+							Confidence: document.HighConfidence,
 						},
 						Prop: document.GetCorePropertyReference("LABEL"),
 						To:   document.GetCorePropertyReference("HAS_ARTICLE"),
@@ -824,7 +824,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.FileClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:    document.GetCorePropertyReference("IMAGE"),
 				Type:    "image/jpeg",
@@ -852,7 +852,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.RelationClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "BY_ARTIST", 0, constituentID),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("BY_ARTIST"),
 				To:   to,
@@ -866,7 +866,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DATE"),
 				String: artwork.Date,
@@ -879,7 +879,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MEDIUM", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("MEDIUM"),
 				String: artwork.Medium,
@@ -892,7 +892,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIMENSIONS", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DIMENSIONS"),
 				String: artwork.Dimensions,
@@ -905,7 +905,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CREDIT", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("CREDIT"),
 				String: artwork.CreditLine,
@@ -918,7 +918,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_ACCESSION_NUMBER", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:       document.GetCorePropertyReference("MOMA_ACCESSION_NUMBER"),
 				Identifier: artwork.AccessionNumber,
@@ -931,7 +931,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CLASSIFICATION", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("CLASSIFICATION"),
 				String: artwork.Classification,
@@ -944,7 +944,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPARTMENT", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DEPARTMENT"),
 				String: artwork.Department,
@@ -961,7 +961,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE_ACQUIRED", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:      document.GetCorePropertyReference("DATE_ACQUIRED"),
 				Timestamp: document.Timestamp(timestamp),
@@ -975,9 +975,9 @@ func index(config *Config) errors.E { //nolint:maintidx
 			var confidence document.Confidence
 			switch artwork.Cataloged {
 			case "Y":
-				confidence = es.HighConfidence
+				confidence = document.HighConfidence
 			case "N":
-				confidence = es.HighNegationConfidence
+				confidence = document.HighNegationConfidence
 			default:
 				return errors.Errorf(`unsupported cataloged value "%s"`, artwork.Cataloged)
 			}
@@ -997,7 +997,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DEPTH", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DEPTH"),
 				Unit:   document.AmountUnitMetre,
@@ -1011,7 +1011,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "HEIGHT", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("HEIGHT"),
 				Unit:   document.AmountUnitMetre,
@@ -1025,7 +1025,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WIDTH", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("WIDTH"),
 				Unit:   document.AmountUnitMetre,
@@ -1039,7 +1039,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "WEIGHT", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("WEIGHT"),
 				Unit:   document.AmountUnitKilogram,
@@ -1053,7 +1053,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DIAMETER", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DIAMETER"),
 				Unit:   document.AmountUnitMetre,
@@ -1067,7 +1067,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "LENGTH", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("LENGTH"),
 				Unit:   document.AmountUnitMetre,
@@ -1081,7 +1081,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "CIRCUMFERENCE", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("CIRCUMFERENCE"),
 				Unit:   document.AmountUnitMetre,
@@ -1095,7 +1095,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 			errE = doc.Add(&document.AmountClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DURATION", 0),
-					Confidence: es.HighConfidence,
+					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("DURATION"),
 				Unit:   document.AmountUnitSecond,
