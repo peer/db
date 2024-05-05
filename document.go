@@ -291,6 +291,86 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, documentBeginEditResponse{Session: session, Version: version}, nil)
 }
 
+type documentChangeMetadata struct {
+	At time.Time `json:"at"`
+}
+
+func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	defer req.Body.Close()
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+
+	session, errE := identifier.FromString(params["session"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	if !req.Form.Has("change") {
+		s.BadRequestWithError(w, req, errors.New(`"change" query parameter is missing`))
+		return
+	}
+
+	change, err := strconv.ParseInt(req.Form.Get("change"), 10, 64)
+	if err != nil {
+		s.BadRequestWithError(w, req, errors.WithStack(err))
+		return
+	}
+
+	if change <= 0 {
+		s.BadRequestWithError(w, req, errors.New(`non-positive "change" query parameter`))
+		return
+	}
+
+	if req.ContentLength < 0 || req.ContentLength > maxPayloadSize {
+		s.BadRequestWithError(w, req, errors.New("invalid content length"))
+		return
+	}
+
+	buffer := make([]byte, req.ContentLength)
+	_, err = io.ReadFull(req.Body, buffer)
+	if err != nil {
+		s.BadRequestWithError(w, req, errors.WithStack(err))
+		return
+	}
+
+	// We only validate the change.
+	_, errE = document.ChangeUnmarshalJSON(buffer)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	site := waf.MustGetSite[*Site](ctx)
+
+	metadata := documentChangeMetadata{
+		At: time.Now().UTC(),
+	}
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(metadata)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	errE = site.coordinator.Set(ctx, session, change, buffer, metadataJSON)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, coordinator.ErrConflict) {
+		waf.Error(w, req, http.StatusConflict)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
+}
+
 func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 

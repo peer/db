@@ -20,7 +20,7 @@ import (
 )
 
 // 10 MB.
-const maxChunkSize = int64(10 << 20)
+const maxPayloadSize = int64(10 << 20)
 
 type storageBeginUploadRequest struct {
 	Size      int64  `json:"size"`
@@ -74,7 +74,7 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 	}
 
 	if !req.Form.Has("start") {
-		s.BadRequestWithError(w, req, errors.New("start query parameter is missing"))
+		s.BadRequestWithError(w, req, errors.New(`"start" query parameter is missing`))
 		return
 	}
 
@@ -85,11 +85,11 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 	}
 
 	if start < 0 {
-		s.BadRequestWithError(w, req, errors.New("negative start query parameter"))
+		s.BadRequestWithError(w, req, errors.New(`negative "start" query parameter`))
 		return
 	}
 
-	if req.ContentLength < 0 || req.ContentLength > maxChunkSize {
+	if req.ContentLength < 0 || req.ContentLength > maxPayloadSize {
 		s.BadRequestWithError(w, req, errors.New("invalid content length"))
 		return
 	}

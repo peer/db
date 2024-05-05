@@ -3,7 +3,7 @@ import type { Router } from "vue-router"
 import type { StorageBeginUploadResponse, StorageBeginUploadRequest } from "@/types"
 
 // 10 MB.
-const maxChunkSize = 10 << 20
+const maxPayloadSize = 10 << 20
 
 import { postJSON, postBlob } from "@/api"
 import { encodeQuery } from "@/utils"
@@ -28,17 +28,17 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
   if (abortSignal.aborted) {
     return
   }
-  for (let start = 0; start < file.size; start += maxChunkSize) {
+  for (let start = 0; start < file.size; start += maxPayloadSize) {
     await postBlob(
       router.apiResolve({
         name: "StorageUploadChunk",
         params: {
           session: beginUploadResponse.session,
         },
-        // Because start is less than maxChunkSize, toString() never uses scientific notation.
+        // Because start is less than maxPayloadSize, toString() never uses scientific notation.
         query: encodeQuery({ start: start.toString() }),
       }).href,
-      file.slice(start, Math.min(start + maxChunkSize, file.size)),
+      file.slice(start, Math.min(start + maxPayloadSize, file.size)),
       abortSignal,
       progress,
     )
