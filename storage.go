@@ -22,7 +22,7 @@ import (
 // 10 MB.
 const maxChunkSize = int64(10 << 20)
 
-type beginUploadRequest struct {
+type storageBeginUploadRequest struct {
 	Size      int64  `json:"size"`
 	MediaType string `json:"mediaType"`
 	Filename  string `json:"filename"`
@@ -33,7 +33,7 @@ type beginUploadRequest struct {
 //       That media type looks correct (or is of allowlisted media type.
 //       We should UTF8 normalize filename and sanitize it to really be a filename only.
 
-type beginUploadResponse struct {
+type storageBeginUploadResponse struct {
 	Session identifier.Identifier `json:"session"`
 }
 
@@ -43,7 +43,7 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 
 	ctx := req.Context()
 
-	var payload beginUploadRequest
+	var payload storageBeginUploadRequest
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &payload)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
@@ -58,7 +58,7 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	s.WriteJSON(w, req, beginUploadResponse{Session: session}, nil)
+	s.WriteJSON(w, req, storageBeginUploadResponse{Session: session}, nil)
 }
 
 func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
@@ -147,7 +147,7 @@ func (s *Service) StorageListChunksGet(w http.ResponseWriter, req *http.Request,
 	s.WriteJSON(w, req, chunks, nil)
 }
 
-type getChunkResponse struct {
+type storageGetChunkResponse struct {
 	Start  int64 `json:"start"`
 	Length int64 `json:"length"`
 }
@@ -184,7 +184,7 @@ func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	s.WriteJSON(w, req, getChunkResponse{Start: start, Length: length}, nil)
+	s.WriteJSON(w, req, storageGetChunkResponse{Start: start, Length: length}, nil)
 }
 
 type emptyRequest struct{}
