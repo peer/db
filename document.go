@@ -425,6 +425,49 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	}, nil)
 }
 
-func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.FromString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	session, errE := identifier.FromString(params["session"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*Site](req.Context())
+
+	beginMetadataJSON, endMetadataJSON, errE := site.coordinator.Get(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	if endMetadataJSON != nil {
+		s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyEnded))
+		return
+	}
+
+	var beginMetadata documentBeginMetadata
+	errE = x.UnmarshalWithoutUnknownFields(beginMetadataJSON, &beginMetadata)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	if beginMetadata.ID != id {
+		// TODO: Should we redirect to the correct ID?
+		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
+		return
+	}
+
 	s.Home(w, req, nil)
 }
