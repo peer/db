@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"slices"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -181,6 +183,80 @@ func endDocumentSession(
 	c *coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata],
 	session identifier.Identifier, endMetadata *DocumentEndMetadata,
 ) (*DocumentEndMetadata, errors.E) {
+	if endMetadata.Discarded {
+		return nil, nil
+	}
+
+	beginMetadata, _, errE := c.Get(ctx, session)
+	if errE != nil {
+		return nil, errE
+	}
+
+	// TODO: Support more than 5000 changes.
+	changesList, errE := c.List(ctx, session, nil)
+	if errE != nil {
+		return nil, errE
+	}
+
+	// changesList is sorted from newest to oldest change, but we want the opposite as we have forward patches.
+	slices.Reverse(changesList)
+
+	changes := make(document.Changes, 0, len(changesList))
+	for _, ch := range changesList {
+		data, _, errE := c.GetData(ctx, session, ch) //nolint:govet
+		if errE != nil {
+			errors.Details(errE)["change"] = ch
+			return nil, errE
+		}
+		change, errE := document.ChangeUnmarshalJSON(data)
+		if errE != nil {
+			errors.Details(errE)["change"] = ch
+			return nil, errE
+		}
+		changes = append(changes, change)
+	}
+
+	// TODO: Get latest revision at the same changeset?
+	docJSON, _, errE := s.Get(ctx, beginMetadata.ID, beginMetadata.Version)
+	if errE != nil {
+		return nil, errE
+	}
+
+	var doc document.D
+	errE = x.UnmarshalWithoutUnknownFields(docJSON, &doc)
+	if errE != nil {
+		return nil, errE
+	}
+
+	errE = changes.Apply(&doc, session)
+	if errE != nil {
+		return nil, errE
+	}
+
+	docJSON, errE = x.MarshalWithoutEscapeHTML(doc)
+	if errE != nil {
+		return nil, errE
+	}
+
+	changesJSON, errE := document.ChangeMarshalJSON(changes)
+	if errE != nil {
+		return nil, errE
+	}
+
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(DocumentMetadata{
+		At: time.Now().UTC(),
+	})
+	if errE != nil {
+		return nil, errE
+	}
+
+	version, errE := s.Update(ctx, beginMetadata.ID, beginMetadata.Version.Changeset, docJSON, changesJSON, metadataJSON)
+	if errE != nil {
+		return nil, errE
+	}
+
+	endMetadata.Changeset = &version.Changeset
+	endMetadata.Time = time.Since(endMetadata.At).Milliseconds()
 	return endMetadata, nil
 }
 

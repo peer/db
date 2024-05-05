@@ -176,10 +176,6 @@ type documentCreateResponse struct {
 	ID identifier.Identifier `json:"id"`
 }
 
-type documentMetadata struct {
-	At time.Time `json:"at"`
-}
-
 func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -208,7 +204,7 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	metadata, errE := x.MarshalWithoutEscapeHTML(documentMetadata{
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(es.DocumentMetadata{
 		At: time.Now().UTC(),
 	})
 	if errE != nil {
@@ -216,7 +212,7 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	_, errE = site.store.Insert(ctx, id, data, metadata)
+	_, errE = site.store.Insert(ctx, id, data, metadataJSON)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -445,6 +441,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		At:        time.Now().UTC(),
 		Discarded: discard,
 		Changeset: nil,
+		Time:      0,
 	}
 
 	metadata, errE = site.coordinator.End(ctx, session, metadata)
