@@ -73,6 +73,54 @@
       "get": {}
     },
     {
+      "name": "DocumentCreate",
+      "path": "/d/create",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentBeginEdit",
+      "path": "/d/beginEdit/:id",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentSaveChange",
+      "path": "/d/saveChange/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentListChanges",
+      "path": "/d/listChanges/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentGetChange",
+      "path": "/d/getChange/:session/:change",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentEndEdit",
+      "path": "/d/endEdit/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentDiscardEdit",
+      "path": "/d/discardEdit/:session",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "DocumentEdit",
+      "path": "/d/edit/:id/:session",
+      "api": null,
+      "get": {}
+    },
+    {
       "name": "DocumentGet",
       "path": "/d/:id",
       "api": {},

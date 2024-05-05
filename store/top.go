@@ -26,6 +26,39 @@ func (v Version) String() string {
 	return s.String()
 }
 
+// VersionFromString parses text as Version.
+func VersionFromString(text string) (Version, errors.E) {
+	changesetStr, revisionStr, ok := strings.Cut(text, "-")
+	if !ok {
+		return Version{}, errors.Errorf("invalid version string: %s", text) //nolint:exhaustruct
+	}
+	changeset, errE := identifier.FromString(changesetStr)
+	if errE != nil {
+		return Version{}, errE //nolint:exhaustruct
+	}
+	revision, err := strconv.ParseInt(revisionStr, 10, 64)
+	if err != nil {
+		return Version{}, errors.WithStack(err) //nolint:exhaustruct
+	}
+	return Version{
+		Changeset: changeset,
+		Revision:  revision,
+	}, errE
+}
+
+func (v Version) MarshalText() ([]byte, error) {
+	return []byte(v.String()), nil
+}
+
+func (v *Version) UnmarshalText(text []byte) error {
+	version, errE := VersionFromString(string(text))
+	if errE != nil {
+		return errE
+	}
+	*v = version
+	return nil
+}
+
 // View returns a View instance for the provided name.
 func (s *Store[Data, Metadata, Patch]) View(_ context.Context, view string) (View[Data, Metadata, Patch], errors.E) {
 	// We do not check if the view exist at this point but only when we try to
