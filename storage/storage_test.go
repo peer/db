@@ -137,12 +137,14 @@ func TestHappyPath(t *testing.T) {
 		Size      int64     `json:"size"`
 		MediaType string    `json:"mediaType"`
 		Filename  string    `json:"filename"`
+		Etag      string    `json:"etag"`
 	}
 	errE = x.UnmarshalWithoutUnknownFields(metadata, &m)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(10), m.Size)
 	assert.Equal(t, "text/plain", m.MediaType)
 	assert.Equal(t, "test.txt", m.Filename)
+	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, m.Etag)
 	assert.False(t, m.At.IsZero())
 }
 
@@ -170,9 +172,6 @@ func TestErrors(t *testing.T) {
 	assert.ErrorContains(t, errE, "chunks smaller than file")
 
 	errE = s.UploadChunk(ctx, session, []byte("large"), 8)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	errE = s.EndUpload(ctx, session)
 	assert.ErrorContains(t, errE, "chunk larger than file")
 
 	errE = s.DiscardUpload(ctx, session)
