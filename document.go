@@ -165,7 +165,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	w.Header().Set("Version", version.String())
 
-	// TODO: We should return a version of the document with the response and requesting same version should be cached long, while without version it should be no-cache.
+	// TODO: Requesting with version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
 
 	s.WriteJSON(w, req, dataJSON, metadata)
