@@ -284,7 +284,8 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) 
 	if errE != nil {
 		return errE
 	}
-	return s.coordinator.End(ctx, session, metadataJSON)
+	_, errE = s.coordinator.End(ctx, session, metadataJSON)
+	return errE
 }
 
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
@@ -298,5 +299,6 @@ func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifi
 	if errE != nil {
 		return errE
 	}
-	return s.coordinator.End(ctx, session, metadataJSON)
+	_, errE = s.coordinator.End(ctx, session, metadataJSON)
+	return errE
 }

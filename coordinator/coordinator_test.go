@@ -270,7 +270,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	assert.Nil(t, endMetadata)
 
 	assert.Len(t, endedSessions, 0)
-	errE = c.End(ctx, session, d.EndMetadata)
+	_, errE = c.End(ctx, session, d.EndMetadata)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	if assert.Len(t, endedSessions, 1) {
@@ -301,7 +301,7 @@ func TestErrors(t *testing.T) {
 	_, _, errE := c.Get(ctx, identifier.New())
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	errE = c.End(ctx, identifier.New(), internal.DummyData)
+	_, errE = c.End(ctx, identifier.New(), internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	_, errE = c.Push(ctx, identifier.New(), internal.DummyData, internal.DummyData)
@@ -331,7 +331,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 2)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 
-	errE = c.End(ctx, session, internal.DummyData)
+	_, errE = c.End(ctx, session, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = c.Push(ctx, session, internal.DummyData, internal.DummyData)
@@ -346,7 +346,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	errE = c.End(ctx, session, internal.DummyData)
+	_, errE = c.End(ctx, session, internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	_, errE = c.List(ctx, session, nil)

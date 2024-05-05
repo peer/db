@@ -203,6 +203,11 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 	var metadata Metadata
 	var version Version
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		data = *new(Data)
+		metadata = *new(Metadata)
+		version = Version{}
+
 		var changeset string
 		var revision int64
 		var dataIsNull bool
@@ -289,6 +294,10 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		data = *new(Data)
+		metadata = *new(Metadata)
+
 		var dataIsNull bool
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (

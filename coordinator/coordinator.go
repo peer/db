@@ -203,9 +203,12 @@ func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metada
 // Once the session has ended no more operations can be appended to it.
 //
 // Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) errors.E {
+func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) {
+	var m Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		var m Metadata
+		// Initialize in the case transaction is retried.
+		m = *new(Metadata)
+
 		var errE errors.E
 		if c.EndCallback != nil {
 			m, errE = c.EndCallback(ctx, session, metadata)
@@ -236,7 +239,7 @@ func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifie
 	} else if c.Ended != nil {
 		c.Ended <- session
 	}
-	return errE
+	return m, errE
 }
 
 // Push appends a new operation into the log with the next available operation number.
@@ -248,6 +251,9 @@ func (c *Coordinator[Data, Metadata]) Push(ctx context.Context, session identifi
 	}
 	var operation int64
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		operation = 0
+
 		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`PushOperation"($1, $2, $3)`, arguments...).Scan(&operation)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -397,6 +403,10 @@ func (c *Coordinator[Data, Metadata]) GetData(ctx context.Context, session ident
 	var data Data
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		data = *new(Data)
+		metadata = *new(Metadata)
+
 		err := tx.QueryRow(ctx, `
 			SELECT "data", "metadata"
 				FROM "`+c.Prefix+`Operations"
@@ -439,6 +449,9 @@ func (c *Coordinator[Data, Metadata]) GetMetadata(ctx context.Context, session i
 	}
 	var metadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		metadata = *new(Metadata)
+
 		err := tx.QueryRow(ctx, `
 			SELECT "metadata"
 				FROM "`+c.Prefix+`Operations"
@@ -481,6 +494,10 @@ func (c *Coordinator[Data, Metadata]) Get(ctx context.Context, session identifie
 	var beginMetadata Metadata
 	var endMetadata Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		beginMetadata = *new(Metadata)
+		endMetadata = *new(Metadata)
+
 		err := tx.QueryRow(ctx, `
 			SELECT "beginMetadata", "endMetadata"
 				FROM "`+c.Prefix+`Sessions"
