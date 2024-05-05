@@ -505,3 +505,43 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 
 	s.Home(w, req, nil)
 }
+
+func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.FromString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	session, errE := identifier.FromString(params["session"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*Site](req.Context())
+
+	beginMetadata, endMetadata, errE := site.coordinator.Get(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	if endMetadata != nil {
+		s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyEnded))
+		return
+	}
+
+	if beginMetadata.ID != id {
+		// TODO: Should we redirect to the correct ID?
+		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
+		return
+	}
+
+	s.WriteJSON(w, req, beginMetadata, nil)
+}

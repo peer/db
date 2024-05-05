@@ -117,7 +117,7 @@
     {
       "name": "DocumentEdit",
       "path": "/d/edit/:id/:session",
-      "api": null,
+      "api": {},
       "get": {}
     },
     {
