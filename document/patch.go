@@ -359,12 +359,12 @@ func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 }
 
 type IdentifierClaimPatch struct {
-	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Identifier *string                `exhaustruct:"optional" json:"id,omitempty"`
+	Prop  *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Value *string                `exhaustruct:"optional" json:"value,omitempty"`
 }
 
 func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Identifier == nil {
+	if p.Prop == nil || p.Value == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
@@ -377,12 +377,12 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 			ID:    p.Prop,
 			Score: 1.0, // TODO: Fetch if from the store?
 		},
-		Identifier: *p.Identifier,
+		Value: *p.Value,
 	}, nil
 }
 
 func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Identifier == nil {
+	if p.Prop == nil && p.Value == nil {
 		return errors.New("empty patch")
 	}
 
@@ -394,8 +394,8 @@ func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
-	if p.Identifier != nil {
-		c.Identifier = *p.Identifier
+	if p.Value != nil {
+		c.Value = *p.Value
 	}
 
 	return nil
@@ -902,14 +902,14 @@ func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type FileClaimPatch struct {
-	Prop    *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Type    *string                `exhaustruct:"optional" json:"type,omitempty"`
-	URL     *string                `exhaustruct:"optional" json:"url,omitempty"`
-	Preview []string               `exhaustruct:"optional" json:"preview"`
+	Prop      *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	MediaType *string                `exhaustruct:"optional" json:"mediaType,omitempty"`
+	URL       *string                `exhaustruct:"optional" json:"url,omitempty"`
+	Preview   []string               `exhaustruct:"optional" json:"preview"`
 }
 
 func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Type == nil || p.URL == nil || p.Preview == nil {
+	if p.Prop == nil || p.MediaType == nil || p.URL == nil || p.Preview == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
@@ -922,14 +922,14 @@ func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 			ID:    p.Prop,
 			Score: 1.0, // TODO: Fetch if from the store?
 		},
-		Type:    *p.Type,
-		URL:     *p.URL,
-		Preview: p.Preview,
+		MediaType: *p.MediaType,
+		URL:       *p.URL,
+		Preview:   p.Preview,
 	}, nil
 }
 
 func (p FileClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Type == nil && p.URL == nil && p.Preview == nil {
+	if p.Prop == nil && p.MediaType == nil && p.URL == nil && p.Preview == nil {
 		return errors.New("empty patch")
 	}
 
@@ -941,8 +941,8 @@ func (p FileClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
-	if p.Type != nil {
-		c.Type = *p.Type
+	if p.MediaType != nil {
+		c.MediaType = *p.MediaType
 	}
 	if p.URL != nil {
 		c.URL = *p.URL

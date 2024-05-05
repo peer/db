@@ -491,8 +491,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 			return document.Drop, nil
 		}
 
-		if !reflect.DeepEqual(claim.Type, mediaType) {
-			claim.Type = mediaType
+		if !reflect.DeepEqual(claim.MediaType, mediaType) {
+			claim.MediaType = mediaType
 			v.Changed++
 		}
 
@@ -553,7 +553,7 @@ func UpdateEmbeddedDocuments(
 			errors.Details(errE)["expected"] = fmt.Sprintf("%T", new(document.IdentifierClaim))
 			return false, errE
 		}
-		entityIDs = append(entityIDs, idClaim.Identifier)
+		entityIDs = append(entityIDs, idClaim.Value)
 	}
 
 	cache.Add(doc.ID, doc)

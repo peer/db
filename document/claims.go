@@ -307,8 +307,8 @@ type Reference struct {
 type IdentifierClaim struct {
 	CoreClaim
 
-	Prop       Reference `json:"prop"`
-	Identifier string    `json:"id"`
+	Prop  Reference `json:"prop"`
+	Value string    `json:"value"`
 }
 
 type ReferenceClaim struct {
@@ -503,10 +503,10 @@ type RelationClaim struct {
 type FileClaim struct {
 	CoreClaim
 
-	Prop    Reference `json:"prop"`
-	Type    string    `json:"type"`
-	URL     string    `json:"url"`
-	Preview []string  `json:"preview,omitempty"`
+	Prop      Reference `json:"prop"`
+	MediaType string    `json:"mediaType"`
+	URL       string    `json:"url"`
+	Preview   []string  `json:"preview,omitempty"`
 }
 
 type NoValueClaim struct {

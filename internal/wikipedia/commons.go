@@ -444,8 +444,8 @@ func convertImage( //nolint:maintidx
 						ID:         document.GetID(namespace, image.Name, mnemonicPrefix+"_FILE_NAME", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop:       document.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
-					Identifier: image.Name,
+					Prop:  document.GetCorePropertyReference(mnemonicPrefix + "_FILE_NAME"),
+					Value: image.Name,
 				},
 			},
 			Reference: document.ReferenceClaims{
@@ -686,8 +686,8 @@ func convertImage( //nolint:maintidx
 									ID:         document.GetID(namespace, image.Name, "PREVIEW_URL", i, "LIST", 0),
 									Confidence: document.HighConfidence,
 								},
-								Prop:       document.GetCorePropertyReference("LIST"),
-								Identifier: previewsList.String(),
+								Prop:  document.GetCorePropertyReference("LIST"),
+								Value: previewsList.String(),
 							},
 						},
 						Amount: document.AmountClaims{

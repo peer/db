@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { PeerDBDocument, DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
+import type { DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
+import type { PeerDBDocument } from "@/document"
 
 import { ref, computed, watch, readonly } from "vue"
 import { useRouter, useRoute } from "vue-router"
@@ -185,6 +186,24 @@ async function onSave() {
     saveProgress.value -= 1
   }
 }
+
+async function onAddClaim() {
+  if (abortController.signal.aborted) {
+    return
+  }
+}
+
+async function onEditClaim(id: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+}
+
+async function onRemoveClaim(id: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+}
 </script>
 
 <template>
@@ -206,12 +225,14 @@ async function onSave() {
             <tr>
               <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
               <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
+              <th class="flex flex-row gap-1 max-w-fit"></th>
             </tr>
           </thead>
           <tbody>
-            <PropertiesRows :claims="initialDoc.claims" />
+            <PropertiesRows :claims="initialDoc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
           </tbody>
         </table>
+        <Button type="button" class="mt-4" @click.prevent="onAddClaim">Add claim</Button>
       </template>
       <template v-else-if="error">
         <i class="text-error-600">loading data failed</i>

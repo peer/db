@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
-import type { ClaimTypes, PeerDBDocument } from "@/types"
+import type { ClaimTypes, PeerDBDocument } from "@/document"
 
+import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
 
@@ -9,14 +10,29 @@ withDefaults(
   defineProps<{
     claims?: DeepReadonly<ClaimTypes>
     level?: number
+    editable?: boolean
   }>(),
   {
     claims: () => ({}),
     level: 0,
+    editable: false,
   },
 )
 
+const $emit = defineEmits<{
+  editClaim: [value: string]
+  removeClaim: [value: string]
+}>()
+
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
+
+async function onEdit(id: string) {
+  $emit("editClaim", id)
+}
+
+async function onRemove(id: string) {
+  $emit("removeClaim", id)
+}
 </script>
 
 <template>
@@ -41,9 +57,13 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           </template>
         </WithPeerDBDocument>
       </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.id }}</td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.value }}</td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.value)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.value)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.ref" :key="claim.id">
     <tr>
@@ -69,8 +89,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <a :href="claim.iri" class="link">{{ claim.iri }}</a>
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.text" :key="claim.id">
     <tr>
@@ -100,8 +124,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         v-html="claim.html?.en"
       ></td>
       <!-- eslint-enable vue/no-v-html -->
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.string" :key="claim.id">
     <tr>
@@ -127,8 +155,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.string }}
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.amount" :key="claim.id">
     <tr>
@@ -154,8 +186,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.amount }} <template v-if="claim.unit !== '1'">{{ claim.unit }}</template>
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.amountRange" :key="claim.id">
     <tr>
@@ -181,8 +217,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.rel" :key="claim.id">
     <tr>
@@ -220,8 +260,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           </template>
         </WithPeerDBDocument>
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.file" :key="claim.id">
     <tr>
@@ -248,10 +292,14 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         <a v-if="claim.preview?.[0]" :href="claim.url">
           <img :src="claim.preview[0]" />
         </a>
-        <a v-else :href="claim.url" class="link">{{ claim.type }}</a>
+        <a v-else :href="claim.url" class="link">{{ claim.mediaType }}</a>
+      </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.none" :key="claim.id">
     <tr>
@@ -275,8 +323,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.unknown" :key="claim.id">
     <tr>
@@ -300,8 +352,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.time" :key="claim.id">
     <tr>
@@ -327,8 +383,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         {{ claim.timestamp }}
       </td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.timeRange" :key="claim.id">
     <tr>
@@ -352,7 +412,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
+      <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
+      </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" />
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
 </template>

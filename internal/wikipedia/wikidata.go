@@ -250,7 +250,7 @@ func getDocumentFromByProp(
 
 		found := false
 		for _, claim := range doc.Get(document.GetCorePropertyID(property)) {
-			if c, ok := claim.(*document.IdentifierClaim); ok && c.Identifier == id {
+			if c, ok := claim.(*document.IdentifierClaim); ok && c.Value == id {
 				found = true
 				break
 			}
@@ -453,8 +453,8 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 						ID:         id,
 						Confidence: confidence,
 					},
-					Prop:       getDocumentReference(prop, ""),
-					Identifier: string(value),
+					Prop:  getDocumentReference(prop, ""),
+					Value: string(value),
 				},
 			}, nil
 		case mediawiki.String:
@@ -498,10 +498,10 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 							},
 						},
 					},
-					Prop:    getDocumentReference(prop, ""),
-					Type:    "invalid/invalid",
-					URL:     "https://xx.invalid",
-					Preview: nil,
+					Prop:      getDocumentReference(prop, ""),
+					MediaType: "invalid/invalid",
+					URL:       "https://xx.invalid",
+					Preview:   nil,
 				},
 			}, nil
 		case mediawiki.URL:
@@ -878,8 +878,8 @@ func ConvertEntity( //nolint:maintidx
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_PROPERTY_ID", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop:       document.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
-					Identifier: entity.ID,
+					Prop:  document.GetCorePropertyReference("WIKIDATA_PROPERTY_ID"),
+					Value: entity.ID,
 				},
 			},
 			Reference: document.ReferenceClaims{
@@ -911,8 +911,8 @@ func ConvertEntity( //nolint:maintidx
 						ID:         document.GetID(namespace, entity.ID, "WIKIDATA_ITEM_ID", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop:       document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
-					Identifier: entity.ID,
+					Prop:  document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
+					Value: entity.ID,
 				},
 			},
 			Reference: document.ReferenceClaims{
@@ -947,8 +947,8 @@ func ConvertEntity( //nolint:maintidx
 						ID:         document.GetID(namespace, entity.ID, "WIKIMEDIA_COMMONS_ENTITY_ID", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop:       document.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
-					Identifier: entity.ID,
+					Prop:  document.GetCorePropertyReference("WIKIMEDIA_COMMONS_ENTITY_ID"),
+					Value: entity.ID,
 				},
 			},
 		}
@@ -998,8 +998,8 @@ func ConvertEntity( //nolint:maintidx
 					ID:         document.GetID(namespace, entity.ID, site.MnemonicPrefix+"_PAGE_TITLE", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:       document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
-				Identifier: siteLink.Title,
+				Prop:  document.GetCorePropertyReference(site.MnemonicPrefix + "_PAGE_TITLE"),
+				Value: siteLink.Title,
 			})
 			doc.Claims.Reference = append(doc.Claims.Reference, document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{

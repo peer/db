@@ -32,8 +32,8 @@ func TestPatchJSON(t *testing.T) {
 		document.AddClaimChange{
 			Under: &id1,
 			Patch: document.IdentifierClaimPatch{
-				Prop:       &prop2,
-				Identifier: &value,
+				Prop:  &prop2,
+				Value: &value,
 			},
 		},
 	}
@@ -78,7 +78,7 @@ func TestPatchJSON(t *testing.T) {
 										ID:    &prop2,
 										Score: 1.0,
 									},
-									Identifier: value,
+									Value: value,
 								},
 							},
 						},

@@ -483,8 +483,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "MOMA_CONSTITUENT_ID", 0),
 							Confidence: document.HighConfidence,
 						},
-						Prop:       document.GetCorePropertyReference("MOMA_CONSTITUENT_ID"),
-						Identifier: strconv.Itoa(artist.ConstituentID),
+						Prop:  document.GetCorePropertyReference("MOMA_CONSTITUENT_ID"),
+						Value: strconv.Itoa(artist.ConstituentID),
 					},
 				},
 				Reference: document.ReferenceClaims{
@@ -584,8 +584,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "WIKIDATA_ITEM_ID", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:       document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
-				Identifier: artist.WikiQID,
+				Prop:  document.GetCorePropertyReference("WIKIDATA_ITEM_ID"),
+				Value: artist.WikiQID,
 			})
 			if errE != nil {
 				return errE
@@ -608,8 +608,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "ULAN_ID", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:       document.GetCorePropertyReference("ULAN_ID"),
-				Identifier: artist.ULAN,
+				Prop:  document.GetCorePropertyReference("ULAN_ID"),
+				Value: artist.ULAN,
 			})
 			if errE != nil {
 				return errE
@@ -649,10 +649,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 								ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "IMAGE", i),
 								Confidence: document.HighConfidence,
 							},
-							Prop:    document.GetCorePropertyReference("IMAGE"),
-							Type:    image.MediaType,
-							URL:     image.URL,
-							Preview: []string{image.Preview},
+							Prop:      document.GetCorePropertyReference("IMAGE"),
+							MediaType: image.MediaType,
+							URL:       image.URL,
+							Preview:   []string{image.Preview},
 						})
 						if errE != nil {
 							return errE
@@ -729,8 +729,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_OBJECT_ID", 0),
 							Confidence: document.HighConfidence,
 						},
-						Prop:       document.GetCorePropertyReference("MOMA_OBJECT_ID"),
-						Identifier: strconv.Itoa(artwork.ObjectID),
+						Prop:  document.GetCorePropertyReference("MOMA_OBJECT_ID"),
+						Value: strconv.Itoa(artwork.ObjectID),
 					},
 				},
 				Reference: document.ReferenceClaims{
@@ -780,10 +780,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 								ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", i),
 								Confidence: document.HighConfidence,
 							},
-							Prop:    document.GetCorePropertyReference("IMAGE"),
-							Type:    image.MediaType,
-							URL:     image.URL,
-							Preview: []string{image.Preview},
+							Prop:      document.GetCorePropertyReference("IMAGE"),
+							MediaType: image.MediaType,
+							URL:       image.URL,
+							Preview:   []string{image.Preview},
 						})
 						if errE != nil {
 							return errE
@@ -826,10 +826,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IMAGE", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:    document.GetCorePropertyReference("IMAGE"),
-				Type:    "image/jpeg",
-				URL:     url,
-				Preview: []string{url},
+				Prop:      document.GetCorePropertyReference("IMAGE"),
+				MediaType: "image/jpeg",
+				URL:       url,
+				Preview:   []string{url},
 			})
 			if errE != nil {
 				return errE
@@ -920,8 +920,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "MOMA_ACCESSION_NUMBER", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:       document.GetCorePropertyReference("MOMA_ACCESSION_NUMBER"),
-				Identifier: artwork.AccessionNumber,
+				Prop:  document.GetCorePropertyReference("MOMA_ACCESSION_NUMBER"),
+				Value: artwork.AccessionNumber,
 			})
 			if errE != nil {
 				return errE
