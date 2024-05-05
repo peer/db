@@ -68,7 +68,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...) //nolint:goconst
 		if err != nil {
@@ -119,7 +119,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...) //nolint:goconst
 		if err != nil {
@@ -183,7 +183,7 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
@@ -238,7 +238,7 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
@@ -288,7 +288,7 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {

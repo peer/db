@@ -75,7 +75,7 @@ func (c Changes) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func changeUnmarshalJSON[T any](data []byte) (any, errors.E) { //nolint:ireturn
+func changeUnmarshalJSON[T any](data []byte) (any, errors.E) {
 	var d T
 	errE := x.UnmarshalWithoutUnknownFields(data, &d)
 	if errE != nil {

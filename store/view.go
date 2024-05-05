@@ -206,7 +206,7 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
-		version = Version{}
+		version = Version{} //nolint:exhaustruct
 
 		var changeset string
 		var revision int64

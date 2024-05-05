@@ -203,7 +203,7 @@ func (c *Coordinator[Data, Metadata]) Begin(ctx context.Context, metadata Metada
 // Once the session has ended no more operations can be appended to it.
 //
 // Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) {
+func (c *Coordinator[Data, Metadata]) End(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) { //nolint:ireturn
 	var m Metadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
