@@ -203,7 +203,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Begin
 // Once the session has ended no more operations can be appended to it.
 //
 // Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End(ctx context.Context, session identifier.Identifier, metadata EndMetadata) (EndMetadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( //nolint:ireturn
+	ctx context.Context, session identifier.Identifier, metadata EndMetadata,
+) (EndMetadata, errors.E) {
 	var m EndMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
@@ -245,7 +247,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End(c
 // Push appends a new operation into the log with the next available operation number.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata) (int64, errors.E) {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
+	ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata,
+) (int64, errors.E) {
 	arguments := []any{
 		session.String(), metadata, data,
 	}
@@ -286,7 +290,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
 // The provided operation number has to be available for the call to succeed.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Set(ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata OperationMetadata) errors.E {
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Set(
+	ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata OperationMetadata,
+) errors.E {
 	arguments := []any{
 		session.String(), operation, metadata, data,
 	}
@@ -396,7 +402,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(
 // Data might be nil if the operation does not contain data.
 //
 // Data and metadata are not available anymore once the session ends.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetData(ctx context.Context, session identifier.Identifier, operation int64) (Data, OperationMetadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetData( //nolint:ireturn
+	ctx context.Context, session identifier.Identifier, operation int64,
+) (Data, OperationMetadata, errors.E) {
 	arguments := []any{
 		session.String(), operation,
 	}
@@ -443,7 +451,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetDa
 // GetMetadata returns metadata for the operation from the session.
 //
 // Metadata is not available anymore once the session ends.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMetadata(ctx context.Context, session identifier.Identifier, operation int64) (OperationMetadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMetadata( //nolint:ireturn
+	ctx context.Context, session identifier.Identifier, operation int64,
+) (OperationMetadata, errors.E) {
 	arguments := []any{
 		session.String(), operation,
 	}
@@ -487,7 +497,9 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMe
 
 // Get returns initial and ending (once session has ended, otherwise it is nil)
 // metadata for the session.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get(ctx context.Context, session identifier.Identifier) (BeginMetadata, EndMetadata, errors.E) { //nolint:ireturn
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( //nolint:ireturn
+	ctx context.Context, session identifier.Identifier,
+) (BeginMetadata, EndMetadata, errors.E) {
 	arguments := []any{
 		session.String(),
 	}

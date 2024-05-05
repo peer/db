@@ -230,7 +230,7 @@ func (f filters) Valid() errors.E {
 	return nil
 }
 
-func (f filters) ToQuery() elastic.Query { //nolint:ireturn
+func (f filters) ToQuery() elastic.Query {
 	if len(f.And) > 0 {
 		boolQuery := elastic.NewBoolQuery()
 		for _, filter := range f.And {
@@ -358,7 +358,7 @@ func (q *State) ValuesWithAt(at string) url.Values {
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (q *State) Query() elastic.Query { //nolint:ireturn
+func (q *State) Query() elastic.Query {
 	boolQuery := elastic.NewBoolQuery()
 
 	if q.Text != "" {
