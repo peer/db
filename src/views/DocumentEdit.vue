@@ -12,7 +12,7 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { changeFrom, PeerDBDocument, RemoveClaimChange, idAtChange } from "@/document"
 import { getName, encodeQuery } from "@/utils"
 import { injectProgress } from "@/progress"
-import { getURL, postJSON, getURLDirect } from "@/api"
+import { getURL, postJSON, getURLDirect, deleteFromCache } from "@/api"
 
 const props = defineProps<{
   id: string
@@ -134,6 +134,14 @@ async function onSave() {
     if (abortController.signal.aborted) {
       return
     }
+    deleteFromCache(
+      router.apiResolve({
+        name: "DocumentGet",
+        params: {
+          id: props.id,
+        },
+      }).href,
+    )
     await router.push({
       name: "DocumentGet",
       params: {

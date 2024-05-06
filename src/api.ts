@@ -25,6 +25,10 @@ export class FetchError extends Error {
   }
 }
 
+export function deleteFromCache(url: string) {
+  localGetCache.delete(url)
+}
+
 // TODO: Improve priority with "el".
 export async function getURL<T>(
   url: string,
