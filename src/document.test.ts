@@ -9,7 +9,7 @@ test("patch json", () => {
   const prop1 = "XkbTJqwFCFkfoxMBXow4HU"
   const prop2 = "3EL2nZdWVbw85XG1zTH2o5"
 
-  const changes = Changes.from([
+  const changes = new Changes(
     {
       type: "add",
       patch: {
@@ -28,7 +28,7 @@ test("patch json", () => {
         value: "foobar",
       },
     },
-  ])
+  )
 
   const out = JSON.stringify(changes)
   assert.equal(
@@ -36,18 +36,18 @@ test("patch json", () => {
     `[{"type":"add","patch":{"type":"amount","prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"unit":"°C"}},{"type":"add","under":"LpcGdCUThc22mhuBwQJQ5Z","patch":{"type":"id","prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar"}}]`,
   )
 
-  const changes2 = Changes.from(JSON.parse(out))
+  const changes2 = new Changes(...JSON.parse(out))
   assert.deepEqual(changes, changes2)
 
   const id = Identifier.new().toString()
-  const doc = PeerDBDocument.from({
+  const doc = new PeerDBDocument({
     id: id,
     score: 1.0,
   })
   const base = "TqtRsbk7rTKviW3TJapTim"
   changes.Apply(doc, base)
   assert.deepEqual(
-    PeerDBDocument.from({
+    new PeerDBDocument({
       id: id,
       score: 1.0,
       claims: {

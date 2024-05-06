@@ -8,6 +8,13 @@ class CoreClaim implements ClaimsContainer {
   confidence!: number
   meta?: ClaimTypes
 
+  constructor(obj: object) {
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
+
   GetID(): string {
     return this.id
   }
@@ -30,7 +37,7 @@ class CoreClaim implements ClaimsContainer {
 
   Add(claim: Claim): void {
     if (typeof this.meta === "undefined") {
-      this.meta = new ClaimTypes()
+      this.meta = new ClaimTypes({})
     }
 
     this.meta.Add(claim)
@@ -45,67 +52,27 @@ type DocumentReference = {
 class IdentifierClaim extends CoreClaim {
   prop!: DocumentReference
   value!: string
-
-  static from(obj: object): IdentifierClaim {
-    const claim = Object.assign(new IdentifierClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class ReferenceClaim extends CoreClaim {
   prop!: DocumentReference
   iri!: string
-
-  static from(obj: object): ReferenceClaim {
-    const claim = Object.assign(new ReferenceClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class TextClaim extends CoreClaim {
   prop!: DocumentReference
   html!: TranslatableHTMLString
-
-  static from(obj: object): TextClaim {
-    const claim = Object.assign(new TextClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class StringClaim extends CoreClaim {
   prop!: DocumentReference
   string!: string
-
-  static from(obj: object): StringClaim {
-    const claim = Object.assign(new StringClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class AmountClaim extends CoreClaim {
   prop!: DocumentReference
   amount!: number
   unit!: AmountUnit
-
-  static from(obj: object): AmountClaim {
-    const claim = Object.assign(new AmountClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class AmountRangeClaim extends CoreClaim {
@@ -113,27 +80,11 @@ class AmountRangeClaim extends CoreClaim {
   lower!: number
   upper!: number
   unit!: AmountUnit
-
-  static from(obj: object): AmountRangeClaim {
-    const claim = Object.assign(new AmountRangeClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class RelationClaim extends CoreClaim {
   prop!: DocumentReference
   to!: DocumentReference
-
-  static from(obj: object): RelationClaim {
-    const claim = Object.assign(new RelationClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class FileClaim extends CoreClaim {
@@ -141,52 +92,20 @@ class FileClaim extends CoreClaim {
   mediaType!: string
   url!: string
   preview?: string[]
-
-  static from(obj: object): FileClaim {
-    const claim = Object.assign(new FileClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class NoValueClaim extends CoreClaim {
   prop!: DocumentReference
-
-  static from(obj: object): NoValueClaim {
-    const claim = Object.assign(new NoValueClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class UnknownValueClaim extends CoreClaim {
   prop!: DocumentReference
-
-  static from(obj: object): UnknownValueClaim {
-    const claim = Object.assign(new UnknownValueClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class TimeClaim extends CoreClaim {
   prop!: DocumentReference
   timestamp!: string
   precision!: TimePrecision
-
-  static from(obj: object): TimeClaim {
-    const claim = Object.assign(new TimeClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 class TimeRangeClaim extends CoreClaim {
@@ -194,14 +113,6 @@ class TimeRangeClaim extends CoreClaim {
   lower!: string
   upper!: string
   precision!: TimePrecision
-
-  static from(obj: object): TimeRangeClaim {
-    const claim = Object.assign(new TimeRangeClaim(), obj)
-    if (typeof claim.meta !== "undefined") {
-      claim.meta = ClaimTypes.from(claim.meta)
-    }
-    return claim
-  }
 }
 
 const claimTypesMap = {
@@ -232,6 +143,15 @@ class ClaimTypes {
   unknown?: UnknownValueClaim[]
   time?: TimeClaim[]
   timeRange?: TimeRangeClaim[]
+
+  constructor(obj: object) {
+    Object.assign(this, obj)
+    for (const [name, claimType] of Object.entries(claimTypesMap)) {
+      for (const [i, claim] of (this[name] || []).entries()) {
+        this[name][i] = new claimType(claim)
+      }
+    }
+  }
 
   GetByID(id: string): Claim | undefined {
     for (const claims of Object.values(this)) {
@@ -276,16 +196,6 @@ class ClaimTypes {
     const exhaustiveCheck: never = claim
     throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`, claim)
   }
-
-  static from(obj: object): ClaimTypes {
-    const claimTypes = Object.assign(new ClaimTypes(), obj)
-    for (const [name, claimType] of Object.entries(claimTypesMap)) {
-      for (const [i, claim] of (claimTypes[name] || []).entries()) {
-        claimTypes[name][i] = claimType.from(claim)
-      }
-    }
-    return claimTypes
-  }
 }
 
 type Claim =
@@ -319,6 +229,13 @@ export class PeerDBDocument implements ClaimsContainer {
   mnemonic?: string
   claims?: ClaimTypes
 
+  constructor(obj: object) {
+    Object.assign(this, obj)
+    if (typeof this.claims !== "undefined") {
+      this.claims = new ClaimTypes(this.claims)
+    }
+  }
+
   GetID(): string {
     return this.id
   }
@@ -341,18 +258,10 @@ export class PeerDBDocument implements ClaimsContainer {
 
   Add(claim: Claim): void {
     if (typeof this.claims === "undefined") {
-      this.claims = new ClaimTypes()
+      this.claims = new ClaimTypes({})
     }
 
     this.claims.Add(claim)
-  }
-
-  static from(obj: object): PeerDBDocument {
-    const doc = Object.assign(new PeerDBDocument(), obj)
-    if (typeof doc.claims !== "undefined") {
-      doc.claims = ClaimTypes.from(doc.claims)
-    }
-    return doc
   }
 }
 
@@ -363,11 +272,11 @@ interface Change {
 export function changeFrom(obj: object): Change {
   switch (obj.type) {
     case "add":
-      return AddClaimChange.from(obj)
+      return new AddClaimChange(obj)
     case "set":
-      return SetClaimChange.from(obj)
+      return new SetClaimChange(obj)
     case "remove":
-      return RemoveClaimChange.from(obj)
+      return new RemoveClaimChange(obj)
   }
   throw new Error(`change of type "${obj.type}" is not supported`)
 }
@@ -377,8 +286,12 @@ export class AddClaimChange implements Change {
   under?: string
   patch!: ClaimPatch
 
-  constructor() {
-    this.type = "add"
+  constructor(obj: object) {
+    if (obj.type !== "add") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
+    this.patch = claimPatchFrom(this.patch)
   }
 
   Apply(doc: PeerDBDocument, id: string): void {
@@ -396,12 +309,6 @@ export class AddClaimChange implements Change {
 
     claim.Add(newClaim)
   }
-
-  static from(obj: object): AddClaimChange {
-    const change = Object.assign(new AddClaimChange(), obj)
-    change.patch = claimPatchFrom(change.patch)
-    return change
-  }
 }
 
 export class SetClaimChange implements Change {
@@ -409,8 +316,12 @@ export class SetClaimChange implements Change {
   id!: string
   patch!: ClaimPatch
 
-  constructor() {
-    this.type = "set"
+  constructor(obj: object) {
+    if (obj.type !== "set") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
+    this.patch = claimPatchFrom(this.patch)
   }
 
   Apply(doc: PeerDBDocument, id: string): void {
@@ -420,20 +331,17 @@ export class SetClaimChange implements Change {
     }
     this.patch.Apply(claim)
   }
-
-  static from(obj: object): SetClaimChange {
-    const change = Object.assign(new SetClaimChange(), obj)
-    change.patch = claimPatchFrom(change.patch)
-    return change
-  }
 }
 
 export class RemoveClaimChange implements Change {
   type: "remove"
   id!: string
 
-  constructor() {
-    this.type = "remove"
+  constructor(obj: object) {
+    if (obj.type !== "remove") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   Apply(doc: PeerDBDocument, id: string): void {
@@ -442,17 +350,13 @@ export class RemoveClaimChange implements Change {
       throw new Error(`claim with ID "${this.id}" not found`)
     }
   }
-
-  static from(obj: object): RemoveClaimChange {
-    return Object.assign(new RemoveClaimChange(), obj)
-  }
 }
 
 export class Changes implements Change {
   changes: Change[]
 
-  constructor(...changes: Change[]) {
-    this.changes = changes
+  constructor(...objs: object[]) {
+    this.changes = objs.map(changeFrom)
   }
 
   Apply(doc: PeerDBDocument, base: string): void {
@@ -469,11 +373,6 @@ export class Changes implements Change {
   toJSON(): Change[] {
     return this.changes
   }
-
-  static from(objs: object[]): Changes {
-    const changes = objs.map(changeFrom)
-    return new Changes(...changes)
-  }
 }
 
 interface ClaimPatch {
@@ -484,29 +383,29 @@ interface ClaimPatch {
 export function claimPatchFrom(obj: object): ClaimPatch {
   switch (obj.type) {
     case "id":
-      return IdentifierClaimPatch.from(obj)
+      return new IdentifierClaimPatch(obj)
     case "ref":
-      return ReferenceClaimPatch.from(obj)
+      return new ReferenceClaimPatch(obj)
     case "text":
-      return TextClaimPatch.from(obj)
+      return new TextClaimPatch(obj)
     case "string":
-      return StringClaimPatch.from(obj)
+      return new StringClaimPatch(obj)
     case "amount":
-      return AmountClaimPatch.from(obj)
+      return new AmountClaimPatch(obj)
     case "amountRange":
-      return AmountRangeClaimPatch.from(obj)
+      return new AmountRangeClaimPatch(obj)
     case "rel":
-      return RelationClaimPatch.from(obj)
+      return new RelationClaimPatch(obj)
     case "file":
-      return FileClaimPatch.from(obj)
+      return new FileClaimPatch(obj)
     case "none":
-      return NoValueClaimPatch.from(obj)
+      return new NoValueClaimPatch(obj)
     case "unknown":
-      return UnknownValueClaimPatch.from(obj)
+      return new UnknownValueClaimPatch(obj)
     case "time":
-      return TimeClaimPatch.from(obj)
+      return new TimeClaimPatch(obj)
     case "timeRange":
-      return TimeRangeClaimPatch.from(obj)
+      return new TimeRangeClaimPatch(obj)
   }
   throw new Error(`patch of type "${obj.type}" is not supported`)
 }
@@ -516,8 +415,11 @@ export class IdentifierClaimPatch implements ClaimPatch {
   prop?: string
   value?: string
 
-  constructor() {
-    this.type = "id"
+  constructor(obj: object) {
+    if (obj.type !== "id") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -525,7 +427,7 @@ export class IdentifierClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new IdentifierClaim(), {
+    return new IdentifierClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -552,10 +454,6 @@ export class IdentifierClaimPatch implements ClaimPatch {
       claim.value = this.value
     }
   }
-
-  static from(obj: object): IdentifierClaimPatch {
-    return Object.assign(new IdentifierClaimPatch(), obj)
-  }
 }
 
 export class ReferenceClaimPatch implements ClaimPatch {
@@ -563,8 +461,11 @@ export class ReferenceClaimPatch implements ClaimPatch {
   prop?: string
   iri?: string
 
-  constructor() {
-    this.type = "ref"
+  constructor(obj: object) {
+    if (obj.type !== "ref") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -572,7 +473,7 @@ export class ReferenceClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new ReferenceClaim(), {
+    return new ReferenceClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -599,10 +500,6 @@ export class ReferenceClaimPatch implements ClaimPatch {
       claim.iri = this.iri
     }
   }
-
-  static from(obj: object): ReferenceClaimPatch {
-    return Object.assign(new ReferenceClaimPatch(), obj)
-  }
 }
 
 export class TextClaimPatch implements ClaimPatch {
@@ -611,8 +508,11 @@ export class TextClaimPatch implements ClaimPatch {
   html?: TranslatableHTMLString
   remove?: string[]
 
-  constructor() {
-    this.type = "text"
+  constructor(obj: object) {
+    if (obj.type !== "text") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -625,7 +525,7 @@ export class TextClaimPatch implements ClaimPatch {
       throw new Error("invalid patch")
     }
 
-    return Object.assign(new TextClaim(), {
+    return new TextClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -656,10 +556,6 @@ export class TextClaimPatch implements ClaimPatch {
       claim.html[lang] = value
     }
   }
-
-  static from(obj: object): TextClaimPatch {
-    return Object.assign(new TextClaimPatch(), obj)
-  }
 }
 
 export class StringClaimPatch implements ClaimPatch {
@@ -667,8 +563,11 @@ export class StringClaimPatch implements ClaimPatch {
   prop?: string
   string?: string
 
-  constructor() {
-    this.type = "string"
+  constructor(obj: object) {
+    if (obj.type !== "string") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -676,7 +575,7 @@ export class StringClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new StringClaim(), {
+    return new StringClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -703,10 +602,6 @@ export class StringClaimPatch implements ClaimPatch {
       claim.string = this.string
     }
   }
-
-  static from(obj: object): StringClaimPatch {
-    return Object.assign(new StringClaimPatch(), obj)
-  }
 }
 
 export class AmountClaimPatch implements ClaimPatch {
@@ -715,8 +610,11 @@ export class AmountClaimPatch implements ClaimPatch {
   amount?: number
   unit?: AmountUnit
 
-  constructor() {
-    this.type = "amount"
+  constructor(obj: object) {
+    if (obj.type !== "amount") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -724,7 +622,7 @@ export class AmountClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new AmountClaim(), {
+    return new AmountClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -755,10 +653,6 @@ export class AmountClaimPatch implements ClaimPatch {
       claim.unit = this.unit
     }
   }
-
-  static from(obj: object): AmountClaimPatch {
-    return Object.assign(new AmountClaimPatch(), obj)
-  }
 }
 
 export class AmountRangeClaimPatch implements ClaimPatch {
@@ -768,8 +662,11 @@ export class AmountRangeClaimPatch implements ClaimPatch {
   upper?: number
   unit?: AmountUnit
 
-  constructor() {
-    this.type = "amountRange"
+  constructor(obj: object) {
+    if (obj.type !== "amountRange") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -777,7 +674,7 @@ export class AmountRangeClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new AmountRangeClaim(), {
+    return new AmountRangeClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -812,10 +709,6 @@ export class AmountRangeClaimPatch implements ClaimPatch {
       claim.unit = this.unit
     }
   }
-
-  static from(obj: object): AmountRangeClaimPatch {
-    return Object.assign(new AmountRangeClaimPatch(), obj)
-  }
 }
 
 export class RelationClaimPatch implements ClaimPatch {
@@ -823,8 +716,11 @@ export class RelationClaimPatch implements ClaimPatch {
   prop?: string
   to?: string
 
-  constructor() {
-    this.type = "rel"
+  constructor(obj: object) {
+    if (obj.type !== "rel") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -832,7 +728,7 @@ export class RelationClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new RelationClaim(), {
+    return new RelationClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -862,10 +758,6 @@ export class RelationClaimPatch implements ClaimPatch {
       claim.to.id = this.to
     }
   }
-
-  static from(obj: object): RelationClaimPatch {
-    return Object.assign(new RelationClaimPatch(), obj)
-  }
 }
 
 export class FileClaimPatch implements ClaimPatch {
@@ -875,8 +767,11 @@ export class FileClaimPatch implements ClaimPatch {
   url?: string
   preview?: string[]
 
-  constructor() {
-    this.type = "file"
+  constructor(obj: object) {
+    if (obj.type !== "file") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -884,7 +779,7 @@ export class FileClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new FileClaim(), {
+    return new FileClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -919,18 +814,17 @@ export class FileClaimPatch implements ClaimPatch {
       claim.preview = this.preview
     }
   }
-
-  static from(obj: object): FileClaimPatch {
-    return Object.assign(new FileClaimPatch(), obj)
-  }
 }
 
 export class NoValueClaimPatch implements ClaimPatch {
   type: "none"
   prop?: string
 
-  constructor() {
-    this.type = "none"
+  constructor(obj: object) {
+    if (obj.type !== "none") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -938,7 +832,7 @@ export class NoValueClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new NoValueClaim(), {
+    return new NoValueClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -961,18 +855,17 @@ export class NoValueClaimPatch implements ClaimPatch {
       claim.prop.id = this.prop
     }
   }
-
-  static from(obj: object): NoValueClaimPatch {
-    return Object.assign(new NoValueClaimPatch(), obj)
-  }
 }
 
 export class UnknownValueClaimPatch implements ClaimPatch {
   type: "unknown"
   prop?: string
 
-  constructor() {
-    this.type = "unknown"
+  constructor(obj: object) {
+    if (obj.type !== "unknown") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -980,7 +873,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new UnknownValueClaim(), {
+    return new UnknownValueClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -1003,10 +896,6 @@ export class UnknownValueClaimPatch implements ClaimPatch {
       claim.prop.id = this.prop
     }
   }
-
-  static from(obj: object): UnknownValueClaimPatch {
-    return Object.assign(new UnknownValueClaimPatch(), obj)
-  }
 }
 
 export class TimeClaimPatch implements ClaimPatch {
@@ -1015,8 +904,11 @@ export class TimeClaimPatch implements ClaimPatch {
   timestamp?: string
   precision?: TimePrecision
 
-  constructor() {
-    this.type = "time"
+  constructor(obj: object) {
+    if (obj.type !== "time") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -1024,7 +916,7 @@ export class TimeClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new TimeClaim(), {
+    return new TimeClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -1055,10 +947,6 @@ export class TimeClaimPatch implements ClaimPatch {
       claim.precision = this.precision
     }
   }
-
-  static from(obj: object): TimeClaimPatch {
-    return Object.assign(new TimeClaimPatch(), obj)
-  }
 }
 
 export class TimeRangeClaimPatch implements ClaimPatch {
@@ -1068,8 +956,11 @@ export class TimeRangeClaimPatch implements ClaimPatch {
   upper?: string
   precision?: TimePrecision
 
-  constructor() {
-    this.type = "timeRange"
+  constructor(obj: object) {
+    if (obj.type !== "timeRange") {
+      throw new Error(`invalid type "${obj.type}"`)
+    }
+    Object.assign(this, obj)
   }
 
   New(id: string): Claim {
@@ -1077,7 +968,7 @@ export class TimeRangeClaimPatch implements ClaimPatch {
       throw new Error("incomplete patch")
     }
 
-    return Object.assign(new TimeRangeClaim(), {
+    return new TimeRangeClaim({
       id: id,
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
@@ -1111,9 +1002,5 @@ export class TimeRangeClaimPatch implements ClaimPatch {
     if (typeof this.precision !== "undefined") {
       claim.precision = this.precision
     }
-  }
-
-  static from(obj: object): TimeRangeClaimPatch {
-    return Object.assign(new TimeRangeClaimPatch(), obj)
   }
 }
