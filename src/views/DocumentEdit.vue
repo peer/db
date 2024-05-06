@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
 
-import { ref, computed, readonly } from "vue"
+import { ref, computed, readonly, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
@@ -24,6 +24,10 @@ const router = useRouter()
 const saveProgress = injectProgress()
 
 const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 const _doc = ref<PeerDBDocument | null>(null)
 const doc = import.meta.env.DEV ? readonly(_doc) : _doc
