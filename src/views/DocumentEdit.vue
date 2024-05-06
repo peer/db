@@ -183,7 +183,7 @@ async function onRemoveClaim(id: string) {
   }
 
   try {
-    await postJSON<DocumentEndEditResponse>(
+    await postJSON(
       router.apiResolve({
         name: "DocumentSaveChange",
         params: {
@@ -236,7 +236,9 @@ async function onRemoveClaim(id: string) {
             <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
           </tbody>
         </table>
-        <Button type="button" class="mt-4" @click.prevent="onAddClaim">Add claim</Button>
+        <h2 class="mt-4 text-xl font-bold drop-shadow-sm">Add claim</h2>
+
+        <Button type="button" class="mt-4" @click.prevent="onAddClaim">Add</Button>
       </template>
     </div>
   </div>

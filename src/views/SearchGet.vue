@@ -37,6 +37,7 @@ import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
+import { AddClaimChange, RemoveClaimChange } from "@/document"
 
 const props = defineProps<{
   s: string
@@ -391,8 +392,156 @@ async function onChange() {
   for (const file of upload.value?.files || []) {
     uploadProgress.value += 1
     try {
-      await uploadFile(router, file, abortController.signal, uploadProgress)
-      // TODO: Create a document for the file and redirect there.
+      const fileId = await uploadFile(router, file, abortController.signal, uploadProgress)
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      const createResponse = await postJSON<DocumentCreateResponse>(
+        router.apiResolve({
+          name: "DocumentCreate",
+        }).href,
+        {},
+        abortController.signal,
+        uploadProgress,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      const editResponse = await postJSON<DocumentBeginEditResponse>(
+        router.apiResolve({
+          name: "DocumentBeginEdit",
+          params: {
+            id: createResponse.id,
+          },
+        }).href,
+        {},
+        abortController.signal,
+        uploadProgress,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentSaveChange",
+          params: {
+            session: editResponse.session,
+          },
+          query: encodeQuery({ change: String(1) }),
+        }).href,
+        new AddClaimChange({
+          patch: {
+            type: "rel",
+            prop: "2fjzZyP7rv8E4aHnBc6KAa", // IS.
+            to: "7m6uUqF9ZnimT4sw3W8zdg", // FILE.
+          },
+        }),
+        abortController.signal,
+        null,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentSaveChange",
+          params: {
+            session: editResponse.session,
+          },
+          query: encodeQuery({ change: String(2) }),
+        }).href,
+        new AddClaimChange({
+          patch: {
+            type: "string",
+            prop: "GUjybqSkBqwfUTZNTw4vWE", // MEDIA_TYPE.
+            string: file.type || "application/octet-stream",
+          },
+        }),
+        abortController.signal,
+        null,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentSaveChange",
+          params: {
+            session: editResponse.session,
+          },
+          query: encodeQuery({ change: String(3) }),
+        }).href,
+        new AddClaimChange({
+          patch: {
+            type: "ref",
+            prop: "9tssq1syFPE7S7vYEDTPiF", // FILE_URL.
+            iri: router.resolve({
+              name: "StorageGet",
+              params: {
+                id: fileId,
+              },
+            }).href,
+          },
+        }),
+        abortController.signal,
+        null,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      if (file.name) {
+        await postJSON(
+          router.apiResolve({
+            name: "DocumentSaveChange",
+            params: {
+              session: editResponse.session,
+            },
+            query: encodeQuery({ change: String(4) }),
+          }).href,
+          new AddClaimChange({
+            patch: {
+              type: "text",
+              prop: "CjZig63YSyvb2KdyCL3XTg", // NAME.
+              html: {
+                en: file.name,
+              },
+            },
+          }),
+          abortController.signal,
+          null,
+        )
+        if (abortController.signal.aborted) {
+          return
+        }
+      }
+
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentEndEdit",
+          params: {
+            session: editResponse.session,
+          },
+        }).href,
+        {},
+        abortController.signal,
+        null,
+      )
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      await router.push({
+        name: "DocumentGet",
+        params: {
+          id: createResponse.id,
+        },
+      })
     } catch (err) {
       if (abortController.signal.aborted) {
         return

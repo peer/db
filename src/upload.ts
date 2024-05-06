@@ -8,7 +8,7 @@ const maxPayloadSize = 10 << 20
 import { postJSON, postBlob } from "@/api"
 import { encodeQuery } from "@/utils"
 
-export async function uploadFile(router: Router, file: File, abortSignal: AbortSignal, progress: Ref<number>) {
+export async function uploadFile(router: Router, file: File, abortSignal: AbortSignal, progress: Ref<number>): Promise<string> {
   // TODO: If abortSignal is aborted, we should attempt to discard the upload (with fetch's keepalive set).
 
   // TODO: Pass and store lastModified timestamp for the file (as different timestamp than current uploaded "at" timestamp).
@@ -26,7 +26,7 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
     progress,
   )
   if (abortSignal.aborted) {
-    return
+    return ""
   }
   for (let start = 0; start < file.size; start += maxPayloadSize) {
     await postBlob(
@@ -43,7 +43,7 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
       progress,
     )
     if (abortSignal.aborted) {
-      return
+      return ""
     }
   }
   await postJSON(
@@ -57,4 +57,8 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
     abortSignal,
     progress,
   )
+  if (abortSignal.aborted) {
+    return ""
+  }
+  return beginUploadResponse.session
 }
