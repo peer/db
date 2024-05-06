@@ -356,7 +356,7 @@ export class PeerDBDocument implements ClaimsContainer {
   }
 }
 
-interface Change {
+export interface Change {
   Apply(doc: PeerDBDocument, id: string): void
 }
 
@@ -446,6 +446,13 @@ export class RemoveClaimChange implements Change {
   }
 }
 
+export function idAtChange(base: string, i: number): string {
+  // TODO: Allow exposing data from Identifier.
+  const namespace = (Identifier.fromString(base) as unknown as { value: Uint8Array }).value
+  const res = uuidv5(String(i), namespace)
+  return Identifier.fromUUID(res).toString()
+}
+
 export class Changes implements Change {
   changes: Change[]
 
@@ -454,12 +461,8 @@ export class Changes implements Change {
   }
 
   Apply(doc: PeerDBDocument, base: string): void {
-    // TODO: Allow exposing data from Identifier.
-    const namespace = (Identifier.fromString(base) as unknown as { value: Uint8Array }).value
-
     for (const [i, change] of this.changes.entries()) {
-      const res = uuidv5(String(i), namespace)
-      const id = Identifier.fromUUID(res).toString()
+      const id = idAtChange(base, i)
       change.Apply(doc, id)
     }
   }

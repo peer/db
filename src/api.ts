@@ -26,7 +26,12 @@ export class FetchError extends Error {
 }
 
 // TODO: Improve priority with "el".
-export async function getURL<T>(url: string, el: Ref<Element | null> | null, abortSignal: AbortSignal, progress: Ref<number>): Promise<{ doc: T; metadata: Metadata }> {
+export async function getURL<T>(
+  url: string,
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal,
+  progress: Ref<number> | null,
+): Promise<{ doc: T; metadata: Metadata }> {
   // Is it already cached?
   const weakRef = localGetCache.get(url)
   if (weakRef) {
@@ -39,7 +44,9 @@ export async function getURL<T>(url: string, el: Ref<Element | null> | null, abo
     }
   }
 
-  progress.value += 1
+  if (progress) {
+    progress.value += 1
+  }
   try {
     const res = await queue.add(
       async () => {
@@ -64,7 +71,9 @@ export async function getURL<T>(url: string, el: Ref<Element | null> | null, abo
     localGetCache.set(url, new WeakRef(res))
     return res
   } finally {
-    progress.value -= 1
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }
 
@@ -134,8 +143,10 @@ export async function postURL<T>(url: string, form: FormData, abortSignal: Abort
   }
 }
 
-export async function postJSON<T>(url: string, data: object, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
-  progress.value += 1
+export async function postJSON<T>(url: string, data: object, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T> {
+  if (progress) {
+    progress.value += 1
+  }
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -162,7 +173,9 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
     }
     return await response.json()
   } finally {
-    progress.value -= 1
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }
 

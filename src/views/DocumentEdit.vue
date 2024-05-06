@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import type { DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
-import type { PeerDBDocument } from "@/document"
 
-import { ref, computed, watch, readonly } from "vue"
-import { useRouter, useRoute } from "vue-router"
+import { ref, computed, readonly } from "vue"
+import { useRouter } from "vue-router"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { getName, anySignal, encodeQuery } from "@/utils"
+import { changeFrom, PeerDBDocument, RemoveClaimChange, idAtChange } from "@/document"
+import { getName, encodeQuery } from "@/utils"
 import { injectProgress } from "@/progress"
 import { getURL, postJSON, getURLDirect } from "@/api"
 
@@ -19,135 +19,99 @@ const props = defineProps<{
   session: string
 }>()
 
-const route = useRoute()
 const router = useRouter()
 
-const progress = injectProgress()
 const saveProgress = injectProgress()
 
 const abortController = new AbortController()
 
-const _initialDoc = ref<PeerDBDocument | null>(null)
-const _changesList = ref<number[]>([])
-const _error = ref<string | null>(null)
-const initialDoc = import.meta.env.DEV ? readonly(_initialDoc) : _initialDoc
-const changesList = import.meta.env.DEV ? readonly(_changesList) : _changesList
-const error = import.meta.env.DEV ? readonly(_error) : _error
+const _doc = ref<PeerDBDocument | null>(null)
+const doc = import.meta.env.DEV ? readonly(_doc) : _doc
 
-const initialRouteName = route.name
+let latestChange = 0
 
-watch(
-  props,
-  async (newProps, oldProps, onCleanup) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
+;(async () => {
+  const { doc: beginMetadata } = await getURL<DocumentBeginMetadata>(
+    router.apiResolve({
+      name: "DocumentEdit",
+      params: {
+        id: props.id,
+        session: props.session,
+      },
+    }).href,
+    null,
+    abortController.signal,
+    null,
+  )
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  const { doc: initialDoc } = await getURL<object>(
+    router.apiResolve({
+      name: "DocumentGet",
+      params: {
+        id: props.id,
+      },
+      query: encodeQuery({ version: beginMetadata.version }),
+    }).href,
+    null,
+    abortController.signal,
+    null,
+  )
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  _doc.value = new PeerDBDocument(initialDoc)
+
+  let running = false
+  const timer = setInterval(async () => {
+    if (running) {
       return
     }
-
-    // We want to eagerly remove any error.
-    _error.value = null
-
-    const controller = new AbortController()
-    onCleanup(() => controller.abort())
-    const signal = anySignal(abortController.signal, controller.signal)
-    let data
+    running = true
     try {
-      const { doc: beginMetadata } = await getURL<DocumentBeginMetadata>(
-        router.apiResolve({
-          name: "DocumentEdit",
-          params: {
-            id: newProps.id,
-            session: newProps.session,
-          },
-        }).href,
-        null,
-        signal,
-        progress,
-      )
-      if (signal.aborted) {
-        return
-      }
-
-      data = await getURL<PeerDBDocument>(
-        router.apiResolve({
-          name: "DocumentGet",
-          params: {
-            id: newProps.id,
-          },
-          query: encodeQuery({ version: beginMetadata.version }),
-        }).href,
-        null,
-        signal,
-        progress,
-      )
-      if (signal.aborted) {
-        return
-      }
-    } catch (err) {
-      if (signal.aborted) {
-        return
-      }
-      console.error("DocumentEdit.watch1", err)
-      _initialDoc.value = null
-      _error.value = `${err}`
-      return
-    }
-    if (signal.aborted) {
-      return
-    }
-    _initialDoc.value = data.doc
-  },
-  {
-    immediate: true,
-  },
-)
-
-watch(
-  props,
-  async (newProps, oldProps, onCleanup) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
-      return
-    }
-
-    const controller = new AbortController()
-    onCleanup(() => controller.abort())
-    const signal = anySignal(abortController.signal, controller.signal)
-    let data
-    try {
-      data = await getURLDirect<number[]>(
+      const { doc: changesList } = await getURLDirect<number[]>(
         router.apiResolve({
           name: "DocumentListChanges",
           params: {
-            session: newProps.session,
+            session: props.session,
           },
         }).href,
-        signal,
+        abortController.signal,
         null,
       )
-      if (signal.aborted) {
+      if (abortController.signal.aborted) {
         return
       }
-    } catch (err) {
-      if (signal.aborted) {
-        return
+      for (; changesList.length > 0 && latestChange < changesList[0]; latestChange++) {
+        const { doc: changeDoc } = await getURL<object>(
+          router.apiResolve({
+            name: "DocumentGetChange",
+            params: {
+              session: props.session,
+              change: latestChange + 1,
+            },
+          }).href,
+          null,
+          abortController.signal,
+          null,
+        )
+        if (abortController.signal.aborted) {
+          return
+        }
+        const change = changeFrom(changeDoc)
+        change.Apply(_doc.value!, idAtChange(props.session, latestChange + 1))
       }
-      console.error("DocumentEdit.watch2", err)
-      _initialDoc.value = null
-      _error.value = `${err}`
-      return
+    } finally {
+      running = false
     }
-    if (signal.aborted) {
-      return
-    }
-    _changesList.value = data.doc
-  },
-  {
-    immediate: true,
-  },
-)
+  }, 1000)
+  abortController.signal.addEventListener("abort", () => clearTimeout(timer))
+})()
 
-const docName = computed(() => getName(initialDoc.value?.claims))
+const docName = computed(() => getName(doc.value?.claims))
 
 async function onSave() {
   if (abortController.signal.aborted) {
@@ -197,11 +161,39 @@ async function onEditClaim(id: string) {
   if (abortController.signal.aborted) {
     return
   }
+
+  console.log("edit", id)
 }
 
 async function onRemoveClaim(id: string) {
   if (abortController.signal.aborted) {
     return
+  }
+
+  try {
+    await postJSON<DocumentEndEditResponse>(
+      router.apiResolve({
+        name: "DocumentSaveChange",
+        params: {
+          session: props.session,
+        },
+        query: encodeQuery({ change: String(latestChange + 1) }),
+      }).href,
+      new RemoveClaimChange({
+        id,
+      }),
+      abortController.signal,
+      null,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("DocumentEdit.onRemoveClaim", err)
   }
 }
 </script>
@@ -218,7 +210,7 @@ async function onRemoveClaim(id: string) {
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
-      <template v-if="initialDoc">
+      <template v-if="doc">
         <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>no name</i>'"></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
@@ -229,13 +221,10 @@ async function onRemoveClaim(id: string) {
             </tr>
           </thead>
           <tbody>
-            <PropertiesRows :claims="initialDoc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
+            <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
           </tbody>
         </table>
         <Button type="button" class="mt-4" @click.prevent="onAddClaim">Add claim</Button>
-      </template>
-      <template v-else-if="error">
-        <i class="text-error-600">loading data failed</i>
       </template>
     </div>
   </div>
