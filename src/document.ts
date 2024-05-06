@@ -287,9 +287,10 @@ export class AddClaimChange implements Change {
   patch!: ClaimPatch
 
   constructor(obj: object) {
-    if (obj.type !== "add") {
+    if ("type" in obj && obj.type !== "add") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "add"
     Object.assign(this, obj)
     this.patch = claimPatchFrom(this.patch)
   }
@@ -317,9 +318,10 @@ export class SetClaimChange implements Change {
   patch!: ClaimPatch
 
   constructor(obj: object) {
-    if (obj.type !== "set") {
+    if ("type" in obj && obj.type !== "set") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "set"
     Object.assign(this, obj)
     this.patch = claimPatchFrom(this.patch)
   }
@@ -338,9 +340,10 @@ export class RemoveClaimChange implements Change {
   id!: string
 
   constructor(obj: object) {
-    if (obj.type !== "remove") {
+    if ("type" in obj && obj.type !== "remove") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "remove"
     Object.assign(this, obj)
   }
 
@@ -416,9 +419,10 @@ export class IdentifierClaimPatch implements ClaimPatch {
   value?: string
 
   constructor(obj: object) {
-    if (obj.type !== "id") {
+    if ("type" in obj && obj.type !== "id") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "id"
     Object.assign(this, obj)
   }
 
@@ -462,9 +466,10 @@ export class ReferenceClaimPatch implements ClaimPatch {
   iri?: string
 
   constructor(obj: object) {
-    if (obj.type !== "ref") {
+    if ("type" in obj && obj.type !== "ref") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "ref"
     Object.assign(this, obj)
   }
 
@@ -509,9 +514,10 @@ export class TextClaimPatch implements ClaimPatch {
   remove?: string[]
 
   constructor(obj: object) {
-    if (obj.type !== "text") {
+    if ("type" in obj && obj.type !== "text") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "text"
     Object.assign(this, obj)
   }
 
@@ -564,9 +570,10 @@ export class StringClaimPatch implements ClaimPatch {
   string?: string
 
   constructor(obj: object) {
-    if (obj.type !== "string") {
+    if ("type" in obj && obj.type !== "string") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "string"
     Object.assign(this, obj)
   }
 
@@ -611,9 +618,10 @@ export class AmountClaimPatch implements ClaimPatch {
   unit?: AmountUnit
 
   constructor(obj: object) {
-    if (obj.type !== "amount") {
+    if ("type" in obj && obj.type !== "amount") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "amount"
     Object.assign(this, obj)
   }
 
@@ -663,9 +671,10 @@ export class AmountRangeClaimPatch implements ClaimPatch {
   unit?: AmountUnit
 
   constructor(obj: object) {
-    if (obj.type !== "amountRange") {
+    if ("type" in obj && obj.type !== "amountRange") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "amountRange"
     Object.assign(this, obj)
   }
 
@@ -717,9 +726,10 @@ export class RelationClaimPatch implements ClaimPatch {
   to?: string
 
   constructor(obj: object) {
-    if (obj.type !== "rel") {
+    if ("type" in obj && obj.type !== "rel") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "rel"
     Object.assign(this, obj)
   }
 
@@ -768,9 +778,10 @@ export class FileClaimPatch implements ClaimPatch {
   preview?: string[]
 
   constructor(obj: object) {
-    if (obj.type !== "file") {
+    if ("type" in obj && obj.type !== "file") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "file"
     Object.assign(this, obj)
   }
 
@@ -821,9 +832,10 @@ export class NoValueClaimPatch implements ClaimPatch {
   prop?: string
 
   constructor(obj: object) {
-    if (obj.type !== "none") {
+    if ("type" in obj && obj.type !== "none") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "none"
     Object.assign(this, obj)
   }
 
@@ -862,9 +874,10 @@ export class UnknownValueClaimPatch implements ClaimPatch {
   prop?: string
 
   constructor(obj: object) {
-    if (obj.type !== "unknown") {
+    if ("type" in obj && obj.type !== "unknown") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "unknown"
     Object.assign(this, obj)
   }
 
@@ -905,9 +918,10 @@ export class TimeClaimPatch implements ClaimPatch {
   precision?: TimePrecision
 
   constructor(obj: object) {
-    if (obj.type !== "time") {
+    if ("type" in obj && obj.type !== "time") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "time"
     Object.assign(this, obj)
   }
 
@@ -957,9 +971,10 @@ export class TimeRangeClaimPatch implements ClaimPatch {
   precision?: TimePrecision
 
   constructor(obj: object) {
-    if (obj.type !== "timeRange") {
+    if ("type" in obj && obj.type !== "timeRange") {
       throw new Error(`invalid type "${obj.type}"`)
     }
+    this.type = "timeRange"
     Object.assign(this, obj)
   }
 
