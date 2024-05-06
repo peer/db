@@ -3,17 +3,12 @@ import type { TranslatableHTMLString, AmountUnit, TimePrecision } from "@/types"
 import { Identifier } from "@tozd/identifier"
 import { v5 as uuidv5 } from "uuid"
 
+// TODO: Why does having a constructor only in CoreClaim not assign also child class properties?
+
 class CoreClaim implements ClaimsContainer {
   id!: string
   confidence!: number
   meta?: ClaimTypes
-
-  constructor(obj: object) {
-    Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
-      this.meta = new ClaimTypes(this.meta)
-    }
-  }
 
   GetID(): string {
     return this.id
@@ -52,27 +47,67 @@ type DocumentReference = {
 class IdentifierClaim extends CoreClaim {
   prop!: DocumentReference
   value!: string
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class ReferenceClaim extends CoreClaim {
   prop!: DocumentReference
   iri!: string
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class TextClaim extends CoreClaim {
   prop!: DocumentReference
   html!: TranslatableHTMLString
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class StringClaim extends CoreClaim {
   prop!: DocumentReference
   string!: string
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class AmountClaim extends CoreClaim {
   prop!: DocumentReference
   amount!: number
   unit!: AmountUnit
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class AmountRangeClaim extends CoreClaim {
@@ -80,11 +115,27 @@ class AmountRangeClaim extends CoreClaim {
   lower!: number
   upper!: number
   unit!: AmountUnit
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class RelationClaim extends CoreClaim {
   prop!: DocumentReference
   to!: DocumentReference
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class FileClaim extends CoreClaim {
@@ -92,20 +143,52 @@ class FileClaim extends CoreClaim {
   mediaType!: string
   url!: string
   preview?: string[]
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class NoValueClaim extends CoreClaim {
   prop!: DocumentReference
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class UnknownValueClaim extends CoreClaim {
   prop!: DocumentReference
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class TimeClaim extends CoreClaim {
   prop!: DocumentReference
   timestamp!: string
   precision!: TimePrecision
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 class TimeRangeClaim extends CoreClaim {
@@ -113,6 +196,14 @@ class TimeRangeClaim extends CoreClaim {
   lower!: string
   upper!: string
   precision!: TimePrecision
+
+  constructor(obj: object) {
+    super()
+    Object.assign(this, obj)
+    if (typeof this.meta !== "undefined") {
+      this.meta = new ClaimTypes(this.meta)
+    }
+  }
 }
 
 const claimTypesMap = {
