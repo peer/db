@@ -45,27 +45,67 @@ type DocumentReference = {
 class IdentifierClaim extends CoreClaim {
   prop!: DocumentReference
   value!: string
+
+  static from(obj: object): IdentifierClaim {
+    const claim = Object.assign(new IdentifierClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class ReferenceClaim extends CoreClaim {
   prop!: DocumentReference
   iri!: string
+
+  static from(obj: object): ReferenceClaim {
+    const claim = Object.assign(new ReferenceClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class TextClaim extends CoreClaim {
   prop!: DocumentReference
   html!: TranslatableHTMLString
+
+  static from(obj: object): TextClaim {
+    const claim = Object.assign(new TextClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class StringClaim extends CoreClaim {
   prop!: DocumentReference
   string!: string
+
+  static from(obj: object): StringClaim {
+    const claim = Object.assign(new StringClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class AmountClaim extends CoreClaim {
   prop!: DocumentReference
   amount!: number
   unit!: AmountUnit
+
+  static from(obj: object): AmountClaim {
+    const claim = Object.assign(new AmountClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class AmountRangeClaim extends CoreClaim {
@@ -73,11 +113,27 @@ class AmountRangeClaim extends CoreClaim {
   lower!: number
   upper!: number
   unit!: AmountUnit
+
+  static from(obj: object): AmountRangeClaim {
+    const claim = Object.assign(new AmountRangeClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class RelationClaim extends CoreClaim {
   prop!: DocumentReference
   to!: DocumentReference
+
+  static from(obj: object): RelationClaim {
+    const claim = Object.assign(new RelationClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class FileClaim extends CoreClaim {
@@ -85,20 +141,52 @@ class FileClaim extends CoreClaim {
   mediaType!: string
   url!: string
   preview?: string[]
+
+  static from(obj: object): FileClaim {
+    const claim = Object.assign(new FileClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class NoValueClaim extends CoreClaim {
   prop!: DocumentReference
+
+  static from(obj: object): NoValueClaim {
+    const claim = Object.assign(new NoValueClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class UnknownValueClaim extends CoreClaim {
   prop!: DocumentReference
+
+  static from(obj: object): UnknownValueClaim {
+    const claim = Object.assign(new UnknownValueClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class TimeClaim extends CoreClaim {
   prop!: DocumentReference
   timestamp!: string
   precision!: TimePrecision
+
+  static from(obj: object): TimeClaim {
+    const claim = Object.assign(new TimeClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
 }
 
 class TimeRangeClaim extends CoreClaim {
@@ -106,6 +194,29 @@ class TimeRangeClaim extends CoreClaim {
   lower!: string
   upper!: string
   precision!: TimePrecision
+
+  static from(obj: object): TimeRangeClaim {
+    const claim = Object.assign(new TimeRangeClaim(), obj)
+    if (typeof claim.meta !== "undefined") {
+      claim.meta = ClaimTypes.from(claim.meta)
+    }
+    return claim
+  }
+}
+
+const claimTypesMap = {
+  id: IdentifierClaim,
+  ref: ReferenceClaim,
+  text: TextClaim,
+  string: StringClaim,
+  amount: AmountClaim,
+  amountRange: AmountRangeClaim,
+  rel: RelationClaim,
+  file: FileClaim,
+  none: NoValueClaim,
+  unknown: UnknownValueClaim,
+  time: TimeClaim,
+  timeRange: TimeRangeClaim,
 }
 
 class ClaimTypes {
@@ -124,7 +235,7 @@ class ClaimTypes {
 
   GetByID(id: string): Claim | undefined {
     for (const claims of Object.values(this)) {
-      for (const claim of claims) {
+      for (const claim of claims || []) {
         if (claim.GetID() === id) {
           return claim
         }
@@ -138,7 +249,7 @@ class ClaimTypes {
 
   RemoveByID(id: string): Claim | undefined {
     for (const claims of Object.values(this)) {
-      for (const [i, claim] of claims.items()) {
+      for (const [i, claim] of (claims || []).entries()) {
         if (claim.GetID() === id) {
           claims.splice(i, 1)
           return claim
@@ -152,70 +263,28 @@ class ClaimTypes {
   }
 
   Add(claim: Claim): void {
-    if (claim instanceof IdentifierClaim) {
-      if (!this.id) {
-        this.id = []
+    for (const [name, claimType] of Object.entries(claimTypesMap)) {
+      if (claim instanceof claimType) {
+        if (!this[name]) {
+          this[name] = []
+        }
+        this[name].push(claim)
+        return
       }
-      this.id.push(claim)
-    } else if (claim instanceof ReferenceClaim) {
-      if (!this.ref) {
-        this.ref = []
-      }
-      this.ref.push(claim)
-    } else if (claim instanceof TextClaim) {
-      if (!this.text) {
-        this.text = []
-      }
-      this.text.push(claim)
-    } else if (claim instanceof StringClaim) {
-      if (!this.string) {
-        this.string = []
-      }
-      this.string.push(claim)
-    } else if (claim instanceof AmountClaim) {
-      if (!this.amount) {
-        this.amount = []
-      }
-      this.amount.push(claim)
-    } else if (claim instanceof AmountRangeClaim) {
-      if (!this.amountRange) {
-        this.amountRange = []
-      }
-      this.amountRange.push(claim)
-    } else if (claim instanceof RelationClaim) {
-      if (!this.rel) {
-        this.rel = []
-      }
-      this.rel.push(claim)
-    } else if (claim instanceof FileClaim) {
-      if (!this.file) {
-        this.file = []
-      }
-      this.file.push(claim)
-    } else if (claim instanceof NoValueClaim) {
-      if (!this.none) {
-        this.none = []
-      }
-      this.none.push(claim)
-    } else if (claim instanceof UnknownValueClaim) {
-      if (!this.unknown) {
-        this.unknown = []
-      }
-      this.unknown.push(claim)
-    } else if (claim instanceof TimeClaim) {
-      if (!this.time) {
-        this.time = []
-      }
-      this.time.push(claim)
-    } else if (claim instanceof TimeRangeClaim) {
-      if (!this.timeRange) {
-        this.timeRange = []
-      }
-      this.timeRange.push(claim)
-    } else {
-      const exhaustiveCheck: never = claim
-      throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`, claim)
     }
+
+    const exhaustiveCheck: never = claim
+    throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`, claim)
+  }
+
+  static from(obj: object): ClaimTypes {
+    const claimTypes = Object.assign(new ClaimTypes(), obj)
+    for (const [name, claimType] of Object.entries(claimTypesMap)) {
+      for (const [i, claim] of (claimTypes[name] || []).entries()) {
+        claimTypes[name][i] = claimType.from(claim)
+      }
+    }
+    return claimTypes
   }
 }
 
@@ -277,10 +346,30 @@ export class PeerDBDocument implements ClaimsContainer {
 
     this.claims.Add(claim)
   }
+
+  static from(obj: object): PeerDBDocument {
+    const doc = Object.assign(new PeerDBDocument(), obj)
+    if (typeof doc.claims !== "undefined") {
+      doc.claims = ClaimTypes.from(doc.claims)
+    }
+    return doc
+  }
 }
 
 interface Change {
   Apply(doc: PeerDBDocument, id: string): void
+}
+
+export function changeFrom(obj: object): Change {
+  switch (obj.type) {
+    case "add":
+      return AddClaimChange.from(obj)
+    case "set":
+      return SetClaimChange.from(obj)
+    case "remove":
+      return RemoveClaimChange.from(obj)
+  }
+  throw new Error(`change of type "${obj.type}" is not supported`)
 }
 
 export class AddClaimChange implements Change {
@@ -307,6 +396,12 @@ export class AddClaimChange implements Change {
 
     claim.Add(newClaim)
   }
+
+  static from(obj: object): AddClaimChange {
+    const change = Object.assign(new AddClaimChange(), obj)
+    change.patch = claimPatchFrom(change.patch)
+    return change
+  }
 }
 
 export class SetClaimChange implements Change {
@@ -325,6 +420,12 @@ export class SetClaimChange implements Change {
     }
     this.patch.Apply(claim)
   }
+
+  static from(obj: object): SetClaimChange {
+    const change = Object.assign(new SetClaimChange(), obj)
+    change.patch = claimPatchFrom(change.patch)
+    return change
+  }
 }
 
 export class RemoveClaimChange implements Change {
@@ -340,6 +441,10 @@ export class RemoveClaimChange implements Change {
     if (!claim) {
       throw new Error(`claim with ID "${this.id}" not found`)
     }
+  }
+
+  static from(obj: object): RemoveClaimChange {
+    return Object.assign(new RemoveClaimChange(), obj)
   }
 }
 
@@ -364,11 +469,46 @@ export class Changes implements Change {
   toJSON(): Change[] {
     return this.changes
   }
+
+  static from(objs: object[]): Changes {
+    const changes = objs.map(changeFrom)
+    return new Changes(...changes)
+  }
 }
 
 interface ClaimPatch {
   New(id: string): Claim
   Apply(claim: Claim): void
+}
+
+export function claimPatchFrom(obj: object): ClaimPatch {
+  switch (obj.type) {
+    case "id":
+      return IdentifierClaimPatch.from(obj)
+    case "ref":
+      return ReferenceClaimPatch.from(obj)
+    case "text":
+      return TextClaimPatch.from(obj)
+    case "string":
+      return StringClaimPatch.from(obj)
+    case "amount":
+      return AmountClaimPatch.from(obj)
+    case "amountRange":
+      return AmountRangeClaimPatch.from(obj)
+    case "rel":
+      return RelationClaimPatch.from(obj)
+    case "file":
+      return FileClaimPatch.from(obj)
+    case "none":
+      return NoValueClaimPatch.from(obj)
+    case "unknown":
+      return UnknownValueClaimPatch.from(obj)
+    case "time":
+      return TimeClaimPatch.from(obj)
+    case "timeRange":
+      return TimeRangeClaimPatch.from(obj)
+  }
+  throw new Error(`patch of type "${obj.type}" is not supported`)
 }
 
 export class IdentifierClaimPatch implements ClaimPatch {
@@ -412,6 +552,10 @@ export class IdentifierClaimPatch implements ClaimPatch {
       claim.value = this.value
     }
   }
+
+  static from(obj: object): IdentifierClaimPatch {
+    return Object.assign(new IdentifierClaimPatch(), obj)
+  }
 }
 
 export class ReferenceClaimPatch implements ClaimPatch {
@@ -454,6 +598,10 @@ export class ReferenceClaimPatch implements ClaimPatch {
     if (typeof this.iri !== "undefined") {
       claim.iri = this.iri
     }
+  }
+
+  static from(obj: object): ReferenceClaimPatch {
+    return Object.assign(new ReferenceClaimPatch(), obj)
   }
 }
 
@@ -508,6 +656,10 @@ export class TextClaimPatch implements ClaimPatch {
       claim.html[lang] = value
     }
   }
+
+  static from(obj: object): TextClaimPatch {
+    return Object.assign(new TextClaimPatch(), obj)
+  }
 }
 
 export class StringClaimPatch implements ClaimPatch {
@@ -550,6 +702,10 @@ export class StringClaimPatch implements ClaimPatch {
     if (typeof this.string !== "undefined") {
       claim.string = this.string
     }
+  }
+
+  static from(obj: object): StringClaimPatch {
+    return Object.assign(new StringClaimPatch(), obj)
   }
 }
 
@@ -598,6 +754,10 @@ export class AmountClaimPatch implements ClaimPatch {
     if (typeof this.unit !== "undefined") {
       claim.unit = this.unit
     }
+  }
+
+  static from(obj: object): AmountClaimPatch {
+    return Object.assign(new AmountClaimPatch(), obj)
   }
 }
 
@@ -652,6 +812,10 @@ export class AmountRangeClaimPatch implements ClaimPatch {
       claim.unit = this.unit
     }
   }
+
+  static from(obj: object): AmountRangeClaimPatch {
+    return Object.assign(new AmountRangeClaimPatch(), obj)
+  }
 }
 
 export class RelationClaimPatch implements ClaimPatch {
@@ -697,6 +861,10 @@ export class RelationClaimPatch implements ClaimPatch {
     if (typeof this.to !== "undefined") {
       claim.to.id = this.to
     }
+  }
+
+  static from(obj: object): RelationClaimPatch {
+    return Object.assign(new RelationClaimPatch(), obj)
   }
 }
 
@@ -751,6 +919,10 @@ export class FileClaimPatch implements ClaimPatch {
       claim.preview = this.preview
     }
   }
+
+  static from(obj: object): FileClaimPatch {
+    return Object.assign(new FileClaimPatch(), obj)
+  }
 }
 
 export class NoValueClaimPatch implements ClaimPatch {
@@ -789,6 +961,10 @@ export class NoValueClaimPatch implements ClaimPatch {
       claim.prop.id = this.prop
     }
   }
+
+  static from(obj: object): NoValueClaimPatch {
+    return Object.assign(new NoValueClaimPatch(), obj)
+  }
 }
 
 export class UnknownValueClaimPatch implements ClaimPatch {
@@ -826,6 +1002,10 @@ export class UnknownValueClaimPatch implements ClaimPatch {
     if (typeof this.prop !== "undefined") {
       claim.prop.id = this.prop
     }
+  }
+
+  static from(obj: object): UnknownValueClaimPatch {
+    return Object.assign(new UnknownValueClaimPatch(), obj)
   }
 }
 
@@ -874,6 +1054,10 @@ export class TimeClaimPatch implements ClaimPatch {
     if (typeof this.precision !== "undefined") {
       claim.precision = this.precision
     }
+  }
+
+  static from(obj: object): TimeClaimPatch {
+    return Object.assign(new TimeClaimPatch(), obj)
   }
 }
 
@@ -927,5 +1111,9 @@ export class TimeRangeClaimPatch implements ClaimPatch {
     if (typeof this.precision !== "undefined") {
       claim.precision = this.precision
     }
+  }
+
+  static from(obj: object): TimeRangeClaimPatch {
+    return Object.assign(new TimeRangeClaimPatch(), obj)
   }
 }
