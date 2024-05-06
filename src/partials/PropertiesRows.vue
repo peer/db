@@ -59,8 +59,8 @@ async function onRemove(id: string) {
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.value }}</td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.value)">Edit</Button>
-        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.value)">Remove</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
+        <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
