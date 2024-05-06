@@ -4,12 +4,14 @@ import type { DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
 import { ref, computed, readonly, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import { CheckIcon } from "@heroicons/vue/20/solid"
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
 import Button from "@/components/Button.vue"
+import InputText from "@/components/InputText.vue"
 import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { changeFrom, PeerDBDocument, RemoveClaimChange, idAtChange } from "@/document"
+import { changeFrom, PeerDBDocument, RemoveClaimChange, idAtChange, AddClaimChange } from "@/document"
 import { getName, encodeQuery } from "@/utils"
 import { injectProgress } from "@/progress"
 import { getURL, postJSON, getURLDirect, deleteFromCache } from "@/api"
@@ -18,6 +20,24 @@ const props = defineProps<{
   id: string
   session: string
 }>()
+
+const claimTypes: ("id" | "ref" | "text" | "string" | "amount" | "amountRange" | "rel" | "file" | "none" | "unknown" | "time" | "timeRange")[] = [
+  "id",
+  "ref",
+  "text",
+  "string",
+  "amount",
+  "amountRange",
+  "rel",
+  "file",
+  "none",
+  "unknown",
+  "time",
+  "timeRange",
+]
+const claimType = ref<"id" | "ref" | "text" | "string" | "amount" | "amountRange" | "rel" | "file" | "none" | "unknown" | "time" | "timeRange">("id")
+const claimProp = ref("")
+const claimValue = ref("")
 
 const router = useRouter()
 
@@ -167,6 +187,45 @@ async function onAddClaim() {
   if (abortController.signal.aborted) {
     return
   }
+
+  try {
+    await postJSON(
+      router.apiResolve({
+        name: "DocumentSaveChange",
+        params: {
+          session: props.session,
+        },
+        query: encodeQuery({ change: String(latestChange + 1) }),
+      }).href,
+      new AddClaimChange({
+        patch: {
+          // TODO: Make more specific for each patch.
+          type: claimType.value,
+          prop: claimProp.value,
+          value: claimValue.value,
+          iri: claimValue.value,
+          html: {
+            en: claimValue.value,
+          },
+          string: claimValue.value,
+          amount: claimValue.value,
+          to: claimValue.value,
+          timestamp: claimValue.value,
+        },
+      }),
+      abortController.signal,
+      null,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("DocumentEdit.onAddClaim", err)
+  }
 }
 
 async function onEditClaim(id: string) {
@@ -208,6 +267,10 @@ async function onRemoveClaim(id: string) {
     console.error("DocumentEdit.onRemoveClaim", err)
   }
 }
+
+function onChangeTab(index: number) {
+  claimType.value = claimTypes[index]
+}
 </script>
 
 <template>
@@ -237,8 +300,138 @@ async function onRemoveClaim(id: string) {
           </tbody>
         </table>
         <h2 class="mt-4 text-xl font-bold drop-shadow-sm">Add claim</h2>
-
-        <Button type="button" class="mt-4" @click.prevent="onAddClaim">Add</Button>
+        <TabGroup @change="onChangeTab">
+          <TabList class="mt-4 flex border-collapse flex-row border bg-slate-100">
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Identifier</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Reference</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Text</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >String</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Amount</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Amount range</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Relation</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >File</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >No value</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Unknown value</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Time</Tab
+            >
+            <Tab
+              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >Time range</Tab
+            >
+          </TabList>
+          <TabPanels>
+            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Value</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">IRI</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Text</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">String</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Amount</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Lower</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Upper</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">To</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Media type</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">URL</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Preview URL</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Timestamp</label>
+              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Lower</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <label for="identifier-property" class="mt-4 mb-1">Upper</label>
+              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+            </TabPanel>
+          </TabPanels>
+        </TabGroup>
+        <Button type="button" class="mt-6" @click.prevent="onAddClaim">Add</Button>
       </template>
     </div>
   </div>
