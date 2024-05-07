@@ -324,7 +324,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 		At: time.Now().UTC(),
 	}
 
-	errE = site.coordinator.Set(ctx, session, change, buffer, metadata)
+	_, errE = site.coordinator.Append(ctx, session, buffer, metadata, &change)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

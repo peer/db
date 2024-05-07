@@ -21,6 +21,7 @@ const (
 	// Our PostgreSQL error codes.
 	errorCodeSessionNotFound = "P1020"
 	errorCodeAlreadyEnded    = "P1021"
+	errorCodeConflict        = "P1022"
 )
 
 // AppendedOperation represents an operation appended to a session.
@@ -112,7 +113,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 				END;
 			$$;
 
-			CREATE FUNCTION "`+c.Prefix+`PushOperation"(_session text, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
+			CREATE FUNCTION "`+c.Prefix+`AppendOperation"(_session text, _metadata `+c.MetadataType+`, _data `+c.DataType+`, _expectedOperation bigint)
 				RETURNS bigint LANGUAGE plpgsql AS $$
 				DECLARE
 					_sessionEnded boolean;
@@ -128,25 +129,12 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 					END IF;
 					INSERT INTO "`+c.Prefix+`Operations" SELECT _session, COALESCE(MAX("operation"), 0)+1, _data, _metadata
 						FROM "`+c.Prefix+`Operations" WHERE "session"=_session
+						HAVING _expectedOperation IS NULL OR COALESCE(MAX("operation"), 0)+1=_expectedOperation
 						RETURNING "operation" INTO _operation;
-					RETURN _operation;
-				END;
-			$$;
-
-			CREATE FUNCTION "`+c.Prefix+`SetOperation"(_session text, _operation bigint, _metadata `+c.MetadataType+`, _data `+c.DataType+`)
-				RETURNS void LANGUAGE plpgsql AS $$
-				DECLARE
-					_sessionEnded boolean;
-				BEGIN
-					-- Does session exist and has not ended.
-					SELECT "endMetadata" IS NOT NULL INTO _sessionEnded
-						FROM "`+c.Prefix+`Sessions" WHERE "session"=_session;
 					IF NOT FOUND THEN
-						RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
-					ELSIF _sessionEnded THEN
-						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
+						RAISE EXCEPTION 'conflict' USING ERRCODE='`+errorCodeConflict+`';
 					END IF;
-					INSERT INTO "`+c.Prefix+`Operations" VALUES (_session, _operation, _data, _metadata);
+					RETURN _operation;
 				END;
 			$$;
 		`)
@@ -246,21 +234,25 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 	return m, errE
 }
 
-// Push appends a new operation into the log with the next available operation number.
+// Append appends a new operation into the log with the next available operation number.
 //
 // Data is optional and can be nil.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
+//
+// Optional expected operation number can be provided in which case the next available
+// operation number has to match the provided number for the call to succeed.
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Append(
 	ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata,
+	expectedOperation *int64,
 ) (int64, errors.E) {
 	arguments := []any{
-		session.String(), metadata, data,
+		session.String(), metadata, data, expectedOperation,
 	}
 	var operation int64
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		operation = 0
 
-		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`PushOperation"($1, $2, $3)`, arguments...).Scan(&operation)
+		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`AppendOperation"($1, $2, $3, $4)`, arguments...).Scan(&operation)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -270,6 +262,8 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
 					return errors.WrapWith(errE, ErrSessionNotFound)
 				case errorCodeAlreadyEnded:
 					return errors.WrapWith(errE, ErrAlreadyEnded)
+				case errorCodeConflict:
+					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
 			return errE
@@ -287,50 +281,6 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Push(
 		errors.Details(errE)["session"] = session.String()
 	}
 	return operation, errE
-}
-
-// Set appends a new operation into the log with the provided operation number.
-//
-// The provided operation number has to be available for the call to succeed.
-//
-// Data is optional and can be nil.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Set(
-	ctx context.Context, session identifier.Identifier, operation int64, data Data, metadata OperationMetadata,
-) errors.E {
-	arguments := []any{
-		session.String(), operation, metadata, data,
-	}
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`SetOperation"($1, $2, $3, $4)`, arguments...)
-		if err != nil {
-			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
-				switch pgError.Code {
-				case errorCodeSessionNotFound:
-					return errors.WrapWith(errE, ErrSessionNotFound)
-				case errorCodeAlreadyEnded:
-					return errors.WrapWith(errE, ErrAlreadyEnded)
-				case internal.ErrorCodeUniqueViolation:
-					return errors.WrapWith(errE, ErrConflict)
-				}
-			}
-			return errE
-		}
-		return nil
-	}, func() {
-		if c.Appended != nil {
-			c.Appended <- AppendedOperation{
-				Session:   session,
-				Operation: operation,
-			}
-		}
-	})
-	if errE != nil {
-		errors.Details(errE)["session"] = session.String()
-		errors.Details(errE)["operation"] = operation
-	}
-	return errE
 }
 
 // List returns up to MaxPageLength operation numbers appended to the session, in decreasing order

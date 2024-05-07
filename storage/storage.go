@@ -222,7 +222,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		Start:  start,
 		Length: int64(len(chunk)),
 	}
-	_, errE = s.coordinator.Push(ctx, session, chunk, metadata)
+	_, errE = s.coordinator.Append(ctx, session, chunk, metadata, nil)
 	return errE
 }
 

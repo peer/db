@@ -20,16 +20,16 @@ import (
 )
 
 type testCase[Data, Metadata any] struct {
-	BeginMetadata Metadata
-	Push1Data     Data
-	Push1Metadata Metadata
-	Push2Data     Data
-	Push2Metadata Metadata
-	Set1Data      Data
-	Set1Metadata  Metadata
-	Set2Data      Data
-	Set2Metadata  Metadata
-	EndMetadata   Metadata
+	BeginMetadata   Metadata
+	Append1Data     Data
+	Append1Metadata Metadata
+	Append2Data     Data
+	Append2Metadata Metadata
+	Append3Data     Data
+	Append3Metadata Metadata
+	Append4Data     Data
+	Append4Metadata Metadata
+	EndMetadata     Metadata
 }
 
 func TestHappyPath(t *testing.T) {
@@ -42,55 +42,55 @@ func TestHappyPath(t *testing.T) {
 			t.Parallel()
 
 			testHappyPath(t, testCase[*internal.TestData, *internal.TestMetadata]{
-				BeginMetadata: &internal.TestMetadata{Metadata: "begin"},
-				Push1Data:     &internal.TestData{Data: 123, Patch: false},
-				Push1Metadata: &internal.TestMetadata{Metadata: "push1"},
-				Push2Data:     nil,
-				Push2Metadata: &internal.TestMetadata{Metadata: "push2"},
-				Set1Data:      &internal.TestData{Data: 345, Patch: false},
-				Set1Metadata:  &internal.TestMetadata{Metadata: "set1"},
-				Set2Data:      nil,
-				Set2Metadata:  &internal.TestMetadata{Metadata: "set2"},
-				EndMetadata:   &internal.TestMetadata{Metadata: "end"},
+				BeginMetadata:   &internal.TestMetadata{Metadata: "begin"},
+				Append1Data:     &internal.TestData{Data: 123, Patch: false},
+				Append1Metadata: &internal.TestMetadata{Metadata: "append1"},
+				Append2Data:     nil,
+				Append2Metadata: &internal.TestMetadata{Metadata: "append2"},
+				Append3Data:     &internal.TestData{Data: 345, Patch: false},
+				Append3Metadata: &internal.TestMetadata{Metadata: "append3"},
+				Append4Data:     nil,
+				Append4Metadata: &internal.TestMetadata{Metadata: "append4"},
+				EndMetadata:     &internal.TestMetadata{Metadata: "end"},
 			}, dataType)
 
 			testHappyPath(t, testCase[json.RawMessage, json.RawMessage]{
-				BeginMetadata: json.RawMessage(`{"metadata": "begin"}`),
-				Push1Data:     json.RawMessage(`{"data": 123}`),
-				Push1Metadata: json.RawMessage(`{"metadata": "push1"}`),
-				Push2Data:     nil,
-				Push2Metadata: json.RawMessage(`{"metadata": "push2"}`),
-				Set1Data:      json.RawMessage(`{"data": 345}`),
-				Set1Metadata:  json.RawMessage(`{"metadata": "set1"}`),
-				Set2Data:      nil,
-				Set2Metadata:  json.RawMessage(`{"metadata": "set2"}`),
-				EndMetadata:   json.RawMessage(`{"metadata": "end"}`),
+				BeginMetadata:   json.RawMessage(`{"metadata": "begin"}`),
+				Append1Data:     json.RawMessage(`{"data": 123}`),
+				Append1Metadata: json.RawMessage(`{"metadata": "append1"}`),
+				Append2Data:     nil,
+				Append2Metadata: json.RawMessage(`{"metadata": "append2"}`),
+				Append3Data:     json.RawMessage(`{"data": 345}`),
+				Append3Metadata: json.RawMessage(`{"metadata": "append3"}`),
+				Append4Data:     nil,
+				Append4Metadata: json.RawMessage(`{"metadata": "append4"}`),
+				EndMetadata:     json.RawMessage(`{"metadata": "end"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[*json.RawMessage, *json.RawMessage]{
-				BeginMetadata: internal.ToRawMessagePtr(`{"metadata": "begin"}`),
-				Push1Data:     internal.ToRawMessagePtr(`{"data": 123}`),
-				Push1Metadata: internal.ToRawMessagePtr(`{"metadata": "push1"}`),
-				Push2Data:     nil,
-				Push2Metadata: internal.ToRawMessagePtr(`{"metadata": "push2"}`),
-				Set1Data:      internal.ToRawMessagePtr(`{"data": 345}`),
-				Set1Metadata:  internal.ToRawMessagePtr(`{"metadata": "set1"}`),
-				Set2Data:      nil,
-				Set2Metadata:  internal.ToRawMessagePtr(`{"metadata": "set2"}`),
-				EndMetadata:   internal.ToRawMessagePtr(`{"metadata": "end"}`),
+				BeginMetadata:   internal.ToRawMessagePtr(`{"metadata": "begin"}`),
+				Append1Data:     internal.ToRawMessagePtr(`{"data": 123}`),
+				Append1Metadata: internal.ToRawMessagePtr(`{"metadata": "append1"}`),
+				Append2Data:     nil,
+				Append2Metadata: internal.ToRawMessagePtr(`{"metadata": "append2"}`),
+				Append3Data:     internal.ToRawMessagePtr(`{"data": 345}`),
+				Append3Metadata: internal.ToRawMessagePtr(`{"metadata": "append3"}`),
+				Append4Data:     nil,
+				Append4Metadata: internal.ToRawMessagePtr(`{"metadata": "append4"}`),
+				EndMetadata:     internal.ToRawMessagePtr(`{"metadata": "end"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[[]byte, []byte]{
-				BeginMetadata: []byte(`{"metadata": "begin"}`),
-				Push1Data:     []byte(`{"data": 123}`),
-				Push1Metadata: []byte(`{"metadata": "push1"}`),
-				Push2Data:     nil,
-				Push2Metadata: []byte(`{"metadata": "push2"}`),
-				Set1Data:      []byte(`{"data": 345}`),
-				Set1Metadata:  []byte(`{"metadata": "set1"}`),
-				Set2Data:      nil,
-				Set2Metadata:  []byte(`{"metadata": "set2"}`),
-				EndMetadata:   []byte(`{"metadata": "end"}`),
+				BeginMetadata:   []byte(`{"metadata": "begin"}`),
+				Append1Data:     []byte(`{"data": 123}`),
+				Append1Metadata: []byte(`{"metadata": "append1"}`),
+				Append2Data:     nil,
+				Append2Metadata: []byte(`{"metadata": "append2"}`),
+				Append3Data:     []byte(`{"data": 345}`),
+				Append3Metadata: []byte(`{"metadata": "append3"}`),
+				Append4Data:     nil,
+				Append4Metadata: []byte(`{"metadata": "append4"}`),
+				EndMetadata:     []byte(`{"metadata": "end"}`),
 			}, dataType)
 		})
 	}
@@ -179,7 +179,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	session, errE := c.Begin(ctx, d.BeginMetadata)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	i, errE := c.Push(ctx, session, d.Push1Data, d.Push1Metadata)
+	i, errE := c.Append(ctx, session, d.Append1Data, d.Append1Metadata, nil)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
@@ -192,7 +192,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		}, appended[0])
 	}
 
-	i, errE = c.Push(ctx, session, d.Push2Data, d.Push2Metadata)
+	i, errE = c.Append(ctx, session, d.Append2Data, d.Append2Metadata, nil)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), i)
 
@@ -205,8 +205,10 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		}, appended[0])
 	}
 
-	errE = c.Set(ctx, session, 3, d.Set1Data, d.Set1Metadata)
+	operation := int64(3)
+	i, errE = c.Append(ctx, session, d.Append3Data, d.Append3Metadata, &operation)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(3), i)
 
 	time.Sleep(10 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
@@ -217,8 +219,10 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		}, appended[0])
 	}
 
-	errE = c.Set(ctx, session, 4, d.Set2Data, d.Set2Metadata)
+	operation = 4
+	i, errE = c.Append(ctx, session, d.Append4Data, d.Append4Metadata, &operation)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(4), i)
 
 	time.Sleep(10 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
@@ -235,39 +239,39 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 
 	data, metadata, errE := c.GetData(ctx, session, 1)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Push1Data, data)
-	assert.Equal(t, d.Push1Metadata, metadata)
+	assert.Equal(t, d.Append1Data, data)
+	assert.Equal(t, d.Append1Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, data)
-	assert.Equal(t, d.Push2Metadata, metadata)
+	assert.Equal(t, d.Append2Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 3)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Set1Data, data)
-	assert.Equal(t, d.Set1Metadata, metadata)
+	assert.Equal(t, d.Append3Data, data)
+	assert.Equal(t, d.Append3Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 4)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, data)
-	assert.Equal(t, d.Set2Metadata, metadata)
+	assert.Equal(t, d.Append4Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 1)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Push1Metadata, metadata)
+	assert.Equal(t, d.Append1Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 2)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Push2Metadata, metadata)
+	assert.Equal(t, d.Append2Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 3)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Set1Metadata, metadata)
+	assert.Equal(t, d.Append3Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 4)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, d.Set2Metadata, metadata)
+	assert.Equal(t, d.Append4Metadata, metadata)
 
 	beginMetadata, endMetadata, errE := c.Get(ctx, session)
 	assert.NoError(t, errE, "% -+#.1v", errE)
@@ -309,10 +313,11 @@ func TestErrors(t *testing.T) {
 	_, errE = c.End(ctx, identifier.New(), internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	_, errE = c.Push(ctx, identifier.New(), internal.DummyData, internal.DummyData)
+	_, errE = c.Append(ctx, identifier.New(), internal.DummyData, internal.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	errE = c.Set(ctx, identifier.New(), 1, internal.DummyData, internal.DummyData)
+	operation := int64(1)
+	_, errE = c.Append(ctx, identifier.New(), internal.DummyData, internal.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	_, _, errE = c.GetData(ctx, identifier.New(), 1)
@@ -324,10 +329,11 @@ func TestErrors(t *testing.T) {
 	session, errE := c.Begin(ctx, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = c.Set(ctx, session, 1, internal.DummyData, internal.DummyData)
+	i, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
 	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), i)
 
-	errE = c.Set(ctx, session, 1, internal.DummyData, internal.DummyData)
+	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrConflict)
 
 	_, _, errE = c.GetData(ctx, session, 2)
@@ -339,10 +345,11 @@ func TestErrors(t *testing.T) {
 	_, errE = c.End(ctx, session, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = c.Push(ctx, session, internal.DummyData, internal.DummyData)
+	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	errE = c.Set(ctx, session, 2, internal.DummyData, internal.DummyData)
+	operation = 2
+	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	_, _, errE = c.GetData(ctx, session, 1)
@@ -369,7 +376,7 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for i := 0; i < 6000; i++ {
-		o, errE := c.Push(ctx, session, internal.DummyData, internal.DummyData) //nolint:govet
+		o, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, nil) //nolint:govet
 		require.NoError(t, errE, "%d % -+#.1v", errE)
 
 		operations = append(operations, o)
@@ -383,14 +390,14 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1000)
 
-	pushed := []int64{}
-	pushed = append(pushed, page1...)
-	pushed = append(pushed, page2...)
+	allPages := []int64{}
+	allPages = append(allPages, page1...)
+	allPages = append(allPages, page2...)
 
 	slices.Sort(operations)
 	slices.Reverse(operations)
 
-	assert.Equal(t, operations, pushed)
+	assert.Equal(t, operations, allPages)
 
 	time.Sleep(10 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
