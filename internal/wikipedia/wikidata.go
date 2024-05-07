@@ -175,13 +175,11 @@ func getDocumentReference(id, source string) document.Reference {
 	if strings.HasPrefix(id, "M") {
 		return document.Reference{
 			ID:        nil,
-			Score:     0,
 			Temporary: []string{WikimediaCommonsEntityReference, id},
 		}
 	} else if strings.HasPrefix(id, "P") || strings.HasPrefix(id, "Q") {
 		return document.Reference{
 			ID:        nil,
-			Score:     0,
 			Temporary: []string{WikidataReference, id},
 		}
 	} else if strings.HasPrefix(id, "Category:") {
@@ -189,13 +187,11 @@ func getDocumentReference(id, source string) document.Reference {
 		case "ENGLISH_WIKIPEDIA":
 			return document.Reference{
 				ID:        nil,
-				Score:     0,
 				Temporary: []string{WikipediaCategoryReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return document.Reference{
 				ID:        nil,
-				Score:     0,
 				Temporary: []string{WikimediaCommonsCategoryReference, id},
 			}
 		}
@@ -204,20 +200,17 @@ func getDocumentReference(id, source string) document.Reference {
 		case "ENGLISH_WIKIPEDIA":
 			return document.Reference{
 				ID:        nil,
-				Score:     0,
 				Temporary: []string{WikipediaTemplateReference, id},
 			}
 		case "WIKIMEDIA_COMMONS":
 			return document.Reference{
 				ID:        nil,
-				Score:     0,
 				Temporary: []string{WikimediaCommonsTemplateReference, id},
 			}
 		}
 	} else if strings.HasPrefix(id, "File:") {
 		return document.Reference{
 			ID:        nil,
-			Score:     0,
 			Temporary: []string{WikimediaCommonsFileReference, id},
 		}
 	}

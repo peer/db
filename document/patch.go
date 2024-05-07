@@ -374,8 +374,7 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		Value: *p.Value,
 	}, nil
@@ -448,8 +447,7 @@ func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		IRI: *p.IRI,
 	}, nil
@@ -526,8 +524,7 @@ func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		HTML: p.HTML,
 	}, nil
@@ -603,8 +600,7 @@ func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		String: *p.String,
 	}, nil
@@ -678,8 +674,7 @@ func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		Amount: *p.Amount,
 		Unit:   *p.Unit,
@@ -758,8 +753,7 @@ func (p AmountRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) {
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		Lower: *p.Lower,
 		Upper: *p.Upper,
@@ -840,12 +834,10 @@ func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		To: Reference{
-			ID:    p.To,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.To,
 		},
 	}, nil
 }
@@ -919,8 +911,7 @@ func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		MediaType: *p.MediaType,
 		URL:       *p.URL,
@@ -1000,8 +991,7 @@ func (p NoValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //n
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 	}, nil
 }
@@ -1069,8 +1059,7 @@ func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 	}, nil
 }
@@ -1140,8 +1129,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		Timestamp: *p.Timestamp,
 		Precision: *p.Precision,
@@ -1220,8 +1208,7 @@ func (p TimeRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 			Confidence: 1.0, // TODO How to make it configurable?
 		},
 		Prop: Reference{
-			ID:    p.Prop,
-			Score: 1.0, // TODO: Fetch if from the store?
+			ID: p.Prop,
 		},
 		Lower:     *p.Lower,
 		Upper:     *p.Upper,

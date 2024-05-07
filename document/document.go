@@ -28,8 +28,7 @@ var _ ClaimsContainer = (*D)(nil)
 
 func (d D) Reference() Reference {
 	return Reference{
-		ID:    &d.ID,
-		Score: d.Score,
+		ID: &d.ID,
 	}
 }
 

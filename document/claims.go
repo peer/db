@@ -297,8 +297,7 @@ type Confidence = Score
 type Score float64
 
 type Reference struct {
-	ID    *identifier.Identifier `json:"id,omitempty"`
-	Score Score                  `json:"score"`
+	ID *identifier.Identifier `json:"id,omitempty"`
 
 	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
 	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"` //nolint:tagliatelle

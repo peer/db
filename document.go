@@ -194,8 +194,7 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 	id := identifier.New()
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
-			ID:    id,
-			Score: 1.0, // TODO How to make it configurable?
+			ID: id,
 		},
 	}
 	data, errE := x.MarshalWithoutEscapeHTML(doc)

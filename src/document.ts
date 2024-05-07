@@ -41,7 +41,6 @@ class CoreClaim implements ClaimsContainer {
 
 type DocumentReference = {
   id: string
-  score: number
 }
 
 class IdentifierClaim extends CoreClaim {
@@ -530,7 +529,6 @@ export class IdentifierClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       value: this.value,
     })
@@ -577,7 +575,6 @@ export class ReferenceClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       iri: this.iri,
     })
@@ -630,7 +627,6 @@ export class TextClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       html: this.html,
     })
@@ -681,7 +677,6 @@ export class StringClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       string: this.string,
     })
@@ -729,7 +724,6 @@ export class AmountClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       amount: this.amount,
       unit: this.unit,
@@ -782,7 +776,6 @@ export class AmountRangeClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       lower: this.lower,
       upper: this.upper,
@@ -837,11 +830,9 @@ export class RelationClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       to: {
         id: this.to,
-        score: 1.0, // TODO: Fetch if from the store?
       },
     })
   }
@@ -889,7 +880,6 @@ export class FileClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       mediaType: this.mediaType,
       url: this.url,
@@ -943,7 +933,6 @@ export class NoValueClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
     })
   }
@@ -985,7 +974,6 @@ export class UnknownValueClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
     })
   }
@@ -1029,7 +1017,6 @@ export class TimeClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       timestamp: this.timestamp,
       precision: this.precision,
@@ -1082,7 +1069,6 @@ export class TimeRangeClaimPatch implements ClaimPatch {
       confidence: 1.0, // TODO How to make it configurable?
       prop: {
         id: this.prop,
-        score: 1.0, // TODO: Fetch if from the store?
       },
       lower: this.lower,
       upper: this.upper,

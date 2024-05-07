@@ -236,8 +236,7 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("NAME")),
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(property.Name),
@@ -249,8 +248,7 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("DESCRIPTION")),
 						},
 						HTML: TranslatableHTMLString{
 							"en": property.DescriptionHTML,
@@ -264,12 +262,10 @@ func GenerateCoreProperties(properties []struct {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("IS")),
 						},
 						To: Reference{
-							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("PROPERTY")),
 						},
 					},
 				},
@@ -284,12 +280,10 @@ func GenerateCoreProperties(properties []struct {
 					Confidence: 1.0,
 				},
 				Prop: Reference{
-					ID:    getPointer(GetCorePropertyID("IS")),
-					Score: LowConfidence,
+					ID: getPointer(GetCorePropertyID("IS")),
 				},
 				To: Reference{
-					ID:    getPointer(GetCorePropertyID(isClaimMnemonic)),
-					Score: LowConfidence,
+					ID: getPointer(GetCorePropertyID(isClaimMnemonic)),
 				},
 			})
 		}
@@ -318,8 +312,7 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("NAME")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("NAME")),
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(name),
@@ -331,8 +324,7 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("DESCRIPTION")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("DESCRIPTION")),
 						},
 						HTML: TranslatableHTMLString{
 							"en": html.EscapeString(description),
@@ -346,12 +338,10 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("IS")),
 						},
 						To: Reference{
-							ID:    getPointer(GetCorePropertyID("PROPERTY")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("PROPERTY")),
 						},
 					},
 					{
@@ -360,12 +350,10 @@ func generateAllCoreProperties() {
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID:    getPointer(GetCorePropertyID("IS")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("IS")),
 						},
 						To: Reference{
-							ID:    getPointer(GetCorePropertyID("CLAIM_TYPE")),
-							Score: LowConfidence,
+							ID: getPointer(GetCorePropertyID("CLAIM_TYPE")),
 						},
 					},
 				},

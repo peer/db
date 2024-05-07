@@ -159,8 +159,7 @@ But at a high-level look like:
         "id": "22 character ID",
         "confidence": 1.0,
         "prop": {
-          "id": "22 character property ID",
-          "score": 0.5
+          "id": "22 character property ID"
         },
         "id": "external ID value"
       }
@@ -235,8 +234,7 @@ post into the following two PeerDB documents:
         "id": "YWYAgufBtjegbQc512GFci",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "Foo Bar"
@@ -248,8 +246,7 @@ post into the following two PeerDB documents:
         "id": "9TfczNe5aa4LrKqWQWfnFF",
         "confidence": 1.0,
         "prop": {
-          "id": "Hx5zknvxsmPRiLFbGMPeiZ", // author username
-          "score": 0.5
+          "id": "Hx5zknvxsmPRiLFbGMPeiZ" // author username
         },
         "id": "foobar"
       }
@@ -259,12 +256,10 @@ post into the following two PeerDB documents:
         "id": "sgpzxwxPyn51j5VfH992ZQ",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "6asppjBfRGSTt5Df7Zvomb", // user
-          "score": 0.5
+          "id": "6asppjBfRGSTt5Df7Zvomb" // user
         }
       }
     ]
@@ -282,8 +277,7 @@ post into the following two PeerDB documents:
         "id": "KjwGqHqihAQEgNabdNQSNc",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "Some title"
@@ -293,8 +287,7 @@ post into the following two PeerDB documents:
         "id": "VdX1HZm1ETw8K77nLTV6yt",
         "confidence": 1.0,
         "prop": {
-          "id": "FJJLydayUgDuqFsRK2ZtbR", // ARTICLE
-          "score": 0.5
+          "id": "FJJLydayUgDuqFsRK2ZtbR" // ARTICLE
         },
         "html": {
           "en": "Some <b>blog post</b> body HTML"
@@ -306,8 +299,7 @@ post into the following two PeerDB documents:
         "id": "Ci3A1tLF6MHZ4y5zBibvGg",
         "confidence": 1.0,
         "prop": {
-          "id": "8mu7vrUK7zJ4Me2JwYUG6t", // blog post ID
-          "score": 0.5
+          "id": "8mu7vrUK7zJ4Me2JwYUG6t" // blog post ID
         },
         "id": "123"
       }
@@ -317,36 +309,30 @@ post into the following two PeerDB documents:
         "id": "xbufQEChDXvtg3hh4i1PvT",
         "confidence": 1.0,
         "prop": {
-          "id": "fmUeT7JN8qPuFw28Vdredm", // author
-          "score": 0.5
+          "id": "fmUeT7JN8qPuFw28Vdredm" // author
         },
         "to": {
-          "id": "LcrxeiU9XjxosmX8kiPCx6", // Foo Bar
-          "score": 0.5
+          "id": "LcrxeiU9XjxosmX8kiPCx6" // Foo Bar
         }
       },
       {
         "id": "LJNg7QaiMxE1crjMiijpaN",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "3APZXnK3uofpdEJV55Po18", // blog post
-          "score": 0.5
+          "id": "3APZXnK3uofpdEJV55Po18" // blog post
         }
       },
       {
         "id": "UxhYEJY6mpA147eujZ489B",
         "confidence": 1.0,
         "prop": {
-          "id": "5SoFeEFk5aWXUYFC1EZFec", // LABEL
-          "score": 0.5
+          "id": "5SoFeEFk5aWXUYFC1EZFec" // LABEL
         },
         "to": {
-          "id": "MQYs7JmAR3tge25eTPS8XT", // HAS_ARTICLE
-          "score": 0.5
+          "id": "MQYs7JmAR3tge25eTPS8XT" // HAS_ARTICLE
         }
       }
     ]
@@ -367,8 +353,7 @@ post into the following two PeerDB documents:
         "id": "c4xGoqaYKaFNqy6hD7RgV8",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "author username"
@@ -380,24 +365,20 @@ post into the following two PeerDB documents:
         "id": "5zZZ6nJFKuA5oNBu9QbsYY",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe", // PROPERTY
-          "score": 0.5
+          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
         }
       },
       {
         "id": "jjcWxq9VoVLhKqV2tnqz1A",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "UJEVrqCGa9f3vAWi2mNWc7", // IDENTIFIER_CLAIM_TYPE
-          "score": 0.5
+          "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
         }
       }
     ]
@@ -415,8 +396,7 @@ post into the following two PeerDB documents:
         "id": "Bj3wKeu49j8ncXYpZ7tuZ5",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "blog post ID"
@@ -428,24 +408,20 @@ post into the following two PeerDB documents:
         "id": "DWYDFZ2DbasS4Tyehnko2U",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe", // PROPERTY
-          "score": 0.5
+          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
         }
       },
       {
         "id": "ivhonZLA2ktDwyMawBLuKV",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "UJEVrqCGa9f3vAWi2mNWc7", // IDENTIFIER_CLAIM_TYPE
-          "score": 0.5
+          "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
         }
       }
     ]
@@ -463,8 +439,7 @@ post into the following two PeerDB documents:
         "id": "1NH97QxtHqJS6JAz1hzCxo",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "author"
@@ -476,24 +451,20 @@ post into the following two PeerDB documents:
         "id": "gK8nXxJ3AXErTmGPoAVF78",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe", // PROPERTY
-          "score": 0.5
+          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
         }
       },
       {
         "id": "pDBnb32Vd2VPd2UjPnd1eS",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HZ41G8fECg4CjfZN4dmYwf", // RELATION_CLAIM_TYPE
-          "score": 0.5
+          "id": "HZ41G8fECg4CjfZN4dmYwf" // RELATION_CLAIM_TYPE
         }
       }
     ]
@@ -511,8 +482,7 @@ post into the following two PeerDB documents:
         "id": "cVvsHG2ru2ojRJhV27Zj3E",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "user"
@@ -524,24 +494,20 @@ post into the following two PeerDB documents:
         "id": "79m7fNMHy7SRinSmB3WARM",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe", // PROPERTY
-          "score": 0.5
+          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
         }
       },
       {
         "id": "EuGC7ZRK7weuHNoZLDC8ah",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "6HpkLLj1iSK3XBhgHpc6n3", // ITEM
-          "score": 0.5
+          "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM
         }
       }
     ]
@@ -559,8 +525,7 @@ post into the following two PeerDB documents:
         "id": "961QCaiVomNHjjwRKtNejK",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg", // NAME
-          "score": 0.5
+          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
         },
         "html": {
           "en": "blog post"
@@ -572,24 +537,20 @@ post into the following two PeerDB documents:
         "id": "c24VwrPEMwZUhRgECzSn1b",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe", // PROPERTY
-          "score": 0.5
+          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
         }
       },
       {
         "id": "faByPL18Y1ZH2NAhea4FBy",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa", // IS
-          "score": 0.5
+          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
         },
         "to": {
-          "id": "6HpkLLj1iSK3XBhgHpc6n3", // ITEM
-          "score": 0.5
+          "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM
         }
       }
     ]

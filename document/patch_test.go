@@ -75,8 +75,7 @@ func TestPatchJSON(t *testing.T) {
 										Confidence: 1.0,
 									},
 									Prop: document.Reference{
-										ID:    &prop2,
-										Score: 1.0,
+										ID: &prop2,
 									},
 									Value: value,
 								},
@@ -84,8 +83,7 @@ func TestPatchJSON(t *testing.T) {
 						},
 					},
 					Prop: document.Reference{
-						ID:    &prop1,
-						Score: 1.0,
+						ID: &prop1,
 					},
 					Amount: amount,
 					Unit:   unit,

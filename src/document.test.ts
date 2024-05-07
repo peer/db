@@ -62,7 +62,6 @@ test("patch json", () => {
                   confidence: 1.0,
                   prop: {
                     id: prop2,
-                    score: 1.0,
                   },
                   value: "foobar",
                 },
@@ -70,7 +69,6 @@ test("patch json", () => {
             },
             prop: {
               id: prop1,
-              score: 1.0,
             },
             amount: 42.1,
             unit: "°C",

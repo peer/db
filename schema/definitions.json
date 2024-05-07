@@ -451,12 +451,9 @@
       "properties": {
         "id": {
           "$ref": "#/$defs/identifier"
-        },
-        "score": {
-          "$ref": "#/$defs/score"
         }
       },
-      "required": ["id", "score"],
+      "required": ["id"],
       "additionalProperties": false
     },
     "amountUnit": {
