@@ -228,7 +228,7 @@ func endDocumentSession(
 		return nil, errE
 	}
 
-	errE = changes.Apply(&doc, session)
+	errE = changes.Apply(&doc)
 	if errE != nil {
 		return nil, errE
 	}

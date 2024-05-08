@@ -2,6 +2,7 @@ package document
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strconv"
 
@@ -18,6 +19,12 @@ func isJSONArray(data []byte) bool {
 		return false
 	}
 	return t == '['
+}
+
+func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
+	namespace := uuid.UUID(base)
+	res := uuid.NewSHA1(namespace, []byte(strconv.FormatInt(i, 10)))
+	return identifier.FromUUID(res)
 }
 
 func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
@@ -60,6 +67,29 @@ func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 
 type Changes []Change
 
+func (c Changes) Apply(doc *D) errors.E {
+	for i, change := range c {
+		errE := change.Apply(doc)
+		if errE != nil {
+			errors.Details(errE)["change"] = i
+			return errE
+		}
+	}
+	return nil
+}
+
+func (c Changes) Validate(ctx context.Context, session identifier.Identifier, operation int64) errors.E {
+	base := idAtIndex(session, operation)
+	for i, change := range c {
+		errE := change.Validate(ctx, base, int64(i))
+		if errE != nil {
+			errors.Details(errE)["change"] = i
+			return errE
+		}
+	}
+	return nil
+}
+
 func (c *Changes) UnmarshalJSON(data []byte) error {
 	var changes []json.RawMessage
 	errE := x.UnmarshalWithoutUnknownFields(data, &changes)
@@ -93,20 +123,6 @@ func (c Changes) MarshalJSON() ([]byte, error) {
 	}
 	buffer.WriteString("]")
 	return buffer.Bytes(), nil
-}
-
-func (c Changes) Apply(doc *D, base identifier.Identifier) errors.E {
-	namespace := uuid.UUID(base)
-	for i, change := range c {
-		res := uuid.NewSHA1(namespace, []byte(strconv.Itoa(i)))
-		id := identifier.FromUUID(res)
-		errE := change.Apply(doc, id)
-		if errE != nil {
-			errors.Details(errE)["change"] = i
-			return errE
-		}
-	}
-	return nil
 }
 
 func changeUnmarshalJSON[T Change](data []byte) (Change, errors.E) { //nolint:ireturn
@@ -176,7 +192,8 @@ func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 }
 
 type Change interface {
-	Apply(doc *D, id identifier.Identifier) errors.E
+	Apply(doc *D) errors.E
+	Validate(ctx context.Context, session identifier.Identifier, operation int64) errors.E
 }
 
 var (
@@ -208,11 +225,12 @@ var (
 
 type AddClaimChange struct {
 	Under *identifier.Identifier `json:"under,omitempty"`
+	ID    identifier.Identifier  `json:"id"`
 	Patch ClaimPatch             `json:"patch"`
 }
 
-func (c AddClaimChange) Apply(doc *D, id identifier.Identifier) errors.E {
-	newClaim, errE := c.Patch.New(id)
+func (c AddClaimChange) Apply(doc *D) errors.E {
+	newClaim, errE := c.Patch.New(c.ID)
 	if errE != nil {
 		return errE
 	}
@@ -226,6 +244,17 @@ func (c AddClaimChange) Apply(doc *D, id identifier.Identifier) errors.E {
 		return errors.Errorf(`claim with ID "%s" not found`, *c.Under)
 	}
 	return claim.Add(newClaim)
+}
+
+func (c AddClaimChange) Validate(_ context.Context, session identifier.Identifier, operation int64) errors.E {
+	expectedID := idAtIndex(session, operation)
+	if expectedID != c.ID {
+		errE := errors.New("invalid ID")
+		errors.Details(errE)["id"] = c.ID.String()
+		errors.Details(errE)["expected"] = expectedID.String()
+		return errE
+	}
+	return nil
 }
 
 func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
@@ -247,6 +276,7 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	if errE != nil {
 		return errE
 	}
+	c.ID = t.ID
 	c.Under = t.Under
 	c.Patch = patch
 	return nil
@@ -270,12 +300,16 @@ type SetClaimChange struct {
 	Patch ClaimPatch            `json:"patch"`
 }
 
-func (c SetClaimChange) Apply(doc *D, _ identifier.Identifier) errors.E {
+func (c SetClaimChange) Apply(doc *D) errors.E {
 	claim := doc.GetByID(c.ID)
 	if claim == nil {
 		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
 	}
 	return c.Patch.Apply(claim)
+}
+
+func (c SetClaimChange) Validate(_ context.Context, _ identifier.Identifier, _ int64) errors.E {
+	return nil
 }
 
 func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
@@ -319,11 +353,15 @@ type RemoveClaimChange struct {
 	ID identifier.Identifier `json:"id"`
 }
 
-func (c RemoveClaimChange) Apply(doc *D, _ identifier.Identifier) errors.E {
+func (c RemoveClaimChange) Apply(doc *D) errors.E {
 	claim := doc.RemoveByID(c.ID)
 	if claim == nil {
 		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
 	}
+	return nil
+}
+
+func (c RemoveClaimChange) Validate(_ context.Context, _ identifier.Identifier, _ int64) errors.E {
 	return nil
 }
 
