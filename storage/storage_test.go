@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -133,11 +134,11 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, []byte("bafooqrxzy"), data)
 
 	var m struct {
-		At        time.Time `json:"at"`
-		Size      int64     `json:"size"`
-		MediaType string    `json:"mediaType"`
-		Filename  string    `json:"filename"`
-		Etag      string    `json:"etag"`
+		At        es.Time `json:"at"`
+		Size      int64   `json:"size"`
+		MediaType string  `json:"mediaType"`
+		Filename  string  `json:"filename"`
+		Etag      string  `json:"etag"`
 	}
 	errE = x.UnmarshalWithoutUnknownFields(metadata, &m)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -145,7 +146,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "text/plain", m.MediaType)
 	assert.Equal(t, "test.txt", m.Filename)
 	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, m.Etag)
-	assert.False(t, m.At.IsZero())
+	assert.False(t, time.Time(m.At).IsZero())
 }
 
 func TestErrors(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -285,11 +286,11 @@ func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params wa
 	}
 
 	var metadata struct {
-		At        time.Time `json:"at"`
-		Size      int64     `json:"size"`
-		MediaType string    `json:"mediaType"`
-		Filename  string    `json:"filename"`
-		Etag      string    `json:"etag"`
+		At        es.Time `json:"at"`
+		Size      int64   `json:"size"`
+		MediaType string  `json:"mediaType"`
+		Filename  string  `json:"filename"`
+		Etag      string  `json:"etag"`
 	}
 	errE = x.UnmarshalWithoutUnknownFields(metadataJSON, &metadata)
 	if errE != nil {
@@ -305,5 +306,5 @@ func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params wa
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename*=UTF-8''%s`, url.PathEscape(metadata.Filename)))
 	}
 
-	http.ServeContent(w, req, "", metadata.At, bytes.NewReader(data))
+	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
 }
