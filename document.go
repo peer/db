@@ -15,8 +15,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -203,8 +203,8 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(es.DocumentMetadata{
-		At: time.Now().UTC(),
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(types.DocumentMetadata{
+		At: types.Time(time.Now().UTC()),
 	})
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -255,8 +255,8 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	metadata := &es.DocumentBeginMetadata{
-		At:      time.Now().UTC(),
+	metadata := &types.DocumentBeginMetadata{
+		At:      types.Time(time.Now().UTC()),
 		ID:      id,
 		Version: version,
 	}
@@ -319,8 +319,8 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadata := &es.DocumentChangeMetadata{
-		At: time.Now().UTC(),
+	metadata := &types.DocumentChangeMetadata{
+		At: types.Time(time.Now().UTC()),
 	}
 
 	_, errE = site.coordinator.Append(ctx, session, buffer, metadata, &change)
@@ -436,8 +436,8 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadata := &es.DocumentEndMetadata{
-		At:        time.Now().UTC(),
+	metadata := &types.DocumentEndMetadata{
+		At:        types.Time(time.Now().UTC()),
 		Discarded: discard,
 		Changeset: nil,
 		Time:      0,

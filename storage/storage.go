@@ -13,31 +13,31 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 type fileMetadata struct {
-	At        es.Time `json:"at"`
-	Size      int64   `json:"size"`
-	MediaType string  `json:"mediaType"`
-	Filename  string  `json:"filename,omitempty"`
-	Etag      string  `json:"etag,omitempty"`
+	At        types.Time `json:"at"`
+	Size      int64      `json:"size"`
+	MediaType string     `json:"mediaType"`
+	Filename  string     `json:"filename,omitempty"`
+	Etag      string     `json:"etag,omitempty"`
 }
 
 type endMetadata struct {
-	At        es.Time `json:"at"`
-	Discarded bool    `json:"discarded,omitempty"`
-	Chunks    int64   `json:"chunks,omitempty"`
+	At        types.Time `json:"at"`
+	Discarded bool       `json:"discarded,omitempty"`
+	Chunks    int64      `json:"chunks,omitempty"`
 
 	// Processing time in milliseconds.
 	Time int64 `json:"time,omitempty"`
 }
 
 type chunkMetadata struct {
-	At     es.Time `json:"at"`
-	Start  int64   `json:"start"`
-	Length int64   `json:"length"`
+	At     types.Time `json:"at"`
+	Start  int64      `json:"start"`
+	Length int64      `json:"length"`
 }
 
 type chunk struct {
@@ -192,7 +192,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 
 func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
 	metadata := &fileMetadata{
-		At:        es.Time(time.Now().UTC()),
+		At:        types.Time(time.Now().UTC()),
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
@@ -220,7 +220,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 	}
 
 	metadata := &chunkMetadata{
-		At:     es.Time(time.Now().UTC()),
+		At:     types.Time(time.Now().UTC()),
 		Start:  start,
 		Length: int64(len(chunk)),
 	}
@@ -243,7 +243,7 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
-		At:        es.Time(time.Now().UTC()),
+		At:        types.Time(time.Now().UTC()),
 		Discarded: false,
 		Chunks:    0,
 		Time:      0,
@@ -254,7 +254,7 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) 
 
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
-		At:        es.Time(time.Now().UTC()),
+		At:        types.Time(time.Now().UTC()),
 		Discarded: true,
 		Chunks:    0,
 		Time:      0,

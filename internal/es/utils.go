@@ -28,6 +28,7 @@ import (
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -180,9 +181,9 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 
 func endDocumentSession(
 	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	c *coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata],
-	session identifier.Identifier, endMetadata *DocumentEndMetadata,
-) (*DocumentEndMetadata, errors.E) {
+	c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
+	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
+) (*types.DocumentEndMetadata, errors.E) {
 	if endMetadata.Discarded {
 		return nil, nil
 	}
@@ -243,8 +244,8 @@ func endDocumentSession(
 		return nil, errE
 	}
 
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(DocumentMetadata{
-		At: time.Now().UTC(),
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(types.DocumentMetadata{
+		At: types.Time(time.Now().UTC()),
 	})
 	if errE != nil {
 		return nil, errE
@@ -256,7 +257,7 @@ func endDocumentSession(
 	}
 
 	endMetadata.Changeset = &version.Changeset
-	endMetadata.Time = time.Since(endMetadata.At).Milliseconds()
+	endMetadata.Time = time.Since(time.Time(endMetadata.At)).Milliseconds()
 	return endMetadata, nil
 }
 
@@ -328,7 +329,7 @@ func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
 ) (
 	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
-	*coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata],
+	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
 	*storage.Storage,
 	*elastic.BulkProcessor,
 	errors.E,
@@ -366,12 +367,12 @@ func InitForSite(
 		return nil, nil, nil, nil, errE
 	}
 
-	var c *coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata]
-	c = &coordinator.Coordinator[json.RawMessage, *DocumentBeginMetadata, *DocumentEndMetadata, *DocumentChangeMetadata]{
+	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
+	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]{
 		Prefix:       "docs",
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
-		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *DocumentEndMetadata) (*DocumentEndMetadata, errors.E) {
+		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
 			return endDocumentSession(ctx, s, c, session, metadata)
 		},
 		Appended: nil,
