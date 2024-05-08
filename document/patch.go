@@ -359,19 +359,20 @@ func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 }
 
 type IdentifierClaimPatch struct {
-	Prop  *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Value *string                `exhaustruct:"optional" json:"value,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Value      *string                `exhaustruct:"optional" json:"value,omitempty"`
 }
 
 func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Value == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Value == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &IdentifierClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -381,7 +382,7 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 }
 
 func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Value == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Value == nil {
 		return errors.New("empty patch")
 	}
 
@@ -390,6 +391,9 @@ func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not identifier claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -432,19 +436,20 @@ func (p IdentifierClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type ReferenceClaimPatch struct {
-	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	IRI  *string                `exhaustruct:"optional" json:"iri,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	IRI        *string                `exhaustruct:"optional" json:"iri,omitempty"`
 }
 
 func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.IRI == nil {
+	if p.Confidence == nil || p.Prop == nil || p.IRI == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &ReferenceClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -463,6 +468,9 @@ func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not reference claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -505,13 +513,14 @@ func (p ReferenceClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type TextClaimPatch struct {
-	Prop   *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	HTML   TranslatableHTMLString `exhaustruct:"optional" json:"html,omitempty"`
-	Remove []string               `exhaustruct:"optional" json:"remove,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	HTML       TranslatableHTMLString `exhaustruct:"optional" json:"html,omitempty"`
+	Remove     []string               `exhaustruct:"optional" json:"remove,omitempty"`
 }
 
 func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || len(p.HTML) == 0 {
+	if p.Confidence == nil || p.Prop == nil || len(p.HTML) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 	if len(p.Remove) != 0 {
@@ -521,7 +530,7 @@ func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	return &TextClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -531,7 +540,7 @@ func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 }
 
 func (p TextClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && len(p.HTML) == 0 && len(p.Remove) == 0 {
+	if p.Confidence == nil && p.Prop == nil && len(p.HTML) == 0 && len(p.Remove) == 0 {
 		return errors.New("empty patch")
 	}
 
@@ -540,6 +549,9 @@ func (p TextClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not text claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -585,19 +597,20 @@ func (p TextClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type StringClaimPatch struct {
-	Prop   *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	String *string                `exhaustruct:"optional" json:"string,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	String     *string                `exhaustruct:"optional" json:"string,omitempty"`
 }
 
 func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.String == nil {
+	if p.Confidence == nil || p.Prop == nil || p.String == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &StringClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -607,7 +620,7 @@ func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 }
 
 func (p StringClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.String == nil {
+	if p.Confidence == nil && p.Prop == nil && p.String == nil {
 		return errors.New("empty patch")
 	}
 
@@ -616,6 +629,9 @@ func (p StringClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not string claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -658,20 +674,21 @@ func (p StringClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type AmountClaimPatch struct {
-	Prop   *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Amount *float64               `exhaustruct:"optional" json:"amount,omitempty"`
-	Unit   *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Amount     *float64               `exhaustruct:"optional" json:"amount,omitempty"`
+	Unit       *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
 }
 
 func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Amount == nil || p.Unit == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Amount == nil || p.Unit == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &AmountClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -682,7 +699,7 @@ func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 }
 
 func (p AmountClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Amount == nil && p.Unit == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Amount == nil && p.Unit == nil {
 		return errors.New("empty patch")
 	}
 
@@ -691,6 +708,9 @@ func (p AmountClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not amount claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -736,21 +756,22 @@ func (p AmountClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type AmountRangeClaimPatch struct {
-	Prop  *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Lower *float64               `exhaustruct:"optional" json:"lower,omitempty"`
-	Upper *float64               `exhaustruct:"optional" json:"upper,omitempty"`
-	Unit  *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Lower      *float64               `exhaustruct:"optional" json:"lower,omitempty"`
+	Upper      *float64               `exhaustruct:"optional" json:"upper,omitempty"`
+	Unit       *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
 }
 
 func (p AmountRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Unit == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Unit == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &AmountRangeClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -762,7 +783,7 @@ func (p AmountRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) {
 }
 
 func (p AmountRangeClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Unit == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Unit == nil {
 		return errors.New("empty patch")
 	}
 
@@ -771,6 +792,9 @@ func (p AmountRangeClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not amount range claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -819,19 +843,20 @@ func (p AmountRangeClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type RelationClaimPatch struct {
-	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	To   *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	To         *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
 }
 
 func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.To == nil {
+	if p.Confidence == nil || p.Prop == nil || p.To == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &RelationClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -843,7 +868,7 @@ func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //
 }
 
 func (p RelationClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.To == nil {
+	if p.Confidence == nil && p.Prop == nil && p.To == nil {
 		return errors.New("empty patch")
 	}
 
@@ -852,6 +877,9 @@ func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not relation claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -894,21 +922,22 @@ func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type FileClaimPatch struct {
-	Prop      *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	MediaType *string                `exhaustruct:"optional" json:"mediaType,omitempty"`
-	URL       *string                `exhaustruct:"optional" json:"url,omitempty"`
-	Preview   []string               `exhaustruct:"optional" json:"preview"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	MediaType  *string                `exhaustruct:"optional" json:"mediaType,omitempty"`
+	URL        *string                `exhaustruct:"optional" json:"url,omitempty"`
+	Preview    []string               `exhaustruct:"optional" json:"preview"`
 }
 
 func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.MediaType == nil || p.URL == nil || p.Preview == nil {
+	if p.Confidence == nil || p.Prop == nil || p.MediaType == nil || p.URL == nil || p.Preview == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &FileClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -920,7 +949,7 @@ func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 }
 
 func (p FileClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.MediaType == nil && p.URL == nil && p.Preview == nil {
+	if p.Confidence == nil && p.Prop == nil && p.MediaType == nil && p.URL == nil && p.Preview == nil {
 		return errors.New("empty patch")
 	}
 
@@ -929,6 +958,9 @@ func (p FileClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not file claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -977,18 +1009,19 @@ func (p FileClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type NoValueClaimPatch struct {
-	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 }
 
 func (p NoValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil {
+	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &NoValueClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -997,7 +1030,7 @@ func (p NoValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //n
 }
 
 func (p NoValueClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil {
+	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1006,6 +1039,9 @@ func (p NoValueClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not no value claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -1045,18 +1081,19 @@ func (p NoValueClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type UnknownValueClaimPatch struct {
-	Prop *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 }
 
 func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil {
+	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &UnknownValueClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -1065,7 +1102,7 @@ func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 }
 
 func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil {
+	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1074,6 +1111,9 @@ func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not unknown value claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -1113,20 +1153,21 @@ func (p UnknownValueClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type TimeClaimPatch struct {
-	Prop      *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Timestamp *Timestamp             `exhaustruct:"optional" json:"timestamp,omitempty"`
-	Precision *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Timestamp  *Timestamp             `exhaustruct:"optional" json:"timestamp,omitempty"`
+	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
 func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Timestamp == nil || p.Precision == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Timestamp == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &TimeClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -1137,7 +1178,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 }
 
 func (p TimeClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Timestamp == nil && p.Precision == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Timestamp == nil && p.Precision == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1146,6 +1187,9 @@ func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not time claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}
@@ -1191,21 +1235,22 @@ func (p TimeClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 type TimeRangeClaimPatch struct {
-	Prop      *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Lower     *Timestamp             `exhaustruct:"optional" json:"lower,omitempty"`
-	Upper     *Timestamp             `exhaustruct:"optional" json:"upper,omitempty"`
-	Precision *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	Lower      *Timestamp             `exhaustruct:"optional" json:"lower,omitempty"`
+	Upper      *Timestamp             `exhaustruct:"optional" json:"upper,omitempty"`
+	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
 func (p TimeRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Precision == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	return &TimeRangeClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
-			Confidence: 1.0, // TODO How to make it configurable?
+			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
 			ID: p.Prop,
@@ -1217,7 +1262,7 @@ func (p TimeRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 }
 
 func (p TimeRangeClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Precision == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Precision == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1226,6 +1271,9 @@ func (p TimeRangeClaimPatch) Apply(claim Claim) errors.E {
 		return errors.New("not time range claim")
 	}
 
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
 	if p.Prop != nil {
 		c.Prop.ID = p.Prop
 	}

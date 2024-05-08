@@ -17,6 +17,7 @@ func TestPatchJSON(t *testing.T) {
 	id2 := identifier.MustFromString("AyNNP5CVsSx3w9b75erF1m")
 	prop1 := identifier.MustFromString("XkbTJqwFCFkfoxMBXow4HU")
 	prop2 := identifier.MustFromString("3EL2nZdWVbw85XG1zTH2o5")
+	confidence := document.Confidence(1.0)
 	amount := 42.1
 	value := "foobar"
 	unit := document.AmountUnitCelsius
@@ -24,22 +25,24 @@ func TestPatchJSON(t *testing.T) {
 		document.AddClaimChange{
 			Under: nil,
 			Patch: document.AmountClaimPatch{
-				Prop:   &prop1,
-				Amount: &amount,
-				Unit:   &unit,
+				Confidence: &confidence,
+				Prop:       &prop1,
+				Amount:     &amount,
+				Unit:       &unit,
 			},
 		},
 		document.AddClaimChange{
 			Under: &id1,
 			Patch: document.IdentifierClaimPatch{
-				Prop:  &prop2,
-				Value: &value,
+				Confidence: &confidence,
+				Prop:       &prop2,
+				Value:      &value,
 			},
 		},
 	}
 	out, errE := x.MarshalWithoutEscapeHTML(changes)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `[{"type":"add","patch":{"type":"amount","prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"unit":"°C"}},{"type":"add","under":"LpcGdCUThc22mhuBwQJQ5Z","patch":{"type":"id","prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar"}}]`, string(out)) //nolint:lll
+	assert.Equal(t, `[{"type":"add","patch":{"type":"amount","confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"unit":"°C"}},{"type":"add","under":"LpcGdCUThc22mhuBwQJQ5Z","patch":{"type":"id","confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar"}}]`, string(out)) //nolint:lll
 
 	var changes2 document.Changes
 	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
