@@ -238,7 +238,7 @@ func endDocumentSession(
 		return nil, errE
 	}
 
-	changesJSON, errE := document.ChangeMarshalJSON(changes)
+	changesJSON, errE := x.MarshalWithoutEscapeHTML(changes)
 	if errE != nil {
 		return nil, errE
 	}

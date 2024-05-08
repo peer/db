@@ -12,15 +12,6 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
-func isJSONArray(data []byte) bool {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	t, err := dec.Token()
-	if err != nil {
-		return false
-	}
-	return t == '['
-}
-
 func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
 	namespace := uuid.UUID(base)
 	res := uuid.NewSHA1(namespace, []byte(strconv.FormatInt(i, 10)))
@@ -28,15 +19,6 @@ func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
 }
 
 func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
-	if isJSONArray(data) {
-		var changes Changes
-		errE := x.UnmarshalWithoutUnknownFields(data, &changes)
-		if errE != nil {
-			return nil, errE
-		}
-		return changes, nil
-	}
-
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -58,7 +40,7 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 
 func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
-	case AddClaimChange, SetClaimChange, RemoveClaimChange, Changes:
+	case AddClaimChange, SetClaimChange, RemoveClaimChange:
 	default:
 		return nil, errors.Errorf(`change of type %T is not supported`, change)
 	}
@@ -78,8 +60,7 @@ func (c Changes) Apply(doc *D) errors.E {
 	return nil
 }
 
-func (c Changes) Validate(ctx context.Context, session identifier.Identifier, operation int64) errors.E {
-	base := idAtIndex(session, operation)
+func (c Changes) Validate(ctx context.Context, base identifier.Identifier) errors.E {
 	for i, change := range c {
 		errE := change.Validate(ctx, base, int64(i))
 		if errE != nil {
@@ -193,14 +174,13 @@ func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 
 type Change interface {
 	Apply(doc *D) errors.E
-	Validate(ctx context.Context, session identifier.Identifier, operation int64) errors.E
+	Validate(ctx context.Context, base identifier.Identifier, operation int64) errors.E
 }
 
 var (
 	_ Change = AddClaimChange{}    //nolint:exhaustruct
 	_ Change = SetClaimChange{}    //nolint:exhaustruct
 	_ Change = RemoveClaimChange{} //nolint:exhaustruct
-	_ Change = Changes{}
 )
 
 type ClaimPatch interface {
@@ -246,8 +226,8 @@ func (c AddClaimChange) Apply(doc *D) errors.E {
 	return claim.Add(newClaim)
 }
 
-func (c AddClaimChange) Validate(_ context.Context, session identifier.Identifier, operation int64) errors.E {
-	expectedID := idAtIndex(session, operation)
+func (c AddClaimChange) Validate(_ context.Context, base identifier.Identifier, operation int64) errors.E {
+	expectedID := idAtIndex(base, operation)
 	if expectedID != c.ID {
 		errE := errors.New("invalid ID")
 		errors.Details(errE)["id"] = c.ID.String()

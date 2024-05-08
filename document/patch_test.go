@@ -60,7 +60,7 @@ func TestPatchJSON(t *testing.T) {
 		},
 	}
 	base := identifier.MustFromString("TqtRsbk7rTKviW3TJapTim")
-	errE = changes.Validate(context.Background(), base, 0)
+	errE = changes.Validate(context.Background(), base)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)
 	assert.NoError(t, errE, "% -+#.1v", errE)
