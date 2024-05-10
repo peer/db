@@ -24,6 +24,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -744,7 +745,7 @@ func convertImage( //nolint:maintidx
 }
 
 func GetWikimediaCommonsFile(
-	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string,
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client, name string,
 ) (*document.D, store.Version, errors.E) {
 	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {

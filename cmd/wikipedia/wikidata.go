@@ -11,7 +11,9 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -75,7 +77,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikidataCommand) processEntity(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, entity mediawiki.Entity,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
 	document, errE := wikipedia.ConvertEntity(ctx, globals.Logger, store, cache, wikipedia.NameSpaceWikimediaCommonsFile, entity)
 	if errE != nil {

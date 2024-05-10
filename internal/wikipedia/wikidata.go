@@ -20,6 +20,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -219,7 +220,7 @@ func getDocumentReference(id, source string) document.Reference {
 }
 
 func getDocumentFromByProp(
-	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, property, id string,
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client, property, id string,
 ) (*document.D, store.Version, errors.E) {
 	searchResult, err := esClient.Search(index).FetchSource(false).AllowPartialSearchResults(false).
 		Query(elastic.NewNestedQuery("claims.id",
@@ -262,7 +263,7 @@ func getDocumentFromByProp(
 }
 
 func getDocumentFromByID(
-	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], id identifier.Identifier,
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], id identifier.Identifier,
 ) (*document.D, store.Version, errors.E) {
 	data, _, version, errE := s.GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
@@ -283,7 +284,7 @@ func getDocumentFromByID(
 }
 
 func GetWikidataItem(
-	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, id string,
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client, id string,
 ) (*document.D, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if errE != nil {
@@ -348,7 +349,7 @@ func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType
 }
 
 func getDataTypeForProperty(
-	ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache,
 	prop string, valueType *mediawiki.WikiBaseEntityType,
 ) (mediawiki.DataType, errors.E) {
 	id := GetWikidataDocumentID(prop)
@@ -387,7 +388,7 @@ func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
 }
 
 func processSnak( //nolint:ireturn,nolintlint,maintidx
-	ctx context.Context, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache,
 	namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
 ) ([]document.Claim, errors.E) {
 	id := document.GetID(namespace, idArgs...)
@@ -702,7 +703,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 }
 
 func addQualifiers(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, qualifiers map[string][]mediawiki.Snak, qualifiersOrder []string,
 ) errors.E { //nolint:unparam
 	for _, p := range qualifiersOrder {
@@ -735,7 +736,7 @@ func addQualifiers(
 // In the second mode, when there are multiple snak types, it wraps them into a temporary WIKIDATA_REFERENCE claim which will be processed later.
 // TODO: Implement post-processing of temporary WIKIDATA_REFERENCE claims.
 func addReference(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache, namespace uuid.UUID,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache, namespace uuid.UUID,
 	claim document.Claim, entityID, prop, statementID string, i int, reference mediawiki.Reference,
 ) errors.E { //nolint:unparam
 	// Edge case.
@@ -798,7 +799,7 @@ func addReference(
 // ConvertEntity converts both Wikidata entities and Wikimedia Commons entities.
 // Entities can reference only Wikimedia Commons files and not Wikipedia files.
 func ConvertEntity( //nolint:maintidx
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], cache *es.Cache,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], cache *es.Cache,
 	namespace uuid.UUID, entity mediawiki.Entity,
 ) (*document.D, errors.E) {
 	englishLabels := getEnglishValues(entity.Labels)

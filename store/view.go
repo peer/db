@@ -27,20 +27,20 @@ const (
 // All views (except the MainView) depend on ancestor views for all values they do not have
 // an explicit version of committed to them. The value is searched for in the ancestry order,
 // first the parent view.
-type View[Data, Metadata, Patch any] struct {
+type View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
 	name  string
-	store *Store[Data, Metadata, Patch]
+	store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
 // Name of this named view.
 //
 // Name is unique across all named views at every point in time. A view can release a
 // name and another view can then be created with that name.
-func (v View[Data, Metadata, Patch]) Name() string {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Name() string {
 	return v.name
 }
 
-func (v View[Data, Metadata, Patch]) String() string {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) String() string {
 	return v.name
 }
 
@@ -48,25 +48,29 @@ func (v View[Data, Metadata, Patch]) String() string {
 //
 // It can return nil if Store is not associated with the view.
 // You can use WithStore to associate it.
-func (v View[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
+//
+//nolint:lll
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Store() *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] {
 	return v.store
 }
 
 // WithStore returns a new View object associated with the given Store.
-func (v View[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (View[Data, Metadata, Patch], errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
+	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+) (View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	return store.View(ctx, v.name)
 }
 
 // Commit commits a changeset to the view.
-func (v View[Data, Metadata, Patch]) Commit(
-	ctx context.Context, changeset Changeset[Data, Metadata, Patch], metadata Metadata,
-) ([]Changeset[Data, Metadata, Patch], errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Commit(
+	ctx context.Context, changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], metadata CommitMetadata,
+) ([]Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	return changeset.Commit(ctx, v, metadata)
 }
 
 // Insert auto-commits the insert change into the view.
-func (v View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
-	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata,
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Insert( //nolint:nonamedreturns
+	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
@@ -79,7 +83,7 @@ func (v View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 	if errE != nil {
 		return Version{}, errE //nolint:exhaustruct
 	}
-	_, errE = changeset.Commit(ctx, v, metadata)
+	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
@@ -88,8 +92,8 @@ func (v View[Data, Metadata, Patch]) Insert( //nolint:nonamedreturns
 }
 
 // Replace auto-commits the replace change into the view.
-func (v View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
-	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace( //nolint:nonamedreturns
+	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
@@ -102,7 +106,7 @@ func (v View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
 	if errE != nil {
 		return Version{}, errE //nolint:exhaustruct
 	}
-	_, errE = changeset.Commit(ctx, v, metadata)
+	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
@@ -111,8 +115,8 @@ func (v View[Data, Metadata, Patch]) Replace( //nolint:nonamedreturns
 }
 
 // Update auto-commits the update change into the view.
-func (v View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
-	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Update( //nolint:nonamedreturns
+	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
@@ -125,7 +129,7 @@ func (v View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 	if errE != nil {
 		return Version{}, errE //nolint:exhaustruct
 	}
-	_, errE = changeset.Commit(ctx, v, metadata)
+	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
@@ -134,8 +138,8 @@ func (v View[Data, Metadata, Patch]) Update( //nolint:nonamedreturns
 }
 
 // Merge auto-commits the merge change into the view.
-func (v View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
-	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Merge( //nolint:nonamedreturns
+	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
@@ -148,7 +152,7 @@ func (v View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
 	if errE != nil {
 		return Version{}, errE //nolint:exhaustruct
 	}
-	_, errE = changeset.Commit(ctx, v, metadata)
+	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
@@ -157,8 +161,8 @@ func (v View[Data, Metadata, Patch]) Merge( //nolint:nonamedreturns
 }
 
 // Delete auto-commits the delete change into the view.
-func (v View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
-	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata,
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Delete( //nolint:nonamedreturns
+	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
@@ -171,7 +175,7 @@ func (v View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 	if errE != nil {
 		return Version{}, errE //nolint:exhaustruct
 	}
-	_, errE = changeset.Commit(ctx, v, metadata)
+	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
 		return Version{}, errE //nolint:exhaustruct
@@ -195,7 +199,9 @@ func (v View[Data, Metadata, Patch]) Delete( //nolint:nonamedreturns
 //
 // If value has been deleted, ErrValueDeleted error is returned, but other returned
 // values are valid as well.
-func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifier.Identifier) (Data, Metadata, Version, errors.E) { //nolint:ireturn
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) GetLatest( //nolint:ireturn
+	ctx context.Context, id identifier.Identifier,
+) (Data, Metadata, Version, errors.E) {
 	arguments := []any{
 		v.name, id.String(),
 	}
@@ -287,7 +293,9 @@ func (v View[Data, Metadata, Patch]) GetLatest(ctx context.Context, id identifie
 // but other returned values are valid as well.
 //
 //nolint:ireturn
-func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Identifier, version Version) (Data, Metadata, errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get(
+	ctx context.Context, id identifier.Identifier, version Version,
+) (Data, Metadata, errors.E) {
 	arguments := []any{
 		v.name, id.String(), version.Changeset.String(), version.Revision,
 	}
@@ -358,7 +366,9 @@ func (v View[Data, Metadata, Patch]) Get(ctx context.Context, id identifier.Iden
 }
 
 // List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID, to support keyset pagination.
-func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) List(
+	ctx context.Context, after *identifier.Identifier,
+) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name,
 	}
@@ -435,7 +445,9 @@ func (v View[Data, Metadata, Patch]) List(ctx context.Context, after *identifier
 // Changes returns up to MaxPageLength changesets for the value committed to the view, ordered first by depth
 // in increasing order (newest changes first) and then by changeset ID, after optional changeset ID, to
 // support keyset pagination.
-func (v View[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.Identifier, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Changes(
+	ctx context.Context, id identifier.Identifier, after *identifier.Identifier,
+) ([]identifier.Identifier, errors.E) {
 	if after != nil {
 		return v.changesAfter(ctx, id, *after)
 	}
@@ -443,7 +455,9 @@ func (v View[Data, Metadata, Patch]) Changes(ctx context.Context, id identifier.
 	return v.changesInitial(ctx, id)
 }
 
-func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id identifier.Identifier) ([]identifier.Identifier, errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) changesInitial(
+	ctx context.Context, id identifier.Identifier,
+) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name, id.String(),
 	}
@@ -517,7 +531,9 @@ func (v View[Data, Metadata, Patch]) changesInitial(ctx context.Context, id iden
 	return changesets, errE
 }
 
-func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after identifier.Identifier) ([]identifier.Identifier, errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) changesAfter(
+	ctx context.Context, id, after identifier.Identifier,
+) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name, id.String(), after.String(),
 	}
@@ -659,7 +675,9 @@ func (v View[Data, Metadata, Patch]) changesAfter(ctx context.Context, id, after
 //       might not want to have an explicit locked version anymore as they are satisfied with the parent version now.
 
 // Create creates a new view with the current view as its parent.
-func (v View[Data, Metadata, Patch]) Create(ctx context.Context, name string, metadata Metadata) (View[Data, Metadata, Patch], errors.E) {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Create(
+	ctx context.Context, name string, metadata CreateViewMetadata,
+) (View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	arguments := []any{
 		identifier.New().String(), name, metadata, v.name,
 	}
@@ -689,16 +707,16 @@ func (v View[Data, Metadata, Patch]) Create(ctx context.Context, name string, me
 		details := errors.Details(errE)
 		details["view"] = v.name
 		details["name"] = name
-		return View[Data, Metadata, Patch]{}, errE //nolint:exhaustruct
+		return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE //nolint:exhaustruct
 	}
-	return View[Data, Metadata, Patch]{
+	return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		name:  name,
 		store: v.store,
 	}, nil
 }
 
 // Release releases (removes) the name of the view.
-func (v View[Data, Metadata, Patch]) Release(ctx context.Context, metadata Metadata) errors.E {
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Release(ctx context.Context, metadata ReleaseViewMetadata) errors.E {
 	arguments := []any{
 		v.name, metadata,
 	}

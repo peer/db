@@ -9,7 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
@@ -17,12 +16,11 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-type fileMetadata struct {
+type beginMetadata struct {
 	At        types.Time `json:"at"`
 	Size      int64      `json:"size"`
 	MediaType string     `json:"mediaType"`
 	Filename  string     `json:"filename,omitempty"`
-	Etag      string     `json:"etag,omitempty"`
 }
 
 type endMetadata struct {
@@ -46,6 +44,14 @@ type chunk struct {
 	Metadata chunkMetadata
 }
 
+type FileMetadata struct {
+	At        types.Time `json:"at"`
+	Size      int64      `json:"size"`
+	MediaType string     `json:"mediaType"`
+	Filename  string     `json:"filename,omitempty"`
+	Etag      string     `json:"etag"`
+}
+
 type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
@@ -55,10 +61,10 @@ type Storage struct {
 	//
 	// The order in which they are sent is not necessary the order in which
 	// they were committed. You should not rely on the order.
-	Committed chan<- store.CommittedChangeset[[]byte, json.RawMessage, store.None]
+	Committed chan<- store.CommittedChangeset[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]
 
-	store       *store.Store[[]byte, json.RawMessage, store.None]
-	coordinator *coordinator.Coordinator[[]byte, *fileMetadata, *endMetadata, *chunkMetadata]
+	store       *store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]
+	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
 }
 
 func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
@@ -66,7 +72,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		return errors.New("already initialized")
 	}
 
-	storageStore := &store.Store[[]byte, json.RawMessage, store.None]{
+	storageStore := &store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]{
 		Prefix:       s.Prefix,
 		Committed:    s.Committed,
 		DataType:     "bytea",
@@ -78,7 +84,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, *fileMetadata, *endMetadata, *chunkMetadata]{
+	storageCoordinator := &coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]{
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
@@ -97,7 +103,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 	return nil
 }
 
-func (s *Storage) Store() *store.Store[[]byte, json.RawMessage, store.None] {
+func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None] {
 	return s.store
 }
 
@@ -174,13 +180,15 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		return nil, errE
 	}
 
-	beginMetadata.Etag = computeEtag(buffer)
-	beginMetadataJSON, errE := x.MarshalWithoutEscapeHTML(beginMetadata)
-	if errE != nil {
-		return nil, errE
+	metadata := &FileMetadata{
+		At:        endMetadata.At,
+		Size:      beginMetadata.Size,
+		MediaType: beginMetadata.MediaType,
+		Filename:  beginMetadata.Filename,
+		Etag:      computeEtag(buffer),
 	}
 
-	_, errE = s.store.Insert(ctx, session, buffer, beginMetadataJSON)
+	_, errE = s.store.Insert(ctx, session, buffer, metadata, json.RawMessage(`{}`))
 	if errE != nil {
 		return nil, errE
 	}
@@ -191,12 +199,11 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 }
 
 func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
-	metadata := &fileMetadata{
+	metadata := &beginMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
-		Etag:      "",
 	}
 	return s.coordinator.Begin(ctx, metadata)
 }

@@ -76,7 +76,6 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 
 	// TODO: Use schema management/migration instead.
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		//nolint:goconst
 		_, err := tx.Exec(ctx, `
 			CREATE TABLE "`+c.Prefix+`Sessions" (
 				-- ID of the session.
@@ -208,7 +207,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 		} else {
 			m = metadata
 		}
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m) //nolint:goconst
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError

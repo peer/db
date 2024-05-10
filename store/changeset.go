@@ -19,19 +19,19 @@ import (
 // It can be committed to multiple views.
 //
 // Only one change per value is allowed for a changeset.
-type Changeset[Data, Metadata, Patch any] struct {
+type Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
 	id    identifier.Identifier
-	store *Store[Data, Metadata, Patch]
+	store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
 // ID of this changeset.
 //
 // Each changeset has an immutable randomly generated ID.
-func (c Changeset[Data, Metadata, Patch]) ID() identifier.Identifier {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) ID() identifier.Identifier {
 	return c.id
 }
 
-func (c Changeset[Data, Metadata, Patch]) String() string {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) String() string {
 	return c.id.String()
 }
 
@@ -39,12 +39,16 @@ func (c Changeset[Data, Metadata, Patch]) String() string {
 //
 // It can return nil if Store is not associated with the changeset.
 // You can use WithStore to associate it.
-func (c Changeset[Data, Metadata, Patch]) Store() *Store[Data, Metadata, Patch] {
+//
+//nolint:lll
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Store() *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] {
 	return c.store
 }
 
 // WithStore returns a new Changeset object associated with the given Store.
-func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *Store[Data, Metadata, Patch]) (Changeset[Data, Metadata, Patch], errors.E) {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
+	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+) (Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	return store.Changeset(ctx, c.id)
 }
 
@@ -57,7 +61,9 @@ func (c Changeset[Data, Metadata, Patch]) WithStore(ctx context.Context, store *
 // Insert adds the insert change to the changeset.
 //
 // The changeset must not be already committed to any view.
-func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identifier.Identifier, value Data, metadata Metadata) (Version, errors.E) {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Insert(
+	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata,
+) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), value, metadata,
 	}
@@ -105,7 +111,7 @@ func (c Changeset[Data, Metadata, Patch]) Insert(ctx context.Context, id identif
 // to the new value version. It is up to the higher levels to assure
 // consistency between the patch and values (from the perspective of
 // the Store the patch is an opaque value to store).
-func (c Changeset[Data, Metadata, Patch]) Update(
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Update(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
@@ -162,7 +168,7 @@ func (c Changeset[Data, Metadata, Patch]) Update(
 // value version. All patches must result in the same value. It is up
 // to the higher levels to assure consistency between patches and values
 // (from the perspective of the Store patches are opaque values to store).
-func (c Changeset[Data, Metadata, Patch]) Merge(
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Merge(
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
 	if c.store.patchesEnabled && len(parentChangesets) != len(patches) {
@@ -225,7 +231,7 @@ func (c Changeset[Data, Metadata, Patch]) Merge(
 // is replaced with a new value and the patch would be a copy of the
 // whole new value or even larger than the value itself. Or maybe the
 // patch is simply not available.
-func (c Changeset[Data, Metadata, Patch]) Replace(
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace(
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata,
 ) (Version, errors.E) {
 	arguments := []any{
@@ -277,7 +283,9 @@ func (c Changeset[Data, Metadata, Patch]) Replace(
 // Delete does not really delete anything from the store, it only
 // marks the value as deleted. Previous versions of the value are
 // still available.
-func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata) (Version, errors.E) {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Delete(
+	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata,
+) (Version, errors.E) {
 	arguments := []any{
 		c.String(), id.String(), []string{parentChangeset.String()}, metadata,
 	}
@@ -331,9 +339,9 @@ func (c Changeset[Data, Metadata, Patch]) Delete(ctx context.Context, id, parent
 //
 // The changeset together with any non-committed ancestor changesets must
 // not introduce multiple concurrent versions of a value.
-func (c Changeset[Data, Metadata, Patch]) Commit(
-	ctx context.Context, view View[Data, Metadata, Patch], metadata Metadata,
-) ([]Changeset[Data, Metadata, Patch], errors.E) {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Commit(
+	ctx context.Context, view View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], metadata CommitMetadata,
+) ([]Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	arguments := []any{
 		c.String(), metadata, view.name,
 	}
@@ -366,12 +374,12 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 			// There might be more than just this changeset committed if its parent changesets were not committed as well.
 			for _, changeset := range committedChangesets {
 				// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
-				c.store.Committed <- CommittedChangeset[Data, Metadata, Patch]{
-					Changeset: Changeset[Data, Metadata, Patch]{
+				c.store.Committed <- CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+					Changeset: Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 						id:    identifier.MustFromString(changeset),
 						store: nil,
 					},
-					View: View[Data, Metadata, Patch]{
+					View: View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 						name:  view.name,
 						store: nil,
 					},
@@ -384,7 +392,7 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 		details["view"] = view.name
 		details["changeset"] = c.String()
 	}
-	var chs []Changeset[Data, Metadata, Patch]
+	var chs []Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 	for _, changeset := range committedChangesets {
 		id := identifier.MustFromString(changeset)
 		if id == c.id {
@@ -406,7 +414,7 @@ func (c Changeset[Data, Metadata, Patch]) Commit(
 // The changeset must not be used as a parent changeset by any other changeset.
 //
 // Discard cannot be undone.
-func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Discard(ctx context.Context) errors.E {
 	arguments := []any{
 		c.String(),
 	}
@@ -440,7 +448,7 @@ func (c Changeset[Data, Metadata, Patch]) Discard(ctx context.Context) errors.E 
 // The changeset must not be used as a parent changeset by any other changeset.
 //
 // Rollback cannot be undone.
-func (c Changeset[Data, Metadata, Patch]) Rollback(ctx context.Context) errors.E {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Rollback(ctx context.Context) errors.E {
 	errE := c.Discard(ctx)
 	if errE != nil && errors.Is(errE, ErrAlreadyCommitted) {
 		return nil
@@ -462,7 +470,9 @@ type Change struct {
 }
 
 // Changes returns up to MaxPageLength changes of the changeset, ordered by ID, after optional ID, to support keyset pagination.
-func (c Changeset[Data, Metadata, Patch]) Changes(ctx context.Context, after *identifier.Identifier) ([]Change, errors.E) {
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Changes(
+	ctx context.Context, after *identifier.Identifier,
+) ([]Change, errors.E) {
 	arguments := []any{
 		c.String(),
 	}

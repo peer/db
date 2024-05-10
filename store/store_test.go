@@ -108,9 +108,9 @@ func TestTop(t *testing.T) {
 	}
 }
 
-func initDatabase[Data, Metadata, Patch any](
+func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
 	t *testing.T, dataType string,
-) (context.Context, *store.Store[Data, Metadata, Patch], *internal.LockableSlice[store.CommittedChangeset[Data, Metadata, Patch]]) {
+) (context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], *internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]]) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -134,10 +134,10 @@ func initDatabase[Data, Metadata, Patch any](
 	}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.CommittedChangeset[Data, Metadata, Patch])
+	channel := make(chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch])
 	t.Cleanup(func() { close(channel) })
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[Data, Metadata, Patch]])
+	channelContents := new(internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
 
 	go func() {
 		for c := range channel {
@@ -145,7 +145,7 @@ func initDatabase[Data, Metadata, Patch any](
 		}
 	}()
 
-	s := &store.Store[Data, Metadata, Patch]{
+	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		Prefix:       prefix,
 		Committed:    channel,
 		DataType:     dataType,
@@ -162,14 +162,14 @@ func initDatabase[Data, Metadata, Patch any](
 func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch], dataType string) { //nolint:maintidx
 	t.Helper()
 
-	ctx, s, channelContents := initDatabase[Data, Metadata, Patch](t, dataType)
+	ctx, s, channelContents := initDatabase[Data, Metadata, Metadata, Metadata, Metadata, Patch](t, dataType)
 
 	_, _, _, errE := s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	expectedID := identifier.New()
 
-	insertVersion, errE := s.Insert(ctx, expectedID, d.InsertData, d.InsertMetadata)
+	insertVersion, errE := s.Insert(ctx, expectedID, d.InsertData, d.InsertMetadata, d.InsertMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), insertVersion.Revision)
 	}
@@ -209,7 +209,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
-	updateVersion, errE := s.Update(ctx, expectedID, insertVersion.Changeset, d.UpdateData, d.UpdatePatch, d.UpdateMetadata)
+	updateVersion, errE := s.Update(ctx, expectedID, insertVersion.Changeset, d.UpdateData, d.UpdatePatch, d.UpdateMetadata, d.UpdateMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), updateVersion.Revision)
 	}
@@ -256,7 +256,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
-	replaceVersion, errE := s.Replace(ctx, expectedID, updateVersion.Changeset, d.ReplaceData, d.ReplaceMetadata)
+	replaceVersion, errE := s.Replace(ctx, expectedID, updateVersion.Changeset, d.ReplaceData, d.ReplaceMetadata, d.ReplaceMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), replaceVersion.Revision)
 	}
@@ -310,7 +310,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
-	deleteVersion, errE := s.Delete(ctx, expectedID, replaceVersion.Changeset, d.DeleteMetadata)
+	deleteVersion, errE := s.Delete(ctx, expectedID, replaceVersion.Changeset, d.DeleteMetadata, d.DeleteMetadata)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), deleteVersion.Revision)
 	}
@@ -523,7 +523,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 func TestListPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	ids := []identifier.Identifier{}
 
@@ -624,16 +624,16 @@ func TestListPagination(t *testing.T) {
 func TestChangesPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	changesets := []identifier.Identifier{}
 
 	newID := identifier.New()
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	changesets = append(changesets, version.Changeset)
 
-	var changeset store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]
+	var changeset store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
 	for i := 0; i < 6000; i++ {
 		changeset, errE = s.Begin(ctx)
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -699,7 +699,7 @@ func TestChangesPagination(t *testing.T) {
 func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -739,11 +739,11 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 func TestCycles(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	newVersion, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	newVersion, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
@@ -779,7 +779,7 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 	secondID := identifier.New()
@@ -804,17 +804,17 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	changesets, errE := s.Commit(ctx, changeset1, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
+	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
 }
 
 func TestGetCurrent(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	_, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE := s.View(ctx, "notexist")
@@ -830,11 +830,11 @@ func TestGetCurrent(t *testing.T) {
 func TestGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE := s.View(ctx, "notexist")
@@ -859,11 +859,11 @@ func TestGet(t *testing.T) {
 func TestMultipleViews(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	mainView, errE := s.View(ctx, store.MainView)
@@ -874,7 +874,7 @@ func TestMultipleViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
-	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
@@ -905,7 +905,7 @@ func TestMultipleViews(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We update the value in the main view.
-	updated2, errE := s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated2, errE := s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
@@ -957,6 +957,7 @@ func TestMultipleViews(t *testing.T) {
 		[]identifier.Identifier{updated2.Changeset, updated.Changeset},
 		internal.DummyData,
 		[]json.RawMessage{internal.DummyData, internal.DummyData},
+		internal.DummyData,
 		internal.DummyData,
 	)
 	assert.NoError(t, errE, "% -+#.1v", errE)
@@ -1011,11 +1012,11 @@ func TestMultipleViews(t *testing.T) {
 func TestChangeAcrossViews(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	mainView, errE := s.View(ctx, store.MainView)
@@ -1026,7 +1027,7 @@ func TestChangeAcrossViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
-	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
@@ -1058,7 +1059,7 @@ func TestChangeAcrossViews(t *testing.T) {
 
 	// We update the value in the main view by using the change from the second (child) view.
 	// This should commit two changesets to the main view.
-	updated2, errE := s.Update(ctx, newID, updated.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated2, errE := s.Update(ctx, newID, updated.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
@@ -1117,7 +1118,7 @@ func TestChangeAcrossViews(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	v, errE := s.View(ctx, store.MainView)
 	assert.NoError(t, errE, "% -+#.1v", errE)
@@ -1147,31 +1148,31 @@ func TestView(t *testing.T) {
 func TestDuplicateValues(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// Inserting another value with same ID should error when using top-level methods
 	// which auto-commit to original view.
-	_, errE = s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
 
 	// Updating an old value should error when using top-level methods
 	// which auto-commit to original view.
-	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
 
 func TestDiscardAfterCommit(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1191,7 +1192,7 @@ func TestDiscardAfterCommit(t *testing.T) {
 func TestEmptyChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1209,7 +1210,7 @@ func TestEmptyChangeset(t *testing.T) {
 func TestDiscardInUseChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1242,8 +1243,8 @@ func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
 	return ids
 }
 
-func testChanges[Data, Metadata, Patch any](
-	t *testing.T, ctx context.Context, s *store.Store[Data, Metadata, Patch], //nolint:revive
+func testChanges[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
+	t *testing.T, ctx context.Context, s *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], //nolint:revive
 	id identifier.Identifier, expected []identifier.Identifier,
 ) {
 	t.Helper()
@@ -1254,8 +1255,8 @@ func testChanges[Data, Metadata, Patch any](
 	testChangesView(t, ctx, v, id, expected)
 }
 
-func testChangesView[Data, Metadata, Patch any](
-	t *testing.T, ctx context.Context, v store.View[Data, Metadata, Patch], //nolint:revive
+func testChangesView[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
+	t *testing.T, ctx context.Context, v store.View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], //nolint:revive
 	id identifier.Identifier, expected []identifier.Identifier,
 ) {
 	t.Helper()
@@ -1276,11 +1277,11 @@ func testChangesView[Data, Metadata, Patch any](
 func TestMultiplePathsToSameChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetA, errE := s.Begin(ctx)
@@ -1307,6 +1308,7 @@ func TestMultiplePathsToSameChangeset(t *testing.T) {
 		internal.DummyData,
 		[]json.RawMessage{internal.DummyData, internal.DummyData},
 		internal.DummyData,
+		internal.DummyData,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1325,11 +1327,11 @@ func TestMultiplePathsToSameChangeset(t *testing.T) {
 func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetA, errE := s.Begin(ctx)
@@ -1350,6 +1352,7 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 		internal.DummyData,
 		[]json.RawMessage{internal.DummyData, internal.DummyData},
 		internal.DummyData,
+		internal.DummyData,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1367,9 +1370,9 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 func TestErrors(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
-	anotherVersion, errE := s.Insert(ctx, identifier.New(), internal.DummyData, internal.DummyData)
+	anotherVersion, errE := s.Insert(ctx, identifier.New(), internal.DummyData, internal.DummyData, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	newID := identifier.New()
@@ -1408,31 +1411,31 @@ func TestErrors(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
 	// The number of parent changesets have to match the number of patches.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internal.DummyData, nil, internal.DummyData)
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internal.DummyData, nil, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{identifier.New()}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData)
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{identifier.New()}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{anotherVersion.Changeset}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData)
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{anotherVersion.Changeset}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Replace(ctx, newID, identifier.New(), internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, newID, identifier.New(), internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Replace(ctx, newID, anotherVersion.Changeset, internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, newID, anotherVersion.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Delete(ctx, newID, identifier.New(), internal.DummyData)
+	_, errE = s.Delete(ctx, newID, identifier.New(), internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Delete(ctx, newID, anotherVersion.Changeset, internal.DummyData)
+	_, errE = s.Delete(ctx, newID, anotherVersion.Changeset, internal.DummyData, internal.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	changeset, errE = s.Changeset(ctx, identifier.New())
@@ -1445,7 +1448,7 @@ func TestErrors(t *testing.T) {
 func TestParallelChange(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	firstID := identifier.New()
 	secondID := identifier.New()

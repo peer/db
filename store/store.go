@@ -30,19 +30,19 @@ const (
 )
 
 // CommittedChangeset represents a changeset committed to a view.
-type CommittedChangeset[Data, Metadata, Patch any] struct {
-	Changeset Changeset[Data, Metadata, Patch]
-	View      View[Data, Metadata, Patch]
+type CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+	Changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	View      View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
 // WithStore returns a new CommittedChangeset object with
 // changeset and view associated with the given Store.
-func (c CommittedChangeset[Data, Metadata, Patch]) WithStore(
-	ctx context.Context, store *Store[Data, Metadata, Patch],
-) (CommittedChangeset[Data, Metadata, Patch], errors.E) {
+func (c CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
+	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+) (CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	changeset, errE1 := c.Changeset.WithStore(ctx, store)
 	view, errE2 := c.View.WithStore(ctx, store)
-	return CommittedChangeset[Data, Metadata, Patch]{
+	return CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		Changeset: changeset,
 		View:      view,
 	}, errors.Join(errE1, errE2)
@@ -54,7 +54,7 @@ func (c CommittedChangeset[Data, Metadata, Patch]) WithStore(
 // patches are stored. Go types for them you configure with type parameters.
 // You can use special None type to configure the Store instance to not
 // use nor store patches.
-type Store[Data, Metadata, Patch any] struct {
+type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
 	// Prefix to use when initializing PostgreSQL objects used by this store.
 	Prefix string
 
@@ -63,7 +63,7 @@ type Store[Data, Metadata, Patch any] struct {
 	//
 	// The order in which they are sent is not necessary the order in which
 	// they were committed. You should not rely on the order.
-	Committed chan<- CommittedChangeset[Data, Metadata, Patch]
+	Committed chan<- CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
 	// It should probably be one of the jsonb, bytea, or text.
@@ -81,7 +81,9 @@ type Store[Data, Metadata, Patch any] struct {
 //
 // It creates and configures the PostgreSQL tables, indices, and
 // stored procedures if they do not already exist.
-func (s *Store[Data, Metadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E { //nolint:maintidx
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init( //nolint:maintidx
+	ctx context.Context, dbpool *pgxpool.Pool,
+) errors.E {
 	if s.dbpool != nil {
 		return errors.New("already initialized")
 	}

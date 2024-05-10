@@ -29,6 +29,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -102,7 +103,7 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 
 func initializeElasticSearch(globals *Globals) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
-	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	*store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	*elastic.Client, *elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
 	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
@@ -126,7 +127,7 @@ func initializeRun(
 	count *int64,
 ) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
-	*store.Store[json.RawMessage, json.RawMessage, json.RawMessage], *elastic.Client,
+	*store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], *elastic.Client,
 	*elastic.BulkProcessor, *es.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
 	ctx, stop, httpClient, store, esClient, esProcessor, cache, errE := initializeElasticSearch(globals)
@@ -252,7 +253,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 }
 
 func templatesCommandProcessPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
 	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
@@ -386,7 +387,7 @@ func filesCommandRun(
 }
 
 func filesCommandProcessImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {

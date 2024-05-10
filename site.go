@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -34,7 +35,8 @@ type Site struct {
 
 	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
 
-	store       *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
+	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
+	store       *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
 	storage     *storage.Storage
 	esProcessor *elastic.BulkProcessor

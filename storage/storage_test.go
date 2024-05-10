@@ -12,16 +12,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-func initDatabase(t *testing.T) (context.Context, *storage.Storage, *internal.LockableSlice[store.CommittedChangeset[[]byte, json.RawMessage, store.None]]) {
+func initDatabase(t *testing.T) (
+	context.Context,
+	*storage.Storage,
+	*internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]],
+) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -45,10 +47,10 @@ func initDatabase(t *testing.T) (context.Context, *storage.Storage, *internal.Lo
 	}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.CommittedChangeset[[]byte, json.RawMessage, store.None])
+	channel := make(chan store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None])
 	t.Cleanup(func() { close(channel) })
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[[]byte, json.RawMessage, store.None]])
+	channelContents := new(internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]])
 
 	go func() {
 		for co := range channel {
@@ -133,20 +135,11 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []byte("bafooqrxzy"), data)
 
-	var m struct {
-		At        types.Time `json:"at"`
-		Size      int64      `json:"size"`
-		MediaType string     `json:"mediaType"`
-		Filename  string     `json:"filename"`
-		Etag      string     `json:"etag"`
-	}
-	errE = x.UnmarshalWithoutUnknownFields(metadata, &m)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(10), m.Size)
-	assert.Equal(t, "text/plain", m.MediaType)
-	assert.Equal(t, "test.txt", m.Filename)
-	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, m.Etag)
-	assert.False(t, time.Time(m.At).IsZero())
+	assert.False(t, time.Time(metadata.At).IsZero())
+	assert.Equal(t, int64(10), metadata.Size)
+	assert.Equal(t, "text/plain", metadata.MediaType)
+	assert.Equal(t, "test.txt", metadata.Filename)
+	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, metadata.Etag)
 }
 
 func TestErrors(t *testing.T) {

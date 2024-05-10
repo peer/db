@@ -17,9 +17,9 @@ import (
 //       where they were indexed and continue on (new) bridge start from we left the last time.
 //       At the same time make it work when peerdb process is horizontally scaled.
 
-func Bridge[Data, Metadata, Patch any](
-	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, Patch],
-	esProcessor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, Patch],
+func Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
+	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+	esProcessor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 ) {
 	for {
 		select {

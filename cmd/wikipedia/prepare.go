@@ -16,6 +16,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -58,14 +59,14 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *PrepareCommand) saveCoreProperties(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor,
 ) errors.E {
 	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Elastic.Index)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
-	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -134,7 +135,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
 	cache *es.Cache, id identifier.Identifier,
 ) errors.E { //nolint:unparam
 	data, _, version, errE := store.GetLatest(ctx, id)

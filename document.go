@@ -136,16 +136,15 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	site := waf.MustGetSite[*Site](req.Context())
 
 	var dataJSON json.RawMessage
-	var metadataJSON json.RawMessage
 	var version store.Version
 
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: To support "omni" instances, allow getting across multiple schemas.
 	if reqVersion != nil {
 		version = *reqVersion
-		dataJSON, metadataJSON, errE = site.store.Get(ctx, id, *reqVersion)
+		dataJSON, _, errE = site.store.Get(ctx, id, *reqVersion)
 	} else {
-		dataJSON, metadataJSON, version, errE = site.store.GetLatest(ctx, id)
+		dataJSON, _, version, errE = site.store.GetLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -157,19 +156,12 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		return
 	}
 
-	var metadata map[string]interface{}
-	errE = x.Unmarshal(metadataJSON, &metadata)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
 	w.Header().Set("Version", version.String())
 
 	// TODO: Requesting with version should be cached long, while without version it should be no-cache.
 	w.Header().Set("Cache-Control", "max-age=604800")
 
-	s.WriteJSON(w, req, dataJSON, metadata)
+	s.WriteJSON(w, req, dataJSON, nil)
 }
 
 type documentCreateResponse struct {
@@ -197,21 +189,15 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 			ID: id,
 		},
 	}
-	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	dataJSON, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
-	metadataJSON, errE := x.MarshalWithoutEscapeHTML(types.DocumentMetadata{
+	_, errE = site.store.Insert(ctx, id, dataJSON, &types.DocumentMetadata{
 		At: types.Time(time.Now().UTC()),
-	})
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	_, errE = site.store.Insert(ctx, id, data, metadataJSON)
+	}, json.RawMessage(`{}`))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

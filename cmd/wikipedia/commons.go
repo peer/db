@@ -16,7 +16,9 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -82,7 +84,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	esClient *elastic.Client, cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
 	filename := strings.TrimPrefix(entity.Title, "File:")
@@ -269,7 +271,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsFileDescriptionsCommand) processPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	esClient *elastic.Client, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	filename := strings.TrimPrefix(page.Title, "File:")
@@ -443,7 +445,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCategoriesCommand) processPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], esClient *elastic.Client,
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
 	page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.

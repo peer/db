@@ -17,11 +17,12 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 func SaveCoreProperties(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage],
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
 ) errors.E {
 	for _, property := range document.CoreProperties {

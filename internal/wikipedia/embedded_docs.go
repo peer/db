@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -28,7 +29,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	Context                      context.Context //nolint:containedctx
 	Log                          zerolog.Logger
 	Index                        string
-	Store                        *store.Store[json.RawMessage, json.RawMessage, json.RawMessage]
+	Store                        *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes]
 	Cache                        *es.Cache
 	SkippedWikidataEntities      *sync.Map
 	SkippedWikimediaCommonsFiles *sync.Map
@@ -532,7 +533,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client,
+	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client,
 	cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *document.D,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.

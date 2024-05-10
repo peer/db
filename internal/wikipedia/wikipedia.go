@@ -17,6 +17,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -217,7 +218,7 @@ func ConvertTemplateDescription(id, from string, html string, doc *document.D) e
 }
 
 func GetWikipediaFile(
-	ctx context.Context, s *store.Store[json.RawMessage, json.RawMessage, json.RawMessage], index string, esClient *elastic.Client, name string,
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client, name string,
 ) (*document.D, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)
 	if errors.Is(errE, ErrNotFound) { //nolint:revive
