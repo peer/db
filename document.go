@@ -186,7 +186,8 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 	id := identifier.New()
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
-			ID: id,
+			ID:    id,
+			Score: 1.0,
 		},
 	}
 	dataJSON, errE := x.MarshalWithoutEscapeHTML(doc)

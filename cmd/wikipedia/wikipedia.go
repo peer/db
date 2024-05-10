@@ -152,7 +152,9 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *WikipediaFileDescriptionsCommand) processArticle(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client, article mediawiki.Article,
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
 	// First we make sure we do not have spaces.
@@ -285,8 +287,9 @@ func wikipediaArticlesRun(
 }
 
 func wikipediaArticlesProcessArticle(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
-	article mediawiki.Article, convertArticle func(string, string, *document.D) errors.E,
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, article mediawiki.Article, convertArticle func(string, string, *document.D) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {
 		if redirectRegex.MatchString(article.ArticleBody.WikiText) {

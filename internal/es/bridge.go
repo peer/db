@@ -19,7 +19,8 @@ import (
 
 func Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
 	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
-	esProcessor *elastic.BulkProcessor, index string, committedChangesets <-chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+	esProcessor *elastic.BulkProcessor, index string,
+	committedChangesets <-chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 ) {
 	for {
 		select {

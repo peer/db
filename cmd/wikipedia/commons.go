@@ -445,8 +445,9 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCategoriesCommand) processPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
-	page wikipedia.AllPagesPage, html string,
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]

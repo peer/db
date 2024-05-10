@@ -66,7 +66,9 @@ func (c *PrepareCommand) saveCoreProperties(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
-	ctx context.Context, globals *Globals, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client, cache *es.Cache,
+	ctx context.Context, globals *Globals,
+	s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
 	documentProcessingThreads := runtime.GOMAXPROCS(0)
@@ -135,8 +137,9 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 }
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
-	ctx context.Context, index string, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
-	cache *es.Cache, id identifier.Identifier,
+	ctx context.Context, index string, logger zerolog.Logger,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, cache *es.Cache, id identifier.Identifier,
 ) errors.E { //nolint:unparam
 	data, _, version, errE := store.GetLatest(ctx, id)
 	if errE != nil {

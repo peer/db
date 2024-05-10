@@ -253,8 +253,9 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 }
 
 func templatesCommandProcessPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], esClient *elastic.Client,
-	page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	esClient *elastic.Client, page wikipedia.AllPagesPage, html, mnemonicPrefix, from string,
 ) errors.E { //nolint:unparam
 	// We know this is available because we check before calling this method.
 	id := page.Properties["wikibase_item"]
@@ -387,7 +388,8 @@ func filesCommandRun(
 }
 
 func filesCommandProcessImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
 	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {

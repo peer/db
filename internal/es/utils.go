@@ -327,7 +327,10 @@ func InitForSite(
 	errors.E,
 ) {
 	// TODO: Add some monitoring of the channel contention.
-	channel := make(chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], bridgeBufferSize)
+	channel := make(
+		chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+		bridgeBufferSize,
+	)
 	context.AfterFunc(ctx, func() { close(channel) })
 
 	errE := ensureIndex(ctx, esClient, index, sizeField)

@@ -110,7 +110,10 @@ func TestTop(t *testing.T) {
 
 func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
 	t *testing.T, dataType string,
-) (context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], *internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]]) {
+) (
+	context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+	*internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
+) {
 	t.Helper()
 
 	if os.Getenv("POSTGRES") == "" {
@@ -804,7 +807,11 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	changesets, errE := s.Commit(ctx, changeset1, internal.DummyData)
 	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2}, changesets)
+	assert.ElementsMatch(
+		t,
+		[]store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2},
+		changesets,
+	)
 }
 
 func TestGetCurrent(t *testing.T) {
@@ -1415,11 +1422,27 @@ func TestErrors(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{identifier.New()}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData, internal.DummyData)
+	_, errE = s.Merge(
+		ctx,
+		newID,
+		[]identifier.Identifier{identifier.New()},
+		internal.DummyData,
+		[]json.RawMessage{internal.DummyData},
+		internal.DummyData,
+		internal.DummyData,
+	)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{anotherVersion.Changeset}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData, internal.DummyData)
+	_, errE = s.Merge(
+		ctx,
+		newID,
+		[]identifier.Identifier{anotherVersion.Changeset},
+		internal.DummyData,
+		[]json.RawMessage{internal.DummyData},
+		internal.DummyData,
+		internal.DummyData,
+	)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.

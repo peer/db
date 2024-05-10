@@ -533,8 +533,9 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 }
 
 func UpdateEmbeddedDocuments(
-	ctx context.Context, logger zerolog.Logger, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes], index string, esClient *elastic.Client,
-	cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *document.D,
+	ctx context.Context, logger zerolog.Logger,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	index string, esClient *elastic.Client, cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *document.D,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.
 	entityIDClaims := []document.Claim{}
