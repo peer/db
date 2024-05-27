@@ -3,11 +3,10 @@
 # for the Dockerfile frontend image to be pulled.
 FROM node:20.11-alpine3.18 as node-build
 
-RUN apk --update add make
+RUN apk --update add make bash
 COPY . /src/peerdb
 WORKDIR /src/peerdb
 RUN \
-  apk --update add bash && \
   npm install -g npm@latest && \
   npm ci --audit=false && \
   npm audit signatures && \
