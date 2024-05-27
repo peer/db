@@ -198,7 +198,7 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 
 	_, errE = site.store.Insert(ctx, id, dataJSON, &types.DocumentMetadata{
 		At: types.Time(time.Now().UTC()),
-	}, json.RawMessage(`{}`))
+	}, &types.NoMetadata{})
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -297,7 +297,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// We only validate the change.
+	// TODO: Validate the change.
 	_, errE = document.ChangeUnmarshalJSON(buffer)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)

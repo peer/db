@@ -218,7 +218,7 @@ func ConvertTemplateDescription(id, from string, html string, doc *document.D) e
 }
 
 func GetWikipediaFile(
-	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	index string, esClient *elastic.Client, name string,
 ) (*document.D, store.Version, errors.E) {
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "ENGLISH_WIKIPEDIA_FILE_NAME", name)

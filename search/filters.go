@@ -2,12 +2,12 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 	"golang.org/x/exp/slices"
@@ -156,40 +156,40 @@ func FiltersGet( //nolint:maintidx
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var rel termAggregations
-	err = json.Unmarshal(res.Aggregations["rel"], &rel)
-	if err != nil {
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["rel"], &rel)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var amount filteredMultiTermAggregations
-	err = json.Unmarshal(res.Aggregations["amount"], &amount)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["amount"], &amount)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var timeA termAggregations
-	err = json.Unmarshal(res.Aggregations["time"], &timeA)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["time"], &timeA)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var str termAggregations
-	err = json.Unmarshal(res.Aggregations["string"], &str)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["string"], &str)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var index intValueAggregation
-	err = json.Unmarshal(res.Aggregations["index"], &index)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["index"], &index)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var size intValueAggregation
-	err = json.Unmarshal(res.Aggregations["size"], &size)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["size"], &size)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	m.Stop()
 

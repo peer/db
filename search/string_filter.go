@@ -2,12 +2,12 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -66,10 +66,10 @@ func StringFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var str filteredTermAggregations
-	err = json.Unmarshal(res.Aggregations["string"], &str)
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["string"], &str)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	results := make([]searchStringFilterResult, len(str.Filter.Props.Buckets))

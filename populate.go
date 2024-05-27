@@ -23,7 +23,7 @@ import (
 
 func SaveCoreProperties(
 	ctx context.Context, logger zerolog.Logger,
-	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
 ) errors.E {
 	for _, property := range document.CoreProperties {

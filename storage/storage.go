@@ -3,7 +3,6 @@ package storage
 import (
 	"cmp"
 	"context"
-	"encoding/json"
 	"slices"
 	"time"
 
@@ -61,9 +60,9 @@ type Storage struct {
 	//
 	// The order in which they are sent is not necessary the order in which
 	// they were committed. You should not rely on the order.
-	Committed chan<- store.CommittedChangeset[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]
+	Committed chan<- store.CommittedChangeset[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 
-	store       *store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]
+	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
 }
 
@@ -72,7 +71,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		return errors.New("already initialized")
 	}
 
-	storageStore := &store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]{
+	storageStore := &store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]{
 		Prefix:       s.Prefix,
 		Committed:    s.Committed,
 		DataType:     "bytea",
@@ -103,7 +102,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 	return nil
 }
 
-func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None] {
+func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None] {
 	return s.store
 }
 
@@ -188,7 +187,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		Etag:      computeEtag(buffer),
 	}
 
-	_, errE = s.store.Insert(ctx, session, buffer, metadata, json.RawMessage(`{}`))
+	_, errE = s.store.Insert(ctx, session, buffer, metadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}

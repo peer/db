@@ -8,16 +8,18 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 )
 
 const (
 	idleInTransactionSessionTimeout = 10 * time.Second
 	statementTimeout                = 10 * time.Second
 
-	defaultApplicationName = "peerdb"
+	initialApplicationName = "peerdb"
 )
 
 // Standard error codes.
@@ -49,22 +51,44 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	}
 
 	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
-		// TODO: Use SeverityUnlocalized instead of Severity.
-		//       See: https://github.com/jackc/pgx/issues/1971
 		l := logger.
-			WithLevel(noticeSeverityToLogLevel[notice.Severity]).
+			WithLevel(noticeSeverityToLogLevel[notice.SeverityUnlocalized]).
 			Fields(ErrorDetails((*pgconn.PgError)(notice))).
 			Bool("postgres", true)
-		applicationName := conn.ParameterStatus("application_name")
-		if applicationName != defaultApplicationName {
-			schema, request, ok := lastCut(applicationName, "/")
-			if ok {
-				l = l.Str("schema", schema).Str("request", request)
-			}
+		schema, ok := conn.CustomData()["schema"].(string)
+		if ok && schema != "" {
+			l = l.Str("schema", schema)
+		}
+		request, ok := conn.CustomData()["request"].(string)
+		if ok && request != "" {
+			l = l.Str("request", request)
 		}
 		l.Send()
 	}
-	dbconfig.ConnConfig.RuntimeParams["application_name"] = defaultApplicationName
+	dbconfig.AfterConnect = func(_ context.Context, c *pgx.Conn) error {
+		c.TypeMap().RegisterType(&pgtype.Type{
+			Name: "json", OID: pgtype.JSONOID, Codec: &pgtype.JSONCodec{
+				Marshal: func(v any) ([]byte, error) {
+					return x.MarshalWithoutEscapeHTML(v)
+				},
+				Unmarshal: func(data []byte, v any) error {
+					return x.UnmarshalWithoutUnknownFields(data, v)
+				},
+			},
+		})
+		c.TypeMap().RegisterType(&pgtype.Type{
+			Name: "jsonb", OID: pgtype.JSONBOID, Codec: &pgtype.JSONBCodec{
+				Marshal: func(v any) ([]byte, error) {
+					return x.MarshalWithoutEscapeHTML(v)
+				},
+				Unmarshal: func(data []byte, v any) error {
+					return x.UnmarshalWithoutUnknownFields(data, v)
+				},
+			},
+		})
+		return nil
+	}
+	dbconfig.ConnConfig.RuntimeParams["application_name"] = initialApplicationName
 	dbconfig.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = strconv.FormatInt(idleInTransactionSessionTimeout.Milliseconds(), 10)
 	dbconfig.ConnConfig.RuntimeParams["statement_timeout"] = strconv.FormatInt(statementTimeout.Milliseconds(), 10)
 
@@ -116,7 +140,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
 		schema, requestID := getRequest(ctx)
 
-		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s'`, schema, requestID)) //nolint:govet
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID)) //nolint:govet
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
 			return false
@@ -128,9 +152,15 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 			return false
 		}
 
+		conn.PgConn().CustomData()["schema"] = schema
+		conn.PgConn().CustomData()["request"] = requestID
+
 		return true
 	}
 	dbconfig.AfterRelease = func(conn *pgx.Conn) bool {
+		delete(conn.PgConn().CustomData(), "schema")
+		delete(conn.PgConn().CustomData(), "request")
+
 		_, err := conn.Exec(ctx, `RESET application_name`) //nolint:govet
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to reset "application_name" for PostgreSQL connection`)

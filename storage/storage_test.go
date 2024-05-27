@@ -2,7 +2,6 @@ package storage_test
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -22,7 +22,7 @@ import (
 func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
-	*internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]],
+	*internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]],
 ) {
 	t.Helper()
 
@@ -47,10 +47,10 @@ func initDatabase(t *testing.T) (
 	}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None])
+	channel := make(chan store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None])
 	t.Cleanup(func() { close(channel) })
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, json.RawMessage, json.RawMessage, json.RawMessage, store.None]])
+	channelContents := new(internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]])
 
 	go func() {
 		for co := range channel {

@@ -2,12 +2,12 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -55,16 +55,16 @@ func IndexFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var terms indexAggregations
-	err = json.Unmarshal(res.Aggregations["terms"], &terms)
-	if err != nil {
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["terms"], &terms)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var index intValueAggregation
-	err = json.Unmarshal(res.Aggregations["index"], &index)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["index"], &index)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	m.Stop()
 

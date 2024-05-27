@@ -745,7 +745,7 @@ func convertImage( //nolint:maintidx
 }
 
 func GetWikimediaCommonsFile(
-	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	index string, esClient *elastic.Client, name string,
 ) (*document.D, store.Version, errors.E) {
 	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)

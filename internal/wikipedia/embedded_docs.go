@@ -29,7 +29,7 @@ type updateEmbeddedDocumentsVisitor struct {
 	Context                      context.Context //nolint:containedctx
 	Log                          zerolog.Logger
 	Index                        string
-	Store                        *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes]
+	Store                        *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
 	Cache                        *es.Cache
 	SkippedWikidataEntities      *sync.Map
 	SkippedWikimediaCommonsFiles *sync.Map
@@ -534,7 +534,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 
 func UpdateEmbeddedDocuments(
 	ctx context.Context, logger zerolog.Logger,
-	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	index string, esClient *elastic.Client, cache *es.Cache, skippedWikidataEntities *sync.Map, skippedWikimediaCommonsFiles *sync.Map, doc *document.D,
 ) (bool, errors.E) {
 	// We try to obtain unhashed document IDs to use in logging.

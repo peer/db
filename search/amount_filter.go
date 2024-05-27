@@ -2,13 +2,13 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"math"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -115,10 +115,10 @@ func AmountFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxAmountAggregations
-	err = json.Unmarshal(res.Aggregations["minMax"], &minMax)
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["minMax"], &minMax)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	var min, interval float64
@@ -173,10 +173,10 @@ func AmountFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramAmountAggregations
-	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["histogram"], &histogram)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	results := make([]histogramAmountResult, len(histogram.Filter.Hist.Buckets))

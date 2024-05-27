@@ -2,13 +2,13 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"math"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -58,16 +58,16 @@ func SizeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minSize floatValueAggregation
-	err = json.Unmarshal(res.Aggregations["min"], &minSize)
-	if err != nil {
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["min"], &minSize)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	var maxSize floatValueAggregation
-	err = json.Unmarshal(res.Aggregations["max"], &maxSize)
-	if err != nil {
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["max"], &maxSize)
+	if errE != nil {
 		m.Stop()
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, errE
 	}
 	m.Stop()
 
@@ -108,10 +108,10 @@ func SizeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramSizeAggregations
-	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["histogram"], &histogram)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	results := make([]histogramAmountResult, len(histogram.Buckets))

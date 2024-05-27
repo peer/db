@@ -59,7 +59,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *PrepareCommand) saveCoreProperties(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor,
 ) errors.E {
 	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Elastic.Index)
@@ -67,7 +67,7 @@ func (c *PrepareCommand) saveCoreProperties(
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
 	ctx context.Context, globals *Globals,
-	s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, cache *es.Cache,
 ) errors.E {
 	// TODO: Make configurable.
@@ -138,7 +138,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 func (c *PrepareCommand) updateEmbeddedDocumentsOne(
 	ctx context.Context, index string, logger zerolog.Logger,
-	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, cache *es.Cache, id identifier.Identifier,
 ) errors.E { //nolint:unparam
 	data, _, version, errE := store.GetLatest(ctx, id)

@@ -153,7 +153,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 func (c *WikipediaFileDescriptionsCommand) processArticle(
 	ctx context.Context, globals *Globals,
-	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, article mediawiki.Article,
 ) errors.E {
 	filename := strings.TrimPrefix(article.Name, "File:")
@@ -288,7 +288,7 @@ func wikipediaArticlesRun(
 
 func wikipediaArticlesProcessArticle(
 	ctx context.Context, globals *Globals,
-	store *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, article mediawiki.Article, convertArticle func(string, string, *document.D) errors.E,
 ) errors.E {
 	if article.MainEntity == nil {

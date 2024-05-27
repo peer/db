@@ -1,11 +1,11 @@
 package document_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -36,11 +36,11 @@ func TestTimestampMarshal(t *testing.T) {
 
 			var timestamp document.Timestamp
 			in := []byte(test.timestamp)
-			err := json.Unmarshal(in, &timestamp)
-			assert.NoError(t, err)
+			errE := x.UnmarshalWithoutUnknownFields(in, &timestamp)
+			assert.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, test.unix, time.Time(timestamp).Unix())
-			out, err := json.Marshal(timestamp)
-			assert.NoError(t, err)
+			out, errE := x.MarshalWithoutEscapeHTML(timestamp)
+			assert.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, in, out)
 		})
 	}

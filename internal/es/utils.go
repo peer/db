@@ -180,7 +180,7 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 }
 
 func endDocumentSession(
-	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
 	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
 ) (*types.DocumentEndMetadata, errors.E) {
@@ -243,7 +243,7 @@ func endDocumentSession(
 		At: beginMetadata.At,
 	}
 
-	version, errE := s.Update(ctx, beginMetadata.ID, beginMetadata.Version.Changeset, docJSON, changes, metadata, json.RawMessage(`{}`))
+	version, errE := s.Update(ctx, beginMetadata.ID, beginMetadata.Version.Changeset, docJSON, changes, metadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}
@@ -255,7 +255,7 @@ func endDocumentSession(
 
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string, sizeField bool) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
-	*store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*elastic.Client, *elastic.BulkProcessor, errors.E,
 ) {
 	// We stop the server gracefully on ctrl-c and TERM signal.
@@ -320,7 +320,7 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
 ) (
-	*store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
 	*storage.Storage,
 	*elastic.BulkProcessor,
@@ -328,7 +328,7 @@ func InitForSite(
 ) {
 	// TODO: Add some monitoring of the channel contention.
 	channel := make(
-		chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes],
+		chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 		bridgeBufferSize,
 	)
 	context.AfterFunc(ctx, func() { close(channel) })
@@ -350,7 +350,7 @@ func InitForSite(
 		return nil, nil, nil, nil, errE
 	}
 
-	s := &store.Store[json.RawMessage, *types.DocumentMetadata, json.RawMessage, json.RawMessage, json.RawMessage, document.Changes]{
+	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
 		Prefix:       "docs",
 		Committed:    channel,
 		DataType:     "jsonb",

@@ -9,7 +9,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/foolin/pagser v0.1.5
 	github.com/hashicorp/go-cleanhttp v0.5.2
-	github.com/jackc/pgx/v5 v5.5.5
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.31.1-0.20231108200417-bb14b8b9de11
 	github.com/stretchr/testify v1.8.4

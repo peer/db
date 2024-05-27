@@ -58,3 +58,5 @@ type DocumentEndMetadata struct {
 type DocumentChangeMetadata struct {
 	At Time `json:"at"`
 }
+
+type NoMetadata struct{}

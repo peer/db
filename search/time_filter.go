@@ -2,13 +2,13 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -89,10 +89,10 @@ func TimeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxTimeAggregations
-	err = json.Unmarshal(res.Aggregations["minMax"], &minMax)
+	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["minMax"], &minMax)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	// We use int64 and not time.Duration because it cannot hold durations we need.
@@ -143,10 +143,10 @@ func TimeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramTimeAggregations
-	err = json.Unmarshal(res.Aggregations["histogram"], &histogram)
+	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["histogram"], &histogram)
 	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	results := make([]histogramTimeResult, len(histogram.Filter.Hist.Buckets))

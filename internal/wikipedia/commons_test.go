@@ -1,11 +1,11 @@
 package wikipedia
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/x"
 )
 
 const (
@@ -19,8 +19,8 @@ func TestGetXMLPageCount(t *testing.T) {
 	t.Parallel()
 
 	var metadata map[string]interface{}
-	err := json.Unmarshal([]byte(xmlJSON), &metadata)
-	require.NoError(t, err)
+	errE := x.UnmarshalWithoutUnknownFields([]byte(xmlJSON), &metadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	pages := getXMLPageCount(metadata, []string{"xml"})
 	assert.Equal(t, 4, pages)
 }

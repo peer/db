@@ -2,7 +2,6 @@ package document
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -77,9 +76,9 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	var s string
-	err := json.Unmarshal(data, &s)
-	if err != nil {
-		return errors.WithStack(err)
+	errE := x.UnmarshalWithoutUnknownFields(data, &s)
+	if errE != nil {
+		return errE
 	}
 	match := timeRegex.FindStringSubmatch(s)
 	if match == nil {
@@ -416,9 +415,9 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 
 func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 	var s string
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return errors.WithStack(err)
+	errE := x.UnmarshalWithoutUnknownFields(b, &s)
+	if errE != nil {
+		return errE
 	}
 	switch s {
 	case "@":
@@ -580,9 +579,9 @@ func (p TimePrecision) MarshalJSON() ([]byte, error) {
 
 func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 	var s string
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return errors.WithStack(err)
+	errE := x.UnmarshalWithoutUnknownFields(b, &s)
+	if errE != nil {
+		return errE
 	}
 	switch s {
 	case "G":
