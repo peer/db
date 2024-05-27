@@ -84,7 +84,8 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsCommand) processEntity(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, cache *es.Cache, entity mediawiki.Entity,
 ) errors.E {
 	filename := strings.TrimPrefix(entity.Title, "File:")
@@ -271,7 +272,8 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 }
 
 func (c *CommonsFileDescriptionsCommand) processPage(
-	ctx context.Context, globals *Globals, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	ctx context.Context, globals *Globals,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, page wikipedia.AllPagesPage, html string,
 ) errors.E { //nolint:unparam
 	filename := strings.TrimPrefix(page.Title, "File:")

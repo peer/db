@@ -354,8 +354,8 @@ func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType
 }
 
 func getDataTypeForProperty(
-	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], cache *es.Cache,
-	prop string, valueType *mediawiki.WikiBaseEntityType,
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	cache *es.Cache, prop string, valueType *mediawiki.WikiBaseEntityType,
 ) (mediawiki.DataType, errors.E) {
 	id := GetWikidataDocumentID(prop)
 
@@ -393,8 +393,8 @@ func getWikiBaseEntityType(value interface{}) *mediawiki.WikiBaseEntityType {
 }
 
 func processSnak( //nolint:ireturn,nolintlint,maintidx
-	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], cache *es.Cache,
-	namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	cache *es.Cache, namespace uuid.UUID, prop string, idArgs []interface{}, confidence document.Confidence, snak mediawiki.Snak,
 ) ([]document.Claim, errors.E) {
 	id := document.GetID(namespace, idArgs...)
 

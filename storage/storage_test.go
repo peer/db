@@ -50,7 +50,9 @@ func initDatabase(t *testing.T) (
 	channel := make(chan store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None])
 	t.Cleanup(func() { close(channel) })
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]])
+	channelContents := new(internal.LockableSlice[store.CommittedChangeset[
+		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
+	]])
 
 	go func() {
 		for co := range channel {
