@@ -3,18 +3,20 @@ package es
 import (
 	"sync/atomic"
 
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 // Cache is a LRU cache which counts cache misses.
 type Cache struct {
-	*lru.Cache
+	*lru.Cache[any, *document.D]
 	missCount uint64
 }
 
 func NewCache(size int) (*Cache, errors.E) {
-	cache, err := lru.New(size)
+	cache, err := lru.New[any, *document.D](size)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -24,7 +26,7 @@ func NewCache(size int) (*Cache, errors.E) {
 	}, nil
 }
 
-func (c *Cache) Get(key interface{}) (interface{}, bool) {
+func (c *Cache) Get(key interface{}) (*document.D, bool) {
 	value, ok := c.Cache.Get(key)
 	if !ok {
 		atomic.AddUint64(&c.missCount, 1)

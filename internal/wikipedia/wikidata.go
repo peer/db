@@ -359,14 +359,14 @@ func getDataTypeForProperty(
 ) (mediawiki.DataType, errors.E) {
 	id := GetWikidataDocumentID(prop)
 
-	maybeDocument, ok := cache.Get(id)
+	cachedDoc, ok := cache.Get(id)
 	if ok {
-		if maybeDocument == nil {
+		if cachedDoc == nil {
 			err := errors.WithStack(ErrNotFound)
 			errors.Details(err)["prop"] = prop
 			return 0, err
 		}
-		return resolveDataTypeFromPropertyDocument(maybeDocument.(*document.D), prop, valueType) //nolint:forcetypeassert
+		return resolveDataTypeFromPropertyDocument(cachedDoc, prop, valueType) //nolint:forcetypeassert
 	}
 
 	doc, _, err := getDocumentFromByID(ctx, store, id)

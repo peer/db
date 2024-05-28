@@ -150,12 +150,12 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentReference(ref document.Refer
 func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title string) (*document.D, errors.E) {
 	// Here we check cache with string type, so values cannot conflict with caching done
 	// by getDocumentByID, which uses Identifier type.
-	maybeDocument, ok := v.Cache.Get(title)
+	cachedDoc, ok := v.Cache.Get(title)
 	if ok {
-		if maybeDocument == nil {
+		if cachedDoc == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*document.D), nil //nolint:forcetypeassert
+		return cachedDoc, nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromByProp(v.Context, v.Store, v.Index, v.ESClient, property, title)
@@ -175,12 +175,12 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifier) (*document.D, errors.E) {
 	// Here we check cache with Identifier type, so values cannot conflict with caching done
 	// by getDocumentByTitle, which uses string type.
-	maybeDocument, ok := v.Cache.Get(id)
+	cachedDoc, ok := v.Cache.Get(id)
 	if ok {
-		if maybeDocument == nil {
+		if cachedDoc == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return maybeDocument.(*document.D), nil //nolint:forcetypeassert
+		return cachedDoc, nil //nolint:forcetypeassert
 	}
 
 	document, _, err := getDocumentFromByID(v.Context, v.Store, id)
