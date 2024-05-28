@@ -12,7 +12,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci clean release lint-docs audit watch
+.PHONY: build peerdb wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs audit watch
 
 build: peerdb wikipedia mapping moma
 
@@ -70,6 +70,10 @@ fmt:
 
 fmt-ci: fmt
 	git diff --exit-code --color=always
+
+upgrade:
+	go run github.com/icholy/gomajor@v0.11.0 get all
+	go mod tidy
 
 clean:
 	rm -rf coverage.* codeclimate.json tests.xml tests.json coverage dist peerdb wikipedia mapping moma
