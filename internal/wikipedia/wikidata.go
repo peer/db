@@ -366,7 +366,7 @@ func getDataTypeForProperty(
 			errors.Details(err)["prop"] = prop
 			return 0, err
 		}
-		return resolveDataTypeFromPropertyDocument(cachedDoc, prop, valueType) 
+		return resolveDataTypeFromPropertyDocument(cachedDoc, prop, valueType)
 	}
 
 	doc, _, err := getDocumentFromByID(ctx, store, id)

@@ -155,7 +155,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByProp(property, title strin
 		if cachedDoc == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return cachedDoc, nil 
+		return cachedDoc, nil
 	}
 
 	document, _, err := getDocumentFromByProp(v.Context, v.Store, v.Index, v.ESClient, property, title)
@@ -180,7 +180,7 @@ func (v *updateEmbeddedDocumentsVisitor) getDocumentByID(id identifier.Identifie
 		if cachedDoc == nil {
 			return nil, errors.WithStack(ErrNotFound)
 		}
-		return cachedDoc, nil 
+		return cachedDoc, nil
 	}
 
 	document, _, err := getDocumentFromByID(v.Context, v.Store, id)
