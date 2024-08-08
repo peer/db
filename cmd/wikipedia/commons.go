@@ -235,7 +235,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		for p := range ticker.C {
 			stats := esProcessor.Stats()
 			globals.Logger.Info().
-				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", p.Count).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
 				Send()
 		}
@@ -405,7 +405,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 		for p := range ticker.C {
 			stats := esProcessor.Stats()
 			globals.Logger.Info().
-				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", count.Count()).
+				Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).Int64("count", p.Count).
 				Str("elapsed", p.Elapsed.Truncate(time.Second).String()).
 				Send()
 		}
