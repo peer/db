@@ -243,7 +243,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 
 	for i := 0; i < int(rateLimit); i++ {
 		g.Go(func() error {
-			// Loop ends with pages is closed, which happens when context is cancelled, too.
+			// Loop ends when pages is closed, which happens when context is cancelled, too.
 			for page := range pages {
 				err := limiter.Wait(ctx)
 				if err != nil {
@@ -413,7 +413,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 
 	for i := 0; i < int(rateLimit); i++ {
 		g.Go(func() error {
-			// Loop ends with pages is closed, which happens when context is cancelled, too.
+			// Loop ends when pages is closed, which happens when context is cancelled, too.
 			for page := range pages {
 				if page.Properties["wikibase_item"] == "" {
 					globals.Logger.Debug().Str("title", page.Title).Msg("category without Wikidata item")
