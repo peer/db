@@ -55,13 +55,13 @@ func IndexFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var terms indexAggregations
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["terms"], &terms)
+	errE := x.Unmarshal(res.Aggregations["terms"], &terms)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var index intValueAggregation
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["index"], &index)
+	errE = x.Unmarshal(res.Aggregations["index"], &index)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE

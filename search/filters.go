@@ -156,37 +156,37 @@ func FiltersGet( //nolint:maintidx
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var rel termAggregations
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["rel"], &rel)
+	errE := x.Unmarshal(res.Aggregations["rel"], &rel)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var amount filteredMultiTermAggregations
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["amount"], &amount)
+	errE = x.Unmarshal(res.Aggregations["amount"], &amount)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var timeA termAggregations
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["time"], &timeA)
+	errE = x.Unmarshal(res.Aggregations["time"], &timeA)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var str termAggregations
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["string"], &str)
+	errE = x.Unmarshal(res.Aggregations["string"], &str)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var index intValueAggregation
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["index"], &index)
+	errE = x.Unmarshal(res.Aggregations["index"], &index)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var size intValueAggregation
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["size"], &size)
+	errE = x.Unmarshal(res.Aggregations["size"], &size)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE

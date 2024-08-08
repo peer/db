@@ -58,13 +58,13 @@ func SizeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minSize floatValueAggregation
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["min"], &minSize)
+	errE := x.Unmarshal(res.Aggregations["min"], &minSize)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
 	var maxSize floatValueAggregation
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["max"], &maxSize)
+	errE = x.Unmarshal(res.Aggregations["max"], &maxSize)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
@@ -108,7 +108,7 @@ func SizeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramSizeAggregations
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["histogram"], &histogram)
+	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE

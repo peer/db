@@ -70,7 +70,7 @@ func RelFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var rel filteredTermAggregations
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["rel"], &rel)
+	errE := x.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE

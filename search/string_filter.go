@@ -66,7 +66,7 @@ func StringFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var str filteredTermAggregations
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["string"], &str)
+	errE := x.Unmarshal(res.Aggregations["string"], &str)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE

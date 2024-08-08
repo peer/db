@@ -115,7 +115,7 @@ func AmountFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxAmountAggregations
-	errE := x.UnmarshalWithoutUnknownFields(res.Aggregations["minMax"], &minMax)
+	errE := x.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
@@ -173,7 +173,7 @@ func AmountFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
 	var histogram histogramAmountAggregations
-	errE = x.UnmarshalWithoutUnknownFields(res.Aggregations["histogram"], &histogram)
+	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
