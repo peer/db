@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-	"golang.org/x/exp/slices"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
@@ -168,16 +168,16 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	// Sorts so that the image with the largest area is the first.
-	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
-		return a.Width*a.Height > b.Width*a.Height
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) int {
+		return b.Width*b.Height - a.Width*a.Height
 	})
 	// There should be always at least one image at this point.
 	url := "https://www.moma.org" + images[0].Path
 	mediaType := images[0].MediaType
 
 	// Sorts so that the image with the smallest width is the first.
-	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
-		return a.Width < b.Width
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) int {
+		return a.Width - b.Width
 	})
 	for len(images) > 0 {
 		// Remove all images which are too small for preview by width.
@@ -189,8 +189,8 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	// Sorts so that the image with the smallest height is the first.
-	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) bool {
-		return a.Height < b.Height
+	slices.SortStableFunc(images, func(a imageSrc, b imageSrc) int {
+		return a.Height - b.Height
 	})
 	for len(images) > 0 {
 		// Remove all images which are too small for preview by height.

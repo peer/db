@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
-	"golang.org/x/exp/slices"
 
 	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
@@ -256,8 +256,13 @@ func FiltersGet( //nolint:maintidx
 
 	// Because we combine multiple aggregations of MaxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
-	slices.SortStableFunc(results, func(a searchFiltersResult, b searchFiltersResult) bool {
-		return a.Count > b.Count
+	slices.SortStableFunc(results, func(a searchFiltersResult, b searchFiltersResult) int {
+		if a.Count > b.Count {
+			return -1
+		} else if a.Count < b.Count {
+			return 1
+		}
+		return 0
 	})
 	if len(results) > MaxResultsCount {
 		results = results[:MaxResultsCount]
