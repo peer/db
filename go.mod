@@ -12,18 +12,18 @@ require (
 	github.com/foolin/pagser v0.1.6
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/invopop/jsonschema v0.12.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
 	gitlab.com/tozd/go/cli v0.3.0
-	gitlab.com/tozd/go/fun v0.3.0
+	gitlab.com/tozd/go/fun v0.5.0
 	gitlab.com/tozd/go/mediawiki v0.14.1
 	gitlab.com/tozd/go/x v0.0.0-20240414153458-c60a59ee413b
-	gitlab.com/tozd/go/zerolog v0.6.1-0.20240513232002-554c46897da2
+	gitlab.com/tozd/go/zerolog v0.7.0
 	gitlab.com/tozd/identifier v0.3.0
 	gitlab.com/tozd/waf v0.18.1
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/time v0.5.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -49,7 +49,6 @@ require (
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/invopop/jsonschema v0.12.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
