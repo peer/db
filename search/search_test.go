@@ -442,9 +442,10 @@ For "rel" and "string" properties you MUST ALWAYS use "find_rel_properties_by_va
 match any of the possible values for them because the search query does not search over them.
 You can use ` + "`|`" + ` operator to search for multiple values at once or you can use tools multiple times.
 
-The search engine finds only documents which match all the filters and the search query combined,
-so you MUST use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
-Use it only once where it is the most relevant to the user query.
+The search engine finds only documents which match ALL the filters AND the search query combined,
+so you MUST use parts of the user query ONLY ONCE.
+If you use a part in a filter, DO NOT USE it for another property or for the search query.
+Prefer using filters over the search query.
 
 Before answering, explain your reasoning step-by-step in tags.
 
