@@ -650,7 +650,11 @@ func TestParsePrompt(t *testing.T) {
 			Input: "bridges",
 			PossibleOutputs: []outputStruct{
 				{
-					Query: "bridges",
+					Query:         "bridges",
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
 				},
 			},
 		},
@@ -658,12 +662,11 @@ func TestParsePrompt(t *testing.T) {
 			Input: "artworks",
 			PossibleOutputs: []outputStruct{
 				{
-					RelFilters: []outputFilterStructRel{
-						{
-							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
-							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
-						},
-					},
+					Query:         "",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
 				},
 			},
 		},
@@ -671,12 +674,11 @@ func TestParsePrompt(t *testing.T) {
 			Input: `"artworks"`,
 			PossibleOutputs: []outputStruct{
 				{
-					RelFilters: []outputFilterStructRel{
-						{
-							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
-							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
-						},
-					},
+					Query:         "",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
 				},
 			},
 		},
@@ -684,12 +686,18 @@ func TestParsePrompt(t *testing.T) {
 			Input: `Find me all documents with type "artworks".`,
 			PossibleOutputs: []outputStruct{
 				{
-					RelFilters: []outputFilterStructRel{
-						{
-							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
-							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
-						},
-					},
+					Query:         "",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         " ",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
 				},
 			},
 		},
@@ -697,7 +705,51 @@ func TestParsePrompt(t *testing.T) {
 			Input: "images with bridges",
 			PossibleOutputs: []outputStruct{
 				{
-					Query: "images with bridges",
+					Query:         "images with bridges",
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         "images bridges",
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         "images + bridges",
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         "images +bridges",
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         `"images" + "bridges"`,
+					RelFilters:    []outputFilterStructRel{},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+			},
+		},
+		{
+			Input: `artworks with bridges`,
+			PossibleOutputs: []outputStruct{
+				{
+					Query:         "bridges",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
 				},
 			},
 		},
