@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -638,168 +639,446 @@ func match(s, query string) bool {
 	return false
 }
 
-type textCase struct {
+type testOutput struct {
+	KnownInvalid bool
+	Output       outputStruct
+}
+
+type testCase struct {
 	Input           string
-	PossibleOutputs []outputStruct
+	PossibleOutputs []testOutput
 }
 
 func TestParsePrompt(t *testing.T) {
 	t.Parallel()
 
-	tests := []textCase{
+	tests := []testCase{
 		{
 			Input: "bridges",
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "bridges",
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
 		{
 			Input: "artworks",
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         " ",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "*",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "*",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artwork",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
 		{
 			Input: `"artworks"`,
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         " ",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "*",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "*",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `"artworks"`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
 		{
 			Input: `Find me all documents with type "artworks".`,
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         " ",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "*",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "*",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
 		{
 			Input: "images with bridges",
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "images with bridges",
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "images with bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "images bridges",
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "images bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "images + bridges",
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "images + bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "images +bridges",
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "images +bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         `"images" + "bridges"`,
-					RelFilters:    []outputFilterStructRel{},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         `"images" + "bridges"`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					false,
+					outputStruct{
+						Query:         "bridge image",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					false,
+					outputStruct{
+						Query:         "image bridge",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:      "bridge",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Photograph"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:      "bridge",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Photograph"},
+							},
+							{
+								ID:     "KhqMjmabSREw9RdM3meEDe",
+								Values: []string{"Photography"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "bridge",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
 		{
 			Input: `artworks with bridges`,
-			PossibleOutputs: []outputStruct{
+			PossibleOutputs: []testOutput{
 				{
-					Query:         "bridges",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "bridges",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "bridge",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "bridge",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 				{
-					Query:         "bridge | bridges",
-					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
-					StringFilters: []outputFilterStructString{},
-					TimeFilters:   []outputFilterStructTime{},
-					AmountFilters: []outputFilterStructAmount{},
+					false,
+					outputStruct{
+						Query:         "bridge | bridges",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks bridges",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artwork",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `"artworks bridges"`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `+artwork +"bridge"`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+			},
+		},
+		{
+			Input: `find me all works by Pablo Picasso`,
+			PossibleOutputs: []testOutput{
+				{
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					false,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "works Pablo Picasso",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
 				},
 			},
 		},
@@ -909,14 +1188,26 @@ func TestParsePrompt(t *testing.T) {
 					ct = context.WithValue(ct, "result", &result)
 					_, errE := f.Call(ct, tt.Input)
 					assert.NoError(t, errE, "% -+#.1v", errE)
-					assert.Contains(t, tt.PossibleOutputs, result)
 
 					calls, errE := x.MarshalWithoutEscapeHTML(fun.GetTextRecorder(ct).Calls())
 					require.NoError(t, errE, "% -+#.1v", errE)
 					out := new(bytes.Buffer)
 					err := json.Indent(out, calls, "", "  ")
 					require.NoError(t, err)
-					t.Log(out.String())
+
+					foundOutput := false
+					for _, output := range tt.PossibleOutputs {
+						if reflect.DeepEqual(output.Output, result) {
+							if output.KnownInvalid {
+								t.Skip("known invalid")
+							}
+							foundOutput = true
+							break
+						}
+					}
+					if !foundOutput {
+						assert.Fail(t, out.String())
+					}
 				})
 			}
 		})
