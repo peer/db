@@ -624,6 +624,9 @@ func extractTerms(s string) []string {
 				if z == "artworks" {
 					output = append(output, "artwork")
 				}
+				if z == "artists" {
+					output = append(output, "artist")
+				}
 			}
 		}
 	}
@@ -724,6 +727,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:         "artwork art",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         "",
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
 						StringFilters: []outputFilterStructString{},
@@ -796,6 +809,26 @@ func TestParsePrompt(t *testing.T) {
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
+				{
+					true,
+					outputStruct{
+						Query:         `artworks`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `artworks`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
 			},
 		},
 		{
@@ -837,6 +870,26 @@ func TestParsePrompt(t *testing.T) {
 						Query:         "artworks",
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{{ID: "2fjzZyP7rv8E4aHnBc6KAa", Values: []string{"artwork"}}},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -982,6 +1035,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:         "+bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         "bridge",
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
@@ -1037,7 +1100,37 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:         "artworks bridges",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `artworks "with bridges"`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         "artwork",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
@@ -1067,7 +1160,27 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:         `"artworks"`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         `"artworks bridge"`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `"artworks bridges"`,
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
@@ -1079,6 +1192,26 @@ func TestParsePrompt(t *testing.T) {
 					outputStruct{
 						Query:         `+artwork +"bridge"`,
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `+artworks +"bridge" | "bridges"`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `artworks +bridges`,
+						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
@@ -1110,12 +1243,237 @@ func TestParsePrompt(t *testing.T) {
 					},
 				},
 				{
+					false,
+					outputStruct{
+						Query:         "*",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
 					true,
 					outputStruct{
 						Query:         "works Pablo Picasso",
 						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "Pablo Picasso",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `"Pablo Picasso"`,
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+			},
+		},
+		{
+			Input: `artists born between 1950 and 2000`,
+			PossibleOutputs: []testOutput{
+				{
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					false,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00",
+							Max: "2000-12-31T23:59:59",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artists",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `artists "born between" 1950 2000`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				}, {
+					true,
+					outputStruct{
+						Query:         "artists",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query: "artists",
+						RelFilters: []outputFilterStructRel{
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}},
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"N7uVMykiALJdHQe112DJvm", "NVtDf6dHdCvrGc4piB2EvD", "KMSo9B7371f3mmEuKYTgLD", "CQLoGrGtDgJ4H1BEcdUU3u", "1KAHpAFeQTBnAognyvVtLJ", "RARuE6XNziq391DmMWH95d", "GXeXqGqcuMD9JuywkEy4WQ", "JDgtNz2pAHJjcZ8r1mxFHs", "6JsAnJAWsPiFxzSqa2D1Jf", "HQGsRRwt4GutHHnkYRHxXh"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artists",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "by artist",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artists",
+						RelFilters:    []outputFilterStructRel{{ID: "by artist", DocumentIDs: []string{}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "by artist",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"N7uVMykiALJdHQe112DJvm", "NVtDf6dHdCvrGc4piB2EvD", "KMSo9B7371f3mmEuKYTgLD", "CQLoGrGtDgJ4H1BEcdUU3u", "1KAHpAFeQTBnAognyvVtLJ", "RARuE6XNziq391DmMWH95d", "GXeXqGqcuMD9JuywkEy4WQ", "JDgtNz2pAHJjcZ8r1mxFHs", "6JsAnJAWsPiFxzSqa2D1Jf", "HQGsRRwt4GutHHnkYRHxXh"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query: "artists",
+						RelFilters: []outputFilterStructRel{
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"N7uVMykiALJdHQe112DJvm", "NVtDf6dHdCvrGc4piB2EvD", "KMSo9B7371f3mmEuKYTgLD", "CQLoGrGtDgJ4H1BEcdUU3u", "1KAHpAFeQTBnAognyvVtLJ", "RARuE6XNziq391DmMWH95d", "GXeXqGqcuMD9JuywkEy4WQ", "JDgtNz2pAHJjcZ8r1mxFHs", "6JsAnJAWsPiFxzSqa2D1Jf", "HQGsRRwt4GutHHnkYRHxXh"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01T00:00:00Z",
+							Max: "2000-12-31T23:59:59Z",
+						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
