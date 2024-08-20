@@ -617,10 +617,12 @@ func extractTerms(s string) []string {
 	output := []string{}
 	for _, x := range strings.Split(s, "|") {
 		x = strings.TrimSpace(x)
-		for _, y := range strings.Split(x, " ") {
-			output = append(output, y)
-			if y == "artworks" {
-				output = append(output, "artwork")
+		for _, y := range strings.Split(x, " OR ") {
+			for _, z := range strings.Split(y, " ") {
+				output = append(output, z)
+				if z == "artworks" {
+					output = append(output, "artwork")
+				}
 			}
 		}
 	}
