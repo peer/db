@@ -295,7 +295,7 @@ var outputStructSchema = []byte(`
 	"properties": {
 		"query": {
 			"type": "string",
-			"description": "A search query for text content. It uses the search query syntax used by the search engine. To not filter on text content use an empty search query."
+			"description": "A search query for text content. It uses the search query syntax used by the search engine."
 		},
 		"rel_filters": {
 			"type": "array",
@@ -429,6 +429,7 @@ The search query syntax used by the search engine supports the following operato
 - ` + "`(`" + ` and ` + "`)`" + ` signify precedence
 
 Default operation between keywords is AND operation.
+The search query can be empty to match all documents.
 
 User might ask a question you should parse so that resulting documents answer the question,
 or they might just list keywords,
@@ -447,7 +448,9 @@ Use ` + "`|`" + ` operator between alternatives, potentially wrapping them with 
 Include keywords with similar or same meaning, but different spelling.
 Include keywords for related terms which could find documents of interest as well.
 
-Use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
+The search engine finds only documents which match all the filters and the search query combined,
+so you MUST use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
+Use it only once where it is the most relevant to the user query.
 
 Before answering, explain your reasoning step-by-step in tags.
 
@@ -640,8 +643,6 @@ func match(s, query string) bool {
 func TestParsePrompt(t *testing.T) {
 	t.Parallel()
 
-	p := strings.ReplaceAll(prompt, `{schema}`, string(outputStructSchema))
-
 	tests := []fun.InputOutput[string, outputStruct]{
 		// {
 		// 	Input: []string{"bridges"},
@@ -667,7 +668,7 @@ func TestParsePrompt(t *testing.T) {
 				Provider:         provider.Provider(t),
 				InputJSONSchema:  nil,
 				OutputJSONSchema: nil,
-				Prompt:           p,
+				Prompt:           prompt,
 				Data:             nil,
 				Tools: map[string]fun.TextTooler{
 					"find_properties_by_name": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
