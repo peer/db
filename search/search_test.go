@@ -786,6 +786,16 @@ func TestParsePrompt(t *testing.T) {
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
+				{
+					true,
+					outputStruct{
+						Query:         `"artworks"`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
 			},
 		},
 		{
@@ -943,6 +953,25 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:      "bridge",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "KhqMjmabSREw9RdM3meEDe",
+								Values: []string{"Photography"},
+							},
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Photograph"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         "bridges",
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
@@ -1030,6 +1059,16 @@ func TestParsePrompt(t *testing.T) {
 					outputStruct{
 						Query:         `"artworks bridges"`,
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `"artworks bridge"`,
+						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
