@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -638,20 +637,68 @@ func match(s, query string) bool {
 	return false
 }
 
+type textCase struct {
+	Input           string
+	PossibleOutputs []outputStruct
+}
+
 func TestParsePrompt(t *testing.T) {
 	t.Parallel()
 
-	tests := []fun.InputOutput[string, outputStruct]{
-		// {
-		// 	Input: []string{"bridges"},
-		// 	Output: outputStruct{
-		// 		Query: "bridges",
-		// 	},
-		// },
+	tests := []textCase{
 		{
-			Input: []string{"artworks"},
-			Output: outputStruct{
-				Query: "artworks",
+			Input: "bridges",
+			PossibleOutputs: []outputStruct{
+				{
+					Query: "bridges",
+				},
+			},
+		},
+		{
+			Input: "artworks",
+			PossibleOutputs: []outputStruct{
+				{
+					RelFilters: []outputFilterStructRel{
+						{
+							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
+							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Input: `"artworks"`,
+			PossibleOutputs: []outputStruct{
+				{
+					RelFilters: []outputFilterStructRel{
+						{
+							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
+							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Input: `Find me all documents with type "artworks".`,
+			PossibleOutputs: []outputStruct{
+				{
+					RelFilters: []outputFilterStructRel{
+						{
+							ID:          "2fjzZyP7rv8E4aHnBc6KAa",
+							DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Input: "images with bridges",
+			PossibleOutputs: []outputStruct{
+				{
+					Query: "images with bridges",
+				},
 			},
 		},
 	}
@@ -674,7 +721,6 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							fmt.Println(provider.Name, "find_properties_by_name", input)
 							result := []property{}
 							for _, property := range properties {
 								if property.Type != "amount" && property.Type != "time" {
@@ -695,7 +741,6 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							fmt.Println(provider.Name, "find_rel_properties_by_values", input)
 							result := []property{}
 							for _, property := range properties {
 								if property.Type != "rel" {
@@ -725,7 +770,6 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							fmt.Println(provider.Name, "find_string_properties_by_values", input)
 							result := []property{}
 							for _, property := range properties {
 								if property.Type != "string" {
@@ -755,7 +799,7 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
-							fmt.Printf("%s show_results: %+v\n", provider.Name, input)
+							*ctx.Value("result").(*outputStruct) = input
 							return "", nil
 						},
 					},
@@ -767,23 +811,26 @@ func TestParsePrompt(t *testing.T) {
 			errE := f.Init(ctx)
 			require.NoError(t, errE, "% -+#.1v", errE)
 
-			for i, tt := range tests {
+			for _, tt := range tests {
 				tt := tt
 
-				t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
+				t.Run(tt.Input, func(t *testing.T) {
 					t.Parallel()
 
+					var result outputStruct
+
 					ct := fun.WithTextRecorder(ctx)
-					output, errE := f.Call(ct, tt.Input...)
+					ct = context.WithValue(ct, "result", &result)
+					_, errE := f.Call(ct, tt.Input)
 					assert.NoError(t, errE, "% -+#.1v", errE)
-					assert.Equal(t, tt.Output, output)
+					assert.Contains(t, tt.PossibleOutputs, result)
 
 					calls, errE := x.MarshalWithoutEscapeHTML(fun.GetTextRecorder(ct).Calls())
 					require.NoError(t, errE, "% -+#.1v", errE)
 					out := new(bytes.Buffer)
 					err := json.Indent(out, calls, "", "  ")
 					require.NoError(t, err)
-					fmt.Println(out.String())
+					t.Log(out.String())
 				})
 			}
 		})
