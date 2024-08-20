@@ -438,8 +438,9 @@ and filters for other properties.
 
 Use tools to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
 For "rel" and "string" properties you MUST ALWAYS use "find_rel_properties_by_values" and
-"find_string_properties_by_values" tools, respectively, to check if relevant parts of the user query
+"find_string_properties_by_values" tools, respectively, to check if any part of the user query
 match any of the possible values for them because the search query does not search over them.
+You can use ` + "`|`" + ` operator to search for multiple values at once or you can use tools multiple times.
 
 The search engine finds only documents which match all the filters and the search query combined,
 so you MUST use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
@@ -668,6 +669,13 @@ func TestParsePrompt(t *testing.T) {
 					TimeFilters:   []outputFilterStructTime{},
 					AmountFilters: []outputFilterStructAmount{},
 				},
+				{
+					Query:         " ",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
 			},
 		},
 		{
@@ -675,6 +683,13 @@ func TestParsePrompt(t *testing.T) {
 			PossibleOutputs: []outputStruct{
 				{
 					Query:         "",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         " ",
 					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 					StringFilters: []outputFilterStructString{},
 					TimeFilters:   []outputFilterStructTime{},
