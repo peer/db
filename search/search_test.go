@@ -438,15 +438,9 @@ Determine which one it is and output a combination of the search query for "text
 and filters for other properties.
 
 Use tools to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
-For "rel" and "string" properties you MUST always check if relevant parts of the user query
-match any of the possible values for them using "find_rel_properties_by_values" and
-"find_string_properties_by_values" tools, respectively, because the search query does not search over them.
-
-Unless user explicitly asks for a particular keyword (e.g., using quotation marks),
-expand user query with similar keywords to find best results.
-Use ` + "`|`" + ` operator between alternatives, potentially wrapping them with ` + "`(`" + ` and ` + "`)`" + ` to signify precedence.
-Include keywords with similar or same meaning, but different spelling.
-Include keywords for related terms which could find documents of interest as well.
+For "rel" and "string" properties you MUST ALWAYS use "find_rel_properties_by_values" and
+"find_string_properties_by_values" tools, respectively, to check if relevant parts of the user query
+match any of the possible values for them because the search query does not search over them.
 
 The search engine finds only documents which match all the filters and the search query combined,
 so you MUST use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
