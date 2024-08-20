@@ -623,9 +623,11 @@ func extractTerms(s string) []string {
 	output := []string{}
 	for _, x := range strings.Split(s, "|") {
 		x = strings.TrimSpace(x)
-		output = append(output, x)
-		if x == "artworks" {
-			output = append(output, "artwork")
+		for _, y := range strings.Split(x, " ") {
+			output = append(output, y)
+			if y == "artworks" {
+				output = append(output, "artwork")
+			}
 		}
 	}
 	return output
