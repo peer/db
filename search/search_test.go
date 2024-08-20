@@ -425,6 +425,7 @@ The search query syntax used by the search engine supports the following operato
 - ` + "`|`" + ` signifies OR operation
 - ` + "`-`" + ` negates a single token
 - ` + "`\"`" + ` wraps a number of tokens to signify a phrase for searching
+- ` + "`*`" + ` at the end of a term signifies a prefix query
 - ` + "`(`" + ` and ` + "`)`" + ` signify precedence
 
 Default operation between keywords is AND operation.
@@ -433,17 +434,13 @@ The search query can be empty to match all documents.
 User might ask a question you should parse so that resulting documents answer the question,
 or they might just list keywords,
 or they might even use the search query syntax to provide a text content search.
-Determine which one it is and output a combination of the search query for "text" properties
-and filters for other properties.
+Determine which one it is and output a combination of the search query for "text" properties and filters for other properties.
 
 Use tools to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
-For "rel" and "string" properties you MUST ALWAYS use "find_rel_properties_by_values" and
-"find_string_properties_by_values" tools, respectively, to check if any part of the user query
-match any of the possible values for them because the search query does not search over them.
+For "rel" and "string" properties you MUST ALWAYS use "find_properties_by_values" tool to check if any part of the user query match any of the possible values for them because the search query does not search over them.
 You can use ` + "`|`" + ` operator to search for multiple values at once or you can use tools multiple times.
 
-The search engine finds only documents which match ALL the filters AND the search query combined,
-so you MUST use parts of the user query ONLY ONCE.
+The search engine finds only documents which match ALL the filters AND the search query combined, so you MUST use parts of the user query ONLY ONCE.
 If you use a part in a filter, DO NOT USE it for another property or for the search query.
 Prefer using filters over the search query.
 
@@ -677,6 +674,13 @@ func TestParsePrompt(t *testing.T) {
 					TimeFilters:   []outputFilterStructTime{},
 					AmountFilters: []outputFilterStructAmount{},
 				},
+				{
+					Query:         "*",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
 			},
 		},
 		{
@@ -696,6 +700,13 @@ func TestParsePrompt(t *testing.T) {
 					TimeFilters:   []outputFilterStructTime{},
 					AmountFilters: []outputFilterStructAmount{},
 				},
+				{
+					Query:         "*",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
 			},
 		},
 		{
@@ -710,6 +721,13 @@ func TestParsePrompt(t *testing.T) {
 				},
 				{
 					Query:         " ",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         "*",
 					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 					StringFilters: []outputFilterStructString{},
 					TimeFilters:   []outputFilterStructTime{},
@@ -804,8 +822,8 @@ func TestParsePrompt(t *testing.T) {
 							}, nil
 						},
 					},
-					"find_rel_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find "rel" properties which have related documents with names matching the query. It can return multiple properties, each with their ID, name, description, type, matched related documents, and the relevance score (higher the score, more relevant related documents of the property are to the query). Each property contains matched related documents, each with their ID, name, description, and the relevance score (higher the score, more relevant the related document is to the query).`,
+					"find_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+						Description:      `Find "rel" and "string" properties which have related documents with names matching the query, or string values matching the query, respectively. It can return multiple properties, each with their ID, name, description, type, matched related documents or string values, and the relevance score (higher the score, more relevant related documents or string values of the property are to the query). Each property contains matched related documents or string values, each with their ID, name, description, or their value, and the relevance score (higher the score, more relevant the related document or the string value is to the query).`,
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
@@ -827,18 +845,6 @@ func TestParsePrompt(t *testing.T) {
 									result = append(result, p)
 								}
 							}
-							return findPropertiesOutput{
-								Properties: result,
-								Total:      len(result),
-							}, nil
-						},
-					},
-					"find_string_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find "string" properties which have string values matching the query. It can return multiple properties, each with their ID, name, description, type, matched string values, and the relevance score (higher the score, more relevant string values of the property are to the query). Each property contains matched string values, each with their value and the relevance score (higher the score, more relevant the string value is to the query).`,
-						InputJSONSchema:  findPropertiesInputSchema,
-						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							result := []property{}
 							for _, property := range properties {
 								if property.Type != "string" {
 									continue
