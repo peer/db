@@ -24,6 +24,20 @@ var properties = []property{
 		Description: `Type of the document.`,
 		Type:        "rel",
 		Score:       0,
+		RelatedDocuments: []relPropertyValue{
+			{
+				ID:          "JT9bhAfn5QnDzRyyLARLQn",
+				Name:        "artwork",
+				Description: "The document is about an artwork.",
+				Score:       0,
+			},
+			{
+				ID:          "8z5YTfJAd2c23dd5WFv4R5",
+				Name:        "artist",
+				Description: "The document is about an artist.",
+				Score:       0,
+			},
+		},
 	},
 	{
 		ID:          "KhqMjmabSREw9RdM3meEDe",
@@ -31,6 +45,14 @@ var properties = []property{
 		Description: `The department of the artwork.`,
 		Type:        "string",
 		Score:       0,
+		StringValues: []stringPropertyValue{
+			{"Drawings & Prints", 0},
+			{"Photography", 0},
+			{"Architecture & Design", 0},
+			{"Painting & Sculpture", 0},
+			{"Media and Performance", 0},
+			{"Film", 0},
+		},
 	},
 	{
 		ID:          "J9A99CrePyKEqH6ztW1hA5",
@@ -38,6 +60,68 @@ var properties = []property{
 		Description: `The artist of the artwork.`,
 		Type:        "rel",
 		Score:       0,
+		RelatedDocuments: []relPropertyValue{
+			{
+				ID:          "N7uVMykiALJdHQe112DJvm",
+				Name:        "Louise Bourgeois",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "NVtDf6dHdCvrGc4piB2EvD",
+				Name:        "Eugène Atget",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "KMSo9B7371f3mmEuKYTgLD",
+				Name:        "Unidentified photographer",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "CQLoGrGtDgJ4H1BEcdUU3u",
+				Name:        "Ludwig Mies van der Rohe",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "1KAHpAFeQTBnAognyvVtLJ",
+				Name:        "Pablo Picasso",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "RARuE6XNziq391DmMWH95d",
+				Name:        "Lee Friedlander",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "GXeXqGqcuMD9JuywkEy4WQ",
+				Name:        "August Sander",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "JDgtNz2pAHJjcZ8r1mxFHs",
+				Name:        "Jean Dubuffet",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "6JsAnJAWsPiFxzSqa2D1Jf",
+				Name:        "János Kender",
+				Description: "",
+				Score:       0,
+			},
+			{
+				ID:          "HQGsRRwt4GutHHnkYRHxXh",
+				Name:        "Harry Shunk",
+				Description: "",
+				Score:       0,
+			},
+		},
 	},
 	{
 		ID:          "UQqEUeWZmnXro2qSJYoaJZ",
@@ -45,6 +129,28 @@ var properties = []property{
 		Description: `The classification of the artwork.`,
 		Type:        "string",
 		Score:       0,
+		StringValues: []stringPropertyValue{
+			{"Photograph", 0},
+			{"Print", 0},
+			{"Drawing", 0},
+			{"Design", 0},
+			{"Illustrated Book", 0},
+			{"Architecture", 0},
+			{"Painting", 0},
+			{"Video", 0},
+			{"Mies van der Rohe Archive", 0},
+			{"Sculpture", 0},
+			{"Multiple", 0},
+			{"Periodical", 0},
+			{"Installation", 0},
+			{"Audio", 0},
+			{"Ephemera", 0},
+			{"Film", 0},
+			{"Frank Lloyd Wright Archive", 0},
+			{"Collage", 0},
+			{"Performance", 0},
+			{"Textile", 0},
+		},
 	},
 	{
 		ID:          "Ntki6bVn3TtvHebm96jzdQ",
@@ -72,6 +178,7 @@ var properties = []property{
 		Name:        "height",
 		Description: `The height of the artwork.`,
 		Type:        "amount",
+		Unit:        "meter",
 		Score:       0,
 	},
 	{
@@ -107,6 +214,7 @@ var properties = []property{
 		Name:        "depth",
 		Description: `The depth of the artwork.`,
 		Type:        "amount",
+		Unit:        "meter",
 		Score:       0,
 	},
 	{
@@ -114,6 +222,7 @@ var properties = []property{
 		Name:        "duration",
 		Description: `The duration of the artwork.`,
 		Type:        "amount",
+		Unit:        "second",
 		Score:       0,
 	},
 	{
@@ -121,6 +230,7 @@ var properties = []property{
 		Name:        "diameter",
 		Description: `The diameter of the artwork.`,
 		Type:        "amount",
+		Unit:        "meter",
 		Score:       0,
 	},
 	{
@@ -128,6 +238,7 @@ var properties = []property{
 		Name:        "length",
 		Description: `The length of the artwork.`,
 		Type:        "amount",
+		Unit:        "meter",
 		Score:       0,
 	},
 	{
@@ -135,6 +246,7 @@ var properties = []property{
 		Name:        "weight",
 		Description: `The weight of the artwork.`,
 		Type:        "amount",
+		Unit:        "kilogram",
 		Score:       0,
 	},
 	{
@@ -142,17 +254,9 @@ var properties = []property{
 		Name:        "circumference",
 		Description: `The circumference of the artwork.`,
 		Type:        "amount",
+		Unit:        "meter",
 		Score:       0,
 	},
-}
-
-func getProperty(id string) *property {
-	for _, property := range properties {
-		if property.ID == id {
-			return &property
-		}
-	}
-	return nil
 }
 
 type outputFilterStructRel struct {
@@ -191,7 +295,7 @@ var outputStructSchema = []byte(`
 	"properties": {
 		"query": {
 			"type": "string",
-			"description": "A search query in the ElasticSearch simple_query_string syntax with all operators available and with default_operator set to AND. To not filter on text content use an empty search query."
+			"description": "A search query for text content. It uses the search query syntax used by the search engine. To not filter on text content use an empty search query."
 		},
 		"rel_filters": {
 			"type": "array",
@@ -310,30 +414,40 @@ const prompt = `You are a parser of user queries for a search engine for documen
 
 Properties can be of five types:
 
-- "text" properties are searched all together as text content using the search query in the ElasticSearch simple_query_string syntax with all operators available and with default_operator set to AND
+- "text" properties are searched all together as text content using the search query
 - "rel" property is used for a relation to another document, based on its ID
 - "string" property is used for a string value
 - "time" property is used for a timestamp
-- "amount" property is used for a numeric value
+- "amount" property is used for a numeric value with an unit
+
+The search query syntax used by the search engine supports the following operators:
+
+- ` + "`+`" + ` signifies AND operation
+- ` + "`|`" + ` signifies OR operation
+- ` + "`-`" + ` negates a single token
+- ` + "`\"`" + ` wraps a number of tokens to signify a phrase for searching
+- ` + "`(`" + ` and ` + "`)`" + ` signify precedence
+
+Default operation between keywords is AND operation.
 
 User might ask a question you should parse so that resulting documents answer the question,
 or they might just list keywords,
-or they might even provide a text content search in simple_query_string syntax already.
+or they might even use the search query syntax to provide a text content search.
 Determine which one it is and output a combination of the search query for "text" properties
 and filters for other properties.
 
 Use tools to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
-For "rel" and "string" properties you should always check if relevant parts of the user query
-match any of the possible values for them because the search query does not search over them.
-
-All search queries (including those for tools) can be empty strings to not filter by the search query.
+For "rel" and "string" properties you MUST always check if relevant parts of the user query
+match any of the possible values for them using "find_rel_properties_by_values" and
+"find_string_properties_by_values" tools, respectively, because the search query does not search over them.
 
 Unless user explicitly asks for a particular keyword (e.g., using quotation marks),
 expand user query with similar keywords to find best results.
+Use ` + "`|`" + ` operator between alternatives, potentially wrapping them with ` + "`(`" + ` and ` + "`)`" + ` to signify precedence.
 Include keywords with similar or same meaning, but different spelling.
 Include keywords for related terms which could find documents of interest as well.
 
-Use parts of the user query only once (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
+Use parts of the user query ONLY ONCE (e.g., if you use a part in a filter for a property, do not use it for another property or for the search query).
 
 Before answering, explain your reasoning step-by-step in tags.
 
@@ -349,7 +463,7 @@ var findPropertiesInputSchema = []byte(`
 	"properties": {
 		"query": {
 			"type": "string",
-			"description": "A search query in the ElasticSearch simple_query_string syntax with all operators available and with default_operator set to AND. To not limit results use an empty search query."
+			"description": "A search query. It uses the search query syntax used by the search engine."
 		}
 	},
 	"additionalProperties": false,
@@ -361,11 +475,14 @@ var findPropertiesInputSchema = []byte(`
 `)
 
 type property struct {
-	ID          string  `json:"property_id"`
-	Name        string  `json:"property_name"`
-	Description string  `json:"property_description"`
-	Type        string  `json:"property_type"`
-	Score       float64 `json:"relevance_score"`
+	ID               string                `json:"property_id"`
+	Name             string                `json:"property_name"`
+	Description      string                `json:"property_description,omitempty"`
+	Type             string                `json:"property_type"`
+	Unit             string                `json:"unit,omitempty"`
+	RelatedDocuments []relPropertyValue    `json:"related_documents,omitempty"`
+	StringValues     []stringPropertyValue `json:"string_values,omitempty"`
+	Score            float64               `json:"relevance_score"`
 }
 
 type findPropertiesOutput struct {
@@ -373,118 +490,16 @@ type findPropertiesOutput struct {
 	Total      int        `json:"total"`
 }
 
-type findRelPropertyValuesInput struct {
-	ID    string `json:"property_id"`
-	Query string `json:"query"`
-}
-
-var findRelPropertyValuesInputSchema = []byte(`
-{
-	"properties": {
-		"property_id": {
-			"type": "string",
-			"description": "ID of the property to find the possible related documents for"
-		},
-		"query": {
-			"type": "string",
-			"description": "query in the ElasticSearch simple_query_string syntax with all operators available and with default_operator set to AND"
-		}
-	},
-	"additionalProperties": false,
-	"type": "object",
-	"required": [
-		"property_id",
-		"query"
-	]
-}
-`)
-
-type findRelPropertyValuesOutput struct {
+type relPropertyValue struct {
 	ID          string  `json:"document_id"`
 	Name        string  `json:"document_name"`
 	Description string  `json:"document_description"`
 	Score       float64 `json:"relevance_score"`
 }
 
-type findStringPropertyValuesInput struct {
-	ID    string `json:"property_id"`
-	Query string `json:"query"`
-}
-
-var findStringPropertyValuesInputSchema = []byte(`
-{
-	"properties": {
-		"property_id": {
-			"type": "string",
-			"description": "ID of the property to find the possible string values for"
-		},
-		"query": {
-			"type": "string",
-			"description": "query in the ElasticSearch simple_query_string syntax with all operators available and with default_operator set to AND"
-		}
-	},
-	"additionalProperties": false,
-	"type": "object",
-	"required": [
-		"property_id",
-		"query"
-	]
-}
-`)
-
-type findStringPropertyValuesOutput struct {
+type stringPropertyValue struct {
 	Value string  `json:"value"`
 	Score float64 `json:"relevance_score"`
-}
-
-type findTimePropertyValuesInput struct {
-	ID string `json:"property_id"`
-}
-
-var findTimePropertyValuesInputSchema = []byte(`
-{
-	"properties": {
-		"property_id": {
-			"type": "string",
-			"description": "ID of the property to find the minimum and maximum possible timestamps for"
-		}
-	},
-	"additionalProperties": false,
-	"type": "object",
-	"required": [
-		"property_id"
-	]
-}
-`)
-
-type findTimePropertyValuesOutput struct {
-	Min string `json:"min"`
-	Max string `json:"max"`
-}
-
-type findAmountPropertyValuesInput struct {
-	ID string `json:"property_id"`
-}
-
-var findAmountPropertyValuesInputSchema = []byte(`
-{
-	"properties": {
-		"property_id": {
-			"type": "string",
-			"description": "ID of the property to find the minimum and maximum possible numeric values for"
-		}
-	},
-	"additionalProperties": false,
-	"type": "object",
-	"required": [
-		"property_id"
-	]
-}
-`)
-
-type findAmountPropertyValuesOutput struct {
-	Min float64 `json:"min"`
-	Max float64 `json:"max"`
 }
 
 var providers = []struct {
@@ -597,6 +612,31 @@ var providers = []struct {
 	},
 }
 
+func iContains(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
+func extractTerms(s string) []string {
+	output := []string{}
+	for _, x := range strings.Split(s, "|") {
+		x = strings.TrimSpace(x)
+		output = append(output, x)
+		if x == "artworks" {
+			output = append(output, "artwork")
+		}
+	}
+	return output
+}
+
+func match(s, query string) bool {
+	for _, substr := range extractTerms(query) {
+		if iContains(s, substr) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestParsePrompt(t *testing.T) {
 	t.Parallel()
 
@@ -630,184 +670,84 @@ func TestParsePrompt(t *testing.T) {
 				Prompt:           p,
 				Data:             nil,
 				Tools: map[string]fun.TextTooler{
-					"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find non-"text" properties matching the search query. It can return multiple properties, each with their ID, name, description, type, and the relevance score (higher the score, more relevant the property is to the query).`,
+					"find_properties_by_name": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+						Description:      `Find "amount" and "time" properties matching the search query against their name. It can return multiple properties, each with their ID, name, description, type, unit, and the relevance score (higher the score, more relevant the property is to the query).`,
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							fmt.Println("find_properties", input)
+							fmt.Println(provider.Name, "find_properties_by_name", input)
+							result := []property{}
+							for _, property := range properties {
+								if property.Type != "amount" && property.Type != "time" {
+									continue
+								}
+								if match(property.Name, input.Query) {
+									result = append(result, property)
+								}
+							}
 							return findPropertiesOutput{
-								Properties: properties,
-								Total:      len(properties),
+								Properties: result,
+								Total:      len(result),
 							}, nil
 						},
 					},
-					"find_rel_property_values": &fun.TextTool[findRelPropertyValuesInput, []findRelPropertyValuesOutput]{
-						Description:      `Find possible related documents matching the query for the property with "rel" property type. It can return multiple related documents, each with their ID, name, description, and the relevance score (higher the score, more relevant the related document is to the query).`,
-						InputJSONSchema:  findRelPropertyValuesInputSchema,
+					"find_rel_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+						Description:      `Find "rel" properties which have related documents with names matching the query. It can return multiple properties, each with their ID, name, description, type, matched related documents, and the relevance score (higher the score, more relevant related documents of the property are to the query). Each property contains matched related documents, each with their ID, name, description, and the relevance score (higher the score, more relevant the related document is to the query).`,
+						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findRelPropertyValuesInput) ([]findRelPropertyValuesOutput, errors.E) {
-							fmt.Println("find_rel_property_values", input)
-							if p := getProperty(input.ID); p != nil {
-								if p.Type != "rel" {
-									return nil, errors.New(`property type not "rel"`)
+						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
+							fmt.Println(provider.Name, "find_rel_properties_by_values", input)
+							result := []property{}
+							for _, property := range properties {
+								if property.Type != "rel" {
+									continue
 								}
-							} else {
-								return nil, errors.New("property not found")
-							}
-							switch input.ID {
-							case "2fjzZyP7rv8E4aHnBc6KAa":
-								return []findRelPropertyValuesOutput{
-									{
-										ID:          "JT9bhAfn5QnDzRyyLARLQn",
-										Name:        "artwork",
-										Description: "The document describes an artwork.",
-										Score:       0,
-									},
-								}, nil
-							}
-							return []findRelPropertyValuesOutput{}, nil
-						},
-					},
-					"find_string_property_values": &fun.TextTool[findStringPropertyValuesInput, []findStringPropertyValuesOutput]{
-						Description:      `Find possible string values matching the query for the property with "string" property type. It can return multiple string values, each with their value and the relevance score (higher the score, more relevant the value is to the query).`,
-						InputJSONSchema:  findStringPropertyValuesInputSchema,
-						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findStringPropertyValuesInput) ([]findStringPropertyValuesOutput, errors.E) {
-							fmt.Println("find_string_property_values", input)
-							if p := getProperty(input.ID); p != nil {
-								if p.Type != "string" {
-									return nil, errors.New(`property type not "string"`)
+								docs := []relPropertyValue{}
+								for _, doc := range property.RelatedDocuments {
+									if match(doc.Name, input.Query) {
+										docs = append(docs, doc)
+									}
 								}
-							} else {
-								return nil, errors.New("property not found")
-							}
-							// switch input.ID {
-							// case "KhqMjmabSREw9RdM3meEDe": // department
-							// 	return []findStringPropertyValuesOutput{
-							// 		{"Drawings & Prints", 0},
-							// 		{"Photography", 0},
-							// 		{"Architecture & Design", 0},
-							// 		{"Painting & Sculpture", 0},
-							// 		{"Media and Performance", 0},
-							// 		{"Film", 0},
-							// 	}, nil
-							// case "UQqEUeWZmnXro2qSJYoaJZ": // classification
-							// 	return []findStringPropertyValuesOutput{
-							// 		{"Photograph", 0},
-							// 		{"Print", 0},
-							// 		{"Drawing", 0},
-							// 		{"Design", 0},
-							// 		{"Illustrated Book", 0},
-							// 		{"Architecture", 0},
-							// 		{"Painting", 0},
-							// 		{"Video", 0},
-							// 		{"Mies van der Rohe Archive", 0},
-							// 		{"Sculpture", 0},
-							// 		{"Multiple", 0},
-							// 		{"Periodical", 0},
-							// 		{"Installation", 0},
-							// 		{"Audio", 0},
-							// 		{"Ephemera", 0},
-							// 		{"Film", 0},
-							// 		{"Frank Lloyd Wright Archive", 0},
-							// 		{"Collage", 0},
-							// 		{"Performance", 0},
-							// 		{"Textile", 0},
-							// 	}, nil
-							// }
-							return []findStringPropertyValuesOutput{}, nil
-						},
-					},
-					"find_time_property_values": &fun.TextTool[findTimePropertyValuesInput, findTimePropertyValuesOutput]{
-						Description:      `Find the minimum and maximum possible timestamps for the property with "time" property type.`,
-						InputJSONSchema:  findAmountPropertyValuesInputSchema,
-						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findTimePropertyValuesInput) (findTimePropertyValuesOutput, errors.E) {
-							fmt.Println("find_time_property_values", input)
-							if p := getProperty(input.ID); p != nil {
-								if p.Type != "time" {
-									return findTimePropertyValuesOutput{}, errors.New(`property type not "time"`)
+								if len(docs) > 0 {
+									// Make a copy.
+									p := property
+									p.RelatedDocuments = docs
+									result = append(result, p)
 								}
-							} else {
-								return findTimePropertyValuesOutput{}, errors.New("property not found")
 							}
-							switch input.ID {
-							case "FS2y5jBSy57EoHbhN3Z5Yk": // date acquired
-								return findTimePropertyValuesOutput{
-									Min: "1929-11-19T00:00:00Z",
-									Max: "2022-06-06T00:00:00Z",
-								}, nil
-							case "2HXMnTyFK7BCbCv6Y8231j": // born
-								return findTimePropertyValuesOutput{
-									Min: "1181-01-01T00:00:00Z",
-									Max: "2017-01-01T00:00:00Z",
-								}, nil
-							case "8Ls3yxCNM7a7EEEsJhNeQ6": // death
-								return findTimePropertyValuesOutput{
-									Min: "1226-01-01T00:00:00Z",
-									Max: "2022-01-01T00:00:00Z",
-								}, nil
-							}
-							return findTimePropertyValuesOutput{
-								Min: "",
-								Max: "",
+							return findPropertiesOutput{
+								Properties: result,
+								Total:      len(result),
 							}, nil
 						},
 					},
-					"find_amount_property_values": &fun.TextTool[findAmountPropertyValuesInput, findAmountPropertyValuesOutput]{
-						Description:      `Find the minimum and maximum possible numeric values for the property with "amount" property type.`,
-						InputJSONSchema:  findAmountPropertyValuesInputSchema,
+					"find_string_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+						Description:      `Find "string" properties which have string values matching the query. It can return multiple properties, each with their ID, name, description, type, matched string values, and the relevance score (higher the score, more relevant string values of the property are to the query). Each property contains matched string values, each with their value and the relevance score (higher the score, more relevant the string value is to the query).`,
+						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findAmountPropertyValuesInput) (findAmountPropertyValuesOutput, errors.E) {
-							fmt.Println("find_amount_property_values", input)
-							if p := getProperty(input.ID); p != nil {
-								if p.Type != "amount" {
-									return findAmountPropertyValuesOutput{}, errors.New(`property type not "amount"`)
+						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
+							fmt.Println(provider.Name, "find_string_properties_by_values", input)
+							result := []property{}
+							for _, property := range properties {
+								if property.Type != "string" {
+									continue
 								}
-							} else {
-								return findAmountPropertyValuesOutput{}, errors.New("property not found")
+								values := []stringPropertyValue{}
+								for _, value := range property.StringValues {
+									if match(value.Value, input.Query) {
+										values = append(values, value)
+									}
+								}
+								if len(values) > 0 {
+									// Make a copy.
+									p := property
+									p.StringValues = values
+									result = append(result, p)
+								}
 							}
-							switch input.ID {
-							case "46LYApiUCkAakxrTZ82Q8Z": // height
-								return findAmountPropertyValuesOutput{
-									Min: 0.001588,
-									Max: 91.4,
-								}, nil
-							case "4ko3ggksg89apAY8vo64VP": // depth
-								return findAmountPropertyValuesOutput{
-									Min: 0.001,
-									Max: 18.085,
-								}, nil
-							case "HXdyya72uTpnmwscX9QpTi": // duration
-								return findAmountPropertyValuesOutput{
-									Min: 5,
-									Max: 6283100,
-								}, nil
-							case "K2A24W4rtqGvy1gpPpikjp": // diameter
-								return findAmountPropertyValuesOutput{
-									Min: 0.00635,
-									Max: 9.144,
-								}, nil
-							case "8VNwPL2fRzjF1qEmv9tpud": // length
-								return findAmountPropertyValuesOutput{
-									Min: 0.0127,
-									Max: 83.211,
-								}, nil
-							case "39oo9aL9YTubVnowYpqBs2": // weight
-								return findAmountPropertyValuesOutput{
-									Min: 0.09,
-									Max: 185070,
-								}, nil
-							case "VUdAU3pxVLtrHgi1yxpkqy": // circumference
-								return findAmountPropertyValuesOutput{
-									Min: 0.099,
-									Max: 0.838,
-								}, nil
-							}
-							return findAmountPropertyValuesOutput{
-								Min: 0,
-								Max: 0,
+							return findPropertiesOutput{
+								Properties: result,
+								Total:      len(result),
 							}, nil
 						},
 					},
@@ -816,7 +756,7 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
-							fmt.Printf("show_results: %+v\n", input)
+							fmt.Printf(provider.Name, "show_results: %+v\n", input)
 							return "", nil
 						},
 					},
