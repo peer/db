@@ -757,7 +757,7 @@ func TestParsePrompt(t *testing.T) {
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
-							fmt.Printf(provider.Name, "show_results: %+v\n", input)
+							fmt.Printf("%s show_results: %+v\n", provider.Name, input)
 							return "", nil
 						},
 					},
