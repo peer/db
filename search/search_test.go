@@ -2,9 +2,11 @@ package search_test
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -436,9 +438,9 @@ or they might just list keywords,
 or they might even use the search query syntax to provide a text content search.
 Determine which one it is and output a combination of the search query for "text" properties and filters for other properties.
 
-Use tools to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
-For "rel" and "string" properties you MUST ALWAYS use "find_properties_by_values" tool to check if any part of the user query match any of the possible values for them because the search query does not search over them.
-You can use ` + "`|`" + ` operator to search for multiple values at once or you can use tools multiple times.
+You MUST ALWAYS use the "find_properties" tool to determine which non-"text" properties and possible corresponding values are available to decide which filters to use.
+Check if any part of the user query match any property name or any property value because the search query does not search over property names and property values.
+You can use ` + "`|`" + ` operator to search for multiple values at once or you can use the tool multiple times.
 
 The search engine finds only documents which match ALL the filters AND the search query combined, so you MUST use parts of the user query ONLY ONCE.
 If you use a part in a filter, DO NOT USE it for another property or for the search query.
@@ -785,6 +787,20 @@ func TestParsePrompt(t *testing.T) {
 					TimeFilters:   []outputFilterStructTime{},
 					AmountFilters: []outputFilterStructAmount{},
 				},
+				{
+					Query:         "bridge",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
+				{
+					Query:         "bridge | bridges",
+					RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+					StringFilters: []outputFilterStructString{},
+					TimeFilters:   []outputFilterStructTime{},
+					AmountFilters: []outputFilterStructAmount{},
+				},
 			},
 		},
 	}
@@ -802,32 +818,17 @@ func TestParsePrompt(t *testing.T) {
 				Prompt:           prompt,
 				Data:             nil,
 				Tools: map[string]fun.TextTooler{
-					"find_properties_by_name": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find "amount" and "time" properties matching the search query against their name. It can return multiple properties, each with their ID, name, description, type, unit, and the relevance score (higher the score, more relevant the property is to the query).`,
+					"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+						Description:      `Find properties matching the search query against their name, names of related documents, or string values. It can return multiple properties with the relevance score (higher the score, more relevant the property, related documents, or string values are to the query).`,
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							result := []property{}
+							propMap := map[string]property{}
 							for _, property := range properties {
-								if property.Type != "amount" && property.Type != "time" {
-									continue
-								}
 								if match(property.Name, input.Query) {
-									result = append(result, property)
+									propMap[property.ID] = property
 								}
 							}
-							return findPropertiesOutput{
-								Properties: result,
-								Total:      len(result),
-							}, nil
-						},
-					},
-					"find_properties_by_values": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find "rel" and "string" properties which have related documents with names matching the query, or string values matching the query, respectively. It can return multiple properties, each with their ID, name, description, type, matched related documents or string values, and the relevance score (higher the score, more relevant related documents or string values of the property are to the query). Each property contains matched related documents or string values, each with their ID, name, description, or their value, and the relevance score (higher the score, more relevant the related document or the string value is to the query).`,
-						InputJSONSchema:  findPropertiesInputSchema,
-						OutputJSONSchema: nil,
-						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-							result := []property{}
 							for _, property := range properties {
 								if property.Type != "rel" {
 									continue
@@ -842,7 +843,9 @@ func TestParsePrompt(t *testing.T) {
 									// Make a copy.
 									p := property
 									p.RelatedDocuments = docs
-									result = append(result, p)
+									if _, ok := propMap[p.ID]; !ok {
+										propMap[p.ID] = p
+									}
 								}
 							}
 							for _, property := range properties {
@@ -859,17 +862,26 @@ func TestParsePrompt(t *testing.T) {
 									// Make a copy.
 									p := property
 									p.StringValues = values
-									result = append(result, p)
+									if _, ok := propMap[p.ID]; !ok {
+										propMap[p.ID] = p
+									}
 								}
 							}
+							props := []property{}
+							for _, p := range propMap {
+								props = append(props, p)
+							}
+							slices.SortFunc(props, func(a, b property) int {
+								return cmp.Compare(a.ID, b.ID)
+							})
 							return findPropertiesOutput{
-								Properties: result,
-								Total:      len(result),
+								Properties: props,
+								Total:      len(props),
 							}, nil
 						},
 					},
 					"show_results": &fun.TextTool[outputStruct, string]{
-						Description:      `Pass the search query and filters to the search engine for user to see the resulting documents. It always returns an empty string.`,
+						Description:      `Pass the search query and filters to the search engine for user to see the resulting documents. It always returns an empty string to the assistant.`,
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
