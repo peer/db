@@ -37,7 +37,7 @@ import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
-import { AddClaimChange, RemoveClaimChange } from "@/document"
+import { AddClaimChange } from "@/document"
 
 const props = defineProps<{
   s: string
