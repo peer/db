@@ -553,10 +553,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		if artist.BeginDate != 0 {
 			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "BEGIN_DATE", 0),
+					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DATE_OF_BIRTH", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:      document.GetCorePropertyReference("BEGIN_DATE"),
+				Prop:      document.GetCorePropertyReference("DATE_OF_BIRTH"),
 				Timestamp: document.Timestamp(time.Date(artist.BeginDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Precision: document.TimePrecisionYear,
 			})
@@ -567,10 +567,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		if artist.EndDate != 0 {
 			errE = doc.Add(&document.TimeClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "END_DATE", 0),
+					ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "DATE_OF_DEATH", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:      document.GetCorePropertyReference("END_DATE"),
+				Prop:      document.GetCorePropertyReference("DATE_OF_DEATH"),
 				Timestamp: document.Timestamp(time.Date(artist.EndDate, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Precision: document.TimePrecisionYear,
 			})
