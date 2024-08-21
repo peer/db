@@ -35,19 +35,19 @@ var (
 	}{
 		{
 			"type",
-			[]string{"is"},
+			[]string{"is", "kind", "form", "category"},
 			"Type of a document.",
 			[]string{`"relation" claim type`},
 		},
 		{
 			"label",
-			nil,
-			"A document is a label.",
+			[]string{"tag"},
+			"A document has a label.",
 			[]string{`"relation" claim type`},
 		},
 		{
 			"property",
-			nil,
+			[]string{"attribute", "characteristic"},
 			"A document describes a property.",
 			nil,
 		},
@@ -59,7 +59,7 @@ var (
 		},
 		{
 			"file",
-			nil,
+			[]string{"electronic file", "file on a computer"},
 			"A document describes a file.",
 			nil,
 		},
@@ -77,7 +77,7 @@ var (
 		},
 		{
 			"unit",
-			nil,
+			[]string{"unit of measurement", "measurement unit", "unit of measure"},
 			"Unit associated with an amount.",
 			nil,
 		},
@@ -107,7 +107,7 @@ var (
 		},
 		{
 			"name",
-			nil,
+			[]string{"label"},
 			"A name of a document.",
 			[]string{`"text" claim type`},
 		},
@@ -132,12 +132,12 @@ var (
 		},
 		{
 			"page count",
-			nil,
+			[]string{"number of pages"},
 			"Number of pages an object or file has.",
 			[]string{`"amount" claim type`},
 		},
 		{
-			"size",
+			"file size",
 			nil,
 			"A size a file has.",
 			[]string{`"amount" claim type`},
@@ -150,13 +150,13 @@ var (
 		},
 		{
 			"width",
-			nil,
+			[]string{"breadth"},
 			"A width of an object or a file.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"height",
-			nil,
+			[]string{"height difference"},
 			"A height of an object or a file.",
 			[]string{`"amount" claim type`},
 		},
@@ -168,31 +168,31 @@ var (
 		},
 		{
 			"weight",
-			nil,
+			[]string{"gravitational weight"},
 			"A weight of an object.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"diameter",
-			nil,
+			[]string{"diametre"},
 			"A diameter of an object.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"circumference",
-			nil,
+			[]string{"perimeter of a circle or ellipse"},
 			"A circumference of an object.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"duration",
-			nil,
+			[]string{"length of time", "time", "length", "elapsed time", "amount of time", "period"},
 			"A duration a recording or file has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"media type",
-			nil,
+			[]string{"MIME type", "Internet media type", "IMT", "content type"},
 			"Media (MIME) type of a file.",
 			[]string{`"string" claim type`},
 		},

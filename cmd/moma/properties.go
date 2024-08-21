@@ -19,7 +19,7 @@ var momaProperties = []struct {
 	},
 	{
 		"artwork",
-		nil,
+		[]string{"artworks", "work of art", "piece of art", "art work", "art object", "art piece", "artistic work", "art", "art works", "artistic works"},
 		"A document is about an artwork.",
 		[]string{`item`},
 	},
@@ -55,25 +55,25 @@ var momaProperties = []struct {
 	},
 	{
 		"nationality",
-		nil,
+		[]string{"citizenship"},
 		`A nationality of an artist.`,
 		[]string{`"string" claim type`},
 	},
 	{
 		"gender",
-		nil,
+		[]string{"sex"},
 		`A gender of an artist.`,
 		[]string{`"string" claim type`},
 	},
 	{
 		"date of birth",
-		[]string{"begin date", "birth date", "year of birth", "born", "time of birth"},
+		[]string{"begin date", "birth date", "year of birth", "born", "time of birth", "DOB", "birthday", "birthdate", "birth", "b."},
 		`When was an artist born.`,
 		[]string{`"time" claim type`},
 	},
 	{
 		"date of death",
-		[]string{"end date", "death date", "year of death", "death", "time of death"},
+		[]string{"end date", "death date", "year of death", "death", "time of death", "DOD", "died on"},
 		`When did an artist die.`,
 		[]string{`"time" claim type`},
 	},
@@ -109,8 +109,8 @@ var momaProperties = []struct {
 	},
 	{
 		"medium",
-		nil,
-		`A medium an artwork has been made on.`,
+		[]string{"art material", "material", "art media", "art medium", "artistic material", "artistic media", "artistic medium", "media", "medium", "art materials", "arts materials", "crafting material", "art tool", "art equipment", "art supply", "art supplies", "Art & Crafting Materials", "coloring supply", "oloring supplies"},
+		`A medium an artwork has been made on or with.`,
 		[]string{`"string" claim type`},
 	},
 	{
@@ -121,7 +121,7 @@ var momaProperties = []struct {
 	},
 	{
 		"credit",
-		nil,
+		[]string{"acknowledgement"},
 		`From where or how was an artwork acquired.`,
 		[]string{`"string" claim type`},
 	},
@@ -133,13 +133,13 @@ var momaProperties = []struct {
 	},
 	{
 		"classification",
-		nil,
+		[]string{"classifying", "grouping", "class", "group"},
 		`A classification of an artwork.`,
 		[]string{`"string" claim type`},
 	},
 	{
 		"department",
-		nil,
+		[]string{"division", "unit", "branch"},
 		`A department of an artwork.`,
 		[]string{`"string" claim type`},
 	},
@@ -151,13 +151,13 @@ var momaProperties = []struct {
 	},
 	{
 		"cataloged",
-		nil,
+		[]string{"recorded"},
 		`A label that an artwork has been cataloged.`,
 		nil,
 	},
 	{
 		"image",
-		nil,
+		[]string{"photo", "picture"},
 		`An image of an artwork.`,
 		[]string{`"file" claim type`},
 	},

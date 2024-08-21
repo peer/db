@@ -541,10 +541,10 @@ func convertImage( //nolint:maintidx
 	// We set size even if it is zero.
 	errE = doc.Add(&document.AmountClaim{
 		CoreClaim: document.CoreClaim{
-			ID:         document.GetID(namespace, image.Name, "SIZE", 0),
+			ID:         document.GetID(namespace, image.Name, "FILE_SIZE", 0),
 			Confidence: document.HighConfidence,
 		},
-		Prop:   document.GetCorePropertyReference("SIZE"),
+		Prop:   document.GetCorePropertyReference("FILE_SIZE"),
 		Amount: float64(image.Size),
 		Unit:   document.AmountUnitByte,
 	})

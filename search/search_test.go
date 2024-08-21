@@ -23,7 +23,7 @@ var properties = []property{
 	{
 		ID:          "CAfaL1ZZs6L4uyFdrJZ2wN",
 		Name:        "type",
-		ExtraNames:  []string{"is"},
+		ExtraNames:  []string{"is", "kind", "form", "category"},
 		Description: `Type of a document.`,
 		Type:        "rel",
 		Score:       0,
@@ -31,7 +31,7 @@ var properties = []property{
 			{
 				ID:          "JT9bhAfn5QnDzRyyLARLQn",
 				Name:        "artwork",
-				ExtraNames:  []string{"artworks"},
+				ExtraNames:  []string{"artworks", "work of art", "piece of art", "art work", "art object", "art piece", "artistic work", "art", "art works", "artistic works"},
 				Description: "A document is about an artwork.",
 				Score:       0,
 			},
@@ -47,6 +47,7 @@ var properties = []property{
 	{
 		ID:          "KhqMjmabSREw9RdM3meEDe",
 		Name:        "department",
+		ExtraNames:  []string{"division", "unit", "branch"},
 		Description: `A department of an artwork.`,
 		Type:        "string",
 		Score:       0,
@@ -131,6 +132,7 @@ var properties = []property{
 	{
 		ID:          "UQqEUeWZmnXro2qSJYoaJZ",
 		Name:        "classification",
+		ExtraNames:  []string{"classifying", "grouping", "class", "group"},
 		Description: `A classification of an artwork.`,
 		Type:        "string",
 		Score:       0,
@@ -160,13 +162,15 @@ var properties = []property{
 	{
 		ID:          "Ntki6bVn3TtvHebm96jzdQ",
 		Name:        "medium",
-		Description: `A medium an artwork has been made on.`,
+		ExtraNames:  []string{"art material", "material", "art media", "art medium", "artistic material", "artistic media", "artistic medium", "media", "medium", "art materials", "arts materials", "crafting material", "art tool", "art equipment", "art supply", "art supplies", "Art & Crafting Materials", "coloring supply", "oloring supplies"},
+		Description: `A medium an artwork has been made on or with.`,
 		Type:        "string",
 		Score:       0,
 	},
 	{
 		ID:          "19tRKrBZDkrh9PA8M8CsWZ",
 		Name:        "credit",
+		ExtraNames:  []string{"acknowledgement"},
 		Description: `From where or how was an artwork acquired.`,
 		Type:        "string",
 		Score:       0,
@@ -182,6 +186,7 @@ var properties = []property{
 	{
 		ID:          "46LYApiUCkAakxrTZ82Q8Z",
 		Name:        "height",
+		ExtraNames:  []string{"height difference"},
 		Description: `A height of an object or a file.`,
 		Type:        "amount",
 		Unit:        "m",
@@ -190,6 +195,7 @@ var properties = []property{
 	{
 		ID:          "QkCPXCeevJbB9nyi2APwBy",
 		Name:        "nationality",
+		ExtraNames:  []string{"citizenship"},
 		Description: `A nationality of an artist.`,
 		Type:        "string",
 		Score:       0,
@@ -197,6 +203,7 @@ var properties = []property{
 	{
 		ID:          "67RqCQeWbttCPHdPicN6DT",
 		Name:        "gender",
+		ExtraNames:  []string{"sex"},
 		Description: `A gender of an artist.`,
 		Type:        "string",
 		Score:       0,
@@ -204,7 +211,7 @@ var properties = []property{
 	{
 		ID:          "WmPwL6tUYkHDvfrBe1o52X",
 		Name:        "date of birth",
-		ExtraNames:  []string{"begin date", "birth date", "year of birth", "born", "time of birth"},
+		ExtraNames:  []string{"begin date", "birth date", "year of birth", "born", "time of birth", "DOB", "birthday", "birthdate", "birth", "b."},
 		Description: `When was an artist born.`,
 		Type:        "time",
 		Score:       0,
@@ -212,7 +219,7 @@ var properties = []property{
 	{
 		ID:          "P3QQ7Xssz1VTMGxiEwTpg7",
 		Name:        "date of death",
-		ExtraNames:  []string{"end date", "death date", "year of death", "death", "time of death"},
+		ExtraNames:  []string{"end date", "death date", "year of death", "death", "time of death", "DOD", "died on"},
 		Description: `When did an artist die.`,
 		Type:        "time",
 		Score:       0,
@@ -228,6 +235,7 @@ var properties = []property{
 	{
 		ID:          "HXdyya72uTpnmwscX9QpTi",
 		Name:        "duration",
+		ExtraNames:  []string{"length of time", "time", "length", "elapsed time", "amount of time", "period"},
 		Description: `A duration a recording or file has.`,
 		Type:        "amount",
 		Unit:        "s",
@@ -236,6 +244,7 @@ var properties = []property{
 	{
 		ID:          "K2A24W4rtqGvy1gpPpikjp",
 		Name:        "diameter",
+		ExtraNames:  []string{"diametre"},
 		Description: `A diameter of an object.`,
 		Type:        "amount",
 		Unit:        "m",
@@ -252,6 +261,7 @@ var properties = []property{
 	{
 		ID:          "39oo9aL9YTubVnowYpqBs2",
 		Name:        "weight",
+		ExtraNames:  []string{"gravitational weight"},
 		Description: `A weight of an object.`,
 		Type:        "amount",
 		Unit:        "kg",
@@ -260,6 +270,7 @@ var properties = []property{
 	{
 		ID:          "VUdAU3pxVLtrHgi1yxpkqy",
 		Name:        "circumference",
+		ExtraNames:  []string{"perimeter of a circle or ellipse"},
 		Description: `A circumference of an object.`,
 		Type:        "amount",
 		Unit:        "m",
