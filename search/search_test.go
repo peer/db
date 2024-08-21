@@ -775,6 +775,16 @@ func TestParsePrompt(t *testing.T) {
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
+				{
+					"missing type filter",
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
 			},
 		},
 		{
@@ -941,6 +951,16 @@ func TestParsePrompt(t *testing.T) {
 						Query:         "",
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{{ID: "2fjzZyP7rv8E4aHnBc6KAa", Values: []string{"artwork"}}},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"using string filter",
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{{ID: "2fjzZyP7rv8E4aHnBc6KAa", Values: []string{"artworks"}}},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1259,6 +1279,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"missing type filter",
 					outputStruct{
+						Query:         "artworks bridge",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"missing type filter",
+					outputStruct{
 						Query:         `artworks "with bridges"`,
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
@@ -1412,6 +1442,16 @@ func TestParsePrompt(t *testing.T) {
 					},
 				},
 				{
+					"artworks in query",
+					outputStruct{
+						Query:         `artworks +bridges`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
 					"missing type filter",
 					outputStruct{
 						Query:         `+artworks +"bridge" | "bridges"`,
@@ -1544,6 +1584,32 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"",
 					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}},
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"",
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}},
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"",
+					outputStruct{
 						Query:         "",
 						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
 						StringFilters: []outputFilterStructString{},
@@ -1596,6 +1662,32 @@ func TestParsePrompt(t *testing.T) {
 					outputStruct{
 						Query:         `"Pablo Picasso"`,
 						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"invalid property ID",
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}, // This is artist, not artwork ID.
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"invalid property ID",
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}},
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}, // This is artist, not artwork ID.
+						},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
@@ -1972,6 +2064,20 @@ func TestParsePrompt(t *testing.T) {
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
 							Min: ptr("1950-01-01"),
 							Max: ptr("2000-12-31"),
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"has query",
+					outputStruct{
+						Query:         "born:1950-01-01..2000-12-31",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
