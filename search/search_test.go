@@ -357,11 +357,11 @@ var outputStructSchema = []byte(`
 					},
 					"min": {
 						"type": "string",
-						"description": "The search engine filters to those documents which have the property with timestamp larger or equal to the minimum. In ISO 8601 format."
+						"description": "The search engine filters to those documents which have the property with timestamp larger or equal to the minimum. In full ISO 8601 format (with time, date, and UTC timezone Z). Use an empty string if should not be set."
 					},
 					"max": {
 						"type": "string",
-						"description": "The search engine filters to those documents which have the property with timestamp smaller or equal to the maximum. In ISO 8601 format."
+						"description": "The search engine filters to those documents which have the property with timestamp smaller or equal to the maximum. In ISO 8601 format (with time, date, and UTC timezone Z). Use an empty string if should not be set."
 					}
 				},
 				"additionalProperties": false,
@@ -383,11 +383,11 @@ var outputStructSchema = []byte(`
 					},
 					"min": {
 						"type": "number",
-						"description": "The search engine filters to those documents which have the property with numeric value larger or equal to the minimum."
+						"description": "The search engine filters to those documents which have the property with numeric value larger or equal to the minimum. Use an empty string if should not be set."
 					},
 					"max": {
 						"type": "number",
-						"description": "The search engine filters to those documents which have the property with numeric value smaller or equal to the maximum."
+						"description": "The search engine filters to those documents which have the property with numeric value smaller or equal to the maximum. Use an empty string if should not be set."
 					}
 				},
 				"additionalProperties": false,
@@ -894,6 +894,16 @@ func TestParsePrompt(t *testing.T) {
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
 			},
 		},
 		{
@@ -1160,6 +1170,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					true,
 					outputStruct{
+						Query:         `*`,
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
 						Query:         `"artworks"`,
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{},
@@ -1316,6 +1336,34 @@ func TestParsePrompt(t *testing.T) {
 					},
 				},
 				{
+					false,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950",
+							Max: "2000",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950-01-01",
+							Max: "2000-12-31",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
 					true,
 					outputStruct{
 						Query:         " ",
@@ -1386,7 +1434,18 @@ func TestParsePrompt(t *testing.T) {
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
 					},
-				}, {
+				},
+				{
+					true,
+					outputStruct{
+						Query:         `artists born between 1950 and 2000`,
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
 					true,
 					outputStruct{
 						Query:         "artists",
@@ -1473,6 +1532,113 @@ func TestParsePrompt(t *testing.T) {
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
 							Min: "1950-01-01T00:00:00Z",
 							Max: "2000-12-31T23:59:59Z",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artists",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: "1950",
+							Max: "2000",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+			},
+		},
+		{
+			Input: `artworks acquired after 17. 3. 1999`,
+			PossibleOutputs: []testOutput{
+				{
+					false,
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-17T00:00:00Z",
+							Max: "",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query: "",
+						RelFilters: []outputFilterStructRel{
+							{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}},
+						},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-17",
+							Max: "",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "artworks",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-17",
+							Max: "",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-17",
+							Max: "",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-18",
+							Max: "",
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					true,
+					outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
+							Min: "1999-03-17T00:00:00Z",
+							Max: "",
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
