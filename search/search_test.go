@@ -1660,6 +1660,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"has query",
 					outputStruct{
+						Query:         "picasso",
+						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"has query",
+					outputStruct{
 						Query:         `"Pablo Picasso"`,
 						RelFilters:    []outputFilterStructRel{{ID: "J9A99CrePyKEqH6ztW1hA5", DocumentIDs: []string{"1KAHpAFeQTBnAognyvVtLJ"}}},
 						StringFilters: []outputFilterStructString{},
