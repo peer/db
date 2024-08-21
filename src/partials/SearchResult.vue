@@ -10,7 +10,7 @@ import {
   ORIGINAL_CATALOG_DESCRIPTION,
   TITLE,
   LABEL,
-  IS,
+  TYPE,
   INSTANCE_OF,
   SUBCLASS_OF,
   MEDIAWIKI_MEDIA_TYPE,
@@ -40,7 +40,7 @@ const description = computed(() => {
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", IS).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", TYPE).map((c) => ({ id: c.to.id })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", INSTANCE_OF).map((c) => ({ id: c.to.id })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", LABEL).map((c) => ({ id: c.to.id })),

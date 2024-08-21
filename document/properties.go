@@ -33,7 +33,7 @@ var (
 		Is              []string
 	}{
 		{
-			"is",
+			"type",
 			"The entity is related in an unspecified way.",
 			[]string{`"relation" claim type`},
 		},
@@ -258,11 +258,11 @@ func GenerateCoreProperties(properties []struct {
 				Relation: RelationClaims{
 					{
 						CoreClaim: CoreClaim{
-							ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
+							ID:         getPropertyClaimID(mnemonic, "TYPE", 0, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID: getPointer(GetCorePropertyID("IS")),
+							ID: getPointer(GetCorePropertyID("TYPE")),
 						},
 						To: Reference{
 							ID: getPointer(GetCorePropertyID("PROPERTY")),
@@ -276,11 +276,11 @@ func GenerateCoreProperties(properties []struct {
 			isClaimMnemonic := getMnemonic(isClaim)
 			CoreProperties[id].Claims.Relation = append(CoreProperties[id].Claims.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
-					ID:         getPropertyClaimID(mnemonic, "IS", 0, isClaimMnemonic, 0),
+					ID:         getPropertyClaimID(mnemonic, "TYPE", 0, isClaimMnemonic, 0),
 					Confidence: 1.0,
 				},
 				Prop: Reference{
-					ID: getPointer(GetCorePropertyID("IS")),
+					ID: getPointer(GetCorePropertyID("TYPE")),
 				},
 				To: Reference{
 					ID: getPointer(GetCorePropertyID(isClaimMnemonic)),
@@ -334,11 +334,11 @@ func generateAllCoreProperties() {
 				Relation: RelationClaims{
 					{
 						CoreClaim: CoreClaim{
-							ID:         getPropertyClaimID(mnemonic, "IS", 0, "PROPERTY", 0),
+							ID:         getPropertyClaimID(mnemonic, "TYPE", 0, "PROPERTY", 0),
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID: getPointer(GetCorePropertyID("IS")),
+							ID: getPointer(GetCorePropertyID("TYPE")),
 						},
 						To: Reference{
 							ID: getPointer(GetCorePropertyID("PROPERTY")),
@@ -346,11 +346,11 @@ func generateAllCoreProperties() {
 					},
 					{
 						CoreClaim: CoreClaim{
-							ID:         getPropertyClaimID(mnemonic, "IS", 0, "CLAIM_TYPE", 0),
+							ID:         getPropertyClaimID(mnemonic, "TYPE", 0, "CLAIM_TYPE", 0),
 							Confidence: 1.0,
 						},
 						Prop: Reference{
-							ID: getPointer(GetCorePropertyID("IS")),
+							ID: getPointer(GetCorePropertyID("TYPE")),
 						},
 						To: Reference{
 							ID: getPointer(GetCorePropertyID("CLAIM_TYPE")),

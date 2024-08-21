@@ -8,7 +8,7 @@ test.each([
   ["DESCRIPTION", "E7DXhBtz9UuoSG9V3uYeYF"],
   ["ARTICLE", "FJJLydayUgDuqFsRK2ZtbR"],
   ["LABEL", "5SoFeEFk5aWXUYFC1EZFec"],
-  ["IS", "2fjzZyP7rv8E4aHnBc6KAa"],
+  ["TYPE", "CAfaL1ZZs6L4uyFdrJZ2wN"],
 ])("getCorePropertyID(%s)", (m, u) => {
   assert.equal(getCorePropertyID(m), u)
 })

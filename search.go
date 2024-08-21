@@ -20,7 +20,7 @@ import (
 
 func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop.id", "2fjzZyP7rv8E4aHnBc6KAa"), // IS.
+		elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
 		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),   // PROPERTY.
 	)
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)

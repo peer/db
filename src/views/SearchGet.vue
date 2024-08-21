@@ -435,7 +435,7 @@ async function onChange() {
         new AddClaimChange({
           patch: {
             type: "rel",
-            prop: "2fjzZyP7rv8E4aHnBc6KAa", // IS.
+            prop: "CAfaL1ZZs6L4uyFdrJZ2wN", // TYPE.
             to: "7m6uUqF9ZnimT4sw3W8zdg", // FILE.
           },
         }),

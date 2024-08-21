@@ -30,8 +30,8 @@ var (
 // It skips some entities: those without English label and those items which have a sitelink to Wikipedia, but it is not to an article, template, or category.
 //
 // Besides claims based on statements, it creates also claims with the following properties: WIKIDATA_PROPERTY_ID (P prefixed ID),
-// WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (IS claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
-// (URL to item page on Wikidata), ITEM (IS claim), ENGLISH_WIKIPEDIA_PAGE_TITLE (Wikipedia page title, without underscores), ENGLISH_WIKIPEDIA_PAGE
+// WIKIDATA_PROPERTY_PAGE (URL to property page on Wikidata), PROPERTY (TYPE claim), WIKIDATA_ITEM_ID (Q prefixed ID), WIKIDATA_ITEM_PAGE
+// (URL to item page on Wikidata), ITEM (TYPE claim), ENGLISH_WIKIPEDIA_PAGE_TITLE (Wikipedia page title, without underscores), ENGLISH_WIKIPEDIA_PAGE
 // (URL to the Wikipedia page), WIKIMEDIA_COMMONS_PAGE_TITLE (Wikimedia Commons page title, without underscores), WIKIMEDIA_COMMONS_PAGE
 // (URL to the Wikimedia Commons page), NAME (for English labels and aliases), DESCRIPTION (for English entity descriptions).
 //

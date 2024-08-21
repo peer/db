@@ -500,10 +500,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Relation: document.RelationClaims{
 					{
 						CoreClaim: document.CoreClaim{
-							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "IS", 0, "ARTIST", 0),
+							ID:         document.GetID(NameSpaceMoMA, "ARTIST", artist.ConstituentID, "TYPE", 0, "ARTIST", 0),
 							Confidence: document.HighConfidence,
 						},
-						Prop: document.GetCorePropertyReference("IS"),
+						Prop: document.GetCorePropertyReference("TYPE"),
 						To:   document.GetCorePropertyReference("ARTIST"),
 					},
 				},
@@ -746,10 +746,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 				Relation: document.RelationClaims{
 					{
 						CoreClaim: document.CoreClaim{
-							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "IS", 0, "ARTWORK", 0),
+							ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "TYPE", 0, "ARTWORK", 0),
 							Confidence: document.HighConfidence,
 						},
-						Prop: document.GetCorePropertyReference("IS"),
+						Prop: document.GetCorePropertyReference("TYPE"),
 						To:   document.GetCorePropertyReference("ARTWORK"),
 					},
 				},

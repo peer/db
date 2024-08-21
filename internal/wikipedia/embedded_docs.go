@@ -464,7 +464,7 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 	}
 
 	var fileDocument *document.D
-	for _, cc := range claim.Get(document.GetCorePropertyID("IS")) {
+	for _, cc := range claim.Get(document.GetCorePropertyID("TYPE")) {
 		if c, ok := cc.(*document.RelationClaim); ok {
 			// c.To.ID should be non-nil ID because we called claim.Visit(v) above.
 			fileDocument, errE = v.getDocumentByID(*c.To.ID)

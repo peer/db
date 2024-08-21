@@ -470,10 +470,10 @@ func convertImage( //nolint:maintidx
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(namespace, image.Name, "IS", 0, "FILE", 0),
+						ID:         document.GetID(namespace, image.Name, "TYPE", 0, "FILE", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop: document.GetCorePropertyReference("IS"),
+					Prop: document.GetCorePropertyReference("TYPE"),
 					To:   document.GetCorePropertyReference("FILE"),
 				},
 			},

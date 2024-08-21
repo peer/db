@@ -316,7 +316,7 @@ func clampConfidence(c document.Score) document.Score {
 }
 
 func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType *mediawiki.WikiBaseEntityType) (mediawiki.DataType, errors.E) {
-	for _, claim := range doc.Get(document.GetCorePropertyID("IS")) {
+	for _, claim := range doc.Get(document.GetCorePropertyID("TYPE")) {
 		if c, ok := claim.(*document.RelationClaim); ok {
 			for claimType, dataTypes := range claimTypeToDataTypesMap {
 				if c.To.ID != nil && *c.To.ID == document.GetCorePropertyID(claimType) {
@@ -343,12 +343,12 @@ func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType
 				}
 			}
 		} else {
-			err := errors.New("IS claim which is not relation claim")
+			err := errors.New("TYPE claim which is not relation claim")
 			errors.Details(err)["prop"] = prop
 			return 0, err
 		}
 	}
-	err := errors.Errorf("%w: no suitable IS claim found", errNotSupportedDataType)
+	err := errors.Errorf("%w: no suitable TYPE claim found", errNotSupportedDataType)
 	errors.Details(err)["prop"] = prop
 	return 0, err
 }
@@ -475,7 +475,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 			title = "File:" + title
 
 			args := append([]interface{}{}, idArgs...)
-			args = append(args, "IS", 0, title, 0)
+			args = append(args, "TYPE", 0, title, 0)
 			claimID := document.GetID(namespace, args...)
 
 			return []document.Claim{
@@ -491,7 +491,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 										ID:         claimID,
 										Confidence: document.HighConfidence,
 									},
-									Prop: document.GetCorePropertyReference("IS"),
+									Prop: document.GetCorePropertyReference("TYPE"),
 									To:   getDocumentReference(title, ""),
 								},
 							},
@@ -897,10 +897,10 @@ func ConvertEntity( //nolint:maintidx
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(namespace, entity.ID, "IS", 0, "PROPERTY", 0),
+						ID:         document.GetID(namespace, entity.ID, "TYPE", 0, "PROPERTY", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop: document.GetCorePropertyReference("IS"),
+					Prop: document.GetCorePropertyReference("TYPE"),
 					To:   document.GetCorePropertyReference("PROPERTY"),
 				},
 			},
@@ -930,10 +930,10 @@ func ConvertEntity( //nolint:maintidx
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(namespace, entity.ID, "IS", 0, "ITEM", 0),
+						ID:         document.GetID(namespace, entity.ID, "TYPE", 0, "ITEM", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop: document.GetCorePropertyReference("IS"),
+					Prop: document.GetCorePropertyReference("TYPE"),
 					To:   document.GetCorePropertyReference("ITEM"),
 				},
 			},
@@ -1025,13 +1025,13 @@ func ConvertEntity( //nolint:maintidx
 		if claimTypeMnemonic != "" {
 			doc.Claims.Relation = append(doc.Claims.Relation, document.RelationClaim{
 				CoreClaim: document.CoreClaim{
-					ID: document.GetID(namespace, entity.ID, "IS", 0, claimTypeMnemonic, 0),
+					ID: document.GetID(namespace, entity.ID, "TYPE", 0, claimTypeMnemonic, 0),
 					// We have low confidence in this claim. Later on we augment it using statistics
 					// on how are properties really used.
 					// TODO: Decide what should really be confidence here or implement "later on" part described above.
 					Confidence: document.LowConfidence,
 				},
-				Prop: document.GetCorePropertyReference("IS"),
+				Prop: document.GetCorePropertyReference("TYPE"),
 				To:   document.GetCorePropertyReference(claimTypeMnemonic),
 			})
 		}

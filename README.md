@@ -256,7 +256,7 @@ post into the following two PeerDB documents:
         "id": "sgpzxwxPyn51j5VfH992ZQ",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "6asppjBfRGSTt5Df7Zvomb" // user
@@ -319,7 +319,7 @@ post into the following two PeerDB documents:
         "id": "LJNg7QaiMxE1crjMiijpaN",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "3APZXnK3uofpdEJV55Po18" // blog post
@@ -365,7 +365,7 @@ post into the following two PeerDB documents:
         "id": "5zZZ6nJFKuA5oNBu9QbsYY",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
@@ -375,7 +375,7 @@ post into the following two PeerDB documents:
         "id": "jjcWxq9VoVLhKqV2tnqz1A",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
@@ -408,7 +408,7 @@ post into the following two PeerDB documents:
         "id": "DWYDFZ2DbasS4Tyehnko2U",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
@@ -418,7 +418,7 @@ post into the following two PeerDB documents:
         "id": "ivhonZLA2ktDwyMawBLuKV",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
@@ -451,7 +451,7 @@ post into the following two PeerDB documents:
         "id": "gK8nXxJ3AXErTmGPoAVF78",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
@@ -461,7 +461,7 @@ post into the following two PeerDB documents:
         "id": "pDBnb32Vd2VPd2UjPnd1eS",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HZ41G8fECg4CjfZN4dmYwf" // RELATION_CLAIM_TYPE
@@ -494,7 +494,7 @@ post into the following two PeerDB documents:
         "id": "79m7fNMHy7SRinSmB3WARM",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
@@ -504,7 +504,7 @@ post into the following two PeerDB documents:
         "id": "EuGC7ZRK7weuHNoZLDC8ah",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM
@@ -537,7 +537,7 @@ post into the following two PeerDB documents:
         "id": "c24VwrPEMwZUhRgECzSn1b",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
@@ -547,7 +547,7 @@ post into the following two PeerDB documents:
         "id": "faByPL18Y1ZH2NAhea4FBy",
         "confidence": 1.0,
         "prop": {
-          "id": "2fjzZyP7rv8E4aHnBc6KAa" // IS
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
         },
         "to": {
           "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM

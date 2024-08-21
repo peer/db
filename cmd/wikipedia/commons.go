@@ -147,7 +147,7 @@ func (c *CommonsCommand) processEntity(
 //
 // It creates claims with the following properties (not necessary all of them): WIKIMEDIA_COMMONS_FILE_NAME (just filename, without "File:"
 // prefix, but with underscores and file extension), WIKIMEDIA_COMMONS_FILE (URL to file page), FILE_URL (URL to full resolution or raw file),
-// FILE (IS claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, DURATION (in seconds), multiple PREVIEW_URL
+// FILE (TYPE claim), MEDIA_TYPE, MEDIAWIKI_MEDIA_TYPE, SIZE (in bytes), PAGE_COUNT, DURATION (in seconds), multiple PREVIEW_URL
 // (a list of URLs of previews), WIDTH, HEIGHT, NAME (a filename without file extension and without underscores).
 // The idea is that these claims should be enough to populate a file claim (in other documents using these files).
 //
