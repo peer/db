@@ -23,6 +23,7 @@ var properties = []property{
 	{
 		ID:          "2fjzZyP7rv8E4aHnBc6KAa",
 		Name:        "type",
+		ExtraNames:  []string{"is"},
 		Description: `Type of the document.`,
 		Type:        "rel",
 		Score:       0,
@@ -30,12 +31,14 @@ var properties = []property{
 			{
 				ID:          "JT9bhAfn5QnDzRyyLARLQn",
 				Name:        "artwork",
+				ExtraNames:  []string{"artworks"},
 				Description: "The document is about an artwork.",
 				Score:       0,
 			},
 			{
 				ID:          "8z5YTfJAd2c23dd5WFv4R5",
 				Name:        "artist",
+				ExtraNames:  []string{"artists"},
 				Description: "The document is about an artist.",
 				Score:       0,
 			},
@@ -171,6 +174,7 @@ var properties = []property{
 	{
 		ID:          "FS2y5jBSy57EoHbhN3Z5Yk",
 		Name:        "date acquired",
+		ExtraNames:  []string{"time"},
 		Description: `The date acquired of the artwork.`,
 		Type:        "time",
 		Score:       0,
@@ -200,6 +204,7 @@ var properties = []property{
 	{
 		ID:          "2HXMnTyFK7BCbCv6Y8231j",
 		Name:        "born",
+		ExtraNames:  []string{"birth date", "year of birth"},
 		Description: `When was the artist born.`,
 		Type:        "time",
 		Score:       0,
@@ -207,6 +212,7 @@ var properties = []property{
 	{
 		ID:          "8Ls3yxCNM7a7EEEsJhNeQ6",
 		Name:        "death",
+		ExtraNames:  []string{"death date", "year of death"},
 		Description: `When did the artist die.`,
 		Type:        "time",
 		Score:       0,
@@ -480,6 +486,7 @@ var findPropertiesInputSchema = []byte(`
 type property struct {
 	ID               string                `json:"property_id"`
 	Name             string                `json:"property_name"`
+	ExtraNames       []string              `json:"-"`
 	Description      string                `json:"property_description,omitempty"`
 	Type             string                `json:"property_type"`
 	Unit             string                `json:"unit,omitempty"`
@@ -494,10 +501,11 @@ type findPropertiesOutput struct {
 }
 
 type relPropertyValue struct {
-	ID          string  `json:"document_id"`
-	Name        string  `json:"document_name"`
-	Description string  `json:"document_description"`
-	Score       float64 `json:"relevance_score"`
+	ID          string   `json:"document_id"`
+	Name        string   `json:"document_name"`
+	ExtraNames  []string `json:"-"`
+	Description string   `json:"document_description"`
+	Score       float64  `json:"relevance_score"`
 }
 
 type stringPropertyValue struct {
@@ -626,12 +634,6 @@ func extractTerms(s string) []string {
 		for _, y := range strings.Split(x, " OR ") {
 			for _, z := range strings.Split(y, " ") {
 				output = append(output, z)
-				if z == "artworks" {
-					output = append(output, "artwork")
-				}
-				if z == "artists" {
-					output = append(output, "artist")
-				}
 			}
 		}
 	}
@@ -670,6 +672,25 @@ func TestParsePrompt(t *testing.T) {
 						Query:         "bridges",
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"extra filters",
+					outputStruct{
+						Query:      "bridges",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Architecture"},
+							},
+							{
+								ID:     "KhqMjmabSREw9RdM3meEDe",
+								Values: []string{"Architecture & Design"},
+							},
+						},
 						TimeFilters:   []outputFilterStructTime{},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1537,6 +1558,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"missing time filter",
 					outputStruct{
+						Query:         "born 195* | born 196* | born 197* | born 198* | born 199* | born 2000",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"missing time filter",
+					outputStruct{
 						Query:         "artists",
 						RelFilters:    []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{},
@@ -1866,8 +1897,15 @@ func TestParsePrompt(t *testing.T) {
 						Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
 							propMap := map[string]property{}
 							for _, property := range properties {
-								if match(property.Name, input.Query) {
+								if match(property.Name, input.Query) || match(property.Description, input.Query) {
 									propMap[property.ID] = property
+								} else {
+									for _, extraName := range property.ExtraNames {
+										if match(extraName, input.Query) {
+											propMap[property.ID] = property
+											break
+										}
+									}
 								}
 							}
 							for _, property := range properties {
@@ -1876,8 +1914,15 @@ func TestParsePrompt(t *testing.T) {
 								}
 								docs := []relPropertyValue{}
 								for _, doc := range property.RelatedDocuments {
-									if match(doc.Name, input.Query) {
+									if match(doc.Name, input.Query) || match(property.Description, input.Query) {
 										docs = append(docs, doc)
+									} else {
+										for _, extraName := range doc.ExtraNames {
+											if match(extraName, input.Query) {
+												docs = append(docs, doc)
+												break
+											}
+										}
 									}
 								}
 								if len(docs) > 0 {
