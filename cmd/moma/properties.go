@@ -109,7 +109,7 @@ var momaProperties = []struct {
 	},
 	{
 		"medium",
-		[]string{"art material", "material", "art media", "art medium", "artistic material", "artistic media", "artistic medium", "media", "medium", "art materials", "arts materials", "crafting material", "art tool", "art equipment", "art supply", "art supplies", "Art & Crafting Materials", "coloring supply", "oloring supplies"},
+		[]string{"art material", "material", "art media", "art medium", "artistic material", "artistic media", "artistic medium", "media", "medium", "art materials", "arts materials", "crafting material", "art tool", "art equipment", "art supply", "art supplies", "Art & Crafting Materials", "coloring supply", "oloring supplies"}, //nolint:lll
 		`A medium an artwork has been made on or with.`,
 		[]string{`"string" claim type`},
 	},

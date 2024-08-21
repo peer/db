@@ -471,7 +471,7 @@ func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON strin
 		// We start parsing the prompt.
 		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
 		go sh.ParsePrompt(logger)
-	} else {
+	} else { //nolint:revive,staticcheck
 		// TODO: Should we already do the query, to warm up ES cache?
 		//       Maybe we should cache response ourselves so that we do not hit store twice?
 	}
