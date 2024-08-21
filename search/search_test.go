@@ -278,15 +278,16 @@ type outputFilterStructString struct {
 }
 
 type outputFilterStructTime struct {
-	ID  string `json:"property_id"`
-	Min string `json:"min"`
-	Max string `json:"max"`
+	ID  string  `json:"property_id"`
+	Min *string `json:"min"`
+	Max *string `json:"max"`
 }
 
 type outputFilterStructAmount struct {
-	ID  string  `json:"property_id"`
-	Min float64 `json:"min"`
-	Max float64 `json:"max"`
+	ID   string   `json:"property_id"`
+	Min  *float64 `json:"min"`
+	Max  *float64 `json:"max"`
+	Unit string   `json:"unit"`
 }
 
 type outputStruct struct {
@@ -362,12 +363,12 @@ var outputStructSchema = []byte(`
 						"description": "ID of the property to filter on."
 					},
 					"min": {
-						"type": "string",
-						"description": "The search engine filters to those documents which have the property with timestamp larger or equal to the minimum. In full ISO 8601 format (with time, date, and UTC timezone Z). Use an empty string if should not be set."
+						"type": ["string", "null"],
+						"description": "The search engine filters to those documents which have the property with timestamp larger or equal to the minimum. In full ISO 8601 format (with time, date, and UTC timezone Z). Use null if it should not be set."
 					},
 					"max": {
-						"type": "string",
-						"description": "The search engine filters to those documents which have the property with timestamp smaller or equal to the maximum. In ISO 8601 format (with time, date, and UTC timezone Z). Use an empty string if should not be set."
+						"type": ["string", "null"],
+						"description": "The search engine filters to those documents which have the property with timestamp smaller or equal to the maximum. In ISO 8601 format (with time, date, and UTC timezone Z). Use null if it should not be set."
 					}
 				},
 				"additionalProperties": false,
@@ -388,12 +389,12 @@ var outputStructSchema = []byte(`
 						"description": "ID of the property to filter on."
 					},
 					"min": {
-						"type": "number",
-						"description": "The search engine filters to those documents which have the property with numeric value larger or equal to the minimum. Use an empty string if should not be set."
+						"type": ["number", "null"],
+						"description": "The search engine filters to those documents which have the property with numeric value larger or equal to the minimum. Use null if it should not be set."
 					},
 					"max": {
-						"type": "number",
-						"description": "The search engine filters to those documents which have the property with numeric value smaller or equal to the maximum. Use an empty string if should not be set."
+						"type": ["number", "null"],
+						"description": "The search engine filters to those documents which have the property with numeric value smaller or equal to the maximum. Use null if it should not be set."
 					},
 					"unit": {
 						"type": "string",
@@ -657,6 +658,10 @@ type testOutput struct {
 type testCase struct {
 	Input           string
 	PossibleOutputs []testOutput
+}
+
+func ptr[T any](x T) *T {
+	return &x
 }
 
 func TestParsePrompt(t *testing.T) {
@@ -1096,6 +1101,21 @@ func TestParsePrompt(t *testing.T) {
 						RelFilters: []outputFilterStructRel{},
 						StringFilters: []outputFilterStructString{
 							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Painting", "Photograph", "Drawing"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"using string filter",
+					outputStruct{
+						Query:      "bridge",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
 								ID:     "KhqMjmabSREw9RdM3meEDe",
 								Values: []string{"Photography"},
 							},
@@ -1210,6 +1230,16 @@ func TestParsePrompt(t *testing.T) {
 					"artworks in query",
 					outputStruct{
 						Query:         "artworks bridges",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"artworks in query",
+					outputStruct{
+						Query:         "artworks + bridges",
 						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
@@ -1439,6 +1469,21 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"using string filter",
 					outputStruct{
+						Query:      "bridges",
+						RelFilters: []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Photograph", "Print", "Drawing", "Painting", "Sculpture"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"using string filter",
+					outputStruct{
 						Query:      "bridge",
 						RelFilters: []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{
@@ -1569,8 +1614,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1583,8 +1628,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1597,8 +1642,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-01-01T00:00:00Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-01-01T00:00:00Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1611,8 +1656,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950",
-							Max: "2000",
+							Min: ptr("1950"),
+							Max: ptr("2000"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1625,8 +1670,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01",
-							Max: "2000-12-31",
+							Min: ptr("1950-01-01"),
+							Max: ptr("2000-12-31"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1639,8 +1684,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00",
-							Max: "2000-12-31T23:59:59",
+							Min: ptr("1950-01-01T00:00:00"),
+							Max: ptr("2000-12-31T23:59:59"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1653,8 +1698,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1670,8 +1715,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1684,8 +1729,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1768,8 +1813,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1785,8 +1830,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1799,8 +1844,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "by artist",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1823,8 +1868,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "by artist",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1839,8 +1884,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1855,8 +1900,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1869,8 +1914,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950",
-							Max: "2000",
+							Min: ptr("1950"),
+							Max: ptr("2000"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1883,8 +1928,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1897,8 +1942,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1911,8 +1956,22 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "2HXMnTyFK7BCbCv6Y8231j",
-							Min: "1950-01-01T00:00:00Z",
-							Max: "2000-12-31T23:59:59Z",
+							Min: ptr("1950-01-01T00:00:00Z"),
+							Max: ptr("2000-12-31T23:59:59Z"),
+						}},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"has query, invalid timestamp format",
+					outputStruct{
+						Query:         "born:1950-01-01..2000-12-31",
+						RelFilters:    []outputFilterStructRel{{ID: "2fjzZyP7rv8E4aHnBc6KAa", DocumentIDs: []string{"8z5YTfJAd2c23dd5WFv4R5"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters: []outputFilterStructTime{{
+							ID:  "2HXMnTyFK7BCbCv6Y8231j",
+							Min: ptr("1950-01-01"),
+							Max: ptr("2000-12-31"),
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1932,8 +1991,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1948,8 +2007,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1964,8 +2023,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1980,8 +2039,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -1996,8 +2055,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17",
-							Max: "",
+							Min: ptr("1999-03-17"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2010,8 +2069,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17",
-							Max: "",
+							Min: ptr("1999-03-17"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2024,8 +2083,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17",
-							Max: "",
+							Min: ptr("1999-03-17"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2038,8 +2097,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-18",
-							Max: "",
+							Min: ptr("1999-03-18"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2052,8 +2111,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2066,8 +2125,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2080,8 +2139,8 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17",
-							Max: "",
+							Min: ptr("1999-03-17"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
 					},
@@ -2094,10 +2153,49 @@ func TestParsePrompt(t *testing.T) {
 						StringFilters: []outputFilterStructString{},
 						TimeFilters: []outputFilterStructTime{{
 							ID:  "FS2y5jBSy57EoHbhN3Z5Yk",
-							Min: "1999-03-17T00:00:00Z",
-							Max: "",
+							Min: ptr("1999-03-17T00:00:00Z"),
+							Max: nil,
 						}},
 						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+			},
+		},
+		{
+			Input: `all objects with diameter larger than 1 cm`,
+			PossibleOutputs: []testOutput{
+				{
+					KnownInvalid: "",
+					Output: outputStruct{
+						Query:         "",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{
+							{
+								ID:   "K2A24W4rtqGvy1gpPpikjp",
+								Min:  ptr(0.01),
+								Max:  nil,
+								Unit: "m",
+							},
+						},
+					},
+				},
+				{
+					KnownInvalid: "",
+					Output: outputStruct{
+						Query:         " ",
+						RelFilters:    []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{
+							{
+								ID:   "K2A24W4rtqGvy1gpPpikjp",
+								Min:  ptr(0.01),
+								Max:  nil,
+								Unit: "m",
+							},
+						},
 					},
 				},
 			},
