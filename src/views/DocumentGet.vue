@@ -152,7 +152,7 @@ async function onEdit() {
       <div v-if="searchState.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputTextLink
           class="max-w-xl flex-grow"
-          :to="{ name: 'SearchGet', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
+          :to="{ name: 'SearchResults', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
           :after-click="afterClick"
         >
           {{ searchState.q }}

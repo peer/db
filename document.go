@@ -35,32 +35,14 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 		return
 	}
 
-	// We validate "s" and "q" parameters.
-	if req.Form.Has("s") || req.Form.Has("q") {
-		var q *string
-		if req.Form.Has("q") {
-			qq := req.Form.Get("q")
-			q = &qq
-		}
-
+	// We validate the "s" parameter.
+	if req.Form.Has("s") {
 		m := metrics.Duration(internal.MetricSearchState).Start()
-		sh := search.GetState(req.Form.Get("s"), q)
+		sh := search.GetState(req.Form.Get("s"))
 		m.Stop()
 		if sh == nil {
-			// Something was not OK, so we redirect to the URL without both "s" and "q".
+			// Something was not OK, so we redirect to the URL without "s".
 			path, err := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
-			if err != nil {
-				s.InternalServerErrorWithError(w, req, err)
-				return
-			}
-			// TODO: Should we already do the query, to warm up store cache?
-			//       Maybe we should cache response ourselves so that we do not hit store twice?
-			w.Header().Set("Location", path)
-			w.WriteHeader(http.StatusSeeOther)
-			return
-		} else if req.Form.Has("q") {
-			// We redirect to the URL without "q".
-			path, err := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"s": {sh.ID.String()}, "tab": req.Form["tab"]})
 			if err != nil {
 				s.InternalServerErrorWithError(w, req, err)
 				return

@@ -74,7 +74,7 @@ const {
   searchProgress,
   async (searchState) => {
     await router.replace({
-      name: "SearchGet",
+      name: "SearchResults",
       params: {
         s: searchState.s,
       },
@@ -370,7 +370,7 @@ async function onCreate() {
       return
     }
     // TODO: Show notification with error.
-    console.error("SearchGet.onCreate", err)
+    console.error("SearchResults.onCreate", err)
   } finally {
     createProgress.value -= 1
   }
@@ -547,7 +547,7 @@ async function onChange() {
         return
       }
       // TODO: Show notification with error.
-      console.error("SearchGet.onChange", err)
+      console.error("SearchResults.onChange", err)
     } finally {
       uploadProgress.value -= 1
     }

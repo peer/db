@@ -64,7 +64,7 @@ export async function postSearch(router: Router, form: HTMLFormElement, abortSig
     return
   }
   await router.push({
-    name: "SearchGet",
+    name: "SearchResults",
     params: {
       s: searchState.s,
     },
@@ -160,7 +160,7 @@ export async function postFilters(
   }
   if (s !== updatedSearchState.s || route.query.q !== updatedSearchState.q) {
     await router.push({
-      name: "SearchGet",
+      name: "SearchResults",
       params: {
         s: updatedSearchState.s,
       },
@@ -173,7 +173,7 @@ export async function postFilters(
 
 function getSearchURL(router: Router, params: RouteParams, query: QueryValuesWithOptional): string {
   return router.apiResolve({
-    name: "SearchGet",
+    name: "SearchResults",
     params,
     query: encodeQuery(query),
   }).href

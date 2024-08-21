@@ -68,6 +68,12 @@
     },
     {
       "name": "SearchGet",
+      "path": "/s/get/:s",
+      "api": {},
+      "get": null
+    },
+    {
+      "name": "SearchResults",
       "path": "/s/:s",
       "api": {},
       "get": {}

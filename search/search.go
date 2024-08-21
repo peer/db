@@ -4,9 +4,12 @@ import (
 	"net/url"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/fun"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
@@ -331,23 +334,30 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 // State represents current search state.
 // Search states form a tree with a link to the previous (parent) state.
 type State struct {
-	ID       identifier.Identifier  `json:"s"`
-	Text     string                 `json:"q"`
-	Filters  *filters               `json:"-"`
-	ParentID *identifier.Identifier `json:"-"`
-	RootID   identifier.Identifier  `json:"-"`
+	ID          identifier.Identifier  `json:"s"`
+	SearchQuery string                 `json:"q"`
+	Prompt      string                 `json:"p,omitempty"`
+	Filters     *filters               `json:"filters,omitempty"`
+	ParentID    *identifier.Identifier `json:"-"`
+	RootID      identifier.Identifier  `json:"-"`
+	PromptCall  *fun.TextRecorderCall  `json:"promptCall,omitempty"`
+	PromptError bool                   `json:"promptError,omitempty"`
 }
 
 // Values returns search state as query string values.
-func (q *State) Values() url.Values {
+func (s *State) Values() url.Values {
 	values := url.Values{}
-	values.Set("q", q.Text)
+	if s.Prompt != "" {
+		values.Set("p", s.Prompt)
+	} else {
+		values.Set("q", s.SearchQuery)
+	}
 	return values
 }
 
 // ValuesWithAt returns search state as query string values, with additional "at" parameter.
-func (q *State) ValuesWithAt(at string) url.Values {
-	values := q.Values()
+func (s *State) ValuesWithAt(at string) url.Values {
+	values := s.Values()
 	if at == "" {
 		return values
 	}
@@ -358,12 +368,12 @@ func (q *State) ValuesWithAt(at string) url.Values {
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (q *State) Query() elastic.Query { //nolint:ireturn
+func (s *State) Query() elastic.Query { //nolint:ireturn
 	boolQuery := elastic.NewBoolQuery()
 
-	if q.Text != "" {
+	if s.SearchQuery != "" {
 		bq := elastic.NewBoolQuery()
-		bq.Should(elastic.NewTermQuery("id", q.Text))
+		bq.Should(elastic.NewTermQuery("id", s.SearchQuery))
 		for _, field := range []field{
 			{"claims.id", "id"},
 			{"claims.ref", "iri"},
@@ -371,17 +381,27 @@ func (q *State) Query() elastic.Query { //nolint:ireturn
 			{"claims.string", "string"},
 		} {
 			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(q.Text).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+			q := elastic.NewSimpleQueryStringQuery(s.SearchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
 			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
 		}
 		boolQuery.Must(bq)
 	}
 
-	if q.Filters != nil {
-		boolQuery.Must(q.Filters.ToQuery())
+	if s.Filters != nil {
+		boolQuery.Must(s.Filters.ToQuery())
 	}
 
 	return boolQuery
+}
+
+func (s *State) ParsePrompt(logger zerolog.Logger) {
+	// TODO: Implement real implementation.
+	time.Sleep(5 * time.Second)
+	s.SearchQuery = s.Prompt
+	s.PromptCall = &fun.TextRecorderCall{
+		ID: identifier.New().String(),
+	}
+	searches.Store(s.ID, s)
 }
 
 // TODO: Use a database instead.
@@ -395,22 +415,18 @@ type field struct {
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
-// CreateState creates a new search state given optional existing state and new queries.
-func CreateState(s string, textQuery, filtersJSON *string) *State {
+// CreateState creates a new search state given optional existing state
+// (can be an empty string) and new query/filters.
+func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON string, isPrompt bool) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
 	}
 
-	if textQuery == nil {
-		q := ""
-		textQuery = &q
-	}
-
 	var fs *filters
-	if filtersJSON != nil {
+	if filtersJSON != "" {
 		var f filters
-		if x.UnmarshalWithoutUnknownFields([]byte(*filtersJSON), &f) == nil && f.Valid() == nil {
+		if x.UnmarshalWithoutUnknownFields([]byte(filtersJSON), &f) == nil && f.Valid() == nil {
 			fs = &f
 		}
 	}
@@ -421,10 +437,6 @@ func CreateState(s string, textQuery, filtersJSON *string) *State {
 		ps, ok := searches.Load(*parentSearchID)
 		if ok {
 			parentSearch := ps.(*State) //nolint:errcheck,forcetypeassert
-			// There was no change.
-			if parentSearch.Text == *textQuery && reflect.DeepEqual(parentSearch.Filters, fs) {
-				return parentSearch
-			}
 			rootID = parentSearch.RootID
 		} else {
 			// Unknown ID.
@@ -432,64 +444,96 @@ func CreateState(s string, textQuery, filtersJSON *string) *State {
 		}
 	}
 
+	if searchQuery == "" {
+		// Prompt cannot be empty.
+		isPrompt = false
+	}
+
+	prompt := ""
+	if isPrompt {
+		prompt = searchQuery
+		searchQuery = ""
+	}
+
 	sh := &State{
-		ID:       id,
-		ParentID: parentSearchID,
-		RootID:   rootID,
-		Text:     *textQuery,
-		Filters:  fs,
+		ID:          id,
+		SearchQuery: searchQuery,
+		Prompt:      prompt,
+		Filters:     fs,
+		ParentID:    parentSearchID,
+		RootID:      rootID,
+		PromptCall:  nil,
+		PromptError: false,
 	}
 	searches.Store(sh.ID, sh)
+
+	if isPrompt {
+		// We start parsing the prompt.
+		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
+		go sh.ParsePrompt(logger)
+	} else {
+		// TODO: Should we already do the query, to warm up ES cache?
+		//       Maybe we should cache response ourselves so that we do not hit store twice?
+	}
 
 	return sh
 }
 
-// GetOrCreateState resolves an existing search state if possible.
-// If not, it creates a new search state.
-func GetOrCreateState(s string, textQuery, filtersJSON *string) (*State, bool) {
+func createStateFromGetOrCreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+	if searchQuery == nil {
+		q := ""
+		searchQuery = &q
+	}
+	if filtersJSON == nil {
+		f := ""
+		filtersJSON = &f
+	}
+	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
+	// TODO: How to prevent that CreateState calls searches.Load again?
+	return CreateState(logger, s, *searchQuery, *filtersJSON, isPrompt), false
+}
+
+// GetOrCreateState resolves an existing search state if possible and validates that
+// optional query/filters match those in the search state. If not, it creates a new search state.
+func GetOrCreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return CreateState(s, textQuery, filtersJSON), false
+		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return CreateState(s, textQuery, filtersJSON), false
+		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
 	}
+
 	var fs *filters
-	if filtersJSON != nil {
+	if filtersJSON != nil && *filtersJSON != "" {
 		var f filters
 		if x.UnmarshalWithoutUnknownFields([]byte(*filtersJSON), &f) == nil && f.Valid() == nil {
 			fs = &f
+		} else {
+			// filtersJSON was invalid, so we pass nil instead.
+			return createStateFromGetOrCreateState(logger, s, searchQuery, nil, isPrompt)
 		}
 	}
 
 	ss := sh.(*State) //nolint:errcheck,forcetypeassert
-	// There was a change, we make current search a parent search to a new search.
-	// We allow there to not be "q" or "filters" so that it is easier to use as an API.
-	if (textQuery != nil && ss.Text != *textQuery) || (filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs)) {
-		if textQuery == nil {
-			textQuery = &ss.Text
-		}
-		if filtersJSON == nil {
-			fs = ss.Filters
-		}
-		ss = &State{
-			ID:       identifier.New(),
-			ParentID: &ss.ID,
-			RootID:   ss.RootID,
-			Text:     *textQuery,
-			Filters:  fs,
-		}
-		searches.Store(ss.ID, ss)
-		return ss, false
+
+	if !isPrompt && searchQuery != nil && ss.SearchQuery != *searchQuery {
+		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+	}
+	if isPrompt && searchQuery != nil && ss.Prompt != *searchQuery {
+		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+	}
+	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
+		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	return ss, true
 }
 
 // GetState resolves an existing search state if possible.
-func GetState(s string, textQuery *string) *State {
+func GetState(s string) *State {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
 		return nil
@@ -498,10 +542,5 @@ func GetState(s string, textQuery *string) *State {
 	if !ok {
 		return nil
 	}
-	ss := sh.(*State) //nolint:errcheck,forcetypeassert
-	// We allow there to not be "q" so that it is easier to use as an API.
-	if textQuery != nil && ss.Text != *textQuery {
-		return nil
-	}
-	return ss
+	return sh.(*State) //nolint:forcetypeassert
 }
