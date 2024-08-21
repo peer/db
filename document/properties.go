@@ -29,142 +29,170 @@ var (
 
 	builtinProperties = []struct {
 		Name            string
+		ExtraNames      []string
 		DescriptionHTML string
-		Is              []string
+		Types           []string
 	}{
 		{
 			"type",
-			"The entity is related in an unspecified way.",
+			[]string{"is"},
+			"Type of the entity.",
 			[]string{`"relation" claim type`},
 		},
 		{
 			"label",
+			nil,
 			"The entity is a label.",
 			[]string{`"relation" claim type`},
 		},
 		{
 			"property",
+			nil,
 			"The entity is a property.",
 			nil,
 		},
 		{
 			"item",
+			nil,
 			"The entity is an item.",
 			nil,
 		},
 		{
 			"file",
+			nil,
 			"The entity is a file.",
 			nil,
 		},
 		{
 			"file URL",
+			nil,
 			"URL of the file.",
 			[]string{`"reference" claim type`},
 		},
 		{
 			"preview URL",
+			nil,
 			"URL of the preview.",
 			[]string{`"reference" claim type`},
 		},
 		{
 			"unit",
+			nil,
 			"Unit associated with the amount.",
 			nil,
 		},
 		{
 			"claim type",
+			nil,
 			"The property maps to a supported claim type.",
 			nil,
 		},
 		{
 			"description",
+			nil,
 			"Description of the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
 			"article",
+			nil,
 			"Article about the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
 			"has article",
+			nil,
 			"The entity has an article.",
 			nil,
 		},
 		{
 			"name",
+			nil,
 			"The name of the entity.",
 			[]string{`"text" claim type`},
 		},
 		{
 			"list",
+			nil,
 			"A list has an unique ID, even a list with just one element. All elements of the list share this ID.",
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"order",
+			nil,
 			"Order of an element inside its list. Smaller numbers are closer to the beginning of the list.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			// TODO: How to define a property (type of relation) between parent and child?
 			"child",
+			nil,
 			"List elements might have other lists as children. This is an ID of the child list.",
 			[]string{`"identifier" claim type`},
 		},
 		{
 			"page count",
+			nil,
 			"Number of pages the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"size",
+			nil,
 			"The size the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"length",
+			nil,
 			"The length the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"width",
+			nil,
 			"The width the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"height",
+			nil,
 			"The height the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"depth",
+			nil,
 			"The depth the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"weight",
+			nil,
 			"The weight the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"diameter",
+			nil,
 			"The diameter the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"circumference",
+			nil,
 			"The circumference the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"duration",
+			nil,
 			"The duration the entity has.",
 			[]string{`"amount" claim type`},
 		},
 		{
 			"media type",
+			nil,
 			"Media (MIME) type of the file.",
 			[]string{`"string" claim type`},
 		},
@@ -215,8 +243,9 @@ func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...i
 
 func GenerateCoreProperties(properties []struct {
 	Name            string
+	ExtraNames      []string
 	DescriptionHTML string
-	Is              []string
+	Types           []string
 },
 ) {
 	for _, property := range properties {
@@ -272,7 +301,22 @@ func GenerateCoreProperties(properties []struct {
 			},
 		}
 
-		for _, isClaim := range property.Is {
+		for i, extraName := range property.ExtraNames {
+			CoreProperties[id].Claims.Text = append(CoreProperties[id].Claims.Text, TextClaim{
+				CoreClaim: CoreClaim{
+					ID:         getPropertyClaimID(mnemonic, "NAME", i+1),
+					Confidence: 0.9, //nolint:gomnd
+				},
+				Prop: Reference{
+					ID: getPointer(GetCorePropertyID("NAME")),
+				},
+				HTML: TranslatableHTMLString{
+					"en": html.EscapeString(extraName),
+				},
+			})
+		}
+
+		for _, isClaim := range property.Types {
 			isClaimMnemonic := getMnemonic(isClaim)
 			CoreProperties[id].Claims.Relation = append(CoreProperties[id].Claims.Relation, RelationClaim{
 				CoreClaim: CoreClaim{
