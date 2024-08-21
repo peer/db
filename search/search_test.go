@@ -24,7 +24,7 @@ var properties = []property{
 		ID:          "CAfaL1ZZs6L4uyFdrJZ2wN",
 		Name:        "type",
 		ExtraNames:  []string{"is"},
-		Description: `Type of the document.`,
+		Description: `Type of a document.`,
 		Type:        "rel",
 		Score:       0,
 		RelatedDocuments: []relPropertyValue{
@@ -32,14 +32,14 @@ var properties = []property{
 				ID:          "JT9bhAfn5QnDzRyyLARLQn",
 				Name:        "artwork",
 				ExtraNames:  []string{"artworks"},
-				Description: "The document is about an artwork.",
+				Description: "A document is about an artwork.",
 				Score:       0,
 			},
 			{
 				ID:          "8z5YTfJAd2c23dd5WFv4R5",
 				Name:        "artist",
 				ExtraNames:  []string{"artists"},
-				Description: "The document is about an artist.",
+				Description: "A document is about an artist.",
 				Score:       0,
 			},
 		},
@@ -47,7 +47,7 @@ var properties = []property{
 	{
 		ID:          "KhqMjmabSREw9RdM3meEDe",
 		Name:        "department",
-		Description: `The department of the artwork.`,
+		Description: `A department of an artwork.`,
 		Type:        "string",
 		Score:       0,
 		StringValues: []stringPropertyValue{
@@ -62,7 +62,7 @@ var properties = []property{
 	{
 		ID:          "J9A99CrePyKEqH6ztW1hA5",
 		Name:        "by artist",
-		Description: `The artist of the artwork.`,
+		Description: `An artist who made an artwork.`,
 		Type:        "rel",
 		Score:       0,
 		RelatedDocuments: []relPropertyValue{
@@ -131,7 +131,7 @@ var properties = []property{
 	{
 		ID:          "UQqEUeWZmnXro2qSJYoaJZ",
 		Name:        "classification",
-		Description: `The classification of the artwork.`,
+		Description: `A classification of an artwork.`,
 		Type:        "string",
 		Score:       0,
 		StringValues: []stringPropertyValue{
@@ -160,14 +160,14 @@ var properties = []property{
 	{
 		ID:          "Ntki6bVn3TtvHebm96jzdQ",
 		Name:        "medium",
-		Description: `The medium of the artwork.`,
+		Description: `A medium an artwork has been made on.`,
 		Type:        "string",
 		Score:       0,
 	},
 	{
 		ID:          "19tRKrBZDkrh9PA8M8CsWZ",
 		Name:        "credit",
-		Description: `The credit of the artwork.`,
+		Description: `From where or how was an artwork acquired.`,
 		Type:        "string",
 		Score:       0,
 	},
@@ -175,14 +175,14 @@ var properties = []property{
 		ID:          "FS2y5jBSy57EoHbhN3Z5Yk",
 		Name:        "date acquired",
 		ExtraNames:  []string{"time"},
-		Description: `The date acquired of the artwork.`,
+		Description: `A date when was an artwork acquired.`,
 		Type:        "time",
 		Score:       0,
 	},
 	{
 		ID:          "46LYApiUCkAakxrTZ82Q8Z",
 		Name:        "height",
-		Description: `The height of the artwork.`,
+		Description: `A height of an object or a file.`,
 		Type:        "amount",
 		Unit:        "m",
 		Score:       0,
@@ -190,14 +190,14 @@ var properties = []property{
 	{
 		ID:          "QkCPXCeevJbB9nyi2APwBy",
 		Name:        "nationality",
-		Description: `The nationality of the artist.`,
+		Description: `A nationality of an artist.`,
 		Type:        "string",
 		Score:       0,
 	},
 	{
 		ID:          "67RqCQeWbttCPHdPicN6DT",
 		Name:        "gender",
-		Description: `The gender of the artist.`,
+		Description: `A gender of an artist.`,
 		Type:        "string",
 		Score:       0,
 	},
@@ -205,7 +205,7 @@ var properties = []property{
 		ID:          "2HXMnTyFK7BCbCv6Y8231j",
 		Name:        "born",
 		ExtraNames:  []string{"birth date", "year of birth"},
-		Description: `When was the artist born.`,
+		Description: `When was an artist born.`,
 		Type:        "time",
 		Score:       0,
 	},
@@ -213,14 +213,14 @@ var properties = []property{
 		ID:          "8Ls3yxCNM7a7EEEsJhNeQ6",
 		Name:        "death",
 		ExtraNames:  []string{"death date", "year of death"},
-		Description: `When did the artist die.`,
+		Description: `When did an artist die.`,
 		Type:        "time",
 		Score:       0,
 	},
 	{
 		ID:          "4ko3ggksg89apAY8vo64VP",
 		Name:        "depth",
-		Description: `The depth of the artwork.`,
+		Description: `A depth of an object.`,
 		Type:        "amount",
 		Unit:        "m",
 		Score:       0,
@@ -228,7 +228,7 @@ var properties = []property{
 	{
 		ID:          "HXdyya72uTpnmwscX9QpTi",
 		Name:        "duration",
-		Description: `The duration of the artwork.`,
+		Description: `A duration a recording or file has.`,
 		Type:        "amount",
 		Unit:        "s",
 		Score:       0,
@@ -236,7 +236,7 @@ var properties = []property{
 	{
 		ID:          "K2A24W4rtqGvy1gpPpikjp",
 		Name:        "diameter",
-		Description: `The diameter of the artwork.`,
+		Description: `A diameter of an object.`,
 		Type:        "amount",
 		Unit:        "m",
 		Score:       0,
@@ -244,7 +244,7 @@ var properties = []property{
 	{
 		ID:          "8VNwPL2fRzjF1qEmv9tpud",
 		Name:        "length",
-		Description: `The length of the artwork.`,
+		Description: `A length of an object.`,
 		Type:        "amount",
 		Unit:        "m",
 		Score:       0,
@@ -252,7 +252,7 @@ var properties = []property{
 	{
 		ID:          "39oo9aL9YTubVnowYpqBs2",
 		Name:        "weight",
-		Description: `The weight of the artwork.`,
+		Description: `A weight of an object.`,
 		Type:        "amount",
 		Unit:        "kg",
 		Score:       0,
@@ -260,7 +260,7 @@ var properties = []property{
 	{
 		ID:          "VUdAU3pxVLtrHgi1yxpkqy",
 		Name:        "circumference",
-		Description: `The circumference of the artwork.`,
+		Description: `A circumference of an object.`,
 		Type:        "amount",
 		Unit:        "m",
 		Score:       0,
@@ -1444,6 +1444,16 @@ func TestParsePrompt(t *testing.T) {
 				{
 					"artworks in query",
 					outputStruct{
+						Query:         `+artworks +bridges`,
+						RelFilters:    []outputFilterStructRel{{ID: "CAfaL1ZZs6L4uyFdrJZ2wN", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"artworks in query",
+					outputStruct{
 						Query:         `artworks +bridges`,
 						RelFilters:    []outputFilterStructRel{{ID: "CAfaL1ZZs6L4uyFdrJZ2wN", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
 						StringFilters: []outputFilterStructString{},
@@ -1537,6 +1547,21 @@ func TestParsePrompt(t *testing.T) {
 					},
 				},
 				{
+					"using string filter",
+					outputStruct{
+						Query:      "bridge",
+						RelFilters: []outputFilterStructRel{{ID: "CAfaL1ZZs6L4uyFdrJZ2wN", DocumentIDs: []string{"JT9bhAfn5QnDzRyyLARLQn"}}},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Photograph", "Print", "Drawing", "Painting", "Sculpture", "Installation"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
 					"using string filter, missing bridges keyword",
 					outputStruct{
 						Query:      "*",
@@ -1570,6 +1595,16 @@ func TestParsePrompt(t *testing.T) {
 					"invalid document ID",
 					outputStruct{
 						Query:         `bridges`,
+						RelFilters:    []outputFilterStructRel{{ID: "CAfaL1ZZs6L4uyFdrJZ2wN", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
+						StringFilters: []outputFilterStructString{},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
+				{
+					"invalid document ID, artworks in query",
+					outputStruct{
+						Query:         `artworks bridges`,
 						RelFilters:    []outputFilterStructRel{{ID: "CAfaL1ZZs6L4uyFdrJZ2wN", DocumentIDs: []string{"JT9bhAfn5Qn"}}},
 						StringFilters: []outputFilterStructString{},
 						TimeFilters:   []outputFilterStructTime{},
