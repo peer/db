@@ -711,6 +711,25 @@ func TestParsePrompt(t *testing.T) {
 						AmountFilters: []outputFilterStructAmount{},
 					},
 				},
+				{
+					"extra filters",
+					outputStruct{
+						Query:      "bridges",
+						RelFilters: []outputFilterStructRel{},
+						StringFilters: []outputFilterStructString{
+							{
+								ID:     "KhqMjmabSREw9RdM3meEDe",
+								Values: []string{"Architecture & Design"},
+							},
+							{
+								ID:     "UQqEUeWZmnXro2qSJYoaJZ",
+								Values: []string{"Architecture"},
+							},
+						},
+						TimeFilters:   []outputFilterStructTime{},
+						AmountFilters: []outputFilterStructAmount{},
+					},
+				},
 			},
 		},
 		{
