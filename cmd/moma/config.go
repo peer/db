@@ -7,8 +7,8 @@ import (
 
 const (
 	DefaultCacheDir    = ".cache"
-	DefaultArtistsURL  = "https://github.com/MuseumofModernArt/collection/raw/master/Artists.json"
-	DefaultArtworksURL = "https://github.com/MuseumofModernArt/collection/raw/master/Artworks.json"
+	DefaultArtistsURL  = "https://github.com/MuseumofModernArt/collection/raw/main/Artists.json"
+	DefaultArtworksURL = "https://github.com/MuseumofModernArt/collection/raw/main/Artworks.json"
 )
 
 //nolint:lll

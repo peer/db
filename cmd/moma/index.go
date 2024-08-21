@@ -258,15 +258,17 @@ type Artwork struct {
 	Cataloged       string   `json:"Cataloged"`
 	ObjectID        int      `json:"ObjectID"`
 	URL             string   `json:"URL"`
-	ThumbnailURL    string   `json:"ThumbnailURL"`
-	Depth           float64  `json:"Depth (cm),omitempty"`
-	Height          float64  `json:"Height (cm),omitempty"`
-	Width           float64  `json:"Width (cm),omitempty"`
-	Weight          float64  `json:"Weight (kg),omitempty"`
-	Diameter        float64  `json:"Diameter (cm),omitempty"`
-	Length          float64  `json:"Length (cm),omitempty"`
-	Circumference   float64  `json:"Circumference (cm),omitempty"`
-	Duration        float64  `json:"Duration (sec.),omitempty"`
+	ImageURL        string   `json:"ImageURL"`
+	OnView          string   `json:"OnView"`
+
+	Depth         float64 `json:"Depth (cm),omitempty"`
+	Height        float64 `json:"Height (cm),omitempty"`
+	Width         float64 `json:"Width (cm),omitempty"`
+	Weight        float64 `json:"Weight (kg),omitempty"`
+	Diameter      float64 `json:"Diameter (cm),omitempty"`
+	Length        float64 `json:"Length (cm),omitempty"`
+	Circumference float64 `json:"Circumference (cm),omitempty"`
+	Duration      float64 `json:"Duration (sec.),omitempty"`
 }
 
 func PagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
@@ -333,7 +335,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		}
 		downloadReader, errE := x.NewRetryableResponse(httpClient, req)
 		if errE != nil {
-			return nil, errors.WithStack(err)
+			return nil, errE
 		}
 		defer downloadReader.Close()
 		cachedSize = downloadReader.Size()
@@ -816,8 +818,8 @@ func index(config *Config) errors.E { //nolint:maintidx
 					}
 				}
 			}
-		} else if artwork.ThumbnailURL != "" {
-			url := artwork.ThumbnailURL
+		} else if artwork.ImageURL != "" {
+			url := artwork.ImageURL
 			if strings.HasPrefix(url, "http://") {
 				url = strings.Replace(url, "http://", "https://", 1)
 			}
@@ -865,10 +867,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		if artwork.Date != "" {
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE", 0),
+					ID:         document.GetID(NameSpaceMoMA, "ARTWORK", artwork.ObjectID, "DATE_CREATED", 0),
 					Confidence: document.HighConfidence,
 				},
-				Prop:   document.GetCorePropertyReference("DATE"),
+				Prop:   document.GetCorePropertyReference("DATE_CREATED"),
 				String: artwork.Date,
 			})
 			if errE != nil {
@@ -1117,5 +1119,24 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 	}
 
-	return errors.WithStack(ctx.Err())
+	if ctx.Err() != nil {
+		return errors.WithStack(ctx.Err())
+	}
+
+	// We wait for everything to be indexed into ElasticSearch.
+	// TODO: Improve this to not have a busy wait.
+	for {
+		err := esProcessor.Flush()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		stats := esProcessor.Stats()
+		c := count.Count()
+		if c <= stats.Indexed {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	return nil
 }
