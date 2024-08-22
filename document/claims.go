@@ -477,6 +477,10 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (u AmountUnit) JSONSchemaAlias() any {
+	return ""
+}
+
 func ValidAmountUnit(unit string) bool {
 	var u AmountUnit
 	err := x.UnmarshalWithoutUnknownFields([]byte(`"`+unit+`"`), &u)

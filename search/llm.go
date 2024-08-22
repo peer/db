@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/fun"
 	"gitlab.com/tozd/identifier"
@@ -344,7 +345,7 @@ type property struct {
 	ExtraNames       []string              `json:"-"`
 	Description      string                `json:"property_description,omitempty"`
 	Type             string                `json:"property_type"`
-	Unit             string                `json:"unit,omitempty"`
+	Unit             document.AmountUnit   `json:"unit,omitempty"`
 	RelatedDocuments []relPropertyValue    `json:"related_documents,omitempty"`
 	StringValues     []stringPropertyValue `json:"string_values,omitempty"`
 	Score            float64               `json:"relevance_score"`
@@ -370,7 +371,11 @@ type stringPropertyValue struct {
 	Score float64 `json:"relevance_score"`
 }
 
-func parsePrompt(ctx context.Context, prompt string) (outputStruct, errors.E) {
+func findProperties(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query string) (findPropertiesOutput, errors.E) {
+	return findPropertiesOutput{}, nil
+}
+
+func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), prompt string) (outputStruct, errors.E) {
 	// TODO: Move out into config.
 	if os.Getenv("ANTHROPIC_API_KEY") == "" {
 		return outputStruct{}, errors.New("ANTHROPIC_API_KEY is not available")
@@ -395,8 +400,8 @@ func parsePrompt(ctx context.Context, prompt string) (outputStruct, errors.E) {
 				Description:      findPropertiesDescription,
 				InputJSONSchema:  findPropertiesInputSchema,
 				OutputJSONSchema: nil,
-				Fun: func(_ context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-
+				Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
+					return findProperties(ctx, getSearchService, input.Query)
 				},
 			},
 			"show_results": &fun.TextTool[outputStruct, string]{

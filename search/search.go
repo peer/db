@@ -402,11 +402,11 @@ func (s *State) Ready() bool {
 	return s.Prompt == "" || s.PromptCall != nil || s.PromptError
 }
 
-func (s *State) ParsePrompt(logger zerolog.Logger) {
+func (s *State) ParsePrompt(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64)) {
 	ctx := logger.WithContext(context.Background())
 	ctx = fun.WithTextRecorder(ctx)
 
-	output, errE := parsePrompt(ctx, s.Prompt)
+	output, errE := parsePrompt(ctx, getSearchService, s.Prompt)
 
 	calls := fun.GetTextRecorder(ctx).Calls()
 	if len(calls) > 0 {
@@ -445,7 +445,7 @@ type field struct {
 
 // CreateState creates a new search state given optional existing state
 // (can be an empty string) and new query/filters.
-func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON string, isPrompt bool) *State {
+func CreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
@@ -500,7 +500,7 @@ func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON strin
 		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
 		// TODO: Should we log the original HTTP request ID?
 		//       Should we just pass context logger to this method from the request handler?
-		go sh.ParsePrompt(logger)
+		go sh.ParsePrompt(logger, getSearchService)
 	} else { //nolint:revive,staticcheck
 		// TODO: Should we already do the query, to warm up ES cache?
 		//       Maybe we should cache response ourselves so that we do not hit store twice?
@@ -509,7 +509,7 @@ func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON strin
 	return sh
 }
 
-func createStateFromGetOrCreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func createStateFromGetOrCreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
 	if searchQuery == nil {
 		q := ""
 		searchQuery = &q
@@ -520,20 +520,20 @@ func createStateFromGetOrCreateState(logger zerolog.Logger, s string, searchQuer
 	}
 	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
 	// TODO: How to prevent that CreateState calls searches.Load again?
-	return CreateState(logger, s, *searchQuery, *filtersJSON, isPrompt), false
+	return CreateState(logger, getSearchService, s, *searchQuery, *filtersJSON, isPrompt), false
 }
 
 // GetOrCreateState resolves an existing search state if possible and validates that
 // optional query/filters match those in the search state. If not, it creates a new search state.
-func GetOrCreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func GetOrCreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	var fs *filters
@@ -543,20 +543,20 @@ func GetOrCreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON 
 			fs = &f
 		} else {
 			// filtersJSON was invalid, so we pass nil instead.
-			return createStateFromGetOrCreateState(logger, s, searchQuery, nil, isPrompt)
+			return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, nil, isPrompt)
 		}
 	}
 
 	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 
 	if !isPrompt && searchQuery != nil && ss.SearchQuery != *searchQuery {
-		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 	if isPrompt && searchQuery != nil && ss.Prompt != *searchQuery {
-		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
-		return createStateFromGetOrCreateState(logger, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	return ss, true
