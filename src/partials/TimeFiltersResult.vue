@@ -102,10 +102,10 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const bigIntRangeMin =
-    props.state === null || props.state === NONE ? min.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).gte), min.value)
-  const bigIntRangeMax =
-    props.state === null || props.state === NONE ? max.value : bigIntMax(timestampToSeconds((props.state as { gte: string; lte: string }).lte), max.value)
+  const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: string; lte?: string }).gte
+  const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: string; lte?: string }).lte
+  const bigIntRangeMin = gte == null ? min.value : bigIntMax(timestampToSeconds(gte), min.value)
+  const bigIntRangeMax = lte == null ? max.value : bigIntMax(timestampToSeconds(lte), max.value)
   let rangeMin, rangeMax
   if (bigIntRangeMax - bigIntRangeMin > maxSafeInteger) {
     const scaledMin = bigIntRangeMin / scale
@@ -128,8 +128,8 @@ watchEffect((onCleanup) => {
   // rangeStart and rangeEnd are strings because noUiSlider otherwise converts the number
   // to a string using String and tries to parse it with timestampToSeconds.
   // Now it just tries to parse it with timestampToSeconds.
-  const rangeStart = props.state === null || props.state === NONE ? secondsToTimestamp(min.value) : (props.state as { gte: string; lte: string }).gte
-  const rangeEnd = props.state === null || props.state === NONE ? secondsToTimestamp(max.value) : (props.state as { gte: string; lte: string }).lte
+  const rangeStart = gte == null ? secondsToTimestamp(min.value) : gte
+  const rangeEnd = lte == null ? secondsToTimestamp(max.value) : lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],

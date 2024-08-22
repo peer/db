@@ -1,5 +1,5 @@
 import type { Ref, DeepReadonly } from "vue"
-import type { RouteLocationNormalizedLoaded, Router, RouteParams } from "vue-router"
+import type { RouteLocationNormalizedLoaded, Router } from "vue-router"
 import type {
   SearchResult,
   SearchFilterResult,

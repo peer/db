@@ -98,10 +98,12 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const rangeMin = props.state === null || props.state === NONE ? min.value : Math.max((props.state as { gte: number; lte: number }).gte, min.value)
-  const rangeMax = props.state === null || props.state === NONE ? max.value : Math.min((props.state as { gte: number; lte: number }).lte, max.value)
-  const rangeStart = props.state === null || props.state === NONE ? min.value : (props.state as { gte: number; lte: number }).gte
-  const rangeEnd = props.state === null || props.state === NONE ? max.value : (props.state as { gte: number; lte: number }).lte
+  const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).gte
+  const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).lte
+  const rangeMin = gte == null ? min.value : Math.max(gte, min.value)
+  const rangeMax = lte == null ? max.value : Math.min(lte, max.value)
+  const rangeStart = gte == null ? min.value : gte
+  const rangeEnd = lte == null ? max.value : lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],

@@ -46,10 +46,16 @@ function countFilters(): number {
   <div v-else-if="state.p && !state.promptCall">
     Interpreting your prompt...
   </div>
-  <div v-else-if="countFilters() === 1">
+  <div v-else-if="state.q && countFilters() === 1">
     Searching query <i>{{ state.q }}</i> and 1 active filter.
   </div>
-  <div v-else>
+  <div v-else-if=state.q>
     Searching query <i>{{ state.q }}</i> and {{ countFilters() }} active filters.
+  </div>
+  <div v-else-if="countFilters() === 1">
+    Searching without query and with 1 active filter.
+  </div>
+  <div v-else>
+    Searching without query and with {{ countFilters() }} active filters.
   </div>
 </template>

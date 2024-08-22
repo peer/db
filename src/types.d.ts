@@ -91,8 +91,8 @@ export type RelNoneFilter = {
 export type AmountFilter = {
   prop: string
   unit: string
-  gte: number
-  lte: number
+  gte?: number
+  lte?: number
 }
 
 export type AmountNoneFilter = {
@@ -103,8 +103,8 @@ export type AmountNoneFilter = {
 
 export type TimeFilter = {
   prop: string
-  gte: string
-  lte: string
+  gte?: string
+  lte?: string
 }
 
 export type TimeNoneFilter = {
@@ -127,8 +127,8 @@ export type IndexFilter = {
 }
 
 export type SizeFilter = {
-  gte: number
-  lte: number
+  gte?: number
+  lte?: number
 }
 
 export type SizeNoneFilter = {
@@ -154,15 +154,15 @@ export type Filters =
 
 export type RelFilterState = (string | typeof NONE)[]
 
-export type AmountFilterState = null | typeof NONE | { gte: number; lte: number }
+export type AmountFilterState = null | typeof NONE | { gte?: number; lte?: number }
 
-export type TimeFilterState = null | typeof NONE | { gte: string; lte: string }
+export type TimeFilterState = null | typeof NONE | { gte?: string; lte?: string }
 
 export type StringFilterState = (string | typeof NONE)[]
 
 export type IndexFilterState = string[]
 
-export type SizeFilterState = null | typeof NONE | { gte: number; lte: number }
+export type SizeFilterState = null | typeof NONE | { gte?: number; lte?: number }
 
 export type FiltersState = {
   rel: Record<string, RelFilterState>
