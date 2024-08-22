@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from "vue"
+import { onBeforeUnmount, ref, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { SparklesIcon } from "@heroicons/vue/20/solid"
@@ -32,6 +32,34 @@ const progress = injectProgress()
 const abortController = new AbortController()
 
 const searchQuery = ref("")
+
+watchEffect((onCleanup) => {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  if (!props.s) {
+    return
+  }
+
+  if (Array.isArray(route.query.p)) {
+    if (route.query.p[0] != null && route.query.p[0] !== "") {
+      searchQuery.value = route.query.p[0]
+      return
+    }
+  } else if (route.query.p != null && route.query.p !== "") {
+    searchQuery.value = route.query.p
+    return
+  }
+
+  if (Array.isArray(route.query.q)) {
+    if (route.query.q[0] != null) {
+      searchQuery.value = route.query.q[0]
+    }
+  } else if (route.query.q != null) {
+    searchQuery.value = route.query.q
+  }
+})
 
 onBeforeUnmount(() => {
   abortController.abort()
