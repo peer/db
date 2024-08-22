@@ -383,7 +383,7 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	}
 
 	bq := elastic.NewBoolQuery()
-	bq.Must(documentTextSearchQuery(query))
+	bq.Must(documentTextSearchQuery(query, "OR"))
 	bq.Must(elastic.NewNestedQuery("claims.rel",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
@@ -432,7 +432,7 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	}
 
 	bq = elastic.NewBoolQuery()
-	bq.Must(documentTextSearchQuery(query))
+	bq.Must(documentTextSearchQuery(query, "OR"))
 	bq.Must(elastic.NewNestedQuery("claims.rel",
 		elastic.NewBoolQuery().Must(
 			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
@@ -475,6 +475,68 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			Type:             "amount",
 			Unit:             document.AmountUnitMetre, // TODO: Obtain from the document.
 			RelatedDocuments: nil,
+			StringValues:     nil,
+			Score:            0, // TODO: Set hit.Score.
+		})
+	}
+
+	relatedDocuments := []relPropertyValue{}
+
+	// TODO: Generalize to all relation properties.
+	bq = elastic.NewBoolQuery()
+	bq.Must(documentTextSearchQuery(query, "OR"))
+	bq.Must(elastic.NewNestedQuery("claims.rel",
+		elastic.NewBoolQuery().Must(
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
+			elastic.NewTermQuery("claims.rel.to.id", "6HpkLLj1iSK3XBhgHpc6n3"),   // ITEM
+		),
+	))
+	itemsSearchSevice, _ := getSearchService()
+	itemsSearchSevice = itemsSearchSevice.From(0).Size(MaxResultsCount).Query(bq)
+	res, err = itemsSearchSevice.Do(ctx)
+	if err != nil {
+		return output, errors.WithStack(err)
+	}
+	for _, hit := range res.Hits.Hits {
+		data, _, _, errE := store.GetLatest(ctx, identifier.MustFromString(hit.Id))
+		if errE != nil {
+			return output, errE
+		}
+
+		var doc document.D
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return output, errE
+		}
+
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		slices.SortFunc(names, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		slices.SortFunc(descriptions, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		relatedDocuments = append(relatedDocuments, relPropertyValue{
+			ID:          doc.ID.String(),
+			Name:        names[0].(*document.TextClaim).HTML["en"],
+			ExtraNames:  nil,
+			Description: descriptions[0].(*document.TextClaim).HTML["en"],
+			Score:       0,
+		})
+	}
+
+	if len(relatedDocuments) > 0 {
+		output.Properties = append(output.Properties, property{
+			ID:               "CAfaL1ZZs6L4uyFdrJZ2wN",
+			Name:             "type",
+			ExtraNames:       nil,
+			Description:      "Type of a document.",
+			Type:             "rel",
+			Unit:             0,
+			RelatedDocuments: relatedDocuments,
 			StringValues:     nil,
 			Score:            0, // TODO: Set hit.Score.
 		})

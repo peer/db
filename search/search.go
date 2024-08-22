@@ -372,7 +372,7 @@ func (s *State) ValuesWithAt(at string) url.Values {
 	return values
 }
 
-func documentTextSearchQuery(searchQuery string) elastic.Query {
+func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query {
 	bq := elastic.NewBoolQuery()
 
 	if searchQuery != "" {
@@ -384,7 +384,7 @@ func documentTextSearchQuery(searchQuery string) elastic.Query {
 			{"claims.string", "string"},
 		} {
 			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator(defaultOperator)
 			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
 		}
 	}
@@ -399,7 +399,7 @@ func (s *State) Query() elastic.Query { //nolint:ireturn
 	boolQuery := elastic.NewBoolQuery()
 
 	if s.SearchQuery != "" {
-		boolQuery.Must(documentTextSearchQuery(s.SearchQuery))
+		boolQuery.Must(documentTextSearchQuery(s.SearchQuery, "AND"))
 	}
 
 	if s.Filters != nil {
