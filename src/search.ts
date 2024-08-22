@@ -17,13 +17,13 @@ import type {
   SizeFilter,
   Filters,
   FiltersState,
-  ClientSearchState,
-  ServerSearchState,
+  SearchStateCreateResponse,
   RelSearchResult,
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
-  QueryValuesWithOptional,
+  ClientSearchState,
+  ServerSearchState,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
@@ -41,6 +41,17 @@ export const FILTERS_INCREASE = 10
 
 function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   const form = new FormData()
+
+  if (Array.isArray(route.query.p)) {
+    if (route.query.p[0] != null && route.query.p[0] !== "") {
+      form.set("p", route.query.p[0])
+      return form
+    }
+  } else if (route.query.p != null && route.query.p !== "") {
+    form.set("p", route.query.p)
+    return form
+  }
+
   if (Array.isArray(route.query.q)) {
     if (route.query.q[0] != null) {
       form.set("q", route.query.q[0])
@@ -51,12 +62,12 @@ function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   return form
 }
 
-export async function postSearch(router: Router, form: HTMLFormElement, abortSignal: AbortSignal, progress: Ref<number>) {
-  const searchState = await postURL<ServerSearchState>(
+export async function postSearch(router: Router, form: FormData, abortSignal: AbortSignal, progress: Ref<number>) {
+  const searchState = await postURL<SearchStateCreateResponse>(
     router.apiResolve({
       name: "SearchCreate",
     }).href,
-    new FormData(form),
+    form,
     abortSignal,
     progress,
   )
@@ -69,6 +80,8 @@ export async function postSearch(router: Router, form: HTMLFormElement, abortSig
       s: searchState.s,
     },
     query: encodeQuery({
+      // Only one of them is present at any given time.
+      p: searchState.p,
       q: searchState.q,
     }),
   })
@@ -147,7 +160,7 @@ export async function postFilters(
   const form = queryToFormData(route)
   form.set("s", s)
   form.set("filters", JSON.stringify(filters))
-  const updatedSearchState: ServerSearchState = await postURL(
+  const updatedSearchState: SearchStateCreateResponse = await postURL(
     router.apiResolve({
       name: "SearchCreate",
     }).href,
@@ -158,24 +171,28 @@ export async function postFilters(
   if (abortSignal.aborted) {
     return
   }
-  if (s !== updatedSearchState.s || route.query.q !== updatedSearchState.q) {
+  if (s !== updatedSearchState.s ||
+    !((route.query.q === null && updatedSearchState.q === undefined) || (route.query.q === updatedSearchState.q)) ||
+    !((route.query.p === null && updatedSearchState.p === undefined) || (route.query.p === updatedSearchState.p))
+  ) {
     await router.push({
       name: "SearchResults",
       params: {
         s: updatedSearchState.s,
       },
       query: encodeQuery({
+        // Only one of them is present at any given time.
+        p: updatedSearchState.p,
         q: updatedSearchState.q,
       }),
     })
   }
 }
 
-function getSearchURL(router: Router, params: RouteParams, query: QueryValuesWithOptional): string {
+function getSearchURL(router: Router, params: RouteParams): string {
   return router.apiResolve({
     name: "SearchResults",
     params,
-    query: encodeQuery(query),
   }).href
 }
 
@@ -183,17 +200,14 @@ export function useSearch(
   s: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
-  redirect: (searchState: ServerSearchState) => Promise<void | undefined>,
 ): {
   results: DeepReadonly<Ref<SearchResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
-  const route = useRoute()
 
   return useSearchResults<SearchResult>(
     el,
@@ -204,12 +218,8 @@ export function useSearch(
         {
           s: s.value,
         },
-        {
-          q: route.query.q,
-        },
       )
     },
-    redirect,
   )
 }
 
@@ -236,7 +246,6 @@ export function useFilters(
         },
       }).href
     },
-    null,
   )
 }
 
@@ -445,11 +454,9 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
-  redirect?: ((searchState: ServerSearchState) => Promise<void | undefined>) | null,
 ): {
   results: DeepReadonly<Ref<Type[]>>
   total: DeepReadonly<Ref<number | null>>
-  filters: DeepReadonly<Ref<FiltersState>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -458,13 +465,11 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
 
   const _results = ref<Type[]>([]) as Ref<Type[]>
   const _total = ref<number | null>(null)
-  const _filters = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
   const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
   const total = import.meta.env.DEV ? readonly(_total) : _total
-  const filters = import.meta.env.DEV ? readonly(_filters) : _filters
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
@@ -488,7 +493,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       if (!newURL) {
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
         return
       }
@@ -505,22 +509,11 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         console.error("useSearchResults", newURL, err)
         _results.value = []
         _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
         _moreThanTotal.value = false
         _error.value = `${err}`
         return
       }
       if (signal.aborted) {
-        return
-      }
-      if (!("results" in data)) {
-        _results.value = []
-        _total.value = null
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
-        _moreThanTotal.value = false
-        if (redirect) {
-          await redirect(data)
-        }
         return
       }
       _results.value = data.results
@@ -537,11 +530,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
         _moreThanTotal.value = false
         _total.value = data.total
       }
-      if (data.filters) {
-        _filters.value = filtersToFiltersState(data.filters)
-      } else {
-        _filters.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
-      }
     },
     {
       immediate: true,
@@ -551,7 +539,6 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
   return {
     results,
     total,
-    filters,
     moreThanTotal,
     error,
     url,
@@ -591,7 +578,6 @@ export function useRelFilterValues(
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
-    null,
   )
 }
 
@@ -1122,28 +1108,17 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
   progress: Ref<number>,
-): Promise<{ results: T[]; total: number | string; query?: string; filters?: Filters } | ServerSearchState> {
+): Promise<{ results: T[]; total: number | string } > {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
   if (abortSignal.aborted) {
-    return { q: "", s: "" }
+    return { results: [], total: 0 }
   }
 
-  if (Array.isArray(doc)) {
-    if (!("total" in metadata)) {
-      throw new Error(`"total" metadata is missing`)
-    }
-    const total = metadata["total"] as number | string
-    const res = { results: doc, total } as { results: T[]; total: number | string; query?: string; filters?: Filters }
-    if ("query" in metadata) {
-      res.query = metadata["query"] as string
-    }
-    if ("filters" in metadata) {
-      res.filters = JSON.parse(metadata["filters"] as string)
-    }
-    return res
+  if (!("total" in metadata)) {
+    throw new Error(`"total" metadata is missing`)
   }
-
-  return doc as { q: string; s: string }
+  const total = metadata["total"] as number | string
+  return { results: doc, total } as { results: T[]; total: number | string }
 }
 
 async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult | SizeValuesResult>(
@@ -1216,22 +1191,18 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
 export function useSearchState(
   s: Ref<string | null | undefined>,
   el: Ref<Element | null>,
-  redirect: (searchState: ServerSearchState) => Promise<void | undefined>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<SearchResult[]>>
-  searchState: DeepReadonly<Ref<ClientSearchState>>
+  searchState: DeepReadonly<Ref<ClientSearchState | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<SearchResult[]>([])
-  const _searchState = ref<ClientSearchState>({})
+  const _searchState = ref<ClientSearchState | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
   const searchState = import.meta.env.DEV ? readonly(_searchState) : _searchState
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
@@ -1252,42 +1223,42 @@ export function useSearchState(
       _error.value = null
 
       if (!s) {
-        _results.value = []
-        _searchState.value = {}
+        _searchState.value = null
         _url.value = null
         return
       }
-      const newURL = getSearchURL(router, { s }, {})
+      const newURL = getSearchURL(router, { s })
       _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getSearchResults<SearchResult>(newURL, el, signal, progress)
+        data = await getURL<ServerSearchState>(newURL, el, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
         }
         console.error("useSearchState", newURL, err)
-        _results.value = []
-        _searchState.value = {}
+        _searchState.value = null
         _error.value = `${err}`
         return
       }
       if (signal.aborted) {
         return
       }
-      if (!("results" in data)) {
-        _results.value = []
-        _searchState.value = {}
-        await redirect(data)
-        return
+      _searchState.value = { s: data.doc.s, q: data.doc.q }
+      if ("p" in data.doc) {
+        _searchState.value.p = data.doc.p
       }
-      _results.value = data.results
-      _searchState.value = {
-        s, // If "results" were returned, then s is valid.
-        q: data.query,
+      if ("filters" in data.doc && data.doc.filters) {
+        _searchState.value.filters = filtersToFiltersState(data.doc.filters)
+      }
+      if ("promptCall" in data.doc) {
+        _searchState.value.promptCall = data.doc.promptCall
+      }
+      if ("promptError" in data.doc) {
+        _searchState.value.promptError = data.doc.promptError
       }
     },
     {
@@ -1296,7 +1267,6 @@ export function useSearchState(
   )
 
   return {
-    results,
     searchState,
     error,
     url,

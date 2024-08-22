@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
+import { SparklesIcon } from "@heroicons/vue/20/solid"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
@@ -26,24 +27,31 @@ const route = useRoute()
 
 const router = useRouter()
 
-const abortController = new AbortController()
-
 const progress = injectProgress()
 
-const form = ref()
+const abortController = new AbortController()
+
+const searchQuery = ref("")
 
 onBeforeUnmount(() => {
   abortController.abort()
 })
 
-async function onSubmit() {
+async function onSubmit(isPrompt: boolean) {
   if (abortController.signal.aborted) {
     return
   }
 
+  const form = new FormData();
+  if (isPrompt) {
+    form.set("p", searchQuery.value)
+  } else {
+    form.set("q", searchQuery.value)
+  }
+
   progress.value += 1
   try {
-    await postSearch(router, form.value, abortController.signal, progress)
+    await postSearch(router, form, abortController.signal, progress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -65,18 +73,20 @@ function onFilters() {
 </script>
 
 <template>
-  <form ref="form" class="flex flex-grow gap-x-1 sm:gap-x-4" @submit.prevent="onSubmit">
+  <form class="flex flex-grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit(!!route.query.p)">
     <InputText
       id="search-input-text"
-      :model-value="s ? (Array.isArray(route.query.q) ? route.query.q[0] : route.query.q) || undefined : undefined"
+      v-model="searchQuery"
       :progress="progress"
-      name="q"
       class="max-w-xl flex-grow"
     />
-    <input v-if="s" type="hidden" name="s" :value="s" />
-    <Button :progress="progress" type="submit" primary class="!px-3.5">
+    <Button :progress="progress" type="button" primary class="!px-3.5" @click="onSubmit(false)">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
+    </Button>
+    <Button :progress="progress" type="button" primary class="!px-3.5" @click="onSubmit(true)">
+      <SparklesIcon class="h-5 w-5 sm:hidden" alt="Prompt" />
+      <span class="hidden sm:inline">Prompt</span>
     </Button>
     <Button v-if="filtersEnabled != null" primary class="!px-3.5 sm:hidden" type="button" @click="onFilters">
       <FunnelIcon class="h-5 w-5" alt="Filters" />

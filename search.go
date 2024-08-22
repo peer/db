@@ -357,7 +357,9 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 }
 
 type searchCreateResponse struct {
-	ID identifier.Identifier `json:"id"`
+	ID          identifier.Identifier `json:"s"`
+	SearchQuery *string               `json:"q,omitempty"`
+	Prompt      string                `json:"p,omitempty"`
 }
 
 // SearchCreatePost is a POST HTTP request handler which stores the search state
@@ -390,5 +392,9 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 	sh := search.CreateState(s.Logger, currentSearchState, searchQuery, filtersJSON, isPrompt)
 	m.Stop()
 
-	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID}, nil)
+	var q *string
+	if sh.Prompt == "" {
+		q = &sh.SearchQuery
+	}
+	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID, SearchQuery: q, Prompt: sh.Prompt}, nil)
 }

@@ -173,9 +173,25 @@ export type FiltersState = {
   size: SizeFilterState
 }
 
-export type ServerSearchState = { s: string; q: string }
+export type ServerSearchState = {
+  s: string
+  q: string
+  p?: string
+  filters?: Filters
+  promptCall?: object
+  promptError?: boolean
+}
 
-export type ClientSearchState = { s?: string; q?: string }
+export type ClientSearchState = {
+  s: string
+  q: string
+  p?: string
+  filters?: FiltersState
+  promptCall?: object
+  promptError?: boolean
+}
+
+export type SearchStateCreateResponse = { s: string; q?: string; p?: string }
 
 export type SiteContext = {
   domain: string

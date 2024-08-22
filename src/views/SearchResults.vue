@@ -31,7 +31,7 @@ import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
-import { useSearch, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import { useSearch, useSearchState, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { useVisibilityTracking } from "@/visibility"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
@@ -62,26 +62,23 @@ const searchEl = ref(null)
 
 const searchProgress = localProgress(mainProgress)
 const {
+  searchState,
+  error: searchStateError,
+  url: searchURL,
+} = useSearchState(
+  toRef(() => props.s),
+  searchEl,
+  searchProgress,
+)
+const {
   results: searchResults,
   total: searchTotal,
-  filters: searchFilters,
   moreThanTotal: searchMoreThanTotal,
-  error: searchError,
-  url: searchURL,
+  error: searchResultsError,
 } = useSearch(
   toRef(() => props.s),
   searchEl,
   searchProgress,
-  async (searchState) => {
-    await router.replace({
-      name: "SearchResults",
-      params: {
-        s: searchState.s,
-      },
-      // Maybe route.query has non-empty "at" parameter which we want to keep.
-      query: encodeQuery({ q: searchState.q, at: route.query.at || undefined }),
-    })
-  },
 )
 
 const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: searchLoadMore } = useLimitResults(searchResults, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
@@ -191,7 +188,11 @@ const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {},
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
-  filtersState.value = clone(searchFilters.value)
+  if (searchState.value === null || !searchState.value.filters) {
+    filtersState.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
+  } else {
+    filtersState.value = clone(searchState.value.filters)
+  }
 })
 
 async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
@@ -576,7 +577,7 @@ async function onChange() {
   </Teleport>
   <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
     <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchURL">
-      <div v-if="searchError" class="my-1 sm:my-4">
+      <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
         <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
       <div v-else-if="searchTotal === null" class="my-1 sm:my-4">
@@ -624,7 +625,7 @@ async function onChange() {
       </template>
     </div>
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
-      <div v-if="searchError || filtersError" class="my-1 sm:my-4">
+      <div v-if="searchStateError || searchResultsError || filtersError" class="my-1 sm:my-4">
         <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
       <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
