@@ -1,10 +1,10 @@
 package search
 
 import (
+	"context"
 	"net/url"
 	"reflect"
 	"sync"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -45,17 +45,12 @@ type amountFilter struct {
 }
 
 func (f amountFilter) Valid() errors.E {
+	// TODO: Why is f.Unit a pointer and can be nil at all?
 	if f.Unit == nil {
 		return errors.New("unit has to be set")
 	}
 	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte and lte, or none has to be set")
-	}
-	if f.Lte != nil && f.Gte == nil {
-		return errors.New("gte has to be set if lte is set")
-	}
-	if f.Lte == nil && f.Gte != nil {
-		return errors.New("lte has to be set if gte is set")
+		return errors.New("gte, lte, or none has to be set")
 	}
 	if f.Gte != nil && f.None {
 		return errors.New("gte and none cannot be both set")
@@ -75,13 +70,7 @@ type timeFilter struct {
 
 func (f timeFilter) Valid() errors.E {
 	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte and lte, or none has to be set")
-	}
-	if f.Lte != nil && f.Gte == nil {
-		return errors.New("gte has to be set if lte is set")
-	}
-	if f.Lte == nil && f.Gte != nil {
-		return errors.New("lte has to be set if gte is set")
+		return errors.New("gte, lte, or none has to be set")
 	}
 	if f.Gte != nil && f.None {
 		return errors.New("gte and none cannot be both set")
@@ -127,13 +116,7 @@ type sizeFilter struct {
 
 func (f sizeFilter) Valid() errors.E {
 	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte and lte, or none has to be set")
-	}
-	if f.Lte != nil && f.Gte == nil {
-		return errors.New("gte has to be set if lte is set")
-	}
-	if f.Lte == nil && f.Gte != nil {
-		return errors.New("lte has to be set if gte is set")
+		return errors.New("gte, lte, or none has to be set")
 	}
 	if f.Gte != nil && f.None {
 		return errors.New("gte and none cannot be both set")
@@ -279,11 +262,18 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				),
 			)
 		}
+		r := elastic.NewRangeQuery("claims.amount.amount")
+		if f.Amount.Lte != nil {
+			r.Lte(*f.Amount.Lte)
+		}
+		if f.Amount.Gte != nil {
+			r.Gte(*f.Amount.Gte)
+		}
 		return elastic.NewNestedQuery("claims.amount",
 			elastic.NewBoolQuery().Must(
 				elastic.NewTermQuery("claims.amount.prop.id", f.Amount.Prop),
 				elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
-				elastic.NewRangeQuery("claims.amount.amount").Lte(*f.Amount.Lte).Gte(*f.Amount.Gte),
+				r,
 			),
 		)
 	}
@@ -295,10 +285,17 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				),
 			)
 		}
+		r := elastic.NewRangeQuery("claims.time.timestamp")
+		if f.Time.Lte != nil {
+			r.Lte(f.Time.Lte.String())
+		}
+		if f.Time.Gte != nil {
+			r.Gte(f.Time.Gte.String())
+		}
 		return elastic.NewNestedQuery("claims.time",
 			elastic.NewBoolQuery().Must(
 				elastic.NewTermQuery("claims.time.prop.id", f.Time.Prop),
-				elastic.NewRangeQuery("claims.time.timestamp").Lte(f.Time.Lte.String()).Gte(f.Time.Gte.String()),
+				r,
 			),
 		)
 	}
@@ -326,7 +323,14 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				elastic.NewExistsQuery("_size"),
 			)
 		}
-		return elastic.NewRangeQuery("_size").Lte(*f.Size.Lte).Gte(*f.Size.Gte)
+		r := elastic.NewRangeQuery("_size")
+		if f.Size.Lte != nil {
+			r.Lte(*f.Size.Lte)
+		}
+		if f.Size.Gte != nil {
+			r.Gte(*f.Size.Gte)
+		}
+		return r
 	}
 	panic(errors.New("invalid filters"))
 }
@@ -394,13 +398,37 @@ func (s *State) Query() elastic.Query { //nolint:ireturn
 	return boolQuery
 }
 
+func (s *State) Ready() bool {
+	return s.Prompt == "" || s.PromptCall != nil || s.PromptError
+}
+
 func (s *State) ParsePrompt(logger zerolog.Logger) {
-	// TODO: Implement real implementation.
-	time.Sleep(5 * time.Second)
-	s.SearchQuery = s.Prompt
-	s.PromptCall = &fun.TextRecorderCall{
-		ID: identifier.New().String(),
+	ctx := logger.WithContext(context.Background())
+	ctx = fun.WithTextRecorder(ctx)
+
+	output, errE := parsePrompt(ctx, s.Prompt)
+
+	calls := fun.GetTextRecorder(ctx).Calls()
+	if len(calls) > 0 {
+		s.PromptCall = &calls[0]
 	}
+
+	if errE != nil {
+		logger.Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", calls).Msg("prompt parsing failed")
+		s.PromptError = true
+		searches.Store(s.ID, s)
+		return
+	}
+
+	s.SearchQuery = output.Query
+	s.Filters, errE = output.Filters()
+	if errE != nil {
+		logger.Error().Err(errE).Interface("output", output).Interface("calls", calls).Msg("prompt filters conversion failed")
+		s.PromptError = true
+		searches.Store(s.ID, s)
+		return
+	}
+
 	searches.Store(s.ID, s)
 }
 
@@ -470,6 +498,8 @@ func CreateState(logger zerolog.Logger, s string, searchQuery, filtersJSON strin
 	if isPrompt {
 		// We start parsing the prompt.
 		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
+		// TODO: Should we log the original HTTP request ID?
+		//       Should we just pass context logger to this method from the request handler?
 		go sh.ParsePrompt(logger)
 	} else { //nolint:revive,staticcheck
 		// TODO: Should we already do the query, to warm up ES cache?

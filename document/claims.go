@@ -49,6 +49,10 @@ type Timestamp time.Time
 
 var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
 
+func (t Timestamp) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
+}
+
 func (t Timestamp) MarshalJSON() ([]byte, error) {
 	b := bytes.Buffer{}
 	b.WriteString(`"`)
@@ -71,15 +75,8 @@ func (t Timestamp) String() string {
 // We cannot use standard time.Time implementation.
 // See: https://github.com/golang/go/issues/4556
 
-func (t *Timestamp) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		return nil
-	}
-	var s string
-	errE := x.UnmarshalWithoutUnknownFields(data, &s)
-	if errE != nil {
-		return errE
-	}
+func (t *Timestamp) UnmarshalText(text []byte) error {
+	s := string(text)
 	match := timeRegex.FindStringSubmatch(s)
 	if match == nil {
 		return errors.Errorf(`unable to parse time "%s"`, s)
@@ -110,6 +107,18 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	}
 	*t = Timestamp(time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC))
 	return nil
+}
+
+func (t *Timestamp) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+	var s string
+	errE := x.UnmarshalWithoutUnknownFields(data, &s)
+	if errE != nil {
+		return errE
+	}
+	return t.UnmarshalText([]byte(s))
 }
 
 // Language to HTML string mapping.

@@ -1,5 +1,16 @@
 package search
 
+import (
+	"context"
+	"os"
+
+	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/fun"
+	"gitlab.com/tozd/identifier"
+
+	"gitlab.com/peerdb/peerdb/document"
+)
+
 //nolint:tagliatelle
 type outputFilterStructRel struct {
 	ID          string   `json:"property_id"`
@@ -14,17 +25,17 @@ type outputFilterStructString struct {
 
 //nolint:tagliatelle
 type outputFilterStructTime struct {
-	ID  string  `json:"property_id"`
-	Min *string `json:"min"`
-	Max *string `json:"max"`
+	ID  string              `json:"property_id"`
+	Min *document.Timestamp `json:"min"`
+	Max *document.Timestamp `json:"max"`
 }
 
 //nolint:tagliatelle
 type outputFilterStructAmount struct {
-	ID   string   `json:"property_id"`
-	Min  *float64 `json:"min"`
-	Max  *float64 `json:"max"`
-	Unit string   `json:"unit"`
+	ID   string              `json:"property_id"`
+	Min  *float64            `json:"min"`
+	Max  *float64            `json:"max"`
+	Unit document.AmountUnit `json:"unit"`
 }
 
 //nolint:tagliatelle
@@ -34,6 +45,102 @@ type outputStruct struct {
 	StringFilters []outputFilterStructString `json:"string_filters"`
 	TimeFilters   []outputFilterStructTime   `json:"time_filters"`
 	AmountFilters []outputFilterStructAmount `json:"amount_filters"`
+}
+
+func (s outputStruct) Filters() (*filters, errors.E) {
+	f := filters{}
+
+	for _, rel := range s.RelFilters {
+		prop, errE := identifier.FromString(rel.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		ids := filters{}
+		for _, doc := range rel.DocumentIDs {
+			d, errE := identifier.FromString(doc)
+			if errE != nil {
+				return nil, errE
+			}
+			ids.Or = append(f.Or, filters{
+				Rel: &relFilter{
+					Prop:  prop,
+					Value: &d,
+					None:  false,
+				},
+			})
+		}
+		if len(ids.Or) > 0 {
+			f.And = append(f.And, ids)
+		}
+	}
+
+	for _, str := range s.StringFilters {
+		prop, errE := identifier.FromString(str.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		values := filters{}
+		for _, value := range str.Values {
+			if value != "" {
+				values.Or = append(values.Or, filters{
+					Str: &stringFilter{
+						Prop: prop,
+						Str:  value,
+						None: false,
+					},
+				})
+			}
+		}
+		if len(values.Or) > 0 {
+			f.And = append(f.And, values)
+		}
+	}
+
+	for _, t := range s.TimeFilters {
+		prop, errE := identifier.FromString(t.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		if t.Min != nil || t.Max != nil {
+			f.And = append(f.And, filters{
+				Time: &timeFilter{
+					Prop: prop,
+					Gte:  t.Min,
+					Lte:  t.Max,
+					None: false,
+				},
+			})
+		}
+	}
+
+	for _, a := range s.AmountFilters {
+		prop, errE := identifier.FromString(a.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		if a.Min != nil || a.Max != nil {
+			f.And = append(f.And, filters{
+				Amount: &amountFilter{
+					Prop: prop,
+					Unit: &a.Unit,
+					Gte:  a.Min,
+					Lte:  a.Max,
+					None: false,
+				},
+			})
+		}
+	}
+
+	if len(f.And) == 0 {
+		return nil, nil
+	}
+
+	errE := f.Valid()
+	if errE != nil {
+		return nil, errE
+	}
+
+	return &f, nil
 }
 
 //nolint:lll,gochecknoglobals
@@ -203,6 +310,12 @@ Before answering, explain your reasoning step-by-step in tags.
 At the end, you MUST use "show_results" tool to pass the search query and filters to the search engine and for user to see the resulting documents.
 `
 
+//nolint:lll
+const findPropertiesDescription = `Find properties matching the search query against their name, names of related documents, or string values. It can return multiple properties with the relevance score (higher the score, more relevant the property, related documents, or string values are to the query).`
+
+//nolint:lll
+const showResultsDescription = `Pass the search query and filters to the search engine for user to see the resulting documents. It always returns an empty string to the assistant.`
+
 type findPropertiesInput struct {
 	Query string `json:"query"`
 }
@@ -255,4 +368,57 @@ type relPropertyValue struct {
 type stringPropertyValue struct {
 	Value string  `json:"value"`
 	Score float64 `json:"relevance_score"`
+}
+
+func parsePrompt(ctx context.Context, prompt string) (outputStruct, errors.E) {
+	// TODO: Move out into config.
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		return outputStruct{}, errors.New("ANTHROPIC_API_KEY is not available")
+	}
+
+	var result *outputStruct
+
+	// TODO: Do not create f every time.
+	f := fun.Text[string, string]{
+		Provider: &fun.AnthropicTextProvider{
+			Client:      nil,
+			APIKey:      os.Getenv("ANTHROPIC_API_KEY"),
+			Model:       "claude-3-5-sonnet-20240620",
+			Temperature: 0,
+		},
+		InputJSONSchema:  nil,
+		OutputJSONSchema: nil,
+		Prompt:           prompt,
+		Data:             nil,
+		Tools: map[string]fun.TextTooler{
+			"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
+				Description:      findPropertiesDescription,
+				InputJSONSchema:  findPropertiesInputSchema,
+				OutputJSONSchema: nil,
+				Fun: func(_ context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
+
+				},
+			},
+			"show_results": &fun.TextTool[outputStruct, string]{
+				Description:      showResultsDescription,
+				InputJSONSchema:  outputStructSchema,
+				OutputJSONSchema: nil,
+				Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
+					result = &input
+					return "", nil
+				},
+			},
+		},
+	}
+
+	_, errE := f.Call(ctx, prompt)
+	if errE != nil {
+		return outputStruct{}, errE
+	}
+
+	if result == nil {
+		return outputStruct{}, errors.New(`"show_results" not used`)
+	}
+
+	return *result, nil
 }

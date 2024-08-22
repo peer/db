@@ -2224,7 +2224,7 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 				Data:             nil,
 				Tools: map[string]fun.TextTooler{
 					"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
-						Description:      `Find properties matching the search query against their name, names of related documents, or string values. It can return multiple properties with the relevance score (higher the score, more relevant the property, related documents, or string values are to the query).`,
+						Description:      findPropertiesDescription,
 						InputJSONSchema:  findPropertiesInputSchema,
 						OutputJSONSchema: nil,
 						Fun: func(_ context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
@@ -2300,7 +2300,7 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 						},
 					},
 					"show_results": &fun.TextTool[outputStruct, string]{
-						Description:      `Pass the search query and filters to the search engine for user to see the resulting documents. It always returns an empty string to the assistant.`,
+						Description:      showResultsDescription,
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
