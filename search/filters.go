@@ -73,6 +73,10 @@ func FiltersGet( //nolint:maintidx
 	}
 	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
+	if !sh.Ready() {
+		return nil, nil, errors.WithStack(ErrNotReady)
+	}
+
 	query := sh.Query()
 
 	searchService, propertiesTotal := getSearchService()

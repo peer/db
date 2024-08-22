@@ -80,6 +80,9 @@ const {
     if (!searchState.value) {
       return ""
     }
+    if (searchState.value.s !== props.s) {
+      return ""
+    }
     if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {
       return ""
     }
@@ -102,6 +105,9 @@ const {
 } = useFilters(
   toRef(() => {
     if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.s !== props.s) {
       return ""
     }
     if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {

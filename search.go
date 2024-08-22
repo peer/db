@@ -94,6 +94,10 @@ func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, par
 	} else if errors.Is(errE, search.ErrInvalidArgument) {
 		s.BadRequestWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, search.ErrNotReady) {
+		s.WithError(req.Context(), errE)
+		waf.Error(w, req, http.StatusConflict)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -302,11 +306,18 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
+	// TODO: Move most of this logic to search package (similar to SearchFiltersGet).
+
 	m := metrics.Duration(internal.MetricSearchState).Start()
 	sh := search.GetState(params["s"])
 	m.Stop()
 	if sh == nil {
 		s.NotFound(w, req)
+		return
+	}
+
+	if !sh.Ready() {
+		waf.Error(w, req, http.StatusConflict)
 		return
 	}
 

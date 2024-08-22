@@ -47,9 +47,9 @@ function countFilters(): number {
     Interpreting your prompt...
   </div>
   <div v-else-if="countFilters() === 1">
-    Search query <i>{{ state.q }}</i> and 1 active filter.
+    Searching query <i>{{ state.q }}</i> and 1 active filter.
   </div>
   <div v-else>
-    Search query <i>{{ state.q }}</i> and {{ countFilters() }} active filters.
+    Searching query <i>{{ state.q }}</i> and {{ countFilters() }} active filters.
   </div>
 </template>
