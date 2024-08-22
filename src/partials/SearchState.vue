@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type {DeepReadonly} from "vue"
 import type { ClientSearchState } from "@/types"
 
 const props = defineProps<{
-  state: ClientSearchState
+  state: DeepReadonly<ClientSearchState>
 }>()
 
 function countFilters(): number {
@@ -11,15 +12,26 @@ function countFilters(): number {
   }
 
   let n = 0;
-  for (const t of ["rel", "amount", "time", "str"]) {
-    for (const values of Object.values(props.state.filters[t])) {
-      n += values.length
+  for (const values of Object.values(props.state.filters.rel)) {
+    n += values.length
+  }
+  for (const value of Object.values(props.state.filters.amount)) {
+    if (value) {
+      n++
     }
   }
-  if (props.state.index) {
-    n += Object.values(props.state.index).length
+  for (const value of Object.values(props.state.filters.time)) {
+    if (value) {
+      n++
+    }
   }
-  if (props.state.size) {
+  for (const values of Object.values(props.state.filters.str)) {
+    n += values.length
+  }
+  if (props.state.filters.index) {
+    n += props.state.filters.index.length
+  }
+  if (props.state.filters.size) {
     n++
   }
   return n
@@ -35,9 +47,9 @@ function countFilters(): number {
     Interpreting your prompt...
   </div>
   <div v-else-if="countFilters() === 1">
-    Search query <i>{{ state.q }}</i> and 1 filter.
+    Search query <i>{{ state.q }}</i> and 1 active filter.
   </div>
   <div v-else>
-    Search query <i>{{ state.q }}</i> and {{ countFilters() }} filters.
+    Search query <i>{{ state.q }}</i> and {{ countFilters() }} active filters.
   </div>
 </template>

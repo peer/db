@@ -206,6 +206,9 @@ export function useSearch(
     el,
     progress,
     () => {
+      if (!s.value) {
+        return null
+      }
       return router.apiResolve({
         name: "SearchResults",
         params: {
@@ -232,6 +235,9 @@ export function useFilters(
     el,
     progress,
     () => {
+      if (!s.value) {
+        return null
+      }
       return router.apiResolve({
         name: "SearchFilters",
         params: {

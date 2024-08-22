@@ -76,7 +76,15 @@ const {
   moreThanTotal: searchMoreThanTotal,
   error: searchResultsError,
 } = useSearch(
-  toRef(() => props.s),
+  toRef(() => {
+    if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {
+      return ""
+    }
+    return props.s
+  }),
   searchEl,
   searchProgress,
 )
@@ -92,7 +100,15 @@ const {
   error: filtersError,
   url: filtersURL,
 } = useFilters(
-  toRef(() => props.s),
+  toRef(() => {
+    if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {
+      return ""
+    }
+    return props.s
+  }),
   filtersEl,
   filtersProgress,
 )
@@ -579,6 +595,12 @@ async function onChange() {
     <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchURL">
       <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
         <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
+      </div>
+      <div v-else-if="searchState === null" class="my-1 sm:my-4">
+        <div class="text-center text-sm">Searching...</div>
+      </div>
+      <div v-else-if="searchState.p && !(searchState.promptCall || searchState.promptError)" class="my-1 sm:my-4">
+        <div class="text-center text-sm"><SearchState :state="searchState" /></div>
       </div>
       <div v-else-if="searchTotal === null" class="my-1 sm:my-4">
         <div class="text-center text-sm">Searching...</div>
