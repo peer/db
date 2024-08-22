@@ -189,13 +189,6 @@ export async function postFilters(
   }
 }
 
-function getSearchURL(router: Router, params: RouteParams): string {
-  return router.apiResolve({
-    name: "SearchResults",
-    params,
-  }).href
-}
-
 export function useSearch(
   s: Ref<string>,
   el: Ref<Element | null>,
@@ -213,12 +206,12 @@ export function useSearch(
     el,
     progress,
     () => {
-      return getSearchURL(
-        router,
-        {
+      return router.apiResolve({
+        name: "SearchResults",
+        params: {
           s: s.value,
         },
-      )
+      }).href
     },
   )
 }
@@ -1227,7 +1220,12 @@ export function useSearchState(
         _url.value = null
         return
       }
-      const newURL = getSearchURL(router, { s })
+      const newURL = router.apiResolve({
+        name: "SearchGet",
+        params: {
+          s,
+        },
+      }).href
       _url.value = newURL
       const controller = new AbortController()
       onCleanup(() => controller.abort())

@@ -28,6 +28,7 @@ import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import IndexFiltersResult from "@/partials/IndexFiltersResult.vue"
 import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
+import SearchState from "@/partials/SearchState.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
@@ -589,15 +590,15 @@ async function onChange() {
       <template v-else-if="searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i === 0 && searchMoreThanTotal" class="my-1 sm:my-4">
-            <div class="text-center text-sm">Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div>
+            <div class="text-sm flex flex-row gap-x-4 justify-between"><SearchState :state="searchState" /><div>Showing first {{ searchResults.length }} of more than {{ searchTotal }} results found.</div></div>
             <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-if="i === 0 && searchResults.length < searchTotal && !searchMoreThanTotal" class="my-1 sm:my-4">
-            <div class="text-center text-sm">Showing first {{ searchResults.length }} of {{ searchTotal }} results found.</div>
+            <div class="text-sm flex flex-row gap-x-4 justify-between"><SearchState :state="searchState" /><div>Showing first {{ searchResults.length }} of {{ searchTotal }} results found.</div></div>
             <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-if="i === 0 && searchResults.length == searchTotal && !searchMoreThanTotal" class="my-1 sm:my-4">
-            <div class="text-center text-sm">Found {{ searchTotal }} results.</div>
+            <div class="text-sm flex flex-row gap-x-4 justify-between"><SearchState :state="searchState" /><div>Found {{ searchTotal }} results.</div></div>
             <div class="h-2 w-full bg-slate-200"></div>
           </div>
           <div v-else-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
