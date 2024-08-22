@@ -2,14 +2,19 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"slices"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/fun"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 //nolint:tagliatelle
@@ -271,7 +276,7 @@ var outputStructSchema = []byte(`
 }
 `)
 
-const prompt = `You are a parser of user queries for a search engine for documents described with property-value pairs.
+const systemPrompt = `You are a parser of user queries for a search engine for documents described with property-value pairs.
 
 Properties can be of five types:
 
@@ -371,11 +376,116 @@ type stringPropertyValue struct {
 	Score float64 `json:"relevance_score"`
 }
 
-func findProperties(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query string) (findPropertiesOutput, errors.E) {
-	return findPropertiesOutput{}, nil
+func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), query string) (findPropertiesOutput, errors.E) {
+	output := findPropertiesOutput{
+		Properties: []property{},
+		Total:      0,
+	}
+
+	bq := elastic.NewBoolQuery()
+	bq.Must(documentTextSearchQuery(query))
+	bq.Must(elastic.NewNestedQuery("claims.rel",
+		elastic.NewBoolQuery().Must(
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
+			elastic.NewTermQuery("claims.rel.to.id", "E3Ua37EpwVrfxddyb9Uw64"),   // TIME_CLAIM_TYPE
+		),
+	))
+	timePropertiesSearchSevice, _ := getSearchService()
+	timePropertiesSearchSevice = timePropertiesSearchSevice.From(0).Size(MaxResultsCount).Query(bq)
+	res, err := timePropertiesSearchSevice.Do(ctx)
+	if err != nil {
+		return output, errors.WithStack(err)
+	}
+	for _, hit := range res.Hits.Hits {
+		data, _, _, errE := store.GetLatest(ctx, identifier.MustFromString(hit.Id))
+		if errE != nil {
+			return output, errE
+		}
+
+		var doc document.D
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return output, errE
+		}
+
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		slices.SortFunc(names, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		slices.SortFunc(descriptions, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		output.Properties = append(output.Properties, property{
+			ID:               doc.ID.String(),
+			Name:             names[0].(*document.TextClaim).HTML["en"],
+			ExtraNames:       nil,
+			Description:      descriptions[0].(*document.TextClaim).HTML["en"],
+			Type:             "time",
+			Unit:             0,
+			RelatedDocuments: nil,
+			StringValues:     nil,
+			Score:            0, // TODO: Set hit.Score.
+		})
+	}
+
+	bq = elastic.NewBoolQuery()
+	bq.Must(documentTextSearchQuery(query))
+	bq.Must(elastic.NewNestedQuery("claims.rel",
+		elastic.NewBoolQuery().Must(
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
+			elastic.NewTermQuery("claims.rel.to.id", "55JE1vpFpUvki8g2LHpN1M"),   // AMOUNT_CLAIM_TYPE
+		),
+	))
+	amountPropertiesSearchSevice, _ := getSearchService()
+	amountPropertiesSearchSevice = amountPropertiesSearchSevice.From(0).Size(MaxResultsCount).Query(bq)
+	res, err = amountPropertiesSearchSevice.Do(ctx)
+	if err != nil {
+		return output, errors.WithStack(err)
+	}
+	for _, hit := range res.Hits.Hits {
+		data, _, _, errE := store.GetLatest(ctx, identifier.MustFromString(hit.Id))
+		if errE != nil {
+			return output, errE
+		}
+
+		var doc document.D
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return output, errE
+		}
+
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		slices.SortFunc(names, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		slices.SortFunc(descriptions, func(a, b document.Claim) int {
+			return int(b.GetConfidence() - a.GetConfidence())
+		})
+
+		output.Properties = append(output.Properties, property{
+			ID:               doc.ID.String(),
+			Name:             names[0].(*document.TextClaim).HTML["en"],
+			ExtraNames:       nil,
+			Description:      descriptions[0].(*document.TextClaim).HTML["en"],
+			Type:             "amount",
+			Unit:             document.AmountUnitMetre, // TODO: Obtain from the document.
+			RelatedDocuments: nil,
+			StringValues:     nil,
+			Score:            0, // TODO: Set hit.Score.
+		})
+	}
+
+	// TODO: Sort by score.
+	output.Total = len(output.Properties)
+	return output, nil
 }
 
-func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), prompt string) (outputStruct, errors.E) {
+func parsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), prompt string) (outputStruct, errors.E) {
 	// TODO: Move out into config.
 	if os.Getenv("ANTHROPIC_API_KEY") == "" {
 		return outputStruct{}, errors.New("ANTHROPIC_API_KEY is not available")
@@ -383,7 +493,6 @@ func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchSe
 
 	var result *outputStruct
 
-	// TODO: Do not create f every time.
 	f := fun.Text[string, string]{
 		Provider: &fun.AnthropicTextProvider{
 			Client:      nil,
@@ -393,7 +502,7 @@ func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchSe
 		},
 		InputJSONSchema:  nil,
 		OutputJSONSchema: nil,
-		Prompt:           prompt,
+		Prompt:           systemPrompt,
 		Data:             nil,
 		Tools: map[string]fun.TextTooler{
 			"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{
@@ -401,14 +510,14 @@ func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchSe
 				InputJSONSchema:  findPropertiesInputSchema,
 				OutputJSONSchema: nil,
 				Fun: func(ctx context.Context, input findPropertiesInput) (findPropertiesOutput, errors.E) {
-					return findProperties(ctx, getSearchService, input.Query)
+					return findProperties(ctx, store, getSearchService, input.Query)
 				},
 			},
 			"show_results": &fun.TextTool[outputStruct, string]{
 				Description:      showResultsDescription,
 				InputJSONSchema:  outputStructSchema,
 				OutputJSONSchema: nil,
-				Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
+				Fun: func(_ context.Context, input outputStruct) (string, errors.E) {
 					result = &input
 					return "", nil
 				},
@@ -416,7 +525,13 @@ func parsePrompt(ctx context.Context, getSearchService func() (*elastic.SearchSe
 		},
 	}
 
-	_, errE := f.Call(ctx, prompt)
+	// TODO: Do not init f every time.
+	errE := f.Init(ctx)
+	if errE != nil {
+		return outputStruct{}, errE
+	}
+
+	_, errE = f.Call(ctx, prompt)
 	if errE != nil {
 		return outputStruct{}, errE
 	}

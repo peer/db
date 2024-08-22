@@ -77,7 +77,13 @@ func FiltersGet( //nolint:maintidx
 		return nil, nil, errors.WithStack(ErrNotReady)
 	}
 
-	query := sh.Query()
+	return filtersGet(ctx, getSearchService, sh.Query())
+}
+
+func filtersGet( //nolint:maintidx
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query elastic.Query,
+) (interface{}, map[string]interface{}, errors.E) {
+	metrics := waf.MustGetMetrics(ctx)
 
 	searchService, propertiesTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
@@ -150,7 +156,7 @@ func FiltersGet( //nolint:maintidx
 		Aggregation("index", indexAggregation).
 		Aggregation("size", sizeAggregation)
 
-	m = metrics.Duration(internal.MetricElasticSearch).Start()
+	m := metrics.Duration(internal.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {

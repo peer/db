@@ -15,10 +15,11 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/fun"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 var properties = []property{
@@ -2088,7 +2089,7 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 				Provider:         provider.Provider(t),
 				InputJSONSchema:  nil,
 				OutputJSONSchema: nil,
-				Prompt:           prompt,
+				Prompt:           systemPrompt,
 				Data:             nil,
 				Tools: map[string]fun.TextTooler{
 					"find_properties": &fun.TextTool[findPropertiesInput, findPropertiesOutput]{

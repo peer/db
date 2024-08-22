@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"reflect"
 	"sync"
@@ -14,6 +15,8 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -369,15 +372,11 @@ func (s *State) ValuesWithAt(at string) url.Values {
 	return values
 }
 
-// TODO: Determine which operator should be the default?
-// TODO: Make sure right analyzers are used for all fields.
-// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *State) Query() elastic.Query { //nolint:ireturn
-	boolQuery := elastic.NewBoolQuery()
+func documentTextSearchQuery(searchQuery string) elastic.Query {
+	bq := elastic.NewBoolQuery()
 
-	if s.SearchQuery != "" {
-		bq := elastic.NewBoolQuery()
-		bq.Should(elastic.NewTermQuery("id", s.SearchQuery))
+	if searchQuery != "" {
+		bq.Should(elastic.NewTermQuery("id", searchQuery))
 		for _, field := range []field{
 			{"claims.id", "id"},
 			{"claims.ref", "iri"},
@@ -385,10 +384,22 @@ func (s *State) Query() elastic.Query { //nolint:ireturn
 			{"claims.string", "string"},
 		} {
 			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(s.SearchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
+			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator("AND")
 			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
 		}
-		boolQuery.Must(bq)
+	}
+
+	return bq
+}
+
+// TODO: Determine which operator should be the default?
+// TODO: Make sure right analyzers are used for all fields.
+// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
+func (s *State) Query() elastic.Query { //nolint:ireturn
+	boolQuery := elastic.NewBoolQuery()
+
+	if s.SearchQuery != "" {
+		boolQuery.Must(documentTextSearchQuery(s.SearchQuery))
 	}
 
 	if s.Filters != nil {
@@ -402,11 +413,10 @@ func (s *State) Ready() bool {
 	return s.Prompt == "" || s.PromptCall != nil || s.PromptError
 }
 
-func (s *State) ParsePrompt(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64)) {
-	ctx := logger.WithContext(context.Background())
+func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64)) {
 	ctx = fun.WithTextRecorder(ctx)
 
-	output, errE := parsePrompt(ctx, getSearchService, s.Prompt)
+	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
 
 	calls := fun.GetTextRecorder(ctx).Calls()
 	if len(calls) > 0 {
@@ -414,7 +424,7 @@ func (s *State) ParsePrompt(logger zerolog.Logger, getSearchService func() (*ela
 	}
 
 	if errE != nil {
-		logger.Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", calls).Msg("prompt parsing failed")
+		zerolog.Ctx(ctx).Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", calls).Msg("prompt parsing failed")
 		s.PromptError = true
 		searches.Store(s.ID, s)
 		return
@@ -423,7 +433,7 @@ func (s *State) ParsePrompt(logger zerolog.Logger, getSearchService func() (*ela
 	s.SearchQuery = output.Query
 	s.Filters, errE = output.Filters()
 	if errE != nil {
-		logger.Error().Err(errE).Interface("output", output).Interface("calls", calls).Msg("prompt filters conversion failed")
+		zerolog.Ctx(ctx).Error().Err(errE).Interface("output", output).Interface("calls", calls).Msg("prompt filters conversion failed")
 		s.PromptError = true
 		searches.Store(s.ID, s)
 		return
@@ -445,7 +455,7 @@ type field struct {
 
 // CreateState creates a new search state given optional existing state
 // (can be an empty string) and new query/filters.
-func CreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool) *State {
+func CreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
@@ -498,9 +508,7 @@ func CreateState(logger zerolog.Logger, getSearchService func() (*elastic.Search
 	if isPrompt {
 		// We start parsing the prompt.
 		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
-		// TODO: Should we log the original HTTP request ID?
-		//       Should we just pass context logger to this method from the request handler?
-		go sh.ParsePrompt(logger, getSearchService)
+		go sh.ParsePrompt(context.WithoutCancel(ctx), store, getSearchService)
 	} else { //nolint:revive,staticcheck
 		// TODO: Should we already do the query, to warm up ES cache?
 		//       Maybe we should cache response ourselves so that we do not hit store twice?
@@ -509,7 +517,7 @@ func CreateState(logger zerolog.Logger, getSearchService func() (*elastic.Search
 	return sh
 }
 
-func createStateFromGetOrCreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func createStateFromGetOrCreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
 	if searchQuery == nil {
 		q := ""
 		searchQuery = &q
@@ -520,20 +528,20 @@ func createStateFromGetOrCreateState(logger zerolog.Logger, getSearchService fun
 	}
 	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
 	// TODO: How to prevent that CreateState calls searches.Load again?
-	return CreateState(logger, getSearchService, s, *searchQuery, *filtersJSON, isPrompt), false
+	return CreateState(ctx, store, getSearchService, s, *searchQuery, *filtersJSON, isPrompt), false
 }
 
 // GetOrCreateState resolves an existing search state if possible and validates that
 // optional query/filters match those in the search state. If not, it creates a new search state.
-func GetOrCreateState(logger zerolog.Logger, getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func GetOrCreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	var fs *filters
@@ -543,20 +551,20 @@ func GetOrCreateState(logger zerolog.Logger, getSearchService func() (*elastic.S
 			fs = &f
 		} else {
 			// filtersJSON was invalid, so we pass nil instead.
-			return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, nil, isPrompt)
+			return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, nil, isPrompt)
 		}
 	}
 
 	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 
 	if !isPrompt && searchQuery != nil && ss.SearchQuery != *searchQuery {
-		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 	if isPrompt && searchQuery != nil && ss.Prompt != *searchQuery {
-		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
-		return createStateFromGetOrCreateState(logger, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
 	}
 
 	return ss, true
