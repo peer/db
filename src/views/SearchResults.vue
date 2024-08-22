@@ -68,7 +68,6 @@ const {
   url: searchURL,
 } = useSearchState(
   toRef(() => props.s),
-  searchEl,
   searchProgress,
 )
 const {

@@ -28,7 +28,7 @@ import type {
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { getURL, postURL } from "@/api"
+import { getURL, postURL, getURLDirect } from "@/api"
 import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
 import { NONE } from "@/symbols"
 
@@ -1183,7 +1183,6 @@ async function getStringValues<Type extends StringValuesResult | IndexValuesResu
 
 export function useSearchState(
   s: Ref<string | null | undefined>,
-  el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
   searchState: DeepReadonly<Ref<ClientSearchState | null>>
@@ -1203,10 +1202,12 @@ export function useSearchState(
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
 
+  const forceSearchStateRerun = ref(0)
+
   const initialRouteName = route.name
   watch(
-    s,
-    async (s, oldS, onCleanup) => {
+    [s, forceSearchStateRerun],
+    async ([s], old, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
@@ -1232,7 +1233,7 @@ export function useSearchState(
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getURL<ServerSearchState>(newURL, el, signal, progress)
+        data = await getURLDirect<ServerSearchState>(newURL, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
@@ -1257,6 +1258,18 @@ export function useSearchState(
       }
       if ("promptError" in data.doc) {
         _searchState.value.promptError = data.doc.promptError
+      }
+
+      // If prompt is provided but there are no results, we retry shortly.
+      // TODO: Subscribe to changes to search state document instead.
+      if (data.doc.p && !(data.doc.promptCall || data.doc.promptError)) {
+        const t = setTimeout(() => {
+          forceSearchStateRerun.value++
+        }, 100) // ms
+        onCleanup(() => clearTimeout(t))
+      } else if (data.doc.p) {
+        // TODO: Remove.
+        console.log(data.doc.promptCall)
       }
     },
     {
