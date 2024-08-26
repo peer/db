@@ -5,7 +5,7 @@
 [![coverage report](https://gitlab.com/peerdb/peerdb/badges/main/coverage.svg)](https://gitlab.com/peerdb/peerdb/-/graphs/main/charts)
 
 PeerDB a database software layer which supports different types of collaboration out of the box.
-Built collaborative applications like you would built traditional applications and leave to
+Build collaborative applications like you would build traditional applications and leave it to
 PeerDB to take care of collaboration.
 Common user interface components are included.
 
