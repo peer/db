@@ -557,10 +557,11 @@ func parsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types
 
 	f := fun.Text[string, string]{
 		Provider: &fun.AnthropicTextProvider{
-			Client:      nil,
-			APIKey:      os.Getenv("ANTHROPIC_API_KEY"),
-			Model:       "claude-3-5-sonnet-20240620",
-			Temperature: 0,
+			Client:        nil,
+			APIKey:        os.Getenv("ANTHROPIC_API_KEY"),
+			Model:         "claude-3-5-sonnet-20240620",
+			PromptCaching: true,
+			Temperature:   0,
 		},
 		InputJSONSchema:  nil,
 		OutputJSONSchema: nil,
