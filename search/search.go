@@ -347,7 +347,7 @@ type State struct {
 	Filters     *filters               `json:"filters,omitempty"`
 	ParentID    *identifier.Identifier `json:"-"`
 	RootID      identifier.Identifier  `json:"-"`
-	PromptCall  *fun.TextRecorderCall  `json:"promptCall,omitempty"`
+	PromptCalls []fun.TextRecorderCall `json:"promptCalls,omitempty"`
 	PromptError bool                   `json:"promptError,omitempty"`
 }
 
@@ -410,7 +410,7 @@ func (s *State) Query() elastic.Query { //nolint:ireturn
 }
 
 func (s *State) Ready() bool {
-	return s.Prompt == "" || s.PromptCall != nil || s.PromptError
+	return s.Prompt == "" || s.PromptCalls != nil || s.PromptError
 }
 
 func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64)) {
@@ -418,13 +418,10 @@ func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMess
 
 	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
 
-	calls := fun.GetTextRecorder(ctx).Calls()
-	if len(calls) > 0 {
-		s.PromptCall = &calls[0]
-	}
+	s.PromptCalls = fun.GetTextRecorder(ctx).Calls()
 
 	if errE != nil {
-		zerolog.Ctx(ctx).Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", calls).Msg("prompt parsing failed")
+		zerolog.Ctx(ctx).Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", s.PromptCalls).Msg("prompt parsing failed")
 		s.PromptError = true
 		searches.Store(s.ID, s)
 		return
@@ -433,7 +430,7 @@ func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMess
 	s.SearchQuery = output.Query
 	s.Filters, errE = output.Filters()
 	if errE != nil {
-		zerolog.Ctx(ctx).Error().Err(errE).Interface("output", output).Interface("calls", calls).Msg("prompt filters conversion failed")
+		zerolog.Ctx(ctx).Error().Err(errE).Interface("output", output).Interface("calls", s.PromptCalls).Msg("prompt filters conversion failed")
 		s.PromptError = true
 		searches.Store(s.ID, s)
 		return
@@ -500,7 +497,7 @@ func CreateState(ctx context.Context, store *store.Store[json.RawMessage, *types
 		Filters:     fs,
 		ParentID:    parentSearchID,
 		RootID:      rootID,
-		PromptCall:  nil,
+		PromptCalls: nil,
 		PromptError: false,
 	}
 	searches.Store(sh.ID, sh)

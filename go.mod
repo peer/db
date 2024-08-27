@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
 	gitlab.com/tozd/go/cli v0.3.0
-	gitlab.com/tozd/go/fun v0.5.1
+	gitlab.com/tozd/go/fun v0.5.2-0.20240827221451-a2a5f2f5e305
 	gitlab.com/tozd/go/mediawiki v0.14.1
 	gitlab.com/tozd/go/x v0.0.0-20240414153458-c60a59ee413b
 	gitlab.com/tozd/go/zerolog v0.7.0
