@@ -61,22 +61,19 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 		if errE != nil {
 			return nil, errE
 		}
-		ids := filters{}
+		// TODO: Support OR between options.
 		for _, doc := range rel.DocumentIDs {
 			d, errE := identifier.FromString(doc)
 			if errE != nil {
 				return nil, errE
 			}
-			ids.Or = append(f.Or, filters{
+			f.And = append(f.And, filters{
 				Rel: &relFilter{
 					Prop:  prop,
 					Value: &d,
 					None:  false,
 				},
 			})
-		}
-		if len(ids.Or) > 0 {
-			f.And = append(f.And, ids)
 		}
 	}
 
@@ -85,10 +82,10 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 		if errE != nil {
 			return nil, errE
 		}
-		values := filters{}
+		// TODO: Support OR between options.
 		for _, value := range str.Values {
 			if value != "" {
-				values.Or = append(values.Or, filters{
+				f.And = append(f.And, filters{
 					Str: &stringFilter{
 						Prop: prop,
 						Str:  value,
@@ -96,9 +93,6 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 					},
 				})
 			}
-		}
-		if len(values.Or) > 0 {
-			f.And = append(f.And, values)
 		}
 	}
 
