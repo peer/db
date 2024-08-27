@@ -347,6 +347,7 @@ type State struct {
 	Filters     *filters               `json:"filters,omitempty"`
 	ParentID    *identifier.Identifier `json:"-"`
 	RootID      identifier.Identifier  `json:"-"`
+	PromptDone  bool                   `json:"promptDone,omitempty"`
 	PromptCalls []fun.TextRecorderCall `json:"promptCalls,omitempty"`
 	PromptError bool                   `json:"promptError,omitempty"`
 }
@@ -418,10 +419,13 @@ func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMess
 
 	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
 
+	s.PromptDone = true
 	s.PromptCalls = fun.GetTextRecorder(ctx).Calls()
 
 	if errE != nil {
 		zerolog.Ctx(ctx).Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", s.PromptCalls).Msg("prompt parsing failed")
+		// We reuse the prompt as the search query in this case.
+		s.SearchQuery = s.Prompt
 		s.PromptError = true
 		searches.Store(s.ID, s)
 		return
@@ -497,6 +501,7 @@ func CreateState(ctx context.Context, store *store.Store[json.RawMessage, *types
 		Filters:     fs,
 		ParentID:    parentSearchID,
 		RootID:      rootID,
+		PromptDone:  false,
 		PromptCalls: nil,
 		PromptError: false,
 	}

@@ -83,7 +83,7 @@ const {
     if (searchState.value.s !== props.s) {
       return ""
     }
-    if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {
+    if (searchState.value.p && !searchState.value.promptDone) {
       return ""
     }
     return props.s
@@ -110,7 +110,7 @@ const {
     if (searchState.value.s !== props.s) {
       return ""
     }
-    if (searchState.value.p && !(searchState.value.promptCall || searchState.value.promptError)) {
+    if (searchState.value.p && !searchState.value.promptDone) {
       return ""
     }
     return props.s

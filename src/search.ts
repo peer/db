@@ -1259,23 +1259,26 @@ export function useSearchState(
       if ("filters" in data.doc && data.doc.filters) {
         _searchState.value.filters = filtersToFiltersState(data.doc.filters)
       }
-      if ("promptCall" in data.doc) {
-        _searchState.value.promptCall = data.doc.promptCall
+      if ("promptDone" in data.doc) {
+        _searchState.value.promptDone = data.doc.promptDone
+      }
+      if ("promptCalls" in data.doc) {
+        _searchState.value.promptCalls = data.doc.promptCalls
       }
       if ("promptError" in data.doc) {
         _searchState.value.promptError = data.doc.promptError
       }
 
-      // If prompt is provided but there are no results, we retry shortly.
+      // If prompt is provided but parsing is not yet done, we retry shortly.
       // TODO: Subscribe to changes to search state document instead.
-      if (data.doc.p && !(data.doc.promptCall || data.doc.promptError)) {
+      if (data.doc.p && !data.doc.promptDone) {
         const t = setTimeout(() => {
           forceSearchStateRerun.value++
         }, 100) // ms
         onCleanup(() => clearTimeout(t))
       } else if (data.doc.p) {
         // TODO: Remove.
-        console.log(data.doc.promptCall)
+        console.log(data.doc.promptCalls)
       }
     },
     {

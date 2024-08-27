@@ -178,7 +178,8 @@ export type ServerSearchState = {
   q: string
   p?: string
   filters?: Filters
-  promptCall?: object
+  promptDone?: boolean
+  promptCalls?: object[]
   promptError?: boolean
 }
 
@@ -187,7 +188,8 @@ export type ClientSearchState = {
   q: string
   p?: string
   filters?: FiltersState
-  promptCall?: object
+  promptDone?: boolean
+  promptCalls?: object[]
   promptError?: boolean
 }
 
