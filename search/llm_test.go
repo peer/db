@@ -2080,8 +2080,6 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 	}
 
 	for _, provider := range providers {
-		provider := provider
-
 		t.Run(provider.Name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2186,8 +2184,6 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 			require.NoError(t, errE, "% -+#.1v", errE)
 
 			for _, tt := range tests {
-				tt := tt
-
 				t.Run(tt.Input, func(t *testing.T) {
 					t.Parallel()
 
@@ -2196,7 +2192,7 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 					ct := fun.WithTextRecorder(ctx)
 					ct = context.WithValue(ct, "result", &result) //nolint:revive,staticcheck
 					_, errE := f.Call(ct, tt.Input)
-					assert.NoError(t, errE, "% -+#.1v", errE)
+					require.NoError(t, errE, "% -+#.1v", errE)
 
 					calls, errE := x.MarshalWithoutEscapeHTML(fun.GetTextRecorder(ct).Calls())
 					require.NoError(t, errE, "% -+#.1v", errE)

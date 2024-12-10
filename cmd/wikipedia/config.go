@@ -71,7 +71,7 @@ type Config struct {
 }
 
 type runner interface {
-	Run(*Globals) errors.E
+	Run(globals *Globals) errors.E
 }
 
 //nolint:lll

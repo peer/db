@@ -114,7 +114,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(encodedData)))
 	if token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header.Add("Authorization", "Bearer "+token)
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {

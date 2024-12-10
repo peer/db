@@ -185,7 +185,7 @@ func endDocumentSession(
 	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
 ) (*types.DocumentEndMetadata, errors.E) {
 	if endMetadata.Discarded {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	beginMetadata, _, errE := c.Get(ctx, session)

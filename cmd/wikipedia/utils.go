@@ -201,7 +201,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 		}
 	}()
 
-	for i := 0; i < int(rateLimit); i++ {
+	for range int(rateLimit) {
 		g.Go(func() error {
 			// Loop ends when pages is closed, which happens when context is cancelled, too.
 			for page := range pages {

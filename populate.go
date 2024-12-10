@@ -31,7 +31,6 @@ func SaveCoreProperties(
 			break
 		}
 
-		property := property
 		logger.Debug().Str("doc", property.ID.String()).Str("mnemonic", string(property.Mnemonic)).Msg("saving document")
 		errE := InsertOrReplaceDocument(ctx, store, &property)
 		if errE != nil {

@@ -92,26 +92,26 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	chunks, errE := s.ListChunks(ctx, session)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []int64{4, 3, 2, 1}, chunks)
 
 	start, length, errE := s.GetChunk(ctx, session, 1)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), start)
 	assert.Equal(t, int64(3), length)
 
 	start, length, errE = s.GetChunk(ctx, session, 2)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), start)
 	assert.Equal(t, int64(3), length)
 
 	start, length, errE = s.GetChunk(ctx, session, 3)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(5), start)
 	assert.Equal(t, int64(5), length)
 
 	start, length, errE = s.GetChunk(ctx, session, 4)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), start)
 	assert.Equal(t, int64(3), length)
 

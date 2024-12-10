@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
@@ -44,12 +45,12 @@ func TestPatchJSON(t *testing.T) {
 		},
 	}
 	out, errE := x.MarshalWithoutEscapeHTML(changes)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, `[{"type":"add","id":"LpcGdCUThc22mhuBwQJQ5Z","patch":{"type":"amount","confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"unit":"°C"}},{"type":"add","under":"LpcGdCUThc22mhuBwQJQ5Z","id":"AyNNP5CVsSx3w9b75erF1m","patch":{"type":"id","confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar"}}]`, string(out)) //nolint:lll
 
 	var changes2 document.Changes
 	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, changes, changes2)
 
 	id := identifier.New()
@@ -61,9 +62,9 @@ func TestPatchJSON(t *testing.T) {
 	}
 	base := identifier.MustFromString("TqtRsbk7rTKviW3TJapTim")
 	errE = changes.Validate(context.Background(), base)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, &document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    id,

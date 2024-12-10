@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
@@ -30,17 +31,16 @@ func TestTimestampMarshal(t *testing.T) {
 		{`"-239999999-01-01T00:00:00Z"`, -7573730615596800},
 	}
 	for _, test := range tests {
-		test := test
 		t.Run(test.timestamp, func(t *testing.T) {
 			t.Parallel()
 
 			var timestamp document.Timestamp
 			in := []byte(test.timestamp)
 			errE := x.UnmarshalWithoutUnknownFields(in, &timestamp)
-			assert.NoError(t, errE, "% -+#.1v", errE)
+			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, test.unix, time.Time(timestamp).Unix())
 			out, errE := x.MarshalWithoutEscapeHTML(timestamp)
-			assert.NoError(t, errE, "% -+#.1v", errE)
+			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, in, out)
 		})
 	}
@@ -61,7 +61,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetCorePropertyReference("ARTICLE"),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, document.D{ //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			NoValue: document.NoValueClaims{
@@ -112,7 +112,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetCorePropertyReference("ARTICLE"),
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, &document.NoValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,

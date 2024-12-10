@@ -249,7 +249,7 @@ func GetWikipediaFile(
 	// We found a Wikimedia Commons file.
 	errE = errors.WithStack(ErrWikimediaCommonsFile)
 	errors.Details(errE)["file"] = name
-	errors.Details(errE)["url"] = fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", name)
+	errors.Details(errE)["url"] = "https://commons.wikimedia.org/wiki/File:" + name
 	return nil, store.Version{}, errE
 }
 

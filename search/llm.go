@@ -54,7 +54,7 @@ type outputStruct struct {
 }
 
 func (s outputStruct) Filters() (*filters, errors.E) {
-	f := filters{}
+	f := filters{} //nolint:exhaustruct
 
 	for _, rel := range s.RelFilters {
 		prop, errE := identifier.FromString(rel.ID)
@@ -67,7 +67,7 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 			if errE != nil {
 				return nil, errE
 			}
-			f.And = append(f.And, filters{
+			f.And = append(f.And, filters{ //nolint:exhaustruct
 				Rel: &relFilter{
 					Prop:  prop,
 					Value: &d,
@@ -85,7 +85,7 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 		// TODO: Support OR between options.
 		for _, value := range str.Values {
 			if value != "" {
-				f.And = append(f.And, filters{
+				f.And = append(f.And, filters{ //nolint:exhaustruct
 					Str: &stringFilter{
 						Prop: prop,
 						Str:  value,
@@ -102,7 +102,7 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 			return nil, errE
 		}
 		if t.Min != nil || t.Max != nil {
-			f.And = append(f.And, filters{
+			f.And = append(f.And, filters{ //nolint:exhaustruct
 				Time: &timeFilter{
 					Prop: prop,
 					Gte:  t.Min,
@@ -119,7 +119,7 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 			return nil, errE
 		}
 		if a.Min != nil || a.Max != nil {
-			f.And = append(f.And, filters{
+			f.And = append(f.And, filters{ //nolint:exhaustruct
 				Amount: &amountFilter{
 					Prop: prop,
 					Unit: &a.Unit,
@@ -132,7 +132,7 @@ func (s outputStruct) Filters() (*filters, errors.E) {
 	}
 
 	if len(f.And) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	errE := f.Valid()
@@ -370,7 +370,10 @@ type stringPropertyValue struct {
 	Score float64 `json:"relevance_score"`
 }
 
-func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), query string) (findPropertiesOutput, errors.E) {
+func findProperties(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64), query string,
+) (findPropertiesOutput, errors.E) {
 	output := findPropertiesOutput{
 		Properties: []property{},
 		Total:      0,
@@ -412,7 +415,7 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		output.Properties = append(output.Properties, property{
+		output.Properties = append(output.Properties, property{ //nolint:forcetypeassert
 			ID:               doc.ID.String(),
 			Name:             names[0].(*document.TextClaim).HTML["en"],
 			ExtraNames:       nil,
@@ -461,7 +464,7 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		output.Properties = append(output.Properties, property{
+		output.Properties = append(output.Properties, property{ //nolint:forcetypeassert
 			ID:               doc.ID.String(),
 			Name:             names[0].(*document.TextClaim).HTML["en"],
 			ExtraNames:       nil,
@@ -513,7 +516,7 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		relatedDocuments = append(relatedDocuments, relPropertyValue{
+		relatedDocuments = append(relatedDocuments, relPropertyValue{ //nolint:forcetypeassert
 			ID:          doc.ID.String(),
 			Name:        names[0].(*document.TextClaim).HTML["en"],
 			ExtraNames:  nil,
@@ -541,7 +544,10 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	return output, nil
 }
 
-func parsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), prompt string) (outputStruct, errors.E) {
+func parsePrompt(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64), prompt string,
+) (outputStruct, errors.E) {
 	// TODO: Move out into config.
 	if os.Getenv("ANTHROPIC_API_KEY") == "" {
 		return outputStruct{}, errors.New("ANTHROPIC_API_KEY is not available")
@@ -551,11 +557,13 @@ func parsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types
 
 	f := fun.Text[string, string]{
 		Provider: &fun.AnthropicTextProvider{
-			Client:        nil,
-			APIKey:        os.Getenv("ANTHROPIC_API_KEY"),
-			Model:         "claude-3-5-sonnet-20240620",
-			PromptCaching: true,
-			Temperature:   0,
+			Client:            nil,
+			APIKey:            os.Getenv("ANTHROPIC_API_KEY"),
+			Model:             "claude-3-5-sonnet-20240620",
+			MaxContextLength:  0,
+			MaxResponseLength: 0,
+			PromptCaching:     true,
+			Temperature:       0,
 		},
 		InputJSONSchema:  nil,
 		OutputJSONSchema: nil,

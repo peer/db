@@ -71,23 +71,23 @@ func SizeFilterGet(
 	}
 	m.Stop()
 
-	var min, interval float64
+	var minValue, interval float64
 	if res.Hits.TotalHits.Value == 0 || minSize.Value == nil || maxSize.Value == nil {
 		return make([]histogramAmountResult, 0), map[string]interface{}{
 			"total": 0,
 		}, nil
 	} else if *minSize.Value == *maxSize.Value {
-		min = *minSize.Value
+		minValue = *minSize.Value
 		interval = math.Nextafter(*minSize.Value, *minSize.Value+1)
 	} else if *maxSize.Value-*minSize.Value < histogramBins {
 		// A special case when there is less than histogramBins of discrete values. In this case we do
 		// not want to sample empty bins between values (but prefer to draw wider lines in a histogram).
-		min = *minSize.Value
+		minValue = *minSize.Value
 		interval = 1
 	} else {
-		min = *minSize.Value
-		max := math.Nextafter(*maxSize.Value, *maxSize.Value+1)
-		interval = (max - min) / histogramBins
+		minValue = *minSize.Value
+		maxValue := math.Nextafter(*maxSize.Value, *maxSize.Value+1)
+		interval = (maxValue - minValue) / histogramBins
 		interval2 := (*maxSize.Value - *minSize.Value) / float64(histogramBins)
 		if interval == interval2 {
 			interval = math.Nextafter(interval2, interval2+1)
@@ -95,7 +95,7 @@ func SizeFilterGet(
 	}
 
 	histogramSearchService, _ := getSearchService()
-	histogramAggregation := elastic.NewHistogramAggregation().Field("_size").Offset(min).Interval(interval)
+	histogramAggregation := elastic.NewHistogramAggregation().Field("_size").Offset(minValue).Interval(interval)
 	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
 	m = metrics.Duration(internal.MetricElasticSearch2).Start()

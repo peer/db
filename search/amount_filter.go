@@ -121,23 +121,23 @@ func AmountFilterGet(
 		return nil, nil, errE
 	}
 
-	var min, interval float64
+	var minValue, interval float64
 	if minMax.Filter.Count == 0 {
 		return make([]histogramAmountResult, 0), map[string]interface{}{
 			"total": 0,
 		}, nil
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		min = minMax.Filter.Min.Value
+		minValue = minMax.Filter.Min.Value
 		interval = math.Nextafter(minMax.Filter.Min.Value, minMax.Filter.Min.Value+1)
 	} else if minMax.Filter.Discrete.Value == 0 && minMax.Filter.Max.Value-minMax.Filter.Min.Value < histogramBins {
 		// A special case when there is less than histogramBins of discrete values. In this case we do
 		// not want to sample empty bins between values (but prefer to draw wider lines in a histogram).
-		min = minMax.Filter.Min.Value
+		minValue = minMax.Filter.Min.Value
 		interval = 1
 	} else {
-		min = minMax.Filter.Min.Value
-		max := math.Nextafter(minMax.Filter.Max.Value, minMax.Filter.Max.Value+1)
-		interval = (max - min) / histogramBins
+		minValue = minMax.Filter.Min.Value
+		maxValue := math.Nextafter(minMax.Filter.Max.Value, minMax.Filter.Max.Value+1)
+		interval = (maxValue - minValue) / histogramBins
 		interval2 := (minMax.Filter.Max.Value - minMax.Filter.Min.Value) / float64(histogramBins)
 		if interval == interval2 {
 			interval = math.Nextafter(interval2, interval2+1)
@@ -155,7 +155,7 @@ func AmountFilterGet(
 			),
 		).SubAggregation(
 			"hist",
-			elastic.NewHistogramAggregation().Field("claims.amount.amount").Offset(min).Interval(interval).SubAggregation(
+			elastic.NewHistogramAggregation().Field("claims.amount.amount").Offset(minValue).Interval(interval).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),

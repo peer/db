@@ -128,7 +128,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		return nil, errors.WithStack(err)
 	}
 
-	dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections)
+	dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
 
 	logger.Info().
 		Str("serverVersion", conn.PgConn().ParameterStatus("server_version")).

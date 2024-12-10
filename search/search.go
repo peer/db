@@ -373,7 +373,7 @@ func (s *State) ValuesWithAt(at string) url.Values {
 	return values
 }
 
-func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query {
+func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query { //nolint:ireturn
 	bq := elastic.NewBoolQuery()
 
 	if searchQuery != "" {
@@ -414,7 +414,10 @@ func (s *State) Ready() bool {
 	return s.Prompt == "" || s.PromptCalls != nil || s.PromptError
 }
 
-func (s *State) ParsePrompt(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64)) {
+func (s *State) ParsePrompt(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64),
+) {
 	ctx = fun.WithTextRecorder(ctx)
 
 	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
@@ -456,7 +459,10 @@ type field struct {
 
 // CreateState creates a new search state given optional existing state
 // (can be an empty string) and new query/filters.
-func CreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool) *State {
+func CreateState(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool,
+) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
@@ -519,7 +525,10 @@ func CreateState(ctx context.Context, store *store.Store[json.RawMessage, *types
 	return sh
 }
 
-func createStateFromGetOrCreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func createStateFromGetOrCreateState(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool,
+) (*State, bool) {
 	if searchQuery == nil {
 		q := ""
 		searchQuery = &q
@@ -535,7 +544,10 @@ func createStateFromGetOrCreateState(ctx context.Context, store *store.Store[jso
 
 // GetOrCreateState resolves an existing search state if possible and validates that
 // optional query/filters match those in the search state. If not, it creates a new search state.
-func GetOrCreateState(ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool) (*State, bool) {
+func GetOrCreateState(
+	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool,
+) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
 		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)

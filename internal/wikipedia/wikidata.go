@@ -891,7 +891,7 @@ func ConvertEntity( //nolint:maintidx
 						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("WIKIDATA_PROPERTY_PAGE"),
-					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/Property:%s", entity.ID),
+					IRI:  "https://www.wikidata.org/wiki/Property:" + entity.ID,
 				},
 			},
 			Relation: document.RelationClaims{
@@ -924,7 +924,7 @@ func ConvertEntity( //nolint:maintidx
 						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
-					IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", entity.ID),
+					IRI:  "https://www.wikidata.org/wiki/" + entity.ID,
 				},
 			},
 			Relation: document.RelationClaims{

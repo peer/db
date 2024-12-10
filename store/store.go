@@ -107,7 +107,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 			patchesValue = ", _patches"
 		}
 
-		//nolint:lll,goconst
+		//nolint:lll
 		_, err := tx.Exec(ctx, `
 				CREATE FUNCTION "`+s.Prefix+`DoNotAllow"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$

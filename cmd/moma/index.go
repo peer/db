@@ -354,7 +354,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, fmt.Sprintf("%s download progress", structName(fmt.Sprintf("%T", *new(T)))))
+	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", *new(T)))+" download progress")
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -598,7 +598,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("WIKIDATA_ITEM_PAGE"),
-				IRI:  fmt.Sprintf("https://www.wikidata.org/wiki/%s", artist.WikiQID),
+				IRI:  "https://www.wikidata.org/wiki/" + artist.WikiQID,
 			})
 			if errE != nil {
 				return errE
@@ -622,7 +622,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 					Confidence: document.HighConfidence,
 				},
 				Prop: document.GetCorePropertyReference("ULAN_PAGE"),
-				IRI:  fmt.Sprintf("https://www.getty.edu/vow/ULANFullDisplay?find=&role=&nation=&subjectid=%s", artist.ULAN),
+				IRI:  "https://www.getty.edu/vow/ULANFullDisplay?find=&role=&nation=&subjectid=" + artist.ULAN,
 			})
 			if errE != nil {
 				return errE

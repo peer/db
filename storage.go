@@ -2,7 +2,6 @@ package peerdb
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -289,7 +288,7 @@ func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params wa
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Etag", metadata.Etag)
 	if metadata.Filename != "" {
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename*=UTF-8''%s`, url.PathEscape(metadata.Filename)))
+		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(metadata.Filename))
 	}
 
 	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))

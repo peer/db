@@ -36,8 +36,6 @@ func TestHappyPath(t *testing.T) {
 	t.Parallel()
 
 	for _, dataType := range []string{"jsonb", "bytea", "text"} {
-		dataType := dataType
-
 		t.Run(dataType, func(t *testing.T) {
 			t.Parallel()
 
@@ -180,7 +178,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	i, errE := c.Append(ctx, session, d.Append1Data, d.Append1Metadata, nil)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
 	time.Sleep(10 * time.Millisecond)
@@ -193,7 +191,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	}
 
 	i, errE = c.Append(ctx, session, d.Append2Data, d.Append2Metadata, nil)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), i)
 
 	time.Sleep(10 * time.Millisecond)
@@ -207,7 +205,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 
 	operation := int64(3)
 	i, errE = c.Append(ctx, session, d.Append3Data, d.Append3Metadata, &operation)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(3), i)
 
 	time.Sleep(10 * time.Millisecond)
@@ -221,7 +219,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 
 	operation = 4
 	i, errE = c.Append(ctx, session, d.Append4Data, d.Append4Metadata, &operation)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(4), i)
 
 	time.Sleep(10 * time.Millisecond)
@@ -234,60 +232,60 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	}
 
 	operations, errE := c.List(ctx, session, nil)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []int64{4, 3, 2, 1}, operations)
 
 	data, metadata, errE := c.GetData(ctx, session, 1)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append1Data, data)
 	assert.Equal(t, d.Append1Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 2)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, data)
 	assert.Equal(t, d.Append2Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 3)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append3Data, data)
 	assert.Equal(t, d.Append3Metadata, metadata)
 
 	data, metadata, errE = c.GetData(ctx, session, 4)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, data)
 	assert.Equal(t, d.Append4Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 1)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append1Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 2)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append2Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 3)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append3Metadata, metadata)
 
 	metadata, errE = c.GetMetadata(ctx, session, 4)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append4Metadata, metadata)
 
 	beginMetadata, endMetadata, errE := c.Get(ctx, session)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Nil(t, endMetadata)
 
-	assert.Len(t, endedSessions, 0)
+	assert.Empty(t, endedSessions)
 	_, errE = c.End(ctx, session, d.EndMetadata)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	if assert.Len(t, endedSessions, 1) {
 		assert.Equal(t, session, endedSessions[0])
 	}
 
 	beginMetadata, endMetadata, errE = c.Get(ctx, session)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Equal(t, d.EndMetadata, endMetadata)
 
@@ -330,7 +328,7 @@ func TestErrors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	i, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
 	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
@@ -375,7 +373,7 @@ func TestListPagination(t *testing.T) {
 	session, errE := c.Begin(ctx, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	for i := 0; i < 6000; i++ {
+	for range 6000 {
 		o, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, nil) //nolint:govet
 		require.NoError(t, errE, "%d % -+#.1v", errE)
 
@@ -408,8 +406,8 @@ func TestListPagination(t *testing.T) {
 
 	// Having no more values is not an error.
 	page3, errE := c.List(ctx, session, &page2[999])
-	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Len(t, page3, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, page3)
 
 	// Using unknown before operation is an error.
 	before := int64(10000)

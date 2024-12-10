@@ -108,7 +108,7 @@ func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata,
 
 func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadata *endMetadata) (*endMetadata, errors.E) {
 	if endMetadata.Discarded {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	beginMetadata, _, errE := s.coordinator.Get(ctx, session)

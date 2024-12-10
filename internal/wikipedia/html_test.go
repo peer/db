@@ -33,7 +33,6 @@ func TestExtractArticle(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
-		entry := entry
 		t.Run(base, func(t *testing.T) {
 			t.Parallel()
 
@@ -68,7 +67,6 @@ func TestExtractArticleSummary(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
-		entry := entry
 		t.Run(base, func(t *testing.T) {
 			t.Parallel()
 
@@ -109,7 +107,6 @@ func TestExtractFileDescriptions(t *testing.T) {
 			continue
 		}
 		base := strings.TrimSuffix(entry.Name(), "_in.html")
-		entry := entry
 		t.Run(base, func(t *testing.T) {
 			t.Parallel()
 			input, err := content.ReadFile(filepath.Join("testdata", "file", entry.Name()))
@@ -151,7 +148,6 @@ func TestExtractCategoryAndTemplateDescription(t *testing.T) {
 			wikipedia.ExtractTemplateDescription,
 		},
 	} {
-		conf := conf
 		t.Run(conf.Dir, func(t *testing.T) {
 			t.Parallel()
 

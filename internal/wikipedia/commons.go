@@ -669,7 +669,7 @@ func convertImage( //nolint:maintidx
 		if len(previews) > maxPreviews {
 			ratio := float64(len(previews)) / float64(maxPreviews)
 			previewsSubset := make([]string, maxPreviews)
-			for i := 0; i < maxPreviews; i++ {
+			for i := range maxPreviews {
 				previewsSubset[i] = previews[int(float64(i)*ratio)]
 			}
 			previews = previewsSubset

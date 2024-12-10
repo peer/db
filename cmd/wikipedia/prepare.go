@@ -103,7 +103,6 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 			}
 
 			for _, d := range docs {
-				d := d
 				select {
 				case documents <- d:
 				case <-ctx.Done():
@@ -114,7 +113,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 		}
 	})
 
-	for i := 0; i < documentProcessingThreads; i++ {
+	for range documentProcessingThreads {
 		g.Go(func() error {
 			for {
 				select {

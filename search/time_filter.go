@@ -98,25 +98,25 @@ func TimeFilterGet(
 	// We use int64 and not time.Duration because it cannot hold durations we need.
 	// time.Duration stores durations as nanosecond, but we want seconds here.
 	// See: https://github.com/elastic/elasticsearch/issues/83101
-	var min, interval int64
+	var minValue, interval int64
 	if minMax.Filter.Count == 0 {
 		return make([]histogramTimeResult, 0), map[string]interface{}{
 			"total": 0,
 		}, nil
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		min = time.Time(minMax.Filter.Min.Value).Unix()
+		minValue = time.Time(minMax.Filter.Min.Value).Unix()
 		interval = 1
 	} else {
-		min = time.Time(minMax.Filter.Min.Value).Unix()
-		max := time.Time(minMax.Filter.Max.Value).Unix() + 1
-		interval = (max - min) / histogramBins
-		interval2 := (time.Time(minMax.Filter.Max.Value).Unix() - min) / histogramBins
+		minValue = time.Time(minMax.Filter.Min.Value).Unix()
+		maxValue := time.Time(minMax.Filter.Max.Value).Unix() + 1
+		interval = (maxValue - minValue) / histogramBins
+		interval2 := (time.Time(minMax.Filter.Max.Value).Unix() - minValue) / histogramBins
 		if interval == interval2 {
 			interval = interval2 + 1
 		}
 	}
 
-	offsetString := fmt.Sprintf("%ds", min)
+	offsetString := fmt.Sprintf("%ds", minValue)
 	intervalString := fmt.Sprintf("%ds", interval)
 	histogramSearchService, _ := getSearchService()
 	histogramAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(

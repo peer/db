@@ -47,7 +47,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 
 	sites := map[string]*Site{}
 	for _, site := range globals.Sites {
-		site := site
 		sites[site.Domain] = &site
 	}
 

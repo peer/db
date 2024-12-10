@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetImageInfoForFilename(t *testing.T) {
@@ -15,7 +16,7 @@ func TestGetImageInfoForFilename(t *testing.T) {
 	httpClient := retryablehttp.NewClient()
 
 	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "", 50, "Logo_Google_2013_Official.svg")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, ImageInfo{
 		Mime:                "image/svg+xml",
 		Size:                6380,
