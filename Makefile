@@ -72,7 +72,7 @@ fmt-ci: fmt
 	git diff --exit-code --color=always
 
 upgrade:
-	go run github.com/icholy/gomajor@v0.11.0 get all
+	go run github.com/icholy/gomajor@v0.13.2 get all
 	go mod tidy
 
 clean:
