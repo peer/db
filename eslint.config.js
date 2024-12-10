@@ -15,7 +15,6 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...eslintPluginVue.configs['flat/recommended'],
-  eslintConfigPrettier,
   includeIgnoreFile(gitignorePath),
   {
     files: ["**/*.{js,vue,ts,html}"],
@@ -50,4 +49,5 @@ export default tseslint.config(
       },
     },
   },
+  eslintConfigPrettier,
 )
