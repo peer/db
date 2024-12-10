@@ -198,7 +198,6 @@ lint_docs:
   script:
     - make lint-docs
 
-
 audit_go:
   stage: test
 
