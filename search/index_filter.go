@@ -42,7 +42,7 @@ func IndexFilterGet(
 	termsAggregation := elastic.NewTermsAggregation().Field("_index").Size(MaxResultsCount)
 	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 	// so we use it to get the most accurate approximation.
-	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
+	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:mnd
 	searchService = searchService.Size(0).Query(query).Aggregation("terms", termsAggregation).Aggregation("index", indexAggregation)
 
 	m = metrics.Duration(internal.MetricElasticSearch).Start()

@@ -53,7 +53,7 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	}
 	decoder := yaml.NewDecoder(strings.NewReader(value))
 	decoder.KnownFields(true)
-	err = decoder.Decode(s) //nolint:musttag
+	err = decoder.Decode(s)
 	if err != nil {
 		var yamlErr *yaml.TypeError
 		if errors.As(err, &yamlErr) {

@@ -410,7 +410,7 @@ func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	for {
 		select {
 		case <-ctx.Done():
-			return ImageInfo{}, errors.WithStack(ctx.Err()) //nolint:exhaustruct
+			return ImageInfo{}, errors.WithStack(ctx.Err())
 		case info, ok := <-imageInfoChan:
 			if !ok {
 				imageInfoChan = nil
@@ -424,7 +424,7 @@ func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, t
 				// Break the select and retry the loop.
 				break
 			}
-			return ImageInfo{}, err //nolint:exhaustruct
+			return ImageInfo{}, err
 		}
 	}
 }

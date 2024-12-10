@@ -127,7 +127,7 @@ func (p picture) Image() (image, errors.E) {
 	if p.ImageSrc != "" {
 		mediaType, width, height, errE := parseMediaURL(p.ImageSrc)
 		if errE != nil {
-			return image{}, errE //nolint:exhaustruct
+			return image{}, errE
 		}
 		images = append(images, imageSrc{
 			Path:      p.ImageSrc,
@@ -139,7 +139,7 @@ func (p picture) Image() (image, errors.E) {
 	for _, path := range parseSrcSet(p.ImageSrcSet) {
 		mediaType, width, height, errE := parseMediaURL(path)
 		if errE != nil {
-			return image{}, errE //nolint:exhaustruct
+			return image{}, errE
 		}
 		images = append(images, imageSrc{
 			Path:      path,
@@ -152,7 +152,7 @@ func (p picture) Image() (image, errors.E) {
 		for _, path := range parseSrcSet(source) {
 			mediaType, width, height, errE := parseMediaURL(path)
 			if errE != nil {
-				return image{}, errE //nolint:exhaustruct
+				return image{}, errE
 			}
 			images = append(images, imageSrc{
 				Path:      path,
@@ -164,7 +164,7 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	if len(images) == 0 {
-		return image{}, errors.New("no images") //nolint:exhaustruct
+		return image{}, errors.New("no images")
 	}
 
 	// Sorts so that the image with the largest area is the first.
@@ -202,7 +202,7 @@ func (p picture) Image() (image, errors.E) {
 	}
 
 	if len(images) == 0 {
-		return image{}, errors.New("no image suitable for preview") //nolint:exhaustruct
+		return image{}, errors.New("no image suitable for preview")
 	}
 
 	return image{
@@ -377,7 +377,7 @@ func getArtistReference(artistsMap map[int]document.D, constituentID int) (docum
 	if !ok {
 		errE := errors.New("unknown artist")
 		errors.Details(errE)["constituentID"] = constituentID
-		return document.Reference{}, errE //nolint:exhaustruct
+		return document.Reference{}, errE
 	}
 	return doc.Reference(), nil
 }

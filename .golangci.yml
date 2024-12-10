@@ -30,6 +30,9 @@ linters-settings:
       - all
   tagalign:
     strict: true
+  testifylint:
+    require-error:
+      fn-pattern: ^(NoError|NotErrorIs)$
 
 linters:
   disable-all: true
@@ -38,36 +41,37 @@ linters:
     - asciicheck
     - bidichk
     - bodyclose
+    - canonicalheader
     - containedctx
     - contextcheck
+    - copyloopvar
     - decorder
     - dogsled
     - dupl
     - dupword
     - durationcheck
+    - err113
     - errcheck
     - errchkjson
     - errname
     - errorlint
-    - execinquery
     - exhaustive
     - exhaustruct
-    - exportloopref
+    - fatcontext
     - forbidigo
     - forcetypeassert
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoglobals
     - gochecknoinits
+    - gochecksumtype
     - goconst
     - gocritic
     - godot
-    - goerr113
     - gofmt
     - gofumpt
     - goheader
     - goimports
-    - gomnd
     - gomoddirectives
     - gomodguard
     - goprintffuncname
@@ -77,8 +81,10 @@ linters:
     - govet
     - grouper
     - importas
+    - inamedparam
     - ineffassign
     - interfacebloat
+    - intrange
     - ireturn
     - lll
     - loggercheck
@@ -86,6 +92,7 @@ linters:
     - makezero
     - mirror
     - misspell
+    - mnd
     - musttag
     - nakedret
     - nestif
@@ -96,12 +103,16 @@ linters:
     - nonamedreturns
     - nosprintfhostport
     - paralleltest
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter
+    - protogetter
     - reassign
     - revive
     - rowserrcheck
+    - sloglint
+    - spancheck
     - sqlclosecheck
     - staticcheck
     - stylecheck
@@ -109,6 +120,7 @@ linters:
     - tagliatelle
     - tenv
     - testableexamples
+    - testifylint
     - testpackage
     - thelper
     - tparallel
@@ -140,3 +152,8 @@ issues:
     - path: store/.*_test\.go
       linters:
         - dupl
+    - path: search/.*_test\.go
+      linters:
+        - exhaustruct
+        - gochecknoglobals
+        - lll

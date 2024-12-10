@@ -232,7 +232,7 @@ func getDocumentFromByProp(
 		)).Do(ctx)
 	if err != nil {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errors.WithStack(err) //nolint:exhaustruct
+		return nil, store.Version{}, errors.WithStack(err)
 	}
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
@@ -240,7 +240,7 @@ func getDocumentFromByProp(
 		doc, version, errE := getDocumentFromByID(ctx, s, identifier.MustFromString(hit.Id))
 		if errE != nil {
 			// Caller should add details to the error.
-			return nil, store.Version{}, errE //nolint:exhaustruct
+			return nil, store.Version{}, errE
 		}
 
 		found := false
@@ -260,7 +260,7 @@ func getDocumentFromByProp(
 	}
 
 	// Caller should add details to the error.
-	return nil, store.Version{}, errors.WithStack(ErrNotFound) //nolint:exhaustruct
+	return nil, store.Version{}, errors.WithStack(ErrNotFound)
 }
 
 func getDocumentFromByID(
@@ -271,16 +271,16 @@ func getDocumentFromByID(
 	data, _, version, errE := s.GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errors.WithStack(ErrNotFound) //nolint:exhaustruct
+		return nil, store.Version{}, errors.WithStack(ErrNotFound)
 	} else if errE != nil {
-		return nil, store.Version{}, errE //nolint:exhaustruct
+		return nil, store.Version{}, errE
 	}
 
 	var doc document.D
 	errE = x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		// Caller should add details to the error.
-		return nil, store.Version{}, errE //nolint:exhaustruct
+		return nil, store.Version{}, errE
 	}
 
 	return &doc, version, nil
@@ -294,7 +294,7 @@ func GetWikidataItem(
 	doc, version, errE := getDocumentFromByProp(ctx, s, index, esClient, "WIKIDATA_ITEM_ID", id)
 	if errE != nil {
 		errors.Details(errE)["entity"] = id
-		return nil, store.Version{}, errE //nolint:exhaustruct
+		return nil, store.Version{}, errE
 	}
 
 	return doc, version, nil
@@ -669,7 +669,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 						CoreClaim: document.CoreClaim{
 							ID: id,
 							// We raise the confidence of the range claim.
-							Confidence: clampConfidence(confidence * 1.1), //nolint:gomnd
+							Confidence: clampConfidence(confidence * 1.1), //nolint:mnd
 							Meta:       metaClaims,
 						},
 						Prop:  getDocumentReference(prop, ""),

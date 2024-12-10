@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Search using a natural language prompt which is parsed by a LLM into a search
+  query and filters.
+
 ### Changed
 
-- Upgrade to Go 1.22.
+- Upgrade to Go 1.23.
 
 ## [0.3.0] - 2024-03-22
 

@@ -104,7 +104,7 @@ func (v *updateEmbeddedDocumentsVisitor) handleError(errE errors.E, ref document
 }
 
 func (v *updateEmbeddedDocumentsVisitor) getOriginalID(temporary []string) (string, string) {
-	if len(temporary) != 2 { //nolint:gomnd
+	if len(temporary) != 2 { //nolint:mnd
 		return "", ""
 	}
 

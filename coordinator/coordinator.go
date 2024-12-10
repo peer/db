@@ -320,7 +320,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(
 		if len(operations) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var sessionEnded bool
-			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded) //nolint:goconst
+			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					return errors.WithStack(ErrSessionNotFound)

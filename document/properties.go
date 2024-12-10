@@ -305,7 +305,7 @@ func GenerateCoreProperties(properties []struct {
 			CoreProperties[id].Claims.Text = append(CoreProperties[id].Claims.Text, TextClaim{
 				CoreClaim: CoreClaim{
 					ID:         getPropertyClaimID(mnemonic, "NAME", i+1),
-					Confidence: 0.9, //nolint:gomnd
+					Confidence: 0.9, //nolint:mnd
 				},
 				Prop: Reference{
 					ID: getPointer(GetCorePropertyID("NAME")),

@@ -74,19 +74,19 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Insert(ctx, id, value, metadata)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return version, nil
 }
@@ -97,19 +97,19 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Replace(ctx, id, parentChangeset, value, metadata)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return version, nil
 }
@@ -120,19 +120,19 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Update(ctx, id, parentChangeset, value, patch, metadata)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return version, nil
 }
@@ -143,19 +143,19 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Merge(ctx, id, parentChangesets, value, patches, metadata)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return version, nil
 }
@@ -166,19 +166,19 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 ) (_ Version, errE errors.E) {
 	changeset, errE := v.store.Begin(ctx)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	defer func() {
 		errE = errors.Join(errE, changeset.Rollback(ctx))
 	}()
 	version, errE := changeset.Delete(ctx, id, parentChangeset, metadata)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	_, errE = changeset.Commit(ctx, v, commitMetadata)
 	if errE != nil {
 		errors.Details(errE)["id"] = id.String()
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return version, nil
 }
@@ -217,7 +217,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		var changeset string
 		var revision int64
 		var dataIsNull bool
-		//nolint:goconst
+
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
@@ -252,7 +252,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists) //nolint:goconst
+				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
 					return errors.Join(errE, internal.WithPgxError(err))
 				} else if !exists {
@@ -707,7 +707,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		details := errors.Details(errE)
 		details["view"] = v.name
 		details["name"] = name
-		return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE //nolint:exhaustruct
+		return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE
 	}
 	return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		name:  name,

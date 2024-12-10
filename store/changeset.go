@@ -76,7 +76,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		// Initialize in the case transaction is retried.
 		version = Version{} //nolint:exhaustruct
 
-		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...) //nolint:goconst
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -127,7 +127,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		// Initialize in the case transaction is retried.
 		version = Version{} //nolint:exhaustruct
 
-		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...) //nolint:goconst
+		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			var pgError *pgconn.PgError
@@ -172,7 +172,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata,
 ) (Version, errors.E) {
 	if c.store.patchesEnabled && len(parentChangesets) != len(patches) {
-		return Version{}, errors.WithStack(ErrParentInvalid) //nolint:exhaustruct
+		return Version{}, errors.WithStack(ErrParentInvalid)
 	}
 	parentChangesetsString := []string{}
 	for _, p := range parentChangesets {
@@ -517,7 +517,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			}
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists) //nolint:goconst
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
 			if err != nil {
 				return internal.WithPgxError(err)
 			} else if !exists {

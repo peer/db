@@ -380,8 +380,8 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	bq.Must(documentTextSearchQuery(query, "OR"))
 	bq.Must(elastic.NewNestedQuery("claims.rel",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
-			elastic.NewTermQuery("claims.rel.to.id", "E3Ua37EpwVrfxddyb9Uw64"),   // TIME_CLAIM_TYPE
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
+			elastic.NewTermQuery("claims.rel.to.id", "E3Ua37EpwVrfxddyb9Uw64"),   // TIME_CLAIM_TYPE.
 		),
 	))
 	timePropertiesSearchSevice, _ := getSearchService()
@@ -402,12 +402,12 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return output, errE
 		}
 
-		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME.
 		slices.SortFunc(names, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION.
 		slices.SortFunc(descriptions, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
@@ -429,8 +429,8 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	bq.Must(documentTextSearchQuery(query, "OR"))
 	bq.Must(elastic.NewNestedQuery("claims.rel",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
-			elastic.NewTermQuery("claims.rel.to.id", "55JE1vpFpUvki8g2LHpN1M"),   // AMOUNT_CLAIM_TYPE
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
+			elastic.NewTermQuery("claims.rel.to.id", "55JE1vpFpUvki8g2LHpN1M"),   // AMOUNT_CLAIM_TYPE.
 		),
 	))
 	amountPropertiesSearchSevice, _ := getSearchService()
@@ -451,12 +451,12 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return output, errE
 		}
 
-		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME.
 		slices.SortFunc(names, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION.
 		slices.SortFunc(descriptions, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
@@ -481,8 +481,8 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 	bq.Must(documentTextSearchQuery(query, "OR"))
 	bq.Must(elastic.NewNestedQuery("claims.rel",
 		elastic.NewBoolQuery().Must(
-			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE
-			elastic.NewTermQuery("claims.rel.to.id", "6HpkLLj1iSK3XBhgHpc6n3"),   // ITEM
+			elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
+			elastic.NewTermQuery("claims.rel.to.id", "6HpkLLj1iSK3XBhgHpc6n3"),   // ITEM.
 		),
 	))
 	itemsSearchSevice, _ := getSearchService()
@@ -503,12 +503,12 @@ func findProperties(ctx context.Context, store *store.Store[json.RawMessage, *ty
 			return output, errE
 		}
 
-		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME
+		names := doc.Get(identifier.MustFromString("CjZig63YSyvb2KdyCL3XTg")) // NAME.
 		slices.SortFunc(names, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})
 
-		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION
+		descriptions := doc.Get(identifier.MustFromString("E7DXhBtz9UuoSG9V3uYeYF")) // DESCRIPTION.
 		slices.SortFunc(descriptions, func(a, b document.Claim) int {
 			return int(b.GetConfidence() - a.GetConfidence())
 		})

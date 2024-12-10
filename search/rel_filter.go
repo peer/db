@@ -55,7 +55,7 @@ func RelFilterGet(
 			"total",
 			// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 			// so we use it to get the most accurate approximation.
-			elastic.NewCardinalityAggregation().Field("claims.rel.to.id").PrecisionThreshold(40000), //nolint:gomnd
+			elastic.NewCardinalityAggregation().Field("claims.rel.to.id").PrecisionThreshold(40000), //nolint:mnd
 		),
 	)
 	searchService = searchService.Size(0).Query(query).Aggregation("rel", aggregation)

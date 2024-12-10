@@ -60,7 +60,7 @@ func cleanupDocument(doc *goquery.Document) {
 		newSrcsetArray := []string{}
 		for _, srcsetElement := range srcsetArray {
 			elementArray := strings.Split(strings.TrimSpace(srcsetElement), " ")
-			if len(elementArray) != 2 { //nolint:gomnd
+			if len(elementArray) != 2 { //nolint:mnd
 				newSrcsetArray = append(newSrcsetArray, srcsetElement)
 				continue
 			}
@@ -134,7 +134,7 @@ func cleanupDocument(doc *goquery.Document) {
 			children := haudio.Children()
 			title := children.Eq(0).Clone()
 			media := children.Eq(1).Clone()
-			description := children.Eq(2).Clone() //nolint:gomnd
+			description := children.Eq(2).Clone() //nolint:mnd
 			caption := header.AddSelection(title).AddSelection(description).WrapAllHtml("<figcaption></figcaption>").Parent()
 			figure := media.AddSelection(caption).WrapAllHtml("<figure></figure>").Parent()
 			appendAfter.AfterSelection(figure)

@@ -59,7 +59,7 @@ type searchFiltersResult struct {
 	Unit  string `json:"unit,omitempty"`
 }
 
-func FiltersGet( //nolint:maintidx
+func FiltersGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
 ) (interface{}, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
@@ -96,7 +96,7 @@ func filtersGet( //nolint:maintidx
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.rel.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.rel.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
 	amountAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
 		"filter",
@@ -130,7 +130,7 @@ func filtersGet( //nolint:maintidx
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.time.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.time.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
 	stringAggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
 		"props",
@@ -142,11 +142,11 @@ func filtersGet( //nolint:maintidx
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.string.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:gomnd
+		elastic.NewCardinalityAggregation().Field("claims.string.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
 	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 	// so we use it to get the most accurate approximation.
-	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:gomnd
+	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:mnd
 	sizeAggregation := elastic.NewValueCountAggregation().Field("_size")
 	searchService = searchService.Size(0).Query(query).
 		Aggregation("rel", relAggregation).

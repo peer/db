@@ -12,7 +12,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs audit watch
+.PHONY: build peerdb wikipedia mapping moma build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit watch
 
 build: peerdb wikipedia mapping moma
 
@@ -82,7 +82,10 @@ release:
 	npx --yes --package 'release-it@15.4.2' --package '@release-it/keep-a-changelog@3.1.0' -- release-it
 
 lint-docs:
-	npx --yes --package 'markdownlint-cli@~0.34.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ '**/*.md'
+	npx --yes --package 'markdownlint-cli@~0.41.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ --fix '**/*.md'
+
+lint-docs-ci: lint-docs
+	git diff --exit-code --color=always
 
 audit: dist/index.html
 	go list -json -deps ./... | nancy sleuth --skip-update-check

@@ -226,7 +226,7 @@ func GetWikipediaFile(
 		// Passthrough.
 	} else if errE != nil {
 		errors.Details(errE)["file"] = name
-		return nil, store.Version{}, errE //nolint:exhaustruct
+		return nil, store.Version{}, errE
 	} else {
 		return doc, version, nil
 	}
@@ -240,17 +240,17 @@ func GetWikipediaFile(
 	if errors.Is(errE2, ErrNotFound) {
 		// We have not found a Wikimedia Commons file. Return the original error.
 		errors.Details(errE)["file"] = name
-		return nil, store.Version{}, errE //nolint:exhaustruct
+		return nil, store.Version{}, errE
 	} else if errE2 != nil {
 		errors.Details(errE2)["file"] = name
-		return nil, store.Version{}, errors.WithMessage(errE2, "checking for Wikimedia Commons") //nolint:exhaustruct
+		return nil, store.Version{}, errors.WithMessage(errE2, "checking for Wikimedia Commons")
 	}
 
 	// We found a Wikimedia Commons file.
 	errE = errors.WithStack(ErrWikimediaCommonsFile)
 	errors.Details(errE)["file"] = name
 	errors.Details(errE)["url"] = fmt.Sprintf("https://commons.wikimedia.org/wiki/File:%s", name)
-	return nil, store.Version{}, errE //nolint:exhaustruct
+	return nil, store.Version{}, errE
 }
 
 // TODO: How to remove categories which has previously been added but are later on removed?

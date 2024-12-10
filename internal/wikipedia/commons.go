@@ -751,7 +751,7 @@ func GetWikimediaCommonsFile(
 	document, version, err := getDocumentFromByProp(ctx, s, index, esClient, "WIKIMEDIA_COMMONS_FILE_NAME", name)
 	if err != nil {
 		errors.Details(err)["file"] = name
-		return nil, store.Version{}, err //nolint:exhaustruct
+		return nil, store.Version{}, err
 	}
 
 	return document, version, nil

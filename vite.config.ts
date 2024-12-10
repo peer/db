@@ -1,5 +1,4 @@
-/// <reference types="vitest" />
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 import vue from "@vitejs/plugin-vue"
 import license from "rollup-plugin-license"
 import path from "path"
@@ -12,6 +11,7 @@ export default defineConfig({
     license({
       sourcemap: true,
       thirdParty: {
+        includeSelf: true,
         allow: {
           test: "(Apache-2.0 OR MIT OR BSD-2-Clause OR BSD-3-Clause OR ISC)",
           failOnUnlicensed: true,

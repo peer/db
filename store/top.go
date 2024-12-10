@@ -30,15 +30,15 @@ func (v Version) String() string {
 func VersionFromString(text string) (Version, errors.E) {
 	changesetStr, revisionStr, ok := strings.Cut(text, "-")
 	if !ok {
-		return Version{}, errors.Errorf("invalid version string: %s", text) //nolint:exhaustruct
+		return Version{}, errors.Errorf("invalid version string: %s", text)
 	}
 	changeset, errE := identifier.FromString(changesetStr)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	revision, err := strconv.ParseInt(revisionStr, 10, 64)
 	if err != nil {
-		return Version{}, errors.WithStack(err) //nolint:exhaustruct
+		return Version{}, errors.WithStack(err)
 	}
 	return Version{
 		Changeset: changeset,
@@ -79,7 +79,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return view.Insert(ctx, id, value, metadata, commitMetadata)
 }
@@ -90,7 +90,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return view.Replace(ctx, id, parentChangeset, value, metadata, commitMetadata)
 }
@@ -101,7 +101,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return view.Update(ctx, id, parentChangeset, value, patch, metadata, commitMetadata)
 }
@@ -112,7 +112,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return view.Merge(ctx, id, parentChangesets, value, patches, metadata, commitMetadata)
 }
@@ -123,7 +123,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return Version{}, errE //nolint:exhaustruct
+		return Version{}, errE
 	}
 	return view.Delete(ctx, id, parentChangeset, metadata, commitMetadata)
 }
@@ -134,7 +134,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 ) (Data, Metadata, Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return *new(Data), *new(Metadata), Version{}, errE //nolint:exhaustruct
+		return *new(Data), *new(Metadata), Version{}, errE
 	}
 	return view.GetLatest(ctx, id)
 }
