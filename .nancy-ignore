@@ -1,1 +1,3 @@
 CVE-2023-46402 # git-urls is not used by this package
+CVE-2024-39719 # Ollama is used only as a client
+CVE-2024-8063 # Ollama is used only as a client
