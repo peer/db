@@ -70,7 +70,7 @@ async function onSubmit(isPrompt: boolean) {
     return
   }
 
-  const form = new FormData();
+  const form = new FormData()
   if (isPrompt) {
     form.set("p", searchQuery.value)
   } else {
@@ -102,12 +102,7 @@ function onFilters() {
 
 <template>
   <form class="flex flex-grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit(!!route.query.p)">
-    <InputText
-      id="search-input-text"
-      v-model="searchQuery"
-      :progress="progress"
-      class="max-w-xl flex-grow"
-    />
+    <InputText id="search-input-text" v-model="searchQuery" :progress="progress" class="max-w-xl flex-grow" />
     <Button :progress="progress" type="button" primary class="!px-3.5" @click="onSubmit(false)">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>

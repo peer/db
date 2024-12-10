@@ -25,7 +25,7 @@ async function onSubmit(isPrompt: boolean) {
     return
   }
 
-  const form = new FormData();
+  const form = new FormData()
   if (isPrompt) {
     form.set("p", searchQuery.value)
   } else {
