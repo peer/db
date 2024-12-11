@@ -219,43 +219,10 @@ export class ClaimTypes {
   time?: TimeClaim[]
   timeRange?: TimeRangeClaim[]
 
-  constructor(obj: object) {
-    Object.assign(this, obj)
-    for (const [i, claim] of (this.id || []).entries()) {
-      this.id![i] = new IdentifierClaim(claim)
-    }
-    for (const [i, claim] of (this.ref || []).entries()) {
-      this.ref![i] = new ReferenceClaim(claim)
-    }
-    for (const [i, claim] of (this.text || []).entries()) {
-      this.text![i] = new TextClaim(claim)
-    }
-    for (const [i, claim] of (this.string || []).entries()) {
-      this.string![i] = new StringClaim(claim)
-    }
-    for (const [i, claim] of (this.amount || []).entries()) {
-      this.amount![i] = new AmountClaim(claim)
-    }
-    for (const [i, claim] of (this.amountRange || []).entries()) {
-      this.amountRange![i] = new AmountRangeClaim(claim)
-    }
-    for (const [i, claim] of (this.rel || []).entries()) {
-      this.rel![i] = new RelationClaim(claim)
-    }
-    for (const [i, claim] of (this.file || []).entries()) {
-      this.file![i] = new FileClaim(claim)
-    }
-    for (const [i, claim] of (this.none || []).entries()) {
-      this.none![i] = new NoValueClaim(claim)
-    }
-    for (const [i, claim] of (this.unknown || []).entries()) {
-      this.unknown![i] = new UnknownValueClaim(claim)
-    }
-    for (const [i, claim] of (this.time || []).entries()) {
-      this.time![i] = new TimeClaim(claim)
-    }
-    for (const [i, claim] of (this.timeRange || []).entries()) {
-      this.timeRange![i] = new TimeRangeClaim(claim)
+  constructor(obj: Record<string, object> | ClaimTypes) {
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+      if (!Array.isArray(obj?.[name])) continue
+      ;(this[name] as Constructee<typeof claimType>[]) = obj[name].map((claim) => new claimType(claim))
     }
   }
 
