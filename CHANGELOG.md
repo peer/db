@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- FoodData Central demo site.
 - Search using a natural language prompt which is parsed by a LLM into a search
   query and filters.
 

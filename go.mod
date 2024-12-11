@@ -13,6 +13,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/krolaw/zipstream v0.0.0-20180621105154-0a2661891f94
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
