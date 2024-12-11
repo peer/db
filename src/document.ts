@@ -205,22 +205,7 @@ class TimeRangeClaim extends CoreClaim {
   }
 }
 
-const claimTypesMap = {
-  id: IdentifierClaim,
-  ref: ReferenceClaim,
-  text: TextClaim,
-  string: StringClaim,
-  amount: AmountClaim,
-  amountRange: AmountRangeClaim,
-  rel: RelationClaim,
-  file: FileClaim,
-  none: NoValueClaim,
-  unknown: UnknownValueClaim,
-  time: TimeClaim,
-  timeRange: TimeRangeClaim,
-}
-
-class ClaimTypes {
+export class ClaimTypes {
   id?: IdentifierClaim[]
   ref?: ReferenceClaim[]
   text?: TextClaim[]
@@ -236,10 +221,41 @@ class ClaimTypes {
 
   constructor(obj: object) {
     Object.assign(this, obj)
-    for (const [name, claimType] of Object.entries(claimTypesMap)) {
-      for (const [i, claim] of (this[name] || []).entries()) {
-        this[name][i] = new claimType(claim)
-      }
+    for (const [i, claim] of (this.id || []).entries()) {
+      this.id![i] = new IdentifierClaim(claim)
+    }
+    for (const [i, claim] of (this.ref || []).entries()) {
+      this.ref![i] = new ReferenceClaim(claim)
+    }
+    for (const [i, claim] of (this.text || []).entries()) {
+      this.text![i] = new TextClaim(claim)
+    }
+    for (const [i, claim] of (this.string || []).entries()) {
+      this.string![i] = new StringClaim(claim)
+    }
+    for (const [i, claim] of (this.amount || []).entries()) {
+      this.amount![i] = new AmountClaim(claim)
+    }
+    for (const [i, claim] of (this.amountRange || []).entries()) {
+      this.amountRange![i] = new AmountRangeClaim(claim)
+    }
+    for (const [i, claim] of (this.rel || []).entries()) {
+      this.rel![i] = new RelationClaim(claim)
+    }
+    for (const [i, claim] of (this.file || []).entries()) {
+      this.file![i] = new FileClaim(claim)
+    }
+    for (const [i, claim] of (this.none || []).entries()) {
+      this.none![i] = new NoValueClaim(claim)
+    }
+    for (const [i, claim] of (this.unknown || []).entries()) {
+      this.unknown![i] = new UnknownValueClaim(claim)
+    }
+    for (const [i, claim] of (this.time || []).entries()) {
+      this.time![i] = new TimeClaim(claim)
+    }
+    for (const [i, claim] of (this.timeRange || []).entries()) {
+      this.timeRange![i] = new TimeRangeClaim(claim)
     }
   }
 
@@ -273,22 +289,73 @@ class ClaimTypes {
   }
 
   Add(claim: Claim): void {
-    for (const [name, claimType] of Object.entries(claimTypesMap)) {
-      if (claim instanceof claimType) {
-        if (!this[name]) {
-          this[name] = []
-        }
-        this[name].push(claim)
-        return
+    if (claim instanceof IdentifierClaim) {
+      if (!this.id) {
+        this.id = []
       }
+      this.id.push(claim)
+    } else if (claim instanceof ReferenceClaim) {
+      if (!this.ref) {
+        this.ref = []
+      }
+      this.ref.push(claim)
+    } else if (claim instanceof TextClaim) {
+      if (!this.text) {
+        this.text = []
+      }
+      this.text.push(claim)
+    } else if (claim instanceof StringClaim) {
+      if (!this.string) {
+        this.string = []
+      }
+      this.string.push(claim)
+    } else if (claim instanceof AmountClaim) {
+      if (!this.amount) {
+        this.amount = []
+      }
+      this.amount.push(claim)
+    } else if (claim instanceof AmountRangeClaim) {
+      if (!this.amountRange) {
+        this.amountRange = []
+      }
+      this.amountRange.push(claim)
+    } else if (claim instanceof RelationClaim) {
+      if (!this.rel) {
+        this.rel = []
+      }
+      this.rel.push(claim)
+    } else if (claim instanceof FileClaim) {
+      if (!this.file) {
+        this.file = []
+      }
+      this.file.push(claim)
+    } else if (claim instanceof NoValueClaim) {
+      if (!this.none) {
+        this.none = []
+      }
+      this.none.push(claim)
+    } else if (claim instanceof UnknownValueClaim) {
+      if (!this.unknown) {
+        this.unknown = []
+      }
+      this.unknown.push(claim)
+    } else if (claim instanceof TimeClaim) {
+      if (!this.time) {
+        this.time = []
+      }
+      this.time.push(claim)
+    } else if (claim instanceof TimeRangeClaim) {
+      if (!this.timeRange) {
+        this.timeRange = []
+      }
+      this.timeRange.push(claim)
     }
 
-    const exhaustiveCheck: never = claim
-    throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`, claim)
+    throw new Error(`claim of type ${claim.constructor.name} is not supported`)
   }
 }
 
-type Claim =
+export type Claim =
   | IdentifierClaim
   | ReferenceClaim
   | TextClaim
@@ -360,6 +427,9 @@ export interface Change {
 }
 
 export function changeFrom(obj: object): Change {
+  if (!("type" in obj)) {
+    throw new Error(`change missing type`)
+  }
   switch (obj.type) {
     case "add":
       return new AddClaimChange(obj)
@@ -477,6 +547,9 @@ interface ClaimPatch {
 }
 
 export function claimPatchFrom(obj: object): ClaimPatch {
+  if (!("type" in obj)) {
+    throw new Error(`patch missing type`)
+  }
   switch (obj.type) {
     case "id":
       return new IdentifierClaimPatch(obj)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { PeerDBDocument, RelFilterState, RelSearchResult } from "@/types"
+import type { RelFilterState, RelSearchResult } from "@/types"
+import type { PeerDBDocument } from "@/document"
 
 import { ref, computed, onBeforeUnmount } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"

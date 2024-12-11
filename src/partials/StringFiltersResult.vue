@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { PeerDBDocument, StringFilterState, StringSearchResult } from "@/types"
+import type { StringFilterState, StringSearchResult } from "@/types"
+import type { PeerDBDocument } from "@/document"
 
 import { ref, computed, toRef, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"

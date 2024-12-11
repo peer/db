@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { DocumentBeginEditResponse, PeerDBDocument } from "@/types"
+import type { DocumentBeginEditResponse } from "@/types"
+import type { PeerDBDocument } from "@/document"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { ref, computed, toRef, onBeforeUnmount } from "vue"

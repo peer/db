@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { AmountFilterState, AmountSearchResult, PeerDBDocument } from "@/types"
+import type { AmountFilterState, AmountSearchResult } from "@/types"
+import type { PeerDBDocument } from "@/document"
 
 import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"

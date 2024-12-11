@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { PeerDBDocument, SearchResult } from "@/types"
+import type { SearchResult } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
+import type { PeerDBDocument } from "@/document"
 
 import { computed, ref } from "vue"
 import WithDocument from "@/components/WithDocument.vue"

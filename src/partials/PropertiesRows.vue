@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
-import type { ClaimTypes, PeerDBDocument } from "@/document"
+import { PeerDBDocument } from "@/document"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
+import { ClaimTypes } from "@/document"
 
 withDefaults(
   defineProps<{
@@ -13,7 +14,7 @@ withDefaults(
     editable?: boolean
   }>(),
   {
-    claims: () => ({}),
+    claims: () => (new ClaimTypes({})),
     level: 0,
     editable: false,
   },

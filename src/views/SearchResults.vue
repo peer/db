@@ -641,7 +641,7 @@ async function onChange() {
       </div>
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <template v-for="result in limitedFiltersResults" :key="result.id">
+        <template v-for="result in limitedFiltersResults" :key="'id' in result ? result.id : result.type">
           <RelFiltersResult
             v-if="result.type === 'rel'"
             :s="s"

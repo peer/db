@@ -1,5 +1,6 @@
 import { DeepReadonly, Ref, watchEffect } from "vue"
-import type { Mutable, Claim, ClaimTypes, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
+import type { Mutable, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
+import type { Claim, ClaimTypes } from "@/document"
 
 import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
