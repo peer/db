@@ -3,7 +3,7 @@ import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import { ref, computed, toRef, onBeforeUnmount } from "vue"
+import { ref, computed, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
@@ -15,7 +15,7 @@ import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { useSearchState } from "@/search"
+import { useSearchState, useSearch } from "@/search"
 import { postJSON } from "@/api"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
@@ -42,14 +42,39 @@ onBeforeUnmount(() => {
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const { results, searchState } = useSearchState(
-  toRef(() => (Array.isArray(route.query.s) ? route.query.s[0] : route.query.s)),
-  el,
-  async (searchState) => {
-    // Something was not OK, so we redirect to the URL without "s".
-    // TODO: This has still created a new search state on the server, we should not do that.
+const searchStateS = toRef(() => Array.isArray(route.query.s) ? route.query.s[0] : route.query.s)
 
-    await router.replace({
+const {
+  searchState,
+  error: searchStateError,
+} = useSearchState(
+  searchStateS,
+  progress,
+)
+const {
+  results,
+  error: searchResultsError,
+} = useSearch(
+  toRef(() => {
+    if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.s !== searchStateS.value) {
+      return ""
+    }
+    if (searchState.value.p && !searchState.value.promptDone) {
+      return ""
+    }
+    return searchStateS.value
+  }),
+  el,
+  progress,
+)
+
+watchEffect(async (onCleanup) => {
+  if (searchStateError.value || searchResultsError.value) {
+    // Something was not OK, so we redirect to the URL without "s".
+    router.replace({
       name: "DocumentGet",
       params: {
         id: props.id,
@@ -59,9 +84,8 @@ const { results, searchState } = useSearchState(
       // is about (new) search state which we just discard here.
       query: encodeQuery({ tab: route.query.tab || undefined }),
     })
-  },
-  progress,
-)
+  }
+})
 
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
   const res = { previous: null, next: null } as { previous: string | null; next: string | null }
@@ -150,7 +174,7 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchState.s" class="flex flex-grow gap-x-1 sm:gap-x-4">
+      <div v-if="searchState !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputTextLink
           class="max-w-xl flex-grow"
           :to="{ name: 'SearchResults', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
