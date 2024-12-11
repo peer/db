@@ -42,19 +42,10 @@ onBeforeUnmount(() => {
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const searchStateS = toRef(() => Array.isArray(route.query.s) ? route.query.s[0] : route.query.s)
+const searchStateS = toRef(() => (Array.isArray(route.query.s) ? route.query.s[0] : route.query.s))
 
-const {
-  searchState,
-  error: searchStateError,
-} = useSearchState(
-  searchStateS,
-  progress,
-)
-const {
-  results,
-  error: searchResultsError,
-} = useSearch(
+const { searchState, error: searchStateError } = useSearchState(searchStateS, progress)
+const { results, error: searchResultsError } = useSearch(
   toRef(() => {
     if (!searchState.value) {
       return ""

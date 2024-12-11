@@ -14,7 +14,7 @@ withDefaults(
     editable?: boolean
   }>(),
   {
-    claims: () => (new ClaimTypes({})),
+    claims: () => new ClaimTypes({}),
     level: 0,
     editable: false,
   },
