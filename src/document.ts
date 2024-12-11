@@ -349,9 +349,10 @@ export class ClaimTypes {
         this.timeRange = []
       }
       this.timeRange.push(claim)
+    } else {
+      const exhaustiveCheck: never = claim
+      throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`)
     }
-
-    throw new Error(`claim of type ${claim.constructor.name} is not supported`)
   }
 }
 
