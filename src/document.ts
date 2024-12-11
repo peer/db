@@ -350,6 +350,7 @@ export class ClaimTypes {
       }
       this.timeRange.push(claim)
     } else {
+      // Type error here means that the cases above do not fully cover all possible claim instances.
       const exhaustiveCheck: never = claim
       throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`)
     }
