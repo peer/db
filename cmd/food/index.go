@@ -147,6 +147,11 @@ type Ingredient struct {
 	Meta       []string     `json:"meta,omitempty"`
 }
 
+type Ingredients struct {
+	Ingredients []Ingredient `json:"ingredients"`
+	Meta        []string     `json:"meta,omitempty"`
+}
+
 func getPathAndURL(cacheDir, url string) (string, string) {
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
@@ -240,27 +245,25 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 	return nil, errors.New(`"brandedDownload.json" file not found`)
 }
 
-func getIngredients(ingredientsDir string, food BrandedFood) ([]Ingredient, errors.E) {
+func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, errors.E) {
 	if ingredientsDir == "" {
-		return nil, nil
+		return Ingredients{}, nil
 	}
 
 	p := filepath.Join(ingredientsDir, fmt.Sprintf("%d.json", food.FDCID))
 	file, err := os.Open(p)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
+		return Ingredients{}, nil
 	} else if err != nil {
-		return nil, errors.WithStack(err)
+		return Ingredients{}, errors.WithStack(err)
 	}
 	defer file.Close()
-	var result struct {
-		Ingredients []Ingredient `json:"ingredients"`
-	}
+	var result Ingredients
 	errE := x.DecodeJSONWithoutUnknownFields(file, &result)
 	if errE != nil {
-		return nil, errE
+		return Ingredients{}, errE
 	}
-	return result.Ingredients, nil
+	return result, nil
 }
 
 func index(config *Config) errors.E {
