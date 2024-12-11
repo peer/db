@@ -1276,9 +1276,6 @@ export function useSearchState(
           forceSearchStateRerun.value++
         }, 100) // ms
         onCleanup(() => clearTimeout(t))
-      } else if (data.doc.p) {
-        // TODO: Remove.
-        console.log(data.doc.promptCalls)
       }
     },
     {

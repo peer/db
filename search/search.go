@@ -419,8 +419,25 @@ func (s *State) ParsePrompt(
 	getSearchService func() (*elastic.SearchService, int64),
 ) {
 	ctx = fun.WithTextRecorder(ctx)
+	c := make(chan []fun.TextRecorderCall)
+	fun.GetTextRecorder(ctx).Notify(c)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for n := range c {
+			// We update state at every change to PromptCalls which
+			// we are getting over the channel while the prompt is parsed.
+			s.PromptCalls = n
+			searches.Store(s.ID, s)
+		}
+	}()
 
 	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
+
+	close(c)
+	wg.Wait()
 
 	s.PromptDone = true
 	s.PromptCalls = fun.GetTextRecorder(ctx).Calls()
