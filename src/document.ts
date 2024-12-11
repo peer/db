@@ -271,6 +271,7 @@ export class ClaimTypes {
 type Constructor<T> = new (json: object) => T
 type Constructee<C> = C extends Constructor<infer R> ? R : never
 type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
+export type ClaimTypeProp = keyof typeof CLAIM_TYPES_MAP
 
 const CLAIM_TYPES_MAP: {
   [P in keyof ClaimTypes as ClaimTypes[P] extends CoreClaim[] | undefined ? P : never]-?: ClaimTypes[P] extends Array<infer U> | undefined ? Constructor<U> : never

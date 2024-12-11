@@ -1,6 +1,6 @@
 import { DeepReadonly, Ref, watchEffect } from "vue"
 import type { Mutable, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
-import type { Claim, ClaimTypes } from "@/document"
+import type { Claim, ClaimTypes, ClaimTypeProp } from "@/document"
 
 import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
@@ -95,7 +95,8 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
   }
   const claims: DeepReadonly<Claim>[] = []
   for (const cs of Object.values(claimTypes ?? {})) {
-    for (const claim of cs || []) {
+    if (!Array.isArray(cs)) continue
+    for (const claim of cs) {
       if (propertyId.includes(claim.prop.id)) {
         claims.push(claim)
       }
@@ -108,16 +109,17 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
   return null
 }
 
-export function getClaimsOfType<K extends keyof ClaimTypes>(
+export function getClaimsOfType<K extends ClaimTypeProp>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
 ): Required<DeepReadonly<ClaimTypes>>[K][number][] {
+  if (!claimTypes) return []
   if (typeof propertyId === "string") {
     propertyId = [propertyId]
   }
   const claims = []
-  for (const claim of claimTypes?.[claimType] || []) {
+  for (const claim of claimTypes[claimType] ?? []) {
     if (propertyId.includes(claim.prop.id)) {
       claims.push(claim)
     }
@@ -126,7 +128,7 @@ export function getClaimsOfType<K extends keyof ClaimTypes>(
   return claims
 }
 
-export function getBestClaimOfType<K extends keyof ClaimTypes>(
+export function getBestClaimOfType<K extends ClaimTypeProp>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -140,7 +142,7 @@ export function getBestClaimOfType<K extends keyof ClaimTypes>(
 
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
-export function getClaimsListsOfType<K extends keyof ClaimTypes>(
+export function getClaimsListsOfType<K extends ClaimTypeProp>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
