@@ -289,73 +289,38 @@ export class ClaimTypes {
   }
 
   Add(claim: Claim): void {
-    if (claim instanceof IdentifierClaim) {
-      if (!this.id) {
-        this.id = []
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+      if (claim instanceof claimType) {
+        if (!this[name]) {
+          this[name] = []
+        }
+        ;(this[name] as Array<Constructee<typeof claimType>>).push(claim)
+        return
       }
-      this.id.push(claim)
-    } else if (claim instanceof ReferenceClaim) {
-      if (!this.ref) {
-        this.ref = []
-      }
-      this.ref.push(claim)
-    } else if (claim instanceof TextClaim) {
-      if (!this.text) {
-        this.text = []
-      }
-      this.text.push(claim)
-    } else if (claim instanceof StringClaim) {
-      if (!this.string) {
-        this.string = []
-      }
-      this.string.push(claim)
-    } else if (claim instanceof AmountClaim) {
-      if (!this.amount) {
-        this.amount = []
-      }
-      this.amount.push(claim)
-    } else if (claim instanceof AmountRangeClaim) {
-      if (!this.amountRange) {
-        this.amountRange = []
-      }
-      this.amountRange.push(claim)
-    } else if (claim instanceof RelationClaim) {
-      if (!this.rel) {
-        this.rel = []
-      }
-      this.rel.push(claim)
-    } else if (claim instanceof FileClaim) {
-      if (!this.file) {
-        this.file = []
-      }
-      this.file.push(claim)
-    } else if (claim instanceof NoValueClaim) {
-      if (!this.none) {
-        this.none = []
-      }
-      this.none.push(claim)
-    } else if (claim instanceof UnknownValueClaim) {
-      if (!this.unknown) {
-        this.unknown = []
-      }
-      this.unknown.push(claim)
-    } else if (claim instanceof TimeClaim) {
-      if (!this.time) {
-        this.time = []
-      }
-      this.time.push(claim)
-    } else if (claim instanceof TimeRangeClaim) {
-      if (!this.timeRange) {
-        this.timeRange = []
-      }
-      this.timeRange.push(claim)
-    } else {
-      // Type error here means that the cases above do not fully cover all possible claim instances.
-      const exhaustiveCheck: never = claim
-      throw new Error(`claim of type ${(exhaustiveCheck as object).constructor.name} is not supported`)
     }
   }
 }
+
+type Constructor<T> = new (json: object) => T
+type Constructee<C> = C extends Constructor<infer R> ? R : never
+type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
+
+const CLAIM_TYPES_MAP: {
+  [P in keyof ClaimTypes as ClaimTypes[P] extends CoreClaim[] | undefined ? P : never]-?: ClaimTypes[P] extends Array<infer U> | undefined ? Constructor<U> : never
+} = {
+  id: IdentifierClaim,
+  ref: ReferenceClaim,
+  text: TextClaim,
+  string: StringClaim,
+  amount: AmountClaim,
+  amountRange: AmountRangeClaim,
+  rel: RelationClaim,
+  file: FileClaim,
+  none: NoValueClaim,
+  unknown: UnknownValueClaim,
+  time: TimeClaim,
+  timeRange: TimeRangeClaim,
+} as const
 
 export type Claim =
   | IdentifierClaim
