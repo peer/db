@@ -217,7 +217,7 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", BrandedFood{}))+" download progress")
+	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", BrandedFood{}))+" download progress") //nolint:exhaustruct
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -247,13 +247,13 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 
 func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, errors.E) {
 	if ingredientsDir == "" {
-		return Ingredients{}, nil
+		return Ingredients{}, nil //nolint:exhaustruct
 	}
 
 	p := filepath.Join(ingredientsDir, fmt.Sprintf("%d.json", food.FDCID))
 	file, err := os.Open(p)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Ingredients{}, nil
+		return Ingredients{}, nil //nolint:exhaustruct
 	} else if err != nil {
 		return Ingredients{}, errors.WithStack(err)
 	}
