@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path"
@@ -140,6 +141,12 @@ type BrandedFood struct {
 	FoodUpdateLog            []FoodUpdate    `json:"foodUpdateLog"`
 }
 
+type Ingredient struct {
+	Name       string       `json:"name"`
+	Ingredient []Ingredient `json:"ingredients,omitempty"`
+	Meta       []string     `json:"meta,omitempty"`
+}
+
 func getPathAndURL(cacheDir, url string) (string, string) {
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
@@ -153,7 +160,7 @@ func structName(name string) string {
 	return strings.ToLower(name[i+1:])
 }
 
-func getJSON(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
+func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
 	cachedPath, url := getPathAndURL(cacheDir, url)
 
 	var cachedReader io.Reader
@@ -205,7 +212,7 @@ func getJSON(ctx context.Context, httpClient *retryablehttp.Client, logger zerol
 		cachedReader = io.TeeReader(downloadReader, cachedFile)
 	}
 
-	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", *new(BrandedFood)))+" download progress")
+	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", BrandedFood{}))+" download progress")
 	countingReader := &x.CountingReader{Reader: cachedReader}
 	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
 	defer ticker.Stop()
@@ -233,6 +240,29 @@ func getJSON(ctx context.Context, httpClient *retryablehttp.Client, logger zerol
 	return nil, errors.New(`"brandedDownload.json" file not found`)
 }
 
+func getIngredients(ingredientsDir string, food BrandedFood) ([]Ingredient, errors.E) {
+	if ingredientsDir == "" {
+		return nil, nil
+	}
+
+	p := filepath.Join(ingredientsDir, fmt.Sprintf("%d.json", food.FDCID))
+	file, err := os.Open(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer file.Close()
+	var result struct {
+		Ingredients []Ingredient `json:"ingredients"`
+	}
+	errE := x.DecodeJSONWithoutUnknownFields(file, &result)
+	if errE != nil {
+		return nil, errE
+	}
+	return result.Ingredients, nil
+}
+
 func index(config *Config) errors.E {
 	ctx, stop, httpClient, _, _, _, errE := es.Standalone(
 		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
@@ -242,9 +272,17 @@ func index(config *Config) errors.E {
 	}
 	defer stop()
 
-	foods, errE := getJSON(ctx, httpClient, config.Logger, config.CacheDir, config.DataURL)
+	foods, errE := getFoods(ctx, httpClient, config.Logger, config.CacheDir, config.DataURL)
 	if errE != nil {
 		return errE
+	}
+
+	for _, food := range foods {
+		_, errE := getIngredients(config.IngredientsDir, food)
+		if errE != nil {
+			errors.Details(errE)["id"] = food.FDCID
+			return errE
+		}
 	}
 
 	return nil
