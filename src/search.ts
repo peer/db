@@ -171,9 +171,10 @@ export async function postFilters(
   if (abortSignal.aborted) {
     return
   }
-  if (s !== updatedSearchState.s ||
-    !((route.query.q === null && updatedSearchState.q === undefined) || (route.query.q === updatedSearchState.q)) ||
-    !((route.query.p === null && updatedSearchState.p === undefined) || (route.query.p === updatedSearchState.p))
+  if (
+    s !== updatedSearchState.s ||
+    !((route.query.q === null && updatedSearchState.q === undefined) || route.query.q === updatedSearchState.q) ||
+    !((route.query.p === null && updatedSearchState.p === undefined) || route.query.p === updatedSearchState.p)
   ) {
     await router.push({
       name: "SearchResults",
@@ -202,21 +203,17 @@ export function useSearch(
 } {
   const router = useRouter()
 
-  return useSearchResults<SearchResult>(
-    el,
-    progress,
-    () => {
-      if (!s.value) {
-        return null
-      }
-      return router.apiResolve({
-        name: "SearchResults",
-        params: {
-          s: s.value,
-        },
-      }).href
-    },
-  )
+  return useSearchResults<SearchResult>(el, progress, () => {
+    if (!s.value) {
+      return null
+    }
+    return router.apiResolve({
+      name: "SearchResults",
+      params: {
+        s: s.value,
+      },
+    }).href
+  })
 }
 
 export function useFilters(
@@ -231,21 +228,17 @@ export function useFilters(
 } {
   const router = useRouter()
 
-  return useSearchResults<SearchFilterResult>(
-    el,
-    progress,
-    () => {
-      if (!s.value) {
-        return null
-      }
-      return router.apiResolve({
-        name: "SearchFilters",
-        params: {
-          s: s.value,
-        },
-      }).href
-    },
-  )
+  return useSearchResults<SearchFilterResult>(el, progress, () => {
+    if (!s.value) {
+      return null
+    }
+    return router.apiResolve({
+      name: "SearchFilters",
+      params: {
+        s: s.value,
+      },
+    }).href
+  })
 }
 
 function filtersToFiltersState(filters: Filters): FiltersState {
@@ -557,27 +550,23 @@ export function useRelFilterValues(
 } {
   const router = useRouter()
 
-  return useSearchResults<RelSearchResult>(
-    el,
-    progress,
-    () => {
-      const r = result.value
-      if (!r.id || !r.type) {
-        return null
-      }
-      if (r.type === "rel") {
-        return router.apiResolve({
-          name: "SearchRelFilter",
-          params: {
-            s: s.value,
-            prop: r.id,
-          },
-        }).href
-      } else {
-        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
-      }
-    },
-  )
+  return useSearchResults<RelSearchResult>(el, progress, () => {
+    const r = result.value
+    if (!r.id || !r.type) {
+      return null
+    }
+    if (r.type === "rel") {
+      return router.apiResolve({
+        name: "SearchRelFilter",
+        params: {
+          s: s.value,
+          prop: r.id,
+        },
+      }).href
+    } else {
+      throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
+    }
+  })
 }
 
 export function useAmountHistogramValues(
@@ -1107,7 +1096,7 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
   progress: Ref<number>,
-): Promise<{ results: T[]; total: number | string } > {
+): Promise<{ results: T[]; total: number | string }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
   if (abortSignal.aborted) {
     return { results: [], total: 0 }
