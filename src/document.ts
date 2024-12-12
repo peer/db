@@ -290,19 +290,7 @@ const CLAIM_TYPES_MAP: {
   timeRange: TimeRangeClaim,
 } as const
 
-export type Claim =
-  | IdentifierClaim
-  | ReferenceClaim
-  | TextClaim
-  | StringClaim
-  | AmountClaim
-  | AmountRangeClaim
-  | RelationClaim
-  | FileClaim
-  | NoValueClaim
-  | UnknownValueClaim
-  | TimeClaim
-  | TimeRangeClaim
+export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
 
 // TODO: Sync interface with Go implementation.
 interface ClaimsContainer {
