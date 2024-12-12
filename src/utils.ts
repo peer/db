@@ -90,12 +90,12 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
 }
 
 export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | null, propertyId: string | string[]): DeepReadonly<Claim> | null {
-  if (typeof propertyId === "string") {
+  if (!Array.isArray(propertyId)) {
     propertyId = [propertyId]
   }
   const claims: DeepReadonly<Claim>[] = []
-  for (const cs of Object.values(claimTypes ?? {})) {
-    if (!Array.isArray(cs)) continue
+  for (const [name, cs] of Object.entries(claimTypes ?? {})) {
+    if (!Array.isArray(cs)) throw new Error(`"${name}" is not an array`)
     for (const claim of cs) {
       if (propertyId.includes(claim.prop.id)) {
         claims.push(claim)
@@ -115,7 +115,7 @@ export function getClaimsOfType<K extends ClaimTypeProp>(
   propertyId: string | string[],
 ): Required<DeepReadonly<ClaimTypes>>[K][number][] {
   if (!claimTypes) return []
-  if (typeof propertyId === "string") {
+  if (!Array.isArray(propertyId)) {
     propertyId = [propertyId]
   }
   const claims = []

@@ -258,3 +258,6 @@ type Required<T> = {
 type Optional<T> = {
   [k in keyof T]+?: T[k]
 }
+
+export type Constructor<T> = new (json: object) => T
+export type Constructee<C> = C extends Constructor<infer R> ? R : never

@@ -1,4 +1,4 @@
-import type { TranslatableHTMLString, AmountUnit, TimePrecision } from "@/types"
+import type { TranslatableHTMLString, AmountUnit, TimePrecision, Constructee, Constructor } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { v5 as uuidv5 } from "uuid"
@@ -221,7 +221,8 @@ export class ClaimTypes {
 
   constructor(obj: Record<string, object> | ClaimTypes) {
     for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
-      if (!Array.isArray(obj?.[name])) continue
+      if (!obj?.[name]) continue
+      if (!Array.isArray(obj[name])) throw new Error(`"${name}" is not an array`)
       ;(this[name] as Constructee<typeof claimType>[]) = obj[name].map((claim) => new claimType(claim))
     }
   }
@@ -268,8 +269,6 @@ export class ClaimTypes {
   }
 }
 
-type Constructor<T> = new (json: object) => T
-type Constructee<C> = C extends Constructor<infer R> ? R : never
 type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
 export type ClaimTypeProp = keyof typeof CLAIM_TYPES_MAP
 
