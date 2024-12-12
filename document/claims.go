@@ -345,6 +345,7 @@ const (
 	AmountUnitCustom AmountUnit = iota
 	AmountUnitNone
 	AmountUnitRatio
+	AmountUnitLitre
 	AmountUnitKilogramPerKilogram
 	AmountUnitKilogram
 	AmountUnitKilogramPerCubicMetre
@@ -377,6 +378,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("1")
 	case AmountUnitRatio:
 		buffer.WriteString("/")
+	case AmountUnitLitre:
+		buffer.WriteString("l")
 	case AmountUnitKilogramPerKilogram:
 		buffer.WriteString("kg/kg")
 	case AmountUnitKilogram:
@@ -435,6 +438,8 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		*u = AmountUnitNone
 	case "/":
 		*u = AmountUnitRatio
+	case "l":
+		*u = AmountUnitLitre
 	case "kg/kg":
 		*u = AmountUnitKilogramPerKilogram
 	case "kg":

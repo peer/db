@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"html"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
@@ -109,42 +113,48 @@ type FoodUpdate struct {
 }
 
 type BrandedFood struct {
-	FoodClass                string          `json:"foodClass"`
-	Description              string          `json:"description"`
-	FoodNutrients            []FoodNutrient  `json:"foodNutrients"`
-	FoodAttributes           []FoodAttribute `json:"foodAttributes"`
-	ModifiedDate             string          `json:"modifiedDate"`
-	AvailableDate            string          `json:"availableDate"`
-	DiscontinuedDate         string          `json:"discontinuedDate,omitempty"`
-	MarketCountry            string          `json:"marketCountry"`
-	BrandOwner               string          `json:"brandOwner"`
-	BrandName                string          `json:"brandName,omitempty"`
-	SubbrandName             string          `json:"subbrandName,omitempty"`
-	GTIN                     string          `json:"gtinUpc"`
-	DataSource               string          `json:"dataSource"`
-	Ingredients              string          `json:"ingredients"`
-	ServingSize              float64         `json:"servingSize"`
-	ServingSizeUnit          string          `json:"servingSizeUnit"`
-	HouseholdServingFullText string          `json:"householdServingFullText"`
-	LabelNutrients           LabelNutrients  `json:"labelNutrients"`
-	PackageWeight            string          `json:"packageWeight,omitempty"`
-	TradeChannels            []string        `json:"tradeChannels"`
-	Microbes                 []Microbe       `json:"microbes"`
-	GPCClassCode             int             `json:"gpcClassCode,omitempty"`
-	PreparationStateCode     string          `json:"preparationStateCode,omitempty"`
-	ShortDescription         string          `json:"shortDescription,omitempty"`
-	CaffeineStatement        string          `json:"caffeineStatement,omitempty"`
-	BrandedFoodCategory      string          `json:"brandedFoodCategory"`
-	DataType                 string          `json:"dataType"`
-	FDCID                    int             `json:"fdcId"`
-	PublicationDate          string          `json:"publicationDate"`
-	FoodUpdateLog            []FoodUpdate    `json:"foodUpdateLog"`
+	FoodClass           string `json:"foodClass"` // Always "Branded".
+	DataType            string `json:"dataType"`  // Always "Branded".
+	DataSource          string `json:"dataSource"`
+	BrandedFoodCategory string `json:"brandedFoodCategory,omitempty"` // Can be an empty string.
+	GPCClassCode        int    `json:"gpcClassCode,omitempty"`
+
+	FDCID int    `json:"fdcId"`
+	GTIN  string `json:"gtinUpc"`
+
+	PublicationDate  string `json:"publicationDate"`
+	AvailableDate    string `json:"availableDate"`
+	ModifiedDate     string `json:"modifiedDate"`
+	DiscontinuedDate string `json:"discontinuedDate,omitempty"`
+
+	Description       string `json:"description"`
+	Ingredients       string `json:"ingredients,omitempty"`      // Can be an empty string.
+	ShortDescription  string `json:"shortDescription,omitempty"` // Can be an empty string.
+	CaffeineStatement string `json:"caffeineStatement,omitempty"`
+
+	MarketCountry string   `json:"marketCountry"`
+	TradeChannels []string `json:"tradeChannels"`
+	BrandOwner    string   `json:"brandOwner"`
+	BrandName     string   `json:"brandName,omitempty"`    // Can be an empty string.
+	SubbrandName  string   `json:"subbrandName,omitempty"` // Can be an empty string.
+
+	ServingSize              float64 `json:"servingSize"`
+	ServingSizeUnit          string  `json:"servingSizeUnit"`
+	HouseholdServingFullText string  `json:"householdServingFullText,omitempty"` // Can be an empty string.
+	PackageWeight            string  `json:"packageWeight,omitempty"`            // Can be an empty string.
+	PreparationStateCode     string  `json:"preparationStateCode,omitempty"`     // Can be an empty string.
+
+	FoodNutrients  []FoodNutrient  `json:"foodNutrients"`
+	FoodAttributes []FoodAttribute `json:"foodAttributes"`
+	LabelNutrients LabelNutrients  `json:"labelNutrients"`
+	Microbes       []Microbe       `json:"microbes"`
+	FoodUpdateLog  []FoodUpdate    `json:"foodUpdateLog"`
 }
 
 type Ingredient struct {
-	Name       string       `json:"name"`
-	Ingredient []Ingredient `json:"ingredients,omitempty"`
-	Meta       []string     `json:"meta,omitempty"`
+	Name        string       `json:"name"`
+	Ingredients []Ingredient `json:"ingredients,omitempty"`
+	Meta        []string     `json:"meta,omitempty"`
 }
 
 type Ingredients struct {
@@ -266,8 +276,359 @@ func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, error
 	return result, nil
 }
 
+func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (int, errors.E) {
+	var errE errors.E
+	for _, ingredient := range ingredients {
+		if s := strings.TrimSpace(ingredient.Name); s != "" {
+			errE = doc.Add(&document.StringClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", fdcid, "INGREDIENT", i),
+					Confidence: document.HighConfidence,
+				},
+				Prop:   document.GetCorePropertyReference("INGREDIENT"),
+				String: strings.ToLower(s),
+			})
+			if errE != nil {
+				return i, errE
+			}
+			i++
+		}
+
+		i, errE = addIngredients(doc, fdcid, i, ingredient.Ingredients)
+		if errE != nil {
+			return i, errE
+		}
+	}
+
+	return i, nil
+}
+
+func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
+	doc := document.D{ 
+		CoreDocument: document.CoreDocument{
+			ID:    document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID),
+			Score: document.LowConfidence,
+		},
+		Claims: &document.ClaimTypes{
+			Identifier: document.IdentifierClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "FDCID", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("FDCID"),
+					Value: strconv.Itoa(food.FDCID),
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "GTIN", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("GTIN"),
+					Value: food.GTIN,
+				},
+			},
+			Relation: document.RelationClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TYPE", 0, "BRANDED_FOOD", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("TYPE"),
+					To:   document.GetCorePropertyReference("BRANDED_FOOD"),
+				},
+			},
+			String: document.StringClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DATA_SOURCE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("DATA_SOURCE"),
+					String: food.DataSource,
+				},
+			},
+		},
+	}
+
+	if s := strings.TrimSpace(food.BrandedFoodCategory); s != "" {
+		errE := doc.Add(&document.StringClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "CATEGORY", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("CATEGORY"),
+			String: s,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.PublicationDate); s != "" {
+		t, err := time.Parse("1/2/2006", s)
+		if err != nil {
+			errE := errors.WithMessage(err, "error parsing publication date")
+			errors.Details(errE)["date"] = s
+			return doc, errE
+		}
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "PUBLICATION_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("PUBLICATION_DATE"),
+			Timestamp: document.Timestamp(t),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.AvailableDate); s != "" {
+		t, err := time.Parse("1/2/2006", s)
+		if err != nil {
+			errE := errors.WithMessage(err, "error parsing available date")
+			errors.Details(errE)["date"] = s
+			return doc, errE
+		}
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "AVAILABLE_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("AVAILABLE_DATE"),
+			Timestamp: document.Timestamp(t),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.ModifiedDate); s != "" {
+		t, err := time.Parse("1/2/2006", s)
+		if err != nil {
+			errE := errors.WithMessage(err, "error parsing modified date")
+			errors.Details(errE)["date"] = s
+			return doc, errE
+		}
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "MODIFIED_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("MODIFIED_DATE"),
+			Timestamp: document.Timestamp(t),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.DiscontinuedDate); s != "" {
+		t, err := time.Parse("1/2/2006", s)
+		if err != nil {
+			errE := errors.WithMessage(err, "error parsing discontinued date")
+			errors.Details(errE)["date"] = s
+			return doc, errE
+		}
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DISCONTINUED_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("DISCONTINUED_DATE"),
+			Timestamp: document.Timestamp(t),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.Description); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("DESCRIPTION"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.Ingredients); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "INGREDIENTS", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("INGREDIENTS"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.ShortDescription); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 1),
+				Confidence: document.MediumConfidence,
+			},
+			Prop: document.GetCorePropertyReference("DESCRIPTION"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.CaffeineStatement); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "CAFFEINE_STATEMENT", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("CAFFEINE_STATEMENT"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.MarketCountry); s != "" {
+		errE := doc.Add(&document.StringClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "MARKET_COUNTRY", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("MARKET_COUNTRY"),
+			String: s,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	for i, tradeChannel := range food.TradeChannels {
+		if s := strings.TrimSpace(tradeChannel); s != "" {
+			errE := doc.Add(&document.StringClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
+					Confidence: document.HighConfidence,
+				},
+				Prop:   document.GetCorePropertyReference("TRADE_CHANNEL"),
+				String: strings.ReplaceAll(strings.ToLower(s), "_", " "),
+			})
+			if errE != nil {
+				return doc, errE
+			}
+		}
+	}
+
+	if s := strings.TrimSpace(food.BrandOwner); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "BRAND_OWNER", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("BRAND_OWNER"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.BrandName); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "BRAND_NAME", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("BRAND_NAME"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(food.SubbrandName); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SUBBRAND_NAME", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("SUBBRAND_NAME"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	var unit document.AmountUnit
+	var factor float64
+	switch food.ServingSizeUnit {
+	case "g", "GM", "GRM", "MC", "IU", "MG": // Gram.
+		unit = document.AmountUnitKilogram
+		factor = 0.001
+	case "ml", "MLT": // Millilitre.
+		unit = document.AmountUnitLitre
+		factor = 0.001
+	default:
+		errE := errors.New("unsupported serving size unit")
+		errors.Details(errE)["unit"] = food.ServingSizeUnit
+		return doc, errE
+	}
+
+	errE := doc.Add(&document.AmountClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE", 0),
+			Confidence: document.HighConfidence,
+		},
+		Prop:   document.GetCorePropertyReference("SERVING_SIZE"),
+		Amount: factor * food.ServingSize,
+		Unit:   unit,
+	})
+	if errE != nil {
+		return doc, errE
+	}
+
+	if s := strings.TrimSpace(food.HouseholdServingFullText); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE_DESCRIPTION", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("SERVING_SIZE"),
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	_, errE = addIngredients(&doc, food.FDCID, 0, ingredients.Ingredients)
+	if errE != nil {
+		return doc, errE
+	}
+
+	return doc, nil
+}
+
 func index(config *Config) errors.E {
-	ctx, stop, httpClient, _, _, _, errE := es.Standalone( //nolint:dogsled
+	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
 		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
 	)
 	if errE != nil {
@@ -280,8 +641,42 @@ func index(config *Config) errors.E {
 		return errE
 	}
 
+	count := x.Counter(0)
+	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
+	ticker := x.NewTicker(ctx, &count, int64(len(document.CoreProperties))+int64(len(foods)), progressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			progress(ctx, p)
+		}
+	}()
+
+	errE = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index)
+	if errE != nil {
+		return errE
+	}
+
 	for _, food := range foods {
-		_, errE := getIngredients(config.IngredientsDir, food)
+		if ctx.Err() != nil {
+			break
+		}
+
+		ingredients, errE := getIngredients(config.IngredientsDir, food)
+		if errE != nil {
+			errors.Details(errE)["id"] = food.FDCID
+			return errE
+		}
+
+		doc, errE := makeDoc(food, ingredients)
+		if errE != nil {
+			errors.Details(errE)["id"] = food.FDCID
+			return errE
+		}
+
+		count.Increment()
+
+		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
+		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
 		if errE != nil {
 			errors.Details(errE)["id"] = food.FDCID
 			return errE
