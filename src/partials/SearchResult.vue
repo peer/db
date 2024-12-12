@@ -23,6 +23,9 @@ import {
   MEDIUM,
   NATIONALITY,
   GENDER,
+  CATEGORY,
+  INGREDIENTS,
+  NAME,
 } from "@/props"
 
 defineProps<{
@@ -36,7 +39,12 @@ const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(nul
 const docName = computed(() => getName(withDocument.value?.doc?.claims))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
-  return getBestClaimOfType(withDocument.value?.doc?.claims, "text", [DESCRIPTION, ORIGINAL_CATALOG_DESCRIPTION, TITLE])?.html.en || ""
+  const props = [INGREDIENTS, ORIGINAL_CATALOG_DESCRIPTION, TITLE]
+  if (getBestClaimOfType(withDocument.value?.doc?.claims, "text", NAME)) {
+    // If DESCRIPTION is not already used in getName, then we use it here.
+    props.push(DESCRIPTION)
+  }
+  return getBestClaimOfType(withDocument.value?.doc?.claims, "text", props)?.html.en || ""
 })
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
@@ -53,6 +61,7 @@ const tags = computed(() => {
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIA_TYPE).map((c) => ({ string: c.string })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", COPYRIGHT_STATUS).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", CATEGORY).map((c) => ({ string: c.string })),
   ]
 })
 const previewFiles = computed(() => {

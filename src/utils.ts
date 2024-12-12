@@ -6,7 +6,7 @@ import { toRaw, ref, readonly, watch } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { prng_alea } from "esm-seedrandom"
 import { fromDate, toDate, hour, minute, second } from "@/time"
-import { LIST, ORDER, NAME } from "@/props"
+import { LIST, ORDER, NAME, DESCRIPTION } from "@/props"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
@@ -163,12 +163,17 @@ export function getClaimsListsOfType<K extends keyof ClaimTypes>(
 }
 
 export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
-  const claim = getBestClaimOfType(claimTypes, "text", NAME)
-  if (!claim) {
-    return null
+  let claim = getBestClaimOfType(claimTypes, "text", NAME)
+  if (claim) {
+    return claim.html.en
   }
 
-  return claim.html.en
+  claim = getBestClaimOfType(claimTypes, "text", DESCRIPTION)
+  if (claim) {
+    return claim.html.en
+  }
+
+  return null
 }
 
 export function useLimitResults<Type>(
