@@ -51,7 +51,7 @@ project:
   # The default branch name. Type: string
   default_branch: main
   # Short project description. Type: string
-  description: A collaborative database.
+  description: A collaborative database. https://peerdb.org
   # Enable email notifications. Type: boolean
   emails_enabled: true
   # Enforce auth checks on uploads. Type: boolean
