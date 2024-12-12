@@ -521,16 +521,29 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 
 	for i, tradeChannel := range food.TradeChannels {
 		if s := strings.TrimSpace(tradeChannel); s != "" {
-			errE := doc.Add(&document.StringClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
-					Confidence: document.HighConfidence,
-				},
-				Prop:   document.GetCorePropertyReference("TRADE_CHANNEL"),
-				String: strings.ReplaceAll(strings.ToLower(s), "_", " "),
-			})
-			if errE != nil {
-				return doc, errE
+			if s == "NO_TRADE_CHANNEL" {
+				errE := doc.Add(&document.NoValueClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("TRADE_CHANNEL"),
+				})
+				if errE != nil {
+					return doc, errE
+				}
+			} else {
+				errE := doc.Add(&document.StringClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("TRADE_CHANNEL"),
+					String: strings.ReplaceAll(strings.ToLower(s), "_", " "),
+				})
+				if errE != nil {
+					return doc, errE
+				}
 			}
 		}
 	}
