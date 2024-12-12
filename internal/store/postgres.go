@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -45,7 +46,7 @@ var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknogloba
 }
 
 func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, errors.E) {
-	dbconfig, err := pgxpool.ParseConfig(databaseURI)
+	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -102,7 +103,7 @@ var _ elastic.Logger = (*loggerAdapter)(nil)
 
 func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
-		elastic.SetURL(url),
+		elastic.SetURL(strings.TrimSpace(url)),
 		elastic.SetHttpClient(httpClient),
 		elastic.SetErrorLog(loggerAdapter{logger, zerolog.ErrorLevel}),
 		// We use debug level here because logging at info level is too noisy.
