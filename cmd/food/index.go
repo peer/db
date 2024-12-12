@@ -303,8 +303,8 @@ func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (in
 	return i, nil
 }
 
-func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
-	doc := document.D{ 
+func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
+	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID),
 			Score: document.LowConfidence,
@@ -606,7 +606,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	}
 
 	if s := strings.TrimSpace(food.HouseholdServingFullText); s != "" {
-		errE := doc.Add(&document.TextClaim{
+		errE = doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE_DESCRIPTION", 0),
 				Confidence: document.HighConfidence,
