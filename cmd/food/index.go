@@ -267,7 +267,7 @@ func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, error
 }
 
 func index(config *Config) errors.E {
-	ctx, stop, httpClient, _, _, _, errE := es.Standalone(
+	ctx, stop, httpClient, _, _, _, errE := es.Standalone( //nolint:dogsled
 		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
 	)
 	if errE != nil {
