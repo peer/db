@@ -94,6 +94,22 @@ and configured with PeerDB mapping.
 If you already have such an index, proceed to run PeerDB, otherwise first
 [populate ElasticSearch with data](#populating-with-data).
 
+PeerDB requires a [PostgreSQL](https://www.postgresql.org/) database. Using Docker, you can run:
+
+```sh
+docker network create peerdb
+docker run -d --network peerdb --name pgsql -p 127.0.0.1:5432:5432 \
+ -e LOG_TO_STDOUT=1 -e PGSQL_ROLE_1_USERNAME=test -e PGSQL_ROLE_1_PASSWORD=test -e PGSQL_DB_1_NAME=test -e PGSQL_DB_1_OWNER=test \
+ registry.gitlab.com/tozd/docker/postgresql:16
+```
+
+Create also a file with PostgreSQL secret:
+
+```sh
+echo "postgres://test:test@127.0.0.1:5432/test" > .postgresql.secret
+export POSTGRES_URL_PATH=.postgresql.secret
+```
+
 Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
 keypair which is then used to create a TLS certificate. Use Go 1.23 or newer.
@@ -110,7 +126,8 @@ This creates two files, `localhost+2.pem` and `localhost+2-key.pem`, which you c
 ./peerdb -k localhost+2.pem -K localhost+2-key.pem
 ```
 
-When running using Docker, you have to provide them to the container through a volume, e.g.:
+When running using Docker, you have to provide them (and `.postgresql.secret` file)
+to the container through a volume, e.g.:
 
 ```sh
 docker run -d --network peerdb --name peerdb -p 8080:8080 -v "$(pwd):/data" \
