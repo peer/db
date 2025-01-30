@@ -132,7 +132,8 @@ to the container through a volume, e.g.:
 ```sh
 docker run -d --network peerdb --name peerdb -p 8080:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
- -k /data/localhost+2.pem -K /data/localhost+2-key.pem
+ -k /data/localhost+2.pem -K /data/localhost+2-key.pem \
+ -d /data/.postgresql.secret
 ```
 
 Open [https://localhost:8080/](https://localhost:8080/) in your browser to access the web interface.
