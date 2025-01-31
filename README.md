@@ -76,24 +76,6 @@ generated in the current directory as described above:
 
 ## Usage
 
-PeerDB requires an ElasticSearch instance. To run one locally you can use Docker:
-
-```sh
-docker network create peerdb
-docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
- -e network.bind_host=0.0.0.0 -e network.publish_host=elasticsearch -e ES_JAVA_OPTS="-Xmx1000m" \
- -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
- elasticsearch:7.16.3
-```
-
-Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
-The parameters above are primarily meant for development on a local machine.
-
-ElasticSearch instance needs to have an index with documents in PeerDB schema
-and configured with PeerDB mapping.
-If you already have such an index, proceed to run PeerDB, otherwise first
-[populate ElasticSearch with data](#populating-with-data).
-
 PeerDB requires a [PostgreSQL](https://www.postgresql.org/) database. Using Docker, you can run:
 
 ```sh
@@ -109,6 +91,23 @@ Create also a file with PostgreSQL secret:
 echo "postgres://test:test@127.0.0.1:5432/test" > .postgresql.secret
 export POSTGRES_URL_PATH=.postgresql.secret
 ```
+
+PeerDB requires an ElasticSearch instance. To run one locally you can use Docker:
+
+```sh
+docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
+ -e network.bind_host=0.0.0.0 -e network.publish_host=elasticsearch -e ES_JAVA_OPTS="-Xmx1000m" \
+ -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
+ elasticsearch:7.16.3
+```
+
+Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
+The parameters above are primarily meant for development on a local machine.
+
+ElasticSearch instance needs to have an index with documents in PeerDB schema
+and configured with PeerDB mapping.
+If you already have such an index, proceed to run PeerDB, otherwise first
+[populate ElasticSearch with data](#populating-with-data).
 
 Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
