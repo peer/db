@@ -7,7 +7,6 @@ import (
 
 const (
 	DefaultCacheDir = ".cache"
-	DefaultDataURL  = "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_branded_food_json_2024-04-18.zip"
 )
 
 //nolint:lll
@@ -29,10 +28,10 @@ type ElasticConfig struct {
 type Config struct {
 	zerolog.LoggingConfig
 
-	Version        kong.VersionFlag `                                                            help:"Show program's version and exit."                                                                                                                         short:"V"`
-	CacheDir       string           `default:"${defaultCacheDir}"                                help:"Where to cache files to. Default: ${defaultCacheDir}."                                            name:"cache"       placeholder:"DIR"                    short:"C" type:"path"`
-	Postgres       PostgresConfig   `                             embed:"" envprefix:"POSTGRES_"                                                                                                                                              prefix:"postgres."`
-	Elastic        ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                                                                               prefix:"elastic."`
-	DataURL        string           `default:"${defaultDataURL}"                                 help:"URL of FoodCentral dataset to use. It can be a local file path, too. Default: ${defaultDataURL}." name:"data"        placeholder:"URL"`
-	IngredientsDir string           `                                                            help:"Path to a directory with JSONs with parsed ingredients."                                          name:"ingredients" placeholder:"DIR"                              type:"path"`
+	Version  kong.VersionFlag `                                                            help:"Show program's version and exit."                                                                        short:"V"`
+	CacheDir string           `default:"${defaultCacheDir}"                                help:"Where to cache files to. Default: ${defaultCacheDir}." name:"cache" placeholder:"DIR"                    short:"C" type:"path"`
+	Postgres PostgresConfig   `                             embed:"" envprefix:"POSTGRES_"                                                                                             prefix:"postgres."`
+	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                              prefix:"elastic."`
+
+	FoodDataCentral FoodDataCentral `embed:"" prefix:"fooddatacentral."`
 }

@@ -11,11 +11,11 @@ import (
 func main() {
 	var config Config
 	cli.Run(&config, kong.Vars{
-		"defaultCacheDir": DefaultCacheDir,
-		"defaultElastic":  peerdb.DefaultElastic,
-		"defaultIndex":    peerdb.DefaultIndex,
-		"defaultSchema":   peerdb.DefaultSchema,
-		"defaultDataURL":  DefaultDataURL,
+		"defaultCacheDir":               DefaultCacheDir,
+		"defaultElastic":                peerdb.DefaultElastic,
+		"defaultIndex":                  peerdb.DefaultIndex,
+		"defaultSchema":                 peerdb.DefaultSchema,
+		"defaultFoodDataCentralDataURL": DefaultFoodDataCentralDataURL,
 	}, func(_ *kong.Context) errors.E {
 		return index(&config)
 	})
