@@ -5,7 +5,7 @@ import (
 )
 
 //nolint:gochecknoglobals
-var foodProperties = []struct {
+var productsProperties = []struct {
 	Name            string
 	ExtraNames      []string
 	DescriptionHTML string
@@ -128,5 +128,5 @@ var foodProperties = []struct {
 }
 
 func init() { //nolint:gochecknoinits
-	document.GenerateCoreProperties(foodProperties)
+	document.GenerateCoreProperties(productsProperties)
 }

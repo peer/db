@@ -31,7 +31,7 @@ const (
 )
 
 //nolint:gochecknoglobals
-var NameSpaceFood = uuid.MustParse("55945768-34e9-4584-9310-cf78602a4aa7")
+var NameSpaceProducts = uuid.MustParse("55945768-34e9-4584-9310-cf78602a4aa7")
 
 type Nutrient struct {
 	ID       int    `json:"id"`
@@ -283,7 +283,7 @@ func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (in
 		if s := strings.TrimSpace(ingredient.Name); s != "" {
 			errE = doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", fdcid, "INGREDIENT", i),
+					ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", fdcid, "INGREDIENT", i),
 					Confidence: document.HighConfidence,
 				},
 				Prop:   document.GetCorePropertyReference("INGREDIENT"),
@@ -307,14 +307,14 @@ func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (in
 func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
-			ID:    document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID),
+			ID:    document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID),
 			Score: document.LowConfidence,
 		},
 		Claims: &document.ClaimTypes{
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "FDCID", 0),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "FDCID", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("FDCID"),
@@ -322,7 +322,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "GTIN", 0),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "GTIN", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("GTIN"),
@@ -332,7 +332,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 			Relation: document.RelationClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TYPE", 0, "BRANDED_FOOD", 0),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "TYPE", 0, "BRANDED_FOOD", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("TYPE"),
@@ -342,7 +342,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 			String: document.StringClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DATA_SOURCE", 0),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "DATA_SOURCE", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("DATA_SOURCE"),
@@ -355,7 +355,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.BrandedFoodCategory); s != "" {
 		errE := doc.Add(&document.StringClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "CATEGORY", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "CATEGORY", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:   document.GetCorePropertyReference("CATEGORY"),
@@ -375,7 +375,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 		}
 		errE := doc.Add(&document.TimeClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "PUBLICATION_DATE", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "PUBLICATION_DATE", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:      document.GetCorePropertyReference("PUBLICATION_DATE"),
@@ -396,7 +396,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 		}
 		errE := doc.Add(&document.TimeClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "AVAILABLE_DATE", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "AVAILABLE_DATE", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:      document.GetCorePropertyReference("AVAILABLE_DATE"),
@@ -417,7 +417,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 		}
 		errE := doc.Add(&document.TimeClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "MODIFIED_DATE", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "MODIFIED_DATE", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:      document.GetCorePropertyReference("MODIFIED_DATE"),
@@ -438,7 +438,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 		}
 		errE := doc.Add(&document.TimeClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DISCONTINUED_DATE", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "DISCONTINUED_DATE", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:      document.GetCorePropertyReference("DISCONTINUED_DATE"),
@@ -453,7 +453,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.Description); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("DESCRIPTION"),
@@ -467,7 +467,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.Ingredients); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "INGREDIENTS", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "INGREDIENTS", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("INGREDIENTS"),
@@ -481,7 +481,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.ShortDescription); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 1),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "DESCRIPTION", 1),
 				Confidence: document.MediumConfidence,
 			},
 			Prop: document.GetCorePropertyReference("DESCRIPTION"),
@@ -495,7 +495,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.CaffeineStatement); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "CAFFEINE_STATEMENT", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "CAFFEINE_STATEMENT", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("CAFFEINE_STATEMENT"),
@@ -509,7 +509,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.MarketCountry); s != "" {
 		errE := doc.Add(&document.StringClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "MARKET_COUNTRY", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "MARKET_COUNTRY", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:   document.GetCorePropertyReference("MARKET_COUNTRY"),
@@ -525,7 +525,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 			if s == "NO_TRADE_CHANNEL" {
 				errE := doc.Add(&document.NoValueClaim{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
 						Confidence: document.HighConfidence,
 					},
 					Prop: document.GetCorePropertyReference("TRADE_CHANNEL"),
@@ -536,7 +536,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 			} else {
 				errE := doc.Add(&document.StringClaim{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
+						ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "TRADE_CHANNEL", i),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("TRADE_CHANNEL"),
@@ -552,7 +552,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.BrandOwner); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "BRAND_OWNER", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "BRAND_OWNER", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("BRAND_OWNER"),
@@ -566,7 +566,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.BrandName); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "BRAND_NAME", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "BRAND_NAME", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("BRAND_NAME"),
@@ -580,7 +580,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.SubbrandName); s != "" {
 		errE := doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SUBBRAND_NAME", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "SUBBRAND_NAME", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("SUBBRAND_NAME"),
@@ -608,7 +608,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 
 	errE := doc.Add(&document.AmountClaim{
 		CoreClaim: document.CoreClaim{
-			ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE", 0),
+			ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE", 0),
 			Confidence: document.HighConfidence,
 		},
 		Prop:   document.GetCorePropertyReference("SERVING_SIZE"),
@@ -622,7 +622,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 	if s := strings.TrimSpace(food.HouseholdServingFullText); s != "" {
 		errE = doc.Add(&document.TextClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceFood, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE_DESCRIPTION", 0),
+				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "SERVING_SIZE_DESCRIPTION", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.GetCorePropertyReference("SERVING_SIZE"),

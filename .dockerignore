@@ -37,7 +37,7 @@ codeclimate.json
 /wikipedia
 /mapping
 /moma
-/food
+/products
 *.pem
 /keys.txt
 *.env
