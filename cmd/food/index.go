@@ -163,6 +163,7 @@ type Ingredients struct {
 }
 
 func getPathAndURL(cacheDir, url string) (string, string) {
+	_ = os.MkdirAll(cacheDir, 0755)
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
 		return filepath.Join(cacheDir, path.Base(url)), url
