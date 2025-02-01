@@ -98,6 +98,7 @@ PeerDB requires an ElasticSearch instance. To run one locally you can use Docker
 docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
  -e network.bind_host=0.0.0.0 -e network.publish_host=elasticsearch -e ES_JAVA_OPTS="-Xmx1000m" \
  -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
+ -e "cluster.routing.allocation.disk.watermark.flood_stage=100%" \
  elasticsearch:7.16.3
 ```
 
