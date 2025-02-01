@@ -290,7 +290,7 @@ func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 }
 
 func getPathAndURL(cacheDir, url string) (string, string) {
-	_ = os.MkdirAll(cacheDir, 0o755)
+	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
 		return filepath.Join(cacheDir, path.Base(url)), url
