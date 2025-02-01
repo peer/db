@@ -22,7 +22,7 @@ variables:
 test_go:
   stage: test
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   services:
     - name: elasticsearch:7.16.3
@@ -75,7 +75,7 @@ test_go:
 test_node:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -103,7 +103,7 @@ test_node:
 lint_go:
   stage: test
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   before_script:
     - apk --update add make bash gcc musl-dev git git-lfs
@@ -122,7 +122,7 @@ lint_go:
 lint_node:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -135,7 +135,7 @@ lint_node:
 lint_vue:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -148,7 +148,7 @@ lint_vue:
 lint_style:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -161,7 +161,7 @@ lint_style:
 fmt_go:
   stage: test
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   before_script:
     - apk --update add make bash git gcc musl-dev grep git-lfs
@@ -175,7 +175,7 @@ fmt_go:
 fmt_node:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -189,7 +189,7 @@ fmt_node:
 lint_docs:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add make bash git git-lfs
@@ -201,7 +201,7 @@ lint_docs:
 audit_go:
   stage: test
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   before_script:
     - apk --update add make bash git gcc musl-dev git-lfs
@@ -214,7 +214,7 @@ audit_go:
 audit_node:
   stage: test
 
-  image: node:20.17-alpine3.19
+  image: node:20.17-alpine3.20
 
   before_script:
     - apk --update add git git-lfs
@@ -227,7 +227,7 @@ audit_node:
 commits:
   stage: test
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   variables:
     GIT_DEPTH: "0"
@@ -384,7 +384,7 @@ upload_binaries:
 publish:
   stage: deploy
 
-  image: golang:1.23-alpine3.19
+  image: golang:1.23.5-alpine3.20
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"

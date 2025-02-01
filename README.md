@@ -112,7 +112,7 @@ If you already have such an index, proceed to run PeerDB, otherwise first
 
 Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
-keypair which is then used to create a TLS certificate. Use Go 1.23 or newer.
+keypair which is then used to create a TLS certificate. Use Go 1.23.5 or newer.
 
 ```sh
 go install filippo.io/mkcert@latest
@@ -582,7 +582,7 @@ post into the following two PeerDB documents:
 
 To populate search with [The Museum of Modern Art](https://www.moma.org/) (MoMA)
 artists and artworks (from [this dataset](https://github.com/MuseumofModernArt/collection)),
-clone the repository and run (you need Go 1.23 or newer):
+clone the repository and run (you need Go 1.23.5 or newer):
 
 ```sh
 make moma
@@ -603,7 +603,7 @@ Fetching data from the website takes time, so runtime is around 12 hours.
 To populate search with [English Wikipedia](https://en.wikipedia.org/wiki/Main_Page)
 articles, [Wikimedia Commons](https://commons.wikimedia.org/wiki/Main_Page) files,
 and [Wikidata](https://www.wikidata.org/wiki/Wikidata:Main_Page) data,
-clone the repository and run (you need Go 1.23 or newer):
+clone the repository and run (you need Go 1.23.5 or newer):
 
 ```sh
 make wikipedia
@@ -710,7 +710,7 @@ the frontend as necessary.
 
 ### Backend
 
-The backend is implemented in [Go](https://golang.org/) (requires 1.23 or newer)
+The backend is implemented in [Go](https://golang.org/) (requires 1.23.5 or newer)
 and provides a HTTP2 API. Node 20 or newer is required as well.
 
 Then clone the repository and run:
