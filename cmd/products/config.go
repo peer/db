@@ -33,6 +33,7 @@ type Config struct {
 	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                      prefix:"elastic."`
 
 	FoodDataCentral     FoodDataCentral     `embed:"" prefix:"fooddatacentral."`
+	EPREL               EPREL               `embed:"" prefix:"eprel."`
 	Natureta            Natureta            `embed:"" prefix:"natureta."`
 	LjubljanskeMlekarne LjubljanskeMlekarne `embed:"" prefix:"ljubljanskemlekarne."`
 	Zito                Zito                `embed:"" prefix:"zito."`

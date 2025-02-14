@@ -47,6 +47,10 @@ func index(config *Config) errors.E {
 	})
 
 	g.Go(func() error {
+		return config.EPREL.Run(ctx, config, httpClient, store, progress)
+	})
+
+	g.Go(func() error {
 		return config.Natureta.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
 	})
 

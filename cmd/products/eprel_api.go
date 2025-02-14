@@ -1,0 +1,392 @@
+// eprel_api.go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"strconv"
+
+	"github.com/alecthomas/kong"
+	"github.com/hashicorp/go-retryablehttp"
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/store"
+	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
+)
+
+type EPREL struct {
+	Disabled bool                 `default:"false" help:"Do not import EPREL data. Default: false."`
+	APIKey   kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
+}
+
+type WasherDrierResponse struct {
+	Size int                  `json:"size"`
+	Hits []WasherDrierProduct `json:"hits"`
+}
+
+type WasherDrierProduct struct {
+	AllowEprelLabelGeneration bool           `json:"allowEprelLabelGeneration"`
+	Blocked                   bool           `json:"blocked"`
+	ContactDetails            ContactDetails `json:"contactDetails"`
+	ContactId                 float64        `json:"contactId"`
+	Cycles                    []Cycle        `json:"cycles"`
+
+	EcoLabel                   bool   `json:"ecoLabel"`
+	EcoLabelRegistrationNumber string `json:"ecoLabelRegistrationNumber"`
+
+	EnergyAnnualWash          float64 `json:"energyAnnualWash"`
+	EnergyAnnualWashAndDry    float64 `json:"energyAnnualWashAndDry"`
+	EnergyClass               string  `json:"energyClass"`
+	EnergyClassImage          string  `json:"energyClassImage"`
+	EnergyClassImageWithScale string  `json:"energyClassImageWithScale"`
+	EnergyClassRange          string  `json:"energyClassRange"`
+	EnergyLabelId             float64 `json:"energyLabelId"`
+
+	EprelRegistrationNumber string       `json:"eprelRegistrationNumber"`
+	ExportDateTS            float64      `json:"exportDateTS"`
+	FirstPublicationDate    []int        `json:"firstPublicationDate"`
+	FirstPublicationDateTS  float64      `json:"firstPublicationDateTS"`
+	FormType                string       `json:"formType"`
+	GeneratedLabels         *interface{} `json:"generatedLabels"`
+
+	ImplementingAct string  `json:"implementingAct"`
+	ImportedOn      float64 `json:"importedOn"`
+	LastVersion     bool    `json:"lastVersion"`
+	ModelIdentifier string  `json:"modelIdentifier"`
+
+	NoiseDry  float64 `json:"noiseDry"`
+	NoiseSpin float64 `json:"noiseSpin"`
+	NoiseWash float64 `json:"noiseWash"`
+
+	OnMarketEndDate          []int   `json:"onMarketEndDate"`
+	OnMarketEndDateTS        float64 `json:"onMarketEndDateTS"`
+	OnMarketFirstStartDate   []int   `json:"onMarketFirstStartDate"`
+	OnMarketFirstStartDateTS float64 `json:"onMarketFirstStartDateTS"`
+	OnMarketStartDate        []int   `json:"onMarketStartDate"`
+	OnMarketStartDateTS      float64 `json:"onMarketStartDateTS"`
+
+	OrgVerificationStatus string        `json:"orgVerificationStatus"`
+	Organisation          Organisation  `json:"organisation"`
+	OtherIdentifiers      []interface{} `json:"otherIdentifiers"`
+	PlacementCountries    []interface{} `json:"placementCountries"`
+
+	ProductGroup       string  `json:"productGroup"`
+	ProductModelCoreId float64 `json:"productModelCoreId"`
+	PublishedOnDate    []int   `json:"publishedOnDate"`
+	PublishedOnDateTS  float64 `json:"publishedOnDateTS"`
+
+	RegistrantNature            string       `json:"registrantNature"`
+	Status                      string       `json:"status"`
+	SupplierOrTrademark         string       `json:"supplierOrTrademark"`
+	TrademarkId                 float64      `json:"trademarkId"`
+	TrademarkOwner              *interface{} `json:"trademarkOwner"`
+	TrademarkVerificationStatus string       `json:"trademarkVerificationStatus"`
+
+	UploadedLabels []string `json:"uploadedLabels"`
+	VersionId      float64  `json:"versionId"`
+	VersionNumber  float64  `json:"versionNumber"`
+	VisibleToUkMsa bool     `json:"visibleToUkMsa"`
+
+	WaterAnnualWash       float64 `json:"waterAnnualWash"`
+	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
+}
+
+type ContactDetails struct {
+	AddressBloc          *string      `json:"addressBloc"`
+	City                 string       `json:"city"`
+	ContactByReferenceId *interface{} `json:"contactByReferenceId"`
+	ContactReference     string       `json:"contactReference"`
+	Country              string       `json:"country"`
+	DefaultContact       bool         `json:"defaultContact"`
+	Email                string       `json:"email"`
+	Id                   float64      `json:"id"`
+	Municipality         *string      `json:"municipality"`
+	OrderNumber          *string      `json:"orderNumber"`
+	Phone                string       `json:"phone"`
+	PostalCode           string       `json:"postalCode"`
+	Province             *string      `json:"province"`
+	ServiceName          string       `json:"serviceName"`
+	Status               string       `json:"status"`
+	Street               string       `json:"street"`
+	StreetNumber         string       `json:"streetNumber"`
+	WebSiteURL           *string      `json:"webSiteURL"`
+}
+
+type Cycle struct {
+	CapacityDry             float64 `json:"capacityDry"`
+	CapacityWash            float64 `json:"capacityWash"`
+	EnergyConsWash          float64 `json:"energyConsWash"`
+	EnergyConsWashAndDry    float64 `json:"energyConsWashAndDry"`
+	Id                      float64 `json:"id"`
+	OrderNumber             float64 `json:"orderNumber"`
+	OtherCycle              bool    `json:"otherCycle"`
+	OtherCycleLabel         *string `json:"otherCycleLabel"`
+	SpinMax                 float64 `json:"spinMax"`
+	WashTime                float64 `json:"washTime"`
+	WashingPerformanceClass string  `json:"washingPerformanceClass"`
+	WaterConsWD             float64 `json:"waterConsWD"`
+	WaterConsWash           float64 `json:"waterConsWash"`
+	WaterExtractionEff      float64 `json:"waterExtractionEff"`
+}
+
+type Organisation struct {
+	CloseDate         *string `json:"closeDate"`
+	CloseStatus       *string `json:"closeStatus"`
+	FirstName         *string `json:"firstName"`
+	IsClosed          bool    `json:"isClosed"`
+	LastName          *string `json:"lastName"`
+	OrganisationName  string  `json:"organisationName"`
+	OrganisationTitle string  `json:"organisationTitle"`
+	Website           *string `json:"website"`
+}
+
+func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]string, errors.E) {
+	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", "https://eprel.ec.europa.eu/api/product-groups", nil)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer resp.Body.Close()
+
+	var result []interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var urlCodes []string
+	for _, item := range result {
+		if m, ok := item.(map[string]interface{}); ok {
+			if code, ok := m["url_code"].(string); ok {
+				urlCodes = append(urlCodes, code)
+			}
+		}
+	}
+
+	return urlCodes, nil
+}
+
+func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiKey string) ([]WasherDrierProduct, errors.E) {
+	var allWasherDriers []WasherDrierProduct
+	limit := 100
+	page := 1
+
+	var totalSize int
+
+	for {
+		baseURL := "https://eprel.ec.europa.eu/api/products/washerdriers"
+		params := url.Values{}
+		params.Add("_limit", fmt.Sprintf("%d", limit))
+		params.Add("_page", fmt.Sprintf("%d", page))
+
+		url := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+		req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		req.Header.Set("x-api-key", apiKey)
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		defer resp.Body.Close()
+
+		var result WasherDrierResponse
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if len(result.Hits) == 0 {
+			break
+		}
+
+		if page == 1 {
+			totalSize = result.Size
+		}
+
+		allWasherDriers = append(allWasherDriers, result.Hits...)
+		page++
+	}
+
+	if len(allWasherDriers) != totalSize {
+		return nil, errors.Errorf("expected %d washer driers but got %d", totalSize, len(allWasherDriers))
+	}
+
+	return allWasherDriers, nil
+}
+
+func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
+	doc := document.D{
+		CoreDocument: document.CoreDocument{
+			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber),
+			Score: document.HighConfidence,
+		},
+		Claims: &document.ClaimTypes{
+			Identifier: document.IdentifierClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "EPREL_REGISTRATION_NUMBER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("EPREL_REGISTRATION_NUMBER"),
+					Value: washerDrier.EprelRegistrationNumber,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ModelIdentifier, "MODEL_IDENTIFIER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("MODEL_IDENTIFIER"),
+					Value: washerDrier.ModelIdentifier,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "CONTACT_ID", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("CONTACT_ID"),
+					Value: strconv.FormatFloat(washerDrier.ContactId, 'f', 0, 64),
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "ENERGY_LABEL_ID", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("ENERGY_LABEL_ID"),
+					Value: strconv.FormatFloat(washerDrier.EnergyLabelId, 'f', 0, 64),
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "EPREL_REGISTRATION_NUMBER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("EPREL_REGISTRATION_NUMBER"),
+					Value: washerDrier.EprelRegistrationNumber,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "MODEL_IDENTIFIER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:  document.GetCorePropertyReference("MODEL_IDENTIFIER"),
+					Value: washerDrier.ModelIdentifier,
+				},
+			},
+			String: document.StringClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EcoLabelRegistrationNumber, "ECOLABEL_REGISTRATION_NUMBER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ECOLABEL_REGISTRATION_NUMBER"),
+					String: washerDrier.EcoLabelRegistrationNumber,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClass, "ENERGY_CLASS", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
+					String: washerDrier.EnergyClass,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassImage, "ENERGY_CLASS_IMAGE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_IMAGE"),
+					String: washerDrier.EnergyClassImage,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassImageWithScale, "ENERGY_CLASS_IMAGE_WITH_SCALE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_IMAGE_WITH_SCALE"),
+					String: washerDrier.EnergyClassImageWithScale,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassRange, "ENERGY_CLASS_RANGE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_RANGE"),
+					String: washerDrier.EnergyClassRange,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyLabelId, "IMPLEMENTING_ACT", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("IMPLEMENTING_ACT"),
+					String: washerDrier.ImplementingAct,
+				},
+			},
+		},
+	}
+	return doc, nil
+}
+
+func (e EPREL) Run(
+	ctx context.Context,
+	config *Config,
+	httpClient *retryablehttp.Client,
+	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	progress func(ctx context.Context, p x.Progress),
+) errors.E {
+	if e.Disabled {
+		return nil
+	}
+
+	fmt.Println("Eprel Run function was called.")
+
+	apiKey := string(e.APIKey)
+
+	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
+	if errE != nil {
+		return errE
+	}
+
+	count := x.Counter(0)
+	ticker := x.NewTicker(ctx, &count, int64(len(washerDriers)), progressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			progress(ctx, p)
+		}
+	}()
+
+	for _, washerDrier := range washerDriers {
+		if ctx.Err() != nil {
+			break
+		}
+
+		doc, errE := makeWasherDrierDoc(washerDrier)
+		if errE != nil {
+			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
+			return errE
+		}
+
+		count.Increment()
+
+		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
+		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
+		if errE != nil {
+			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
+			return errE
+		}
+	}
+
+	return nil
+
+}
