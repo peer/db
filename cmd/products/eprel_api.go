@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-retryablehttp"
@@ -232,6 +234,30 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 			Score: document.HighConfidence,
 		},
 		Claims: &document.ClaimTypes{
+			Relation: document.RelationClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "TYPE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("TYPE"),
+					To:   document.GetCorePropertyReference("WASHER_DRIER"),
+				},
+			},
+			Text: document.TextClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "NAME", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("NAME"),
+					HTML: document.TranslatableHTMLString{
+						"en": html.EscapeString(fmt.Sprintf("%s %s",
+							strings.TrimSpace(washerDrier.SupplierOrTrademark),
+							strings.TrimSpace(washerDrier.ModelIdentifier))),
+					},
+				},
+			},
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
@@ -348,14 +374,26 @@ func (e EPREL) Run(
 		return nil
 	}
 
-	fmt.Println("Eprel Run function was called.")
+	// Fetch and check API key
+	apiKey := strings.TrimSpace(string(e.APIKey))
+	fmt.Printf("API Key length: %d\n", len(apiKey))
+	if apiKey == "" {
+		return errors.New("empty API key")
+	}
 
-	apiKey := string(e.APIKey)
+	// Check ElasticSearch config
+	config.Logger.Info().
+		Str("elastic_url", config.Elastic.URL).
+		Str("elastic_index", config.Elastic.Index).
+		Msg("ElasticSearch configuration")
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
 	if errE != nil {
+		fmt.Printf("Failed to get washer driers: %v\n", errE)
 		return errE
 	}
+
+	config.Logger.Info().Int("count", len(washerDriers)).Msg("Retrieved washer driers")
 
 	count := x.Counter(0)
 	ticker := x.NewTicker(ctx, &count, int64(len(washerDriers)), progressPrintRate)
@@ -366,14 +404,22 @@ func (e EPREL) Run(
 		}
 	}()
 
-	for _, washerDrier := range washerDriers {
+	for i, washerDrier := range washerDriers {
 		if ctx.Err() != nil {
+			config.Logger.Warn().Msg("Context canceled")
 			break
 		}
+
+		config.Logger.Debug().
+			Int("index", i).
+			Str("model", washerDrier.ModelIdentifier).
+			Msg("Processing washer drier")
 
 		doc, errE := makeWasherDrierDoc(washerDrier)
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
+			fmt.Println("ERROR 2")
+			fmt.Println(errE)
 			return errE
 		}
 
@@ -381,12 +427,17 @@ func (e EPREL) Run(
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
+
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
+			config.Logger.Error().
+				Err(errE).
+				Str("id", washerDrier.EprelRegistrationNumber).
+				Msg("Failed to save document")
 			return errE
 		}
 	}
-
+	config.Logger.Info().Msg("Completed EPREL data import")
 	return nil
 
 }

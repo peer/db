@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"os"
 	"sort"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/tozd/go/x"
 )
 
 func TestGetProductGroups(t *testing.T) {
@@ -189,12 +191,20 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		EnergyClassImageWithScale:  "A-Left-DarkGreen-WithAGScale.svg",
 		EnergyClassRange:           "A_G",
 		ImplementingAct:            "EC_96_60",
+		SupplierOrTrademark:        "LG Electronics Inc.",
 	}
 
 	doc, err := makeWasherDrierDoc(washerDrier)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Print document to inspect in console
+	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
+	if errE != nil {
+		t.Fatal(errE)
+	}
+	fmt.Printf("\nDocument structure:\n%s\n\n", string(prettyDoc))
 
 	tests := []struct {
 		name      string
@@ -203,6 +213,30 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		getValue  func(claim document.Claim) string
 		expected  string
 	}{
+		{
+			"Type",
+			"TYPE",
+			"relation",
+			func(c document.Claim) string {
+				rel := c.(*document.RelationClaim)
+				// We need to get the ID that this type points to
+				return rel.To.ID.String()
+			},
+			// This should match the ID generated for WASHER_DRIER property
+			document.GetCorePropertyID("WASHER_DRIER").String(),
+		},
+		{
+			"Name",
+			"NAME",
+			"text",
+			func(c document.Claim) string {
+				textClaim := c.(*document.TextClaim)
+				return textClaim.HTML["en"]
+			},
+			html.EscapeString(fmt.Sprintf("%s %s",
+				strings.TrimSpace(washerDrier.SupplierOrTrademark),
+				strings.TrimSpace(washerDrier.ModelIdentifier))),
+		},
 		{
 			"EPREL Registration Number",
 			"EPREL_REGISTRATION_NUMBER",
@@ -234,7 +268,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		{
 			"Ecolabel Registration Number",
 			"ECOLABEL_REGISTRATION_NUMBER",
-			"identifier",
+			"string",
 			func(c document.Claim) string { return c.(*document.StringClaim).String },
 			washerDrier.EcoLabelRegistrationNumber,
 		},
@@ -285,6 +319,25 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 
 			found := false
 			for _, claim := range claims {
+				// First verify the claim type
+				switch tt.claimType {
+				case "identifier":
+					if _, ok := claim.(*document.IdentifierClaim); !ok {
+						t.Errorf("expected identifier claim for property %s, got %T", tt.propName, claim)
+						continue
+					}
+				case "string":
+					if _, ok := claim.(*document.StringClaim); !ok {
+						t.Errorf("expected string claim for property %s, got %T", tt.propName, claim)
+						continue
+					}
+				case "relation":
+					if _, ok := claim.(*document.RelationClaim); !ok {
+						t.Errorf("expected relation claim for property %s, got %T", tt.propName, claim)
+						continue
+					}
+				}
+
 				value := tt.getValue(claim)
 				if value == tt.expected {
 					found = true

@@ -239,7 +239,12 @@ var productsProperties = []struct {
 	},
 
 	// EPREL specific properties here
-
+	{
+		"washer drier",
+		[]string{"washer dryer", "washer-dryer"},
+		"A document is about a washer drier product.",
+		[]string{`item`},
+	},
 	{ // skipped - bool  -- skipped in eprel_api.go
 		"allow eprel label generation",
 		nil,
