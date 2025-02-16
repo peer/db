@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/peerdb"
@@ -27,17 +28,58 @@ func index(config *Config) errors.E {
 	}
 	defer stop()
 
-	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
-
 	g, ctx := errgroup.WithContext(ctx)
 
+	indexingCount := x.NewCounter(0)
+	indexingSize := x.NewCounter(0)
+	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
+	ticker := x.NewTicker(ctx, indexingCount, indexingSize, progressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			progress(ctx, p)
+		}
+	}()
+
 	g.Go(func() error {
-		return peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index)
+		return peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index, indexingCount, indexingSize)
 	})
 
 	g.Go(func() error {
-		return config.FoodDataCentral.Run(ctx, config, httpClient, store, progress)
+		return config.FoodDataCentral.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
 	})
 
-	return errors.WithStack(g.Wait())
+	errE = errors.WithStack(g.Wait())
+	if errE != nil {
+		return errE
+	}
+
+	// We wait for everything to be indexed into ElasticSearch.
+	// TODO: Improve this to not have a busy wait.
+	for {
+		err := esProcessor.Flush()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		stats := esProcessor.Stats()
+		c := indexingCount.Count()
+		if c <= stats.Indexed {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	_, err := esClient.Refresh(config.Elastic.Index).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	stats := esProcessor.Stats()
+	config.Logger.Info().
+		Int64("count", indexingCount.Count()).
+		Int64("total", indexingSize.Count()).
+		Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
+		Msg("indexing done")
+
+	return nil
 }

@@ -1,13 +1,13 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
 	"html"
 	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -172,6 +172,7 @@ func getPathAndURL(cacheDir, url string) (string, string) {
 	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
+		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
 		return filepath.Join(cacheDir, path.Base(url)), url
 	}
 	return url, ""
@@ -183,69 +184,16 @@ func structName(name string) string {
 }
 
 func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
-	cachedPath, url := getPathAndURL(cacheDir, url)
-
-	var cachedReader io.Reader
-	var cachedSize int64
-
-	cachedFile, err := os.Open(cachedPath)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, errors.WithStack(err)
-		}
-		// File does not exists. Continue.
-	} else {
-		defer cachedFile.Close()
-		cachedReader = cachedFile
-		cachedSize, err = cachedFile.Seek(0, io.SeekEnd)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		_, err = cachedFile.Seek(0, io.SeekStart)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
+	reader, _, errE := cachedDownload(ctx, httpClient, logger, cacheDir, url)
+	if errE != nil {
+		return nil, errE
 	}
+	defer reader.Close()
 
-	if cachedReader == nil {
-		// File does not already exist. We download the file and optionally save it.
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		downloadReader, errE := x.NewRetryableResponse(httpClient, req)
-		if errE != nil {
-			return nil, errE
-		}
-		defer downloadReader.Close()
-		cachedSize = downloadReader.Size()
-		cachedFile, err := os.Create(cachedPath)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer func() {
-			info, err := os.Stat(cachedPath)
-			if err != nil || downloadReader.Size() != info.Size() {
-				// Incomplete file. Delete.
-				_ = os.Remove(cachedPath)
-			}
-		}()
-		defer cachedFile.Close()
-		cachedReader = io.TeeReader(downloadReader, cachedFile)
-	}
-
-	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", BrandedFood{}))+" download progress") //nolint:exhaustruct
-	countingReader := &x.CountingReader{Reader: cachedReader}
-	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
-	defer ticker.Stop()
-	go func() {
-		for p := range ticker.C {
-			progress(ctx, p)
-		}
-	}()
-
-	zipReader := zipstream.NewReader(countingReader)
-	for file, err := zipReader.Next(); !errors.Is(err, io.EOF); file, err = zipReader.Next() {
+	zipReader := zipstream.NewReader(reader)
+	var file *zip.FileHeader
+	var err error
+	for file, err = zipReader.Next(); err == nil; file, err = zipReader.Next() {
 		if file.Name == "brandedDownload.json" {
 			var result struct {
 				BrandedFoods []BrandedFood `json:"BrandedFoods"` //nolint:tagliatelle
@@ -259,7 +207,11 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 		}
 	}
 
-	return nil, errors.New(`"brandedDownload.json" file not found`)
+	if errors.Is(err, io.EOF) {
+		return nil, errors.New(`"brandedDownload.json" file not found`)
+	}
+
+	return nil, errors.WithStack(err)
 }
 
 func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, errors.E) {
@@ -650,7 +602,7 @@ func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) {
 func (f FoodDataCentral) Run(
 	ctx context.Context, config *Config, httpClient *retryablehttp.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	progress func(ctx context.Context, p x.Progress),
+	indexingCount, indexingSize *x.Counter,
 ) errors.E {
 	if f.Disabled {
 		return nil
@@ -661,8 +613,12 @@ func (f FoodDataCentral) Run(
 		return errE
 	}
 
+	description := structName(fmt.Sprintf("%T", BrandedFood{})) + " processing" //nolint:exhaustruct
+	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	indexingSize.Add(int64(len(foods)))
+
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, int64(len(foods)), progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(int64(len(foods))), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -688,6 +644,7 @@ func (f FoodDataCentral) Run(
 		}
 
 		count.Increment()
+		indexingCount.Increment()
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
@@ -696,6 +653,11 @@ func (f FoodDataCentral) Run(
 			return errE
 		}
 	}
+
+	config.Logger.Info().
+		Int64("count", count.Count()).
+		Int("total", len(foods)).
+		Msg(description + " done")
 
 	return nil
 }

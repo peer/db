@@ -229,7 +229,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 	})
 
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(0), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -399,7 +399,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 	})
 
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, 0, progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(0), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

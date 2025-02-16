@@ -13,6 +13,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
@@ -24,8 +25,12 @@ import (
 func SaveCoreProperties(
 	ctx context.Context, logger zerolog.Logger,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string,
+	esClient *elastic.Client, esProcessor *elastic.BulkProcessor, index string, indexingCount, indexingSize *x.Counter,
 ) errors.E {
+	if indexingSize != nil {
+		indexingSize.Add(int64(len(document.CoreProperties)))
+	}
+
 	for _, property := range document.CoreProperties {
 		if ctx.Err() != nil {
 			break
@@ -35,6 +40,10 @@ func SaveCoreProperties(
 		errE := InsertOrReplaceDocument(ctx, store, &property)
 		if errE != nil {
 			return errE
+		}
+
+		if indexingCount != nil {
+			indexingCount.Increment()
 		}
 	}
 
@@ -67,7 +76,7 @@ func (c *PopulateCommand) runIndex(
 		return errE
 	}
 
-	return SaveCoreProperties(ctx, logger, store, esClient, esProcessor, index)
+	return SaveCoreProperties(ctx, logger, store, esClient, esProcessor, index, nil, nil)
 }
 
 func (c *PopulateCommand) Run(globals *Globals) errors.E {

@@ -1,0 +1,243 @@
+package main
+
+import (
+	"context"
+	"io"
+	"io/fs"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/cockroachdb/field-eng-powertools/notify"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
+	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
+	"golang.org/x/sync/errgroup"
+)
+
+type downloadingReader struct {
+	Path string
+	URL  string
+	File *os.File
+
+	read       int64
+	size       int64
+	downloaded notify.Var[int64]
+	ctx        context.Context //nolint:containedctx
+	g          *errgroup.Group
+	cancel     context.CancelFunc
+	ticker     *x.Ticker
+}
+
+func (r *downloadingReader) Read(p []byte) (int, error) {
+	downloaded, updated := r.downloaded.Get()
+	for {
+		if r.size == downloaded {
+			// Once the file is fully downloaded, we can just call Read on the underlying file.
+			return r.File.Read(p) //nolint:wrapcheck
+		}
+
+		if r.read < downloaded {
+			// There should be something to read.
+			nr, err := r.File.Read(p)
+			r.read += int64(nr)
+			if err == io.EOF {
+				// See: https://github.com/golang/go/issues/39155
+				return nr, err //nolint:wrapcheck
+			}
+			return nr, errors.WithStack(err)
+		}
+
+		// We wait for more data to be downloaded.
+		select {
+		case <-updated:
+			downloaded, updated = r.downloaded.Get()
+		case <-r.ctx.Done():
+			err := r.ctx.Err()
+			if err == io.EOF { //nolint:errorlint
+				// See: https://github.com/golang/go/issues/39155
+				return 0, err //nolint:wrapcheck
+			}
+			return 0, errors.WithStack(err)
+		}
+	}
+}
+
+func (r *downloadingReader) Close() error {
+	defer func() {
+		if r.File != nil {
+			r.File.Close()
+		}
+	}()
+	defer func() {
+		if r.ticker != nil {
+			r.ticker.Stop()
+		}
+	}()
+	if r.g != nil {
+		r.cancel()
+		return r.g.Wait() //nolint:wrapcheck
+	}
+	return nil
+}
+
+func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger) (int64, errors.E) {
+	ctx, r.cancel = context.WithCancel(ctx)
+	r.g, r.ctx = errgroup.WithContext(ctx)
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
+	if err != nil {
+		r.File.Close()
+		_ = os.Remove(r.Path)
+		return 0, errors.WithStack(err)
+	}
+	httpResponseReader, errE := x.NewRetryableResponse(httpClient, req)
+	if errE != nil {
+		r.File.Close()
+		_ = os.Remove(r.Path)
+		return 0, errE
+	}
+	r.size = httpResponseReader.Size()
+
+	countingReader := &x.CountingReader{Reader: httpResponseReader}
+	r.ticker = x.NewTicker(ctx, countingReader, x.NewCounter(r.size), progressPrintRate)
+	go func() {
+		for p := range r.ticker.C {
+			logger.Info().Str("url", r.URL).
+				Int64("count", p.Count).
+				Int64("total", r.size).
+				Str("eta", p.Remaining().Truncate(time.Second).String()).
+				Msgf("downloading %0.2f%%", p.Percent())
+		}
+	}()
+
+	r.g.Go(func() error {
+		defer func() {
+			info, err := os.Stat(r.Path)
+			if err != nil || r.size != info.Size() {
+				// Incomplete file. Delete.
+				_ = os.Remove(r.Path)
+			}
+		}()
+		defer httpResponseReader.Close()
+
+		var written int64
+		var errE errors.E
+		buf := make([]byte, 32*1024) //nolint:mnd
+
+		for {
+			if ctx.Err() != nil {
+				errE = errors.WithStack(ctx.Err())
+				break
+			}
+
+			nr, er := httpResponseReader.Read(buf)
+			if nr > 0 {
+				nw, ew := r.File.Write(buf[0:nr])
+				if nw < 0 || nr < nw {
+					nw = 0
+					if ew == nil {
+						ew = errors.New("invalid write result")
+					}
+				}
+				written += int64(nw)
+				r.downloaded.Set(written)
+				if ew != nil {
+					errE = errors.WithStack(ew)
+					break
+				}
+				if nr != nw {
+					errE = errors.New("short write")
+					break
+				}
+			}
+			if er != nil {
+				if !errors.Is(er, io.EOF) {
+					errE = errors.WithStack(er)
+				}
+				break
+			}
+		}
+
+		if errE != nil {
+			logger.Error().Str("url", r.URL).
+				Err(errE).
+				Msg("error downloading")
+			return errE
+		}
+
+		logger.Info().Str("url", r.URL).
+			Int64("count", written).
+			Int64("total", r.size).
+			Msg("downloading done")
+
+		return nil
+	})
+
+	return r.size, nil
+}
+
+// cachedDownload downloads the file from the URL to the cache directory and returns a reader for
+// the cached file.
+//
+// The returned reader can be read from while download is in progress and the file is being written.
+//
+// It should be used only once at a time for a given URL, otherwise the file might be incomplete.
+func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
+	// If url points to a local file, cachedPath is set to url.
+	cachedPath, url := getPathAndURL(cacheDir, url)
+
+	// The try to create the cached file.
+	// We open it in the append mode so that writing always appends
+	// to it while reading keeps its own position.
+	cachedFile, err := os.OpenFile(cachedPath, os.O_RDWR|os.O_CREATE|os.O_EXCL|os.O_APPEND, 0o644) //nolint:mnd
+	if err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			// The simple code path: the cached file already exist.
+			// We open it for reading and return it. We do not attempt to resume downloading
+			// because we assume that the file has already been fully downloaded. We are using
+			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
+			// attempt to delete the file if it has not been downloaded fully for any reason.
+			// TODO: But it might be that the file exists because it is being downloaded in parallel so this would return incomplete file.
+			cachedFile, err = os.Open(cachedPath)
+			if err != nil {
+				return nil, 0, errors.WithStack(err)
+			}
+
+			// Determining the size of the cached file.
+			cachedSize, err := cachedFile.Seek(0, io.SeekEnd) //nolint:govet
+			if err != nil {
+				return nil, 0, errors.WithStack(err)
+			}
+			_, err = cachedFile.Seek(0, io.SeekStart)
+			if err != nil {
+				return nil, 0, errors.WithStack(err)
+			}
+
+			return cachedFile, cachedSize, nil
+		}
+
+		return nil, 0, errors.WithStack(err)
+	}
+
+	reader := &downloadingReader{
+		Path:       cachedPath,
+		URL:        url,
+		File:       cachedFile,
+		read:       0,
+		size:       0,
+		downloaded: *notify.VarOf[int64](0),
+		ctx:        nil,
+		g:          nil,
+		cancel:     nil,
+		ticker:     nil,
+	}
+
+	size, errE := reader.Start(ctx, httpClient, logger)
+	if errE != nil {
+		return nil, 0, errE
+	}
+
+	return reader, size, nil
+}

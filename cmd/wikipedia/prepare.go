@@ -63,7 +63,7 @@ func (c *PrepareCommand) saveCoreProperties(
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	esClient *elastic.Client, esProcessor *elastic.BulkProcessor,
 ) errors.E {
-	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Elastic.Index)
+	return peerdb.SaveCoreProperties(ctx, globals.Logger, store, esClient, esProcessor, globals.Elastic.Index, nil, nil)
 }
 
 func (c *PrepareCommand) updateEmbeddedDocuments(
@@ -83,7 +83,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	count := x.Counter(0)
 	progress := es.Progress(globals.Logger, nil, cache, nil, "")
-	ticker := x.NewTicker(ctx, &count, total, progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(total), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

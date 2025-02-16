@@ -357,7 +357,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 
 	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", *new(T)))+" download progress")
 	countingReader := &x.CountingReader{Reader: cachedReader}
-	ticker := x.NewTicker(ctx, countingReader, cachedSize, progressPrintRate)
+	ticker := x.NewTicker(ctx, countingReader, x.NewCounter(cachedSize), progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -440,9 +440,10 @@ func index(config *Config) errors.E { //nolint:maintidx
 		return errE
 	}
 
-	count := x.Counter(0)
+	count := x.NewCounter(0)
+	size := x.NewCounter(int64(len(artists)) + int64(len(artworks)))
 	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
-	ticker := x.NewTicker(ctx, &count, int64(len(document.CoreProperties))+int64(len(artists))+int64(len(artworks)), progressPrintRate)
+	ticker := x.NewTicker(ctx, count, size, progressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -450,7 +451,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 	}()
 
-	errE = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index)
+	errE = peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index, count, size)
 	if errE != nil {
 		return errE
 	}
@@ -1138,6 +1139,18 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 		time.Sleep(time.Second)
 	}
+
+	_, err := esClient.Refresh(config.Elastic.Index).Do(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	stats := esProcessor.Stats()
+	config.Logger.Info().
+		Int64("count", count.Count()).
+		Int64("total", size.Count()).
+		Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
+		Msg("indexing done")
 
 	return nil
 }
