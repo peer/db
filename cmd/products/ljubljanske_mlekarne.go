@@ -37,6 +37,11 @@ type LjubljanskeMlekarneProduct struct {
 }
 
 func makeLjubljanskeMlekarneDoc(product LjubljanskeMlekarneProduct, productURL string) (document.D, errors.E) {
+	name := strings.TrimSpace(product.Title)
+	if name == "" {
+		return document.D{}, errors.New("empty title")
+	}
+
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			// TODO: Use some better ID for these products and not URL.
@@ -63,7 +68,7 @@ func makeLjubljanskeMlekarneDoc(product LjubljanskeMlekarneProduct, productURL s
 					Prop: document.GetCorePropertyReference("NAME"),
 					HTML: document.TranslatableHTMLString{
 						// TODO: Flag as Slovenian language.
-						"en": html.EscapeString(product.Title),
+						"en": html.EscapeString(name),
 					},
 				},
 				{

@@ -48,6 +48,11 @@ type NaturetaProduct struct {
 }
 
 func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, errors.E) {
+	name := strings.TrimSpace(product.Name)
+	if name == "" {
+		return document.D{}, errors.New("empty name")
+	}
+
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			// TODO: Use some better ID for these products and not URL.
@@ -74,7 +79,7 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 					Prop: document.GetCorePropertyReference("NAME"),
 					HTML: document.TranslatableHTMLString{
 						// TODO: Flag as Slovenian language.
-						"en": html.EscapeString(product.Name),
+						"en": html.EscapeString(name),
 					},
 				},
 				{
