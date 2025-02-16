@@ -111,11 +111,13 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 	r.ticker = x.NewTicker(ctx, countingReader, x.NewCounter(r.size), progressPrintRate)
 	go func() {
 		for p := range r.ticker.C {
-			logger.Info().Str("url", r.URL).
+			logger.Info().
 				Int64("count", p.Count).
 				Int64("total", r.size).
-				Str("eta", p.Remaining().Truncate(time.Second).String()).
-				Msgf("downloading %0.2f%%", p.Percent())
+				Dur("eta", p.Remaining().Truncate(time.Second)).
+				Float64("%", p.Percent()).
+				Str("url", r.URL).
+				Msg("downloading")
 		}
 	}()
 
@@ -127,6 +129,8 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 				_ = os.Remove(r.Path)
 			}
 		}()
+		defer r.WriteFile.Close()
+		defer r.ticker.Stop()
 		defer httpResponseReader.Close()
 
 		var written int64

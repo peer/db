@@ -301,21 +301,22 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 		description = "progress"
 	}
 	return func(_ context.Context, p x.Progress) {
-		e := logger.Info()
+		e := logger.Info().
+			Int64("count", p.Count).
+			Int64("total", p.Size).
+			Dur("eta", p.Remaining().Truncate(time.Second)).
+			Float64("%", p.Percent())
 		if esProcessor != nil {
 			stats := esProcessor.Stats()
 			e = e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
 		}
-		e = e.Int64("count", p.Count)
-		e = e.Int64("total", p.Size)
 		if cache != nil {
 			e = e.Uint64("cacheMiss", cache.MissCount())
 		}
-		e = e.Str("eta", p.Remaining().Truncate(time.Second).String())
 		if skipped != nil {
 			e = e.Int64("skipped", atomic.LoadInt64(skipped))
 		}
-		e.Msgf("%s %0.2f%%", description, p.Percent())
+		e.Msg(description)
 	}
 }
 
