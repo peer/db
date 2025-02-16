@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"html"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
+	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/indexer"
@@ -35,12 +37,127 @@ type NaturetaProductDetail struct {
 	Value string `pagser:".detail->text()"`
 }
 
+// TODO: Use HTML for description (product pages have some limited HTML in descriptions) and sanitize it.
+
 type NaturetaProduct struct {
 	Name        string                  `pagser:".product-single .product-cover h1->text()"`
 	Details     []NaturetaProductDetail `pagser:".product-single .product-cover .infos .info"`
 	Description string                  `pagser:".product-single .product-cover .description->text()"`
 	Category    string                  `pagser:".product-single .product-cover .category->text()"`
 	Ingredients string                  `pagser:".product-single .ingredients-text .ingredients-text--wrapper p->text()"`
+}
+
+func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, errors.E) {
+	doc := document.D{
+		CoreDocument: document.CoreDocument{
+			// TODO: Use some better ID for these products and not URL.
+			ID:    document.GetID(NameSpaceProducts, "NATURETA", productURL),
+			Score: document.LowConfidence,
+		},
+		Claims: &document.ClaimTypes{
+			Text: document.TextClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "NAME", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("NAME"),
+					HTML: document.TranslatableHTMLString{
+						// TODO: Flag as Slovenian language.
+						"en": html.EscapeString(product.Name),
+					},
+				},
+			},
+		},
+	}
+
+	if s := strings.TrimSpace(product.Description); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "DESCRIPTION", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("DESCRIPTION"),
+			// TODO: Flag as Slovenian language.
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(product.Ingredients); s != "" {
+		errE := doc.Add(&document.TextClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "INGREDIENTS", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop: document.GetCorePropertyReference("INGREDIENTS"),
+			// TODO: Flag as Slovenian language.
+			HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if s := strings.TrimSpace(product.Category); s != "" {
+		// TODO: Should this be a text claim? Or a relation claim
+		errE := doc.Add(&document.StringClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "CATEGORY", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("CATEGORY"),
+			String: s,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	for _, detail := range product.Details {
+		if s := strings.TrimSpace(detail.Value); s != "" {
+			switch detail.Name {
+			case "":
+				continue
+			case "Gramatura:":
+				// TODO: Parse into amount based claim.
+				errE := doc.Add(&document.TextClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_DESCRIPTION", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("PACKAGING_DESCRIPTION"),
+					// TODO: Flag as Slovenian language.
+					HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+				})
+				if errE != nil {
+					return doc, errE
+				}
+			case "Pakiranje:":
+				// TODO: Parse into amount based claim.
+				errE := doc.Add(&document.TextClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_DESCRIPTION", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("PACKAGING_DESCRIPTION"),
+					// TODO: Flag as Slovenian language.
+					HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
+				})
+				if errE != nil {
+					return doc, errE
+				}
+			default:
+				errE := errors.New("unsupported detail")
+				errors.Details(errE)["detail"] = detail.Name
+				return doc, errE
+			}
+		}
+	}
+
+	return doc, nil
 }
 
 func (n Natureta) Run(
@@ -61,6 +178,10 @@ func (n Natureta) Run(
 	products.Append(naturetaMain.Products...)
 
 	for _, categoryURL := range naturetaMain.Categories {
+		if ctx.Err() != nil {
+			break
+		}
+
 		// We already processed the main category.
 		if categoryURL == mainNaturetaURL {
 			continue
@@ -89,19 +210,30 @@ func (n Natureta) Run(
 
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
 	for _, productURL := range products.ToSlice() {
+		if ctx.Err() != nil {
+			break
+		}
+
 		naturetaProduct, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL)
 		if errE != nil {
 			return errE
 		}
 
-		for _, detail := range naturetaProduct.Details {
-			if detail.Name == "" {
-				continue
-			}
+		doc, errE := makeNaturetaDoc(naturetaProduct, productURL)
+		if errE != nil {
+			errors.Details(errE)["url"] = productURL
+			return errE
 		}
 
 		count.Increment()
 		indexingCount.Increment()
+
+		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
+		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
+		if errE != nil {
+			errors.Details(errE)["url"] = productURL
+			return errE
+		}
 	}
 
 	config.Logger.Info().

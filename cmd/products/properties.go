@@ -123,7 +123,13 @@ var productsProperties = []struct {
 		"serving size description",
 		nil,
 		`A description of suggested serving seize of a branded food product.`,
-		[]string{`"amount" claim type`},
+		[]string{`"text" claim type`},
+	},
+	{
+		"packaging description",
+		nil,
+		`A description of packaging of a branded food product.`,
+		[]string{`"text" claim type`},
 	},
 }
 

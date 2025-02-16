@@ -8,6 +8,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"golang.org/x/sync/errgroup"
 
+	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/indexer"
 )
@@ -37,9 +38,9 @@ func index(config *Config) errors.E {
 		}
 	}()
 
-	// g.Go(func() error {
-	// 	return peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index, indexingCount, indexingSize)
-	// })
+	g.Go(func() error {
+		return peerdb.SaveCoreProperties(ctx, config.Logger, store, esClient, esProcessor, config.Elastic.Index, indexingCount, indexingSize)
+	})
 
 	g.Go(func() error {
 		return config.FoodDataCentral.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
