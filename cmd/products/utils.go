@@ -17,13 +17,14 @@ import (
 )
 
 type downloadingReader struct {
-	Path string
-	URL  string
-	File *os.File
+	Path      string
+	URL       string
+	WriteFile *os.File
+	ReadFile  *os.File
 
 	read       int64
 	size       int64
-	downloaded notify.Var[int64]
+	downloaded *notify.Var[int64]
 	ctx        context.Context //nolint:containedctx
 	g          *errgroup.Group
 	cancel     context.CancelFunc
@@ -35,14 +36,17 @@ func (r *downloadingReader) Read(p []byte) (int, error) {
 	for {
 		if r.size == downloaded {
 			// Once the file is fully downloaded, we can just call Read on the underlying file.
-			return r.File.Read(p) //nolint:wrapcheck
+			return r.ReadFile.Read(p) //nolint:wrapcheck
 		}
 
 		if r.read < downloaded {
 			// There should be something to read.
-			nr, err := r.File.Read(p)
+			nr, err := r.ReadFile.Read(p)
 			r.read += int64(nr)
 			if err == io.EOF {
+				if nr > 0 {
+					return nr, nil
+				}
 				// See: https://github.com/golang/go/issues/39155
 				return nr, err //nolint:wrapcheck
 			}
@@ -66,11 +70,12 @@ func (r *downloadingReader) Read(p []byte) (int, error) {
 
 func (r *downloadingReader) Close() error {
 	defer func() {
-		if r.File != nil {
-			r.File.Close()
+		if r.WriteFile != nil {
+			r.WriteFile.Close()
 		}
-	}()
-	defer func() {
+		if r.ReadFile != nil {
+			r.ReadFile.Close()
+		}
 		if r.ticker != nil {
 			r.ticker.Stop()
 		}
@@ -88,13 +93,15 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
 	if err != nil {
-		r.File.Close()
+		r.WriteFile.Close()
+		r.ReadFile.Close()
 		_ = os.Remove(r.Path)
 		return 0, errors.WithStack(err)
 	}
 	httpResponseReader, errE := x.NewRetryableResponse(httpClient, req)
 	if errE != nil {
-		r.File.Close()
+		r.WriteFile.Close()
+		r.ReadFile.Close()
 		_ = os.Remove(r.Path)
 		return 0, errE
 	}
@@ -134,7 +141,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 
 			nr, er := httpResponseReader.Read(buf)
 			if nr > 0 {
-				nw, ew := r.File.Write(buf[0:nr])
+				nw, ew := r.WriteFile.Write(buf[0:nr])
 				if nw < 0 || nr < nw {
 					nw = 0
 					if ew == nil {
@@ -189,9 +196,7 @@ func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 	cachedPath, url := getPathAndURL(cacheDir, url)
 
 	// The try to create the cached file.
-	// We open it in the append mode so that writing always appends
-	// to it while reading keeps its own position.
-	cachedFile, err := os.OpenFile(cachedPath, os.O_RDWR|os.O_CREATE|os.O_EXCL|os.O_APPEND, 0o644) //nolint:mnd
+	cachedWriteFile, err := os.OpenFile(cachedPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			// The simple code path: the cached file already exist.
@@ -200,34 +205,42 @@ func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
 			// attempt to delete the file if it has not been downloaded fully for any reason.
 			// TODO: But it might be that the file exists because it is being downloaded in parallel so this would return incomplete file.
-			cachedFile, err = os.Open(cachedPath)
+			cachedReadFile, err := os.Open(cachedPath) //nolint:govet
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}
 
 			// Determining the size of the cached file.
-			cachedSize, err := cachedFile.Seek(0, io.SeekEnd) //nolint:govet
+			cachedSize, err := cachedReadFile.Seek(0, io.SeekEnd)
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}
-			_, err = cachedFile.Seek(0, io.SeekStart)
+			_, err = cachedReadFile.Seek(0, io.SeekStart)
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}
 
-			return cachedFile, cachedSize, nil
+			return cachedReadFile, cachedSize, nil
 		}
 
+		return nil, 0, errors.WithStack(err)
+	}
+
+	cachedReadFile, err := os.Open(cachedPath) //nolint:govet
+	if err != nil {
+		cachedWriteFile.Close()
+		_ = os.Remove(cachedPath)
 		return nil, 0, errors.WithStack(err)
 	}
 
 	reader := &downloadingReader{
 		Path:       cachedPath,
 		URL:        url,
-		File:       cachedFile,
+		WriteFile:  cachedWriteFile,
+		ReadFile:   cachedReadFile,
 		read:       0,
 		size:       0,
-		downloaded: *notify.VarOf[int64](0),
+		downloaded: notify.VarOf[int64](0),
 		ctx:        nil,
 		g:          nil,
 		cancel:     nil,
