@@ -36,4 +36,5 @@ type Config struct {
 	FoodDataCentral     FoodDataCentral     `embed:"" prefix:"fooddatacentral."`
 	Natureta            Natureta            `embed:"" prefix:"natureta."`
 	LjubljanskeMlekarne LjubljanskeMlekarne `embed:"" prefix:"ljubljanskemlekarne."`
+	Zito                Zito                `embed:"" prefix:"zito."`
 }

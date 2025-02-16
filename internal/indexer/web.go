@@ -12,16 +12,60 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/temoto/robotstxt"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 )
+
+type SchemaOrg struct {
+	Type        string `json:"@type"`
+	Name        string `json:"name"`
+	Image       string `json:"image"`
+	ID          string `json:"identifier"`
+	SKU         string `json:"sku"`
+	Brand       string `json:"brand"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	MPN         string `json:"mpn"`
+}
 
 func pagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
 	return node.Length() > 0, nil
 }
 
+func pagserClass(node *goquery.Selection, args ...string) (interface{}, error) {
+	classPrefix := ""
+	if len(args) > 0 {
+		classPrefix = args[0]
+	}
+
+	list := strings.Split(node.AttrOr("class", ""), " ")
+	for _, v := range list {
+		v = strings.TrimSpace(v)
+		if v != "" && strings.HasPrefix(v, classPrefix) {
+			return strings.TrimPrefix(v, classPrefix), nil
+		}
+	}
+
+	return "", nil
+}
+
+func pagserSchemaOrg(node *goquery.Selection, _ ...string) (interface{}, error) {
+	var s SchemaOrg
+	errE := x.Unmarshal([]byte(node.Text()), &s)
+	if errE != nil {
+		return nil, errE
+	}
+	return s, nil
+}
+
 func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
-	p := pagser.New()
+	config := pagser.DefaultConfig()
+	config.CastError = true
+	p, _ := pagser.NewWithConfig(config)
 
 	p.RegisterFunc("exists", pagserExists)
+	p.RegisterFunc("schemaOrg", pagserSchemaOrg)
+	p.RegisterFunc("class", pagserClass)
 
 	var data T
 	err := p.ParseReader(&data, in)
