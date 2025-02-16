@@ -139,7 +139,10 @@ func (n LjubljanskeMlekarne) Run(
 	products, errE := indexer.GetWebData[mapset.Set[string]](ctx, httpClient, mainLjubljanskeSitemapURL, func(in io.Reader) (mapset.Set[string], errors.E) {
 		ps := mapset.NewThreadUnsafeSet[string]()
 		err := sitemap.Parse(in, func(entry sitemap.Entry) error {
-			ps.Add(entry.GetLocation())
+			loc := entry.GetLocation()
+			if strings.HasPrefix(loc, "https://www.l-m.si/produkti/") {
+				ps.Add(loc)
+			}
 			return nil
 		})
 		if err != nil {
