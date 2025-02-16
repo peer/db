@@ -139,7 +139,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 				break
 			}
 
-			nr, er := httpResponseReader.Read(buf)
+			nr, er := countingReader.Read(buf)
 			if nr > 0 {
 				nw, ew := r.WriteFile.Write(buf[0:nr])
 				if nw < 0 || nr < nw {
