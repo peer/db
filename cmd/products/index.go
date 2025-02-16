@@ -20,7 +20,7 @@ const (
 var NameSpaceProducts = uuid.MustParse("55945768-34e9-4584-9310-cf78602a4aa7")
 
 func index(config *Config) errors.E {
-	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
+	mainCtx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
 		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
 	)
 	if errE != nil {
@@ -28,7 +28,7 @@ func index(config *Config) errors.E {
 	}
 	defer stop()
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, ctx := errgroup.WithContext(mainCtx)
 
 	indexingCount := x.NewCounter(0)
 	indexingSize := x.NewCounter(0)
@@ -69,7 +69,7 @@ func index(config *Config) errors.E {
 		time.Sleep(time.Second)
 	}
 
-	_, err := esClient.Refresh(config.Elastic.Index).Do(ctx)
+	_, err := esClient.Refresh(config.Elastic.Index).Do(mainCtx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
