@@ -118,7 +118,7 @@ type FoodUpdate struct {
 	PublicationDate string          `json:"publicationDate"`
 }
 
-type BrandedFood struct {
+type FoodDataCentralBrandedFood struct {
 	FoodClass           string `json:"foodClass"` // Always "Branded".
 	DataType            string `json:"dataType"`  // Always "Branded".
 	DataSource          string `json:"dataSource"`
@@ -168,7 +168,7 @@ type Ingredients struct {
 	Meta        []string     `json:"meta,omitempty"`
 }
 
-func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
+func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]FoodDataCentralBrandedFood, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE
@@ -181,7 +181,7 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 	for file, err = zipReader.Next(); err == nil; file, err = zipReader.Next() {
 		if file.Name == "brandedDownload.json" {
 			var result struct {
-				BrandedFoods []BrandedFood `json:"BrandedFoods"` //nolint:tagliatelle
+				BrandedFoods []FoodDataCentralBrandedFood `json:"BrandedFoods"` //nolint:tagliatelle
 			}
 			// TODO: We should stream results as they are downloaded/decompressed/decoded like go-mediawiki package does.
 			errE := x.DecodeJSONWithoutUnknownFields(zipReader, &result)
@@ -199,7 +199,7 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 	return nil, errors.WithStack(err)
 }
 
-func getIngredients(ingredientsDir string, food BrandedFood) (Ingredients, errors.E) {
+func getIngredients(ingredientsDir string, food FoodDataCentralBrandedFood) (Ingredients, errors.E) {
 	if ingredientsDir == "" {
 		return Ingredients{}, nil //nolint:exhaustruct
 	}
@@ -247,7 +247,7 @@ func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (in
 	return i, nil
 }
 
-func makeFoodDataCentralDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
+func makeFoodDataCentralDoc(food FoodDataCentralBrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID),
@@ -599,7 +599,7 @@ func (f FoodDataCentral) Run(
 		return errE
 	}
 
-	description := indexer.StructName(BrandedFood{}) + " processing" //nolint:exhaustruct
+	description := "FoodDataCentral processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(len(foods)))
 

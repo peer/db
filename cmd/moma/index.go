@@ -292,12 +292,12 @@ func getArtistReference(artistsMap map[int]document.D, constituentID int) (docum
 
 func getArtist(ctx context.Context, httpClient *retryablehttp.Client, constituentID int) (momaArtist, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
-	return indexer.GetWebData[momaArtist](ctx, httpClient, url)
+	return indexer.GetWebData[momaArtist](ctx, httpClient, url, indexer.ExtractData)
 }
 
 func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID int) (momaArtwork, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/collection/works/%d", objectID)
-	return indexer.GetWebData[momaArtwork](ctx, httpClient, url)
+	return indexer.GetWebData[momaArtwork](ctx, httpClient, url, indexer.ExtractData)
 }
 
 func index(config *Config) errors.E { //nolint:maintidx

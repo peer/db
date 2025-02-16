@@ -77,6 +77,15 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 						"en": html.EscapeString(product.Name),
 					},
 				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "BRAND_OWNER", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("BRAND_OWNER"),
+					// TODO: Flag as Slovenian language.
+					HTML: document.TranslatableHTMLString{"en": html.EscapeString("Natureta")},
+				},
 			},
 		},
 	}
@@ -179,7 +188,7 @@ func (n Natureta) Run(
 		return nil
 	}
 
-	naturetaMain, errE := indexer.GetWebData[NaturetaProducts](ctx, httpClient, mainNaturetaURL)
+	naturetaMain, errE := indexer.GetWebData[NaturetaProducts](ctx, httpClient, mainNaturetaURL, indexer.ExtractData)
 	if errE != nil {
 		return errE
 	}
@@ -197,15 +206,15 @@ func (n Natureta) Run(
 			continue
 		}
 
-		naturetaProducts, errE := indexer.GetWebData[NaturetaProducts](ctx, httpClient, categoryURL)
+		ps, errE := indexer.GetWebData[NaturetaProducts](ctx, httpClient, categoryURL, indexer.ExtractData)
 		if errE != nil {
 			return errE
 		}
 
-		products.Append(naturetaProducts.Products...)
+		products.Append(ps.Products...)
 	}
 
-	description := indexer.StructName(NaturetaProducts{}) + " processing" //nolint:exhaustruct
+	description := "Natureta processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(products.Cardinality()))
 
@@ -224,12 +233,12 @@ func (n Natureta) Run(
 			break
 		}
 
-		naturetaProduct, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL)
+		product, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL, indexer.ExtractData)
 		if errE != nil {
 			return errE
 		}
 
-		doc, errE := makeNaturetaDoc(naturetaProduct, productURL)
+		doc, errE := makeNaturetaDoc(product, productURL)
 		if errE != nil {
 			errors.Details(errE)["url"] = productURL
 			return errE

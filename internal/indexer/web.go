@@ -33,7 +33,7 @@ func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 // TODO: Respect robots.txt.
 // TODO: Make sure we are making only one request per domain at once.
 
-func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string) (T, errors.E) { //nolint:ireturn
+func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) { //nolint:ireturn
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -58,5 +58,5 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 		return *new(T), errE
 	}
 
-	return ExtractData[T](resp.Body)
+	return f(resp.Body)
 }

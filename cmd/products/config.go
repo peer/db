@@ -33,6 +33,7 @@ type Config struct {
 	Postgres PostgresConfig   `                             embed:"" envprefix:"POSTGRES_"                                                                                             prefix:"postgres."`
 	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                              prefix:"elastic."`
 
-	FoodDataCentral FoodDataCentral `embed:"" prefix:"fooddatacentral."`
-	Natureta        Natureta        `embed:"" prefix:"natureta."`
+	FoodDataCentral     FoodDataCentral     `embed:"" prefix:"fooddatacentral."`
+	Natureta            Natureta            `embed:"" prefix:"natureta."`
+	LjubljanskeMlekarne LjubljanskeMlekarne `embed:"" prefix:"ljubljanskemlekarne."`
 }

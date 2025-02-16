@@ -14,6 +14,7 @@ require (
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/krolaw/zipstream v0.0.0-20180621105154-0a2661891f94
 	github.com/olivere/elastic/v7 v7.0.32
+	github.com/oxffaa/gopher-parse-sitemap v0.0.0-20191021113419-005d2eb1def4
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	gitlab.com/tozd/go/cli v0.4.0
