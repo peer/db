@@ -7,9 +7,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"os"
-	"path"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -288,84 +285,16 @@ func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	return data, nil
 }
 
-func getPathAndURL(cacheDir, url string) (string, string) {
-	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
-	_, err := os.Stat(url)
-	if os.IsNotExist(err) {
-		return filepath.Join(cacheDir, path.Base(url)), url
-	}
-	return url, ""
-}
-
-func structName(name string) string {
-	i := strings.LastIndex(name, ".")
-	return strings.ToLower(name[i+1:])
-}
-
 func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]T, errors.E) {
-	cachedPath, url := getPathAndURL(cacheDir, url)
-
-	var cachedReader io.Reader
-	var cachedSize int64
-
-	cachedFile, err := os.Open(cachedPath)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, errors.WithStack(err)
-		}
-		// File does not exists. Continue.
-	} else {
-		defer cachedFile.Close()
-		cachedReader = cachedFile
-		cachedSize, err = cachedFile.Seek(0, io.SeekEnd)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		_, err = cachedFile.Seek(0, io.SeekStart)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
+	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
+	if errE != nil {
+		return nil, errE
 	}
-
-	if cachedReader == nil {
-		// File does not already exist. We download the file and optionally save it.
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		downloadReader, errE := x.NewRetryableResponse(httpClient, req)
-		if errE != nil {
-			return nil, errE
-		}
-		defer downloadReader.Close()
-		cachedSize = downloadReader.Size()
-		cachedFile, err := os.Create(cachedPath)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer func() {
-			info, err := os.Stat(cachedPath)
-			if err != nil || downloadReader.Size() != info.Size() {
-				// Incomplete file. Delete.
-				_ = os.Remove(cachedPath)
-			}
-		}()
-		defer cachedFile.Close()
-		cachedReader = io.TeeReader(downloadReader, cachedFile)
-	}
-
-	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", *new(T)))+" download progress")
-	countingReader := &x.CountingReader{Reader: cachedReader}
-	ticker := x.NewTicker(ctx, countingReader, x.NewCounter(cachedSize), indexer.ProgressPrintRate)
-	defer ticker.Stop()
-	go func() {
-		for p := range ticker.C {
-			progress(ctx, p)
-		}
-	}()
+	defer reader.Close()
 
 	var result []T
-	errE := x.DecodeJSONWithoutUnknownFields(countingReader, &result)
+	// TODO: We should stream results as they are downloaded/decompressed/decoded like go-mediawiki package does.
+	errE = x.DecodeJSONWithoutUnknownFields(reader, &result)
 	if errE != nil {
 		return nil, errE
 	}

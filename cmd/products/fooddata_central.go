@@ -168,11 +168,6 @@ type Ingredients struct {
 	Meta        []string     `json:"meta,omitempty"`
 }
 
-func structName(name string) string {
-	i := strings.LastIndex(name, ".")
-	return strings.ToLower(name[i+1:])
-}
-
 func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
@@ -603,7 +598,7 @@ func (f FoodDataCentral) Run(
 		return errE
 	}
 
-	description := structName(fmt.Sprintf("%T", BrandedFood{})) + " processing" //nolint:exhaustruct
+	description := indexer.StructName(BrandedFood{}) + " processing" //nolint:exhaustruct
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(len(foods)))
 

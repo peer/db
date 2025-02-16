@@ -21,10 +21,6 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-const (
-	scrollingMultiplier = 10
-)
-
 type PrepareCommand struct {
 	SkippedWikidataEntities      string `help:"Load IDs of skipped Wikidata entities."             placeholder:"PATH" type:"path"`
 	SkippedWikimediaCommonsFiles string `help:"Load filenames of skipped Wikimedia Commons files." placeholder:"PATH" type:"path"`
