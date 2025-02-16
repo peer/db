@@ -226,7 +226,7 @@ func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 		return nil, 0, errors.WithStack(err)
 	}
 
-	cachedReadFile, err := os.Open(cachedPath) //nolint:govet
+	cachedReadFile, err := os.Open(cachedPath)
 	if err != nil {
 		cachedWriteFile.Close()
 		_ = os.Remove(cachedPath)

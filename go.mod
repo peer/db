@@ -6,6 +6,7 @@ require github.com/alecthomas/kong v0.9.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/cockroachdb/field-eng-powertools v0.1.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/foolin/pagser v0.1.6
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -35,7 +36,6 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/chainguard-dev/git-urls v1.0.2 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/cockroachdb/field-eng-powertools v0.1.1 // indirect
 	github.com/cosnicolaou/pbzip2 v1.0.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
