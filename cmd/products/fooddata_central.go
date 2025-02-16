@@ -175,7 +175,7 @@ func getPathAndURL(cacheDir, url string) (string, string) {
 		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
 		return filepath.Join(cacheDir, path.Base(url)), url
 	}
-	return url, ""
+	return url, url
 }
 
 func structName(name string) string {

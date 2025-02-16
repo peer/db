@@ -204,6 +204,9 @@ func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			// The simple code path: the cached file already exist.
+			logger.Info().Str("url", url).
+				Msg("using cached file")
+
 			// We open it for reading and return it. We do not attempt to resume downloading
 			// because we assume that the file has already been fully downloaded. We are using
 			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
