@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
@@ -73,6 +74,19 @@ func (n Natureta) Run(
 		products.Append(naturetaProducts.Products...)
 	}
 
+	description := indexer.StructName(NaturetaProducts{}) + " processing" //nolint:exhaustruct
+	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	indexingSize.Add(int64(products.Cardinality()))
+
+	count := x.Counter(0)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(int64(products.Cardinality())), indexer.ProgressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			progress(ctx, p)
+		}
+	}()
+
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
 	for _, productURL := range products.ToSlice() {
 		naturetaProduct, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL)
@@ -85,7 +99,15 @@ func (n Natureta) Run(
 				continue
 			}
 		}
+
+		count.Increment()
+		indexingCount.Increment()
 	}
+
+	config.Logger.Info().
+		Int64("count", count.Count()).
+		Int("total", products.Cardinality()).
+		Msg(description + " done")
 
 	return nil
 }
