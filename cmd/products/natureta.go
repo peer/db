@@ -55,6 +55,16 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 			Score: document.LowConfidence,
 		},
 		Claims: &document.ClaimTypes{
+			Relation: document.RelationClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "TYPE", 0, "BRANDED_FOOD", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.GetCorePropertyReference("TYPE"),
+					To:   document.GetCorePropertyReference("BRANDED_FOOD"),
+				},
+			},
 			Text: document.TextClaims{
 				{
 					CoreClaim: document.CoreClaim{
