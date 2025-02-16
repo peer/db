@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"runtime"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
@@ -16,14 +15,13 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
-	// Same as go-mediawiki's progressPrintRate.
-	progressPrintRate   = 30 * time.Second
 	scrollingMultiplier = 10
 )
 
@@ -83,7 +81,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 
 	count := x.Counter(0)
 	progress := es.Progress(globals.Logger, nil, cache, nil, "")
-	ticker := x.NewTicker(ctx, &count, x.NewCounter(total), progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(total), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

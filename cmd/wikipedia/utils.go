@@ -29,6 +29,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -189,7 +190,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 	})
 
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, x.NewCounter(0), progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(0), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

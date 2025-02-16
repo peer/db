@@ -10,10 +10,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/internal/es"
-)
-
-const (
-	progressPrintRate = 30 * time.Second
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 )
 
 //nolint:gochecknoglobals
@@ -33,7 +30,7 @@ func index(config *Config) errors.E {
 	indexingCount := x.NewCounter(0)
 	indexingSize := x.NewCounter(0)
 	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
-	ticker := x.NewTicker(ctx, indexingCount, indexingSize, progressPrintRate)
+	ticker := x.NewTicker(ctx, indexingCount, indexingSize, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

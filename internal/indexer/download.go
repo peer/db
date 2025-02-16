@@ -1,4 +1,4 @@
-package main
+package indexer
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/cockroachdb/field-eng-powertools/notify"
@@ -108,7 +110,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 	r.size = httpResponseReader.Size()
 
 	countingReader := &x.CountingReader{Reader: httpResponseReader}
-	r.ticker = x.NewTicker(ctx, countingReader, x.NewCounter(r.size), progressPrintRate)
+	r.ticker = x.NewTicker(ctx, countingReader, x.NewCounter(r.size), ProgressPrintRate)
 	go func() {
 		for p := range r.ticker.C {
 			logger.Info().
@@ -190,13 +192,23 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 	return r.size, nil
 }
 
-// cachedDownload downloads the file from the URL to the cache directory and returns a reader for
+func getPathAndURL(cacheDir, url string) (string, string) {
+	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
+	_, err := os.Stat(url)
+	if os.IsNotExist(err) {
+		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
+		return filepath.Join(cacheDir, path.Base(url)), url
+	}
+	return url, url
+}
+
+// CachedDownload downloads the file from the URL to the cache directory and returns a reader for
 // the cached file.
 //
 // The returned reader can be read from while download is in progress and the file is being written.
 //
 // It should be used only once at a time for a given URL, otherwise the file might be incomplete.
-func cachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
+func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
 	// If url points to a local file, cachedPath is set to url.
 	cachedPath, url := getPathAndURL(cacheDir, url)
 

@@ -27,11 +27,10 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 )
 
 const (
-	progressPrintRate = 30 * time.Second
-
 	centimetreToMetre = 0.01
 )
 
@@ -357,7 +356,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 
 	progress := es.Progress(logger, nil, nil, nil, structName(fmt.Sprintf("%T", *new(T)))+" download progress")
 	countingReader := &x.CountingReader{Reader: cachedReader}
-	ticker := x.NewTicker(ctx, countingReader, x.NewCounter(cachedSize), progressPrintRate)
+	ticker := x.NewTicker(ctx, countingReader, x.NewCounter(cachedSize), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
@@ -443,7 +442,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 	count := x.NewCounter(0)
 	size := x.NewCounter(int64(len(artists)) + int64(len(artworks)))
 	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
-	ticker := x.NewTicker(ctx, count, size, progressPrintRate)
+	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

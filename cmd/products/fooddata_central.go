@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -168,23 +168,13 @@ type Ingredients struct {
 	Meta        []string     `json:"meta,omitempty"`
 }
 
-func getPathAndURL(cacheDir, url string) (string, string) {
-	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
-	_, err := os.Stat(url)
-	if os.IsNotExist(err) {
-		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
-		return filepath.Join(cacheDir, path.Base(url)), url
-	}
-	return url, url
-}
-
 func structName(name string) string {
 	i := strings.LastIndex(name, ".")
 	return strings.ToLower(name[i+1:])
 }
 
 func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]BrandedFood, errors.E) {
-	reader, _, errE := cachedDownload(ctx, httpClient, logger, cacheDir, url)
+	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE
 	}
@@ -618,7 +608,7 @@ func (f FoodDataCentral) Run(
 	indexingSize.Add(int64(len(foods)))
 
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, x.NewCounter(int64(len(foods))), progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(int64(len(foods))), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {
