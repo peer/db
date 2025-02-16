@@ -112,7 +112,7 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 	}
 
 	if s := strings.TrimSpace(product.Category); s != "" {
-		// TODO: Should this be a text claim? Or a relation claim
+		// TODO: Should this be a text claim? Or a relation claim.
 		errE := doc.Add(&document.StringClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "CATEGORY", 0),

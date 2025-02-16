@@ -296,7 +296,7 @@ func makeFoodDataCentralDoc(food BrandedFood, ingredients Ingredients) (document
 	}
 
 	if s := strings.TrimSpace(food.BrandedFoodCategory); s != "" {
-		// TODO: Should this be a text claim? Or a relation claim
+		// TODO: Should this be a text claim? Or a relation claim.
 		errE := doc.Add(&document.StringClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID, "CATEGORY", 0),
