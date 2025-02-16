@@ -247,7 +247,7 @@ func addIngredients(doc *document.D, fdcid, i int, ingredients []Ingredient) (in
 	return i, nil
 }
 
-func makeDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
+func makeFoodDataCentralDoc(food BrandedFood, ingredients Ingredients) (document.D, errors.E) { //nolint:maintidx
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceProducts, "BRANDED_FOOD", food.FDCID),
@@ -622,7 +622,7 @@ func (f FoodDataCentral) Run(
 			return errE
 		}
 
-		doc, errE := makeDoc(food, ingredients)
+		doc, errE := makeFoodDataCentralDoc(food, ingredients)
 		if errE != nil {
 			errors.Details(errE)["id"] = food.FDCID
 			return errE
