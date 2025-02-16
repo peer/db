@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	mainLjubljanskeSitemapURL = "https://www.l-m.si/sitemap.xml"
+	ljubljanskeMlekarneURL            = "https://www.l-m.si"
+	ljubljanskeMlekarneProductsPrefix = "https://www.l-m.si/produkti/"
 )
 
 type LjubljanskeMlekarne struct {
@@ -141,22 +142,31 @@ func (n LjubljanskeMlekarne) Run(
 		return nil
 	}
 
-	products, errE := indexer.GetWebData[mapset.Set[string]](ctx, httpClient, mainLjubljanskeSitemapURL, func(in io.Reader) (mapset.Set[string], errors.E) {
-		ps := mapset.NewThreadUnsafeSet[string]()
-		err := sitemap.Parse(in, func(entry sitemap.Entry) error {
-			loc := entry.GetLocation()
-			if strings.HasPrefix(loc, "https://www.l-m.si/produkti/") {
-				ps.Add(loc)
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return ps, nil
-	})
+	robots, errE := indexer.GetRobotsTxt(ctx, httpClient, ljubljanskeMlekarneURL)
 	if errE != nil {
 		return errE
+	}
+
+	products := mapset.NewThreadUnsafeSet[string]()
+	for _, sitemapURL := range robots.Sitemaps {
+		ps, errE := indexer.GetWebData(ctx, httpClient, sitemapURL, func(in io.Reader) (mapset.Set[string], errors.E) {
+			p := mapset.NewThreadUnsafeSet[string]()
+			err := sitemap.Parse(in, func(entry sitemap.Entry) error {
+				loc := entry.GetLocation()
+				if strings.HasPrefix(loc, ljubljanskeMlekarneProductsPrefix) {
+					p.Add(loc)
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			return p, nil
+		})
+		if errE != nil {
+			return errE
+		}
+		products = products.Union(ps)
 	}
 
 	description := "Ljubljanske mlekarne processing"

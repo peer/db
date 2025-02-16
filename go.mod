@@ -17,6 +17,7 @@ require (
 	github.com/oxffaa/gopher-parse-sitemap v0.0.0-20191021113419-005d2eb1def4
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
+	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.4.0
 	gitlab.com/tozd/go/fun v0.7.0
 	gitlab.com/tozd/go/mediawiki v0.16.1-0.20250215235222-3cc5124163c0

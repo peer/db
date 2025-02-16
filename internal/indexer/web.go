@@ -4,11 +4,13 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/foolin/pagser"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/temoto/robotstxt"
 	"gitlab.com/tozd/go/errors"
 )
 
@@ -59,4 +61,46 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 	}
 
 	return f(resp.Body)
+}
+
+// TODO: Cache robots.txt per domain.
+
+func GetRobotsTxt(ctx context.Context, httpClient *retryablehttp.Client, u string) (*robotstxt.RobotsData, errors.E) {
+	url, err := url.Parse(u)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = u
+		return nil, errE
+	}
+	url.Path = "/robots.txt"
+	url.RawPath = ""
+	url.RawQuery = ""
+	url.ForceQuery = false
+	url.Fragment = ""
+	url.RawFragment = ""
+	u = url.String()
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = u
+		return nil, errE
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = u
+		return nil, errE
+	}
+	defer resp.Body.Close()
+	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
+
+	robots, err := robotstxt.FromResponse(resp)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = u
+		return nil, errE
+	}
+
+	return robots, nil
 }
