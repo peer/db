@@ -34,4 +34,5 @@ type Config struct {
 	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                              prefix:"elastic."`
 
 	FoodDataCentral FoodDataCentral `embed:"" prefix:"fooddatacentral."`
+	Natureta        Natureta        `embed:"" prefix:"natureta."`
 }
