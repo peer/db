@@ -16,7 +16,7 @@ func pagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
 	return node.Length() > 0, nil
 }
 
-func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
+func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	p := pagser.New()
 
 	p.RegisterFunc("exists", pagserExists)
@@ -55,5 +55,5 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 		return *new(T), errE
 	}
 
-	return extractData[T](resp.Body)
+	return ExtractData[T](resp.Body)
 }

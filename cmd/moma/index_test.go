@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 )
 
 //go:embed testdata
@@ -36,7 +38,7 @@ func testExtractData[T any](t *testing.T, dir string) {
 		t.Run(base, func(t *testing.T) {
 			input, err := content.ReadFile(filepath.Join("testdata", dir, entry.Name()))
 			require.NoError(t, err)
-			outputData, err := extractData[T](bytes.NewReader(input))
+			outputData, err := indexer.ExtractData[T](bytes.NewReader(input))
 			require.NoError(t, err)
 			outputJSON, err := x.MarshalWithoutEscapeHTML(outputData)
 			require.NoError(t, err)
