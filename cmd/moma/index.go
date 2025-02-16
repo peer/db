@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"regexp"
 	"slices"
@@ -13,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
-	"github.com/foolin/pagser"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
@@ -267,24 +264,6 @@ type Artwork struct {
 	Duration      float64 `json:"Duration (sec.),omitempty"`
 }
 
-func PagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
-	return node.Length() > 0, nil
-}
-
-func extractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
-	p := pagser.New()
-
-	p.RegisterFunc("exists", PagserExists)
-
-	var data T
-	err := p.ParseReader(&data, in)
-	if err != nil {
-		return *new(T), errors.WithStack(err)
-	}
-
-	return data, nil
-}
-
 func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]T, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
@@ -311,42 +290,14 @@ func getArtistReference(artistsMap map[int]document.D, constituentID int) (docum
 	return doc.Reference(), nil
 }
 
-func getData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string) (T, errors.E) { //nolint:ireturn
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["url"] = url
-		return *new(T), errE
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["url"] = url
-		return *new(T), errE
-	}
-	defer resp.Body.Close()
-	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		errE := errors.New("bad response status")
-		errors.Details(errE)["url"] = url
-		errors.Details(errE)["code"] = resp.StatusCode
-		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
-		return *new(T), errE
-	}
-
-	return extractData[T](resp.Body)
-}
-
 func getArtist(ctx context.Context, httpClient *retryablehttp.Client, constituentID int) (momaArtist, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/artists/%d", constituentID)
-	return getData[momaArtist](ctx, httpClient, url)
+	return indexer.GetWebData[momaArtist](ctx, httpClient, url)
 }
 
 func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID int) (momaArtwork, errors.E) {
 	url := fmt.Sprintf("https://www.moma.org/collection/works/%d", objectID)
-	return getData[momaArtwork](ctx, httpClient, url)
+	return indexer.GetWebData[momaArtwork](ctx, httpClient, url)
 }
 
 func index(config *Config) errors.E { //nolint:maintidx
