@@ -304,7 +304,8 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 		e := logger.Info().
 			Int64("count", p.Count).
 			Int64("total", p.Size).
-			Dur("eta", p.Remaining().Truncate(time.Second)).
+			// We format it ourselves. See: https://github.com/rs/zerolog/issues/709
+			Str("eta", p.Remaining().Truncate(time.Second).String()).
 			Float64("%", p.Percent())
 		if esProcessor != nil {
 			stats := esProcessor.Stats()

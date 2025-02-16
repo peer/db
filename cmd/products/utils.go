@@ -114,7 +114,8 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 			logger.Info().
 				Int64("count", p.Count).
 				Int64("total", r.size).
-				Dur("eta", p.Remaining().Truncate(time.Second)).
+				// We format it ourselves. See: https://github.com/rs/zerolog/issues/709
+				Str("eta", p.Remaining().Truncate(time.Second).String()).
 				Float64("%", p.Percent()).
 				Str("url", r.URL).
 				Msg("downloading")
