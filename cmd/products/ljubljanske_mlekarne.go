@@ -42,7 +42,7 @@ func makeLjubljanskeMlekarneDoc(product LjubljanskeMlekarneProduct, productURL s
 		return document.D{}, errors.New("empty title")
 	}
 
-	doc := document.D{
+	doc := document.D{ //nolint:dupl
 		CoreDocument: document.CoreDocument{
 			// TODO: Use some better ID for these products and not URL.
 			ID:    document.GetID(NameSpaceProducts, "LJUBLJANSKE_MLEKARNE", productURL),

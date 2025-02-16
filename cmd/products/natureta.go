@@ -53,7 +53,7 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 		return document.D{}, errors.New("empty name")
 	}
 
-	doc := document.D{
+	doc := document.D{ //nolint:dupl
 		CoreDocument: document.CoreDocument{
 			// TODO: Use some better ID for these products and not URL.
 			ID:    document.GetID(NameSpaceProducts, "NATURETA", productURL),
