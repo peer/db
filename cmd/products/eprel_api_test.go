@@ -1,4 +1,4 @@
-// eprel_api_test.go
+// eprel_api_test.go.
 package main
 
 import (
@@ -13,8 +13,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/tozd/go/x"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 func TestGetProductGroups(t *testing.T) {
@@ -56,7 +57,7 @@ func TestGetWasherDriers(t *testing.T) {
 
 	fmt.Printf("Total washer driers retrieved: %d\n", len(washerDriers))
 
-	// Test first item has expected fields
+	// Test first item has expected fields.
 	if len(washerDriers) > 0 {
 		first := washerDriers[0]
 		fmt.Printf("First washer drier:\n")
@@ -73,14 +74,14 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 
 	seenFields := make(map[string][]interface{})
 
-	var page int = 1
+	page := 1
 	for {
 		url := fmt.Sprintf("https://eprel.ec.europa.eu/api/products/washerdriers?_limit=100&_page=%d", page)
 		req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.Header.Set("x-api-key", apiKey)
+		req.Header.Set("X-Api-Key", apiKey)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
@@ -111,7 +112,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 		page++
 	}
 
-	// Print fields and sample values
+	// Print fields and sample values.
 	var fields []string
 	for field := range seenFields {
 		fields = append(fields, field)
@@ -123,7 +124,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 		value := seenFields[field][0]
 		fmt.Printf("- %s: %T\n", field, value)
 
-		// Print structure of nested objects
+		// Print structure of nested objects.
 		if m, ok := value.(map[string]interface{}); ok {
 			for k := range m {
 				fmt.Printf("  - %s\n", k)
@@ -143,13 +144,13 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
 
-	// Get just one washer-drier
+	// Get just one washer-drier.
 	url := "https://eprel.ec.europa.eu/api/products/washerdriers?_limit=1&_page=1"
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("X-Api-Key", apiKey)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -167,7 +168,7 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 		t.Fatal("no washer-driers found")
 	}
 
-	// Pretty print the first washer-drier
+	// Pretty print the first washer-drier.
 	washerDrier := hits[0]
 	prettyJSON, err := json.MarshalIndent(washerDrier, "", "    ")
 	if err != nil {
@@ -199,7 +200,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Print document to inspect in console
+	// Print document to inspect in console.
 	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		t.Fatal(errE)
@@ -219,10 +220,10 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 			"relation",
 			func(c document.Claim) string {
 				rel := c.(*document.RelationClaim)
-				// We need to get the ID that this type points to
+				// We need to get the ID that this type points to.
 				return rel.To.ID.String()
 			},
-			// This should match the ID generated for WASHER_DRIER property
+			// This should match the ID generated for WASHER_DRIER property.
 			document.GetCorePropertyID("WASHER_DRIER").String(),
 		},
 		{
@@ -319,7 +320,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 
 			found := false
 			for _, claim := range claims {
-				// First verify the claim type
+				// First verify the claim type.
 				switch tt.claimType {
 				case "identifier":
 					if _, ok := claim.(*document.IdentifierClaim); !ok {
@@ -350,57 +351,3 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		})
 	}
 }
-
-// func setupTestContainers(t *testing.T) (string, string, func()) {
-// 	ctx := context.Background()
-
-// 	// Create Docker network
-// 	network, err := dockertest.CreateNetwork("eprel-test-network")
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	// Start PostgreSQL
-// 	pgContainer, err := dockertest.RunWithOptions(&dockertest.RunOptions{
-// 		Repository: "postgres",
-// 		Tag: "16",
-// 		NetworkID: network.ID,
-// 		Name: "eprel-test-postgres",
-// 		Env: []string{
-// 			"POSTGRES_USER=test",
-// 			"POSTGRES_PASSWORD=test",
-// 			"POSTGRES_DB=test",
-// 		},
-// 		ExposedPorts: []string{"5432"},
-// 	})
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	// Start Elasticsearch
-// 	esContainer, err := dockertest.NewContainer("elasticsearch:7.16.3")
-// 		.WithNetwork(network)
-// 		.WithName("eprel-test-elasticsearch")
-// 		.WithEnv("discovery.type=single-node")
-// 		.WithEnv("xpack.security.enabled=false")
-// 		.WithExposedPorts("9200")
-// 		.Start(ctx)
-// 	if err != nil {
-// 		network.Close()
-// 		pgContainer.Close()
-// 		t.Fatal(err)
-// 	}
-
-// 	// Get connection strings
-// 	pgURL := fmt.Sprintf("postgres://test:test@localhost:%s/test", pgContainer.MappedPort("5432"))
-// 	esURL := fmt.Sprintf("http://localhost:%s", esContainer.MappedPort("9200"))
-
-// 	// Return cleanup function
-// 	cleanup := func() {
-// 		esContainer.Close()
-// 		pgContainer.Close()
-// 		network.Close()
-// 	}
-
-// 	return pgURL, esURL, cleanup
-// }
