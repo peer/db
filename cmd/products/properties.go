@@ -249,7 +249,7 @@ var productsProperties = []struct {
 	// { // skipped - bool  -- skipped in eprel_api.go
 	// 	"allow eprel label generation",
 	// 	nil,
-	// 	`Set to true if the supplier chooses to use EPREL labels for this model. Set to false if the supplier has uploaded thier own label.`,
+	// 	`Set to true if the supplier chooses to use EPREL labels for this model. Set to false if the supplier has uploaded their own label.`,
 	// 	[]string{`"Boolean" claim type`},
 	// },
 	// { // skipped - bool  -- skipped in eprel_api.go
@@ -360,7 +360,7 @@ var productsProperties = []struct {
 		`Type of form used to display the data. Type 1 is used for models registered before 01/05/2021. Type 2 is used for models registered after 01/05/2021.`,
 		[]string{`"String" claim type`},
 	},
-	// { // not existant in the API docs -- all values in data are null? Need to check for other categories what this data type is  -- skipped in eprel_api.go
+	// { // not existent in the API docs -- all values in data are null? Need to check for other categories what this data type is  -- skipped in eprel_api.go
 	// 	"generated labels",
 	// 	nil,
 	// 	`None`,
@@ -470,7 +470,7 @@ var productsProperties = []struct {
 	// 	`None`,
 	// 	[]string{`"None" claim type`},
 	// },
-	// { // could probably be aliased to the "Catagory" type that's already defined.
+	// { // could probably be aliased to the "Category" type that's already defined.
 	// 	"product group",
 	// 	nil,
 	// 	`Product group name`,

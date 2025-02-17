@@ -1,4 +1,4 @@
-// eprel_api.go
+// eprel_api.go.
 package main
 
 import (
@@ -12,17 +12,18 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-retryablehttp"
+	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
+
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
-	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 )
 
 type EPREL struct {
-	Disabled bool                 `default:"false" help:"Do not import EPREL data. Default: false."`
-	APIKey   kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
+	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
+	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
 }
 
 type WasherDrierResponse struct {
@@ -185,8 +186,8 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	for {
 		baseURL := "https://eprel.ec.europa.eu/api/products/washerdriers"
 		params := url.Values{}
-		params.Add("_limit", fmt.Sprintf("%d", limit))
-		params.Add("_page", fmt.Sprintf("%d", page))
+		params.Add("_limit", strconv.Itoa(limit))
+		params.Add("_page", strconv.Itoa(page))
 
 		url := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 
@@ -195,7 +196,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 			return nil, errors.WithStack(err)
 		}
 
-		req.Header.Set("x-api-key", apiKey)
+		req.Header.Set("X-Api-Key", apiKey)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
@@ -374,14 +375,14 @@ func (e EPREL) Run(
 		return nil
 	}
 
-	// Fetch and check API key
+	// Fetch and check API key.
 	apiKey := strings.TrimSpace(string(e.APIKey))
 	fmt.Printf("API Key length: %d\n", len(apiKey))
 	if apiKey == "" {
 		return errors.New("empty API key")
 	}
 
-	// Check ElasticSearch config
+	// Check ElasticSearch config.
 	config.Logger.Info().
 		Str("elastic_url", config.Elastic.URL).
 		Str("elastic_index", config.Elastic.Index).
@@ -439,5 +440,4 @@ func (e EPREL) Run(
 	}
 	config.Logger.Info().Msg("Completed EPREL data import")
 	return nil
-
 }
