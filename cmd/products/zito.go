@@ -217,7 +217,7 @@ func (n Zito) Run(
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
 	for _, productURL := range products.ToSlice() {
 		if ctx.Err() != nil {
-			break
+			return errors.WithStack(ctx.Err())
 		}
 
 		product, errE := indexer.GetWebData[ZitoProduct](ctx, httpClient, productURL, indexer.ExtractData)

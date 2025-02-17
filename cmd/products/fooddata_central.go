@@ -614,7 +614,7 @@ func (f FoodDataCentral) Run(
 
 	for _, food := range foods {
 		if ctx.Err() != nil {
-			break
+			return errors.WithStack(ctx.Err())
 		}
 
 		ingredients, errE := getIngredients(f.IngredientsDir, food)

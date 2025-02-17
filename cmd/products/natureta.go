@@ -203,7 +203,7 @@ func (n Natureta) Run(
 
 	for _, categoryURL := range naturetaMain.Categories {
 		if ctx.Err() != nil {
-			break
+			return errors.WithStack(ctx.Err())
 		}
 
 		// We already processed the main category.
@@ -235,7 +235,7 @@ func (n Natureta) Run(
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
 	for _, productURL := range products.ToSlice() {
 		if ctx.Err() != nil {
-			break
+			return errors.WithStack(ctx.Err())
 		}
 
 		product, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL, indexer.ExtractData)
