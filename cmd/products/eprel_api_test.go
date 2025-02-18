@@ -33,8 +33,17 @@ func TestGetProductGroups(t *testing.T) {
 	}
 }
 
+func skipIfNoAPIKey(t *testing.T) {
+	t.Helper()
+	_, err := os.Stat("../../.eprel.secret")
+	if os.IsNotExist(err) {
+		t.Skip(".eprel.secret not found, skipping test")
+	}
+}
+
 func getAPIKey(t *testing.T) string {
 	t.Helper()
+	skipIfNoAPIKey(t)
 	key, err := os.ReadFile("../../.eprel.secret")
 	if err != nil {
 		t.Fatal(err)
@@ -42,14 +51,9 @@ func getAPIKey(t *testing.T) string {
 	return strings.TrimSpace(string(key))
 }
 
-func TestGetAPIKey(t *testing.T) {
-	t.Parallel()
-	key := getAPIKey(t)
-	t.Logf("API key: %s", key)
-}
-
 func TestGetWasherDriers(t *testing.T) {
 	t.Parallel()
+	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -73,6 +77,7 @@ func TestGetWasherDriers(t *testing.T) {
 
 func TestMapAllWasherDrierFields(t *testing.T) {
 	t.Parallel()
+	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -154,6 +159,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 
 func TestInspectSingleWasherDrier(t *testing.T) {
 	t.Parallel()
+	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -462,6 +468,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 
 func TestMakeWasherDrierDoc(t *testing.T) {
 	t.Parallel()
+	skipIfNoAPIKey(t)
 
 	washerDrier := createTestWasherDrier()
 
