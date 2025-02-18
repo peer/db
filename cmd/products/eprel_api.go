@@ -17,6 +17,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -364,7 +366,7 @@ func (e EPREL) Run(
 	config *Config,
 	httpClient *retryablehttp.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	progress func(ctx context.Context, p x.Progress),
+	indexingCount, indexingSize *x.Counter,
 ) errors.E {
 	if e.Disabled {
 		return nil
@@ -389,8 +391,12 @@ func (e EPREL) Run(
 
 	config.Logger.Info().Int("count", len(washerDriers)).Msg("Retrieved washer driers")
 
+	description := "EPREL washer-driers processing"
+	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	indexingSize.Add(int64(len(washerDriers)))
+
 	count := x.Counter(0)
-	ticker := x.NewTicker(ctx, &count, int64(len(washerDriers)), progressPrintRate)
+	ticker := x.NewTicker(ctx, &count, x.NewCounter(int64(len(washerDriers))), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
 		for p := range ticker.C {

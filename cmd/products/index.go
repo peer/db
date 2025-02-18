@@ -47,7 +47,7 @@ func index(config *Config) errors.E {
 	})
 
 	g.Go(func() error {
-		return config.EPREL.Run(ctx, config, httpClient, store, progress)
+		return config.EPREL.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
 	})
 
 	g.Go(func() error {
