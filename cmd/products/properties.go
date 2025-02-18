@@ -313,6 +313,12 @@ var productsProperties = []struct {
 		`Supplier's model identifier`,
 		[]string{`"Identifier" claim type`},
 	},
+	{
+		"supplier or trademark",
+		nil,
+		`Supplier's name or trademark`,
+		[]string{`"String" claim type`},
+	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
 	// {
@@ -513,11 +519,7 @@ var productsProperties = []struct {
 	// 	[]string{`"String" claim type`},
 	// },
 	// {
-	// 	"supplier or trademark",
-	// 	nil,
-	// 	`Supplier's name or trademark`,
-	// 	[]string{`"String" claim type`},
-	// },
+
 	// {
 	// 	"trademark id",
 	// 	nil,

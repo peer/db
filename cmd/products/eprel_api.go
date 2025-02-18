@@ -295,24 +295,16 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 					Prop:  document.GetCorePropertyReference("ENERGY_LABEL_ID"),
 					Value: strconv.FormatFloat(washerDrier.EnergyLabelID, 'f', 0, 64),
 				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "EPREL_REGISTRATION_NUMBER", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:  document.GetCorePropertyReference("EPREL_REGISTRATION_NUMBER"),
-					Value: washerDrier.EprelRegistrationNumber,
-				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "MODEL_IDENTIFIER", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:  document.GetCorePropertyReference("MODEL_IDENTIFIER"),
-					Value: washerDrier.ModelIdentifier,
-				},
 			},
 			String: document.StringClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EcoLabelRegistrationNumber, "SUPPLIER_OR_TRADEMARK", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("SUPPLIER_OR_TRADEMARK"),
+					String: washerDrier.SupplierOrTrademark,
+				},
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EcoLabelRegistrationNumber, "ECOLABEL_REGISTRATION_NUMBER", 0),

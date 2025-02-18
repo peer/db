@@ -463,6 +463,19 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				return stringClaim.String
 			}, washerDrier.ImplementingAct,
 		},
+		{
+			"Supplier Or Trademark",
+			"SUPPLIER_OR_TRADEMARK",
+			"string",
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Supplier Or Trademark is not a string claim")
+				}
+				return stringClaim.String
+			}, washerDrier.SupplierOrTrademark,
+		},
 	}
 }
 
