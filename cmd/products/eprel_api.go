@@ -418,6 +418,7 @@ func (e EPREL) Run(
 		doc := makeWasherDrierDoc(washerDrier)
 
 		count.Increment()
+		indexingCount.Increment()
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
@@ -431,6 +432,10 @@ func (e EPREL) Run(
 			return errE
 		}
 	}
-	config.Logger.Info().Msg("Completed EPREL data import")
+	config.Logger.Info().
+		Int64("count", count.Count()).
+		Int("total", len(washerDriers)).
+		Msg(description + " done")
+
 	return nil
 }
