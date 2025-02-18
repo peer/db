@@ -31,11 +31,12 @@ type WasherDrierResponse struct {
 	Hits []WasherDrierProduct `json:"hits"`
 }
 
+//nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
 	AllowEprelLabelGeneration bool           `json:"allowEprelLabelGeneration"`
 	Blocked                   bool           `json:"blocked"`
 	ContactDetails            ContactDetails `json:"contactDetails"`
-	ContactId                 float64        `json:"contactId"`
+	ContactID                 float64        `json:"contactId"`
 	Cycles                    []Cycle        `json:"cycles"`
 
 	EcoLabel                   bool   `json:"ecoLabel"`
@@ -47,7 +48,7 @@ type WasherDrierProduct struct {
 	EnergyClassImage          string  `json:"energyClassImage"`
 	EnergyClassImageWithScale string  `json:"energyClassImageWithScale"`
 	EnergyClassRange          string  `json:"energyClassRange"`
-	EnergyLabelId             float64 `json:"energyLabelId"`
+	EnergyLabelID             float64 `json:"energyLabelId"`
 
 	EprelRegistrationNumber string       `json:"eprelRegistrationNumber"`
 	ExportDateTS            float64      `json:"exportDateTS"`
@@ -78,19 +79,19 @@ type WasherDrierProduct struct {
 	PlacementCountries    []interface{} `json:"placementCountries"`
 
 	ProductGroup       string  `json:"productGroup"`
-	ProductModelCoreId float64 `json:"productModelCoreId"`
+	ProductModelCoreID float64 `json:"productModelCoreId"`
 	PublishedOnDate    []int   `json:"publishedOnDate"`
 	PublishedOnDateTS  float64 `json:"publishedOnDateTS"`
 
 	RegistrantNature            string       `json:"registrantNature"`
 	Status                      string       `json:"status"`
 	SupplierOrTrademark         string       `json:"supplierOrTrademark"`
-	TrademarkId                 float64      `json:"trademarkId"`
+	TrademarkID                 float64      `json:"trademarkId"`
 	TrademarkOwner              *interface{} `json:"trademarkOwner"`
 	TrademarkVerificationStatus string       `json:"trademarkVerificationStatus"`
 
 	UploadedLabels []string `json:"uploadedLabels"`
-	VersionId      float64  `json:"versionId"`
+	VersionID      float64  `json:"versionId"`
 	VersionNumber  float64  `json:"versionNumber"`
 	VisibleToUkMsa bool     `json:"visibleToUkMsa"`
 
@@ -98,15 +99,16 @@ type WasherDrierProduct struct {
 	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
 }
 
+//nolint:tagliatelle // JSON tags must match external EPREL API format.
 type ContactDetails struct {
 	AddressBloc          *string      `json:"addressBloc"`
 	City                 string       `json:"city"`
-	ContactByReferenceId *interface{} `json:"contactByReferenceId"`
+	ContactByReferenceID *interface{} `json:"contactByReferenceId"`
 	ContactReference     string       `json:"contactReference"`
 	Country              string       `json:"country"`
 	DefaultContact       bool         `json:"defaultContact"`
 	Email                string       `json:"email"`
-	Id                   float64      `json:"id"`
+	ID                   float64      `json:"id"`
 	Municipality         *string      `json:"municipality"`
 	OrderNumber          *string      `json:"orderNumber"`
 	Phone                string       `json:"phone"`
@@ -119,12 +121,13 @@ type ContactDetails struct {
 	WebSiteURL           *string      `json:"webSiteURL"`
 }
 
+//nolint:tagliatelle // JSON tags must match external EPREL API format.
 type Cycle struct {
 	CapacityDry             float64 `json:"capacityDry"`
 	CapacityWash            float64 `json:"capacityWash"`
 	EnergyConsWash          float64 `json:"energyConsWash"`
 	EnergyConsWashAndDry    float64 `json:"energyConsWashAndDry"`
-	Id                      float64 `json:"id"`
+	ID                      float64 `json:"id"`
 	OrderNumber             float64 `json:"orderNumber"`
 	OtherCycle              bool    `json:"otherCycle"`
 	OtherCycleLabel         *string `json:"otherCycleLabel"`
@@ -228,7 +231,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	return allWasherDriers, nil
 }
 
-func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
+func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber),
@@ -282,7 +285,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("CONTACT_ID"),
-					Value: strconv.FormatFloat(washerDrier.ContactId, 'f', 0, 64),
+					Value: strconv.FormatFloat(washerDrier.ContactID, 'f', 0, 64),
 				},
 				{
 					CoreClaim: document.CoreClaim{
@@ -290,7 +293,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("ENERGY_LABEL_ID"),
-					Value: strconv.FormatFloat(washerDrier.EnergyLabelId, 'f', 0, 64),
+					Value: strconv.FormatFloat(washerDrier.EnergyLabelID, 'f', 0, 64),
 				},
 				{
 					CoreClaim: document.CoreClaim{
@@ -352,7 +355,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyLabelId, "IMPLEMENTING_ACT", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyLabelID, "IMPLEMENTING_ACT", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("IMPLEMENTING_ACT"),
@@ -361,7 +364,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 			},
 		},
 	}
-	return doc, nil
+	return doc
 }
 
 func (e EPREL) Run(
@@ -375,9 +378,7 @@ func (e EPREL) Run(
 		return nil
 	}
 
-	// Fetch and check API key.
 	apiKey := strings.TrimSpace(string(e.APIKey))
-	fmt.Printf("API Key length: %d\n", len(apiKey))
 	if apiKey == "" {
 		return errors.New("empty API key")
 	}
@@ -390,7 +391,7 @@ func (e EPREL) Run(
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
 	if errE != nil {
-		fmt.Printf("Failed to get washer driers: %v\n", errE)
+		config.Logger.Error().Err(errE).Msg("Failed to get washer driers")
 		return errE
 	}
 
@@ -416,13 +417,7 @@ func (e EPREL) Run(
 			Str("model", washerDrier.ModelIdentifier).
 			Msg("Processing washer drier")
 
-		doc, errE := makeWasherDrierDoc(washerDrier)
-		if errE != nil {
-			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
-			fmt.Println("ERROR 2")
-			fmt.Println(errE)
-			return errE
-		}
+		doc := makeWasherDrierDoc(washerDrier)
 
 		count.Increment()
 

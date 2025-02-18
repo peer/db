@@ -19,6 +19,7 @@ import (
 )
 
 func TestGetProductGroups(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 
@@ -28,11 +29,12 @@ func TestGetProductGroups(t *testing.T) {
 	}
 
 	for _, code := range urlCodes {
-		fmt.Printf("url_code: %s\n", code)
+		t.Logf("url_code: %s", code)
 	}
 }
 
 func getAPIKey(t *testing.T) string {
+	t.Helper()
 	key, err := os.ReadFile("../../.eprel.secret")
 	if err != nil {
 		t.Fatal(err)
@@ -41,11 +43,13 @@ func getAPIKey(t *testing.T) string {
 }
 
 func TestGetAPIKey(t *testing.T) {
+	t.Parallel()
 	key := getAPIKey(t)
-	fmt.Printf("API key: %s\n", key)
+	t.Logf("API key: %s", key)
 }
 
 func TestGetWasherDriers(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -55,19 +59,20 @@ func TestGetWasherDriers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("Total washer driers retrieved: %d\n", len(washerDriers))
+	t.Logf("Total washer driers retrieved: %d", len(washerDriers))
 
 	// Test first item has expected fields.
 	if len(washerDriers) > 0 {
 		first := washerDriers[0]
-		fmt.Printf("First washer drier:\n")
-		fmt.Printf("Model: %s\n", first.ModelIdentifier)
-		fmt.Printf("Energy class: %s\n", first.EnergyClass)
-		fmt.Printf("Number of cycles: %d\n", len(first.Cycles))
+		t.Log("First washer drier:")
+		t.Logf("Model: %s", first.ModelIdentifier)
+		t.Logf("Energy class: %s", first.EnergyClass)
+		t.Logf("Number of cycles: %d", len(first.Cycles))
 	}
 }
 
 func TestMapAllWasherDrierFields(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -95,13 +100,20 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 		}
 		resp.Body.Close()
 
-		hits := result["hits"].([]interface{})
+		hits, ok := result["hits"].([]interface{})
+		if !ok {
+			t.Fatal("result['hits'] is not []interface{}")
+		}
 		if len(hits) == 0 {
 			break
 		}
 
 		for _, hit := range hits {
-			product := hit.(map[string]interface{})
+			product, ok := hit.(map[string]interface{})
+			if !ok {
+				t.Fatal("hit is not map[string]interface{}")
+			}
+
 			for field, value := range product {
 				if _, exists := seenFields[field]; !exists {
 					seenFields[field] = []interface{}{value}
@@ -113,26 +125,27 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 	}
 
 	// Print fields and sample values.
-	var fields []string
+	fields := make([]string, 0, len(seenFields))
+
 	for field := range seenFields {
 		fields = append(fields, field)
 	}
 	sort.Strings(fields)
 
-	fmt.Println("Fields and their structure:")
+	t.Log("Fields and their structure")
 	for _, field := range fields {
 		value := seenFields[field][0]
-		fmt.Printf("- %s: %T\n", field, value)
+		t.Logf("- %s: %T", field, value)
 
 		// Print structure of nested objects.
 		if m, ok := value.(map[string]interface{}); ok {
 			for k := range m {
-				fmt.Printf("  - %s\n", k)
+				t.Logf("  - %s", k)
 			}
 		} else if a, ok := value.([]interface{}); ok && len(a) > 0 {
 			if m, ok := a[0].(map[string]interface{}); ok {
 				for k := range m {
-					fmt.Printf("  - %s\n", k)
+					t.Logf("  - %s", k)
 				}
 			}
 		}
@@ -140,6 +153,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 }
 
 func TestInspectSingleWasherDrier(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
@@ -159,11 +173,14 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 	defer resp.Body.Close()
 
 	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
 
-	hits := result["hits"].([]interface{})
+	hits, ok := result["hits"].([]interface{})
+	if !ok {
+		t.Fatal("result['hits'] is not []interface{}")
+	}
 	if len(hits) == 0 {
 		t.Fatal("no washer-driers found")
 	}
@@ -175,17 +192,15 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("Single washer-drier example:\n%s\n", string(prettyJSON))
+	t.Logf("Single washer-drier example:\n%s", string(prettyJSON))
 }
 
-func TestMakeWasherDrierDoc(t *testing.T) {
-	t.Parallel()
-
-	washerDrier := WasherDrierProduct{
+func createTestWasherDrier() WasherDrierProduct {
+	return WasherDrierProduct{
 		EprelRegistrationNumber:    "132300",
 		ModelIdentifier:            "F94J8VH2WD",
-		ContactId:                  1234,
-		EnergyLabelId:              998462,
+		ContactID:                  1234,
+		EnergyLabelID:              998462,
 		EcoLabelRegistrationNumber: "1234",
 		EnergyClass:                "A",
 		EnergyClassImage:           "A-Left-DarkGreen.png",
@@ -193,45 +208,113 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		EnergyClassRange:           "A_G",
 		ImplementingAct:            "EC_96_60",
 		SupplierOrTrademark:        "LG Electronics Inc.",
+		AllowEprelLabelGeneration:  false,
+		Blocked:                    false,
+		ContactDetails: ContactDetails{
+			AddressBloc:          nil,
+			City:                 "",
+			ContactByReferenceID: nil,
+			ContactReference:     "",
+			Country:              "",
+			DefaultContact:       false,
+			Email:                "",
+			ID:                   0,
+			Municipality:         nil,
+			OrderNumber:          nil,
+			Phone:                "",
+			PostalCode:           "",
+			Province:             nil,
+			ServiceName:          "",
+			Status:               "",
+			Street:               "",
+			StreetNumber:         "",
+			WebSiteURL:           nil,
+		},
+		Cycles:                   []Cycle{},
+		EcoLabel:                 false,
+		EnergyAnnualWash:         0,
+		EnergyAnnualWashAndDry:   0,
+		ExportDateTS:             0,
+		FirstPublicationDate:     []int{},
+		FirstPublicationDateTS:   0,
+		FormType:                 "",
+		GeneratedLabels:          nil,
+		ImportedOn:               0,
+		LastVersion:              false,
+		NoiseDry:                 0,
+		NoiseSpin:                0,
+		NoiseWash:                0,
+		OnMarketEndDate:          []int{},
+		OnMarketEndDateTS:        0,
+		OnMarketFirstStartDate:   []int{},
+		OnMarketFirstStartDateTS: 0,
+		OnMarketStartDate:        []int{},
+		OnMarketStartDateTS:      0,
+		OrgVerificationStatus:    "",
+		Organisation: Organisation{
+			CloseDate:         nil,
+			CloseStatus:       nil,
+			FirstName:         nil,
+			IsClosed:          false,
+			LastName:          nil,
+			OrganisationName:  "",
+			OrganisationTitle: "",
+			Website:           nil,
+		},
+		OtherIdentifiers:            []interface{}{},
+		PlacementCountries:          []interface{}{},
+		ProductGroup:                "",
+		ProductModelCoreID:          0,
+		PublishedOnDate:             []int{},
+		PublishedOnDateTS:           0,
+		RegistrantNature:            "",
+		Status:                      "",
+		TrademarkID:                 0,
+		TrademarkOwner:              nil,
+		TrademarkVerificationStatus: "",
+		UploadedLabels:              []string{},
+		VersionID:                   0,
+		VersionNumber:               0,
+		VisibleToUkMsa:              false,
+		WaterAnnualWash:             0,
+		WaterAnnualWashAndDry:       0,
 	}
+}
 
-	doc, err := makeWasherDrierDoc(washerDrier)
-	if err != nil {
-		t.Fatal(err)
-	}
+type washerDrierTestCase struct {
+	name      string
+	propName  string
+	claimType string
+	getValue  func(t *testing.T, claim document.Claim) string
+	expected  string
+}
 
-	// Print document to inspect in console.
-	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
-	if errE != nil {
-		t.Fatal(errE)
-	}
-	fmt.Printf("\nDocument structure:\n%s\n\n", string(prettyDoc))
-
-	tests := []struct {
-		name      string
-		propName  string
-		claimType string
-		getValue  func(claim document.Claim) string
-		expected  string
-	}{
+func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCase {
+	return []washerDrierTestCase{
 		{
 			"Type",
 			"TYPE",
 			"relation",
-			func(c document.Claim) string {
-				rel := c.(*document.RelationClaim)
-				// We need to get the ID that this type points to.
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				rel, ok := c.(*document.RelationClaim)
+				if !ok {
+					t.Fatal("Type property is not a relation claim")
+				}
 				return rel.To.ID.String()
 			},
-			// This should match the ID generated for WASHER_DRIER property.
 			document.GetCorePropertyID("WASHER_DRIER").String(),
 		},
 		{
 			"Name",
 			"NAME",
 			"text",
-			func(c document.Claim) string {
-				textClaim := c.(*document.TextClaim)
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				textClaim, ok := c.(*document.TextClaim)
+				if !ok {
+					t.Fatal("Name property is not a Text claim")
+				}
 				return textClaim.HTML["en"]
 			},
 			html.EscapeString(fmt.Sprintf("%s %s",
@@ -242,76 +325,160 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 			"EPREL Registration Number",
 			"EPREL_REGISTRATION_NUMBER",
 			"identifier",
-			func(c document.Claim) string { return c.(*document.IdentifierClaim).Value },
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				identifierClaim, ok := c.(*document.IdentifierClaim)
+				if !ok {
+					t.Fatal("EPREL Registration Number is not an identifier claim")
+				}
+				return identifierClaim.Value
+			},
 			washerDrier.EprelRegistrationNumber,
 		},
 		{
 			"Model Identifier",
 			"MODEL_IDENTIFIER",
 			"identifier",
-			func(c document.Claim) string { return c.(*document.IdentifierClaim).Value },
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				identifierClaim, ok := c.(*document.IdentifierClaim)
+				if !ok {
+					t.Fatal("Model Identifier is not an identifier claim")
+				}
+				return identifierClaim.Value
+			},
 			washerDrier.ModelIdentifier,
 		},
 		{
-			"Contact Id",
+			"Contact ID",
 			"CONTACT_ID",
 			"identifier",
-			func(c document.Claim) string { return c.(*document.IdentifierClaim).Value },
-			strconv.FormatFloat(washerDrier.ContactId, 'f', 0, 64),
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				identifierClaim, ok := c.(*document.IdentifierClaim)
+				if !ok {
+					t.Fatal("Contact ID is not an identifier claim")
+				}
+				return identifierClaim.Value
+			},
+			strconv.FormatFloat(washerDrier.ContactID, 'f', 0, 64),
 		},
 		{
-			"Energy Label Id",
+			"Energy Label ID",
 			"ENERGY_LABEL_ID",
 			"identifier",
-			func(c document.Claim) string { return c.(*document.IdentifierClaim).Value },
-			strconv.FormatFloat(washerDrier.EnergyLabelId, 'f', 0, 64),
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				identifierClaim, ok := c.(*document.IdentifierClaim)
+				if !ok {
+					t.Fatal("Energy Label ID is not an identifier claim")
+				}
+				return identifierClaim.Value
+			},
+			strconv.FormatFloat(washerDrier.EnergyLabelID, 'f', 0, 64),
 		},
 		{
 			"Ecolabel Registration Number",
 			"ECOLABEL_REGISTRATION_NUMBER",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Ecolabel Registration Number is not an string claim")
+				}
+				return stringClaim.String
+			},
 			washerDrier.EcoLabelRegistrationNumber,
 		},
 		{
 			"Energy Class",
 			"ENERGY_CLASS",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Energy Class is not a string claim")
+				}
+				return stringClaim.String
+			},
 			washerDrier.EnergyClass,
 		},
 		{
 			"Energy Class Image",
 			"ENERGY_CLASS_IMAGE",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
-			washerDrier.EnergyClassImage,
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Energy Class Image is not a string claim")
+				}
+				return stringClaim.String
+			}, washerDrier.EnergyClassImage,
 		},
 		{
 			"Energy Class Image With Scale",
 			"ENERGY_CLASS_IMAGE_WITH_SCALE",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
-			washerDrier.EnergyClassImageWithScale,
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Energy Class Image With Scale is not a string claim")
+				}
+				return stringClaim.String
+			}, washerDrier.EnergyClassImageWithScale,
 		},
 		{
 			"Energy Class Range",
 			"ENERGY_CLASS_RANGE",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
-			washerDrier.EnergyClassRange,
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Energy Class Range is not a string claim")
+				}
+				return stringClaim.String
+			}, washerDrier.EnergyClassRange,
 		},
 		{
 			"Implementing Act",
 			"IMPLEMENTING_ACT",
 			"string",
-			func(c document.Claim) string { return c.(*document.StringClaim).String },
-			washerDrier.ImplementingAct,
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				stringClaim, ok := c.(*document.StringClaim)
+				if !ok {
+					t.Fatal("Implementing Act is not a string claim")
+				}
+				return stringClaim.String
+			}, washerDrier.ImplementingAct,
 		},
 	}
+}
+
+func TestMakeWasherDrierDoc(t *testing.T) {
+	t.Parallel()
+
+	washerDrier := createTestWasherDrier()
+
+	doc := makeWasherDrierDoc(washerDrier)
+
+	// Print document to inspect in console.
+	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
+	if errE != nil {
+		t.Fatal(errE)
+	}
+	t.Logf("Document structure:\n%s", string(prettyDoc))
+
+	tests := getWasherDrierTestCases(washerDrier)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			claims := doc.Get(document.GetCorePropertyID(tt.propName))
 			if len(claims) == 0 {
 				t.Errorf("no claims found for property %s", tt.propName)
@@ -339,7 +506,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 					}
 				}
 
-				value := tt.getValue(claim)
+				value := tt.getValue(t, claim)
 				if value == tt.expected {
 					found = true
 					break

@@ -238,68 +238,27 @@ var productsProperties = []struct {
 		[]string{`"string" claim type`},
 	},
 
-	// EPREL specific properties here
-	// Commented out properties are not mapped in the eprel_api.go file yet. Some may need to have their setup changed to work with standard properties (boolean, for example)
+	// EPREL specific properties here.
 	{
 		"washer drier",
 		[]string{"washer dryer", "washer-dryer"},
 		"A document is about a washer drier product.",
 		[]string{`item`},
 	},
-	// { // skipped - bool  -- skipped in eprel_api.go
-	// 	"allow eprel label generation",
-	// 	nil,
-	// 	`Set to true if the supplier chooses to use EPREL labels for this model. Set to false if the supplier has uploaded their own label.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
-	// { // skipped - bool  -- skipped in eprel_api.go
-	// 	"blocked",
-	// 	nil,
-	// 	`Set to true if the model was reported as containing inappropriate content by EPREL. It will not be visible to the public in any way.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
-	// { // skipped - json blob  -- skipped in eprel_api.go
-	// 	"contact details",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
-	// },
+
 	{
 		"contact id",
 		nil,
 		`A unique identifier for contact information.`,
 		[]string{`"identifier" claim type`},
 	},
-	// { // skipped - json blob  -- skipped in eprel_api.go
-	// 	"cycles",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
-	// },
-	// { // skipped - boolean  -- skipped in eprel_api.go
-	// 	"eco label",
-	// 	nil,
-	// 	`Set to true if the model has an EU eco-label. False otherwise.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
 	{
 		"ecolabel registration number",
 		nil,
 		`The registration number of the EU eco-label.`,
 		[]string{`"String" claim type`},
 	},
-	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
-	// 	"energy annual wash",
-	// 	nil,
-	// 	`Annual Energy consumption washing and spinning (washing cycle)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
-	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
-	// 	"energy annual wash and dry",
-	// 	nil,
-	// 	`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
+
 	{
 		"energy class",
 		nil,
@@ -324,7 +283,7 @@ var productsProperties = []struct {
 		`Range of energy classes, represented by the energy class letter.`,
 		[]string{`"String" claim type`},
 	},
-	{ // This field is mapped to nil in the API docs in terms of additional information
+	{
 		"energy label id",
 		nil,
 		`Internal id to EPREL that corresponding to the energy label.`,
@@ -336,6 +295,68 @@ var productsProperties = []struct {
 		`Unique identifier determined at registration time by the EPREL system.`,
 		[]string{`"Identifier" claim type`},
 	},
+	{
+		"form type",
+		nil,
+		`Type of form used to display the data. Type 1 is used for models registered before 01/05/2021. Type 2 is used for models registered after 01/05/2021.`,
+		[]string{`"String" claim type`},
+	},
+	{
+		"implementing act",
+		nil,
+		`Delegated act number`,
+		[]string{`"String" claim type`},
+	},
+	{
+		"model identifier",
+		nil,
+		`Supplier's model identifier`,
+		[]string{`"Identifier" claim type`},
+	},
+
+	/* The following properties are not currently mapped within the eprel_api file.
+	// {
+	// 	"allow eprel label generation",
+	// 	nil,
+	// 	`Set to true if the supplier chooses to use EPREL labels for this model. Set to false if the supplier has uploaded their own label.`,
+	// 	[]string{`"Boolean" claim type`},
+	// },
+	// { // skipped - bool  -- skipped in eprel_api.go
+	// 	"blocked",
+	// 	nil,
+	// 	`Set to true if the model was reported as containing inappropriate content by EPREL. It will not be visible to the public in any way.`,
+	// 	[]string{`"Boolean" claim type`},
+	// },
+	// { // skipped - json blob  -- skipped in eprel_api.go
+	// 	"contact details",
+	// 	nil,
+	// 	`None`,
+	// 	[]string{`"None" claim type`},
+	// },
+	// { // skipped - json blob  -- skipped in eprel_api.go
+	// 	"cycles",
+	// 	nil,
+	// 	`None`,
+	// 	[]string{`"None" claim type`},
+	// },
+	// { // skipped - boolean  -- skipped in eprel_api.go
+	// 	"eco label",
+	// 	nil,
+	// 	`Set to true if the model has an EU eco-label. False otherwise.`,
+	// 	[]string{`"Boolean" claim type`},
+	// },
+	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
+	// 	"energy annual wash",
+	// 	nil,
+	// 	`Annual Energy consumption washing and spinning (washing cycle)`,
+	// 	[]string{`"Amount" claim type`},
+	// },
+	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
+	// 	"energy annual wash and dry",
+	// 	nil,
+	// 	`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
+	// 	[]string{`"Amount" claim type`},
+	// },
 	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
 	// 	"export date ts",
 	// 	nil,
@@ -354,43 +375,11 @@ var productsProperties = []struct {
 	// 	`Datetime the first version of a model is published and appears on the EPREL site, in epochs`,
 	// 	[]string{`"Date" claim type`},
 	// },
-	{
-		"form type",
-		nil,
-		`Type of form used to display the data. Type 1 is used for models registered before 01/05/2021. Type 2 is used for models registered after 01/05/2021.`,
-		[]string{`"String" claim type`},
-	},
 	// { // not existent in the API docs -- all values in data are null? Need to check for other categories what this data type is  -- skipped in eprel_api.go
 	// 	"generated labels",
 	// 	nil,
 	// 	`None`,
 	// 	[]string{`"None" claim type`},
-	// },
-	{
-		"implementing act",
-		nil,
-		`Delegated act number`,
-		[]string{`"String" claim type`},
-	},
-	// { // This is in epochs - issue? -- skipped in eprel_api.go
-	// 	"imported on",
-	// 	nil,
-	// 	`Timestamp the data was imported, in epochs`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // skipped - boolean  -- skipped in eprel_api.go
-	// 	"last version",
-	// 	nil,
-	// 	`This field will be always TRUE. Only last versions are published.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
-
-	//// Below properties are not mapped in eprel_api.go
-	// { // should this be idenfitier or string? It's not like a machine-generated UUID, but it is an identifier
-	// 	"model identifier",
-	// 	nil,
-	// 	`Supplier's model identifier`,
-	// 	[]string{`"Identifier" claim type`},
 	// },
 	// { // measurement in decibels, do I need to add that?
 	// 	"noise dry",
@@ -413,19 +402,24 @@ var productsProperties = []struct {
 	// { // date in the format of [YYYY, MM, DD]
 	// 	"on market end date",
 	// 	nil,
-	// 	`Date the last model is placed on the market, in the format of [YYYY, MM, DD]. Optional field, could be empty. It is used internally to verify if Basic filter "Include models not placed on the market anymore" applies to the model.`,
+	// 	`Date the last model is placed on the market, in the format of [YYYY, MM, DD]. ` +
+	// 		` Optional field, could be empty. It is used internally to verify if Basic filter ` +
+	// 		`"Include models not placed on the market anymore" applies to the model.`,
 	// 	[]string{`"Time" claim type`},
 	// },
 	// { // date in the format of epoch
 	// 	"on market end date ts",
 	// 	nil,
-	// 	`Timestamp the last model is placed on the market, in epochs. Optional field, could be empty. It is used internally to verify if Basic filter "Include models not placed on the market anymore" applies to the model.`,
+	// 	`Timestamp the last model is placed on the market, in epochs. ` +
+	// 		`Optional field, could be empty. It is used internally to verify if Basic filter ` +
+	// 		`"Include models not placed on the market anymore" applies to the model.`,
 	// 	[]string{`"Time" claim type`},
 	// },
 	// { // date in the format of [YYYY, MM, DD]
 	// 	"on market first start date",
 	// 	nil,
-	// 	`Date the first version of a model is placed on the market, in the format of [YYYY, MM, DD]. It also marks the date the model becomes Published and appears on the EPREL site.`,
+	// 	`Date the first version of a model is placed on the market, in the format of [YYYY, MM, DD]. ` +
+	// 		`It also marks the date the model becomes Published and appears on the EPREL site.`,
 	// 	[]string{`"Time" claim type`},
 	// },
 	// { // date in the format of epoch
@@ -464,7 +458,19 @@ var productsProperties = []struct {
 	// 	`Other model idenfitiers in the form of EAN codes. Can be multiple.`,
 	// 	[]string{`"String" claim type`},
 	// },
-	// { // This is in the form of a list of json blobs, how to type? Example: [{'country': 'AT', 'orderNumber': 1}, {'country': 'BE', 'orderNumber': 2}, {'country': 'BG', 'orderNumber': 3},...]
+	// {
+	// 	"imported on",
+	// 	nil,
+	// 	`Timestamp the data was imported, in epochs`,
+	// 	[]string{`"Time" claim type`},
+	// },
+	// { // skipped - boolean  -- skipped in eprel_api.go
+	// 	"last version",
+	// 	nil,
+	// 	`This field will be always TRUE. Only last versions are published.`,
+	// 	[]string{`"Boolean" claim type`},
+	// },
+	// { // This is in the form of a list of json blobs, how to type? Example: [{'country': 'AT', 'orderNumber': 1}, {'country': 'BE', 'orderNumber': 2}...]
 	// 	"placement countries",
 	// 	nil,
 	// 	`None`,
@@ -515,7 +521,8 @@ var productsProperties = []struct {
 	// {
 	// 	"trademark id",
 	// 	nil,
-	// 	`Supplier's name or trademark reference - If Supplier's name or trademark is declared by reference in the supplier's organisation, the id of the reference is provided.`,
+	// 	`Supplier's name or trademark reference - ` +
+	// 		`If Supplier's name or trademark is declared by reference in the supplier's organisation, the id of the reference is provided.`,
 	// 	[]string{`"Identifier" claim type`},
 	// },
 	// { // need to check if this is non-null for any of the other product categories
@@ -551,9 +558,12 @@ var productsProperties = []struct {
 	// { // Skip - boolean
 	// 	"visible to uk msa",
 	// 	nil,
-	// 	`Compliance data visible to UK MSA - Optional flag to indicate if the product compliance information (technical documentation, equivalents and ICSMS data) should be visible to the Market Surveillance Authority for the United Kingdom.
+	// 	`Compliance data visible to UK MSA - ` +
+	// 		`Optional flag to indicate if the product compliance information (technical documentation, ` +
+	// 		` equivalents and ICSMS data) should be visible to the Market Surveillance Authority for the United Kingdom.
 	// 	The handling of the flag is the following:
-	// 	(1) For suppliers based at UK/Northern Ireland: if the flag is omitted, it is considered as being "true" by default. If the flag is sent as "false", an error will occur.
+	// 	(1) For suppliers based at UK/Northern Ireland: ` +
+	// 		`if the flag is omitted, it is considered as being "true" by default. If the flag is sent as "false", an error will occur.
 	// 	(2) For suppliers based at an EU country: if the flag is omitted, it is considered as being "false" by default.`,
 	// 	[]string{`"Boolean" claim type`},
 	// },
@@ -570,6 +580,7 @@ var productsProperties = []struct {
 	// 	[]string{`"Amount" claim type`},
 	// },
 	// END EPREL API properties
+	*/
 }
 
 func init() { //nolint:gochecknoinits
