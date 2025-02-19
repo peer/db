@@ -219,6 +219,8 @@ func (n Natureta) Run(
 		products.Append(ps.Products...)
 	}
 
+	config.Logger.Info().Int("total", products.Cardinality()).Msg("retrieved Natureta data")
+
 	description := "Natureta processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(products.Cardinality()))
@@ -233,10 +235,14 @@ func (n Natureta) Run(
 	}()
 
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
-	for _, productURL := range products.ToSlice() {
+	for i, productURL := range products.ToSlice() {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		config.Logger.Debug().
+			Int("index", i).
+			Str("url", productURL).
+			Msg("processing Natureta record")
 
 		product, errE := indexer.GetWebData[NaturetaProduct](ctx, httpClient, productURL, indexer.ExtractData)
 		if errE != nil {

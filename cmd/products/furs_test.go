@@ -27,7 +27,7 @@ func TestProcessFursDejFile(t *testing.T) {
 	if errE != nil {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
-	require.Len(t, records, 8, "Expected 8 records, but got %d", len(records))
+	require.Len(t, records, 8, "expected 8 records, but got %d", len(records))
 
 	assert.NotEmpty(t, records)
 

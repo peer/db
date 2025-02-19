@@ -599,6 +599,8 @@ func (f FoodDataCentral) Run(
 		return errE
 	}
 
+	config.Logger.Info().Int("total", len(foods)).Msg("retrieved FoodDataCentral data")
+
 	description := "FoodDataCentral processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(len(foods)))
@@ -612,10 +614,14 @@ func (f FoodDataCentral) Run(
 		}
 	}()
 
-	for _, food := range foods {
+	for i, food := range foods {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		config.Logger.Debug().
+			Int("index", i).
+			Int("id", food.FDCID).
+			Msg("processing FoodDataCentral record")
 
 		ingredients, errE := getIngredients(f.IngredientsDir, food)
 		if errE != nil {

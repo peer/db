@@ -200,6 +200,8 @@ func (n Zito) Run(
 		products = products.Union(ps)
 	}
 
+	config.Logger.Info().Int("total", products.Cardinality()).Msg("retrieved Zito data")
+
 	description := "Zito processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(products.Cardinality()))
@@ -215,10 +217,14 @@ func (n Zito) Run(
 	}()
 
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
-	for _, productURL := range products.ToSlice() {
+	for i, productURL := range products.ToSlice() {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		config.Logger.Debug().
+			Int("index", i).
+			Str("url", productURL).
+			Msg("processing Zito record")
 
 		product, errE := indexer.GetWebData[ZitoProduct](ctx, httpClient, productURL, indexer.ExtractData)
 		if errE != nil {
@@ -228,6 +234,7 @@ func (n Zito) Run(
 		// Pages have HTML fragments they inject with JavaScript into the page.
 		productDetails, errE := indexer.ExtractData[ZitoProductDetails](strings.NewReader(product.Fragments))
 		if errE != nil {
+			errors.Details(errE)["url"] = productURL
 			return errE
 		}
 

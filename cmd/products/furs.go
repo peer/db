@@ -147,7 +147,7 @@ func (d FURSDEJ) Run(
 		return errE
 	}
 
-	config.Logger.Info().Int("count", len(records)).Msg("retrieved FURS DEJ data")
+	config.Logger.Info().Int("total", len(records)).Msg("retrieved FURS DEJ data")
 
 	description := "FURS DEJ processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
@@ -169,7 +169,7 @@ func (d FURSDEJ) Run(
 		config.Logger.Debug().
 			Int("index", i).
 			Str("id", record.RegistrationNumber).
-			Msg("processing company record")
+			Msg("processing FURS DEJ record")
 
 		doc, errE := makeFursDoc(record)
 

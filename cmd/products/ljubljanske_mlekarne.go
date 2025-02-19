@@ -169,6 +169,8 @@ func (n LjubljanskeMlekarne) Run(
 		products = products.Union(ps)
 	}
 
+	config.Logger.Info().Int("total", products.Cardinality()).Msg("retrieved Ljubljanske mlekarne data")
+
 	description := "Ljubljanske mlekarne processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
 	indexingSize.Add(int64(products.Cardinality()))
@@ -183,10 +185,14 @@ func (n LjubljanskeMlekarne) Run(
 	}()
 
 	// TODO: Use Go iterators once supported. See: https://github.com/deckarep/golang-set/issues/141
-	for _, productURL := range products.ToSlice() {
+	for i, productURL := range products.ToSlice() {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		config.Logger.Debug().
+			Int("index", i).
+			Str("url", productURL).
+			Msg("processing Ljubljanske mlekarne record")
 
 		product, errE := indexer.GetWebData[LjubljanskeMlekarneProduct](ctx, httpClient, productURL, indexer.ExtractData)
 		if errE != nil {
