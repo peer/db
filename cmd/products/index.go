@@ -58,6 +58,10 @@ func index(config *Config) errors.E {
 		return config.Zito.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
 	})
 
+	g.Go(func() error {
+		return config.FURSDEJ.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
+	})
+
 	errE = errors.WithStack(g.Wait())
 	if errE != nil {
 		return errE

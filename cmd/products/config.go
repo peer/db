@@ -37,4 +37,5 @@ type Config struct {
 	Natureta            Natureta            `embed:"" prefix:"natureta."`
 	LjubljanskeMlekarne LjubljanskeMlekarne `embed:"" prefix:"ljubljanskemlekarne."`
 	Zito                Zito                `embed:"" prefix:"zito."`
+	FURSDEJ             FURSDEJ             `embed:"" prefix:"fursdej."`
 }

@@ -131,6 +131,50 @@ var productsProperties = []struct {
 		`A description of packaging of a branded food product.`,
 		[]string{`"text" claim type`},
 	},
+
+	// FursEntry specific properties start here.
+	{
+		"VAT number",
+		nil,
+		`A company VAT number.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"Company registration number",
+		nil,
+		`A company registration number.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"SKD 2025",
+		[]string{"Standard Classification of Activities 2025"},
+		`National Standard Classification of Activities in Slovenia extending NACE Rev. 2.1..`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"company",
+		nil,
+		"A document is about a company.",
+		[]string{`item`},
+	},
+	{
+		"address",
+		nil,
+		`An address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"financial office",
+		nil,
+		`A financial office responsible for the company.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"country of incorporation",
+		nil,
+		`Country of incorporation.`,
+		[]string{`"string" claim type`},
+	},
 }
 
 func init() { //nolint:gochecknoinits
