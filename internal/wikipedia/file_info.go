@@ -294,7 +294,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	if loaded {
 		// We made it just in case but we do not need it.
 		close(apiTaskChan)
-		return existingAPITaskChan.(chan apiTask) //nolint:forcetypeassert
+		return existingAPITaskChan.(chan apiTask) //nolint:forcetypeassert,errcheck
 	}
 
 	go func() {

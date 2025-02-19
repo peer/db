@@ -88,7 +88,7 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 
 	sortedSkipped := make([]string, 0, atomic.LoadInt64(count))
 	skippedMap.Range(func(key, _ interface{}) bool {
-		sortedSkipped = append(sortedSkipped, key.(string)) //nolint:forcetypeassert
+		sortedSkipped = append(sortedSkipped, key.(string)) //nolint:forcetypeassert,errcheck
 		return true
 	})
 	sort.Strings(sortedSkipped)

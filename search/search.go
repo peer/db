@@ -611,5 +611,5 @@ func GetState(s string) *State {
 	if !ok {
 		return nil
 	}
-	return sh.(*State) //nolint:forcetypeassert
+	return sh.(*State) //nolint:forcetypeassert,errcheck
 }

@@ -662,7 +662,7 @@ func processSnak( //nolint:ireturn,nolintlint,maintidx
 			}
 			if uncertaintyLower != nil && uncertaintyUpper != nil {
 				// We lower the confidence of the original claim.
-				claims[0].(*document.AmountClaim).Confidence *= 0.9 //nolint:forcetypeassert
+				claims[0].(*document.AmountClaim).Confidence *= 0.9 //nolint:forcetypeassert,errcheck
 				claims = append(
 					claims,
 					&document.AmountRangeClaim{

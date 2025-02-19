@@ -2171,7 +2171,7 @@ func TestParsePrompt(t *testing.T) { //nolint:maintidx
 						InputJSONSchema:  outputStructSchema,
 						OutputJSONSchema: nil,
 						Fun: func(ctx context.Context, input outputStruct) (string, errors.E) {
-							*ctx.Value("result").(*outputStruct) = input //nolint:forcetypeassert
+							*ctx.Value("result").(*outputStruct) = input //nolint:forcetypeassert,errcheck
 							return "", nil
 						},
 					},

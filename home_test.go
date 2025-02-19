@@ -56,7 +56,7 @@ func init() { //nolint:gochecknoinits
 			return nil
 		}
 
-		data, err := f.(fs.ReadFileFS).ReadFile(path)
+		data, err := f.(fs.ReadFileFS).ReadFile(path) //nolint:forcetypeassert,errcheck
 		if err != nil {
 			return err //nolint:wrapcheck
 		}

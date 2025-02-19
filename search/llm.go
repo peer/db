@@ -417,9 +417,9 @@ func findProperties(
 
 		output.Properties = append(output.Properties, property{ //nolint:forcetypeassert
 			ID:               doc.ID.String(),
-			Name:             names[0].(*document.TextClaim).HTML["en"],
+			Name:             names[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			ExtraNames:       nil,
-			Description:      descriptions[0].(*document.TextClaim).HTML["en"],
+			Description:      descriptions[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			Type:             "time",
 			Unit:             0,
 			RelatedDocuments: nil,
@@ -466,9 +466,9 @@ func findProperties(
 
 		output.Properties = append(output.Properties, property{ //nolint:forcetypeassert
 			ID:               doc.ID.String(),
-			Name:             names[0].(*document.TextClaim).HTML["en"],
+			Name:             names[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			ExtraNames:       nil,
-			Description:      descriptions[0].(*document.TextClaim).HTML["en"],
+			Description:      descriptions[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			Type:             "amount",
 			Unit:             document.AmountUnitMetre, // TODO: Obtain from the document.
 			RelatedDocuments: nil,
@@ -518,9 +518,9 @@ func findProperties(
 
 		relatedDocuments = append(relatedDocuments, relPropertyValue{ //nolint:forcetypeassert
 			ID:          doc.ID.String(),
-			Name:        names[0].(*document.TextClaim).HTML["en"],
+			Name:        names[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			ExtraNames:  nil,
-			Description: descriptions[0].(*document.TextClaim).HTML["en"],
+			Description: descriptions[0].(*document.TextClaim).HTML["en"], //nolint:errcheck
 			Score:       0,
 		})
 	}

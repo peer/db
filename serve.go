@@ -135,7 +135,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 			Logger:          globals.Logger,
 			CanonicalLogger: globals.Logger,
 			WithContext:     globals.WithContext,
-			StaticFiles:     f.(fs.ReadFileFS),
+			StaticFiles:     f.(fs.ReadFileFS), //nolint:errcheck
 			Routes:          routesConfig.Routes,
 			Sites:           sites,
 			SiteContextPath: "/context.json",
