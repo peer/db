@@ -131,6 +131,7 @@ func makeFursDoc(furs FursEntry) (document.D, errors.E) {
 	return doc, nil
 }
 
+//nolint:dupl
 func (d FURSDEJ) Run(
 	ctx context.Context,
 	config *Config,
@@ -188,6 +189,7 @@ func (d FURSDEJ) Run(
 			return errE
 		}
 	}
+
 	config.Logger.Info().
 		Int64("count", count.Count()).
 		Int("total", len(records)).

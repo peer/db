@@ -38,4 +38,5 @@ type Config struct {
 	LjubljanskeMlekarne LjubljanskeMlekarne `embed:"" prefix:"ljubljanskemlekarne."`
 	Zito                Zito                `embed:"" prefix:"zito."`
 	FURSDEJ             FURSDEJ             `embed:"" prefix:"fursdej."`
+	Datakick            Datakick            `embed:"" prefix:"datakick."`
 }

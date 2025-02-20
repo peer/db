@@ -126,9 +126,9 @@ var productsProperties = []struct {
 		[]string{`"text" claim type`},
 	},
 	{
-		"packaging description",
+		"packaging size description",
 		nil,
-		`A description of packaging of a branded food product.`,
+		`A description of packaging size of a branded food product.`,
 		[]string{`"text" claim type`},
 	},
 
@@ -174,6 +174,13 @@ var productsProperties = []struct {
 		nil,
 		`Country of incorporation.`,
 		[]string{`"string" claim type`},
+	},
+	// Datakick specific properties start here.
+	{
+		"datakick id",
+		nil,
+		`A Datakick identifier.`,
+		[]string{`"identifier" claim type`},
 	},
 }
 
