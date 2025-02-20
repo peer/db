@@ -45,6 +45,7 @@ type ProductGroup struct {
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
+	// TODO: Map all timestamp fields to a custom type, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179
 	AllowEprelLabelGeneration bool           `json:"allowEprelLabelGeneration"`
 	Blocked                   bool           `json:"blocked"`
 	ContactDetails            ContactDetails `json:"contactDetails"`
