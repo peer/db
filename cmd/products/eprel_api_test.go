@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -89,90 +88,6 @@ func TestGetWasherDriers(t *testing.T) {
 		t.Logf("Model: %s", first.ModelIdentifier)
 		t.Logf("Energy class: %s", first.EnergyClass)
 		t.Logf("Number of cycles: %d", len(first.Cycles))
-	}
-}
-
-func TestMapAllWasherDrierFields(t *testing.T) {
-	t.Parallel()
-
-	skipIfNoAPIKey(t)
-	ctx := context.Background()
-	httpClient := retryablehttp.NewClient()
-	httpClient.Logger = nil
-	apiKey := getAPIKey(t)
-
-	seenFields := make(map[string][]interface{})
-
-	page := 1
-	for {
-		url := fmt.Sprintf("https://eprel.ec.europa.eu/api/products/washerdriers?_limit=100&_page=%d", page)
-		req, errE := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
-		if errE != nil {
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-		req.Header.Set("X-Api-Key", apiKey)
-
-		resp, errE := httpClient.Do(req)
-		if errE != nil {
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-
-		var result map[string]interface{}
-		if errE := json.NewDecoder(resp.Body).Decode(&result); errE != nil {
-			resp.Body.Close()
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-		resp.Body.Close()
-
-		hits, ok := result["hits"].([]interface{})
-		if !ok {
-			t.Fatal("result['hits'] is not []interface{}")
-		}
-		if len(hits) == 0 {
-			break
-		}
-
-		for _, hit := range hits {
-			product, ok := hit.(map[string]interface{})
-			if !ok {
-				t.Fatal("hit is not map[string]interface{}")
-			}
-
-			for field, value := range product {
-				if _, exists := seenFields[field]; !exists {
-					seenFields[field] = []interface{}{value}
-				}
-			}
-		}
-
-		page++
-	}
-
-	// Print fields and sample values.
-	fields := make([]string, 0, len(seenFields))
-
-	for field := range seenFields {
-		fields = append(fields, field)
-	}
-	sort.Strings(fields)
-
-	t.Log("Fields and their structure")
-	for _, field := range fields {
-		value := seenFields[field][0]
-		t.Logf("- %s: %T", field, value)
-
-		// Print structure of nested objects.
-		if m, ok := value.(map[string]interface{}); ok {
-			for k := range m {
-				t.Logf("  - %s", k)
-			}
-		} else if a, ok := value.([]interface{}); ok && len(a) > 0 {
-			if m, ok := a[0].(map[string]interface{}); ok {
-				for k := range m {
-					t.Logf("  - %s", k)
-				}
-			}
-		}
 	}
 }
 
