@@ -20,6 +20,7 @@ import (
 
 func TestGetProductGroups(t *testing.T) {
 	t.Parallel()
+
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 
