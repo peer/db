@@ -1,4 +1,3 @@
-// eprel_api.go.
 package main
 
 import (
@@ -6,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"io"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -29,8 +30,17 @@ type EPREL struct {
 }
 
 type WasherDrierResponse struct {
-	Size int                  `json:"size"`
-	Hits []WasherDrierProduct `json:"hits"`
+	Size   int                  `json:"size"`
+	Offset int                  `json:"offset"`
+	Hits   []WasherDrierProduct `json:"hits"`
+}
+
+//nolint:tagliatelle // JSON tags must match external EPREL API format.
+type ProductGroup struct {
+	Code       string `json:"code"`
+	URLCode    string `json:"url_code"`
+	Name       string `json:"name"`
+	Regulation string `json:"regulation"`
 }
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
@@ -38,7 +48,7 @@ type WasherDrierProduct struct {
 	AllowEprelLabelGeneration bool           `json:"allowEprelLabelGeneration"`
 	Blocked                   bool           `json:"blocked"`
 	ContactDetails            ContactDetails `json:"contactDetails"`
-	ContactID                 float64        `json:"contactId"`
+	ContactID                 int            `json:"contactId"`
 	Cycles                    []Cycle        `json:"cycles"`
 
 	EcoLabel                   bool   `json:"ecoLabel"`
@@ -50,14 +60,14 @@ type WasherDrierProduct struct {
 	EnergyClassImage          string  `json:"energyClassImage"`
 	EnergyClassImageWithScale string  `json:"energyClassImageWithScale"`
 	EnergyClassRange          string  `json:"energyClassRange"`
-	EnergyLabelID             float64 `json:"energyLabelId"`
+	EnergyLabelID             int     `json:"energyLabelId"`
 
-	EprelRegistrationNumber string       `json:"eprelRegistrationNumber"`
-	ExportDateTS            float64      `json:"exportDateTS"`
-	FirstPublicationDate    []int        `json:"firstPublicationDate"`
-	FirstPublicationDateTS  float64      `json:"firstPublicationDateTS"`
-	FormType                string       `json:"formType"`
-	GeneratedLabels         *interface{} `json:"generatedLabels"`
+	EprelRegistrationNumber       string      `json:"eprelRegistrationNumber"`
+	ExportDateTimestamp           float64     `json:"exportDateTS"`
+	FirstPublicationDate          []int       `json:"firstPublicationDate"`
+	FirstPublicationDateTimestamp float64     `json:"firstPublicationDateTS"`
+	FormType                      string      `json:"formType"`
+	GeneratedLabels               interface{} `json:"generatedLabels,omitempty"`
 
 	ImplementingAct string  `json:"implementingAct"`
 	ImportedOn      float64 `json:"importedOn"`
@@ -68,34 +78,34 @@ type WasherDrierProduct struct {
 	NoiseSpin float64 `json:"noiseSpin"`
 	NoiseWash float64 `json:"noiseWash"`
 
-	OnMarketEndDate          []int   `json:"onMarketEndDate"`
-	OnMarketEndDateTS        float64 `json:"onMarketEndDateTS"`
-	OnMarketFirstStartDate   []int   `json:"onMarketFirstStartDate"`
-	OnMarketFirstStartDateTS float64 `json:"onMarketFirstStartDateTS"`
-	OnMarketStartDate        []int   `json:"onMarketStartDate"`
-	OnMarketStartDateTS      float64 `json:"onMarketStartDateTS"`
+	OnMarketEndDate                 []int   `json:"onMarketEndDate"`
+	OnMarketEndDateTimestamp        float64 `json:"onMarketEndDateTS"`
+	OnMarketFirstStartDate          []int   `json:"onMarketFirstStartDate"`
+	OnMarketFirstStartDateTimestamp float64 `json:"onMarketFirstStartDateTS"`
+	OnMarketStartDate               []int   `json:"onMarketStartDate"`
+	OnMarketStartDateTimestamp      float64 `json:"onMarketStartDateTS"`
 
 	OrgVerificationStatus string        `json:"orgVerificationStatus"`
 	Organisation          Organisation  `json:"organisation"`
 	OtherIdentifiers      []interface{} `json:"otherIdentifiers"`
 	PlacementCountries    []interface{} `json:"placementCountries"`
 
-	ProductGroup       string  `json:"productGroup"`
-	ProductModelCoreID float64 `json:"productModelCoreId"`
-	PublishedOnDate    []int   `json:"publishedOnDate"`
-	PublishedOnDateTS  float64 `json:"publishedOnDateTS"`
+	ProductGroup             string  `json:"productGroup"`
+	ProductModelCoreID       int     `json:"productModelCoreId"`
+	PublishedOnDate          []int   `json:"publishedOnDate"`
+	PublishedOnDateTimestamp float64 `json:"publishedOnDateTS"`
 
-	RegistrantNature            string       `json:"registrantNature"`
-	Status                      string       `json:"status"`
-	SupplierOrTrademark         string       `json:"supplierOrTrademark"`
-	TrademarkID                 float64      `json:"trademarkId"`
-	TrademarkOwner              *interface{} `json:"trademarkOwner"`
-	TrademarkVerificationStatus string       `json:"trademarkVerificationStatus"`
+	RegistrantNature            string      `json:"registrantNature"`
+	Status                      string      `json:"status"`
+	SupplierOrTrademark         string      `json:"supplierOrTrademark"`
+	TrademarkID                 int         `json:"trademarkId"`
+	TrademarkOwner              interface{} `json:"trademarkOwner,omitempty"`
+	TrademarkVerificationStatus string      `json:"trademarkVerificationStatus"`
 
-	UploadedLabels []string `json:"uploadedLabels"`
-	VersionID      float64  `json:"versionId"`
-	VersionNumber  float64  `json:"versionNumber"`
-	VisibleToUkMsa bool     `json:"visibleToUkMsa"`
+	UploadedLabels                                    []string `json:"uploadedLabels"`
+	VersionID                                         int      `json:"versionId"`
+	VersionNumber                                     float64  `json:"versionNumber"`
+	VisibleToUnitedKingdomMarketSurveillanceAuthority bool     `json:"visibleToUkMsa"`
 
 	WaterAnnualWash       float64 `json:"waterAnnualWash"`
 	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
@@ -103,24 +113,24 @@ type WasherDrierProduct struct {
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type ContactDetails struct {
-	AddressBloc          *string      `json:"addressBloc"`
-	City                 string       `json:"city"`
-	ContactByReferenceID *interface{} `json:"contactByReferenceId"`
-	ContactReference     string       `json:"contactReference"`
-	Country              string       `json:"country"`
-	DefaultContact       bool         `json:"defaultContact"`
-	Email                string       `json:"email"`
-	ID                   float64      `json:"id"`
-	Municipality         *string      `json:"municipality"`
-	OrderNumber          *string      `json:"orderNumber"`
-	Phone                string       `json:"phone"`
-	PostalCode           string       `json:"postalCode"`
-	Province             *string      `json:"province"`
-	ServiceName          string       `json:"serviceName"`
-	Status               string       `json:"status"`
-	Street               string       `json:"street"`
-	StreetNumber         string       `json:"streetNumber"`
-	WebSiteURL           *string      `json:"webSiteURL"`
+	Address              string      `json:"addressBloc,omitempty"`
+	City                 string      `json:"city"`
+	ContactByReferenceID interface{} `json:"contactByReferenceId,omitempty"`
+	ContactReference     string      `json:"contactReference"`
+	Country              string      `json:"country"`
+	DefaultContact       bool        `json:"defaultContact"`
+	Email                string      `json:"email"`
+	ID                   int         `json:"id"`
+	Municipality         string      `json:"municipality,omitempty"`
+	OrderNumber          string      `json:"orderNumber,omitempty"`
+	Phone                string      `json:"phone"`
+	PostalCode           string      `json:"postalCode"`
+	Province             string      `json:"province,omitempty"`
+	ServiceName          string      `json:"serviceName"`
+	Status               string      `json:"status"`
+	Street               string      `json:"street"`
+	StreetNumber         string      `json:"streetNumber"`
+	WebSiteURL           string      `json:"webSiteURL,omitempty"`
 }
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
@@ -129,10 +139,10 @@ type Cycle struct {
 	CapacityWash            float64 `json:"capacityWash"`
 	EnergyConsWash          float64 `json:"energyConsWash"`
 	EnergyConsWashAndDry    float64 `json:"energyConsWashAndDry"`
-	ID                      float64 `json:"id"`
+	ID                      int     `json:"id"`
 	OrderNumber             float64 `json:"orderNumber"`
 	OtherCycle              bool    `json:"otherCycle"`
-	OtherCycleLabel         *string `json:"otherCycleLabel"`
+	OtherCycleLabel         string  `json:"otherCycleLabel,omitempty"`
 	SpinMax                 float64 `json:"spinMax"`
 	WashTime                float64 `json:"washTime"`
 	WashingPerformanceClass string  `json:"washingPerformanceClass"`
@@ -142,18 +152,18 @@ type Cycle struct {
 }
 
 type Organisation struct {
-	CloseDate         *string `json:"closeDate"`
-	CloseStatus       *string `json:"closeStatus"`
-	FirstName         *string `json:"firstName"`
-	IsClosed          bool    `json:"isClosed"`
-	LastName          *string `json:"lastName"`
-	OrganisationName  string  `json:"organisationName"`
-	OrganisationTitle string  `json:"organisationTitle"`
-	Website           *string `json:"website"`
+	CloseDate         string `json:"closeDate,omitempty"`
+	CloseStatus       string `json:"closeStatus,omitempty"`
+	FirstName         string `json:"firstName,omitempty"`
+	IsClosed          bool   `json:"isClosed"`
+	LastName          string `json:"lastName,omitempty"`
+	OrganisationName  string `json:"organisationName"`
+	OrganisationTitle string `json:"organisationTitle"`
+	Website           string `json:"website,omitempty"`
 }
 
 func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]string, errors.E) {
-	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", "https://eprel.ec.europa.eu/api/product-groups", nil)
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, "https://eprel.ec.europa.eu/api/product-groups", nil)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -165,18 +175,15 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 	defer resp.Body.Close()
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
-	var result []interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, errors.WithStack(err)
+	var result []ProductGroup
+	errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
+	if errE != nil {
+		return nil, errE
 	}
 
-	var urlCodes []string
+	urlCodes := make([]string, 0, len(result))
 	for _, item := range result {
-		if m, ok := item.(map[string]interface{}); ok {
-			if code, ok := m["url_code"].(string); ok {
-				urlCodes = append(urlCodes, code)
-			}
-		}
+		urlCodes = append(urlCodes, item.URLCode)
 	}
 
 	return urlCodes, nil
@@ -197,7 +204,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 
 		url := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 
-		req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -211,8 +218,9 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 		defer resp.Body.Close()
 
 		var result WasherDrierResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			return nil, errors.WithStack(err)
+		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
+		if errE != nil {
+			return nil, errE
 		}
 
 		if len(result.Hits) == 0 {
@@ -228,10 +236,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	}
 
 	if len(allWasherDriers) != totalSize {
-		errE := errors.New("unexpected number of washer driers")
-		errors.Details(errE)["expected"] = totalSize
-		errors.Details(errE)["got"] = len(allWasherDriers)
-		return nil, errE
+		return nil, errors.Errorf("expected %d washer-driers but got %d", totalSize, len(allWasherDriers))
 	}
 
 	return allWasherDriers, nil
@@ -279,7 +284,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ModelIdentifier, "MODEL_IDENTIFIER", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "MODEL_IDENTIFIER", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("MODEL_IDENTIFIER"),
@@ -287,19 +292,19 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "CONTACT_ID", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "CONTACT_ID", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("CONTACT_ID"),
-					Value: strconv.FormatFloat(washerDrier.ContactID, 'f', 0, 64),
+					Value: strconv.FormatInt(int64(washerDrier.ContactID), 10),
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.ProductGroup, "ENERGY_LABEL_ID", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ENERGY_LABEL_ID", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("ENERGY_LABEL_ID"),
-					Value: strconv.FormatFloat(washerDrier.EnergyLabelID, 'f', 0, 64),
+					Value: strconv.FormatInt(int64(washerDrier.EnergyLabelID), 10),
 				},
 			},
 			String: document.StringClaims{
@@ -378,7 +383,7 @@ func (e EPREL) Run(
 
 	apiKey := strings.TrimSpace(string(e.APIKey))
 	if apiKey == "" {
-		return errors.New("empty API key")
+		return errors.New("missing EPREL API key")
 	}
 
 	// Check ElasticSearch config.
@@ -389,11 +394,11 @@ func (e EPREL) Run(
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
 	if errE != nil {
-		config.Logger.Error().Err(errE).Msg("Failed to get washer driers")
+		config.Logger.Error().Err(errE).Msg("Failed to get washer-driers")
 		return errE
 	}
 
-	config.Logger.Info().Int("count", len(washerDriers)).Msg("Retrieved washer driers")
+	config.Logger.Info().Int("count", len(washerDriers)).Msg("Retrieved EPREL washer-driers data")
 
 	description := "EPREL washer-driers processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
@@ -410,14 +415,13 @@ func (e EPREL) Run(
 
 	for i, washerDrier := range washerDriers {
 		if ctx.Err() != nil {
-			config.Logger.Warn().Msg("Context canceled")
-			break
+			return errors.WithStack(ctx.Err())
 		}
 
 		config.Logger.Debug().
 			Int("index", i).
-			Str("model", washerDrier.ModelIdentifier).
-			Msg("Processing washer drier")
+			Str("id", washerDrier.EprelRegistrationNumber).
+			Msg("processing EPREL washer-driers record")
 
 		doc := makeWasherDrierDoc(washerDrier)
 
@@ -426,7 +430,6 @@ func (e EPREL) Run(
 
 		config.Logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
-
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
 			config.Logger.Error().
@@ -436,6 +439,7 @@ func (e EPREL) Run(
 			return errE
 		}
 	}
+
 	config.Logger.Info().
 		Int64("count", count.Count()).
 		Int("total", len(washerDriers)).

@@ -1,4 +1,3 @@
-// eprel_api_test.go.
 package main
 
 import (
@@ -13,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -24,9 +25,21 @@ func TestGetProductGroups(t *testing.T) {
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 
-	urlCodes, err := getProductGroups(ctx, httpClient)
-	if err != nil {
-		t.Fatal(err)
+	urlCodes, errE := getProductGroups(ctx, httpClient)
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	// Assert that we got results.
+	assert.NotEmpty(t, urlCodes, "product groups list should not be empty")
+
+	// Assert that washerdriers are present (add more later when we process other product groups).
+	expectedGroups := []string{
+		"washerdriers",
+	}
+
+	for _, expected := range expectedGroups {
+		assert.Contains(t, urlCodes, expected, "product groups should contain %s", expected)
 	}
 
 	for _, code := range urlCodes {
@@ -36,32 +49,33 @@ func TestGetProductGroups(t *testing.T) {
 
 func skipIfNoAPIKey(t *testing.T) {
 	t.Helper()
-	_, err := os.Stat("../../.eprel.secret")
-	if os.IsNotExist(err) {
-		t.Skip(".eprel.secret not found, skipping test")
+	if os.Getenv("EPREL_API_KEY") == "" {
+		t.Skip("EPREL_API_KEY is not available")
 	}
+
 }
 
 func getAPIKey(t *testing.T) string {
 	t.Helper()
 	skipIfNoAPIKey(t)
-	key, err := os.ReadFile("../../.eprel.secret")
-	if err != nil {
-		t.Fatal(err)
+	key, errE := os.ReadFile("../../.eprel.secret")
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 	return strings.TrimSpace(string(key))
 }
 
 func TestGetWasherDriers(t *testing.T) {
 	t.Parallel()
+
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
 	apiKey := getAPIKey(t)
 
-	washerDriers, err := getWasherDriers(ctx, httpClient, apiKey)
-	if err != nil {
-		t.Fatal(err)
+	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
 	t.Logf("Total washer driers retrieved: %d", len(washerDriers))
@@ -78,6 +92,7 @@ func TestGetWasherDriers(t *testing.T) {
 
 func TestMapAllWasherDrierFields(t *testing.T) {
 	t.Parallel()
+
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
@@ -88,21 +103,21 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 	page := 1
 	for {
 		url := fmt.Sprintf("https://eprel.ec.europa.eu/api/products/washerdriers?_limit=100&_page=%d", page)
-		req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
-		if err != nil {
-			t.Fatal(err)
+		req, errE := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+		if errE != nil {
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 		req.Header.Set("X-Api-Key", apiKey)
 
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			t.Fatal(err)
+		resp, errE := httpClient.Do(req)
+		if errE != nil {
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 
 		var result map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		if errE := json.NewDecoder(resp.Body).Decode(&result); errE != nil {
 			resp.Body.Close()
-			t.Fatal(err)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 		resp.Body.Close()
 
@@ -160,6 +175,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 
 func TestInspectSingleWasherDrier(t *testing.T) {
 	t.Parallel()
+
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
@@ -167,21 +183,21 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 
 	// Get just one washer-drier.
 	url := "https://eprel.ec.europa.eu/api/products/washerdriers?_limit=1&_page=1"
-	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		t.Fatal(err)
+	req, errE := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 	req.Header.Set("X-Api-Key", apiKey)
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
+	resp, errE := httpClient.Do(req)
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 	defer resp.Body.Close()
 
 	var result map[string]interface{}
-	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		t.Fatal(err)
+	if errE = json.NewDecoder(resp.Body).Decode(&result); errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
 	hits, ok := result["hits"].([]interface{})
@@ -194,9 +210,9 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 
 	// Pretty print the first washer-drier.
 	washerDrier := hits[0]
-	prettyJSON, err := json.MarshalIndent(washerDrier, "", "    ")
-	if err != nil {
-		t.Fatal(err)
+	prettyJSON, errE := json.MarshalIndent(washerDrier, "", "    ")
+	if errE != nil {
+		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
 	t.Logf("Single washer-drier example:\n%s", string(prettyJSON))
@@ -218,62 +234,62 @@ func createTestWasherDrier() WasherDrierProduct {
 		AllowEprelLabelGeneration:  false,
 		Blocked:                    false,
 		ContactDetails: ContactDetails{
-			AddressBloc:          nil,
+			Address:              "",
 			City:                 "",
-			ContactByReferenceID: nil,
+			ContactByReferenceID: "",
 			ContactReference:     "",
 			Country:              "",
 			DefaultContact:       false,
 			Email:                "",
 			ID:                   0,
-			Municipality:         nil,
-			OrderNumber:          nil,
+			Municipality:         "",
+			OrderNumber:          "",
 			Phone:                "",
 			PostalCode:           "",
-			Province:             nil,
+			Province:             "",
 			ServiceName:          "",
 			Status:               "",
 			Street:               "",
 			StreetNumber:         "",
-			WebSiteURL:           nil,
+			WebSiteURL:           "",
 		},
-		Cycles:                   []Cycle{},
-		EcoLabel:                 false,
-		EnergyAnnualWash:         0,
-		EnergyAnnualWashAndDry:   0,
-		ExportDateTS:             0,
-		FirstPublicationDate:     []int{},
-		FirstPublicationDateTS:   0,
-		FormType:                 "",
-		GeneratedLabels:          nil,
-		ImportedOn:               0,
-		LastVersion:              false,
-		NoiseDry:                 0,
-		NoiseSpin:                0,
-		NoiseWash:                0,
-		OnMarketEndDate:          []int{},
-		OnMarketEndDateTS:        0,
-		OnMarketFirstStartDate:   []int{},
-		OnMarketFirstStartDateTS: 0,
-		OnMarketStartDate:        []int{},
-		OnMarketStartDateTS:      0,
-		OrgVerificationStatus:    "",
+		Cycles:                          []Cycle{},
+		EcoLabel:                        false,
+		EnergyAnnualWash:                0,
+		EnergyAnnualWashAndDry:          0,
+		ExportDateTimestamp:             0,
+		FirstPublicationDate:            []int{},
+		FirstPublicationDateTimestamp:   0,
+		FormType:                        "",
+		GeneratedLabels:                 nil,
+		ImportedOn:                      0,
+		LastVersion:                     false,
+		NoiseDry:                        0,
+		NoiseSpin:                       0,
+		NoiseWash:                       0,
+		OnMarketEndDate:                 []int{},
+		OnMarketEndDateTimestamp:        0,
+		OnMarketFirstStartDate:          []int{},
+		OnMarketFirstStartDateTimestamp: 0,
+		OnMarketStartDate:               []int{},
+		OnMarketStartDateTimestamp:      0,
+		OrgVerificationStatus:           "",
 		Organisation: Organisation{
-			CloseDate:         nil,
-			CloseStatus:       nil,
-			FirstName:         nil,
+			CloseDate:         "",
+			CloseStatus:       "",
+			FirstName:         "",
 			IsClosed:          false,
-			LastName:          nil,
+			LastName:          "",
 			OrganisationName:  "",
 			OrganisationTitle: "",
-			Website:           nil,
+			Website:           "",
 		},
 		OtherIdentifiers:            []interface{}{},
 		PlacementCountries:          []interface{}{},
 		ProductGroup:                "",
 		ProductModelCoreID:          0,
 		PublishedOnDate:             []int{},
-		PublishedOnDateTS:           0,
+		PublishedOnDateTimestamp:    0,
 		RegistrantNature:            "",
 		Status:                      "",
 		TrademarkID:                 0,
@@ -282,9 +298,9 @@ func createTestWasherDrier() WasherDrierProduct {
 		UploadedLabels:              []string{},
 		VersionID:                   0,
 		VersionNumber:               0,
-		VisibleToUkMsa:              false,
-		WaterAnnualWash:             0,
-		WaterAnnualWashAndDry:       0,
+		VisibleToUnitedKingdomMarketSurveillanceAuthority: false,
+		WaterAnnualWash:       0,
+		WaterAnnualWashAndDry: 0,
 	}
 }
 
@@ -368,7 +384,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				}
 				return identifierClaim.Value
 			},
-			strconv.FormatFloat(washerDrier.ContactID, 'f', 0, 64),
+			strconv.FormatInt(int64(washerDrier.ContactID), 10),
 		},
 		{
 			"Energy Label ID",
@@ -382,7 +398,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				}
 				return identifierClaim.Value
 			},
-			strconv.FormatFloat(washerDrier.EnergyLabelID, 'f', 0, 64),
+			strconv.FormatInt(int64(washerDrier.EnergyLabelID), 10),
 		},
 		{
 			"Ecolabel Registration Number",
@@ -482,6 +498,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 
 func TestMakeWasherDrierDoc(t *testing.T) {
 	t.Parallel()
+
 	skipIfNoAPIKey(t)
 
 	washerDrier := createTestWasherDrier()
@@ -512,17 +529,18 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 				switch tt.claimType {
 				case "identifier":
 					if _, ok := claim.(*document.IdentifierClaim); !ok {
-						t.Errorf("expected identifier claim for property %s, got %T", tt.propName, claim)
+						assert.IsType(t, &document.IdentifierClaim{}, claim, "property %s should be an identifier claim", tt.propName)
 						continue
 					}
 				case "string":
 					if _, ok := claim.(*document.StringClaim); !ok {
-						t.Errorf("expected string claim for property %s, got %T", tt.propName, claim)
+						assert.IsType(t, &document.StringClaim{}, claim, "property %s should be a string claim", tt.propName)
 						continue
 					}
 				case "relation":
 					if _, ok := claim.(*document.RelationClaim); !ok {
-						t.Errorf("expected relation claim for property %s, got %T", tt.propName, claim)
+						assert.IsType(t, &document.RelationClaim{}, claim, "property %s should be a relation claim", tt.propName)
+
 						continue
 					}
 				}

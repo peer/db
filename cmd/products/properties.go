@@ -241,7 +241,7 @@ var productsProperties = []struct {
 	// EPREL specific properties here.
 	{
 		"washer drier",
-		[]string{"washer dryer", "washer-dryer"},
+		[]string{"washer dryer", "washer-dryer", "washer-drier"},
 		"A document is about a washer drier product.",
 		[]string{`item`},
 	},
@@ -256,68 +256,68 @@ var productsProperties = []struct {
 		"ecolabel registration number",
 		nil,
 		`The registration number of the EU eco-label.`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 
 	{
 		"energy class",
 		nil,
 		`Letter of the energy efficiency class. Note that APPP is used instead of A+++, to avoid issues in URL.`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 	{
 		"energy class image",
 		nil,
 		`Name of the file image for the arrow of the energy class, used by UI to show the arrow.`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 	{
 		"energy class image with scale",
 		nil,
 		`Name of the file image for the arrow of the energy class, used by UI to show the arrow, in svg format`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 	{
 		"energy class range",
 		nil,
 		`Range of energy classes, represented by the energy class letter.`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 	{
 		"energy label id",
 		nil,
-		`Internal id to EPREL that corresponding to the energy label.`,
-		[]string{`"Identifier" claim type`},
+		`Internal identifier to EPREL that corresponds to the energy label.`,
+		[]string{`"identifier" claim type`},
 	},
 	{
 		"eprel registration number",
 		nil,
 		`Unique identifier determined at registration time by the EPREL system.`,
-		[]string{`"Identifier" claim type`},
+		[]string{`"identifier" claim type`},
 	},
 	{
 		"form type",
 		nil,
 		`Type of form used to display the data. Type 1 is used for models registered before 01/05/2021. Type 2 is used for models registered after 01/05/2021.`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 	{
 		"implementing act",
 		nil,
-		`Delegated act number.`,
-		[]string{`"String" claim type`},
+		`Delegated act number`,
+		[]string{`"string" claim type`},
 	},
 	{
 		"model identifier",
 		nil,
 		`Supplier's model identifier`,
-		[]string{`"Identifier" claim type`},
+		[]string{`"identifier" claim type`},
 	},
 	{
 		"supplier or trademark",
 		nil,
 		`Supplier's name or trademark`,
-		[]string{`"String" claim type`},
+		[]string{`"string" claim type`},
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
@@ -450,7 +450,7 @@ var productsProperties = []struct {
 	// 	"org verification status",
 	// 	nil,
 	// 	`All the supplier organisations are obliged to pass a procedure of verification. The status of the verification is provided in this field.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// { // skip, JSON blob
 	// 	"organisation",
@@ -462,7 +462,7 @@ var productsProperties = []struct {
 	// 	"other identifiers",
 	// 	nil,
 	// 	`Other model idenfitiers in the form of EAN codes. Can be multiple.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// {
 	// 	"imported on",
@@ -486,13 +486,13 @@ var productsProperties = []struct {
 	// 	"product group",
 	// 	nil,
 	// 	`Product group name`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// {
 	// 	"product model core id",
 	// 	nil,
 	// 	`Internal id of product model for EPREL.`,
-	// 	[]string{`"Identifier" claim type`},
+	// 	[]string{`"identifier" claim type`},
 	// },
 	// { // date in the form of [YYYY, MM, DD]
 	// 	"published on date",
@@ -510,13 +510,13 @@ var productsProperties = []struct {
 	// 	"registrant nature",
 	// 	nil,
 	// 	`The role with which the supplier organisation has registered the model. Roles can be: Manufacturer, Importer, or Authorised representative.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// {
 	// 	"status",
 	// 	nil,
 	// 	`Publication status. Only Published products are available in Public site`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// {
 
@@ -525,42 +525,42 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`Supplier's name or trademark reference - ` +
 	// 		`If Supplier's name or trademark is declared by reference in the supplier's organisation, the id of the reference is provided.`,
-	// 	[]string{`"Identifier" claim type`},
+	// 	[]string{`"identifier" claim type`},
 	// },
 	// { // need to check if this is non-null for any of the other product categories
 	// 	"trademark owner",
 	// 	nil,
 	// 	`The owner of the trademark.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// { // need to check if this is non-null for any of the other product categories
 	// 	"trademark verification status",
 	// 	nil,
 	// 	`The verification status of the trademark.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// { // this is an array of strings, how should I type it?
 	// 	"uploaded labels",
 	// 	nil,
 	// 	`A list of the filenames of the uploaded labels.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// {
 	// 	"version id",
 	// 	nil,
 	// 	`Internal identifier of the version number of the model.`,
-	// 	[]string{`"Identifier" claim type`},
+	// 	[]string{`"identifier" claim type`},
 	// },
 	// {
 	// 	"version number",
 	// 	nil,
 	// 	`When a model is published, the supplier can still make changes. To track these changes a new version number is created for each change.`,
-	// 	[]string{`"String" claim type`},
+	// 	[]string{`"string" claim type`},
 	// },
 	// { // Skip - boolean
-	// 	"visible to uk msa",
+	// 	"visible to united kingdom market surveillance authority",
 	// 	nil,
-	// 	`Compliance data visible to UK MSA - ` +
+	// 	`Compliance data visible to United Kingdom Market Surveillance Authority - ` +
 	// 		`Optional flag to indicate if the product compliance information (technical documentation, ` +
 	// 		` equivalents and ICSMS data) should be visible to the Market Surveillance Authority for the United Kingdom.
 	// 	The handling of the flag is the following:
