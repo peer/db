@@ -296,12 +296,6 @@ var productsProperties = []struct {
 		[]string{`"identifier" claim type`},
 	},
 	{
-		"form type",
-		nil,
-		`Type of form used to display the data. Type 1 is used for models registered before 01/05/2021. Type 2 is used for models registered after 01/05/2021.`,
-		[]string{`"string" claim type`},
-	},
-	{
 		"implementing act",
 		nil,
 		`Delegated act number`,
