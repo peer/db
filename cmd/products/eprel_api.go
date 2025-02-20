@@ -273,6 +273,28 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 					},
 				},
 			},
+			File: document.FileClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ENERGY_CLASS_IMAGE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:      document.GetCorePropertyReference("ENERGY_CLASS_IMAGE"),
+					MediaType: "image/svg+xml",
+					URL: "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" +
+						url.PathEscape(washerDrier.EnergyClassImage),
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ENERGY_CLASS_IMAGE_WITH_SCALE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:      document.GetCorePropertyReference("ENERGY_CLASS_IMAGE_WITH_SCALE"),
+					MediaType: "image/svg+xml",
+					URL: "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" +
+						url.PathEscape(washerDrier.EnergyClassImageWithScale),
+				},
+			},
 			Identifier: document.IdentifierClaims{
 				{
 					CoreClaim: document.CoreClaim{
@@ -331,22 +353,6 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
 					String: washerDrier.EnergyClass,
-				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassImage, "ENERGY_CLASS_IMAGE", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_IMAGE"),
-					String: washerDrier.EnergyClassImage,
-				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassImageWithScale, "ENERGY_CLASS_IMAGE_WITH_SCALE", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_IMAGE_WITH_SCALE"),
-					String: washerDrier.EnergyClassImageWithScale,
 				},
 				{
 					CoreClaim: document.CoreClaim{

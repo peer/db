@@ -25,6 +25,7 @@ func TestGetProductGroups(t *testing.T) {
 
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
+	httpClient.Logger = nil
 
 	urlCodes, errE := getProductGroups(ctx, httpClient)
 	if errE != nil {
@@ -71,6 +72,7 @@ func TestGetWasherDriers(t *testing.T) {
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
+	httpClient.Logger = nil // suppress unnecessary debug logs unless something fails
 	apiKey := getAPIKey(t)
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
@@ -96,6 +98,7 @@ func TestMapAllWasherDrierFields(t *testing.T) {
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
+	httpClient.Logger = nil
 	apiKey := getAPIKey(t)
 
 	seenFields := make(map[string][]interface{})
@@ -179,6 +182,7 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
+	httpClient.Logger = nil
 	apiKey := getAPIKey(t)
 
 	// Get just one washer-drier.
@@ -431,27 +435,29 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 		{
 			"Energy Class Image",
 			"ENERGY_CLASS_IMAGE",
-			"string",
+			"file",
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
-				stringClaim, ok := c.(*document.StringClaim)
+				fileClaim, ok := c.(*document.FileClaim)
 				if !ok {
-					t.Fatal("Energy Class Image is not a string claim")
+					t.Fatal("Energy Class Image is not a file claim")
 				}
-				return stringClaim.String
+				return strings.TrimPrefix(fileClaim.URL,
+					"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/")
 			}, washerDrier.EnergyClassImage,
 		},
 		{
 			"Energy Class Image With Scale",
 			"ENERGY_CLASS_IMAGE_WITH_SCALE",
-			"string",
+			"file",
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
-				stringClaim, ok := c.(*document.StringClaim)
+				fileClaim, ok := c.(*document.FileClaim)
 				if !ok {
-					t.Fatal("Energy Class Image With Scale is not a string claim")
+					t.Fatal("Energy Class Image With Scale is not a file claim")
 				}
-				return stringClaim.String
+				return strings.TrimPrefix(fileClaim.URL,
+					"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/")
 			}, washerDrier.EnergyClassImageWithScale,
 		},
 		{
@@ -539,6 +545,20 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 							},
 							Value: "",
 						}, claim, "property %s should be an identifier claim", tt.propName)
+						continue
+					}
+				case "file":
+					if _, ok := claim.(*document.FileClaim); !ok {
+						assert.IsType(t, &document.FileClaim{
+							CoreClaim: document.CoreClaim{
+								ID:         identifier.Identifier{},
+								Confidence: 0,
+							},
+							Prop: document.Reference{
+								ID: nil,
+							},
+							URL: "",
+						}, claim, "property %s should be a file claim", tt.propName)
 						continue
 					}
 				case "string":
