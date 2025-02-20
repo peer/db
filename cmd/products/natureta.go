@@ -149,10 +149,10 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 				// TODO: Parse into amount based claim.
 				errE := doc.Add(&document.TextClaim{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_DESCRIPTION", 0),
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_SIZE_DESCRIPTION", 0),
 						Confidence: document.HighConfidence,
 					},
-					Prop: document.GetCorePropertyReference("PACKAGING_DESCRIPTION"),
+					Prop: document.GetCorePropertyReference("PACKAGING_SIZE_DESCRIPTION"),
 					// TODO: Flag as Slovenian language.
 					HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
 				})
@@ -163,10 +163,10 @@ func makeNaturetaDoc(product NaturetaProduct, productURL string) (document.D, er
 				// TODO: Parse into amount based claim.
 				errE := doc.Add(&document.TextClaim{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_DESCRIPTION", 1),
+						ID:         document.GetID(NameSpaceProducts, "NATURETA", productURL, "PACKAGING_SIZE_DESCRIPTION", 1),
 						Confidence: document.HighConfidence,
 					},
-					Prop: document.GetCorePropertyReference("PACKAGING_DESCRIPTION"),
+					Prop: document.GetCorePropertyReference("PACKAGING_SIZE_DESCRIPTION"),
 					// TODO: Flag as Slovenian language.
 					HTML: document.TranslatableHTMLString{"en": html.EscapeString(s)},
 				})
