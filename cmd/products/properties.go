@@ -304,7 +304,7 @@ var productsProperties = []struct {
 	{
 		"implementing act",
 		nil,
-		`Delegated act number`,
+		`Delegated act number.`,
 		[]string{`"String" claim type`},
 	},
 	{
