@@ -163,6 +163,7 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 		return nil, errors.WithStack(err)
 	}
 	defer resp.Body.Close()
+	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	var result []interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
