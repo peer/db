@@ -417,7 +417,6 @@ func (e EPREL) Run(
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
 	if errE != nil {
-		config.Logger.Error().Err(errE).Msg("Failed to get washer-driers")
 		return errE
 	}
 
@@ -455,10 +454,6 @@ func (e EPREL) Run(
 		errE = peerdb.InsertOrReplaceDocument(ctx, store, &doc)
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
-			config.Logger.Error().
-				Err(errE).
-				Str("id", washerDrier.EprelRegistrationNumber).
-				Msg("Failed to save document")
 			return errE
 		}
 	}
