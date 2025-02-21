@@ -303,6 +303,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 					MediaType: "image/svg+xml",
 					URL: "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" +
 						url.PathEscape(washerDrier.EnergyClassImageWithScale),
+					Preview: nil,
 				},
 			},
 			Identifier: document.IdentifierClaims{
@@ -440,7 +441,6 @@ func (e EPREL) Run(
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
-
 		config.Logger.Debug().
 			Int("index", i).
 			Str("id", washerDrier.EprelRegistrationNumber).
