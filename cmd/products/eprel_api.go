@@ -292,6 +292,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 					MediaType: "image/svg+xml",
 					URL: "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" +
 						url.PathEscape(washerDrier.EnergyClassImage),
+					Preview: nil,
 				},
 				{
 					CoreClaim: document.CoreClaim{
