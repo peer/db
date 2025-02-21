@@ -43,6 +43,12 @@ type ProductGroup struct {
 	Regulation string `json:"regulation"`
 }
 
+type PlacementCountry struct {
+	// TODO: map Country to MARKET_COUNTRY existing property claim, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193
+	Country     string `json:"country"`
+	OrderNumber int    `json:"orderNumber"`
+}
+
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
 	// TODO: Map all timestamp fields to a custom type, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179
@@ -86,10 +92,12 @@ type WasherDrierProduct struct {
 	OnMarketStartDate               []int   `json:"onMarketStartDate"`
 	OnMarketStartDateTimestamp      float64 `json:"onMarketStartDateTS"`
 
-	OrgVerificationStatus string        `json:"orgVerificationStatus"`
-	Organisation          Organisation  `json:"organisation"`
-	OtherIdentifiers      []interface{} `json:"otherIdentifiers"`
-	PlacementCountries    []interface{} `json:"placementCountries"`
+	OrgVerificationStatus string       `json:"orgVerificationStatus"`
+	Organisation          Organisation `json:"organisation"`
+	// TODO: We do not know the real type here.
+	//       So we are using []string to let it blow up once we encounter a product with other identifiers.
+	OtherIdentifiers   []string           `json:"otherIdentifiers,omitempty"`
+	PlacementCountries []PlacementCountry `json:"placementCountries,omitempty"`
 
 	ProductGroup             string  `json:"productGroup"`
 	ProductModelCoreID       int     `json:"productModelCoreId"`

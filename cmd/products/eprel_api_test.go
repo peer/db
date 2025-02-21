@@ -71,7 +71,7 @@ func TestGetWasherDriers(t *testing.T) {
 	skipIfNoAPIKey(t)
 	ctx := context.Background()
 	httpClient := retryablehttp.NewClient()
-	httpClient.Logger = nil // suppress unnecessary debug logs unless something fails
+	httpClient.Logger = nil // suppress unnecessary debug logs unless something fails.
 	apiKey := getAPIKey(t)
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
@@ -203,8 +203,8 @@ func createTestWasherDrier() WasherDrierProduct {
 			OrganisationTitle: "",
 			Website:           "",
 		},
-		OtherIdentifiers:            []interface{}{},
-		PlacementCountries:          []interface{}{},
+		OtherIdentifiers:            []string{},
+		PlacementCountries:          []PlacementCountry{},
 		ProductGroup:                "",
 		ProductModelCoreID:          0,
 		PublishedOnDate:             []int{},
@@ -472,7 +472,9 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 							Prop: document.Reference{
 								ID: nil,
 							},
-							URL: "",
+							MediaType: "",
+							Preview:   []string{},
+							URL:       "",
 						}, claim, "property %s should be a file claim", tt.propName)
 						continue
 					}
