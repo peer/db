@@ -322,14 +322,14 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 		{
 			"Ecolabel Registration Number",
 			"ECOLABEL_REGISTRATION_NUMBER",
-			"string",
+			"identifier",
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
-				stringClaim, ok := c.(*document.StringClaim)
+				identifierClaim, ok := c.(*document.IdentifierClaim)
 				if !ok {
-					t.Fatal("Ecolabel Registration Number is not an string claim")
+					t.Fatal("Ecolabel Registration Number is not an identifier claim")
 				}
-				return stringClaim.String
+				return identifierClaim.Value
 			},
 			washerDrier.EcoLabelRegistrationNumber,
 		},
