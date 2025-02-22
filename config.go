@@ -20,14 +20,14 @@ const (
 
 //nolint:lll
 type PostgresConfig struct {
-	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                           placeholder:"PATH" required:"" short:"d" yaml:"database"`
-	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${defaultSchema}." placeholder:"NAME"                       yaml:"schema"`
+	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                     placeholder:"PATH" required:"" short:"d" yaml:"database"`
+	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${default}." placeholder:"NAME"                       yaml:"schema"`
 }
 
 //nolint:lll
 type ElasticConfig struct {
-	URL       string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${defaultElastic}."                                                     placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index     string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${defaultIndex}."                        placeholder:"NAME"           yaml:"index"`
+	URL       string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                                            placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index     string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}."                             placeholder:"NAME"           yaml:"index"`
 	SizeField bool   `                            help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                              yaml:"sizeField"`
 }
 
@@ -88,8 +88,8 @@ type Config struct {
 type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
 
-	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured."   name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
-	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${defaultTitle}."                   placeholder:"NAME"   short:"T" yaml:"title"`
+	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
+	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
 }
 
 func (c *ServeCommand) Validate() error {

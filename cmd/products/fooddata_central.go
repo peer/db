@@ -35,8 +35,8 @@ const (
 //nolint:lll
 type FoodDataCentral struct {
 	Disabled       bool   `default:"false"                            help:"Do not import FoodDataCentral data. Default: false."`
-	DataURL        string `default:"${defaultFoodDataCentralDataURL}" help:"URL of FoodCentral dataset to use. It can be a local file path, too. Default: ${defaultFoodDataCentralDataURL}." name:"data"        placeholder:"URL"`
-	IngredientsDir string `                                           help:"Path to a directory with JSONs with parsed ingredients."                                                         name:"ingredients" placeholder:"DIR" type:"path"`
+	DataURL        string `default:"${defaultFoodDataCentralDataURL}" help:"URL of FoodCentral dataset to use. It can be a local file path, too. Default: ${default}." name:"data"        placeholder:"URL"`
+	IngredientsDir string `                                           help:"Path to a directory with JSONs with parsed ingredients."                                   name:"ingredients" placeholder:"DIR" type:"path"`
 }
 
 type Nutrient struct {

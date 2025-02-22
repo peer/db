@@ -2,7 +2,7 @@ module gitlab.com/peerdb/peerdb
 
 go 1.23.5
 
-require github.com/alecthomas/kong v0.9.0
+require github.com/alecthomas/kong v1.8.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
@@ -18,7 +18,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	github.com/temoto/robotstxt v1.1.2
-	gitlab.com/tozd/go/cli v0.4.0
+	gitlab.com/tozd/go/cli v0.4.1
 	gitlab.com/tozd/go/fun v0.7.0
 	gitlab.com/tozd/go/mediawiki v0.16.1-0.20250215235222-3cc5124163c0
 	gitlab.com/tozd/go/x v0.0.0-20250215214209-a681ae578de2
