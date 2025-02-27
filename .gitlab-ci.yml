@@ -131,6 +131,7 @@ lint_node:
   script:
     - npm ci --audit=false
     - npm run lint
+    - git diff --exit-code --color=always
 
 lint_vue:
   stage: test
@@ -157,6 +158,7 @@ lint_style:
   script:
     - npm ci --audit=false
     - npm run lint-style
+    - git diff --exit-code --color=always
 
 fmt_go:
   stage: test
