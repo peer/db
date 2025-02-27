@@ -22,7 +22,7 @@ variables:
 test_go:
   stage: test
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   services:
     - name: elasticsearch:7.16.3
@@ -103,7 +103,7 @@ test_node:
 lint_go:
   stage: test
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   before_script:
     - apk --update add make bash gcc musl-dev git git-lfs
@@ -161,7 +161,7 @@ lint_style:
 fmt_go:
   stage: test
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   before_script:
     - apk --update add make bash git gcc musl-dev grep git-lfs
@@ -201,7 +201,7 @@ lint_docs:
 audit_go:
   stage: test
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   before_script:
     - apk --update add make bash git gcc musl-dev git-lfs
@@ -227,7 +227,7 @@ audit_node:
 commits:
   stage: test
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   variables:
     GIT_DEPTH: "0"
@@ -384,7 +384,7 @@ upload_binaries:
 publish:
   stage: deploy
 
-  image: golang:1.23.5-alpine3.20
+  image: golang:1.23.6-alpine3.21
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"
