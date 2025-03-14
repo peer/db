@@ -421,7 +421,7 @@ func (e EPREL) Run(
 		return errE
 	}
 
-	config.Logger.Info().Int("count", len(washerDriers)).Msg("Retrieved EPREL washer-driers data")
+	config.Logger.Info().Int("count", len(washerDriers)).Msg("retrieved EPREL washer-driers data")
 
 	description := "EPREL washer-driers processing"
 	progress := es.Progress(config.Logger, nil, nil, nil, description)
