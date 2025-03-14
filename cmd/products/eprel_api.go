@@ -44,7 +44,7 @@ type ProductGroup struct {
 }
 
 type PlacementCountry struct {
-	// TODO: map Country to MARKET_COUNTRY existing property claim, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193
+	// TODO: Map Country to MARKET_COUNTRY existing property claim. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193
 	Country     string `json:"country"`
 	OrderNumber int    `json:"orderNumber"`
 }
