@@ -386,7 +386,6 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 			Prop:  document.GetCorePropertyReference("ECOLABEL_REGISTRATION_NUMBER"),
 			Value: washerDrier.EcoLabelRegistrationNumber,
 		})
-
 		if errE != nil {
 			return doc
 		}
