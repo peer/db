@@ -70,27 +70,27 @@ type WasherDrierProduct struct {
 	EnergyLabelID             int     `json:"energyLabelId"`
 
 	EprelRegistrationNumber       string      `json:"eprelRegistrationNumber"`
-	ExportDateTimestamp           float64     `json:"exportDateTS"`
+	ExportDateTimestamp           int64       `json:"exportDateTS"`
 	FirstPublicationDate          []int       `json:"firstPublicationDate"`
-	FirstPublicationDateTimestamp float64     `json:"firstPublicationDateTS"`
+	FirstPublicationDateTimestamp int64       `json:"firstPublicationDateTS"`
 	FormType                      string      `json:"formType"`
 	GeneratedLabels               interface{} `json:"generatedLabels,omitempty"`
 
-	ImplementingAct string  `json:"implementingAct"`
-	ImportedOn      float64 `json:"importedOn"`
-	LastVersion     bool    `json:"lastVersion"`
-	ModelIdentifier string  `json:"modelIdentifier"`
+	ImplementingAct string `json:"implementingAct"`
+	ImportedOn      int64  `json:"importedOn"`
+	LastVersion     bool   `json:"lastVersion"`
+	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
 	NoiseSpin float64 `json:"noiseSpin"`
 	NoiseWash float64 `json:"noiseWash"`
 
-	OnMarketEndDate                 []int   `json:"onMarketEndDate"`
-	OnMarketEndDateTimestamp        float64 `json:"onMarketEndDateTS"`
-	OnMarketFirstStartDate          []int   `json:"onMarketFirstStartDate"`
-	OnMarketFirstStartDateTimestamp float64 `json:"onMarketFirstStartDateTS"`
-	OnMarketStartDate               []int   `json:"onMarketStartDate"`
-	OnMarketStartDateTimestamp      float64 `json:"onMarketStartDateTS"`
+	OnMarketEndDate                 []int `json:"onMarketEndDate"`
+	OnMarketEndDateTimestamp        int64 `json:"onMarketEndDateTS"`
+	OnMarketFirstStartDate          []int `json:"onMarketFirstStartDate"`
+	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
+	OnMarketStartDate               []int `json:"onMarketStartDate"`
+	OnMarketStartDateTimestamp      int64 `json:"onMarketStartDateTS"`
 
 	OrgVerificationStatus string       `json:"orgVerificationStatus"`
 	Organisation          Organisation `json:"organisation"`
@@ -99,10 +99,10 @@ type WasherDrierProduct struct {
 	OtherIdentifiers   []string           `json:"otherIdentifiers,omitempty"`
 	PlacementCountries []PlacementCountry `json:"placementCountries,omitempty"`
 
-	ProductGroup             string  `json:"productGroup"`
-	ProductModelCoreID       int     `json:"productModelCoreId"`
-	PublishedOnDate          []int   `json:"publishedOnDate"`
-	PublishedOnDateTimestamp float64 `json:"publishedOnDateTS"`
+	ProductGroup             string `json:"productGroup"`
+	ProductModelCoreID       int    `json:"productModelCoreId"`
+	PublishedOnDate          []int  `json:"publishedOnDate"`
+	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
 
 	RegistrantNature            string      `json:"registrantNature"`
 	Status                      string      `json:"status"`
