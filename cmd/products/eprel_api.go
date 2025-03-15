@@ -225,6 +225,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 			return nil, errors.WithStack(err)
 		}
 		defer resp.Body.Close()
+		defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 		var result WasherDrierResponse
 		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
