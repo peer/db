@@ -27,9 +27,7 @@ func TestGetProductGroups(t *testing.T) {
 	httpClient.Logger = nil
 
 	urlCodes, errE := getProductGroups(ctx, httpClient)
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Assert that we got results.
 	assert.NotEmpty(t, urlCodes, "product groups list should not be empty")
@@ -58,10 +56,9 @@ func skipIfNoAPIKey(t *testing.T) {
 func getAPIKey(t *testing.T) string {
 	t.Helper()
 	skipIfNoAPIKey(t)
-	key, errE := os.ReadFile("../../.eprel.secret")
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	key, err := os.ReadFile("../../.eprel.secret")
+	require.NoError(t, err)
+
 	return strings.TrimSpace(string(key))
 }
 
@@ -75,9 +72,7 @@ func TestGetWasherDriers(t *testing.T) {
 	apiKey := getAPIKey(t)
 
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Logf("Total washer driers retrieved: %d", len(washerDriers))
 
@@ -102,37 +97,28 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 
 	// Get just one washer-drier.
 	url := "https://eprel.ec.europa.eu/api/products/washerdriers?_limit=1&_page=1"
-	req, errE := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+	require.NoError(t, err)
+
 	req.Header.Set("X-Api-Key", apiKey)
 
-	resp, errE := httpClient.Do(req)
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	resp, err := httpClient.Do(req)
+	require.NoError(t, err)
+
 	defer resp.Body.Close()
 
 	var result map[string]interface{}
-	if errE = json.NewDecoder(resp.Body).Decode(&result); errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
 
 	hits, ok := result["hits"].([]interface{})
-	if !ok {
-		t.Fatal("result['hits'] is not []interface{}")
-	}
-	if len(hits) == 0 {
-		t.Fatal("no washer-driers found")
-	}
+	require.True(t, ok, "result['hits'] is not []interface{}")
+	require.NotEmpty(t, hits, "no washer-driers found")
 
 	// Pretty print the first washer-drier.
 	washerDrier := hits[0]
-	prettyJSON, errE := json.MarshalIndent(washerDrier, "", "    ")
-	if errE != nil {
-		require.NoError(t, errE, "% -+#.1v", errE)
-	}
+	prettyJSON, err := json.MarshalIndent(washerDrier, "", "    ")
+	require.NoError(t, err)
 
 	t.Logf("Single washer-drier example:\n%s", string(prettyJSON))
 }
@@ -240,9 +226,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				rel, ok := c.(*document.RelationClaim)
-				if !ok {
-					t.Fatal("Type property is not a relation claim")
-				}
+				require.True(t, ok, "Type property is not a relation claim")
 				return rel.To.ID.String()
 			},
 			document.GetCorePropertyID("WASHER_DRIER").String(),
@@ -254,9 +238,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				textClaim, ok := c.(*document.TextClaim)
-				if !ok {
-					t.Fatal("Name property is not a Text claim")
-				}
+				require.True(t, ok, "Name property is not a Text claim")
 				return textClaim.HTML["en"]
 			},
 			html.EscapeString(fmt.Sprintf("%s %s",
@@ -270,9 +252,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				if !ok {
-					t.Fatal("EPREL Registration Number is not an identifier claim")
-				}
+				require.True(t, ok, "EPREL Registration Number is not an identifier claim")
 				return identifierClaim.Value
 			},
 			washerDrier.EprelRegistrationNumber,
@@ -284,9 +264,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				if !ok {
-					t.Fatal("Model Identifier is not an identifier claim")
-				}
+				require.True(t, ok, "Model Identifier is not an identifier claim")
 				return identifierClaim.Value
 			},
 			washerDrier.ModelIdentifier,
@@ -298,9 +276,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				if !ok {
-					t.Fatal("Eprel Contact ID is not an identifier claim")
-				}
+				require.True(t, ok, "Eprel Contact ID is not an identifier claim")
 				return identifierClaim.Value
 			},
 			strconv.FormatInt(int64(washerDrier.EprelContactID), 10),
@@ -312,9 +288,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				if !ok {
-					t.Fatal("Energy Label ID is not an identifier claim")
-				}
+				require.True(t, ok, "Energy Label ID is not an identifier claim")
 				return identifierClaim.Value
 			},
 			strconv.FormatInt(int64(washerDrier.EnergyLabelID), 10),
@@ -326,9 +300,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				if !ok {
-					t.Fatal("Ecolabel Registration Number is not an identifier claim")
-				}
+				require.True(t, ok, "Ecolabel Registration Number is not an identifier claim")
 				return identifierClaim.Value
 			},
 			washerDrier.EcoLabelRegistrationNumber,
@@ -340,9 +312,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				stringClaim, ok := c.(*document.StringClaim)
-				if !ok {
-					t.Fatal("Energy Class is not a string claim")
-				}
+				require.True(t, ok, "Energy Class is not a string claim")
 				return stringClaim.String
 			},
 			washerDrier.EnergyClass,
@@ -354,9 +324,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				fileClaim, ok := c.(*document.FileClaim)
-				if !ok {
-					t.Fatal("Energy Class Image is not a file claim")
-				}
+				require.True(t, ok, "Energy Class Image is not a file claim")
 				return strings.TrimPrefix(fileClaim.URL,
 					"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/")
 			}, washerDrier.EnergyClassImage,
@@ -368,9 +336,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				fileClaim, ok := c.(*document.FileClaim)
-				if !ok {
-					t.Fatal("Energy Class Image With Scale is not a file claim")
-				}
+				require.True(t, ok, "Energy Class Image With Scale is not a file claim")
 				return strings.TrimPrefix(fileClaim.URL,
 					"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/")
 			}, washerDrier.EnergyClassImageWithScale,
@@ -382,9 +348,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				stringClaim, ok := c.(*document.StringClaim)
-				if !ok {
-					t.Fatal("Energy Class Range is not a string claim")
-				}
+				require.True(t, ok, "Energy Class Range is not a string claim")
 				return stringClaim.String
 			}, washerDrier.EnergyClassRange,
 		},
@@ -395,9 +359,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				stringClaim, ok := c.(*document.StringClaim)
-				if !ok {
-					t.Fatal("Implementing Act is not a string claim")
-				}
+				require.True(t, ok, "Implementing Act is not a string claim")
 				return stringClaim.String
 			}, washerDrier.ImplementingAct,
 		},
@@ -408,9 +370,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				stringClaim, ok := c.(*document.StringClaim)
-				if !ok {
-					t.Fatal("Supplier Or Trademark is not a string claim")
-				}
+				require.True(t, ok, "Supplier Or Trademark is not a string claim")
 				return stringClaim.String
 			}, washerDrier.SupplierOrTrademark,
 		},
@@ -425,15 +385,12 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 	washerDrier := createTestWasherDrier()
 
 	doc, errE := makeWasherDrierDoc(washerDrier)
-	if errE != nil {
-		t.Fatal(errE)
-	}
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Print document to inspect in console.
 	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
-	if errE != nil {
-		t.Fatal(errE)
-	}
+	require.NoError(t, errE, "% -+#.1v", errE)
+
 	t.Logf("Document structure:\n%s", string(prettyDoc))
 
 	tests := getWasherDrierTestCases(washerDrier)
@@ -442,10 +399,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			claims := doc.Get(document.GetCorePropertyID(tt.propName))
-			if len(claims) == 0 {
-				t.Errorf("no claims found for property %s", tt.propName)
-				return
-			}
+			require.NotEmpty(t, claims, "no claims found for property %s", tt.propName)
 
 			found := false
 			for _, claim := range claims {
