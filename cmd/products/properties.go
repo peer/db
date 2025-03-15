@@ -247,7 +247,7 @@ var productsProperties = []struct {
 	},
 
 	{
-		"contact id",
+		"eprel contact id",
 		nil,
 		`A unique identifier for contact information.`,
 		[]string{`"identifier" claim type`},

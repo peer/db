@@ -141,7 +141,7 @@ func createTestWasherDrier() WasherDrierProduct {
 	return WasherDrierProduct{
 		EprelRegistrationNumber:    "132300",
 		ModelIdentifier:            "F94J8VH2WD",
-		ContactID:                  1234,
+		EprelContactID:             1234,
 		EnergyLabelID:              998462,
 		EcoLabelRegistrationNumber: "1234",
 		EnergyClass:                "A",
@@ -292,18 +292,18 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			washerDrier.ModelIdentifier,
 		},
 		{
-			"Contact ID",
-			"CONTACT_ID",
+			"Eprel Contact ID",
+			"EPREL_CONTACT_ID",
 			"identifier",
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
 				if !ok {
-					t.Fatal("Contact ID is not an identifier claim")
+					t.Fatal("Eprel Contact ID is not an identifier claim")
 				}
 				return identifierClaim.Value
 			},
-			strconv.FormatInt(int64(washerDrier.ContactID), 10),
+			strconv.FormatInt(int64(washerDrier.EprelContactID), 10),
 		},
 		{
 			"Energy Label ID",
