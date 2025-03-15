@@ -255,7 +255,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	return allWasherDriers, nil
 }
 
-func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
+func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber),
@@ -391,11 +391,11 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) document.D {
 			Value: washerDrier.EcoLabelRegistrationNumber,
 		})
 		if errE != nil {
-			return doc
+			return doc, errE
 		}
 	}
 
-	return doc
+	return doc, nil
 }
 
 func (e EPREL) Run(
@@ -449,7 +449,11 @@ func (e EPREL) Run(
 			Str("id", washerDrier.EprelRegistrationNumber).
 			Msg("processing EPREL washer-driers record")
 
-		doc := makeWasherDrierDoc(washerDrier)
+		doc, errE := makeWasherDrierDoc(washerDrier)
+		if errE != nil {
+			errors.Details(errE)["id"] = washerDrier.EprelRegistrationNumber
+			return errE
+		}
 
 		count.Increment()
 		indexingCount.Increment()

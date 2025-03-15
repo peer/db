@@ -424,7 +424,10 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 
 	washerDrier := createTestWasherDrier()
 
-	doc := makeWasherDrierDoc(washerDrier)
+	doc, errE := makeWasherDrierDoc(washerDrier)
+	if errE != nil {
+		t.Fatal(errE)
+	}
 
 	// Print document to inspect in console.
 	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
