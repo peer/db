@@ -347,7 +347,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 			String: document.StringClaims{
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EcoLabelRegistrationNumber, "SUPPLIER_OR_TRADEMARK", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "SUPPLIER_OR_TRADEMARK", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("SUPPLIER_OR_TRADEMARK"),
@@ -355,7 +355,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClass, "ENERGY_CLASS", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ENERGY_CLASS", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
@@ -363,7 +363,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyClassRange, "ENERGY_CLASS_RANGE", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ENERGY_CLASS_RANGE", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_RANGE"),
@@ -371,7 +371,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EnergyLabelID, "IMPLEMENTING_ACT", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "IMPLEMENTING_ACT", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("IMPLEMENTING_ACT"),
@@ -384,7 +384,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 	if s := strings.TrimSpace(washerDrier.EcoLabelRegistrationNumber); s != "" {
 		errE := doc.Add(&document.IdentifierClaim{
 			CoreClaim: document.CoreClaim{
-				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EcoLabelRegistrationNumber, "ECOLABEL_REGISTRATION_NUMBER", 0),
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "ECOLABEL_REGISTRATION_NUMBER", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:  document.GetCorePropertyReference("ECOLABEL_REGISTRATION_NUMBER"),
