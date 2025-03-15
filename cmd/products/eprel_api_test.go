@@ -40,10 +40,6 @@ func TestGetProductGroups(t *testing.T) {
 	for _, expected := range expectedGroups {
 		assert.Contains(t, urlCodes, expected, "product groups should contain %s", expected)
 	}
-
-	for _, code := range urlCodes {
-		t.Logf("url_code: %s", code)
-	}
 }
 
 func skipIfNoAPIKey(t *testing.T) {
