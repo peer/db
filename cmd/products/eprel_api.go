@@ -246,7 +246,10 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	}
 
 	if len(allWasherDriers) != totalSize {
-		return nil, errors.Errorf("expected %d washer-driers but got %d", totalSize, len(allWasherDriers))
+		errE := errors.New("unexpected number of washer driers")
+		errors.Details(errE)["expected"] = totalSize
+		errors.Details(errE)["got"] = len(allWasherDriers)
+		return nil, errE
 	}
 
 	return allWasherDriers, nil
