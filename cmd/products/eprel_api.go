@@ -414,12 +414,6 @@ func (e EPREL) Run(
 		return errors.New("missing EPREL API key")
 	}
 
-	// Check ElasticSearch config.
-	config.Logger.Info().
-		Str("elastic_url", config.Elastic.URL).
-		Str("elastic_index", config.Elastic.Index).
-		Msg("ElasticSearch configuration")
-
 	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
 	if errE != nil {
 		return errE
