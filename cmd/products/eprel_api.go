@@ -104,12 +104,12 @@ type WasherDrierProduct struct {
 	PublishedOnDate          []int  `json:"publishedOnDate"`
 	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
 
-	RegistrantNature            string      `json:"registrantNature"`
-	Status                      string      `json:"status"`
-	SupplierOrTrademark         string      `json:"supplierOrTrademark"`
-	TrademarkID                 int         `json:"trademarkId"`
-	TrademarkOwner              interface{} `json:"trademarkOwner,omitempty"`
-	TrademarkVerificationStatus string      `json:"trademarkVerificationStatus"`
+	RegistrantNature            string `json:"registrantNature"`
+	Status                      string `json:"status"`
+	SupplierOrTrademark         string `json:"supplierOrTrademark"`
+	TrademarkID                 int    `json:"trademarkId"`
+	TrademarkOwner              string `json:"trademarkOwner,omitempty"`
+	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"`
 
 	UploadedLabels                                    []string `json:"uploadedLabels"`
 	VersionID                                         int      `json:"versionId"`
