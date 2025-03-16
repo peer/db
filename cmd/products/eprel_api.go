@@ -295,7 +295,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					Prop:      document.GetCorePropertyReference("ENERGY_CLASS_IMAGE"),
 					MediaType: "image/svg+xml",
 					URL:       "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" + washerDrier.EnergyClassImage,
-					Preview:   nil,
+					Preview:   []string{"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" + washerDrier.EnergyClassImage},
 				},
 				{
 					CoreClaim: document.CoreClaim{
@@ -305,7 +305,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					Prop:      document.GetCorePropertyReference("ENERGY_CLASS_IMAGE_WITH_SCALE"),
 					MediaType: "image/svg+xml",
 					URL:       "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" + washerDrier.EnergyClassImageWithScale,
-					Preview:   nil,
+					Preview:   []string{"https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/" + washerDrier.EnergyClassImageWithScale},
 				},
 			},
 			Identifier: document.IdentifierClaims{
