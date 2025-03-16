@@ -327,7 +327,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				},
 				{
 					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "CONTACT_ID", 0),
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "EPREL_CONTACT_ID", 0),
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("EPREL_CONTACT_ID"),
