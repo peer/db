@@ -123,7 +123,7 @@ func createTestWasherDrier() WasherDrierProduct {
 	return WasherDrierProduct{
 		EprelRegistrationNumber:    "132300",
 		ModelIdentifier:            "F94J8VH2WD",
-		EprelContactID:             1234,
+		EprelContactID:             &[]int{1234}[0],
 		EnergyLabelID:              998462,
 		EcoLabelRegistrationNumber: "1234",
 		EnergyClass:                "A",
@@ -275,7 +275,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				require.True(t, ok, "Eprel Contact ID is not an identifier claim")
 				return identifierClaim.Value
 			},
-			strconv.FormatInt(int64(washerDrier.EprelContactID), 10),
+			strconv.FormatInt(int64(*washerDrier.EprelContactID), 10),
 		},
 		{
 			"Energy Label ID",
