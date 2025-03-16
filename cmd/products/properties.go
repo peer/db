@@ -268,14 +268,14 @@ var productsProperties = []struct {
 	{
 		"energy class image",
 		nil,
-		`Name of the file image for the arrow of the energy class, used by UI to show the arrow.`,
-		[]string{`"string" claim type`},
+		`URL for the file image for the arrow of the energy class, used by UI to show the arrow.`,
+		[]string{`"file" claim type`},
 	},
 	{
 		"energy class image with scale",
 		nil,
-		`Name of the file image for the arrow of the energy class, used by UI to show the arrow, in svg format`,
-		[]string{`"string" claim type`},
+		`URL for the file image for the arrow of the energy class, used by UI to show the arrow, in svg format`,
+		[]string{`"file" claim type`},
 	},
 	{
 		"energy class range",
