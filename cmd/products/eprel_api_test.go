@@ -272,7 +272,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				identifierClaim, ok := c.(*document.IdentifierClaim)
-				require.True(t, ok, "Eprel Contact ID is not an identifier claim")
+				require.True(t, ok, "EPREL Contact ID is not an identifier claim")
 				return identifierClaim.Value
 			},
 			strconv.FormatInt(int64(*washerDrier.EPRELContactID), 10),
