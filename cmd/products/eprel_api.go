@@ -55,7 +55,7 @@ type WasherDrierProduct struct {
 	AllowEprelLabelGeneration bool           `json:"allowEprelLabelGeneration"`
 	Blocked                   bool           `json:"blocked"`
 	ContactDetails            ContactDetails `json:"contactDetails"`
-	EprelContactID            *int           `json:"contactId"`
+	EPRELContactID            *int           `json:"contactId"`
 	Cycles                    []Cycle        `json:"cycles"`
 
 	EcoLabel                   bool   `json:"ecoLabel"`
@@ -385,14 +385,14 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
-	if washerDrier.EprelContactID != nil {
+	if washerDrier.EPRELContactID != nil {
 		errE := doc.Add(&document.IdentifierClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EprelRegistrationNumber, "EPREL_CONTACT_ID", 0),
 				Confidence: document.HighConfidence,
 			},
 			Prop:  document.GetCorePropertyReference("EPREL_CONTACT_ID"),
-			Value: strconv.FormatInt(int64(*washerDrier.EprelContactID), 10),
+			Value: strconv.FormatInt(int64(*washerDrier.EPRELContactID), 10),
 		})
 		if errE != nil {
 			return doc, errE
