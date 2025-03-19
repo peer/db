@@ -15,7 +15,7 @@ class CoreClaim implements ClaimsContainer {
   }
 
   GetByID(id: string): Claim | undefined {
-    if (typeof this.meta === "undefined") {
+    if (this.meta === undefined) {
       return
     }
 
@@ -23,7 +23,7 @@ class CoreClaim implements ClaimsContainer {
   }
 
   RemoveByID(id: string): Claim | undefined {
-    if (typeof this.meta === "undefined") {
+    if (this.meta === undefined) {
       return
     }
 
@@ -31,7 +31,7 @@ class CoreClaim implements ClaimsContainer {
   }
 
   Add(claim: Claim): void {
-    if (typeof this.meta === "undefined") {
+    if (this.meta === undefined) {
       this.meta = new ClaimTypes({})
     }
 
@@ -50,7 +50,7 @@ class IdentifierClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -63,7 +63,7 @@ class ReferenceClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -76,7 +76,7 @@ class TextClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -89,7 +89,7 @@ class StringClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -103,7 +103,7 @@ class AmountClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -118,7 +118,7 @@ class AmountRangeClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -131,7 +131,7 @@ class RelationClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -146,7 +146,7 @@ class FileClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -158,7 +158,7 @@ class NoValueClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -170,7 +170,7 @@ class UnknownValueClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -184,7 +184,7 @@ class TimeClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -199,7 +199,7 @@ class TimeRangeClaim extends CoreClaim {
   constructor(obj: object) {
     super()
     Object.assign(this, obj)
-    if (typeof this.meta !== "undefined") {
+    if (this.meta !== undefined) {
       this.meta = new ClaimTypes(this.meta)
     }
   }
@@ -310,7 +310,7 @@ export class PeerDBDocument implements ClaimsContainer {
 
   constructor(obj: object) {
     Object.assign(this, obj)
-    if (typeof this.claims !== "undefined") {
+    if (this.claims !== undefined) {
       this.claims = new ClaimTypes(this.claims)
     }
   }
@@ -320,7 +320,7 @@ export class PeerDBDocument implements ClaimsContainer {
   }
 
   GetByID(id: string): Claim | undefined {
-    if (typeof this.claims === "undefined") {
+    if (this.claims === undefined) {
       return
     }
 
@@ -328,7 +328,7 @@ export class PeerDBDocument implements ClaimsContainer {
   }
 
   RemoveByID(id: string): Claim | undefined {
-    if (typeof this.claims === "undefined") {
+    if (this.claims === undefined) {
       return
     }
 
@@ -336,7 +336,7 @@ export class PeerDBDocument implements ClaimsContainer {
   }
 
   Add(claim: Claim): void {
-    if (typeof this.claims === "undefined") {
+    if (this.claims === undefined) {
       this.claims = new ClaimTypes({})
     }
 
@@ -380,7 +380,7 @@ export class AddClaimChange implements Change {
   Apply(doc: PeerDBDocument, id: string): void {
     const newClaim = this.patch.New(id)
 
-    if (typeof this.under === "undefined") {
+    if (this.under === undefined) {
       doc.Add(newClaim)
       return
     }
@@ -515,7 +515,7 @@ export class IdentifierClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.value === "undefined") {
+    if (this.prop === undefined || this.value === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -530,7 +530,7 @@ export class IdentifierClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.value === "undefined") {
+    if (this.prop === undefined && this.value === undefined) {
       throw new Error("empty patch")
     }
 
@@ -538,10 +538,10 @@ export class IdentifierClaimPatch implements ClaimPatch {
       throw new Error("not identifier claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.value !== "undefined") {
+    if (this.value !== undefined) {
       claim.value = this.value
     }
   }
@@ -561,7 +561,7 @@ export class ReferenceClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.iri === "undefined") {
+    if (this.prop === undefined || this.iri === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -576,7 +576,7 @@ export class ReferenceClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.iri === "undefined") {
+    if (this.prop === undefined && this.iri === undefined) {
       throw new Error("empty patch")
     }
 
@@ -584,10 +584,10 @@ export class ReferenceClaimPatch implements ClaimPatch {
       throw new Error("not reference claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.iri !== "undefined") {
+    if (this.iri !== undefined) {
       claim.iri = this.iri
     }
   }
@@ -609,11 +609,11 @@ export class TextClaimPatch implements ClaimPatch {
 
   New(id: string): Claim {
     // TODO: Check that there are properties in this.html.
-    if (typeof this.prop === "undefined" || typeof this.html === "undefined") {
+    if (this.prop === undefined || this.html === undefined) {
       throw new Error("incomplete patch")
     }
     // TODO: Check that there are no items in this.remove, even if it exists.
-    if (typeof this.remove !== "undefined") {
+    if (this.remove !== undefined) {
       throw new Error("invalid patch")
     }
 
@@ -629,7 +629,7 @@ export class TextClaimPatch implements ClaimPatch {
 
   Apply(claim: Claim): void {
     // TODO: Check that there are properties in this.html or items in this.remove.
-    if (typeof this.prop === "undefined" && typeof this.html === "undefined" && typeof this.remove === "undefined") {
+    if (this.prop === undefined && this.html === undefined && this.remove === undefined) {
       throw new Error("empty patch")
     }
 
@@ -637,7 +637,7 @@ export class TextClaimPatch implements ClaimPatch {
       throw new Error("not text claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
     for (const lang of this.remove || []) {
@@ -663,7 +663,7 @@ export class StringClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.string === "undefined") {
+    if (this.prop === undefined || this.string === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -678,7 +678,7 @@ export class StringClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.string === "undefined") {
+    if (this.prop === undefined && this.string === undefined) {
       throw new Error("empty patch")
     }
 
@@ -686,10 +686,10 @@ export class StringClaimPatch implements ClaimPatch {
       throw new Error("not string claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.string !== "undefined") {
+    if (this.string !== undefined) {
       claim.string = this.string
     }
   }
@@ -710,7 +710,7 @@ export class AmountClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.amount === "undefined" || typeof this.unit === "undefined") {
+    if (this.prop === undefined || this.amount === undefined || this.unit === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -726,7 +726,7 @@ export class AmountClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.amount === "undefined" && typeof this.unit === "undefined") {
+    if (this.prop === undefined && this.amount === undefined && this.unit === undefined) {
       throw new Error("empty patch")
     }
 
@@ -734,13 +734,13 @@ export class AmountClaimPatch implements ClaimPatch {
       throw new Error("not amount claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.amount !== "undefined") {
+    if (this.amount !== undefined) {
       claim.amount = this.amount
     }
-    if (typeof this.unit !== "undefined") {
+    if (this.unit !== undefined) {
       claim.unit = this.unit
     }
   }
@@ -762,7 +762,7 @@ export class AmountRangeClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.lower === "undefined" || typeof this.upper === "undefined" || typeof this.unit === "undefined") {
+    if (this.prop === undefined || this.lower === undefined || this.upper === undefined || this.unit === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -779,7 +779,7 @@ export class AmountRangeClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.lower === "undefined" && typeof this.upper === "undefined" && typeof this.unit === "undefined") {
+    if (this.prop === undefined && this.lower === undefined && this.upper === undefined && this.unit === undefined) {
       throw new Error("empty patch")
     }
 
@@ -787,16 +787,16 @@ export class AmountRangeClaimPatch implements ClaimPatch {
       throw new Error("not amount range claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.lower !== "undefined") {
+    if (this.lower !== undefined) {
       claim.lower = this.lower
     }
-    if (typeof this.upper !== "undefined") {
+    if (this.upper !== undefined) {
       claim.upper = this.upper
     }
-    if (typeof this.unit !== "undefined") {
+    if (this.unit !== undefined) {
       claim.unit = this.unit
     }
   }
@@ -816,7 +816,7 @@ export class RelationClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.to === "undefined") {
+    if (this.prop === undefined || this.to === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -833,7 +833,7 @@ export class RelationClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.to === "undefined") {
+    if (this.prop === undefined && this.to === undefined) {
       throw new Error("empty patch")
     }
 
@@ -841,10 +841,10 @@ export class RelationClaimPatch implements ClaimPatch {
       throw new Error("not relation claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.to !== "undefined") {
+    if (this.to !== undefined) {
       claim.to.id = this.to
     }
   }
@@ -866,7 +866,7 @@ export class FileClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.mediaType === "undefined" || typeof this.url === "undefined" || typeof this.preview === "undefined") {
+    if (this.prop === undefined || this.mediaType === undefined || this.url === undefined || this.preview === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -883,7 +883,7 @@ export class FileClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.mediaType === "undefined" && typeof this.url === "undefined" && typeof this.preview === "undefined") {
+    if (this.prop === undefined && this.mediaType === undefined && this.url === undefined && this.preview === undefined) {
       throw new Error("empty patch")
     }
 
@@ -891,16 +891,16 @@ export class FileClaimPatch implements ClaimPatch {
       throw new Error("not file claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.mediaType !== "undefined") {
+    if (this.mediaType !== undefined) {
       claim.mediaType = this.mediaType
     }
-    if (typeof this.url !== "undefined") {
+    if (this.url !== undefined) {
       claim.url = this.url
     }
-    if (typeof this.preview !== "undefined") {
+    if (this.preview !== undefined) {
       claim.preview = this.preview
     }
   }
@@ -919,7 +919,7 @@ export class NoValueClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined") {
+    if (this.prop === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -933,7 +933,7 @@ export class NoValueClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined") {
+    if (this.prop === undefined) {
       throw new Error("empty patch")
     }
 
@@ -941,7 +941,7 @@ export class NoValueClaimPatch implements ClaimPatch {
       throw new Error("not no value claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
   }
@@ -960,7 +960,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined") {
+    if (this.prop === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -974,7 +974,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined") {
+    if (this.prop === undefined) {
       throw new Error("empty patch")
     }
 
@@ -982,7 +982,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
       throw new Error("not unknown value claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
   }
@@ -1003,7 +1003,7 @@ export class TimeClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.timestamp === "undefined" || typeof this.precision === "undefined") {
+    if (this.prop === undefined || this.timestamp === undefined || this.precision === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -1019,7 +1019,7 @@ export class TimeClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.timestamp === "undefined" && typeof this.precision === "undefined") {
+    if (this.prop === undefined && this.timestamp === undefined && this.precision === undefined) {
       throw new Error("empty patch")
     }
 
@@ -1027,13 +1027,13 @@ export class TimeClaimPatch implements ClaimPatch {
       throw new Error("not time claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.timestamp !== "undefined") {
+    if (this.timestamp !== undefined) {
       claim.timestamp = this.timestamp
     }
-    if (typeof this.precision !== "undefined") {
+    if (this.precision !== undefined) {
       claim.precision = this.precision
     }
   }
@@ -1055,7 +1055,7 @@ export class TimeRangeClaimPatch implements ClaimPatch {
   }
 
   New(id: string): Claim {
-    if (typeof this.prop === "undefined" || typeof this.lower === "undefined" || typeof this.upper === "undefined" || typeof this.precision === "undefined") {
+    if (this.prop === undefined || this.lower === undefined || this.upper === undefined || this.precision === undefined) {
       throw new Error("incomplete patch")
     }
 
@@ -1072,7 +1072,7 @@ export class TimeRangeClaimPatch implements ClaimPatch {
   }
 
   Apply(claim: Claim): void {
-    if (typeof this.prop === "undefined" && typeof this.lower === "undefined" && typeof this.upper === "undefined" && typeof this.precision === "undefined") {
+    if (this.prop === undefined && this.lower === undefined && this.upper === undefined && this.precision === undefined) {
       throw new Error("empty patch")
     }
 
@@ -1080,16 +1080,16 @@ export class TimeRangeClaimPatch implements ClaimPatch {
       throw new Error("not time range claim")
     }
 
-    if (typeof this.prop !== "undefined") {
+    if (this.prop !== undefined) {
       claim.prop.id = this.prop
     }
-    if (typeof this.lower !== "undefined") {
+    if (this.lower !== undefined) {
       claim.lower = this.lower
     }
-    if (typeof this.upper !== "undefined") {
+    if (this.upper !== undefined) {
       claim.upper = this.upper
     }
-    if (typeof this.precision !== "undefined") {
+    if (this.precision !== undefined) {
       claim.precision = this.precision
     }
   }
