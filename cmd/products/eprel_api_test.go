@@ -121,7 +121,7 @@ func TestInspectSingleWasherDrier(t *testing.T) {
 
 func createTestWasherDrier() WasherDrierProduct {
 	return WasherDrierProduct{
-		EprelRegistrationNumber:    "132300",
+		EPRELRegistrationNumber:    "132300",
 		ModelIdentifier:            "F94J8VH2WD",
 		EPRELContactID:             1234,
 		EnergyLabelID:              998462,
@@ -132,7 +132,7 @@ func createTestWasherDrier() WasherDrierProduct {
 		EnergyClassRange:           "A_G",
 		ImplementingAct:            "EC_96_60",
 		SupplierOrTrademark:        "LG Electronics Inc.",
-		AllowEprelLabelGeneration:  false,
+		AllowEPRELLabelGeneration:  false,
 		Blocked:                    false,
 		ContactDetails: ContactDetails{
 			Address:              "",
@@ -251,7 +251,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				require.True(t, ok, "EPREL Registration Number is not an identifier claim")
 				return identifierClaim.Value
 			},
-			washerDrier.EprelRegistrationNumber,
+			washerDrier.EPRELRegistrationNumber,
 		},
 		{
 			"Model Identifier",
