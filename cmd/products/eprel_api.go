@@ -26,6 +26,12 @@ import (
 
 type Null struct{}
 
+var (
+	// Assertions also silence this lint error: https://github.com/mvdan/unparam/issues/52
+	_ json.Unmarshaler = (*Null)(nil)
+	_ json.Marshaler   = (*Null)(nil)
+)
+
 func (n *Null) UnmarshalJSON(data []byte) error {
 	if string(data) != "null" {
 		return errors.New("only null value is excepted")
@@ -33,7 +39,6 @@ func (n *Null) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-//nolint:unparam // error return is required by json.Marhsaler interface, so we include it even though it's always nil
 func (n Null) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
