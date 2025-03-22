@@ -24,6 +24,20 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+type Null struct{}
+
+func (n *Null) UnmarshalJSON(data []byte) error {
+	if string(data) != "null" {
+		return errors.New("only null value is excepted")
+	}
+	return nil
+}
+
+//nolint:unparam // error return is required by json.Marhsaler interface, so we include it even though it's always nil
+func (n Null) MarshalJSON() ([]byte, error) {
+	return []byte("null"), nil
+}
+
 type EPREL struct {
 	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
 	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
@@ -69,12 +83,12 @@ type WasherDrierProduct struct {
 	EnergyClassRange          string  `json:"energyClassRange"`
 	EnergyLabelID             int     `json:"energyLabelId"`
 
-	EPRELRegistrationNumber       string      `json:"eprelRegistrationNumber"`
-	ExportDateTimestamp           int64       `json:"exportDateTS"`
-	FirstPublicationDate          []int       `json:"firstPublicationDate"`
-	FirstPublicationDateTimestamp int64       `json:"firstPublicationDateTS"`
-	FormType                      string      `json:"formType"`
-	GeneratedLabels               interface{} `json:"generatedLabels,omitempty"`
+	EPRELRegistrationNumber       string `json:"eprelRegistrationNumber"`
+	ExportDateTimestamp           int64  `json:"exportDateTS"`
+	FirstPublicationDate          []int  `json:"firstPublicationDate"`
+	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"`
+	FormType                      string `json:"formType"`
+	GeneratedLabels               Null   `json:"generatedLabels,omitempty"`
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
@@ -122,24 +136,24 @@ type WasherDrierProduct struct {
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type ContactDetails struct {
-	Address              string      `json:"addressBloc,omitempty"`
-	City                 string      `json:"city"`
-	ContactByReferenceID interface{} `json:"contactByReferenceId,omitempty"`
-	ContactReference     string      `json:"contactReference"`
-	Country              string      `json:"country"`
-	DefaultContact       bool        `json:"defaultContact"`
-	Email                string      `json:"email"`
-	ID                   int         `json:"id"`
-	Municipality         string      `json:"municipality,omitempty"`
-	OrderNumber          string      `json:"orderNumber,omitempty"`
-	Phone                string      `json:"phone"`
-	PostalCode           string      `json:"postalCode"`
-	Province             string      `json:"province,omitempty"`
-	ServiceName          string      `json:"serviceName"`
-	Status               string      `json:"status"`
-	Street               string      `json:"street"`
-	StreetNumber         string      `json:"streetNumber"`
-	WebSiteURL           string      `json:"webSiteURL,omitempty"`
+	Address              string `json:"addressBloc,omitempty"`
+	City                 string `json:"city"`
+	ContactByReferenceID Null   `json:"contactByReferenceId,omitempty"`
+	ContactReference     string `json:"contactReference"`
+	Country              string `json:"country"`
+	DefaultContact       bool   `json:"defaultContact"`
+	Email                string `json:"email"`
+	ID                   int    `json:"id"`
+	Municipality         string `json:"municipality,omitempty"`
+	OrderNumber          string `json:"orderNumber,omitempty"`
+	Phone                string `json:"phone"`
+	PostalCode           string `json:"postalCode"`
+	Province             string `json:"province,omitempty"`
+	ServiceName          string `json:"serviceName"`
+	Status               string `json:"status"`
+	Street               string `json:"street"`
+	StreetNumber         string `json:"streetNumber"`
+	WebSiteURL           string `json:"webSiteURL,omitempty"`
 }
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.

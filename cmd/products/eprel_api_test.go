@@ -137,7 +137,7 @@ func createTestWasherDrier() WasherDrierProduct {
 		ContactDetails: ContactDetails{
 			Address:              "",
 			City:                 "",
-			ContactByReferenceID: "",
+			ContactByReferenceID: Null{},
 			ContactReference:     "",
 			Country:              "",
 			DefaultContact:       false,
@@ -162,7 +162,7 @@ func createTestWasherDrier() WasherDrierProduct {
 		FirstPublicationDate:            []int{},
 		FirstPublicationDateTimestamp:   0,
 		FormType:                        "",
-		GeneratedLabels:                 nil,
+		GeneratedLabels:                 Null{},
 		ImportedOn:                      0,
 		LastVersion:                     false,
 		NoiseDry:                        0,
