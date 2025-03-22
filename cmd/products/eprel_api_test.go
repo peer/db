@@ -474,3 +474,22 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 		})
 	}
 }
+
+func TestInvalidNullUnmarshalling(t *testing.T) {
+	t.Parallel()
+
+	validWasherDrier := createTestWasherDrier()
+
+	validJSON, err := json.Marshal(validWasherDrier)
+	require.NoError(t, err, "Failed to marshal valid washer drier")
+
+	invalidJSON := strings.Replace(string(validJSON), `"generatedLabels":null`,
+		`"generatedLabels":"test non null value"`, 1)
+
+	var invalidWasherDrier WasherDrierProduct
+	err = json.Unmarshal([]byte(invalidJSON), &invalidWasherDrier)
+
+	assert.Error(t, err, "Unmarshaling should fail when a Null field contains a non-null value")
+	assert.Contains(t, err.Error(), "only null value is excepted",
+		"Error should indicate that only null values are accepted")
+}
