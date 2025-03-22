@@ -385,6 +385,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
+	// We assume EPRELContactID values start at 1 and continue up. Otherwise, we would need to change the field definition to pointer int (*int).
 	if washerDrier.EPRELContactID != 0 {
 		errE := doc.Add(&document.IdentifierClaim{
 			CoreClaim: document.CoreClaim{
