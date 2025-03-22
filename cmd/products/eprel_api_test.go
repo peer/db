@@ -185,7 +185,7 @@ func createTestWasherDrier() WasherDrierProduct {
 			OrganisationTitle: "",
 			Website:           "",
 		},
-		OtherIdentifiers:            []string{},
+		OtherIdentifiers:            []OtherIdentifiers{},
 		PlacementCountries:          []PlacementCountry{},
 		ProductGroup:                "",
 		ProductModelCoreID:          0,

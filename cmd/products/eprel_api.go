@@ -106,12 +106,10 @@ type WasherDrierProduct struct {
 	OnMarketStartDate               []int `json:"onMarketStartDate"`
 	OnMarketStartDateTimestamp      int64 `json:"onMarketStartDateTS"`
 
-	OrgVerificationStatus string       `json:"orgVerificationStatus"`
-	Organisation          Organisation `json:"organisation"`
-	// TODO: We do not know the real type here.
-	//       So we are using []string to let it blow up once we encounter a product with other identifiers.
-	OtherIdentifiers   []string           `json:"otherIdentifiers,omitempty"`
-	PlacementCountries []PlacementCountry `json:"placementCountries,omitempty"`
+	OrgVerificationStatus string             `json:"orgVerificationStatus"`
+	Organisation          Organisation       `json:"organisation"`
+	OtherIdentifiers      []OtherIdentifiers `json:"otherIdentifiers,omitempty"`
+	PlacementCountries    []PlacementCountry `json:"placementCountries,omitempty"`
 
 	ProductGroup             string `json:"productGroup"`
 	ProductModelCoreID       int    `json:"productModelCoreId"`
@@ -183,6 +181,12 @@ type Organisation struct {
 	OrganisationName  string `json:"organisationName"`
 	OrganisationTitle string `json:"organisationTitle"`
 	Website           string `json:"website,omitempty"`
+}
+
+type OtherIdentifiers struct {
+	OrderNumber     int    `json:"orderNumber"`
+	ModelIdentifier string `json:"modelIdentifier"`
+	Type            string `json:"type"`
 }
 
 func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]string, errors.E) {
