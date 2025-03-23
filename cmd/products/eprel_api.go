@@ -128,10 +128,11 @@ type WasherDrierProduct struct {
 	TrademarkOwner              string `json:"trademarkOwner,omitempty"`
 	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"`
 
-	UploadedLabels                                    []string `json:"uploadedLabels"`
-	VersionID                                         int      `json:"versionId"`
-	VersionNumber                                     float64  `json:"versionNumber"`
-	VisibleToUnitedKingdomMarketSurveillanceAuthority bool     `json:"visibleToUkMsa"`
+	UploadedLabels []string `json:"uploadedLabels"`
+	VersionID      int      `json:"versionId"`
+	// In theory, VersionNumber should probably be an integer, but we observe float values (3.001, 1.001), so we leave it as float.
+	VersionNumber                                     float64 `json:"versionNumber"`
+	VisibleToUnitedKingdomMarketSurveillanceAuthority bool    `json:"visibleToUkMsa"`
 
 	WaterAnnualWash       float64 `json:"waterAnnualWash"`
 	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
