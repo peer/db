@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,7 +34,7 @@ var (
 )
 
 func (n *Null) UnmarshalJSON(data []byte) error {
-	if string(data) != "null" {
+	if !bytes.Equal(data, []byte("null")) {
 		return errors.New("only null value is excepted")
 	}
 	return nil
