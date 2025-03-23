@@ -155,7 +155,7 @@ type ContactDetails struct {
 	Email                string `json:"email"`
 	ID                   int    `json:"id"`
 	Municipality         string `json:"municipality,omitempty"`
-	OrderNumber          string `json:"orderNumber,omitempty"`
+	OrderNumber          Null   `json:"orderNumber"`
 	Phone                string `json:"phone"`
 	PostalCode           string `json:"postalCode"`
 	Province             string `json:"province,omitempty"`
@@ -173,7 +173,7 @@ type Cycle struct {
 	EnergyConsWash          float64 `json:"energyConsWash"`
 	EnergyConsWashAndDry    float64 `json:"energyConsWashAndDry"`
 	ID                      int     `json:"id"`
-	OrderNumber             float64 `json:"orderNumber"`
+	OrderNumber             int     `json:"orderNumber"`
 	OtherCycle              bool    `json:"otherCycle"`
 	OtherCycleLabel         string  `json:"otherCycleLabel,omitempty"`
 	SpinMax                 float64 `json:"spinMax"`

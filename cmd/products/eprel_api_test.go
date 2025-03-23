@@ -144,7 +144,7 @@ func createTestWasherDrier() WasherDrierProduct {
 			Email:                "",
 			ID:                   0,
 			Municipality:         "",
-			OrderNumber:          "",
+			OrderNumber:          Null{},
 			Phone:                "",
 			PostalCode:           "",
 			Province:             "",
