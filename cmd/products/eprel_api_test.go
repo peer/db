@@ -126,7 +126,7 @@ func createTestWasherDrier() WasherDrierProduct {
 		EPRELContactID:             1234,
 		EnergyLabelID:              998462,
 		EcoLabelRegistrationNumber: "1234",
-		EnergyClass:                "A",
+		EnergyClass:                "APPP",
 		EnergyClassImage:           "A-Left-DarkGreen.png",
 		EnergyClassImageWithScale:  "A-Left-DarkGreen-WithAGScale.svg",
 		EnergyClassRange:           "A_G",
@@ -311,7 +311,7 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				require.True(t, ok, "Energy Class is not a string claim")
 				return stringClaim.String
 			},
-			washerDrier.EnergyClass,
+			string(washerDrier.EnergyClass),
 		},
 		{
 			"Energy Class Image",
@@ -492,4 +492,34 @@ func TestInvalidNullUnmarshalling(t *testing.T) {
 	assert.Error(t, err, "Unmarshaling should fail when a Null field contains a non-null value")
 	assert.Contains(t, err.Error(), "only null value is excepted",
 		"Error should indicate that only null values are accepted")
+}
+
+func TestEnergyClassUnmarshalling(t *testing.T) {
+	t.Parallel()
+
+	washerDrier := createTestWasherDrier()
+	assert.Equal(t, "APPP", string(washerDrier.EnergyClass), "Initial energy class should be URL-safe format")
+
+	jsonData, err := json.Marshal(washerDrier)
+	require.NoError(t, err, "Failed to marshal valid washer drier")
+
+	assert.Contains(t, string(jsonData), `"energyClass":"APPP"`, "JSON should contain URL-safe format")
+
+	var unmarshaled WasherDrierProduct
+	err = json.Unmarshal(jsonData, &unmarshaled)
+	require.NoError(t, err, "Failed to unmarshal washer drier")
+
+	assert.Equal(t, "A+++", string(unmarshaled.EnergyClass),
+		"Unmarshaled energy class should be converted to display format with + characters")
+
+	doc, errE := makeWasherDrierDoc(unmarshaled)
+	require.NoError(t, errE, "Failed to create document from washer drier")
+
+	claims := doc.Get(document.GetCorePropertyID("ENERGY_CLASS"))
+	require.NotEmpty(t, claims, "No energy class claims found")
+
+	stringClaim, ok := claims[0].(*document.StringClaim)
+	require.True(t, ok, "Energy class claim is not a string claim")
+	assert.Equal(t, "A+++", stringClaim.String,
+		"Energy class in document should use display format with + characters")
 }

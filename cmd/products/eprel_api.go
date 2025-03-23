@@ -49,6 +49,25 @@ func (n Null) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
+/*
+We are defining a custom struct, EnergyClass, so that we can apply custom unmarshaling behavior to it.
+The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 'E', 'F', 'G'
+and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
+We want to replace 'P' with '+' in our dataset, since that is the correct value.
+*/
+
+type EnergyClass string
+
+func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
+	var EPRELEnergyClass string
+	if err := json.Unmarshal(data, &EPRELEnergyClass); err != nil {
+		return errors.WithStack(err)
+	}
+	peerDBEnergyClass := strings.ReplaceAll(EPRELEnergyClass, "P", "+")
+	*ec = EnergyClass(peerDBEnergyClass)
+	return nil
+}
+
 type EPREL struct {
 	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
 	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
@@ -86,13 +105,13 @@ type WasherDrierProduct struct {
 	EcoLabel                   bool   `json:"ecoLabel"`
 	EcoLabelRegistrationNumber string `json:"ecoLabelRegistrationNumber"`
 
-	EnergyAnnualWash          float64 `json:"energyAnnualWash"`
-	EnergyAnnualWashAndDry    float64 `json:"energyAnnualWashAndDry"`
-	EnergyClass               string  `json:"energyClass"`
-	EnergyClassImage          string  `json:"energyClassImage"`
-	EnergyClassImageWithScale string  `json:"energyClassImageWithScale"`
-	EnergyClassRange          string  `json:"energyClassRange"`
-	EnergyLabelID             int     `json:"energyLabelId"`
+	EnergyAnnualWash          float64     `json:"energyAnnualWash"`
+	EnergyAnnualWashAndDry    float64     `json:"energyAnnualWashAndDry"`
+	EnergyClass               EnergyClass `json:"energyClass"`
+	EnergyClassImage          string      `json:"energyClassImage"`
+	EnergyClassImageWithScale string      `json:"energyClassImageWithScale"`
+	EnergyClassRange          string      `json:"energyClassRange"`
+	EnergyLabelID             int         `json:"energyLabelId"`
 
 	EPRELRegistrationNumber       string `json:"eprelRegistrationNumber"`
 	ExportDateTimestamp           int64  `json:"exportDateTS"`
@@ -379,7 +398,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
-					String: washerDrier.EnergyClass,
+					String: string(washerDrier.EnergyClass),
 				},
 				{
 					CoreClaim: document.CoreClaim{
