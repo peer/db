@@ -94,7 +94,7 @@ type WasherDrierProduct struct {
 	FirstPublicationDate          []int  `json:"firstPublicationDate"`
 	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"`
 	FormType                      string `json:"formType"`
-	GeneratedLabels               Null   `json:"generatedLabels,omitempty"`
+	GeneratedLabels               Null   `json:"generatedLabels"`
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
@@ -143,7 +143,7 @@ type WasherDrierProduct struct {
 type ContactDetails struct {
 	Address              string `json:"addressBloc,omitempty"`
 	City                 string `json:"city"`
-	ContactByReferenceID Null   `json:"contactByReferenceId,omitempty"`
+	ContactByReferenceID Null   `json:"contactByReferenceId"`
 	ContactReference     string `json:"contactReference"`
 	Country              string `json:"country"`
 	DefaultContact       bool   `json:"defaultContact"`
