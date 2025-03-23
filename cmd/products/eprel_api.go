@@ -25,6 +25,11 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+/*
+We are defining a custom struct, Null, to address fields passed by the EPREL API whose values are currently always null so we do not know how to best type them.
+Upon unmarshaling, the Null struct will automatically check if the field is null or not. That means that once we actually get non-null data from the API,
+we'll be notified about it and can change the field type from Null to what it actually is.
+*/
 type Null struct{}
 
 var (
