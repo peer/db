@@ -256,7 +256,7 @@ var productsProperties = []struct {
 		"ecolabel registration number",
 		nil,
 		`The registration number of the EU eco-label.`,
-		[]string{`"string" claim type`},
+		[]string{`"identifier" claim type`},
 	},
 
 	{
