@@ -168,20 +168,20 @@ type ContactDetails struct {
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type Cycle struct {
-	CapacityDry             float64 `json:"capacityDry"`
-	CapacityWash            float64 `json:"capacityWash"`
-	EnergyConsWash          float64 `json:"energyConsWash"`
-	EnergyConsWashAndDry    float64 `json:"energyConsWashAndDry"`
-	ID                      int     `json:"id"`
-	OrderNumber             int     `json:"orderNumber"`
-	OtherCycle              bool    `json:"otherCycle"`
-	OtherCycleLabel         string  `json:"otherCycleLabel,omitempty"`
-	SpinMax                 float64 `json:"spinMax"`
-	WashTime                float64 `json:"washTime"`
-	WashingPerformanceClass string  `json:"washingPerformanceClass"`
-	WaterConsWD             float64 `json:"waterConsWD"`
-	WaterConsWash           float64 `json:"waterConsWash"`
-	WaterExtractionEff      float64 `json:"waterExtractionEff"`
+	CapacityDry                 float64 `json:"capacityDry"`
+	CapacityWash                float64 `json:"capacityWash"`
+	EnergyConsumptionWash       float64 `json:"energyConsWash"`
+	EnergyConsumptionWashAndDry float64 `json:"energyConsWashAndDry"`
+	ID                          int     `json:"id"`
+	OrderNumber                 int     `json:"orderNumber"`
+	OtherCycle                  bool    `json:"otherCycle"`
+	OtherCycleLabel             string  `json:"otherCycleLabel,omitempty"`
+	SpinMax                     float64 `json:"spinMax"`
+	WashTime                    float64 `json:"washTime"`
+	WashingPerformanceClass     string  `json:"washingPerformanceClass"`
+	WaterConsumptionWashAndDry  float64 `json:"waterConsWD"`
+	WaterConsumptionWash        float64 `json:"waterConsWash"`
+	WaterExtractionEfficiency   float64 `json:"waterExtractionEff"`
 }
 
 type Organisation struct {
