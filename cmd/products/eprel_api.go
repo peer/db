@@ -380,7 +380,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:  document.GetCorePropertyReference("ENERGY_LABEL_ID"),
-					Value: strconv.FormatInt(int64(washerDrier.EnergyLabelID), 10),
+					Value: strconv.Itoa(washerDrier.EnergyLabelID),
 				},
 			},
 			String: document.StringClaims{
@@ -442,7 +442,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				Confidence: document.HighConfidence,
 			},
 			Prop:  document.GetCorePropertyReference("EPREL_CONTACT_ID"),
-			Value: strconv.FormatInt(washerDrier.EPRELContactID, 10),
+			Value: strconv.Itoa(int(washerDrier.EPRELContactID)),
 		})
 		if errE != nil {
 			return doc, errE
