@@ -314,6 +314,19 @@ var productsProperties = []struct {
 		[]string{`"string" claim type`},
 	},
 
+	{
+		"energy annual wash",
+		nil,
+		`Annual Energy consumption washing and spinning (washing cycle)`,
+		[]string{`"Amount" claim type`},
+	},
+	{
+		"energy annual wash and dry",
+		nil,
+		`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
+		[]string{`"Amount" claim type`},
+	},
+
 	/* The following properties are not currently mapped within the eprel_api file.
 	// {
 	// 	"allow eprel label generation",
@@ -345,18 +358,7 @@ var productsProperties = []struct {
 	// 	`Set to true if the model has an EU eco-label. False otherwise.`,
 	// 	[]string{`"Boolean" claim type`},
 	// },
-	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
-	// 	"energy annual wash",
-	// 	nil,
-	// 	`Annual Energy consumption washing and spinning (washing cycle)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
-	// { // skipped - need to add support for kWh unit  -- skipped in eprel_api.go
-	// 	"energy annual wash and dry",
-	// 	nil,
-	// 	`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
+
 	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
 	// 	"export date ts",
 	// 	nil,

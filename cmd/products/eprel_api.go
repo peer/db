@@ -25,6 +25,10 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+const (
+	KilowattHoursToJoules = 3.6e6
+)
+
 /*
 We are defining a custom struct, Null, to address fields passed by the EPREL API whose values are currently always null so we do not know how to best type them.
 Upon unmarshaling, the Null struct will automatically check if the field is null or not. That means that once we actually get non-null data from the API,
@@ -415,6 +419,26 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					},
 					Prop:   document.GetCorePropertyReference("IMPLEMENTING_ACT"),
 					String: washerDrier.ImplementingAct,
+				},
+			},
+			Amount: document.AmountClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ENERGY_ANNUAL_WASH", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_ANNUAL_WASH"),
+					Amount: washerDrier.EnergyAnnualWash * KilowattHoursToJoules,
+					Unit:   document.AmountUnitJoule,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ENERGY_ANNUAL_WASH_AND_DRY", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("ENERGY_ANNUAL_WASH_AND_DRY"),
+					Amount: washerDrier.EnergyAnnualWashAndDry * KilowattHoursToJoules,
+					Unit:   document.AmountUnitJoule,
 				},
 			},
 		},
