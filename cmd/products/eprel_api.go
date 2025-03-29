@@ -138,8 +138,8 @@ type WasherDrierProduct struct {
 
 	OrgVerificationStatus string             `json:"orgVerificationStatus"`
 	Organisation          Organisation       `json:"organisation"`
-	OtherIdentifiers      []OtherIdentifiers `json:"otherIdentifiers,omitempty"`
-	PlacementCountries    []PlacementCountry `json:"placementCountries,omitempty"`
+	OtherIdentifiers      []OtherIdentifiers `json:"otherIdentifiers"`
+	PlacementCountries    []PlacementCountry `json:"placementCountries"`
 
 	ProductGroup             string `json:"productGroup"`
 	ProductModelCoreID       int    `json:"productModelCoreId"`
