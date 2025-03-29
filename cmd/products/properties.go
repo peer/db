@@ -304,7 +304,7 @@ var productsProperties = []struct {
 	{
 		"model identifier",
 		nil,
-		`Supplier's model identifier`,
+		`Supplier's model identifier.`,
 		[]string{`"identifier" claim type`},
 	},
 	{
