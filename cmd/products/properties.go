@@ -318,13 +318,13 @@ var productsProperties = []struct {
 		"energy annual wash",
 		nil,
 		`Annual Energy consumption washing and spinning (washing cycle)`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 	{
 		"energy annual wash and dry",
 		nil,
 		`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
