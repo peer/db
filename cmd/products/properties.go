@@ -262,7 +262,7 @@ var productsProperties = []struct {
 	{
 		"energy class",
 		nil,
-		`Letter of the energy efficiency class. Note that APPP is used instead of A+++, to avoid issues in URL.`,
+		`Letter of the energy efficiency class.`,
 		[]string{`"string" claim type`},
 	},
 	{
