@@ -268,7 +268,7 @@ var productsProperties = []struct {
 	{
 		"energy class image",
 		nil,
-		`URL for the file image for the arrow of the energy class, used by UI to show the arrow.`,
+		`URL for the file image for the arrow of the energy class.`,
 		[]string{`"file" claim type`},
 	},
 	{
