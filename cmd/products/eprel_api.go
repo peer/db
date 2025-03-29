@@ -59,8 +59,9 @@ type EnergyClass string
 
 func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
 	var EPRELEnergyClass string
-	if err := json.Unmarshal(data, &EPRELEnergyClass); err != nil {
-		return errors.WithStack(err)
+	errE := x.Unmarshal(data, &EPRELEnergyClass)
+	if errE != nil {
+		return errE
 	}
 	peerDBEnergyClass := strings.ReplaceAll(EPRELEnergyClass, "P", "+")
 	*ec = EnergyClass(peerDBEnergyClass)
