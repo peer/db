@@ -55,7 +55,6 @@ The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 
 and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
 We want to replace 'P' with '+' in our dataset, since that is the correct value.
 */
-
 type EnergyClass string
 
 func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
