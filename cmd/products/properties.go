@@ -530,12 +530,6 @@ var productsProperties = []struct {
 	// 	[]string{`"string" claim type`},
 	// },
 	// {
-	// 	"version id",
-	// 	nil,
-	// 	`Internal identifier of the version number of the model.`,
-	// 	[]string{`"identifier" claim type`},
-	// },
-	// {
 	// 	"version number",
 	// 	nil,
 	// 	`When a model is published, the supplier can still make changes. To track these changes a new version number is created for each change.`,
