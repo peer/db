@@ -460,12 +460,6 @@ var productsProperties = []struct {
 	// 	`Timestamp the data was imported, in epochs`,
 	// 	[]string{`"Time" claim type`},
 	// },
-	// { // skipped - boolean  -- skipped in eprel_api.go
-	// 	"last version",
-	// 	nil,
-	// 	`This field will be always TRUE. Only last versions are published.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
 	// { // This is in the form of a list of json blobs, how to type? Example: [{'country': 'AT', 'orderNumber': 1}, {'country': 'BE', 'orderNumber': 2}...]
 	// 	"placement countries",
 	// 	nil,
