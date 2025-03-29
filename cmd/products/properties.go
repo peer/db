@@ -377,12 +377,6 @@ var productsProperties = []struct {
 	// 	`Datetime the first version of a model is published and appears on the EPREL site, in epochs`,
 	// 	[]string{`"Date" claim type`},
 	// },
-	// { // not existent in the API docs -- all values in data are null? Need to check for other categories what this data type is  -- skipped in eprel_api.go
-	// 	"generated labels",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
-	// },
 	// { // measurement in decibels, do I need to add that?
 	// 	"noise dry",
 	// 	nil,
