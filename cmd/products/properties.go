@@ -529,24 +529,6 @@ var productsProperties = []struct {
 	// 	`A list of the filenames of the uploaded labels.`,
 	// 	[]string{`"string" claim type`},
 	// },
-	// {
-	// 	"version number",
-	// 	nil,
-	// 	`When a model is published, the supplier can still make changes. To track these changes a new version number is created for each change.`,
-	// 	[]string{`"string" claim type`},
-	// },
-	// { // Skip - boolean
-	// 	"visible to united kingdom market surveillance authority",
-	// 	nil,
-	// 	`Compliance data visible to United Kingdom Market Surveillance Authority - ` +
-	// 		`Optional flag to indicate if the product compliance information (technical documentation, ` +
-	// 		` equivalents and ICSMS data) should be visible to the Market Surveillance Authority for the United Kingdom.
-	// 	The handling of the flag is the following:
-	// 	(1) For suppliers based at UK/Northern Ireland: ` +
-	// 		`if the flag is omitted, it is considered as being "true" by default. If the flag is sent as "false", an error will occur.
-	// 	(2) For suppliers based at an EU country: if the flag is omitted, it is considered as being "false" by default.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
 	// { // Amount in liters
 	// 	"water annual wash",
 	// 	nil,
