@@ -23,10 +23,11 @@ require (
 	gitlab.com/tozd/go/cli v0.4.1
 	gitlab.com/tozd/go/fun v0.7.0
 	gitlab.com/tozd/go/mediawiki v0.16.1-0.20250215235222-3cc5124163c0
-	gitlab.com/tozd/go/x v0.0.0-20250215214209-a681ae578de2
+	gitlab.com/tozd/go/x v0.0.0-20250220203703-da85dd656663
 	gitlab.com/tozd/go/zerolog v0.8.0
 	gitlab.com/tozd/identifier v0.4.0
 	gitlab.com/tozd/waf v0.19.0
+	golang.org/x/text v0.22.0
 	golang.org/x/time v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -88,7 +89,6 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

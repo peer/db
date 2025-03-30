@@ -182,6 +182,61 @@ var productsProperties = []struct {
 		`A Datakick identifier.`,
 		[]string{`"identifier" claim type`},
 	},
+	// PRS specific properties start here.
+	{
+		"HSEID",
+		nil,
+		`Slovenian unique ID of locations at the house number precision.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"company legal form",
+		nil,
+		`A legal form of a company.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"address street",
+		nil,
+		`A street - a part of an address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"house number",
+		nil,
+		`A house number - a part of an address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"house number addition",
+		nil,
+		`A house number addition - a part of an address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"settlement",
+		nil,
+		`A settlement of an address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"zip code",
+		nil,
+		`A zip code.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"postal office",
+		nil,
+		`A postal office responsible for an address.`,
+		[]string{`"text" claim type`},
+	},
+	{
+		"address country",
+		nil,
+		`Address country of a company.`,
+		[]string{`"string" claim type`},
+	},
 }
 
 func init() { //nolint:gochecknoinits

@@ -39,4 +39,5 @@ type Config struct {
 	Zito                Zito                `embed:"" prefix:"zito."`
 	FURSDEJ             FURSDEJ             `embed:"" prefix:"fursdej."`
 	Datakick            Datakick            `embed:"" prefix:"datakick."`
+	PRS                 PRS                 `embed:"" prefix:"prs."`
 }

@@ -66,6 +66,10 @@ func index(config *Config) errors.E {
 		return config.Datakick.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
 	})
 
+	g.Go(func() error {
+		return config.PRS.Run(ctx, config, httpClient, store, indexingCount, indexingSize)
+	})
+
 	errE = errors.WithStack(g.Wait())
 	if errE != nil {
 		return errE
