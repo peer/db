@@ -27,8 +27,10 @@ const (
 	prsURL = "https://podatki.gov.si/dataset/9ee1a9aa-c224-4995-b2ad-3760d7af0748/resource/beb70929-3d0d-41c6-9af2-25d525d906d3/download/opsiprs.csv"
 )
 
-const columnsCount = 12
-const registrationNumberLength = 10
+const (
+	columnsCount             = 12
+	registrationNumberLength = 10
+)
 
 type PRS struct {
 	Disabled bool `default:"false" help:"Do not import PRS data. Default: false."`
