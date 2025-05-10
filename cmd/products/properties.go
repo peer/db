@@ -346,13 +346,6 @@ var productsProperties = []struct {
 	// 	`None`,
 	// 	[]string{`"None" claim type`},
 	// },
-	// { // skipped - boolean  -- skipped in eprel_api.go
-	// 	"eco label",
-	// 	nil,
-	// 	`Set to true if the model has an EU eco-label. False otherwise.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
-
 	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
 	// 	"export date ts",
 	// 	nil,
