@@ -414,7 +414,7 @@ var productsProperties = []struct {
 	// { // date in the format of [YYYY, MM, DD]
 	// 	"on market start date",
 	// 	nil,
-	// 	`Date the first model is placed on the market, in the format of [YYYY, MM, DD]. It marks also the date the model becomes Published and appears ont the EPREL site.`,
+	// 	`Date the first model is placed on the market, in the format of [YYYY, MM, DD]. It marks also the date the model becomes Published and appears on the EPREL site.`,
 	// 	[]string{`"Time" claim type`},
 	// },
 	// { // date in the format of epoch
