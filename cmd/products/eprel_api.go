@@ -63,7 +63,7 @@ type EnergyClass string
 
 func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
 	var eprelEnergyClass string
-	errE := x.Unmarshal(data, &eprelEnergyClass)
+	errE := x.UnmarshalWithoutUnknownFields(data, &eprelEnergyClass)
 	if errE != nil {
 		return errE
 	}
