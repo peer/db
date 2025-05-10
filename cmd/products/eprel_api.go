@@ -62,12 +62,12 @@ We want to replace 'P' with '+' in our dataset, since that is the correct value.
 type EnergyClass string
 
 func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
-	var EPRELEnergyClass string
-	errE := x.Unmarshal(data, &EPRELEnergyClass)
+	var eprelEnergyClass string
+	errE := x.Unmarshal(data, &eprelEnergyClass)
 	if errE != nil {
 		return errE
 	}
-	peerDBEnergyClass := strings.ReplaceAll(EPRELEnergyClass, "P", "+")
+	peerDBEnergyClass := strings.ReplaceAll(eprelEnergyClass, "P", "+")
 	*ec = EnergyClass(peerDBEnergyClass)
 	return nil
 }
