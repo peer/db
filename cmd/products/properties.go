@@ -310,7 +310,7 @@ var productsProperties = []struct {
 	{
 		"supplier or trademark",
 		nil,
-		`Supplier's name or trademark`,
+		`Supplier's name or trademark.`,
 		[]string{`"string" claim type`},
 	},
 
