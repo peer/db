@@ -364,6 +364,7 @@ const (
 	AmountUnitByte
 	AmountUnitPixel
 	AmountUnitSecond
+	AmountUnitDecibel
 
 	// Count of the number of possible values.
 	AmountUnitsTotal
@@ -416,6 +417,8 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 		buffer.WriteString("px")
 	case AmountUnitSecond:
 		buffer.WriteString("s")
+	case AmountUnitDecibel:
+		buffer.WriteString("dB")
 	case AmountUnitsTotal:
 		fallthrough
 	default:
@@ -476,6 +479,8 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 		*u = AmountUnitPixel
 	case "s":
 		*u = AmountUnitSecond
+	case "dB":
+		*u = AmountUnitDecibel
 	default:
 		return errors.Errorf("unknown amount unit: %s", s)
 	}

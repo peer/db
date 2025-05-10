@@ -313,7 +313,6 @@ var productsProperties = []struct {
 		`Supplier's name or trademark.`,
 		[]string{`"string" claim type`},
 	},
-
 	{
 		"energy annual wash",
 		nil,
@@ -325,6 +324,24 @@ var productsProperties = []struct {
 		nil,
 		`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
 		[]string{`"amount" claim type`},
+	},
+	{
+		"noise dry",
+		nil,
+		`Noise (Drying phase)`,
+		[]string{`"Amount" claim type`},
+	},
+	{
+		"noise spin",
+		nil,
+		`Noise (Spinning phase)`,
+		[]string{`"Amount" claim type`},
+	},
+	{
+		"noise wash",
+		nil,
+		`Noise (Washing phase)`,
+		[]string{`"Amount" claim type`},
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
@@ -363,24 +380,6 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`Datetime the first version of a model is published and appears on the EPREL site, in epochs`,
 	// 	[]string{`"Date" claim type`},
-	// },
-	// { // measurement in decibels, do I need to add that?
-	// 	"noise dry",
-	// 	nil,
-	// 	`Noise (Drying phase)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
-	// { // measurement in decibles, do I need to add that?
-	// 	"noise spin",
-	// 	nil,
-	// 	`Noise (Spinning phase)`,
-	// 	[]string{`"Amount" claim type`},
-	// },
-	// { // measurement in decibels, do I need to add that?
-	// 	"noise wash",
-	// 	nil,
-	// 	`Noise (Washing phase)`,
-	// 	[]string{`"Amount" claim type`},
 	// },
 	// { // date in the format of [YYYY, MM, DD]
 	// 	"on market end date",

@@ -165,9 +165,9 @@ func createTestWasherDrier() WasherDrierProduct {
 		GeneratedLabels:                 Null{},
 		ImportedOn:                      0,
 		LastVersion:                     false,
-		NoiseDry:                        0,
-		NoiseSpin:                       0,
-		NoiseWash:                       0,
+		NoiseDry:                        65.0,
+		NoiseSpin:                       72.0,
+		NoiseWash:                       58.0,
 		OnMarketEndDate:                 []int{},
 		OnMarketEndDateTimestamp:        0,
 		OnMarketFirstStartDate:          []int{},
@@ -369,6 +369,43 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				require.True(t, ok, "Supplier Or Trademark is not a string claim")
 				return stringClaim.String
 			}, washerDrier.SupplierOrTrademark,
+		},
+		{
+			"Noise Dry",
+			"NOISE_DRY",
+			"amount",
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				amountClaim, ok := c.(*document.AmountClaim)
+				require.True(t, ok, "Noise Dry is not an amount claim")
+				// Format to string for comparison
+				return fmt.Sprintf("%.1f dB", amountClaim.Amount)
+			},
+			fmt.Sprintf("%.1f dB", washerDrier.NoiseDry),
+		},
+		{
+			"Noise Spin",
+			"NOISE_SPIN",
+			"amount",
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				amountClaim, ok := c.(*document.AmountClaim)
+				require.True(t, ok, "Noise Spin is not an amount claim")
+				return fmt.Sprintf("%.1f dB", amountClaim.Amount)
+			},
+			fmt.Sprintf("%.1f dB", washerDrier.NoiseSpin),
+		},
+		{
+			"Noise Wash",
+			"NOISE_WASH",
+			"amount",
+			func(t *testing.T, c document.Claim) string {
+				t.Helper()
+				amountClaim, ok := c.(*document.AmountClaim)
+				require.True(t, ok, "Noise Wash is not an amount claim")
+				return fmt.Sprintf("%.1f dB", amountClaim.Amount)
+			},
+			fmt.Sprintf("%.1f dB", washerDrier.NoiseWash),
 		},
 	}
 }

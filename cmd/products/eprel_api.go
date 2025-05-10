@@ -473,6 +473,51 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
+	if washerDrier.NoiseDry > 0 {
+		errE := doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "NOISE_DRY", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("NOISE_DRY"),
+			Amount: washerDrier.NoiseDry,
+			Unit:   document.AmountUnitDecibel,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if washerDrier.NoiseSpin > 0 {
+		errE := doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "NOISE_SPIN", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("NOISE_SPIN"),
+			Amount: washerDrier.NoiseSpin,
+			Unit:   document.AmountUnitDecibel,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if washerDrier.NoiseWash > 0 {
+		errE := doc.Add(&document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "NOISE_WASH", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.GetCorePropertyReference("NOISE_WASH"),
+			Amount: washerDrier.NoiseWash,
+			Unit:   document.AmountUnitDecibel,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
 	return doc, nil
 }
 
