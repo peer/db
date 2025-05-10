@@ -328,12 +328,6 @@ var productsProperties = []struct {
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
-	// {
-	// 	"allow eprel label generation",
-	// 	nil,
-	// 	`Set to true if the supplier chooses to use EPREL labels for this model. Set to false if the supplier has uploaded their own label.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
 	// { // skipped - bool  -- skipped in eprel_api.go
 	// 	"blocked",
 	// 	nil,
