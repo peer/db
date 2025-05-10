@@ -378,7 +378,6 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 				t.Helper()
 				amountClaim, ok := c.(*document.AmountClaim)
 				require.True(t, ok, "Noise Dry is not an amount claim")
-				// Format to string for comparison
 				return fmt.Sprintf("%.1f dB", amountClaim.Amount)
 			},
 			fmt.Sprintf("%.1f dB", washerDrier.NoiseDry),
