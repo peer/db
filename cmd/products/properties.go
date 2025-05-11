@@ -422,10 +422,8 @@ var productsProperties = []struct {
 	// 	`Date the first model is placed on the market, in epochs. It marks also the date the model becomes Published and appears ont the EPREL site.`,
 	// 	[]string{`"Time" claim type`},
 	// },
-	/*
 	TODO: We might add this to the organization/company doc in the future.
 	see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
-	*/
 	// {
 	// 	"org verification status",
 	// 	nil,
