@@ -193,8 +193,8 @@ type WasherDrierProduct struct {
 	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
 
 	// TODO: Map RegistrantNature to organization/company/contacts doc.
-	RegistrantNature            string                      `json:"registrantNature"`
-	Status                      Status                      `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
+	RegistrantNature            string                      `json:"registrantNature"` // Not mapping this as we will not use it in this doc.
+	Status                      Status                      `json:"status"`           // Status is always "PUBLISHED", not mapping as this is not useful to us.
 	SupplierOrTrademark         string                      `json:"supplierOrTrademark"`
 	TrademarkID                 int                         `json:"trademarkId"`
 	TrademarkOwner              Null                        `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
