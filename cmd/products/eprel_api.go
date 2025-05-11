@@ -100,10 +100,11 @@ type PlacementCountry struct {
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
 	// TODO: Map all timestamp fields to a custom type. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179
-	AllowEPRELLabelGeneration bool           `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
-	Blocked                   bool           `json:"blocked"`                   // Did not map this field, as we will not use it.
-	ContactDetails            ContactDetails `json:"contactDetails"`            // TODO: Move ContactDetails to a separate document.
-	EPRELContactID            int64          `json:"contactId,omitempty"`
+	AllowEPRELLabelGeneration bool `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
+	Blocked                   bool `json:"blocked"`                   // Did not map this field, as we will not use it.
+	// TODO: Move ContactDetails to a separate document.
+	ContactDetails ContactDetails `json:"contactDetails"`
+	EPRELContactID int64          `json:"contactId,omitempty"`
 	// TODO: Move cycles to a separate document.
 	Cycles                     []Cycle `json:"cycles"`
 	EcoLabel                   bool    `json:"ecoLabel"` // Did not map this field, as we will not use it.
