@@ -54,6 +54,25 @@ func (n Null) MarshalJSON() ([]byte, error) {
 }
 
 /*
+We are defining a custom struct, Status, so that we can make sure that the status field in the EPREL API is always "PUBLISHED".
+If the status is not "PUBLISHED", an error will be returned so we know we'll need to look into this again.
+*/
+type Status string
+
+func (s *Status) UnmarshalJSON(data []byte) error {
+	var eprelStatus string
+	errE := x.UnmarshalWithoutUnknownFields(data, &eprelStatus)
+	if errE != nil {
+		return errE
+	}
+	if eprelStatus != "PUBLISHED" {
+		return errors.New("status is not PUBLISHED")
+	}
+	*s = Status(eprelStatus)
+	return nil
+}
+
+/*
 We are defining a custom struct, EnergyClass, so that we can apply custom unmarshaling behavior to it.
 The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 'E', 'F', 'G'
 and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
@@ -154,7 +173,7 @@ type WasherDrierProduct struct {
 
 	// TODO: Map RegistrantNature to organization/company/contacts doc.
 	RegistrantNature            string `json:"registrantNature"`
-	Status                      string `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
+	Status                      Status `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
 	SupplierOrTrademark         string `json:"supplierOrTrademark"`
 	TrademarkID                 int    `json:"trademarkId"`
 	TrademarkOwner              string `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
