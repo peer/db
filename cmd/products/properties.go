@@ -345,24 +345,6 @@ var productsProperties = []struct {
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
-	// { // skipped - bool  -- skipped in eprel_api.go
-	// 	"blocked",
-	// 	nil,
-	// 	`Set to true if the model was reported as containing inappropriate content by EPREL. It will not be visible to the public in any way.`,
-	// 	[]string{`"Boolean" claim type`},
-	// },
-	// { // skipped - json blob  -- skipped in eprel_api.go
-	// 	"contact details",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
-	// },
-	// { // skipped - json blob  -- skipped in eprel_api.go
-	// 	"cycles",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
-	// },
 	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
 	// 	"export date ts",
 	// 	nil,
@@ -421,20 +403,6 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`Date the first model is placed on the market, in epochs. It marks also the date the model becomes Published and appears ont the EPREL site.`,
 	// 	[]string{`"Time" claim type`},
-	// },
-	TODO: We might add this to the organization/company doc in the future.
-	see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
-	// {
-	// 	"org verification status",
-	// 	nil,
-	// 	`All the supplier organisations are obliged to pass a procedure of verification. The status of the verification is provided in this field.`,
-	// 	[]string{`"string" claim type`},
-	// },
-	// { // skip, JSON blob
-	// 	"organisation",
-	// 	nil,
-	// 	`Information about the organization that registered the model.`,
-	// 	[]string{`"None" claim type`},
 	// },
 	// { // need to check if this field is non null for any of the other models so that I know how to type it
 	// 	"other identifiers",

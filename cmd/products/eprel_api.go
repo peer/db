@@ -100,14 +100,14 @@ type PlacementCountry struct {
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
 	// TODO: Map all timestamp fields to a custom type. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179
-	AllowEPRELLabelGeneration bool           `json:"allowEprelLabelGeneration"`
-	Blocked                   bool           `json:"blocked"`
-	ContactDetails            ContactDetails `json:"contactDetails"`
+	AllowEPRELLabelGeneration bool           `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
+	Blocked                   bool           `json:"blocked"`                   // Did not map this field, as we will not use it.
+	ContactDetails            ContactDetails `json:"contactDetails"`            // TODO: Move ContactDetails to a separate document.
 	EPRELContactID            int64          `json:"contactId,omitempty"`
-	Cycles                    []Cycle        `json:"cycles"`
-
-	EcoLabel                   bool   `json:"ecoLabel"`
-	EcoLabelRegistrationNumber string `json:"ecoLabelRegistrationNumber"`
+	// TODO: Move cycles to a separate document.
+	Cycles                     []Cycle `json:"cycles"`
+	EcoLabel                   bool    `json:"ecoLabel"` // Did not map this field, as we will not use it.
+	EcoLabelRegistrationNumber string  `json:"ecoLabelRegistrationNumber"`
 
 	EnergyAnnualWash          float64     `json:"energyAnnualWash"`
 	EnergyAnnualWashAndDry    float64     `json:"energyAnnualWashAndDry"`
@@ -122,11 +122,11 @@ type WasherDrierProduct struct {
 	FirstPublicationDate          []int  `json:"firstPublicationDate"`
 	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"`
 	FormType                      string `json:"formType"`
-	GeneratedLabels               Null   `json:"generatedLabels"`
+	GeneratedLabels               Null   `json:"generatedLabels"` // Did not map this property, as we will not use it.
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
-	LastVersion     bool   `json:"lastVersion"`
+	LastVersion     bool   `json:"lastVersion"` // Did not map this property, as we will not use it.
 	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
@@ -139,9 +139,9 @@ type WasherDrierProduct struct {
 	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
 	OnMarketStartDate               []int `json:"onMarketStartDate"`
 	OnMarketStartDateTimestamp      int64 `json:"onMarketStartDateTS"`
-
+	// TODO: OrgVerificationStatus - We might add this to the organization/company doc in the future. https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
 	OrgVerificationStatus string             `json:"orgVerificationStatus"`
-	Organisation          Organisation       `json:"organisation"`
+	Organisation          Organisation       `json:"organisation"` // Not mapped, as we will not use it.
 	OtherIdentifiers      []OtherIdentifiers `json:"otherIdentifiers"`
 	PlacementCountries    []PlacementCountry `json:"placementCountries"`
 
@@ -158,10 +158,10 @@ type WasherDrierProduct struct {
 	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"`
 
 	UploadedLabels []string `json:"uploadedLabels"`
-	VersionID      int      `json:"versionId"`
+	VersionID      int      `json:"versionId"` // Not mapped as we will not use this field.
 	// In theory, VersionNumber should probably be an integer, but we observe float values (3.001, 1.001), so we leave it as float.
-	VersionNumber                                     float64 `json:"versionNumber"`
-	VisibleToUnitedKingdomMarketSurveillanceAuthority bool    `json:"visibleToUkMsa"`
+	VersionNumber                                     float64 `json:"versionNumber"`  // Not mapped as we will not use this field.
+	VisibleToUnitedKingdomMarketSurveillanceAuthority bool    `json:"visibleToUkMsa"` // Not mapped as we will not use this field.
 
 	WaterAnnualWash       float64 `json:"waterAnnualWash"`
 	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
