@@ -343,6 +343,18 @@ var productsProperties = []struct {
 		`Noise (Washing phase)`,
 		[]string{`"Amount" claim type`},
 	},
+	{
+		"water annual wash",
+		nil,
+		`Annual Water consumption washing and spinning (washing cycle), in liters`,
+		[]string{`"Amount" claim type`},
+	},
+	{
+		"water annual wash and dry",
+		nil,
+		`Annual water consumption washing, spinning and drying  (complete operating cycle), in liters`,
+		[]string{`"Amount" claim type`},
+	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
 	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
@@ -465,18 +477,7 @@ var productsProperties = []struct {
 	// 	`A list of the filenames of the uploaded labels.`,
 	// 	[]string{`"string" claim type`},
 	// },
-	// { // Amount in liters
-	// 	"water annual wash",
-	// 	nil,
-	// 	`Annual Water consumption washing and spinning (washing cycle), in liters`,
-	// 	[]string{`"Amount" claim type`},
-	// },
-	// { // Amount in liters
-	// 	"water annual wash and dry",
-	// 	nil,
-	// 	`Annual water consumption washing, spinning and drying  (complete operating cycle), in liters`,
-	// 	[]string{`"Amount" claim type`},
-	// },
+
 	// END EPREL API properties
 	*/
 }

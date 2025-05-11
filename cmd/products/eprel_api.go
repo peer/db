@@ -443,6 +443,24 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					Amount: washerDrier.EnergyAnnualWashAndDry * KilowattHoursToJoules,
 					Unit:   document.AmountUnitJoule,
 				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "WATER_ANNUAL_WASH", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("WATER_ANNUAL_WASH"),
+					Amount: washerDrier.WaterAnnualWash,
+					Unit:   document.AmountUnitLitre,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "WATER_ANNUAL_WASH_AND_DRY", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("WATER_ANNUAL_WASH_AND_DRY"),
+					Amount: washerDrier.WaterAnnualWashAndDry,
+					Unit:   document.AmountUnitLitre,
+				},
 			},
 		},
 	}
