@@ -453,31 +453,11 @@ var productsProperties = []struct {
 	// 	[]string{`"string" claim type`},
 	// },
 	// {
-	// 	"status",
-	// 	nil,
-	// 	`Publication status. Only Published products are available in Public site`,
-	// 	[]string{`"string" claim type`},
-	// },
-	// {
-
-	// {
 	// 	"trademark id",
 	// 	nil,
 	// 	`Supplier's name or trademark reference - ` +
 	// 		`If Supplier's name or trademark is declared by reference in the supplier's organisation, the id of the reference is provided.`,
 	// 	[]string{`"identifier" claim type`},
-	// },
-	// { // need to check if this is non-null for any of the other product categories
-	// 	"trademark owner",
-	// 	nil,
-	// 	`The owner of the trademark.`,
-	// 	[]string{`"string" claim type`},
-	// },
-	// { // need to check if this is non-null for any of the other product categories
-	// 	"trademark verification status",
-	// 	nil,
-	// 	`The verification status of the trademark.`,
-	// 	[]string{`"string" claim type`},
 	// },
 	// { // this is an array of strings, how should I type it?
 	// 	"uploaded labels",

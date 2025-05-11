@@ -103,7 +103,7 @@ type WasherDrierProduct struct {
 	AllowEPRELLabelGeneration bool `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
 	Blocked                   bool `json:"blocked"`                   // Did not map this field, as we will not use it.
 	// TODO: Move ContactDetails to a separate document.
-	ContactDetails ContactDetails `json:"contactDetails"`
+	ContactDetails ContactDetails `json:"contactDetails"` // Did not map this field, as we will not use it.
 	EPRELContactID int64          `json:"contactId,omitempty"`
 	// TODO: Move cycles to a separate document.
 	Cycles                     []Cycle `json:"cycles"`
@@ -122,12 +122,12 @@ type WasherDrierProduct struct {
 	ExportDateTimestamp           int64  `json:"exportDateTS"`
 	FirstPublicationDate          []int  `json:"firstPublicationDate"`
 	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"`
-	FormType                      string `json:"formType"`
-	GeneratedLabels               Null   `json:"generatedLabels"` // Did not map this property, as we will not use it.
+	FormType                      string `json:"formType"`        // Did not map this field, as we will not use it.
+	GeneratedLabels               Null   `json:"generatedLabels"` // Did not map this field, as we will not use it.
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
-	LastVersion     bool   `json:"lastVersion"` // Did not map this property, as we will not use it.
+	LastVersion     bool   `json:"lastVersion"` // Did not map this field, as we will not use it.
 	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
@@ -140,23 +140,25 @@ type WasherDrierProduct struct {
 	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
 	OnMarketStartDate               []int `json:"onMarketStartDate"`
 	OnMarketStartDateTimestamp      int64 `json:"onMarketStartDateTS"`
-	// TODO: OrgVerificationStatus - We might add this to the organization/company doc in the future. https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
-	OrgVerificationStatus string             `json:"orgVerificationStatus"`
-	Organisation          Organisation       `json:"organisation"` // Not mapped, as we will not use it.
-	OtherIdentifiers      []OtherIdentifiers `json:"otherIdentifiers"`
-	PlacementCountries    []PlacementCountry `json:"placementCountries"`
+	// TODO: OrgVerificationStatus - We may add this to the org/company/contact doc in the future. https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
+	OrgVerificationStatus string `json:"orgVerificationStatus"`
+	// TODO: Map Organisation to a separate document.
+	Organisation       Organisation       `json:"organisation"` // Not mapped, as we will not use it.
+	OtherIdentifiers   []OtherIdentifiers `json:"otherIdentifiers"`
+	PlacementCountries []PlacementCountry `json:"placementCountries"`
 
 	ProductGroup             string `json:"productGroup"`
 	ProductModelCoreID       int    `json:"productModelCoreId"`
 	PublishedOnDate          []int  `json:"publishedOnDate"`
 	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
 
+	// TODO: Map RegistrantNature to organization/company/contacts doc.
 	RegistrantNature            string `json:"registrantNature"`
-	Status                      string `json:"status"`
+	Status                      string `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
 	SupplierOrTrademark         string `json:"supplierOrTrademark"`
 	TrademarkID                 int    `json:"trademarkId"`
-	TrademarkOwner              string `json:"trademarkOwner,omitempty"`
-	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"`
+	TrademarkOwner              string `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
+	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"` // Values is always VERIFIED, not mapping as this not useful to us.
 
 	UploadedLabels []string `json:"uploadedLabels"`
 	VersionID      int      `json:"versionId"` // Not mapped as we will not use this field.
