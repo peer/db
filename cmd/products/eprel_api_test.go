@@ -200,8 +200,8 @@ func createTestWasherDrier() WasherDrierProduct {
 		VersionID:                   0,
 		VersionNumber:               0,
 		VisibleToUnitedKingdomMarketSurveillanceAuthority: false,
-		WaterAnnualWash:       0,
-		WaterAnnualWashAndDry: 0,
+		WaterAnnualWash:       11200,
+		WaterAnnualWashAndDry: 21000,
 	}
 }
 
