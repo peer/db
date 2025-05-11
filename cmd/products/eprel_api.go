@@ -54,6 +54,25 @@ func (n Null) MarshalJSON() ([]byte, error) {
 }
 
 /*
+We are defining a custom struct, EnergyClass, so that we can apply custom unmarshaling behavior to it.
+The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 'E', 'F', 'G'
+and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
+We want to replace 'P' with '+' in our dataset, since that is the correct value.
+*/
+type EnergyClass string
+
+func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
+	var eprelEnergyClass string
+	errE := x.UnmarshalWithoutUnknownFields(data, &eprelEnergyClass)
+	if errE != nil {
+		return errE
+	}
+	peerDBEnergyClass := strings.ReplaceAll(eprelEnergyClass, "P", "+")
+	*ec = EnergyClass(peerDBEnergyClass)
+	return nil
+}
+
+/*
 We are defining a custom struct, Status, so that we can make sure that the status field in the EPREL API is always "PUBLISHED".
 If the status is not "PUBLISHED", an error will be returned so we know we'll need to look into this again.
 */
@@ -73,21 +92,23 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 }
 
 /*
-We are defining a custom struct, EnergyClass, so that we can apply custom unmarshaling behavior to it.
-The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 'E', 'F', 'G'
-and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
-We want to replace 'P' with '+' in our dataset, since that is the correct value.
+We are defining a custom struct, TrademarkVerificationStatus, so that we can make
+sure that the trademarkVerificationStatus field in the EPREL API is always "VERIFIED".
+If the status is not "VERIFIED", an error will be returned so we know we'll
+need to look into this again.
 */
-type EnergyClass string
+type TrademarkVerificationStatus string
 
-func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
-	var eprelEnergyClass string
-	errE := x.UnmarshalWithoutUnknownFields(data, &eprelEnergyClass)
+func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
+	var eprelTrademarkVerificationStatus string
+	errE := x.UnmarshalWithoutUnknownFields(data, &eprelTrademarkVerificationStatus)
 	if errE != nil {
 		return errE
 	}
-	peerDBEnergyClass := strings.ReplaceAll(eprelEnergyClass, "P", "+")
-	*ec = EnergyClass(peerDBEnergyClass)
+	if eprelTrademarkVerificationStatus != "VERFIED" {
+		return errors.New("trademark verification status is not VERIFIED")
+	}
+	*tvs = TrademarkVerificationStatus(eprelTrademarkVerificationStatus)
 	return nil
 }
 
@@ -172,12 +193,12 @@ type WasherDrierProduct struct {
 	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
 
 	// TODO: Map RegistrantNature to organization/company/contacts doc.
-	RegistrantNature            string `json:"registrantNature"`
-	Status                      Status `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
-	SupplierOrTrademark         string `json:"supplierOrTrademark"`
-	TrademarkID                 int    `json:"trademarkId"`
-	TrademarkOwner              string `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
-	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"` // Values is always VERIFIED, not mapping as this not useful to us.
+	RegistrantNature            string                      `json:"registrantNature"`
+	Status                      Status                      `json:"status"` // Status is always "PUBLISHED", not mapping as this is not useful to us.
+	SupplierOrTrademark         string                      `json:"supplierOrTrademark"`
+	TrademarkID                 int                         `json:"trademarkId"`
+	TrademarkOwner              Null                        `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
+	TrademarkVerificationStatus TrademarkVerificationStatus `json:"trademarkVerificationStatus"` // Values is always VERIFIED, not mapping as this not useful to us.
 
 	UploadedLabels []string `json:"uploadedLabels"`
 	VersionID      int      `json:"versionId"` // Not mapped as we will not use this field.
