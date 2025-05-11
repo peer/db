@@ -192,7 +192,7 @@ func createTestWasherDrier() WasherDrierProduct {
 		PublishedOnDate:             []int{},
 		PublishedOnDateTimestamp:    0,
 		RegistrantNature:            "",
-		Status:                      "",
+		Status:                      "PUBLISHED",
 		TrademarkID:                 0,
 		TrademarkOwner:              Null{},
 		TrademarkVerificationStatus: "VERIFIED",

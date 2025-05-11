@@ -105,7 +105,7 @@ func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
 	if errE != nil {
 		return errE
 	}
-	if eprelTrademarkVerificationStatus != "VERFIED" {
+	if eprelTrademarkVerificationStatus != "VERIFIED" {
 		return errors.New("trademark verification status is not VERIFIED")
 	}
 	*tvs = TrademarkVerificationStatus(eprelTrademarkVerificationStatus)
