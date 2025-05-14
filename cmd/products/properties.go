@@ -356,77 +356,35 @@ var productsProperties = []struct {
 		[]string{`"Amount" claim type`},
 	},
 
+	{
+		"on market end date",
+		nil,
+		`Timestamp the last model is placed on the market, in epochs. ` +
+			`Optional field, could be empty. It is used internally to verify if Basic filter ` +
+			`"Include models not placed on the market anymore" applies to the model.`,
+		[]string{`"Time" claim type`},
+	},
+	{
+		"on market start date",
+		nil,
+		`Date the first model is placed on the market, in epochs. ` +
+			`It marks also the date the model becomes Published and appears ont the EPREL site.` +
+			`A model can be Published many times, due to changes introduced by supplier ` +
+			`that creates a new version of the model, or due to technical modifications ` +
+			`that makes necessary that a model is Published again and re-exported to Public ` +
+			`site. One of these changes can be on the “On market start date” field. This + ` +
+			`field stores the last on market start date that model had on last Publication. ` +
+			`(Normally these 2 dates must be the same, changes in on market start date are not normal)`,
+		[]string{`"Time" claim type`},
+	},
+
 	/* The following properties are not currently mapped within the eprel_api file.
-	// { // the time unit is epochs, is that an issue? -- skipped in eprel_api.go
-	// 	"export date ts",
-	// 	nil,
-	// 	`Datetime of export of the model data to EPREL site, in epochs`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date is expressed here as an array of integers [YYYY, MM, DD]  -- skipped in eprel_api.go
-	// 	"first publication date",
-	// 	nil,
-	// 	`Date the first version of a model is published and appears on the EPREL site. Expressed in the format [YYYY, MM, DD].`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // do I need to do anything special for epochs? -- skipped in eprel_api.go
-	// 	"first publication date ts",
-	// 	nil,
-	// 	`Datetime the first version of a model is published and appears on the EPREL site, in epochs`,
-	// 	[]string{`"Date" claim type`},
-	// },
-	// { // date in the format of [YYYY, MM, DD]
-	// 	"on market end date",
-	// 	nil,
-	// 	`Date the last model is placed on the market, in the format of [YYYY, MM, DD]. ` +
-	// 		` Optional field, could be empty. It is used internally to verify if Basic filter ` +
-	// 		`"Include models not placed on the market anymore" applies to the model.`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the format of epoch
-	// 	"on market end date ts",
-	// 	nil,
-	// 	`Timestamp the last model is placed on the market, in epochs. ` +
-	// 		`Optional field, could be empty. It is used internally to verify if Basic filter ` +
-	// 		`"Include models not placed on the market anymore" applies to the model.`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the format of [YYYY, MM, DD]
-	// 	"on market first start date",
-	// 	nil,
-	// 	`Date the first version of a model is placed on the market, in the format of [YYYY, MM, DD]. ` +
-	// 		`It also marks the date the model becomes Published and appears on the EPREL site.`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the format of epoch
-	// 	"on market first start date ts",
-	// 	nil,
-	// 	`Date the first version of a model is placed on the market, in epochs. It marks also the date the model becomes Published and appears on the EPREL site.`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the format of [YYYY, MM, DD]
-	// 	"on market start date",
-	// 	nil,
-	// 	`Date the first model is placed on the market, in the format of [YYYY, MM, DD]. It marks also the date the model becomes Published and appears on the EPREL site.`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the format of epoch
-	// 	"on market start date ts",
-	// 	nil,
-	// 	`Date the first model is placed on the market, in epochs. It marks also the date the model becomes Published and appears ont the EPREL site.`,
-	// 	[]string{`"Time" claim type`},
-	// },
+
 	// { // need to check if this field is non null for any of the other models so that I know how to type it
 	// 	"other identifiers",
 	// 	nil,
 	// 	`Other model idenfitiers in the form of EAN codes. Can be multiple.`,
 	// 	[]string{`"string" claim type`},
-	// },
-	// {
-	// 	"imported on",
-	// 	nil,
-	// 	`Timestamp the data was imported, in epochs`,
-	// 	[]string{`"Time" claim type`},
 	// },
 	// { // This is in the form of a list of json blobs, how to type? Example: [{'country': 'AT', 'orderNumber': 1}, {'country': 'BE', 'orderNumber': 2}...]
 	// 	"placement countries",
@@ -445,18 +403,6 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`Internal id of product model for EPREL.`,
 	// 	[]string{`"identifier" claim type`},
-	// },
-	// { // date in the form of [YYYY, MM, DD]
-	// 	"published on date",
-	// 	nil,
-	// 	`Date the data was published, in the form of [YYYY, MM, DD].`,
-	// 	[]string{`"Time" claim type`},
-	// },
-	// { // date in the form of epoch
-	// 	"published on date ts",
-	// 	nil,
-	// 	`Timestamp the data was published, in epochs.`,
-	// 	[]string{`"Time" claim type`},
 	// },
 	// {
 	// 	"registrant nature",

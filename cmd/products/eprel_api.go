@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-retryablehttp"
@@ -112,6 +113,29 @@ func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+/*
+We are defining a custom struct, EpochTime, so that we can
+unmarshall the timestamp fields in the EPREL API from epochs to dates.
+*/
+
+type EpochTime time.Time
+
+// Silence "error is always nil" lint error for the MarshalJSON() method.
+var _ json.Marshaler = (*EpochTime)(nil)
+
+func (et EpochTime) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatInt(time.Time(et).Unix(), 10)), nil
+}
+
+func (et *EpochTime) UnmarshalJSON(data []byte) error {
+	i, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	*(*time.Time)(et) = time.Unix(i, 0)
+	return nil
+}
+
 type EPREL struct {
 	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
 	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
@@ -132,14 +156,14 @@ type ProductGroup struct {
 }
 
 type PlacementCountry struct {
-	// TODO: Map Country to MARKET_COUNTRY existing property claim. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193
+	// TODO: Map Country to MARKET_COUNTRY existing property claim. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193.
 	Country     string `json:"country"`
 	OrderNumber int    `json:"orderNumber"`
 }
 
 //nolint:tagliatelle // JSON tags must match external EPREL API format.
 type WasherDrierProduct struct {
-	// TODO: Map all timestamp fields to a custom type. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179
+	// TODO: Map all timestamp fields to a custom type. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179.
 	AllowEPRELLabelGeneration bool `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
 	Blocked                   bool `json:"blocked"`                   // Did not map this field, as we will not use it.
 	// TODO: Move ContactDetails to a separate document.
@@ -160,10 +184,10 @@ type WasherDrierProduct struct {
 
 	EPRELRegistrationNumber       string `json:"eprelRegistrationNumber"`
 	ExportDateTimestamp           int64  `json:"exportDateTS"`
-	FirstPublicationDate          []int  `json:"firstPublicationDate"`
-	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"`
-	FormType                      string `json:"formType"`        // Did not map this field, as we will not use it.
-	GeneratedLabels               Null   `json:"generatedLabels"` // Did not map this field, as we will not use it.
+	FirstPublicationDate          []int  `json:"firstPublicationDate"`   // Not mapping, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"` // Not mapping, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	FormType                      string `json:"formType"`               // Did not map this field, as we will not use it.
+	GeneratedLabels               Null   `json:"generatedLabels"`        // Did not map this field, as we will not use it.
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
@@ -174,12 +198,12 @@ type WasherDrierProduct struct {
 	NoiseSpin float64 `json:"noiseSpin"`
 	NoiseWash float64 `json:"noiseWash"`
 
-	OnMarketEndDate                 []int `json:"onMarketEndDate"`
-	OnMarketEndDateTimestamp        int64 `json:"onMarketEndDateTS"`
-	OnMarketFirstStartDate          []int `json:"onMarketFirstStartDate"`
-	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
-	OnMarketStartDate               []int `json:"onMarketStartDate"`
-	OnMarketStartDateTimestamp      int64 `json:"onMarketStartDateTS"`
+	OnMarketEndDate                 []int     `json:"onMarketEndDate"` // Not mapping, as using the TS version of this field.
+	OnMarketEndDateTimestamp        EpochTime `json:"onMarketEndDateTS"`
+	OnMarketFirstStartDate          []int     `json:"onMarketFirstStartDate"`   // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	OnMarketFirstStartDateTimestamp int64     `json:"onMarketFirstStartDateTS"` // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	OnMarketStartDate               []int     `json:"onMarketStartDate"`        // Not mapping, as using the TS version of this field.
+	OnMarketStartDateTimestamp      EpochTime `json:"onMarketStartDateTS"`
 	// TODO: OrgVerificationStatus - We may add this to the org/company/contact doc in the future. https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
 	OrgVerificationStatus string `json:"orgVerificationStatus"`
 	// TODO: Map Organisation to a separate document.
@@ -189,8 +213,8 @@ type WasherDrierProduct struct {
 
 	ProductGroup             string `json:"productGroup"`
 	ProductModelCoreID       int    `json:"productModelCoreId"`
-	PublishedOnDate          []int  `json:"publishedOnDate"`
-	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"`
+	PublishedOnDate          []int  `json:"publishedOnDate"`   // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"` // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
 
 	// TODO: Map RegistrantNature to organization/company/contacts doc.
 	RegistrantNature            string                      `json:"registrantNature"` // Not mapping this as we will not use it in this doc.
@@ -351,6 +375,7 @@ func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiK
 	return allWasherDriers, nil
 }
 
+//nolint:maintidx // Reason: function is large but logically cohesive and tested
 func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
@@ -500,6 +525,26 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					Prop:   document.GetCorePropertyReference("WATER_ANNUAL_WASH_AND_DRY"),
 					Amount: washerDrier.WaterAnnualWashAndDry,
 					Unit:   document.AmountUnitLitre,
+				},
+			},
+			Time: document.TimeClaims{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_START_DATE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:      document.GetCorePropertyReference("ON_MARKET_START_DATE"),
+					Timestamp: document.Timestamp(washerDrier.OnMarketStartDateTimestamp),
+					Precision: document.TimePrecisionDay,
+				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_END_DATE", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:      document.GetCorePropertyReference("ON_MARKET_END_DATE"),
+					Timestamp: document.Timestamp(washerDrier.OnMarketEndDateTimestamp),
+					Precision: document.TimePrecisionDay,
 				},
 			},
 		},

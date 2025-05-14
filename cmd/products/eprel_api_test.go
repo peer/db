@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
@@ -169,11 +170,11 @@ func createTestWasherDrier() WasherDrierProduct {
 		NoiseSpin:                       72.0,
 		NoiseWash:                       58.0,
 		OnMarketEndDate:                 []int{},
-		OnMarketEndDateTimestamp:        0,
+		OnMarketEndDateTimestamp:        EpochTime(time.Unix(1540512000, 0)),
 		OnMarketFirstStartDate:          []int{},
 		OnMarketFirstStartDateTimestamp: 0,
 		OnMarketStartDate:               []int{},
-		OnMarketStartDateTimestamp:      0,
+		OnMarketStartDateTimestamp:      EpochTime(time.Unix(1540512000, 0)),
 		OrgVerificationStatus:           "",
 		Organisation: Organisation{
 			CloseDate:         "",
@@ -558,4 +559,28 @@ func TestEnergyClassUnmarshalling(t *testing.T) {
 	require.True(t, ok, "Energy class claim is not a string claim")
 	assert.Equal(t, "A+++", stringClaim.String,
 		"Energy class in document should use display format with + characters")
+}
+
+func TestEpochTimeUnmarshallingAndMarshalling(t *testing.T) {
+	t.Parallel()
+
+	jsonData := []byte(`{"timestamp": 1540512000}`)
+	var result struct {
+		Timestamp EpochTime `json:"timestamp"`
+	}
+
+	err := json.Unmarshal(jsonData, &result)
+	require.NoError(t, err, "Failed to unmarshal JSON data")
+
+	expectedTime := time.Date(2018, 10, 26, 0, 0, 0, 0, time.UTC)
+	actualTime := time.Time(result.Timestamp)
+
+	assert.Equal(t, expectedTime.Year(), actualTime.Year())
+	assert.Equal(t, expectedTime.Month(), actualTime.Month())
+	assert.Equal(t, expectedTime.Day(), actualTime.Day())
+
+	marshalledData, err := json.Marshal(result)
+	require.NoError(t, err, "Failed to marshal result")
+
+	assert.Contains(t, string(marshalledData), `"timestamp":1540512000`)
 }
