@@ -411,12 +411,6 @@ var productsProperties = []struct {
 	// 	[]string{`"string" claim type`},
 	// },
 	// {
-	// 	"trademark id",
-	// 	nil,
-	// 	`Supplier's name or trademark reference - ` +
-	// 		`If Supplier's name or trademark is declared by reference in the supplier's organisation, the id of the reference is provided.`,
-	// 	[]string{`"identifier" claim type`},
-	// },
 	// { // this is an array of strings, how should I type it?
 	// 	"uploaded labels",
 	// 	nil,

@@ -220,7 +220,7 @@ type WasherDrierProduct struct {
 	RegistrantNature            string                      `json:"registrantNature"` // Not mapping this as we will not use it in this doc.
 	Status                      Status                      `json:"status"`           // Status is always "PUBLISHED", not mapping as this is not useful to us.
 	SupplierOrTrademark         string                      `json:"supplierOrTrademark"`
-	TrademarkID                 int                         `json:"trademarkId"`
+	TrademarkID                 int                         `json:"trademarkId"`                 // this is an EPREL internal ID, so it is not useful to us. Not mapping.
 	TrademarkOwner              Null                        `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
 	TrademarkVerificationStatus TrademarkVerificationStatus `json:"trademarkVerificationStatus"` // Values is always VERIFIED, not mapping as this not useful to us.
 
