@@ -488,6 +488,14 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					Prop:   document.GetCorePropertyReference("IMPLEMENTING_ACT"),
 					String: washerDrier.ImplementingAct,
 				},
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "PRODUCT_GROUP", 0),
+						Confidence: document.HighConfidence,
+					},
+					Prop:   document.GetCorePropertyReference("CATEGORY"),
+					String: washerDrier.ProductGroup,
+				},
 			},
 			Amount: document.AmountClaims{
 				{

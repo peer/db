@@ -38,7 +38,7 @@ var productsProperties = []struct {
 	{
 		"category",
 		nil,
-		"A branded food product category.",
+		"A product category.",
 		[]string{`"string" claim type`},
 	},
 	{
@@ -391,12 +391,6 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`None`,
 	// 	[]string{`"None" claim type`},
-	// },
-	// { // could probably be aliased to the "Category" type that's already defined.
-	// 	"product group",
-	// 	nil,
-	// 	`Product group name`,
-	// 	[]string{`"string" claim type`},
 	// },
 	// {
 	// 	"product model core id",
