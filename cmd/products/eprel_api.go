@@ -681,11 +681,9 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 				'.p',
 				'.pd'
 				*/
-
 				continue
 			}
 			errE := doc.Add(&document.FileClaim{
-
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "UPLOADED_LABEL", i),
 					Confidence: document.HighConfidence,
