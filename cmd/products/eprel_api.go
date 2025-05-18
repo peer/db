@@ -649,6 +649,58 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
+	for i, uploadedLabel := range washerDrier.UploadedLabels {
+		uploadedLabel = strings.TrimSpace(uploadedLabel)
+
+		if uploadedLabel != "" {
+			var mediaType string
+			if strings.HasSuffix(strings.ToLower(uploadedLabel), ".pdf") {
+				mediaType = "application/pdf"
+			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpg") ||
+				strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpeg") {
+				mediaType = "image/jpeg"
+			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".png") {
+				mediaType = "image/png"
+			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".svg") {
+				mediaType = "image/svg+xml"
+			} else {
+				/* There are some weird file extensions, that are probably errors. We shouldn't add them as claims as they don't represent valid data.
+				'.',
+				'. d39h500x1cw_10131230_(ku-epr)_60x125_cbox_',
+				'.50583513_17mb211s 24550lb andersson led2445hdsdvd_10129099_(ku-epr)_60x125_cbox_',
+				'.50591146_17mb140tc 32552dlb techwood 32hdtet2s2_10131635_(ku-epr)_60x125_cbox_sp',
+				'.50596124_17mb181tc 32553dlb elbe xtv-3203-wifi_10131759_(ku-epr)_60x125_cbox_spe',
+				'.50597390_17mb181tc 32550dlb kendo 32 led 5211 w_10131822_(ku-epr)_60x125_cbox_sp',
+				'.50597450_17mb181tc 22502lb finlux 22-fwdf-5161_10131837_(ku-epr)_60x125_cbox_spe',
+				'.50598402_17mb181tc 24550lb finlux 24-fwe-5760_10131910_(ku-epr)_60x125_cbox_spek',
+				'.ai',
+				'.funken d43u551n1cw_10128456_(ku-epr)_60x125_cbox_spe',
+				'.funken d50v900m4cwh_10128899_(ku-epr)_96x200_cbox_spe',
+				'.funken tfa55u550uhd_10131605_(ku-epr)_96x200_cbox_sp',
+				'.jfif',
+				'.p',
+				'.pd'
+				*/
+
+				continue
+			}
+			errE := doc.Add(&document.FileClaim{
+
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "UPLOADED_LABEL", i),
+					Confidence: document.HighConfidence,
+				},
+				Prop:      document.GetCorePropertyReference("UPLOADED_LABEL"),
+				MediaType: mediaType,
+				URL:       "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel,
+				Preview:   []string{"https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel},
+			})
+			if errE != nil {
+				return doc, errE
+			}
+		}
+	}
+
 	return doc, nil
 }
 

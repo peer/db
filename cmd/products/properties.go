@@ -329,31 +329,31 @@ var productsProperties = []struct {
 		"noise dry",
 		nil,
 		`Noise (Drying phase)`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 	{
 		"noise spin",
 		nil,
 		`Noise (Spinning phase)`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 	{
 		"noise wash",
 		nil,
 		`Noise (Washing phase)`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 	{
 		"water annual wash",
 		nil,
 		`Annual Water consumption washing and spinning (washing cycle), in liters`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 	{
 		"water annual wash and dry",
 		nil,
 		`Annual water consumption washing, spinning and drying  (complete operating cycle), in liters`,
-		[]string{`"Amount" claim type`},
+		[]string{`"amount" claim type`},
 	},
 
 	{
@@ -362,7 +362,7 @@ var productsProperties = []struct {
 		`Timestamp the last model is placed on the market, in epochs. ` +
 			`Optional field, could be empty. It is used internally to verify if Basic filter ` +
 			`"Include models not placed on the market anymore" applies to the model.`,
-		[]string{`"Time" claim type`},
+		[]string{`"time" claim type`},
 	},
 	{
 		"on market start date",
@@ -375,7 +375,14 @@ var productsProperties = []struct {
 			`site. One of these changes can be on the “On market start date” field. This + ` +
 			`field stores the last on market start date that model had on last Publication. ` +
 			`(Normally these 2 dates must be the same, changes in on market start date are not normal)`,
-		[]string{`"Time" claim type`},
+		[]string{`"time" claim type`},
+	},
+
+	{
+		"uploaded labels",
+		nil,
+		`The Supplier can also upload their own energy labels. This field links to the supplier uploaded label.`,
+		[]string{`"file" claim type`},
 	},
 
 	/* The following properties are not currently mapped within the eprel_api file.
@@ -399,12 +406,7 @@ var productsProperties = []struct {
 	// 	[]string{`"string" claim type`},
 	// },
 	// {
-	// { // this is an array of strings, how should I type it?
-	// 	"uploaded labels",
-	// 	nil,
-	// 	`A list of the filenames of the uploaded labels.`,
-	// 	[]string{`"string" claim type`},
-	// },
+
 
 	// END EPREL API properties
 	*/
