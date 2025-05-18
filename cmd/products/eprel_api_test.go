@@ -599,7 +599,7 @@ func TestAddPlacementCountries(t *testing.T) {
 		{Country: "DE", OrderNumber: 1},
 		{Country: "FR", OrderNumber: 2},
 		{Country: "IT", OrderNumber: 3},
-		{Country: "", OrderNumber: 4}, // Test empty country code
+		{Country: "", OrderNumber: 4}, // Test empty country code.
 	}
 
 	for i, placementCountry := range placementCountries {
