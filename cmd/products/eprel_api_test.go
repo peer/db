@@ -584,3 +584,49 @@ func TestEpochTimeUnmarshallingAndMarshalling(t *testing.T) {
 
 	assert.Contains(t, string(marshalledData), `"timestamp":1540512000`)
 }
+
+func TestAddPlacementCountries(t *testing.T) {
+	t.Parallel()
+	doc := document.D{
+		CoreDocument: document.CoreDocument{
+			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123"),
+			Score: document.HighConfidence,
+		},
+		Claims: &document.ClaimTypes{},
+	}
+
+	placementCountries := []PlacementCountry{
+		{Country: "DE", OrderNumber: 1},
+		{Country: "FR", OrderNumber: 2},
+		{Country: "IT", OrderNumber: 3},
+		{Country: "", OrderNumber: 4}, // Test empty country code
+	}
+
+	for i, placementCountry := range placementCountries {
+		country := strings.TrimSpace(placementCountry.Country)
+		if country != "" {
+			err := doc.Add(&document.StringClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "PLACEMENT_COUNTRY", i),
+					Confidence: document.HighConfidence,
+				},
+				Prop:   document.GetCorePropertyReference("MARKET_COUNTRY"),
+				String: country,
+			})
+			if err != nil {
+				t.Fatalf("Error adding claim: %v", err)
+			}
+		}
+	}
+
+	marketCountryClaims := doc.Get(document.GetCorePropertyID("MARKET_COUNTRY"))
+	assert.Len(t, marketCountryClaims, len(placementCountries)-1, "Should have added 3 valid placement countries")
+
+	var foundCountries []string
+	for _, claim := range marketCountryClaims {
+		if stringClaim, ok := claim.(*document.StringClaim); ok {
+			foundCountries = append(foundCountries, stringClaim.String)
+		}
+	}
+	assert.ElementsMatch(t, []string{"DE", "FR", "IT"}, foundCountries, "Should contain DE, FR, IT placement countries")
+}

@@ -632,6 +632,23 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
+	for i, placementCountry := range washerDrier.PlacementCountries {
+		country := strings.TrimSpace(placementCountry.Country)
+		if country != "" {
+			errE := doc.Add(&document.StringClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "PLACEMENT_COUNTRY", i),
+					Confidence: document.HighConfidence,
+				},
+				Prop:   document.GetCorePropertyReference("MARKET_COUNTRY"),
+				String: country,
+			})
+			if errE != nil {
+				return doc, errE
+			}
+		}
+	}
+
 	return doc, nil
 }
 

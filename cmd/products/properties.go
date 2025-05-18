@@ -86,7 +86,7 @@ var productsProperties = []struct {
 	{
 		"market country",
 		nil,
-		"A country in which a branded food product is marketed.",
+		"A country in which a product is marketed.",
 		[]string{`"string" claim type`},
 	},
 	{
@@ -385,12 +385,6 @@ var productsProperties = []struct {
 	// 	nil,
 	// 	`Other model idenfitiers in the form of EAN codes. Can be multiple.`,
 	// 	[]string{`"string" claim type`},
-	// },
-	// { // This is in the form of a list of json blobs, how to type? Example: [{'country': 'AT', 'orderNumber': 1}, {'country': 'BE', 'orderNumber': 2}...]
-	// 	"placement countries",
-	// 	nil,
-	// 	`None`,
-	// 	[]string{`"None" claim type`},
 	// },
 	// {
 	// 	"product model core id",
