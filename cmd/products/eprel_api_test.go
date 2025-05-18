@@ -722,3 +722,99 @@ func TestAddUploadedLabels(t *testing.T) {
 	}
 	assert.ElementsMatch(t, expectedURLs, foundURLs, "Should have correct URLs")
 }
+
+func TestAddOtherIdentifiers(t *testing.T) {
+	t.Parallel()
+	doc := document.D{
+		CoreDocument: document.CoreDocument{
+			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123"),
+			Score: document.HighConfidence,
+		},
+		Claims: &document.ClaimTypes{},
+	}
+
+	otherIdentifiers := []OtherIdentifiers{
+		{OrderNumber: 1, ModelIdentifier: "7381032426154", Type: "EAN_13"},
+		{OrderNumber: 2, ModelIdentifier: "SAND_IS40E", Type: "OTHER"},
+		{OrderNumber: 3, ModelIdentifier: "", Type: "EAN_13"},
+		{OrderNumber: 4, ModelIdentifier: "  ", Type: "OTHER"},
+		{OrderNumber: 5, ModelIdentifier: "5901234123457", Type: "EAN_14"},
+	}
+
+	for i, otherIdentifier := range otherIdentifiers {
+		if strings.TrimSpace(otherIdentifier.ModelIdentifier) != "" {
+			err := doc.Add(&document.IdentifierClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "EPREL_OTHER_IDENTIFIER", i),
+					Confidence: document.HighConfidence,
+					Meta: &document.ClaimTypes{
+						String: document.StringClaims{
+							{
+								CoreClaim: document.CoreClaim{
+									ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "EPREL_OTHER_IDENTIFIER", i, "TYPE", 0),
+									Confidence: document.HighConfidence,
+								},
+								Prop:   document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER_TYPE"),
+								String: otherIdentifier.Type,
+							},
+						},
+					},
+				},
+				Prop:  document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER"),
+				Value: otherIdentifier.ModelIdentifier,
+			})
+			if err != nil {
+				t.Fatalf("Error adding claim: %v", err)
+			}
+		}
+	}
+
+	otherIdentifierClaims := doc.Get(document.GetCorePropertyID("EPREL_OTHER_IDENTIFIER"))
+	assert.Len(t, otherIdentifierClaims, 3, "Should have added 3 valid identifiers")
+
+	foundIdentifiers := make([]string, 0, len(otherIdentifierClaims))
+	identifierToType := map[string]string{}
+
+	for _, claim := range otherIdentifierClaims {
+		identifierClaim, ok := claim.(*document.IdentifierClaim)
+		if !ok {
+			t.Error("Claim should be an IdentifierClaim")
+			continue
+		}
+
+		foundIdentifiers = append(foundIdentifiers, identifierClaim.Value)
+		typeClaims := identifierClaim.Get(document.GetCorePropertyID("EPREL_OTHER_IDENTIFIER_TYPE"))
+
+		if len(typeClaims) == 0 {
+			t.Error("Missing type metadata for identifier", identifierClaim.Value)
+			continue
+		}
+
+		stringClaim, ok := typeClaims[0].(*document.StringClaim)
+		if !ok {
+			t.Error("Type claim should be a StringClaim")
+			continue
+		}
+		identifierToType[identifierClaim.Value] = stringClaim.String
+	}
+
+	expectedIdentifiers := []string{
+		"7381032426154",
+		"SAND_IS40E",
+		"5901234123457",
+	}
+	assert.ElementsMatch(t, expectedIdentifiers, foundIdentifiers, "Should have correct identifiers")
+
+	expectedIdentifierToType := map[string]string{
+		"7381032426154": "EAN_13",
+		"SAND_IS40E":    "OTHER",
+		"5901234123457": "EAN_14",
+	}
+
+	for identifier, expectedType := range expectedIdentifierToType {
+		actualType, exists := identifierToType[identifier]
+		assert.True(t, exists, "Identifier %s should have a type", identifier)
+		assert.Equal(t, expectedType, actualType, "Identifier %s should have type %s, got %s",
+			identifier, expectedType, actualType)
+	}
+}

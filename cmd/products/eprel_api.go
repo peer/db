@@ -699,6 +699,35 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 		}
 	}
 
+	for i, otherIdentifier := range washerDrier.OtherIdentifiers {
+		if strings.TrimSpace(otherIdentifier.ModelIdentifier) != "" {
+			errE := doc.Add(&document.IdentifierClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "EPREL_OTHER_IDENTIFIER", i),
+					Confidence: document.HighConfidence,
+					// Add metadata about the identifier type.
+					Meta: &document.ClaimTypes{
+						String: document.StringClaims{
+							{
+								CoreClaim: document.CoreClaim{
+									ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "EPREL_OTHER_IDENTIFIER", i, "TYPE", 0),
+									Confidence: document.HighConfidence,
+								},
+								Prop:   document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER_TYPE"),
+								String: otherIdentifier.Type,
+							},
+						},
+					},
+				},
+				Prop:  document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER"),
+				Value: otherIdentifier.ModelIdentifier,
+			})
+			if errE != nil {
+				return doc, errE
+			}
+		}
+	}
+
 	return doc, nil
 }
 

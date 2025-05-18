@@ -385,27 +385,29 @@ var productsProperties = []struct {
 		[]string{`"file" claim type`},
 	},
 
+	{
+		"eprel other identifier",
+		nil,
+		`EPREL provides an "other identifier" field that are linked to other identifiers, such as EANs, of the product model.`,
+		[]string{`"identifier" claim type`},
+	},
+
+	{
+		"eprel other identifier type",
+		nil,
+		`EPREL provides an "other identifier" field, mapped to types 'EAN_13', 'EAN_14', 'EAN_8', 'EAN_VELOCITY', 'OTHER', 'UPC_A'.` +
+			` This field is used to store the type of the identifier in the "other identifier" field.`,
+		[]string{`"string" claim type`},
+	},
+
 	/* The following properties are not currently mapped within the eprel_api file.
 
-	// { // need to check if this field is non null for any of the other models so that I know how to type it
-	// 	"other identifiers",
-	// 	nil,
-	// 	`Other model idenfitiers in the form of EAN codes. Can be multiple.`,
-	// 	[]string{`"string" claim type`},
-	// },
 	// {
 	// 	"product model core id",
 	// 	nil,
 	// 	`Internal id of product model for EPREL.`,
 	// 	[]string{`"identifier" claim type`},
 	// },
-	// {
-	// 	"registrant nature",
-	// 	nil,
-	// 	`The role with which the supplier organisation has registered the model. Roles can be: Manufacturer, Importer, or Authorised representative.`,
-	// 	[]string{`"string" claim type`},
-	// },
-	// {
 
 
 	// END EPREL API properties
