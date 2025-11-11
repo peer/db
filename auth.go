@@ -16,12 +16,12 @@ func hasher(s string) []byte {
 func basicAuthHandler(usernameHash []byte, passwordHash []byte, realm string) func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, pass, ok := r.BasicAuth()
-
 			site, ok := waf.GetSite[*Site](r.Context())
 			if ok && site.Title != "" {
 				realm = site.Title
 			}
+
+			user, pass, ok := r.BasicAuth()
 			if !ok ||
 				subtle.ConstantTimeCompare(hasher(user), usernameHash) != 1 ||
 				subtle.ConstantTimeCompare(hasher(pass), passwordHash) != 1 {
