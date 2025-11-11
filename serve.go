@@ -130,6 +130,13 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		site.esProcessor = esProcessor
 	}
 
+	var middleware []func(http.Handler) http.Handler
+
+	if c.Username != "" && c.Password != nil {
+		middleware = append(middleware, basicAuthHandler(hasher(c.Username), hasher(string(c.Password)), c.Title))
+		globals.Logger.Info().Msg("Basic Auth middleware enabled")
+	}
+
 	service := &Service{ //nolint:forcetypeassert
 		Service: waf.Service[*Site]{
 			Logger:          globals.Logger,
@@ -138,6 +145,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 			StaticFiles:     f.(fs.ReadFileFS), //nolint:errcheck
 			Routes:          routesConfig.Routes,
 			Sites:           sites,
+			Middleware:      middleware,
 			SiteContextPath: "/context.json",
 			ProxyStaticTo:   c.Server.ProxyToInDevelopment(),
 			SkipServingFile: func(path string) bool {
