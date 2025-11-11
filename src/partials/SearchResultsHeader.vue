@@ -61,9 +61,7 @@ function countFilters(): number {
     <div v-else>Searching without query and with {{ countFilters() }} active filters<template v-if="total === null">...</template><template v-else>.</template></div>
     <template v-if="total !== null">
       <div v-if="total === 0">No results found.</div>
-      <div v-else-if="moreThanTotal">Showing first {{ results }} of more than {{ total }} results found.</div>
-      <div v-else-if="results < total">Showing first {{ results }} of {{ total }} results found.</div>
-      <div v-else-if="results == total">Found {{ total }} results.</div>
+      <div v-else>{{ total }} results found.</div>
     </template>
   </div>
 </template>
