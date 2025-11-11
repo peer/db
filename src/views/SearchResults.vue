@@ -28,7 +28,7 @@ import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import IndexFiltersResult from "@/partials/IndexFiltersResult.vue"
 import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
-import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import SearchResultsHeader, { SearchViewType } from "@/partials/SearchResultsHeader.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
@@ -60,6 +60,8 @@ onBeforeUnmount(() => {
 })
 
 const searchEl = ref(null)
+
+const searchView = ref<SearchViewType>('snippet');
 
 const searchProgress = localProgress(mainProgress)
 const {
@@ -602,7 +604,7 @@ async function onChange() {
       <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
         <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
-      <SearchResultsHeader v-else :state="searchState" :total="searchTotal" :results="searchResults.length" :more-than-total="searchMoreThanTotal" />
+      <SearchResultsHeader v-else v-model:view="searchView" :state="searchState" :total="searchTotal" :results="searchResults.length" :more-than-total="searchMoreThanTotal" />
       <template v-if="!searchStateError && !searchResultsError && searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
