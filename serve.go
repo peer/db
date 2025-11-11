@@ -133,8 +133,8 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	var middleware []func(http.Handler) http.Handler
 
 	if c.Username != "" && c.Password != nil {
-		middleware = append(middleware, basicAuthHandler(hasher(c.Username), hasher(string(c.Password)), c.Title))
-		globals.Logger.Info().Msg("basic Auth middleware enabled")
+		middleware = append(middleware, basicAuthHandler(hasherSHA256(c.Username), hasherSHA256(string(c.Password)), c.Title))
+		globals.Logger.Info().Str("username", c.Username).Msg("basic Auth middleware enabled")
 	}
 
 	service := &Service{ //nolint:forcetypeassert

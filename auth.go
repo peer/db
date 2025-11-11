@@ -8,7 +8,8 @@ import (
 	"gitlab.com/tozd/waf"
 )
 
-func hasher(s string) []byte {
+// hasherSHA256 computes the SHA256 hash of a string for credential comparison.
+func hasherSHA256(s string) []byte {
 	val := sha256.Sum256([]byte(s))
 	return val[:]
 }
@@ -23,8 +24,8 @@ func basicAuthHandler(usernameHash []byte, passwordHash []byte, realm string) fu
 
 			user, pass, ok := r.BasicAuth()
 			if !ok ||
-				subtle.ConstantTimeCompare(hasher(user), usernameHash) != 1 ||
-				subtle.ConstantTimeCompare(hasher(pass), passwordHash) != 1 {
+				subtle.ConstantTimeCompare(hasherSHA256(user), usernameHash) != 1 ||
+				subtle.ConstantTimeCompare(hasherSHA256(pass), passwordHash) != 1 {
 				w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
 				http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 				return
