@@ -4,7 +4,7 @@ import type { ClientSearchState } from "@/types"
 import SelectButton, { SelectButtonOptionsProp } from "@/components/SelectButton.vue"
 import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
 
-export type SearchViewType = "table" | "snippet"
+export type SearchViewType = "table" | "feed"
 
 const props = defineProps<{
   state: DeepReadonly<ClientSearchState | null>
@@ -31,9 +31,9 @@ const selectButtonOptions = ref<SelectButtonOptionsProp<SearchViewType>[]>([
   {
     icon: {
       component: Bars4Icon,
-      alt: "Snippet",
+      alt: "Feed",
     },
-    value: "snippet",
+    value: "feed",
   },
   {
     icon: {

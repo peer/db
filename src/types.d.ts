@@ -7,6 +7,8 @@ type AmountUnit = "@" | "1" | "/" | "kg/kg" | "kg" | "kg/m³" | "m" | "m²" | "m
 
 type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s"
 
+export type SearchResultFilterType = "rel" | "amount" | "time" | "string" | "index" | "size"
+
 export type RelSearchResult = {
   id: string
   count: number
@@ -163,6 +165,8 @@ export type StringFilterState = (string | typeof NONE)[]
 export type IndexFilterState = string[]
 
 export type SizeFilterState = null | typeof NONE | { gte?: number; lte?: number }
+
+export type FilterState = RelFilterState | AmountFilterState | TimeFilterState | StringFilterState | IndexFilterState | SizeFilterState
 
 export type FiltersState = {
   rel: Record<string, RelFilterState>
