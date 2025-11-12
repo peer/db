@@ -33,8 +33,7 @@ func TestBasicAuth(t *testing.T) {
 			peerdb.DefaultTitle},
 		{`valid w/ password space`, `testuser`, `testpass `, http.StatusUnauthorized,
 			peerdb.DefaultTitle},
-		{`no credentials`, ``, ``, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
+		{`no credentials`, ``, ``, http.StatusUnauthorized, ``},
 	}
 
 	innerHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
