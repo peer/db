@@ -29,6 +29,7 @@ import { clone, useLimitResults, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
+import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 
 const props = defineProps<{
   s: string
@@ -601,6 +602,18 @@ function onFilterChange(type: SearchResultFilterType, payload: { id?: string; un
       @on-filter-change="onFilterChange"
       @on-more-results="searchLoadMore"
       @on-more-filters="filtersLoadMore"
+    />
+
+    <SearchResultsTable
+      v-else-if="searchView === 'table'"
+      v-model:search-view="searchView"
+      :search-url="searchURL"
+      :search-results-error="searchResultsError"
+      :search-state-error="searchStateError"
+      :search-more-than-total="searchMoreThanTotal"
+      :search-state="searchState"
+      :search-total="searchTotal"
+      :search-results="searchResults"
     />
   </div>
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
