@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {
+import type {
   RelFilterState,
   AmountFilterState,
   TimeFilterState,
@@ -10,19 +10,24 @@ import {
   DocumentBeginEditResponse,
   DocumentCreateResponse,
   SearchResultFilterType,
-  FilterState,
+  SearchViewType,
+  FilterStateChange,
+  AmountFilterStateChange,
+  RelFilterStateChange,
+  TimeFilterStateChange,
+  StringFilterStateChange,
+  IndexFilterStateChange,
+  SizeFilterStateChange,
 } from "@/types"
 
-import { ref, computed, toRef, watch, onBeforeUnmount, watchEffect } from "vue"
+import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
-import { SearchViewType } from "@/partials/SearchResultsHeader.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
 import { useSearch, useSearchState, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { useVisibilityTracking } from "@/visibility"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, useLimitResults, encodeQuery } from "@/utils"
@@ -117,45 +122,6 @@ const {
   hasMore: filtersHasMore,
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
-const idToIndex = computed(() => {
-  const map = new Map<string, number>()
-  for (const [i, result] of searchResults.value.entries()) {
-    map.set(result.id, i)
-  }
-  return map
-})
-
-const { track, visibles } = useVisibilityTracking()
-
-const initialRouteName = route.name
-watch(
-  () => {
-    const sorted = Array.from(visibles)
-    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-    return sorted[0]
-  },
-  async (topId, oldTopId, onCleanup) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
-      return
-    }
-    // Initial data has not yet been loaded, so we wait.
-    if (!topId && searchTotal.value === null) {
-      return
-    }
-    await router.replace({
-      name: route.name as string,
-      params: route.params,
-      // We do not want to set an empty "at" query parameter.
-      query: encodeQuery({ ...route.query, at: topId || undefined }),
-      hash: route.hash,
-    })
-  },
-  {
-    immediate: true,
-  },
-)
 
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
@@ -534,25 +500,37 @@ async function onChange() {
   }
 }
 
-function onFilterChange(type: SearchResultFilterType, payload: { id?: string; unit?: string; value: FilterState }) {
+function onFilterChange(type: SearchResultFilterType, payload: FilterStateChange) {
   switch (type) {
-    case "rel":
-      return onRelFiltersStateUpdate(payload.id!, payload.value as RelFilterState)
+    case "rel": {
+      const relChange = payload as RelFilterStateChange
+      return onRelFiltersStateUpdate(relChange.id, relChange.value)
+    }
 
-    case "amount":
-      return onAmountFiltersStateUpdate(payload.id!, payload.unit!, payload.value as AmountFilterState)
+    case "amount": {
+      const amountChange = payload as AmountFilterStateChange
+      return onAmountFiltersStateUpdate(amountChange.id, amountChange.unit, amountChange.value)
+    }
 
-    case "time":
-      return onTimeFiltersStateUpdate(payload.id!, payload.value as TimeFilterState)
+    case "time": {
+      const timeChange = payload as TimeFilterStateChange
+      return onTimeFiltersStateUpdate(timeChange.id, timeChange.value)
+    }
 
-    case "string":
-      return onStringFiltersStateUpdate(payload.id!, payload.value as StringFilterState)
+    case "string": {
+      const stringChange = payload as StringFilterStateChange
+      return onStringFiltersStateUpdate(stringChange.id, stringChange.value)
+    }
 
-    case "index":
-      return onIndexFiltersStateUpdate(payload.value as IndexFilterState)
+    case "index": {
+      const indexChange = payload as IndexFilterStateChange
+      return onIndexFiltersStateUpdate(indexChange.value)
+    }
 
-    case "size":
-      return onSizeFiltersStateUpdate(payload.value as SizeFilterState)
+    case "size": {
+      const sizeChange = payload as SizeFilterStateChange
+      return onSizeFiltersStateUpdate(sizeChange.value)
+    }
   }
 }
 </script>
@@ -572,49 +550,49 @@ function onFilterChange(type: SearchResultFilterType, payload: { id?: string; un
       </Button>
     </NavBar>
   </Teleport>
-  <div class="mt-12 w-full p-1 sm:mt-[4.5rem] sm:p-4">
-    <SearchResultsFeed
-      v-if="searchView === 'feed'"
-      v-model:search-view="searchView"
-      :limited-search-results="limitedSearchResults"
-      :search-results="searchResults"
-      :search-total="searchTotal"
-      :track="track"
-      :s="s"
-      :search-has-more="searchHasMore"
-      :search-progress="searchProgress"
-      :search-more-than-total="searchMoreThanTotal"
-      :search-state-error="searchStateError"
-      :search-results-error="searchResultsError"
-      :search-state="searchState"
-      :search-url="searchURL"
-      :search-el="searchEl"
-      :filters-enabled="filtersEnabled"
-      :filters-error="filtersError"
-      :filters-url="filtersURL"
-      :filters-total="filtersTotal"
-      :limited-filters-results="limitedFiltersResults"
-      :filters-state="filtersState"
-      :filters-has-more="filtersHasMore"
-      :filters-progress="filtersProgress"
-      :filters-el="filtersEl"
-      :update-filters-progress="updateFiltersProgress"
-      @on-filter-change="onFilterChange"
-      @on-more-results="searchLoadMore"
-      @on-more-filters="filtersLoadMore"
-    />
+  <div class="mt-12 w-full p-1 sm:mt-[4.5rem] sm:p-4 border-t border-transparent" :data-url="searchURL">
+    <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
+      <div class="text-center text-sm">
+        <i class="text-error-600">loading data failed</i>
+      </div>
+    </div>
 
-    <SearchResultsTable
-      v-else-if="searchView === 'table'"
-      v-model:search-view="searchView"
-      :search-url="searchURL"
-      :search-results-error="searchResultsError"
-      :search-state-error="searchStateError"
-      :search-more-than-total="searchMoreThanTotal"
-      :search-state="searchState"
-      :search-total="searchTotal"
-      :search-results="searchResults"
-    />
+    <template v-else>
+      <SearchResultsFeed
+        v-if="searchView === 'feed'"
+        v-model:search-view="searchView"
+        :limited-search-results="limitedSearchResults"
+        :search-results="searchResults"
+        :search-total="searchTotal"
+        :s="s"
+        :search-has-more="searchHasMore"
+        :search-progress="searchProgress"
+        :search-more-than-total="searchMoreThanTotal"
+        :search-state="searchState"
+        :filters-enabled="filtersEnabled"
+        :filters-error="filtersError"
+        :filters-url="filtersURL"
+        :filters-total="filtersTotal"
+        :limited-filters-results="limitedFiltersResults"
+        :filters-state="filtersState"
+        :filters-has-more="filtersHasMore"
+        :filters-progress="filtersProgress"
+        :filters-el="filtersEl"
+        :update-filters-progress="updateFiltersProgress"
+        @on-filter-change="onFilterChange"
+        @on-more-results="searchLoadMore"
+        @on-more-filters="filtersLoadMore"
+      />
+
+      <SearchResultsTable
+        v-else-if="searchView === 'table'"
+        v-model:search-view="searchView"
+        :search-more-than-total="searchMoreThanTotal"
+        :search-state="searchState"
+        :search-total="searchTotal"
+        :search-results="searchResults"
+      />
+    </template>
   </div>
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />

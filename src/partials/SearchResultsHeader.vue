@@ -1,33 +1,32 @@
 <script setup lang="ts">
-import { computed, DeepReadonly, ref } from "vue"
-import type { ClientSearchState } from "@/types"
-import SelectButton, { SelectButtonOptionsProp } from "@/components/SelectButton.vue"
-import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
+import type { ClientSearchState, SearchViewType, SelectButtonOption } from "@/types"
 
-export type SearchViewType = "table" | "feed"
+import { computed, DeepReadonly, ref } from "vue"
+import SelectButton from "@/components/SelectButton.vue"
+import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
 
 const props = defineProps<{
   state: DeepReadonly<ClientSearchState | null>
   total: number | null
   results: number
   moreThanTotal: boolean
-  view: SearchViewType
+  searchView: SearchViewType
 }>()
 
 const $emit = defineEmits<{
-  "update:view": [value: SearchViewType]
+  "update:searchView": [value: SearchViewType]
 }>()
 
 const selectButtonValue = computed({
   get() {
-    return props.view
+    return props.searchView
   },
   set(newValue) {
-    $emit("update:view", newValue)
+    $emit("update:searchView", newValue)
   },
 })
 
-const selectButtonOptions = ref<SelectButtonOptionsProp<SearchViewType>[]>([
+const selectButtonOptions = ref<SelectButtonOption<SearchViewType>[]>([
   {
     icon: {
       component: Bars4Icon,

@@ -1,22 +1,5 @@
 <script setup lang="ts" generic="T">
-import { FunctionalComponent, HTMLAttributes, VNodeProps } from "vue"
-
-export type SelectButtonOptionsIconProp = {
-  component: FunctionalComponent<HTMLAttributes & VNodeProps>
-  alt: string
-}
-
-export type SelectButtonOptionsProp<T> = {
-  icon?: SelectButtonOptionsIconProp
-  name?: string
-  disabled?: boolean
-  value: T
-}
-
-export type SelectButtonProps<T> = {
-  modelValue: T | null
-  options: SelectButtonOptionsProp<T>[]
-}
+import { SelectButtonOption, SelectButtonProps } from "@/types"
 
 const props = defineProps<SelectButtonProps<T>>()
 const $emit = defineEmits<{
@@ -24,7 +7,7 @@ const $emit = defineEmits<{
 }>()
 
 defineSlots<{
-  option(props: { option: SelectButtonOptionsProp<T> }): unknown
+  option(props: { option: SelectButtonOption<T> }): unknown
 }>()
 </script>
 

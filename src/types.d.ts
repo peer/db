@@ -1,6 +1,8 @@
 import type { BareItem, Key } from "structured-field-values"
 import type { NONE } from "@/symbols"
 
+import { FunctionalComponent, HTMLAttributes, VNodeProps } from "vue"
+
 type TranslatableHTMLString = Record<string, string>
 
 type AmountUnit = "@" | "1" | "/" | "kg/kg" | "kg" | "kg/m³" | "m" | "m²" | "m/s" | "V" | "W" | "Pa" | "C" | "J" | "°C" | "rad" | "Hz" | "$" | "B" | "px" | "s"
@@ -177,6 +179,43 @@ export type FiltersState = {
   size: SizeFilterState
 }
 
+export type RelFilterStateChange = {
+  id: string
+  value: RelFilterState
+}
+
+export type AmountFilterStateChange = {
+  id: string
+  unit: string
+  value: AmountFilterState
+}
+
+export type TimeFilterStateChange = {
+  id: string
+  value: TimeFilterState
+}
+
+export type StringFilterStateChange = {
+  id: string
+  value: StringFilterState
+}
+
+export type IndexFilterStateChange = {
+  value: IndexFilterState
+}
+
+export type SizeFilterStateChange = {
+  value: SizeFilterState
+}
+
+export type FilterStateChange =
+  | RelFilterStateChange
+  | AmountFilterStateChange
+  | TimeFilterStateChange
+  | StringFilterStateChange
+  | IndexFilterStateChange
+  | SizeFilterStateChange
+
 export type ServerSearchState = {
   s: string
   q: string
@@ -265,3 +304,22 @@ type Optional<T> = {
 
 export type Constructor<T> = new (json: object) => T
 export type Constructee<C> = C extends Constructor<infer R> ? R : never
+
+export type SearchViewType = "table" | "feed"
+
+export type SelectButtonOptionIcon = {
+  component: FunctionalComponent<HTMLAttributes & VNodeProps>
+  alt: string
+}
+
+export type SelectButtonOption<T> = {
+  icon?: SelectButtonOptionIcon
+  name?: string
+  disabled?: boolean
+  value: T
+}
+
+export type SelectButtonProps<T> = {
+  modelValue: T | null
+  options: SelectButtonOption<T>[]
+}

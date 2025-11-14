@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import Button from "@/components/Button.vue"
-import SearchResult from "@/partials/SearchResult.vue"
-import {
+import type {
   AmountFilterState,
   AmountSearchResult,
   ClientSearchState,
   FiltersState,
-  FilterState,
   IndexFilterState,
   IndexSearchResult,
   RelFilterState,
@@ -19,9 +16,13 @@ import {
   StringSearchResult,
   TimeFilterState,
   TimeSearchResult,
+  SearchViewType,
+  FilterStateChange,
 } from "@/types"
-import { ComponentPublicInstance, computed, DeepReadonly, onBeforeUnmount, onMounted } from "vue"
-import SearchResultsHeader, { SearchViewType } from "@/partials/SearchResultsHeader.vue"
+
+import Button from "@/components/Button.vue"
+import SearchResult from "@/partials/SearchResult.vue"
+import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import RelFiltersResult from "@/partials/RelFiltersResult.vue"
 import IndexFiltersResult from "@/partials/IndexFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
@@ -29,22 +30,23 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 
-export type SearchResultsFeedProps = {
+import { useVisibilityTracking } from "@/visibility"
+import { encodeQuery } from "@/utils.ts"
+
+import { useRoute, useRouter } from "vue-router"
+import { computed, DeepReadonly, onBeforeUnmount, onMounted, watch } from "vue"
+
+const props = defineProps<{
   // search props
   limitedSearchResults: DeepReadonly<SearchResultType[]>
   searchResults: DeepReadonly<SearchResultType[]>
   searchTotal: number | null
-  track: (id: string) => (el: Element | ComponentPublicInstance | null) => void
   s: string
   searchHasMore: boolean
   searchProgress: number
   searchMoreThanTotal: boolean
-  searchStateError: string | null
-  searchResultsError: string | null
   searchView: SearchViewType
   searchState: DeepReadonly<ClientSearchState | null>
-  searchUrl: Readonly<string | null>
-  searchEl: HTMLElement | null
 
   // filter props
   filtersEnabled: boolean
@@ -57,22 +59,30 @@ export type SearchResultsFeedProps = {
   filtersProgress: number
   filtersHasMore: boolean
   filtersEl: HTMLElement | null
-}
-
-const props = defineProps<SearchResultsFeedProps>()
+}>()
 
 const $emit = defineEmits<{
-  onFilterChange: [type: SearchResultFilterType, payload: { id?: string; unit?: string; value: FilterState }]
+  onFilterChange: [type: SearchResultFilterType, payload: FilterStateChange]
   onMoreResults: []
   onMoreFilters: []
   "update:searchView": [value: SearchViewType]
 }>()
 
-const abortController = new AbortController()
+const router = useRouter()
+const route = useRoute()
+
+onMounted(() => {
+  window.addEventListener("scroll", onScroll, { passive: true })
+})
 
 onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScroll)
   abortController.abort()
 })
+
+const abortController = new AbortController()
+
+const supportPageOffset = window.pageYOffset !== undefined
 
 const searchViewValue = computed({
   get() {
@@ -83,7 +93,44 @@ const searchViewValue = computed({
   },
 })
 
-const supportPageOffset = window.pageYOffset !== undefined
+const idToIndex = computed(() => {
+  const map = new Map<string, number>()
+  for (const [i, result] of props.searchResults.entries()) {
+    map.set(result.id, i)
+  }
+  return map
+})
+
+const { track, visibles } = useVisibilityTracking()
+
+const initialRouteName = route.name
+watch(
+  () => {
+    const sorted = Array.from(visibles)
+    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+    return sorted[0]
+  },
+  async (topId, oldTopId, onCleanup) => {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+    // Initial data has not yet been loaded, so we wait.
+    if (!topId && props.searchTotal === null) {
+      return
+    }
+    await router.replace({
+      name: route.name as string,
+      params: route.params,
+      // We do not want to set an empty "at" query parameter.
+      query: encodeQuery({ ...route.query, at: topId || undefined }),
+      hash: route.hash,
+    })
+  },
+  {
+    immediate: true,
+  },
+)
 
 function onScroll() {
   if (abortController.signal.aborted) {
@@ -106,14 +153,6 @@ function onScroll() {
     $emit("onMoreFilters")
   }
 }
-
-onMounted(() => {
-  window.addEventListener("scroll", onScroll, { passive: true })
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener("scroll", onScroll)
-})
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
   $emit("onFilterChange", "rel", { id, value })
@@ -141,25 +180,18 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
 </script>
 
 <template>
-  <div class="flex w-full gap-x-1 border-t border-transparent sm:gap-x-4">
+  <div class="flex w-full gap-x-1 sm:gap-x-4">
     <!-- Search results column -->
-    <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchUrl">
-      <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
-        <div class="text-center text-sm">
-          <i class="text-error-600">loading data failed</i>
-        </div>
-      </div>
-
+    <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader
-        v-else
-        v-model:view="searchViewValue"
+        v-model:search-view="searchViewValue"
         :state="searchState"
         :total="searchTotal"
         :results="searchResults.length"
         :more-than-total="searchMoreThanTotal"
       />
 
-      <template v-if="!searchStateError && !searchResultsError && searchTotal !== null && searchTotal > 0">
+      <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
             <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
@@ -190,7 +222,7 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
 
     <!-- Filters column -->
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersUrl">
-      <div v-if="searchStateError || searchResultsError || filtersError" class="my-1 sm:my-4">
+      <div v-if="filtersError" class="my-1 sm:my-4">
         <div class="text-center text-sm">
           <i class="text-error-600">loading data failed</i>
         </div>
