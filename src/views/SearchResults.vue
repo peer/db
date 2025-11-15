@@ -27,10 +27,10 @@ import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
-import { useSearch, useSearchState, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import { useSearch, useSearchState, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
-import { clone, useLimitResults, encodeQuery } from "@/utils"
+import { clone, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
@@ -90,39 +90,7 @@ const {
   searchProgress,
 )
 
-const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: searchLoadMore } = useLimitResults(searchResults, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
-
-const filtersEl = ref(null)
-
 const filtersProgress = localProgress(mainProgress)
-const {
-  results: filtersResults,
-  total: filtersTotal,
-  error: filtersError,
-  url: filtersURL,
-} = useFilters(
-  toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== props.s) {
-      return ""
-    }
-    if (searchState.value.p && !searchState.value.promptDone) {
-      return ""
-    }
-    return props.s
-  }),
-  filtersEl,
-  filtersProgress,
-)
-
-const {
-  limitedResults: limitedFiltersResults,
-  hasMore: filtersHasMore,
-  loadMore: filtersLoadMore,
-} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
@@ -561,27 +529,21 @@ function onFilterChange(type: SearchResultFilterType, payload: FilterStateChange
       <SearchResultsFeed
         v-if="searchView === 'feed'"
         v-model:search-view="searchView"
-        :limited-search-results="limitedSearchResults"
         :search-results="searchResults"
         :search-total="searchTotal"
         :s="s"
-        :search-has-more="searchHasMore"
         :search-progress="searchProgress"
         :search-more-than-total="searchMoreThanTotal"
         :search-state="searchState"
+        :search-initial-limit="SEARCH_INITIAL_LIMIT"
+        :search-increase="SEARCH_INCREASE"
         :filters-enabled="filtersEnabled"
-        :filters-error="filtersError"
-        :filters-url="filtersURL"
-        :filters-total="filtersTotal"
-        :limited-filters-results="limitedFiltersResults"
         :filters-state="filtersState"
-        :filters-has-more="filtersHasMore"
         :filters-progress="filtersProgress"
-        :filters-el="filtersEl"
+        :filter-increase="FILTERS_INCREASE"
+        :filter-initial-limit="FILTERS_INITIAL_LIMIT"
         :update-filters-progress="updateFiltersProgress"
         @on-filter-change="onFilterChange"
-        @on-more-results="searchLoadMore"
-        @on-more-filters="filtersLoadMore"
       />
 
       <SearchResultsTable
@@ -594,7 +556,7 @@ function onFilterChange(type: SearchResultFilterType, payload: FilterStateChange
       />
     </template>
   </div>
-  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
+  <Teleport v-if="(searchTotal !== null && searchTotal > 0) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>

@@ -31,45 +31,79 @@ import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 
 import { useVisibilityTracking } from "@/visibility"
-import { encodeQuery } from "@/utils.ts"
+import { encodeQuery, useLimitResults } from "@/utils.ts"
 
 import { useRoute, useRouter } from "vue-router"
-import { computed, DeepReadonly, onBeforeUnmount, onMounted, watch } from "vue"
+import { computed, DeepReadonly, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
 
 const props = defineProps<{
+  searchView: SearchViewType
+
   // search props
-  limitedSearchResults: DeepReadonly<SearchResultType[]>
   searchResults: DeepReadonly<SearchResultType[]>
   searchTotal: number | null
   s: string
-  searchHasMore: boolean
   searchProgress: number
   searchMoreThanTotal: boolean
-  searchView: SearchViewType
   searchState: DeepReadonly<ClientSearchState | null>
+  searchInitialLimit: number
+  searchIncrease: number
 
   // filter props
   filtersEnabled: boolean
-  filtersError: Readonly<string | null>
-  filtersUrl: Readonly<string | null>
-  filtersTotal: Readonly<number | null>
-  limitedFiltersResults: ReadonlyArray<DeepReadonly<RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | IndexSearchResult | SizeSearchResult>>
   filtersState: FiltersState
   updateFiltersProgress: number
   filtersProgress: number
-  filtersHasMore: boolean
-  filtersEl: HTMLElement | null
+  filterInitialLimit: number
+  filterIncrease: number
 }>()
 
 const $emit = defineEmits<{
   onFilterChange: [type: SearchResultFilterType, payload: FilterStateChange]
-  onMoreResults: []
-  onMoreFilters: []
   "update:searchView": [value: SearchViewType]
 }>()
 
 const router = useRouter()
 const route = useRoute()
+
+const {
+  limitedResults: limitedSearchResults,
+  hasMore: searchHasMore,
+  loadMore: searchLoadMore,
+} = useLimitResults(toRef(props, "searchResults"), props.searchInitialLimit, props.searchIncrease)
+
+const filtersEl = ref(null)
+
+const {
+  results: filtersResults,
+  total: filtersTotal,
+  error: filtersError,
+  url: filtersURL,
+} = useFilters(
+  toRef(() => {
+    if (!props.searchState) {
+      return ""
+    }
+    if (props.searchState.s !== props.s) {
+      return ""
+    }
+    if (props.searchState.p && !props.searchState.promptDone) {
+      return ""
+    }
+    return props.s
+  }),
+  filtersEl,
+  toRef(props, "filtersProgress"),
+)
+
+const {
+  limitedResults: limitedFiltersResults,
+  hasMore: filtersHasMore,
+  loadMore: filtersLoadMore,
+} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
+const { track, visibles } = useVisibilityTracking()
 
 onMounted(() => {
   window.addEventListener("scroll", onScroll, { passive: true })
@@ -100,8 +134,6 @@ const idToIndex = computed(() => {
   }
   return map
 })
-
-const { track, visibles } = useVisibilityTracking()
 
 const initialRouteName = route.name
 watch(
@@ -149,8 +181,8 @@ function onScroll() {
   const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
 
   if (currentScrollPosition > scrollHeight - 2 * viewportHeight) {
-    $emit("onMoreResults")
-    $emit("onMoreFilters")
+    searchLoadMore()
+    filtersLoadMore()
   }
 }
 
@@ -203,7 +235,7 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
           <SearchResult :ref="track(result.id) as any" :s="s" :result="result" />
         </template>
 
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="$emit('onMoreResults')">
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore">
           Load more
         </Button>
 
@@ -221,7 +253,7 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
     </div>
 
     <!-- Filters column -->
-    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersUrl">
+    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
       <div v-if="filtersError" class="my-1 sm:my-4">
         <div class="text-center text-sm">
           <i class="text-error-600">loading data failed</i>
@@ -301,7 +333,7 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
           />
         </template>
 
-        <Button v-if="filtersHasMore" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click="$emit('onMoreFilters')"> More filters </Button>
+        <Button v-if="filtersHasMore" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"> More filters </Button>
 
         <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">
           {{ filtersTotal - limitedFiltersResults.length }} filters not shown.
