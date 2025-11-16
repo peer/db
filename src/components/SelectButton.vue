@@ -1,33 +1,38 @@
 <script setup lang="ts" generic="T">
-import { SelectButtonOption, SelectButtonProps } from "@/types"
+import { SelectButtonOption } from "@/types"
 
-const props = defineProps<SelectButtonProps<T>>()
+defineProps<{
+  modelValue: T
+  // Options cannot have an option with name "default" because it is
+  // reserved for the default slot.
+  options: SelectButtonOption<T>[]
+}>()
+
 const $emit = defineEmits<{
   "update:modelValue": [value: T]
 }>()
 
-defineSlots<{
-  option(props: { option: SelectButtonOption<T> }): unknown
-}>()
+// We do not define slots using defineSlots because slots are dynamic based on the options.
 </script>
 
 <template>
   <div class="flex gap-1 items-center bg-slate-200 py-1 px-2 rounded">
     <button
-      v-for="option in props.options"
-      :key="option.value as PropertyKey"
-      :disabled="!!option.disabled"
+      v-for="option in options"
+      :key="option.name"
+      :disabled="(option.progress || 0) > 0 || option.disabled"
       class="py-0.5 px-2 rounded"
       :class="{
-        'bg-white shadow-sm disabled:bg-slate-100': props.modelValue === option.value,
-        'enabled:hover:bg-slate-100 disabled:': props.modelValue !== option.value,
-        'disabled:text-slate-300': option.disabled,
+        'bg-white shadow-sm disabled:bg-slate-100': modelValue === option.value,
+        'enabled:hover:bg-slate-100 disabled:': modelValue !== option.value,
+        'disabled:text-slate-300': (option.progress || 0) > 0 || option.disabled,
       }"
       @click.prevent="$emit('update:modelValue', option.value)"
     >
-      <slot :option="option" name="option">
-        <component :is="option.icon?.component" v-if="option.icon" v-bind="{ alt: option.icon.alt }" class="w-6 h-6" />
-        <template v-else-if="option.name">{{ option.name }}</template>
+      <slot :option="option" :selected="modelValue === option.value" :name="option.name">
+        <slot :option="option" :selected="modelValue === option.value">
+          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="w-7 h-7" />
+        </slot>
       </slot>
     </button>
   </div>

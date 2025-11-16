@@ -1,7 +1,7 @@
 import type { BareItem, Key } from "structured-field-values"
-import type { NONE } from "@/symbols"
+import type { Component } from "vue"
 
-import { FunctionalComponent, HTMLAttributes, VNodeProps } from "vue"
+import type { NONE } from "@/symbols"
 
 type TranslatableHTMLString = Record<string, string>
 
@@ -287,6 +287,19 @@ export type DocumentBeginMetadata = {
   version: string
 }
 
+export type SearchViewType = "table" | "feed"
+
+export type SelectButtonOption<T> = {
+  name: string
+  value: T
+  icon?: {
+    component: string | Component
+    alt: string
+  }
+  disabled?: boolean
+  progress?: number
+}
+
 // It is recursive.
 export type Mutable<T> = {
   -readonly [k in keyof T]: Mutable<T[k]>
@@ -304,22 +317,3 @@ type Optional<T> = {
 
 export type Constructor<T> = new (json: object) => T
 export type Constructee<C> = C extends Constructor<infer R> ? R : never
-
-export type SearchViewType = "table" | "feed"
-
-export type SelectButtonOptionIcon = {
-  component: FunctionalComponent<HTMLAttributes & VNodeProps>
-  alt: string
-}
-
-export type SelectButtonOption<T> = {
-  icon?: SelectButtonOptionIcon
-  name?: string
-  disabled?: boolean
-  value: T
-}
-
-export type SelectButtonProps<T> = {
-  modelValue: T | null
-  options: SelectButtonOption<T>[]
-}

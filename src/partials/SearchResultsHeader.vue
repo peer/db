@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ClientSearchState, SearchViewType, SelectButtonOption } from "@/types"
 
-import { computed, DeepReadonly, ref } from "vue"
+import { computed, DeepReadonly } from "vue"
 import SelectButton from "@/components/SelectButton.vue"
 import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
 
@@ -26,8 +26,9 @@ const selectButtonValue = computed({
   },
 })
 
-const selectButtonOptions = ref<SelectButtonOption<SearchViewType>[]>([
+const selectButtonOptions: SelectButtonOption<SearchViewType>[] = [
   {
+    name: "feed",
     icon: {
       component: Bars4Icon,
       alt: "Feed",
@@ -35,13 +36,14 @@ const selectButtonOptions = ref<SelectButtonOption<SearchViewType>[]>([
     value: "feed",
   },
   {
+    name: "table",
     icon: {
       component: TableCellsIcon,
       alt: "Table",
     },
     value: "table",
   },
-])
+]
 
 function countFilters(): number {
   if (!props.state) {
@@ -110,10 +112,6 @@ function countFilters(): number {
       </template>
     </div>
 
-    <SelectButton v-model="selectButtonValue" :options="selectButtonOptions" class="flex-shrink-0">
-      <template #option="{ option: selectionOption }">
-        <component :is="selectionOption.icon?.component" v-if="selectionOption.icon" v-bind="{ alt: selectionOption.icon.alt }" class="w-7 h-7" />
-      </template>
-    </SelectButton>
+    <SelectButton v-model="selectButtonValue" :options="selectButtonOptions" class="flex-shrink-0" />
   </div>
 </template>
