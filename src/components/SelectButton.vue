@@ -30,9 +30,7 @@ const $emit = defineEmits<{
       @click.prevent="$emit('update:modelValue', option.value)"
     >
       <slot :option="option" :selected="modelValue === option.value" :name="option.name">
-        <slot :option="option" :selected="modelValue === option.value">
-          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="w-7 h-7" />
-        </slot>
+        <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="w-7 h-7" />
       </slot>
     </button>
   </div>
