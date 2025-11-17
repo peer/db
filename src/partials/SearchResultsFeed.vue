@@ -34,8 +34,10 @@ import { useVisibilityTracking } from "@/visibility"
 import { encodeQuery, useLimitResults } from "@/utils.ts"
 
 import { useRoute, useRouter } from "vue-router"
-import { computed, DeepReadonly, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue"
+import { computed, DeepReadonly, inject, onBeforeUnmount, onMounted, Ref, ref, toRef, watch } from "vue"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
+import { FILTERS_PROGRESS } from "@/symbols.ts"
+import { injectMainProgress, localProgress } from "@/progress.ts"
 
 const props = defineProps<{
   searchView: SearchViewType
@@ -44,17 +46,16 @@ const props = defineProps<{
   searchResults: DeepReadonly<SearchResultType[]>
   searchTotal: number | null
   s: string
-  searchProgress: number
   searchMoreThanTotal: boolean
   searchState: DeepReadonly<ClientSearchState | null>
   searchInitialLimit: number
   searchIncrease: number
+  searchProgress: number
 
   // filter props
   filtersEnabled: boolean
   filtersState: FiltersState
   updateFiltersProgress: number
-  filtersProgress: number
   filterInitialLimit: number
   filterIncrease: number
 }>()
@@ -66,6 +67,9 @@ const $emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
+
+const mainProgress = injectMainProgress()
+const filtersProgress = inject<Ref<number>>(FILTERS_PROGRESS) || localProgress(mainProgress)
 
 const {
   limitedResults: limitedSearchResults,
@@ -94,7 +98,7 @@ const {
     return props.s
   }),
   filtersEl,
-  toRef(props, "filtersProgress"),
+  filtersProgress,
 )
 
 const {
