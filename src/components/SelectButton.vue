@@ -29,7 +29,9 @@ const $emit = defineEmits<{
       }"
       @click.prevent="$emit('update:modelValue', option.value)"
     >
+      <!-- You can use a named slot to control contents of a particular option button (based on option's name). -->
       <slot :option="option" :selected="modelValue === option.value" :name="option.name">
+        <!-- Or you can use a default slot to control contents of all option buttons (which do not have a named slot set). -->
         <slot :option="option" :selected="modelValue === option.value">
           <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="w-7 h-7" />
         </slot>
