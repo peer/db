@@ -112,6 +112,11 @@ function countFilters(): number {
       </template>
     </div>
 
-    <SelectButton v-model="selectButtonValue" :options="selectButtonOptions" class="flex-shrink-0" />
+    <SelectButton v-model="selectButtonValue" :options="selectButtonOptions" class="flex-shrink-0">
+      <template #feed="{ option, selected }">
+        <span v-if="selected" class="text-white">{{ option.name }}</span>
+        <span v-else>{{ option.name }}</span>
+      </template>
+    </SelectButton>
   </div>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts" generic="T">
+import { useSlots } from "vue"
+
 import { SelectButtonOption } from "@/types"
 
-defineProps<{
+const props = defineProps<{
   modelValue: T
   // Options cannot have an option with name "default" because it is
   // reserved for the default slot.
@@ -13,6 +15,17 @@ const $emit = defineEmits<{
 }>()
 
 // We do not define slots using defineSlots because slots are dynamic based on the options.
+const allOptions = new Set(props.options.map((option) => option.name))
+
+// But we check at runtime if there are any extra slots used which do not have a corresponding option.
+for (const slot in useSlots()) {
+  if (slot === "default") {
+    continue
+  }
+  if (!allOptions.has(slot)) {
+    throw new Error(`slot '${slot}' used, but there is no corresponding option`)
+  }
+}
 </script>
 
 <template>
