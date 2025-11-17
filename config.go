@@ -89,8 +89,8 @@ type Config struct {
 type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
 
-	Username string               `                    help:"Username for basic auth."                    yaml:"username"`
-	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Password for basic auth." placeholder:"PATH" yaml:"password"`
+	Username string               `                    help:"Require authentication to access all sites. Its username."                    yaml:"username"`
+	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"`Require authentication to access all sites. Its password.`" placeholder:"PATH" yaml:"password"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
@@ -109,7 +109,7 @@ func (c *ServeCommand) Validate() error {
 	}
 
 	if (c.Username != "" && c.Password == nil) || c.Username == "" && c.Password != nil {
-		return errors.New("both username and password have to be set for Basic Auth, or neither")
+		return errors.New("both username and password have to be set to require authentication, or neither")
 	}
 
 	return nil

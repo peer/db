@@ -8,13 +8,15 @@ import (
 	"gitlab.com/tozd/waf"
 )
 
-// HasherSHA256 computes the SHA256 hash of a string for easier credential comparison.
+// HasherSHA256 computes the SHA256 hash of a string for constant-time credential comparison.
 func HasherSHA256(s string) []byte {
 	val := sha256.Sum256([]byte(s))
 	return val[:]
 }
 
-func BasicAuthHandler(usernameHash []byte, passwordHash []byte, realm string) func(http.Handler) http.Handler {
+func BasicAuthHandler(username, password, realm string) func(http.Handler) http.Handler {
+	usernameHash := peerdb.HasherSHA256(testUsername)
+	passwordHash := peerdb.HasherSHA256(testPassword)
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			site, ok := waf.GetSite[*Site](req.Context())
@@ -23,11 +25,11 @@ func BasicAuthHandler(usernameHash []byte, passwordHash []byte, realm string) fu
 			}
 
 			user, pass, ok := req.BasicAuth()
-			if !ok ||
-				subtle.ConstantTimeCompare(HasherSHA256(user), usernameHash) != 1 ||
-				subtle.ConstantTimeCompare(HasherSHA256(pass), passwordHash) != 1 {
+			userCompare := subtle.ConstantTimeCompare(HasherSHA256(user), usernameHash)
+			passwordCompare := subtle.ConstantTimeCompare(HasherSHA256(pass), passwordHash)
+			if !ok || userCompare + passwordCompare != 2 {
 				w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
-				http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+				waf.Error(w, req, http.StatusUnauthorized)
 				return
 			}
 			handler.ServeHTTP(w, req)
