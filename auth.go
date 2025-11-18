@@ -8,27 +8,24 @@ import (
 	"gitlab.com/tozd/waf"
 )
 
-// HasherSHA256 computes the SHA256 hash of a string for constant-time credential comparison.
-func HasherSHA256(s string) []byte {
+// hasherSHA256 computes the SHA256 hash of a string for constant-time credential comparison.
+func hasherSHA256(s string) []byte {
 	val := sha256.Sum256([]byte(s))
 	return val[:]
 }
 
-func BasicAuthHandler(username, password, realm string) func(http.Handler) http.Handler {
-	usernameHash := peerdb.HasherSHA256(testUsername)
-	passwordHash := peerdb.HasherSHA256(testPassword)
+func basicAuthHandler(username string, password string) func(http.Handler) http.Handler {
+	usernameHash := hasherSHA256(username)
+	passwordHash := hasherSHA256(password)
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			site, ok := waf.GetSite[*Site](req.Context())
-			if ok && site.Title != "" {
-				realm = site.Title
-			}
+			site := waf.MustGetSite[*Site](req.Context())
 
 			user, pass, ok := req.BasicAuth()
-			userCompare := subtle.ConstantTimeCompare(HasherSHA256(user), usernameHash)
-			passwordCompare := subtle.ConstantTimeCompare(HasherSHA256(pass), passwordHash)
-			if !ok || userCompare + passwordCompare != 2 {
-				w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
+			userCompare := subtle.ConstantTimeCompare(hasherSHA256(user), usernameHash)
+			passwordCompare := subtle.ConstantTimeCompare(hasherSHA256(pass), passwordHash)
+			if !ok || userCompare+passwordCompare != 2 {
+				w.Header().Set("WWW-Authenticate", `Basic realm="`+site.Title+`"`)
 				waf.Error(w, req, http.StatusUnauthorized)
 				return
 			}

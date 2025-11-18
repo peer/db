@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -133,7 +134,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	var middleware []func(http.Handler) http.Handler
 
 	if c.Username != "" && c.Password != nil {
-		middleware = append(middleware, BasicAuthHandler(HasherSHA256(c.Username), HasherSHA256(string(c.Password)), c.Title))
+		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
 		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
 	}
 

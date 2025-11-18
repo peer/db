@@ -90,7 +90,7 @@ type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
 
 	Username string               `                    help:"Require authentication to access all sites. Its username."                    yaml:"username"`
-	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"`Require authentication to access all sites. Its password.`" placeholder:"PATH" yaml:"password"`
+	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
