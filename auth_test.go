@@ -1,6 +1,7 @@
 package peerdb_test
 
 import (
+	"context"
 	"encoding/base64"
 	"net/http"
 	"strings"
@@ -8,9 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb"
 )
 
 const (
@@ -31,30 +33,42 @@ func TestBasicAuth(t *testing.T) {
 		expectedRealm  string
 	}{
 		{`valid credentials`, testUsername, testPassword, http.StatusOK, ""},
-		{`invalid username`, testWrongUsername, testPassword, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
-		{`invalid password`, testUsername, testWrongPassword, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
-		{`invalid both`, testWrongUsername, testWrongPassword, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
-		{`invalid w/ username space`, `testuser `, testPassword, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
-		{`invalid w/ password space`, testUsername, `testpass `, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
-		{`invalid no credentials`, ``, ``, http.StatusUnauthorized,
-			peerdb.DefaultTitle},
+		{
+			`invalid username`, testWrongUsername, testPassword, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
+		{
+			`invalid password`, testUsername, testWrongPassword, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
+		{
+			`invalid both`, testWrongUsername, testWrongPassword, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
+		{
+			`invalid w/ username space`, `testuser `, testPassword, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
+		{
+			`invalid w/ password space`, testUsername, `testpass `, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
+		{
+			`invalid no credentials`, ``, ``, http.StatusUnauthorized,
+			peerdb.DefaultTitle,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts, _ := startTestServer(t, func(globals *peerdb.Globals, serve *peerdb.ServeCommand) {
+			ts, _ := startTestServer(t, func(_ *peerdb.Globals, serve *peerdb.ServeCommand) {
 				serve.Username = testUsername
 				serve.Password = []byte(testPassword)
 			})
 
-			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 
 			if tt.username != "" || tt.password != "" {
@@ -66,7 +80,7 @@ func TestBasicAuth(t *testing.T) {
 
 			resp, err := ts.Client().Do(req)
 			require.NoError(t, err)
-			t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp))
+			t.Cleanup(func() { resp.Body.Close() })
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
@@ -99,21 +113,25 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 			t.Parallel()
 
 			ts, _ := startTestServer(t, func(globals *peerdb.Globals, serve *peerdb.ServeCommand) {
-				globals.Sites = []peerdb.Site{ //nolint:exhaustruct
+				globals.Sites = []peerdb.Site{
 					{
 						Site: waf.Site{
-							Domain: tt.domain,
+							Domain:   tt.domain,
+							CertFile: "",
+							KeyFile:  "",
 						},
-						Index:  strings.ToLower(identifier.New().String()),
-						Schema: identifier.New().String(),
-						Title:  tt.siteTitle,
+						Build:     nil,
+						Index:     strings.ToLower(identifier.New().String()),
+						Schema:    identifier.New().String(),
+						Title:     tt.siteTitle,
+						SizeField: globals.Elastic.SizeField,
 					},
 				}
 				serve.Username = testUsername
 				serve.Password = []byte(testPassword)
 			})
 			// We only test unauthorized responses here to verify the realm.
-			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 			req.Host = tt.domain
 

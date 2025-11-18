@@ -18,12 +18,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/peerdb/peerdb"
-	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/tozd/go/x"
 	z "gitlab.com/tozd/go/zerolog"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 //go:embed public
