@@ -71,6 +71,9 @@ func (g *Globals) Validate() error {
 		if !domains.Add(site.Domain) {
 			return errors.Errorf(`duplicate site for domain "%s"`, site.Domain)
 		}
+
+		// Variable might have been changed by Validate, so we assign it back.
+		g.Sites[i] = site
 	}
 
 	return nil

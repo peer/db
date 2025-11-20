@@ -166,7 +166,35 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		setupFunc(globals, serve)
 	}
 
-	domains := []string{"localhost"}
+	hasLocalHost := false
+	for _, site := range globals.Sites {
+		if site.Domain == "localhost" {
+			hasLocalHost = true
+			break
+		}
+	}
+	if !hasLocalHost {
+		localhostSite := peerdb.Site{
+			Site: waf.Site{
+				Domain:   "localhost",
+				CertFile: certPath,
+				KeyFile:  keyPath,
+			},
+			Index:     globals.Elastic.Index,
+			Schema:    globals.Postgres.Schema,
+			Title:     serve.Title,
+			SizeField: globals.Elastic.SizeField,
+		}
+		globals.Sites = append(globals.Sites, localhostSite)
+	}
+
+	err := globals.Validate()
+	require.NoError(t, err)
+
+	err = serve.Validate()
+	require.NoError(t, err)
+
+	var domains []string
 	for _, site := range globals.Sites {
 		domains = append(domains, site.Domain)
 	}
@@ -177,10 +205,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	for i := range globals.Sites {
 		globals.Sites[i].Site.CertFile = certPath
 		globals.Sites[i].Site.KeyFile = keyPath
-
-		if globals.Sites[i].Title == "" {
-			globals.Sites[i].Title = peerdb.DefaultTitle
-		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -196,19 +220,17 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.Config.Handler = handler
 	ts.TLS = serve.Server.HTTPServer.TLSConfig.Clone()
 
-	certDomain := "localhost"
-	if len(globals.Sites) > 0 {
-		certDomain = globals.Sites[0].Domain
-	}
-
 	// We have to call GetCertificate ourselves.
 	// See: https://github.com/golang/go/issues/63812
-	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
-		ServerName: certDomain,
-	})
-	require.NoError(t, err, "% -+#.1v", err)
-	// By setting Certificates, we force testing server and testing client to use our certificate.
-	ts.TLS.Certificates = []tls.Certificate{*cert}
+	for _, domain := range domains {
+		cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
+			ServerName: domain,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, cert, "certificate not found for domain: %s", domain)
+		// By setting Certificates, we force testing server and testing client to use our certificate.
+		ts.TLS.Certificates = append(ts.TLS.Certificates, *cert)
+	}
 
 	// This does not start server's managers, but that is OK for this test.
 	ts.StartTLS()
@@ -225,7 +247,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			if site.Index != "" {
 				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
 				if err != nil {
-					require.NoError(t, err, "% -+#.1v", err)
+					require.NoError(t, err)
 				}
 			}
 		}
