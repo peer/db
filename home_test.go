@@ -180,6 +180,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 				CertFile: certPath,
 				KeyFile:  keyPath,
 			},
+			Build:     nil,
 			Index:     globals.Elastic.Index,
 			Schema:    globals.Postgres.Schema,
 			Title:     serve.Title,
@@ -194,7 +195,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	err = serve.Validate()
 	require.NoError(t, err)
 
-	var domains []string
+	domains := make([]string, 0, len(globals.Sites)+1)
 	for _, site := range globals.Sites {
 		domains = append(domains, site.Domain)
 	}
@@ -223,7 +224,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	// We have to call GetCertificate ourselves.
 	// See: https://github.com/golang/go/issues/63812
 	for _, domain := range domains {
-		cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
+		var cert *tls.Certificate
+		cert, err = ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
 			ServerName: domain,
 		})
 		require.NoError(t, err)
