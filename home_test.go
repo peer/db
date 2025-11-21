@@ -6,6 +6,7 @@ import (
 	"embed"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -173,8 +174,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	require.NoError(t, err)
 
 	domains := []string{"localhost"}
-	for _, site := range globals.Sites {
-		if site.Domain != "localhost" {
+	if len(globals.Sites) > 0 {
+		domains = []string{}
+		for _, site := range globals.Sites {
 			domains = append(domains, site.Domain)
 		}
 	}
@@ -210,6 +212,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
 		ServerName: certDomain,
 	})
+	require.NotNil(t, cert)
 	require.NoError(t, err)
 	// By setting Certificates, we force testing server and testing client to use our certificate.
 	ts.TLS.Certificates = []tls.Certificate{*cert}
@@ -217,8 +220,25 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	// This does not start server's managers, but that is OK for this test.
 	ts.StartTLS()
 
-	// Our certificate is for localhost domain and not 127.0.0.1 IP.
-	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", "localhost")
+	// Our certificate is not for 127.0.0.1 IP. So we set it to certDomain.
+	// Caller can generate its own URLs for other sites if needed.
+	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", certDomain)
+
+	dialerContext := cleanhttp.DefaultTransport().DialContext
+	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		// We map any connection to domains used in sites to localhost.
+		for _, site := range globals.Sites {
+			if site.Domain == host {
+				addr = net.JoinHostPort("localhost", port)
+				break
+			}
+		}
+		return dialerContext(ctx, network, ts.URL)
+	}
 
 	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
