@@ -72,7 +72,7 @@ func (g *Globals) Validate() error {
 			return errors.Errorf(`duplicate site for domain "%s"`, site.Domain)
 		}
 
-		// Variable might have been changed by Validate, so we assign it back.
+		// Site might have been changed, so we assign it back.
 		g.Sites[i] = site
 	}
 
@@ -111,7 +111,7 @@ func (c *ServeCommand) Validate() error {
 		return errors.New("contact e-mail is required for Let's Encrypt's certificate")
 	}
 
-	if (c.Username != "" && c.Password == nil) || c.Username == "" && c.Password != nil {
+	if (c.Username != "" && c.Password == nil) || (c.Username == "" && c.Password != nil) {
 		return errors.New("both username and password have to be set to require authentication, or neither")
 	}
 
