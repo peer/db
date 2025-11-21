@@ -166,39 +166,18 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		setupFunc(globals, serve)
 	}
 
-	hasLocalHost := false
-	for _, site := range globals.Sites {
-		if site.Domain == "localhost" {
-			hasLocalHost = true
-			break
-		}
-	}
-	if !hasLocalHost {
-		localhostSite := peerdb.Site{
-			Site: waf.Site{
-				Domain:   "localhost",
-				CertFile: certPath,
-				KeyFile:  keyPath,
-			},
-			Index:     globals.Elastic.Index,
-			Schema:    globals.Postgres.Schema,
-			Title:     serve.Title,
-			SizeField: globals.Elastic.SizeField,
-		}
-		globals.Sites = append(globals.Sites, localhostSite)
-	}
-
 	err := globals.Validate()
 	require.NoError(t, err)
 
 	err = serve.Validate()
 	require.NoError(t, err)
 
-	domains := make([]string, 0, len(globals.Sites))
+	domains := []string{"localhost"}
 	for _, site := range globals.Sites {
-		domains = append(domains, site.Domain)
+		if site.Domain != "localhost" {
+			domains = append(domains, site.Domain)
+		}
 	}
-
 	errE = x.CreateTempCertificateFiles(certPath, keyPath, domains)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
