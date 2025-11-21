@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	z "gitlab.com/tozd/go/zerolog"
 	"gitlab.com/tozd/identifier"
@@ -225,10 +226,10 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", certDomain)
 
 	dialerContext := cleanhttp.DefaultTransport().DialContext
-	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(addr)
+	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) { //nolint:errcheck
+		host, port, err := net.SplitHostPort(addr) //nolint:govet
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		// We map any connection to domains used in sites to localhost.
 		for _, site := range globals.Sites {
@@ -237,7 +238,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 				break
 			}
 		}
-		return dialerContext(ctx, network, ts.URL)
+		return dialerContext(ctx, network, addr)
 	}
 
 	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
