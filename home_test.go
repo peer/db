@@ -180,7 +180,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 				CertFile: certPath,
 				KeyFile:  keyPath,
 			},
-			Build:     nil,
 			Index:     globals.Elastic.Index,
 			Schema:    globals.Postgres.Schema,
 			Title:     serve.Title,
@@ -195,7 +194,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	err = serve.Validate()
 	require.NoError(t, err)
 
-	domains := make([]string, 0, len(globals.Sites)+1)
+	domains := make([]string, 0, len(globals.Sites))
 	for _, site := range globals.Sites {
 		domains = append(domains, site.Domain)
 	}
@@ -221,18 +220,20 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.Config.Handler = handler
 	ts.TLS = serve.Server.HTTPServer.TLSConfig.Clone()
 
+	certDomain := "localhost"
+	if len(globals.Sites) > 0 {
+		// We can pick any domain to obtain the cert because we have made one cert for all domains.
+		certDomain = globals.Sites[0].Domain
+	}
+
 	// We have to call GetCertificate ourselves.
 	// See: https://github.com/golang/go/issues/63812
-	for _, domain := range domains {
-		var cert *tls.Certificate
-		cert, err = ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
-			ServerName: domain,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, cert, "certificate not found for domain: %s", domain)
-		// By setting Certificates, we force testing server and testing client to use our certificate.
-		ts.TLS.Certificates = append(ts.TLS.Certificates, *cert)
-	}
+	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
+		ServerName: certDomain,
+	})
+	require.NoError(t, err)
+	// By setting Certificates, we force testing server and testing client to use our certificate.
+	ts.TLS.Certificates = []tls.Certificate{*cert}
 
 	// This does not start server's managers, but that is OK for this test.
 	ts.StartTLS()
