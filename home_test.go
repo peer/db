@@ -246,6 +246,12 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	t.Cleanup(func() {
 		ctx := context.Background()
+		if globals.Elastic.Index != "" {
+			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}
 		for _, site := range globals.Sites {
 			if site.Index != "" {
 				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
