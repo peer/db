@@ -496,38 +496,36 @@ function onFilterChange(change: FilterStateChange) {
       </Button>
     </NavBar>
   </Teleport>
-  <div class="mt-12 w-full border-t border-transparent p-1 sm:mt-[4.5rem] sm:p-4" :data-url="searchURL">
+  <div ref="searchEl" class="mt-12 w-full border-t border-transparent p-1 sm:mt-[4.5rem] sm:p-4" :data-url="searchURL">
     <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
       <div class="text-center text-sm">
         <i class="text-error-600">loading data failed</i>
       </div>
     </div>
 
-    <template v-else>
-      <SearchResultsFeed
-        v-if="searchView === 'feed'"
-        v-model:search-view="searchView"
-        :s="s"
-        :search-results="searchResults"
-        :search-total="searchTotal"
-        :search-more-than-total="searchMoreThanTotal"
-        :search-state="searchState"
-        :search-progress="searchProgress"
-        :filters-enabled="filtersEnabled"
-        :filters-state="filtersState"
-        :update-filters-progress="updateFiltersProgress"
-        @on-filter-change="onFilterChange"
-      />
+    <SearchResultsFeed
+      v-else-if="searchView === 'feed'"
+      v-model:search-view="searchView"
+      :s="s"
+      :search-results="searchResults"
+      :search-total="searchTotal"
+      :search-more-than-total="searchMoreThanTotal"
+      :search-state="searchState"
+      :search-progress="searchProgress"
+      :filters-enabled="filtersEnabled"
+      :filters-state="filtersState"
+      :update-filters-progress="updateFiltersProgress"
+      @on-filter-change="onFilterChange"
+    />
 
-      <SearchResultsTable
-        v-else-if="searchView === 'table'"
-        v-model:search-view="searchView"
-        :search-results="searchResults"
-        :search-total="searchTotal"
-        :search-more-than-total="searchMoreThanTotal"
-        :search-state="searchState"
-      />
-    </template>
+    <SearchResultsTable
+      v-else-if="searchView === 'table'"
+      v-model:search-view="searchView"
+      :search-results="searchResults"
+      :search-total="searchTotal"
+      :search-more-than-total="searchMoreThanTotal"
+      :search-state="searchState"
+    />
   </div>
   <Teleport v-if="(searchTotal !== null && searchTotal > 0) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
