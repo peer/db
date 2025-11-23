@@ -33,7 +33,6 @@ const searchViewValue = computed({
       v-model:search-view="searchViewValue"
       :search-state="searchState"
       :search-total="searchTotal"
-      :search-results-count="searchResults.length"
       :search-more-than-total="searchMoreThanTotal"
     />
   </div>

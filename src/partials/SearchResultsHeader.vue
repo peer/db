@@ -11,7 +11,6 @@ import SelectButton from "@/components/SelectButton.vue"
 const props = defineProps<{
   searchState: DeepReadonly<ClientSearchState | null>
   searchTotal: number | null
-  searchResultsCount: number
   searchMoreThanTotal: boolean
   searchView: SearchViewType
 }>()
@@ -47,6 +46,8 @@ const selectButtonOptions: SelectButtonOption<SearchViewType>[] = [
     value: "table",
   },
 ]
+
+// TODO: Use a computed property instead of computing countFilters multiple times.
 
 function countFilters(): number {
   if (!props.searchState) {
@@ -84,33 +85,26 @@ function countFilters(): number {
 </script>
 
 <template>
-  <div class="flex gap-4 items-center">
+  <div class="flex flex-row gap-x-1 sm:gap-x-4 w-full">
     <div class="bg-slate-200 px-4 py-2 rounded flex flex-row justify-between w-full">
       <div v-if="searchState === null">Loading...</div>
       <div v-else-if="searchState.promptError">Error interpreting your prompt.</div>
       <div v-else-if="searchState.p && !searchState.promptDone">Interpreting your prompt...</div>
       <div v-else-if="searchState.q && countFilters() === 1">
-        Searching query <i>{{ searchState.q }}</i> and 1 active filter
-        <template v-if="searchTotal === null">...</template>
-        <template v-else>.</template>
+        Searching query <i>{{ searchState.q }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <div v-else-if="searchState.q">
-        Searching query <i>{{ searchState.q }}</i> and {{ countFilters() }} active filters
-        <template v-if="searchTotal === null">...</template>
-        <template v-else>.</template>
+        Searching query <i>{{ searchState.q }}</i> and {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <div v-else-if="countFilters() === 1">
-        Searching without query and with 1 active filter
-        <template v-if="searchTotal === null">...</template>
-        <template v-else>.</template>
+        Searching without query and with 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <div v-else>
-        Searching without query and with {{ countFilters() }} active filters
-        <template v-if="searchTotal === null">...</template>
-        <template v-else>.</template>
+        Searching without query and with {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <template v-if="searchTotal !== null">
         <div v-if="searchTotal === 0">No results found.</div>
+        <div v-else-if="searchMoreThanTotal">More than {{ searchTotal }} results found.</div>
         <div v-else>{{ searchTotal }} results found.</div>
       </template>
     </div>
