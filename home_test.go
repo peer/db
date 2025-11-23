@@ -234,7 +234,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", certDomain)
 
 	dialerContext := cleanhttp.DefaultTransport().DialContext
-	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) { //nolint:errcheck
+	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) { //nolint:errcheck,forcetypeassert
 		host, port, err := net.SplitHostPort(addr) //nolint:govet
 		if err != nil {
 			return nil, errors.WithStack(err)
