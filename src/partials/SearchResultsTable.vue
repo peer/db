@@ -29,11 +29,6 @@ const searchViewValue = computed({
 
 <template>
   <div class="w-full flex-auto sm:flex flex-col gap-y-1 sm:gap-y-4">
-    <SearchResultsHeader
-      v-model:search-view="searchViewValue"
-      :search-state="searchState"
-      :search-total="searchTotal"
-      :search-more-than-total="searchMoreThanTotal"
-    />
+    <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
   </div>
 </template>

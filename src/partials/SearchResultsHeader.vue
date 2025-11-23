@@ -94,7 +94,8 @@ function countFilters(): number {
         Searching query <i>{{ searchState.q }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <div v-else-if="searchState.q">
-        Searching query <i>{{ searchState.q }}</i> and {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template><template v-else>.</template>
+        Searching query <i>{{ searchState.q }}</i> and {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template
+        ><template v-else>.</template>
       </div>
       <div v-else-if="countFilters() === 1">
         Searching without query and with 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>

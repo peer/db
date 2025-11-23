@@ -204,12 +204,7 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
   <div class="flex w-full gap-x-1 sm:gap-x-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
-      <SearchResultsHeader
-        v-model:search-view="searchViewValue"
-        :search-state="searchState"
-        :search-total="searchTotal"
-        :search-more-than-total="searchMoreThanTotal"
-      />
+      <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
