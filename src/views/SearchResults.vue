@@ -53,7 +53,6 @@ const searchEl = ref(null)
 const searchView = ref<SearchViewType>("feed")
 
 const searchProgress = localProgress(mainProgress)
-
 const {
   searchState,
   error: searchStateError,
