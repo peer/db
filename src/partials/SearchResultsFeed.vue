@@ -18,6 +18,7 @@ import type {
   TimeSearchResult,
   SearchViewType,
   FilterStateChange,
+  AmountUnit,
 } from "@/types"
 
 import Button from "@/components/Button.vue"
@@ -194,7 +195,7 @@ function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
   $emit("onFilterChange", "rel", { id, value })
 }
 
-function onAmountFiltersStateUpdate(id: string, unit: string, value: AmountFilterState) {
+function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
   $emit("onFilterChange", "amount", { id, unit, value })
 }
 

@@ -24,6 +24,7 @@ import type {
   StringSearchResult,
   ClientSearchState,
   ServerSearchState,
+  AmountUnit,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount } from "vue"
@@ -119,9 +120,9 @@ export async function postFilters(
     const [prop, unit] = segments
     // TODO: Support also OR between value and none.
     if (value === NONE) {
-      filters.and.push({ amount: { prop, unit, none: true } })
+      filters.and.push({ amount: { prop, unit: unit as AmountUnit, none: true } })
     } else {
-      filters.and.push({ amount: { prop, unit, ...value } })
+      filters.and.push({ amount: { prop, unit: unit as AmountUnit, ...value } })
     }
   }
   for (const [prop, value] of Object.entries(updatedState.time)) {

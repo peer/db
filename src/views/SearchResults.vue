@@ -20,7 +20,7 @@ import type {
   SizeFilterStateChange,
 } from "@/types"
 
-import { ref, toRef, onBeforeUnmount, watchEffect, provide, readonly } from "vue"
+import { ref, toRef, onBeforeUnmount, watchEffect, provide } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"

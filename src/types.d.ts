@@ -94,14 +94,14 @@ export type RelNoneFilter = {
 
 export type AmountFilter = {
   prop: string
-  unit: string
+  unit: AmountUnit
   gte?: number
   lte?: number
 }
 
 export type AmountNoneFilter = {
   prop: string
-  unit: string
+  unit: AmountUnit
   none: true
 }
 
@@ -186,7 +186,7 @@ export type RelFilterStateChange = {
 
 export type AmountFilterStateChange = {
   id: string
-  unit: string
+  unit: AmountUnit
   value: AmountFilterState
 }
 
