@@ -20,7 +20,7 @@ import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
-import { useSearch, useSearchState, postFilters } from "@/search"
+import { useSearch, useSearchState, postFilters, activeSearchState } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, encodeQuery } from "@/utils"
@@ -67,18 +67,10 @@ const {
   moreThanTotal: searchMoreThanTotal,
   error: searchResultsError,
 } = useSearch(
-  toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== props.s) {
-      return ""
-    }
-    if (searchState.value.p && !searchState.value.promptDone) {
-      return ""
-    }
-    return props.s
-  }),
+  activeSearchState(
+    searchState,
+    toRef(() => props.s),
+  ),
   searchEl,
   searchProgress,
 )

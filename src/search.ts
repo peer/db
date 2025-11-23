@@ -27,7 +27,7 @@ import type {
   AmountUnit,
 } from "@/types"
 
-import { ref, watch, readonly, onBeforeUnmount } from "vue"
+import { ref, watch, readonly, onBeforeUnmount, toRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { getURL, postURL, getURLDirect } from "@/api"
 import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
@@ -1278,4 +1278,19 @@ export function useSearchState(
     error,
     url,
   }
+}
+
+export function activeSearchState(searchState: Ref<DeepReadonly<ClientSearchState | null>>, s: Ref<string>): Ref<string> {
+  return toRef(() => {
+    if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.s !== s.value) {
+      return ""
+    }
+    if (searchState.value.p && !searchState.value.promptDone) {
+      return ""
+    }
+    return s.value
+  })
 }
