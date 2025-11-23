@@ -9,8 +9,6 @@ type AmountUnit = "@" | "1" | "/" | "kg/kg" | "kg" | "kg/m³" | "m" | "m²" | "m
 
 type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s"
 
-export type SearchResultFilterType = "rel" | "amount" | "time" | "string" | "index" | "size"
-
 export type RelSearchResult = {
   id: string
   count: number
@@ -168,8 +166,6 @@ export type IndexFilterState = string[]
 
 export type SizeFilterState = null | typeof NONE | { gte?: number; lte?: number }
 
-export type FilterState = RelFilterState | AmountFilterState | TimeFilterState | StringFilterState | IndexFilterState | SizeFilterState
-
 export type FiltersState = {
   rel: Record<string, RelFilterState>
   amount: Record<string, AmountFilterState>
@@ -180,31 +176,37 @@ export type FiltersState = {
 }
 
 export type RelFilterStateChange = {
+  type: "rel"
   id: string
   value: RelFilterState
 }
 
 export type AmountFilterStateChange = {
+  type: "amount"
   id: string
   unit: AmountUnit
   value: AmountFilterState
 }
 
 export type TimeFilterStateChange = {
+  type: "time"
   id: string
   value: TimeFilterState
 }
 
 export type StringFilterStateChange = {
+  type: "string"
   id: string
   value: StringFilterState
 }
 
 export type IndexFilterStateChange = {
+  type: "index"
   value: IndexFilterState
 }
 
 export type SizeFilterStateChange = {
+  type: "size"
   value: SizeFilterState
 }
 

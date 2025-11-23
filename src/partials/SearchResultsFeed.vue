@@ -9,7 +9,6 @@ import type {
   RelFilterState,
   RelSearchResult,
   SearchResult as SearchResultType,
-  SearchResultFilterType,
   SizeFilterState,
   SizeSearchResult,
   StringFilterState,
@@ -62,7 +61,7 @@ const props = defineProps<{
 }>()
 
 const $emit = defineEmits<{
-  onFilterChange: [type: SearchResultFilterType, payload: FilterStateChange]
+  onFilterChange: [change: FilterStateChange]
   "update:searchView": [value: SearchViewType]
 }>()
 
@@ -192,27 +191,27 @@ function onScroll() {
 }
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
-  $emit("onFilterChange", "rel", { id, value })
+  $emit("onFilterChange", { type: "rel", id, value })
 }
 
 function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
-  $emit("onFilterChange", "amount", { id, unit, value })
+  $emit("onFilterChange", { type: "amount", id, unit, value })
 }
 
 function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
-  $emit("onFilterChange", "time", { id, value })
+  $emit("onFilterChange", { type: "time", id, value })
 }
 
 function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
-  $emit("onFilterChange", "string", { id, value })
+  $emit("onFilterChange", { type: "string", id, value })
 }
 
 function onIndexFiltersStateUpdate(value: IndexFilterState) {
-  $emit("onFilterChange", "index", { value })
+  $emit("onFilterChange", { type: "index", value })
 }
 
 function onSizeFiltersStateUpdate(value: SizeFilterState) {
-  $emit("onFilterChange", "size", { value })
+  $emit("onFilterChange", { type: "size", value })
 }
 </script>
 

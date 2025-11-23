@@ -9,15 +9,8 @@ import type {
   FiltersState,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
-  SearchResultFilterType,
   SearchViewType,
   FilterStateChange,
-  AmountFilterStateChange,
-  RelFilterStateChange,
-  TimeFilterStateChange,
-  StringFilterStateChange,
-  IndexFilterStateChange,
-  SizeFilterStateChange,
 } from "@/types"
 
 import { ref, toRef, onBeforeUnmount, watchEffect, provide } from "vue"
@@ -472,36 +465,30 @@ async function onChange() {
   }
 }
 
-function onFilterChange(type: SearchResultFilterType, payload: FilterStateChange) {
-  switch (type) {
+function onFilterChange(change: FilterStateChange) {
+  switch (change.type) {
     case "rel": {
-      const relChange = payload as RelFilterStateChange
-      return onRelFiltersStateUpdate(relChange.id, relChange.value)
+      return onRelFiltersStateUpdate(change.id, change.value)
     }
 
     case "amount": {
-      const amountChange = payload as AmountFilterStateChange
-      return onAmountFiltersStateUpdate(amountChange.id, amountChange.unit, amountChange.value)
+      return onAmountFiltersStateUpdate(change.id, change.unit, change.value)
     }
 
     case "time": {
-      const timeChange = payload as TimeFilterStateChange
-      return onTimeFiltersStateUpdate(timeChange.id, timeChange.value)
+      return onTimeFiltersStateUpdate(change.id, change.value)
     }
 
     case "string": {
-      const stringChange = payload as StringFilterStateChange
-      return onStringFiltersStateUpdate(stringChange.id, stringChange.value)
+      return onStringFiltersStateUpdate(change.id, change.value)
     }
 
     case "index": {
-      const indexChange = payload as IndexFilterStateChange
-      return onIndexFiltersStateUpdate(indexChange.value)
+      return onIndexFiltersStateUpdate(change.value)
     }
 
     case "size": {
-      const sizeChange = payload as SizeFilterStateChange
-      return onSizeFiltersStateUpdate(sizeChange.value)
+      return onSizeFiltersStateUpdate(change.value)
     }
   }
 }
