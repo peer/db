@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
@@ -121,8 +119,8 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 							KeyFile:  "",
 						},
 						Build:     nil,
-						Index:     strings.ToLower(identifier.New().String()),
-						Schema:    identifier.New().String(),
+						Index:     "",
+						Schema:    "",
 						Title:     tt.siteTitle,
 						SizeField: globals.Elastic.SizeField,
 					},

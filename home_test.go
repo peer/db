@@ -168,6 +168,14 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		setupFunc(globals, serve)
 	}
 
+	for i, site := range globals.Sites {
+		require.Empty(t, site.Schema)
+		site.Schema = identifier.New().String()
+		require.Empty(t, site.Index)
+		site.Index = strings.ToLower(identifier.New().String())
+		globals.Sites[i] = site
+	}
+
 	err := globals.Validate()
 	require.NoError(t, err)
 
@@ -246,14 +254,13 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	t.Cleanup(func() {
 		ctx := context.Background()
-		if globals.Elastic.Index != "" {
+		if len(globals.Sites) == 0 {
 			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
 			if err != nil {
 				require.NoError(t, err)
 			}
-		}
-		for _, site := range globals.Sites {
-			if site.Index != "" {
+		} else {
+			for _, site := range globals.Sites {
 				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
 				if err != nil {
 					require.NoError(t, err)
