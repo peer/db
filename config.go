@@ -55,7 +55,8 @@ func (g *Globals) Validate() error {
 		}
 
 		// To make sure validation is called.
-		if err := site.Validate(); err != nil {
+		err := site.Validate()
+		if err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -70,6 +71,9 @@ func (g *Globals) Validate() error {
 		if !domains.Add(site.Domain) {
 			return errors.Errorf(`duplicate site for domain "%s"`, site.Domain)
 		}
+
+		// Site might have been changed, so we assign it back.
+		g.Sites[i] = site
 	}
 
 	return nil
@@ -88,6 +92,9 @@ type Config struct {
 type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
 
+	Username string               `                    help:"Require authentication to access all sites. Its username."                    yaml:"username"`
+	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`
+
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
 }
@@ -95,12 +102,17 @@ type ServeCommand struct {
 func (c *ServeCommand) Validate() error {
 	// We have to call Validate on kong-embedded structs ourselves.
 	// See: https://github.com/alecthomas/kong/issues/90
-	if err := c.Server.TLS.Validate(); err != nil {
+	err := c.Server.TLS.Validate()
+	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	if c.Domain != "" && c.Server.TLS.Email == "" {
 		return errors.New("contact e-mail is required for Let's Encrypt's certificate")
+	}
+
+	if (c.Username != "" && c.Password == nil) || (c.Username == "" && c.Password != nil) {
+		return errors.New("both username and password have to be set to require authentication, or neither")
 	}
 
 	return nil

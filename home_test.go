@@ -6,6 +6,7 @@ import (
 	"embed"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,15 +15,18 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	z "gitlab.com/tozd/go/zerolog"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 //go:embed public
@@ -83,7 +87,7 @@ func init() { //nolint:gochecknoinits
 func testStaticFile(t *testing.T, route, filePath, contentType string) {
 	t.Helper()
 
-	ts, service := startTestServer(t)
+	ts, service := startTestServer(t, nil)
 
 	path, errE := service.Reverse(route, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -110,7 +114,7 @@ func TestRouteHome(t *testing.T) {
 	testStaticFile(t, "Home", "dist/index.html", "text/html; charset=utf-8")
 }
 
-func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
+func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve *peerdb.ServeCommand)) (*httptest.Server, *peerdb.Service) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -123,9 +127,6 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	tempDir := t.TempDir()
 	certPath := filepath.Join(tempDir, "test_cert.pem")
 	keyPath := filepath.Join(tempDir, "test_key.pem")
-
-	errE := x.CreateTempCertificateFiles(certPath, keyPath, []string{"localhost"})
-	require.NoError(t, errE, "% -+#.1v", errE)
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
@@ -146,10 +147,10 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 
 	populate := peerdb.PopulateCommand{}
 
-	errE = populate.Run(globals)
+	errE := populate.Run(globals)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	serve := peerdb.ServeCommand{ //nolint:exhaustruct
+	serve := &peerdb.ServeCommand{ //nolint:exhaustruct
 		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
 			TLS: waf.TLS{ //nolint:exhaustruct
 				CertFile: certPath,
@@ -161,6 +162,39 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 			Addr: "localhost:0",
 		},
 		Title: peerdb.DefaultTitle,
+	}
+
+	if setupFunc != nil {
+		setupFunc(globals, serve)
+	}
+
+	for i, site := range globals.Sites {
+		require.Empty(t, site.Schema)
+		site.Schema = identifier.New().String()
+		require.Empty(t, site.Index)
+		site.Index = strings.ToLower(identifier.New().String())
+		globals.Sites[i] = site
+	}
+
+	err := globals.Validate()
+	require.NoError(t, err)
+
+	err = serve.Validate()
+	require.NoError(t, err)
+
+	domains := []string{"localhost"}
+	if len(globals.Sites) > 0 {
+		domains = []string{}
+		for _, site := range globals.Sites {
+			domains = append(domains, site.Domain)
+		}
+	}
+	errE = x.CreateTempCertificateFiles(certPath, keyPath, domains)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for i := range globals.Sites {
+		globals.Sites[i].Site.CertFile = certPath
+		globals.Sites[i].Site.KeyFile = keyPath
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -176,20 +210,64 @@ func startTestServer(t *testing.T) (*httptest.Server, *peerdb.Service) {
 	ts.Config.Handler = handler
 	ts.TLS = serve.Server.HTTPServer.TLSConfig.Clone()
 
+	certDomain := "localhost"
+	if len(globals.Sites) > 0 {
+		// We can pick any domain to obtain the cert because we have made one cert for all domains.
+		certDomain = globals.Sites[0].Domain
+	}
+
 	// We have to call GetCertificate ourselves.
 	// See: https://github.com/golang/go/issues/63812
 	cert, err := ts.TLS.GetCertificate(&tls.ClientHelloInfo{ //nolint:exhaustruct
-		ServerName: "localhost",
+		ServerName: certDomain,
 	})
-	require.NoError(t, err, "% -+#.1v", err)
+	require.NotNil(t, cert)
+	require.NoError(t, err)
 	// By setting Certificates, we force testing server and testing client to use our certificate.
 	ts.TLS.Certificates = []tls.Certificate{*cert}
 
 	// This does not start server's managers, but that is OK for this test.
 	ts.StartTLS()
 
-	// Our certificate is for localhost domain and not 127.0.0.1 IP.
-	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", "localhost")
+	// Our certificate is not for 127.0.0.1 IP. So we set it to certDomain.
+	// Caller can generate its own URLs for other sites if needed.
+	ts.URL = strings.ReplaceAll(ts.URL, "127.0.0.1", certDomain)
+
+	dialerContext := cleanhttp.DefaultTransport().DialContext
+	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) { //nolint:errcheck,forcetypeassert
+		host, port, err := net.SplitHostPort(addr) //nolint:govet
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		// We map any connection to domains used in sites to localhost.
+		for _, site := range globals.Sites {
+			if site.Domain == host {
+				addr = net.JoinHostPort("localhost", port)
+				break
+			}
+		}
+		return dialerContext(ctx, network, addr)
+	}
+
+	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	t.Cleanup(func() {
+		ctx := context.Background()
+		if len(globals.Sites) == 0 {
+			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
+			if err != nil {
+				require.NoError(t, err)
+			}
+		} else {
+			for _, site := range globals.Sites {
+				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
+				if err != nil {
+					require.NoError(t, err)
+				}
+			}
+		}
+	})
 
 	return ts, service
 }
