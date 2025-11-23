@@ -13,14 +13,14 @@ import type {
   FilterStateChange,
 } from "@/types"
 
-import { ref, toRef, onBeforeUnmount, watchEffect, provide } from "vue"
+import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
-import { useSearch, useSearchState, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
+import { useSearch, useSearchState, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, encodeQuery } from "@/utils"
@@ -28,7 +28,6 @@ import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { FILTERS_PROGRESS } from "@/symbols.ts"
 
 const props = defineProps<{
   s: string
@@ -84,9 +83,6 @@ const {
   searchEl,
   searchProgress,
 )
-
-const filtersProgress = localProgress(mainProgress)
-provide(FILTERS_PROGRESS, filtersProgress)
 
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
@@ -530,8 +526,6 @@ function onFilterChange(change: FilterStateChange) {
         :search-progress="searchProgress"
         :filters-enabled="filtersEnabled"
         :filters-state="filtersState"
-        :filter-increase="FILTERS_INCREASE"
-        :filter-initial-limit="FILTERS_INITIAL_LIMIT"
         :update-filters-progress="updateFiltersProgress"
         @on-filter-change="onFilterChange"
       />
