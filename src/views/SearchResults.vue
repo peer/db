@@ -20,7 +20,7 @@ import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import Footer from "@/partials/Footer.vue"
-import { useSearch, useSearchState, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE } from "@/search"
+import { useSearch, useSearchState, postFilters } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, encodeQuery } from "@/utils"
@@ -515,13 +515,11 @@ function onFilterChange(change: FilterStateChange) {
       <SearchResultsFeed
         v-if="searchView === 'feed'"
         v-model:search-view="searchView"
+        :s="s"
         :search-results="searchResults"
         :search-total="searchTotal"
-        :s="s"
         :search-more-than-total="searchMoreThanTotal"
         :search-state="searchState"
-        :search-initial-limit="SEARCH_INITIAL_LIMIT"
-        :search-increase="SEARCH_INCREASE"
         :search-progress="searchProgress"
         :filters-enabled="filtersEnabled"
         :filters-state="filtersState"
@@ -532,10 +530,10 @@ function onFilterChange(change: FilterStateChange) {
       <SearchResultsTable
         v-else-if="searchView === 'table'"
         v-model:search-view="searchView"
+        :search-results="searchResults"
+        :search-total="searchTotal"
         :search-more-than-total="searchMoreThanTotal"
         :search-state="searchState"
-        :search-total="searchTotal"
-        :search-results="searchResults"
       />
     </template>
   </div>

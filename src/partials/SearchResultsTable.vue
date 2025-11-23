@@ -7,10 +7,10 @@ import { computed, DeepReadonly } from "vue"
 
 const props = defineProps<{
   searchView: SearchViewType
+  searchResults: DeepReadonly<SearchResultType[]>
+  searchTotal: number | null
   searchMoreThanTotal: boolean
   searchState: DeepReadonly<ClientSearchState | null>
-  searchTotal: number | null
-  searchResults: DeepReadonly<SearchResultType[]>
 }>()
 
 const $emit = defineEmits<{

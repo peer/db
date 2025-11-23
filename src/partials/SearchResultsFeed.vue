@@ -34,23 +34,21 @@ import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
 import { encodeQuery, useLimitResults } from "@/utils.ts"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
+import { SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 
 const props = defineProps<{
   searchView: SearchViewType
 
-  // search props
+  // Search props.
+  s: string
   searchResults: DeepReadonly<SearchResultType[]>
   searchTotal: number | null
-  s: string
   searchMoreThanTotal: boolean
   searchState: DeepReadonly<ClientSearchState | null>
-  searchInitialLimit: number
-  searchIncrease: number
   searchProgress: number
 
-  // filter props
+  // Filter props.
   filtersEnabled: boolean
   filtersState: FiltersState
   updateFiltersProgress: number
@@ -70,7 +68,7 @@ const {
   limitedResults: limitedSearchResults,
   hasMore: searchHasMore,
   loadMore: searchLoadMore,
-} = useLimitResults(toRef(props, "searchResults"), props.searchInitialLimit, props.searchIncrease)
+} = useLimitResults(toRef(props, "searchResults"), SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
 
 const filtersEl = ref(null)
 
