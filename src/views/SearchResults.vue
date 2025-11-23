@@ -496,7 +496,7 @@ function onFilterChange(change: FilterStateChange) {
       </Button>
     </NavBar>
   </Teleport>
-  <div class="mt-12 w-full p-1 sm:mt-[4.5rem] sm:p-4 border-t border-transparent" :data-url="searchURL">
+  <div class="mt-12 w-full border-t border-transparent p-1 sm:mt-[4.5rem] sm:p-4" :data-url="searchURL">
     <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
       <div class="text-center text-sm">
         <i class="text-error-600">loading data failed</i>
