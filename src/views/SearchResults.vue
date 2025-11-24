@@ -525,7 +525,4 @@ function onFilterChange(change: FilterStateChange) {
       :search-state="searchState"
     />
   </div>
-  <Teleport v-if="(searchTotal !== null && searchTotal > 0) || searchTotal === 0" to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
-  </Teleport>
 </template>

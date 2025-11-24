@@ -32,6 +32,7 @@ import { useVisibilityTracking } from "@/visibility"
 import { encodeQuery, useLimitResults } from "@/utils.ts"
 import { SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, activeSearchState } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
+import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
   searchView: SearchViewType
@@ -334,5 +335,9 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
         </div>
       </template>
     </div>
+
+    <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
+      <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    </Teleport>
   </div>
 </template>

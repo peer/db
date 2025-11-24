@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
+
 import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 
-import { computed, DeepReadonly } from "vue"
+import { computed } from "vue"
 
 const props = defineProps<{
   searchView: SearchViewType
