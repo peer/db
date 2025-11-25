@@ -1,4 +1,6 @@
 import type { BareItem, Key } from "structured-field-values"
+import type { Component } from "vue"
+
 import type { NONE } from "@/symbols"
 
 type TranslatableHTMLString = Record<string, string>
@@ -90,14 +92,14 @@ export type RelNoneFilter = {
 
 export type AmountFilter = {
   prop: string
-  unit: string
+  unit: AmountUnit
   gte?: number
   lte?: number
 }
 
 export type AmountNoneFilter = {
   prop: string
-  unit: string
+  unit: AmountUnit
   none: true
 }
 
@@ -173,6 +175,49 @@ export type FiltersState = {
   size: SizeFilterState
 }
 
+export type RelFilterStateChange = {
+  type: "rel"
+  id: string
+  value: RelFilterState
+}
+
+export type AmountFilterStateChange = {
+  type: "amount"
+  id: string
+  unit: AmountUnit
+  value: AmountFilterState
+}
+
+export type TimeFilterStateChange = {
+  type: "time"
+  id: string
+  value: TimeFilterState
+}
+
+export type StringFilterStateChange = {
+  type: "string"
+  id: string
+  value: StringFilterState
+}
+
+export type IndexFilterStateChange = {
+  type: "index"
+  value: IndexFilterState
+}
+
+export type SizeFilterStateChange = {
+  type: "size"
+  value: SizeFilterState
+}
+
+export type FilterStateChange =
+  | RelFilterStateChange
+  | AmountFilterStateChange
+  | TimeFilterStateChange
+  | StringFilterStateChange
+  | IndexFilterStateChange
+  | SizeFilterStateChange
+
 export type ServerSearchState = {
   s: string
   q: string
@@ -242,6 +287,19 @@ export type DocumentBeginMetadata = {
   at: string
   id: string
   version: string
+}
+
+export type SearchViewType = "table" | "feed"
+
+export type SelectButtonOption<T> = {
+  name: string
+  value: T
+  icon?: {
+    component: string | Component
+    alt: string
+  }
+  disabled?: boolean
+  progress?: number
 }
 
 // It is recursive.

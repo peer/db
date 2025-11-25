@@ -24,9 +24,10 @@ import type {
   StringSearchResult,
   ClientSearchState,
   ServerSearchState,
+  AmountUnit,
 } from "@/types"
 
-import { ref, watch, readonly, onBeforeUnmount } from "vue"
+import { ref, watch, readonly, onBeforeUnmount, toRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { getURL, postURL, getURLDirect } from "@/api"
 import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
@@ -119,9 +120,9 @@ export async function postFilters(
     const [prop, unit] = segments
     // TODO: Support also OR between value and none.
     if (value === NONE) {
-      filters.and.push({ amount: { prop, unit, none: true } })
+      filters.and.push({ amount: { prop, unit: unit as AmountUnit, none: true } })
     } else {
-      filters.and.push({ amount: { prop, unit, ...value } })
+      filters.and.push({ amount: { prop, unit: unit as AmountUnit, ...value } })
     }
   }
   for (const [prop, value] of Object.entries(updatedState.time)) {
@@ -1277,4 +1278,19 @@ export function useSearchState(
     error,
     url,
   }
+}
+
+export function activeSearchState(searchState: Ref<DeepReadonly<ClientSearchState | null>>, s: Ref<string>): Ref<string> {
+  return toRef(() => {
+    if (!searchState.value) {
+      return ""
+    }
+    if (searchState.value.s !== s.value) {
+      return ""
+    }
+    if (searchState.value.p && !searchState.value.promptDone) {
+      return ""
+    }
+    return s.value
+  })
 }

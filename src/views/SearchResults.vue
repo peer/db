@@ -7,38 +7,27 @@ import type {
   IndexFilterState,
   SizeFilterState,
   FiltersState,
-  RelSearchResult,
-  AmountSearchResult,
-  TimeSearchResult,
-  StringSearchResult,
-  IndexSearchResult,
-  SizeSearchResult,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
+  SearchViewType,
+  FilterStateChange,
 } from "@/types"
 
-import { ref, computed, toRef, watch, onMounted, onBeforeUnmount, watchEffect } from "vue"
+import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
+
 import Button from "@/components/Button.vue"
-import SearchResult from "@/partials/SearchResult.vue"
-import RelFiltersResult from "@/partials/RelFiltersResult.vue"
-import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
-import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
-import StringFiltersResult from "@/partials/StringFiltersResult.vue"
-import IndexFiltersResult from "@/partials/IndexFiltersResult.vue"
-import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
-import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import Footer from "@/partials/Footer.vue"
-import { useSearch, useSearchState, useFilters, postFilters, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { useVisibilityTracking } from "@/visibility"
+import { useSearch, useSearchState, postFilters, activeSearchState } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
-import { clone, useLimitResults, encodeQuery } from "@/utils"
+import { clone, encodeQuery } from "@/utils"
 import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
+import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
+import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 
 const props = defineProps<{
   s: string
@@ -61,6 +50,8 @@ onBeforeUnmount(() => {
 
 const searchEl = ref(null)
 
+const searchView = ref<SearchViewType>("feed")
+
 const searchProgress = localProgress(mainProgress)
 const {
   searchState,
@@ -76,133 +67,13 @@ const {
   moreThanTotal: searchMoreThanTotal,
   error: searchResultsError,
 } = useSearch(
-  toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== props.s) {
-      return ""
-    }
-    if (searchState.value.p && !searchState.value.promptDone) {
-      return ""
-    }
-    return props.s
-  }),
+  activeSearchState(
+    searchState,
+    toRef(() => props.s),
+  ),
   searchEl,
   searchProgress,
 )
-
-const { limitedResults: limitedSearchResults, hasMore: searchHasMore, loadMore: searchLoadMore } = useLimitResults(searchResults, SEARCH_INITIAL_LIMIT, SEARCH_INCREASE)
-
-const filtersEl = ref(null)
-
-const filtersProgress = localProgress(mainProgress)
-const {
-  results: filtersResults,
-  total: filtersTotal,
-  error: filtersError,
-  url: filtersURL,
-} = useFilters(
-  toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== props.s) {
-      return ""
-    }
-    if (searchState.value.p && !searchState.value.promptDone) {
-      return ""
-    }
-    return props.s
-  }),
-  filtersEl,
-  filtersProgress,
-)
-
-const {
-  limitedResults: limitedFiltersResults,
-  hasMore: filtersHasMore,
-  loadMore: filtersLoadMore,
-} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
-const idToIndex = computed(() => {
-  const map = new Map<string, number>()
-  for (const [i, result] of searchResults.value.entries()) {
-    map.set(result.id, i)
-  }
-  return map
-})
-
-const { track, visibles } = useVisibilityTracking()
-
-const initialRouteName = route.name
-watch(
-  () => {
-    const sorted = Array.from(visibles)
-    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-    return sorted[0]
-  },
-  async (topId, oldTopId, onCleanup) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
-      return
-    }
-    // Initial data has not yet been loaded, so we wait.
-    if (!topId && searchTotal.value === null) {
-      return
-    }
-    await router.replace({
-      name: route.name as string,
-      params: route.params,
-      // We do not want to set an empty "at" query parameter.
-      query: encodeQuery({ ...route.query, at: topId || undefined }),
-      hash: route.hash,
-    })
-  },
-  {
-    immediate: true,
-  },
-)
-
-const searchMoreButton = ref()
-const filtersMoreButton = ref()
-const supportPageOffset = window.pageYOffset !== undefined
-
-function onScroll() {
-  if (abortController.signal.aborted) {
-    return
-  }
-  if (!searchMoreButton.value && !filtersMoreButton.value) {
-    return
-  }
-
-  const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
-  const scrollHeight = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight,
-    document.body.offsetHeight,
-    document.documentElement.offsetHeight,
-    document.body.clientHeight,
-    document.documentElement.clientHeight,
-  )
-  const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
-  if (currentScrollPosition > scrollHeight - 2 * viewportHeight) {
-    if (searchMoreButton.value) {
-      searchMoreButton.value.$el.click()
-    }
-    if (filtersMoreButton.value) {
-      filtersMoreButton.value.$el.click()
-    }
-  }
-}
-
-onMounted(() => {
-  window.addEventListener("scroll", onScroll, { passive: true })
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener("scroll", onScroll)
-})
 
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
@@ -346,8 +217,6 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
     updateFiltersProgress.value -= 1
   }
 }
-
-const filtersEnabled = ref(false)
 
 async function onCreate() {
   if (abortController.signal.aborted) {
@@ -580,12 +449,40 @@ async function onChange() {
     break
   }
 }
+
+function onFilterChange(change: FilterStateChange) {
+  switch (change.type) {
+    case "rel": {
+      return onRelFiltersStateUpdate(change.id, change.value)
+    }
+
+    case "amount": {
+      return onAmountFiltersStateUpdate(change.id, change.unit, change.value)
+    }
+
+    case "time": {
+      return onTimeFiltersStateUpdate(change.id, change.value)
+    }
+
+    case "string": {
+      return onStringFiltersStateUpdate(change.id, change.value)
+    }
+
+    case "index": {
+      return onIndexFiltersStateUpdate(change.value)
+    }
+
+    case "size": {
+      return onSizeFiltersStateUpdate(change.value)
+    }
+  }
+}
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch v-model:filters-enabled="filtersEnabled" :s="s" />
+      <NavBarSearch :s="s" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
@@ -597,116 +494,32 @@ async function onChange() {
       </Button>
     </NavBar>
   </Teleport>
-  <div class="mt-12 flex w-full gap-x-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-x-4 sm:p-4">
-    <div ref="searchEl" class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'" :data-url="searchURL">
-      <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
-        <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
-      </div>
-      <SearchResultsHeader v-else :state="searchState" :total="searchTotal" :results="searchResults.length" :more-than-total="searchMoreThanTotal" />
-      <template v-if="!searchStateError && !searchResultsError && searchTotal !== null && searchTotal > 0">
-        <template v-for="(result, i) in limitedSearchResults" :key="result.id">
-          <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
-            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} results.</div>
-            <div class="relative h-2 w-full bg-slate-200">
-              <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }"></div>
-            </div>
-          </div>
-          <SearchResult :ref="track(result.id) as any" :s="s" :result="result" />
-        </template>
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
-          >Load more</Button
-        >
-        <div v-else class="my-1 sm:my-4">
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
-          <div v-else-if="searchResults.length < searchTotal && !searchMoreThanTotal" class="text-center text-sm">
-            All of first {{ searchResults.length }} shown of {{ searchTotal }} results found.
-          </div>
-          <div v-else-if="searchResults.length === searchTotal && !searchMoreThanTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
-          <div class="relative h-2 w-full bg-slate-200">
-            <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
-          </div>
-        </div>
-      </template>
+  <div ref="searchEl" class="mt-12 w-full border-t border-transparent p-1 sm:mt-[4.5rem] sm:p-4" :data-url="searchURL">
+    <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
+      <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
     </div>
-    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
-      <div v-if="searchStateError || searchResultsError || filtersError" class="my-1 sm:my-4">
-        <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
-      </div>
-      <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Determining filters...</div>
-      </div>
-      <div v-else-if="filtersTotal === 0" class="my-1 sm:my-4">
-        <div class="text-center text-sm">No filters available.</div>
-      </div>
-      <template v-else-if="filtersTotal > 0">
-        <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
-        <template v-for="result in limitedFiltersResults" :key="'id' in result ? result.id : result.type">
-          <RelFiltersResult
-            v-if="result.type === 'rel'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as RelSearchResult"
-            :state="filtersState.rel[result.id] || (filtersState.rel[result.id] = [])"
-            :update-progress="updateFiltersProgress"
-            @update:state="onRelFiltersStateUpdate(result.id, $event)"
-          />
-          <AmountFiltersResult
-            v-if="result.type === 'amount'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as AmountSearchResult"
-            :state="filtersState.amount[`${result.id}/${result.unit}`] || (filtersState.amount[`${result.id}/${result.unit}`] = null)"
-            :update-progress="updateFiltersProgress"
-            @update:state="onAmountFiltersStateUpdate(result.id, result.unit, $event)"
-          />
-          <TimeFiltersResult
-            v-if="result.type === 'time'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as TimeSearchResult"
-            :state="filtersState.time[result.id] || (filtersState.time[result.id] = null)"
-            :update-progress="updateFiltersProgress"
-            @update:state="onTimeFiltersStateUpdate(result.id, $event)"
-          />
-          <StringFiltersResult
-            v-if="result.type === 'string'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as StringSearchResult"
-            :state="filtersState.str[result.id] || (filtersState.str[result.id] = [])"
-            :update-progress="updateFiltersProgress"
-            @update:state="onStringFiltersStateUpdate(result.id, $event)"
-          />
-          <IndexFiltersResult
-            v-if="result.type === 'index'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as IndexSearchResult"
-            :state="filtersState.index"
-            :update-progress="updateFiltersProgress"
-            @update:state="onIndexFiltersStateUpdate($event)"
-          />
-          <SizeFiltersResult
-            v-if="result.type === 'size'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="result as SizeSearchResult"
-            :state="filtersState.size"
-            :update-progress="updateFiltersProgress"
-            @update:state="onSizeFiltersStateUpdate($event)"
-          />
-        </template>
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
-          >More filters</Button
-        >
-        <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">
-          {{ filtersTotal - limitedFiltersResults.length }} filters not shown.
-        </div>
-      </template>
-    </div>
+
+    <SearchResultsFeed
+      v-else-if="searchView === 'feed'"
+      v-model:search-view="searchView"
+      :s="s"
+      :search-results="searchResults"
+      :search-total="searchTotal"
+      :search-more-than-total="searchMoreThanTotal"
+      :search-state="searchState"
+      :search-progress="searchProgress"
+      :filters-state="filtersState"
+      :update-filters-progress="updateFiltersProgress"
+      @on-filter-change="onFilterChange"
+    />
+
+    <SearchResultsTable
+      v-else-if="searchView === 'table'"
+      v-model:search-view="searchView"
+      :search-results="searchResults"
+      :search-total="searchTotal"
+      :search-more-than-total="searchMoreThanTotal"
+      :search-state="searchState"
+    />
   </div>
-  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
-  </Teleport>
 </template>
