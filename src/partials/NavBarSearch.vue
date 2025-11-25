@@ -3,7 +3,7 @@ import { onBeforeUnmount, ref, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { SparklesIcon } from "@heroicons/vue/20/solid"
-import { FunnelIcon } from "@heroicons/vue/20/solid"
+
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import { postSearch } from "@/search"
@@ -12,16 +12,11 @@ import { injectProgress } from "@/progress"
 const props = withDefaults(
   defineProps<{
     s?: string
-    filtersEnabled?: boolean | null
   }>(),
   {
     s: "",
-    filtersEnabled: null,
   },
 )
-const emit = defineEmits<{
-  (e: "update:filtersEnabled", value: boolean): void
-}>()
 
 const route = useRoute()
 
@@ -90,14 +85,6 @@ async function onSubmit(isPrompt: boolean) {
     progress.value -= 1
   }
 }
-
-function onFilters() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  emit("update:filtersEnabled", !props.filtersEnabled)
-}
 </script>
 
 <template>
@@ -111,8 +98,7 @@ function onFilters() {
       <SparklesIcon class="h-5 w-5 sm:hidden" alt="Prompt" />
       <span class="hidden sm:inline">Prompt</span>
     </Button>
-    <Button v-if="filtersEnabled != null" primary class="!px-3.5 sm:hidden" type="button" @click="onFilters">
-      <FunnelIcon class="h-5 w-5" alt="Filters" />
-    </Button>
+
+    <div id="search-navbar-portal" />
   </form>
 </template>

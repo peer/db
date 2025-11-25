@@ -16,10 +16,10 @@ import type {
 import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
+
 import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import Footer from "@/partials/Footer.vue"
 import { useSearch, useSearchState, postFilters, activeSearchState } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
@@ -217,8 +217,6 @@ async function onSizeFiltersStateUpdate(s: SizeFilterState) {
     updateFiltersProgress.value -= 1
   }
 }
-
-const filtersEnabled = ref(false)
 
 async function onCreate() {
   if (abortController.signal.aborted) {
@@ -484,7 +482,7 @@ function onFilterChange(change: FilterStateChange) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch v-model:filters-enabled="filtersEnabled" :s="s" />
+      <NavBarSearch :s="s" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
@@ -510,7 +508,6 @@ function onFilterChange(change: FilterStateChange) {
       :search-more-than-total="searchMoreThanTotal"
       :search-state="searchState"
       :search-progress="searchProgress"
-      :filters-enabled="filtersEnabled"
       :filters-state="filtersState"
       :update-filters-progress="updateFiltersProgress"
       @on-filter-change="onFilterChange"

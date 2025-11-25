@@ -18,6 +18,7 @@ import type {
 
 import { useRoute, useRouter } from "vue-router"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue"
+import { FunnelIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
 import SearchResult from "@/partials/SearchResult.vue"
@@ -46,7 +47,6 @@ const props = defineProps<{
   searchProgress: number
 
   // Filter props.
-  filtersEnabled: boolean
   filtersState: FiltersState
   updateFiltersProgress: number
 }>()
@@ -70,6 +70,7 @@ const {
 )
 
 const filtersEl = ref(null)
+const filtersEnabled = ref(false)
 
 const filtersProgress = injectProgress()
 const {
@@ -210,9 +211,23 @@ function onIndexFiltersStateUpdate(value: IndexFilterState) {
 function onSizeFiltersStateUpdate(value: SizeFilterState) {
   $emit("onFilterChange", { type: "size", value })
 }
+
+function onFilters() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  filtersEnabled.value = !filtersEnabled.value
+}
 </script>
 
 <template>
+  <Teleport to="#search-navbar-portal">
+    <Button v-if="filtersEnabled != null" primary class="!px-3.5 sm:hidden" type="button" @click="onFilters">
+      <FunnelIcon class="h-5 w-5" alt="Filters" />
+    </Button>
+  </Teleport>
+
   <div class="flex w-full gap-x-1 sm:gap-x-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
