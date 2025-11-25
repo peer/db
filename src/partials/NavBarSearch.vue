@@ -99,6 +99,6 @@ async function onSubmit(isPrompt: boolean) {
       <span class="hidden sm:inline">Prompt</span>
     </Button>
 
-    <div id="search-navbar-portal" />
+    <div id="navbarsearch-teleport-end" class="flex gap-x-1 sm:gap-x-4" />
   </form>
 </template>
