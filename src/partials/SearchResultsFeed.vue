@@ -335,9 +335,9 @@ function onSizeFiltersStateUpdate(value: SizeFilterState) {
         </div>
       </template>
     </div>
-
-    <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
-      <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
-    </Teleport>
   </div>
+
+  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+  </Teleport>
 </template>
