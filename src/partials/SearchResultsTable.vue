@@ -1,18 +1,28 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
+import type {
+  AmountSearchResult,
+  ClientSearchState,
+  RelSearchResult,
+  SearchResult as SearchResultType,
+  SearchViewType,
+  StringSearchResult,
+  TimeSearchResult,
+} from "@/types"
+import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef } from "vue"
+import { computed, toRef, ref } from "vue"
 
-import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { useLimitResults } from "@/utils.ts"
 import WithDocument from "@/components/WithDocument.vue"
-import { PeerDBDocument } from "@/document.ts"
-import { SEARCH_INCREASE, SEARCH_INITIAL_LIMIT } from "@/search.ts"
 import Footer from "@/partials/Footer.vue"
+import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import { getName, loadingWidth, useLimitResults } from "@/utils.ts"
+import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, SEARCH_INCREASE, SEARCH_INITIAL_LIMIT, useFilters } from "@/search.ts"
+import { injectProgress } from "@/progress.ts"
 
 const props = defineProps<{
+  s: string
   searchView: SearchViewType
   searchMoreThanTotal: boolean
   searchState: DeepReadonly<ClientSearchState | null>
@@ -36,6 +46,28 @@ const {
   SEARCH_INCREASE,
 )
 
+const filtersEl = ref(null)
+const filtersProgress = injectProgress()
+const {
+  results: filtersResults,
+  total: filtersTotal,
+  error: filtersError,
+  url: filtersURL,
+} = useFilters(
+  activeSearchState(
+    toRef(() => props.searchState),
+    toRef(() => props.s),
+  ),
+  filtersEl,
+  filtersProgress,
+)
+
+const {
+  limitedResults: limitedFiltersResults,
+  hasMore: filtersHasMore,
+  loadMore: filtersLoadMore,
+} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
 const searchViewValue = computed({
   get() {
     return props.searchView
@@ -44,6 +76,39 @@ const searchViewValue = computed({
     $emit("update:searchView", value)
   },
 })
+
+function getDocumentRelPropertyId(filterResult: RelSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
+  const claims = searchDocument.claims?.[filterResult.type]
+  if (!claims) return ""
+
+  const match = claims.find((claim) => claim.prop.id === filterResult.id)
+  return match?.to.id ?? ""
+}
+
+function getDocumentAmountPropertyValue(filterResult: AmountSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
+  const claims = searchDocument.claims?.[filterResult.type]
+  if (!claims) return ""
+
+  const match = claims.find((claim) => claim.prop.id === filterResult.id)
+  return match?.amount.toString() ?? ""
+}
+
+function getDocumentStringPropertyValue(filterResult: StringSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
+  const claims = searchDocument.claims?.[filterResult.type]
+  if (!claims) return ""
+
+  const match = claims.find((claim) => claim.prop.id === filterResult.id)
+  return match?.string ?? ""
+}
+
+function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
+  const claims = searchDocument.claims?.[filterResult.type]
+  if (!claims) return ""
+
+  const match = claims.find((claim) => claim.prop.id === filterResult.id)
+
+  return match?.timestamp ?? ""
+}
 </script>
 
 <template>
@@ -54,24 +119,87 @@ const searchViewValue = computed({
     <div class="shadow bg-white border rounded" style="height: calc(100vh - 215px)">
       <div class="overflow-x-auto overflow-y-auto h-full w-full">
         <table class="table-fixed text-sm min-w-max">
+          <!-- Header filters -->
           <thead class="bg-slate-300 sticky top-0 z-10">
             <tr>
-              <th class="p-2 min-w-[200px] text-left">Heading 1</th>
-              <th class="p-2 min-w-[200px] text-left">Heading 2</th>
-              <th class="p-2 min-w-[200px] text-left">Heading 3</th>
-              <th class="p-2 min-w-[200px] text-left">Heading 4</th>
-              <th class="p-2 min-w-[200px] text-left">Heading 5</th>
-              <th class="p-2 min-w-[200px] text-left">Heading 6</th>
+              <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
+                <div class="flex items-center gap-x-1">
+                  <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
+                    <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                      <template #default="{ doc, url }">
+                        <RouterLink
+                          :to="{ name: 'DocumentGet', params: { id: result.id } }"
+                          :data-url="url"
+                          class="link text-lg leading-none"
+                          v-html="getName(doc.claims) || '<i>no name</i>'"
+                        ></RouterLink>
+                      </template>
+                      <template #loading="{ url }">
+                        <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
+                      </template>
+                    </WithPeerDBDocument>
+                    ({{ result.count }})
+                  </template>
+
+                  <template v-else-if="result.type === 'index'">
+                    <div class="flex items-baseline gap-x-1">
+                      <span class="mb-1.5 text-lg leading-none">document index</span>
+                      ({{ result.count }})
+                    </div>
+                  </template>
+
+                  <template v-else-if="result.type === 'size'">
+                    <div class="flex items-baseline gap-x-1">
+                      <span class="mb-1.5 text-lg leading-none">document size</span>
+                      ({{ result.count }})
+                    </div>
+                  </template>
+                </div>
+              </th>
             </tr>
           </thead>
 
+          <!-- Results -->
           <tbody class="divide-y">
             <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
-              <td class="p-2">
-                <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                  <template #default="{ doc: resultDoc }"> {{ resultDoc }} </template>
-                </WithPeerDBDocument>
-              </td>
+              <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                <template #default="{ doc: searchDoc }">
+                  <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2">
+                    <!-- Document rel property -->
+                    <WithPeerDBDocument
+                      v-if="filter.type === 'rel' && getDocumentRelPropertyId(filter, searchDoc)"
+                      :id="getDocumentRelPropertyId(filter, searchDoc)"
+                      name="DocumentGet"
+                    >
+                      <template #default="{ doc: resultDoc }">
+                        {{ getName(resultDoc.claims) }}
+                      </template>
+                      <template #loading="{ url }">
+                        <div
+                          class="inline-block h-2 animate-pulse rounded bg-slate-200"
+                          :data-url="url"
+                          :class="[loadingWidth(getDocumentRelPropertyId(filter, searchDoc))]"
+                        ></div>
+                      </template>
+                    </WithPeerDBDocument>
+
+                    <!-- Document amount property -->
+                    <template v-else-if="filter.type === 'amount'">
+                      {{ getDocumentAmountPropertyValue(filter, searchDoc) }}
+                    </template>
+
+                    <!-- Document time property -->
+                    <template v-else-if="filter.type === 'time'">
+                      {{ getDocumentTimePropertyValue(filter, searchDoc) }}
+                    </template>
+
+                    <!-- Document string property -->
+                    <template v-else-if="filter.type === 'string'">
+                      {{ getDocumentStringPropertyValue(filter, searchDoc) }}
+                    </template>
+                  </td>
+                </template>
+              </WithPeerDBDocument>
             </tr>
           </tbody>
         </table>

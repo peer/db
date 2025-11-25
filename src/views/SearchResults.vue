@@ -516,6 +516,7 @@ function onFilterChange(change: FilterStateChange) {
     <SearchResultsTable
       v-else-if="searchView === 'table'"
       v-model:search-view="searchView"
+      :s="s"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
