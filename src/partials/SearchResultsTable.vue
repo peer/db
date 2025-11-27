@@ -225,7 +225,7 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
           </thead>
 
           <!-- Results -->
-          <tbody class="divide-y">
+          <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
             <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
               <WithPeerDBDocument :id="result.id" name="DocumentGet">
                 <template #default="{ doc: searchDoc }">
