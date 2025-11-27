@@ -175,7 +175,7 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
 </script>
 
 <template>
-  <div class="w-full h-full flex-auto sm:flex flex-col gap-y-1 sm:gap-y-4">
+  <div class="w-full h-full flex flex-col gap-y-1 sm:gap-y-4">
     <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
 
     <!-- TODO: Calculate height with flex-col and h-full (change structure to the body, header, main , footer) -->
