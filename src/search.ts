@@ -37,6 +37,7 @@ export { NONE } from "@/symbols"
 
 export const SEARCH_INITIAL_LIMIT = 50
 export const SEARCH_INCREASE = 50
+export const SEARCH_TABLE_INCREASE = 50
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 

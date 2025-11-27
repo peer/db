@@ -12,13 +12,13 @@ import type {
 } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef, ref } from "vue"
+import { computed, toRef, ref, onMounted } from "vue"
 
 import WithDocument from "@/components/WithDocument.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { getName, loadingWidth, useLimitResults } from "@/utils.ts"
-import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, SEARCH_INCREASE, SEARCH_INITIAL_LIMIT, useFilters } from "@/search.ts"
+import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 
 const props = defineProps<{
@@ -43,7 +43,7 @@ const {
 } = useLimitResults(
   toRef(() => props.searchResults),
   SEARCH_INITIAL_LIMIT,
-  SEARCH_INCREASE,
+  SEARCH_TABLE_INCREASE,
 )
 
 const filtersEl = ref(null)
@@ -67,6 +67,27 @@ const {
   hasMore: filtersHasMore,
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
+const sentinel = ref<HTMLElement | null>(null)
+const scrollContainer = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) {
+        if (searchHasMore) searchLoadMore()
+        if (filtersHasMore) filtersLoadMore()
+      }
+    },
+    {
+      root: scrollContainer.value,
+      rootMargin: "0px 0px 300px 0px",
+      threshold: 0,
+    },
+  )
+
+  if (sentinel.value) observer.observe(sentinel.value)
+})
 
 const searchViewValue = computed({
   get() {
@@ -117,7 +138,7 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
 
     <!-- TODO: Calculate height with flex-col and h-full (change structure to the body, header, main , footer) -->
     <div class="shadow bg-white border rounded" style="height: calc(100vh - 215px)">
-      <div class="overflow-x-auto overflow-y-auto h-full w-full">
+      <div ref="scrollContainer" class="overflow-x-auto overflow-y-auto h-full w-full">
         <table class="table-fixed text-sm min-w-max">
           <!-- Header filters -->
           <thead class="bg-slate-300 sticky top-0 z-10">
@@ -203,6 +224,8 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
             </tr>
           </tbody>
         </table>
+
+        <div ref="sentinel" />
       </div>
     </div>
   </div>
