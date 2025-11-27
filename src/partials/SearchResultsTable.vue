@@ -18,7 +18,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { getName, loadingWidth, useLimitResults } from "@/utils.ts"
-import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
+import { activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 
 const props = defineProps<{
@@ -66,12 +66,49 @@ const {
   limitedResults: limitedFiltersResults,
   hasMore: filtersHasMore,
   loadMore: filtersLoadMore,
-} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE)
 
-const sentinel = ref<HTMLElement | null>(null)
+const verticalSentinel = ref<HTMLElement | null>(null)
+const horizontalSentinel = ref<HTMLElement | null>(null)
 const scrollContainer = ref<HTMLElement | null>(null)
 
-onMounted(() => {
+function isHorizontalVisible() {
+  const root = scrollContainer.value
+  const sentinel = horizontalSentinel.value
+  if (!root || !sentinel) return false
+
+  const sentinelRect = sentinel.getBoundingClientRect()
+  const rootRect = root.getBoundingClientRect()
+  return sentinelRect.left < rootRect.right
+}
+
+function ensureOverflow() {
+  if (!filtersHasMore || !isHorizontalVisible()) return
+  filtersLoadMore()
+  requestAnimationFrame(ensureOverflow)
+}
+
+function observeHorizontal() {
+  const root = scrollContainer.value
+  if (!root || !horizontalSentinel.value) return
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && filtersHasMore) filtersLoadMore()
+    },
+    {
+      root,
+      rootMargin: "0px 120px 0px 0px",
+      threshold: 0,
+    },
+  )
+  observer.observe(horizontalSentinel.value)
+}
+
+function observeVertical() {
+  const root = scrollContainer.value
+  if (!root || !verticalSentinel.value) return
+
   const observer = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting) {
@@ -80,13 +117,18 @@ onMounted(() => {
       }
     },
     {
-      root: scrollContainer.value,
+      root,
       rootMargin: "0px 0px 300px 0px",
       threshold: 0,
     },
   )
+  observer.observe(verticalSentinel.value)
+}
 
-  if (sentinel.value) observer.observe(sentinel.value)
+onMounted(() => {
+  ensureOverflow()
+  observeHorizontal()
+  observeVertical()
 })
 
 const searchViewValue = computed({
@@ -177,6 +219,8 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
                   </template>
                 </div>
               </th>
+
+              <div ref="horizontalSentinel" />
             </tr>
           </thead>
 
@@ -225,7 +269,7 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
           </tbody>
         </table>
 
-        <div ref="sentinel" />
+        <div ref="verticalSentinel" />
       </div>
     </div>
   </div>
