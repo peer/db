@@ -228,7 +228,7 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div class="flex w-full gap-x-1 sm:gap-x-4">
+  <div class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
