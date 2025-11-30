@@ -6,10 +6,11 @@ import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick } from "vue"
 
-import WithDocument from "@/components/WithDocument.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
+import WithDocument from "@/components/WithDocument.vue"
+import Button from "@/components/Button.vue"
 import { getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
 import { activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
@@ -21,6 +22,7 @@ const props = defineProps<{
   searchState: DeepReadonly<ClientSearchState | null>
   searchTotal: number | null
   searchResults: DeepReadonly<SearchResultType[]>
+  searchProgress: number
 }>()
 
 const $emit = defineEmits<{
@@ -196,65 +198,77 @@ function handleTableWidthResize(width: number): void {
         :search-more-than-total="searchMoreThanTotal"
       />
 
-      <div ref="tableWrapper" class="rounded shadow border w-fit">
-        <table class="table-fixed text-sm min-w-max">
-          <!-- Headers -->
-          <thead class="bg-slate-300 sticky top-0 z-10">
-            <tr>
-              <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
-                <div class="flex items-center gap-x-1">
-                  <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
-                    <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                      <template #default="{ doc, url }">
-                        <RouterLink
-                          :to="{ name: 'DocumentGet', params: { id: result.id } }"
-                          :data-url="url"
-                          class="link text-lg leading-none"
-                          v-html="getName(doc.claims) || '<i>no name</i>'"
-                        ></RouterLink>
-                      </template>
-                      <template #loading="{ url }">
-                        <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
-                      </template>
-                    </WithPeerDBDocument>
-                    ({{ result.count }})
-                  </template>
-
-                  <template v-else-if="result.type === 'index'">
-                    <div class="flex items-baseline gap-x-1">
-                      <span class="mb-1.5 text-lg leading-none">document index</span>
+      <div ref="tableWrapper" class="flex gap-x-1 sm:gap-x-4 w-fit">
+        <div class="rounded shadow border w-fit">
+          <table class="table-fixed text-sm min-w-max">
+            <!-- Headers -->
+            <thead class="bg-slate-300 sticky top-0 z-10">
+              <tr>
+                <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
+                  <div class="flex items-center gap-x-1">
+                    <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
+                      <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                        <template #default="{ doc, url }">
+                          <RouterLink
+                            :to="{ name: 'DocumentGet', params: { id: result.id } }"
+                            :data-url="url"
+                            class="link text-lg leading-none"
+                            v-html="getName(doc.claims) || '<i>no name</i>'"
+                          ></RouterLink>
+                        </template>
+                        <template #loading="{ url }">
+                          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
+                        </template>
+                      </WithPeerDBDocument>
                       ({{ result.count }})
-                    </div>
-                  </template>
+                    </template>
 
-                  <template v-else-if="result.type === 'size'">
-                    <div class="flex items-baseline gap-x-1">
-                      <span class="mb-1.5 text-lg leading-none">document size</span>
-                      ({{ result.count }})
-                    </div>
-                  </template>
-                </div>
-              </th>
-            </tr>
-          </thead>
+                    <template v-else-if="result.type === 'index'">
+                      <div class="flex items-baseline gap-x-1">
+                        <span class="mb-1.5 text-lg leading-none">document index</span>
+                        ({{ result.count }})
+                      </div>
+                    </template>
 
-          <!-- Results -->
-          <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
-            <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
-              <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                <template #default="{ doc: searchDoc }">
-                  <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
-                    <ClaimValue
-                      v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
-                      :type="filter.type"
-                      :claim="getBestClaimOfType(searchDoc.claims, filter.type, filter.id)"
-                    />
-                  </td>
-                </template>
-              </WithPeerDBDocument>
-            </tr>
-          </tbody>
-        </table>
+                    <template v-else-if="result.type === 'size'">
+                      <div class="flex items-baseline gap-x-1">
+                        <span class="mb-1.5 text-lg leading-none">document size</span>
+                        ({{ result.count }})
+                      </div>
+                    </template>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+
+            <!-- Results -->
+            <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
+              <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
+                <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                  <template #default="{ doc: searchDoc }">
+                    <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
+                      <ClaimValue
+                        v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
+                        :type="filter.type"
+                        :claim="getBestClaimOfType(searchDoc.claims, filter.type, filter.id)"
+                      />
+                    </td>
+                  </template>
+                </WithPeerDBDocument>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="absolute top-0 w-fit h-fit min-w-fit" @click="filtersLoadMore"
+          >More filters</Button
+        >
+      </div>
+
+      <div class="sticky left-0 w-full text-center">
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
+          >Load more</Button
+        >
       </div>
     </div>
   </div>

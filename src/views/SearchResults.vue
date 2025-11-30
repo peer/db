@@ -521,6 +521,7 @@ function onFilterChange(change: FilterStateChange) {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-state="searchState"
+      :search-progress="searchProgress"
     />
   </div>
 </template>
