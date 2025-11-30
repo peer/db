@@ -4,16 +4,18 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick } from "vue"
+import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue"
 
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
-import { getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
+import { encodeQuery, getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
 import { activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
+import { useVisibilityTracking } from "@/visibility.ts"
+import { useRoute, useRouter } from "vue-router"
 
 const props = defineProps<{
   s: string
@@ -29,7 +31,8 @@ const $emit = defineEmits<{
   "update:searchView": [value: SearchViewType]
 }>()
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const router = useRouter()
+const route = useRoute()
 
 const {
   limitedResults: limitedSearchResults,
@@ -58,6 +61,8 @@ const {
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE)
 
+const { track, visibles } = useVisibilityTracking()
+
 onMounted(async () => {
   await nextTick(() => {
     initResizeObserver()
@@ -82,6 +87,9 @@ onBeforeUnmount(() => {
 
 const TABLE_RENDER_THRASHOLD = 50 // 50px
 
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const initialRouteName = route.name
+
 let resizeObserver: ResizeObserver | null = null
 const abortController = new AbortController()
 
@@ -97,6 +105,42 @@ const searchViewValue = computed({
     $emit("update:searchView", value)
   },
 })
+
+const idToIndex = computed(() => {
+  const map = new Map<string, number>()
+  for (const [i, result] of props.searchResults.entries()) {
+    map.set(result.id, i)
+  }
+  return map
+})
+
+watch(
+  () => {
+    const sorted = Array.from(visibles)
+    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+    return sorted[0]
+  },
+  async (topId) => {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+    // Initial data has not yet been loaded, so we wait.
+    if (!topId && props.searchTotal === null) {
+      return
+    }
+    await router.replace({
+      name: route.name as string,
+      params: route.params,
+      // We do not want to set an empty "at" query parameter.
+      query: encodeQuery({ ...route.query, at: topId || undefined }),
+      hash: route.hash,
+    })
+  },
+  {
+    immediate: true,
+  },
+)
 
 function onVerticalScroll() {
   if (abortController.signal.aborted) {
@@ -238,7 +282,12 @@ function handleTableWidthResize(width: number): void {
 
             <!-- Results -->
             <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
-              <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
+              <tr
+                v-for="result in limitedSearchResults"
+                :key="result.id"
+                :ref="track(result.id) as any"
+                class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer"
+              >
                 <WithPeerDBDocument :id="result.id" name="DocumentGet">
                   <template #default="{ doc: searchDoc }">
                     <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
