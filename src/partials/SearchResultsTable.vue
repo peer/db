@@ -224,6 +224,14 @@ function handleTableWidthResize(width: number): void {
     filtersLoadMore()
   }
 }
+
+function goTo(id: string): void {
+  router.push({
+    name: "DocumentGet",
+    params: { id },
+    query: encodeQuery({ s: props.s }),
+  })
+}
 </script>
 
 <template>
@@ -243,6 +251,7 @@ function handleTableWidthResize(width: number): void {
             <!-- Headers -->
             <thead class="bg-slate-300 sticky top-0 z-10">
               <tr>
+                <th class="p-2 min-w-[50px] text-start">#</th>
                 <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
                   <div class="flex items-center gap-x-1">
                     <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
@@ -283,11 +292,15 @@ function handleTableWidthResize(width: number): void {
             <!-- Results -->
             <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
               <tr
-                v-for="result in limitedSearchResults"
+                v-for="(result, i) in limitedSearchResults"
                 :key="result.id"
                 :ref="track(result.id) as any"
                 class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer"
+                @click.prevent="goTo(result.id)"
               >
+                <td class="p-2 min-w-[50px] text-start">
+                  <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ i + 1 }}</RouterLink>
+                </td>
                 <WithPeerDBDocument :id="result.id" name="DocumentGet">
                   <template #default="{ doc: searchDoc }">
                     <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
