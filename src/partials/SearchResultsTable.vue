@@ -43,12 +43,7 @@ const {
 
 const filtersEl = ref(null)
 const filtersProgress = injectProgress()
-const {
-  results: filtersResults,
-  total: filtersTotal,
-  error: filtersError,
-  url: filtersURL,
-} = useFilters(
+const { results: filtersResults } = useFilters(
   activeSearchState(
     toRef(() => props.searchState),
     toRef(() => props.s),
