@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type {
-  AmountSearchResult,
-  ClientSearchState,
-  RelSearchResult,
-  SearchResult as SearchResultType,
-  SearchViewType,
-  StringSearchResult,
-  TimeSearchResult,
-} from "@/types"
+import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick } from "vue"
@@ -17,7 +9,8 @@ import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick } from "vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { getName, loadingWidth, useLimitResults } from "@/utils.ts"
+import ClaimValue from "@/partials/ClaimValue.vue"
+import { getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
 import { activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 
@@ -190,39 +183,6 @@ function handleTableWidthResize(width: number): void {
     filtersLoadMore()
   }
 }
-
-function getDocumentRelPropertyId(filterResult: RelSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
-  const claims = searchDocument.claims?.[filterResult.type]
-  if (!claims) return ""
-
-  const match = claims.find((claim) => claim.prop.id === filterResult.id)
-  return match?.to.id ?? ""
-}
-
-function getDocumentAmountPropertyValue(filterResult: AmountSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
-  const claims = searchDocument.claims?.[filterResult.type]
-  if (!claims) return ""
-
-  const match = claims.find((claim) => claim.prop.id === filterResult.id)
-  return match?.amount.toString() ?? ""
-}
-
-function getDocumentStringPropertyValue(filterResult: StringSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
-  const claims = searchDocument.claims?.[filterResult.type]
-  if (!claims) return ""
-
-  const match = claims.find((claim) => claim.prop.id === filterResult.id)
-  return match?.string ?? ""
-}
-
-function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocument: DeepReadonly<PeerDBDocument>): string {
-  const claims = searchDocument.claims?.[filterResult.type]
-  if (!claims) return ""
-
-  const match = claims.find((claim) => claim.prop.id === filterResult.id)
-
-  return match?.timestamp ?? ""
-}
 </script>
 
 <template>
@@ -241,7 +201,7 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
           <!-- Headers -->
           <thead class="bg-slate-300 sticky top-0 z-10">
             <tr>
-              <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[250px] text-left">
+              <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
                 <div class="flex items-center gap-x-1">
                   <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
                     <WithPeerDBDocument :id="result.id" name="DocumentGet">
@@ -283,39 +243,12 @@ function getDocumentTimePropertyValue(filterResult: TimeSearchResult, searchDocu
             <tr v-for="result in limitedSearchResults" :key="result.id" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer">
               <WithPeerDBDocument :id="result.id" name="DocumentGet">
                 <template #default="{ doc: searchDoc }">
-                  <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[250px]">
-                    <!-- Document rel property -->
-                    <WithPeerDBDocument
-                      v-if="filter.type === 'rel' && getDocumentRelPropertyId(filter, searchDoc)"
-                      :id="getDocumentRelPropertyId(filter, searchDoc)"
-                      name="DocumentGet"
-                    >
-                      <template #default="{ doc: resultDoc }">
-                        {{ getName(resultDoc.claims) }}
-                      </template>
-                      <template #loading="{ url }">
-                        <div
-                          class="inline-block h-2 animate-pulse rounded bg-slate-200"
-                          :data-url="url"
-                          :class="[loadingWidth(getDocumentRelPropertyId(filter, searchDoc))]"
-                        ></div>
-                      </template>
-                    </WithPeerDBDocument>
-
-                    <!-- Document amount property -->
-                    <template v-else-if="filter.type === 'amount'">
-                      {{ getDocumentAmountPropertyValue(filter, searchDoc) }}
-                    </template>
-
-                    <!-- Document time property -->
-                    <template v-else-if="filter.type === 'time'">
-                      {{ getDocumentTimePropertyValue(filter, searchDoc) }}
-                    </template>
-
-                    <!-- Document string property -->
-                    <template v-else-if="filter.type === 'string'">
-                      {{ getDocumentStringPropertyValue(filter, searchDoc) }}
-                    </template>
+                  <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
+                    <ClaimValue
+                      v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
+                      :type="filter.type"
+                      :claim="getBestClaimOfType(searchDoc.claims, filter.type, filter.id)"
+                    />
                   </td>
                 </template>
               </WithPeerDBDocument>
