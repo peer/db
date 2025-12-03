@@ -34,7 +34,8 @@ const model = defineModel<string>({ default: "" })
     :class="{
       'cursor-not-allowed': progress > 0 || readonly,
       'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
-      'bg-white hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
+      'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
+      'bg-white': progress === 0 && !readonly && !invalid,
       'bg-error-50': invalid,
     }"
   />
