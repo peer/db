@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
-import { ref, computed } from "vue"
+import { ref, computed, readonly as vueReadonly, watch } from "vue"
 import { debounce } from "lodash-es"
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 
 import InputText from "@/components/InputText.vue"
 
@@ -12,14 +13,12 @@ const props = withDefaults(
     readonly?: boolean
     id?: string
     invalid?: boolean
-    precision?: TimePrecision
   }>(),
   {
     modelValue: "",
     readonly: false,
     id: "timestamp-input",
     invalid: false,
-    precision: "h",
   },
 )
 
@@ -29,6 +28,9 @@ const emit = defineEmits<{
 }>()
 
 const DEBOUNCE_MS = 2000
+
+const timePrecisionOptions = vueReadonly(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const)
+const timePrecision = ref<TimePrecision>("d")
 
 const isTimeInvalid = ref(false)
 const errorMessage = ref("")
@@ -41,15 +43,6 @@ const value = computed({
   },
   set(v: string) {
     emit("update:modelValue", v)
-  },
-})
-
-const precisionValue = computed({
-  get() {
-    return props.precision
-  },
-  set(v: TimePrecision) {
-    emit("update:precision", v)
   },
 })
 
@@ -292,33 +285,53 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
   }
 }
 
-const runValidation = debounce(() => {
+function runValidation(): void {
   const raw = value.value
 
   const cleaned = cleanInput(raw)
   const formatted = formatInput(cleaned)
   const validationErrorMessage = validateInput(formatted)
 
-  value.value = validationErrorMessage ? formatted : applyPrecision(getStructuredTimestamp(formatted), precisionValue.value)
+  value.value = validationErrorMessage ? formatted : applyPrecision(getStructuredTimestamp(formatted), timePrecision.value)
   isTimeInvalid.value = validationErrorMessage !== ""
   errorMessage.value = validationErrorMessage
+}
+
+const runValidationDebounce = debounce(() => {
+  runValidation()
 }, DEBOUNCE_MS)
 
 function onKeydown() {
-  runValidation.cancel()
+  runValidationDebounce.cancel()
 }
 
 function onInput() {
-  runValidation()
+  runValidationDebounce()
 }
+
+watch(timePrecision, () => {
+  runValidation()
+})
 </script>
 
 <template>
   <div class="w-full flex gap-2 items-center">
     <div class="w-full flex flex-col gap-1">
-      <div class="grid grid-cols-2">
+      <div class="flex gap-2">
         <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
-        <div class="w-full">{{ precisionValue }}</div>
+        <Listbox v-model="timePrecision" class="w-20">
+          <div class="relative">
+            <ListboxButton class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2">
+              {{ timePrecision }}
+            </ListboxButton>
+
+            <ListboxOptions class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10">
+              <ListboxOption v-for="p in timePrecisionOptions" :key="p" :value="p" class="cursor-pointer p-2 hover:bg-neutral-100">
+                {{ p }}
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
       </div>
 
       <p class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
