@@ -19,7 +19,7 @@ const props = withDefaults(
     readonly: false,
     id: "timestamp-input",
     invalid: false,
-    precision: "s",
+    precision: "h",
   },
 )
 
@@ -58,26 +58,32 @@ const pad2 = (n: string, padToZero = true) => {
   return n.padStart(2, "0")
 }
 
+const matchToYear = (s: string) => s.match(/^(-?\d+)$/)
+const matchToMonth = (s: string) => s.match(/^(-?\d+)-(\d{1,2})$/)
+const matchToDay = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})$/)
+const matchToHour = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/)
+const matchToMinute = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
+const matchToSecond = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
+const matchFull = (s: string) => s.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+
 function progressiveValidate(raw: string): string {
   if (!raw) return ""
 
   // Normalize 'T' to space
-  raw = raw.replace("T", " ")
+  const normalized = raw.replace("T", " ")
 
   // Checks year with negativity
-  if (/^-?\d*$/.test(raw)) return ""
+  if (/^-?\d*$/.test(normalized)) return ""
 
-  // Year + month (partial)
-  const ym = raw.match(/^(-?\d+)-(\d{1,2})$/)
-  if (ym) {
-    const [, , month] = ym
+  const toMonth = matchToMonth(normalized)
+  if (toMonth) {
+    const [, , month] = toMonth
     return Number(month) >= 0 && Number(month) <= 12 ? "" : "Months need to be between 1-12."
   }
 
-  // Year + month + day (partial)
-  const ymd = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})$/)
-  if (ymd) {
-    const [, , month, day] = ymd
+  const toDay = matchToDay(normalized)
+  if (toDay) {
+    const [, , month, day] = toDay
 
     let errMessage = ""
     if (Number(month) < 1 || Number(month) > 12) errMessage = "Months need to be between 1-12."
@@ -85,28 +91,24 @@ function progressiveValidate(raw: string): string {
     return errMessage
   }
 
-  // Full date + space, waiting for hours
-  if (/^-?\d+-\d{1,2}-\d{1,2} $/.test(raw)) return ""
+  // Full date + space
+  if (/^-?\d+-\d{1,2}-\d{1,2} $/.test(normalized)) return ""
 
-  // Hour in progress (1–2 digits)
-  const h = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/)
-  if (h) {
-    const hour = Number(h[4])
+  const toHours = matchToHour(normalized)
+  if (toHours) {
+    const hour = Number(toHours[4])
     return hour >= 0 && hour <= 23 ? "" : "Hours needs to be between 0-23."
   }
 
-  // Minute in progress
-  const hm = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
-  if (hm) {
-    const minute = Number(hm[5])
-    return minute >= 0 && minute <= 59 ? "" : "Month needs to be between 0-59."
+  const toMinutes = matchToMinute(normalized)
+  if (toMinutes) {
+    const minute = Number(toMinutes[5])
+    return minute >= 0 && minute <= 59 ? "" : "Minutes needs to be between 0-59."
   }
 
-  // Second in progress
-  const hms = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
-
-  if (hms) {
-    const [, , month, day, hour, minute, second] = hms.map(Number)
+  const toSeconds = matchToSecond(normalized)
+  if (toSeconds) {
+    const [, , month, day, hour, minute, second] = toSeconds.map(Number)
     if (month < 1 || month > 12) return "Month needs to be between 1-12."
     if (day < 1 || day > 31) return "Day needs to be between 1-31."
     if (hour < 0 || hour > 23) return "Hours need to be between 0-23."
@@ -125,7 +127,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
 
   if (!formatted) return timeStruct
 
-  const toYear = formatted.match(/^(-?\d+)$/)
+  const toYear = matchToYear(formatted)
   if (toYear) {
     const [, y] = toYear
 
@@ -134,7 +136,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
     return timeStruct
   }
 
-  const toMonth = formatted.match(/^(-?\d+)-(\d{2})$/)
+  const toMonth = matchToMonth(formatted)
   if (toMonth) {
     const [, y, m] = toMonth
 
@@ -144,7 +146,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
     return timeStruct
   }
 
-  const toDay = formatted.match(/^(-?\d+)-(\d{2})-(\d{2})$/)
+  const toDay = matchToDay(formatted)
   if (toDay) {
     const [, y, m, d] = toDay
 
@@ -155,7 +157,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
     return timeStruct
   }
 
-  const toHour = formatted.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2})$/)
+  const toHour = matchToHour(formatted)
   if (toHour) {
     const [, y, m, d, h] = toHour
 
@@ -167,7 +169,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
     return timeStruct
   }
 
-  const toMinute = formatted.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
+  const toMinute = matchToMinute(formatted)
   if (toMinute) {
     const [, y, m, d, h, min] = toMinute
 
@@ -180,7 +182,7 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
     return timeStruct
   }
 
-  const toSecond = formatted.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
+  const toSecond = matchToSecond(formatted)
   if (toSecond) {
     const [, y, m, d, h, min, s] = toSecond
 
@@ -198,16 +200,16 @@ function getStructuredTimestamp(formatted: string): { y: string; m: string; d: s
 }
 
 function strictlyValid(full: string): string {
-  const m = full.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
-  if (!m) return "Invalid timestamp structure."
+  const match = matchFull(full)
+  if (!match) return "Invalid timestamp structure."
 
-  const [, , month, day, hour, minute, second] = m.map(Number)
+  const [, , m, d, h, min, s] = match.map(Number)
 
-  if (month < 1 || month > 12) return "Month needs to be between 1-12."
-  if (day < 1 || day > 31) return "Day needs to be between 1-31."
-  if (hour < 0 || hour > 23) return "Hours need to be between 0-23."
-  if (minute < 0 || minute > 59) return "Minutes need to be between 0-59."
-  if (second < 0 || second > 59) return "Seconds need to be between 0-59."
+  if (m < 1 || m > 12) return "Month needs to be between 1-12."
+  if (d < 1 || d > 31) return "Day needs to be between 1-31."
+  if (h < 0 || h > 23) return "Hours need to be between 0-23."
+  if (min < 0 || min > 59) return "Minutes need to be between 0-59."
+  if (s < 0 || s > 59) return "Seconds need to be between 0-59."
 
   return ""
 }
@@ -228,39 +230,34 @@ function cleanInput(raw: string): string {
 }
 
 function formatInput(raw: string): string {
-  // YYYY-M
-  const ym = raw.match(/^(-?\d+)-(\d{1,2})$/)
-  if (ym) {
-    const [, y, mo] = ym
-    return `${y}-${pad2(mo, false)}`
+  const toMonth = matchToMonth(raw)
+  if (toMonth) {
+    const [, y, m] = toMonth
+    return `${y}-${pad2(m, false)}`
   }
 
-  // YYYY-MM-D
-  const ymd = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})$/)
-  if (ymd) {
-    const [, y, mo, da] = ymd
-    return `${y}-${pad2(mo, false)}-${pad2(da, false)}`
+  const toDay = matchToDay(raw)
+  if (toDay) {
+    const [, y, m, d] = toDay
+    return `${y}-${pad2(m, false)}-${pad2(d, false)}`
   }
 
-  // YYYY-MM-DD H
-  const ymdh = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/)
-  if (ymdh) {
-    const [, y, mo, da, h] = ymdh
-    return `${y}-${pad2(mo, false)}-${pad2(da, false)} ${pad2(h)}`
+  const toHour = matchToHour(raw)
+  if (toHour) {
+    const [, y, m, d, h] = toHour
+    return `${y}-${pad2(m, false)}-${pad2(d, false)} ${pad2(h)}`
   }
 
-  // YYYY-MM-DD HH:M
-  const ymdhm = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
-  if (ymdhm) {
-    const [, y, mo, da, h, mi] = ymdhm
-    return `${y}-${pad2(mo, false)}-${pad2(da, false)} ${pad2(h)}:${pad2(mi)}`
+  const toMinute = matchToMinute(raw)
+  if (toMinute) {
+    const [, y, m, d, h, min] = toMinute
+    return `${y}-${pad2(m, false)}-${pad2(d, false)} ${pad2(h)}:${pad2(min)}`
   }
 
-  // YYYY-MM-DD HH:MM:S
-  const ymdhms = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
-  if (ymdhms) {
-    const [, y, mo, da, h, mi, s] = ymdhms
-    return `${y}-${pad2(mo, false)}-${pad2(da, false)} ${pad2(h)}:${pad2(mi)}:${pad2(s)}`
+  const toSecond = matchToSecond(raw)
+  if (toSecond) {
+    const [, y, m, d, h, min, s] = toSecond
+    return `${y}-${pad2(m, false)}-${pad2(d, false)} ${pad2(h)}:${pad2(min)}:${pad2(s)}`
   }
 
   return raw
@@ -270,7 +267,7 @@ function validateInput(raw: string): string {
   const errorMessage = progressiveValidate(raw)
   if (errorMessage) return errorMessage
 
-  const full = raw.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+  const full = matchFull(raw)
   if (!full) return ""
 
   return strictlyValid(raw)
