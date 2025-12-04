@@ -1,26 +1,31 @@
 <script setup lang="ts">
+import type { TimePrecision } from "@/types"
+
 import { ref, computed } from "vue"
-import {debounce} from "lodash-es"
+import { debounce } from "lodash-es"
 
 import InputText from "@/components/InputText.vue"
 
 const props = withDefaults(
-    defineProps<{
-      modelValue?: string
-      readonly?: boolean
-      id?: string
-      invalid?: boolean
-    }>(),
-    {
-      modelValue: "",
-      readonly: false,
-      id: "timestamp-input",
-      invalid: false
-    },
+  defineProps<{
+    modelValue?: string
+    readonly?: boolean
+    id?: string
+    invalid?: boolean
+    precision?: TimePrecision
+  }>(),
+  {
+    modelValue: "",
+    readonly: false,
+    id: "timestamp-input",
+    invalid: false,
+    precision: "s",
+  },
 )
 
 const emit = defineEmits<{
   "update:modelValue": [value: string]
+  "update:precision": [value: TimePrecision]
 }>()
 
 const DEBOUNCE_MS = 2000
@@ -36,6 +41,15 @@ const value = computed({
   },
   set(v: string) {
     emit("update:modelValue", v)
+  },
+})
+
+const precisionValue = computed({
+  get() {
+    return props.precision
+  },
+  set(v: TimePrecision) {
+    emit("update:precision", v)
   },
 })
 
@@ -82,18 +96,14 @@ function progressiveValidate(raw: string): string {
   }
 
   // Minute in progress
-  const hm = raw.match(
-      /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/,
-  )
+  const hm = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
   if (hm) {
     const minute = Number(hm[5])
     return minute >= 0 && minute <= 59 ? "" : "Month needs to be between 0-59."
   }
 
   // Second in progress
-  const hms = raw.match(
-      /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/,
-  )
+  const hms = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
 
   if (hms) {
     const [, , month, day, hour, minute, second] = hms.map(Number)
@@ -110,10 +120,85 @@ function progressiveValidate(raw: string): string {
   return "Invalid timestamp structure."
 }
 
+function getStructuredTimestamp(formatted: string): { y: string; m: string; d: string; h: string; min: string; s: string } {
+  const timeStruct = { y: "", m: "", d: "", h: "", min: "", s: "" }
+
+  if (!formatted) return timeStruct
+
+  const toYear = formatted.match(/^(-?\d+)$/)
+  if (toYear) {
+    const [, y] = toYear
+
+    timeStruct.y = y
+
+    return timeStruct
+  }
+
+  const toMonth = formatted.match(/^(-?\d+)-(\d{2})$/)
+  if (toMonth) {
+    const [, y, m] = toMonth
+
+    timeStruct.y = y
+    timeStruct.m = m
+
+    return timeStruct
+  }
+
+  const toDay = formatted.match(/^(-?\d+)-(\d{2})-(\d{2})$/)
+  if (toDay) {
+    const [, y, m, d] = toDay
+
+    timeStruct.y = y
+    timeStruct.m = m
+    timeStruct.d = d
+
+    return timeStruct
+  }
+
+  const toHour = formatted.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2})$/)
+  if (toHour) {
+    const [, y, m, d, h] = toHour
+
+    timeStruct.y = y
+    timeStruct.m = m
+    timeStruct.d = d
+    timeStruct.h = h
+
+    return timeStruct
+  }
+
+  const toMinute = formatted.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
+  if (toMinute) {
+    const [, y, m, d, h, min] = toMinute
+
+    timeStruct.y = y
+    timeStruct.m = m
+    timeStruct.d = d
+    timeStruct.h = h
+    timeStruct.min = min
+
+    return timeStruct
+  }
+
+  const toSecond = formatted.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
+  if (toSecond) {
+    const [, y, m, d, h, min, s] = toSecond
+
+    timeStruct.y = y
+    timeStruct.m = m
+    timeStruct.d = d
+    timeStruct.h = h
+    timeStruct.min = min
+    timeStruct.s = s
+
+    return timeStruct
+  }
+
+  return timeStruct
+}
+
 function strictlyValid(full: string): string {
-  const m = full.match(
-      /^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-  )
+  const m = full.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
   if (!m) return "Invalid timestamp structure."
 
   const [, , month, day, hour, minute, second] = m.map(Number)
@@ -172,9 +257,7 @@ function formatInput(raw: string): string {
   }
 
   // YYYY-MM-DD HH:MM:S
-  const ymdhms = raw.match(
-      /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
-  )
+  const ymdhms = raw.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
   if (ymdhms) {
     const [, y, mo, da, h, mi, s] = ymdhms
     return `${y}-${pad2(mo, false)}-${pad2(da, false)} ${pad2(h)}:${pad2(mi)}:${pad2(s)}`
@@ -184,16 +267,32 @@ function formatInput(raw: string): string {
 }
 
 function validateInput(raw: string): string {
-  const errorMessage = progressiveValidate(raw);
+  const errorMessage = progressiveValidate(raw)
   if (errorMessage) return errorMessage
-  // if (!progressiveValidate(raw)) return "Invalid timestamp structure"
 
-  const full = raw.match(
-      /^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/
-  )
+  const full = raw.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
   if (!full) return ""
 
   return strictlyValid(raw)
+}
+
+function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
+  switch (precision) {
+    case "y":
+      return timeStruct.y
+    case "m":
+      return `${timeStruct.y}-${timeStruct.m || "01"}`
+    case "d":
+      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"}`
+    case "h":
+      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}`
+    case "min":
+      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}`
+    case "s":
+      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}:${timeStruct.s || "00"}`
+    default:
+      return ""
+  }
 }
 
 const runValidation = debounce(() => {
@@ -203,7 +302,7 @@ const runValidation = debounce(() => {
   const formatted = formatInput(cleaned)
   const validationErrorMessage = validateInput(formatted)
 
-  value.value = formatted
+  value.value = validationErrorMessage ? formatted : applyPrecision(getStructuredTimestamp(formatted), precisionValue.value)
   isTimeInvalid.value = validationErrorMessage !== ""
   errorMessage.value = validationErrorMessage
 }, DEBOUNCE_MS)
@@ -218,23 +317,18 @@ function onInput() {
 </script>
 
 <template>
-  <div class="w-full flex flex-col gap-1">
-    <InputText
-        :id="id"
-        v-model="value"
-        :readonly="readonly"
-        :invalid="isInvalid"
-        class="w-full"
-        @keydown="onKeydown"
-        @input="onInput"
-    />
+  <div class="w-full flex gap-2 items-center">
+    <div class="w-full flex flex-col gap-1">
+      <div class="grid grid-cols-2">
+        <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
+        <div class="w-full">{{ precisionValue }}</div>
+      </div>
 
-    <p class="text-sm text-slate-500">
-      Hint: (-)YYYY...-MM-DD HH:MM:SS
-    </p>
+      <p class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
 
-    <p v-if="errorMessage" class="text-sm text-red-500">
-      {{ errorMessage }}
-    </p>
+      <p v-if="errorMessage" class="text-sm text-red-500">
+        {{ errorMessage }}
+      </p>
+    </div>
   </div>
 </template>
