@@ -4,6 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
+import { useRoute, useRouter } from "vue-router"
 import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue"
 
 import Footer from "@/partials/Footer.vue"
@@ -15,15 +16,16 @@ import { encodeQuery, getBestClaimOfType, getName, loadingWidth, useLimitResults
 import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import { useRoute, useRouter } from "vue-router"
 
 const props = defineProps<{
-  s: string
   searchView: SearchViewType
+
+  // Search props.
+  s: string
+  searchResults: DeepReadonly<SearchResultType[]>
+  searchTotal: number | null
   searchMoreThanTotal: boolean
   searchState: DeepReadonly<ClientSearchState | null>
-  searchTotal: number | null
-  searchResults: DeepReadonly<SearchResultType[]>
   searchProgress: number
 }>()
 
@@ -48,6 +50,7 @@ const {
 )
 
 const filtersEl = ref(null)
+
 const filtersProgress = injectProgress()
 const { results: filtersResults } = useFilters(
   activeSearchState(
