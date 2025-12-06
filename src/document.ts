@@ -1,4 +1,4 @@
-import type { TranslatableHTMLString, AmountUnit, TimePrecision, Constructee, Constructor, AnyClaimType } from "@/types"
+import type { TranslatableHTMLString, AmountUnit, TimePrecision, Constructee, Constructor } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { v5 as uuidv5 } from "uuid"
@@ -315,7 +315,7 @@ const CLAIM_TYPES_MAP: {
 
 export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
 
-export function claimFrom(obj: object, type: AnyClaimType): Claim {
+export function claimFrom(obj: object, type: ClaimTypeProp): Claim {
   switch (type) {
     case "id":
       return new IdentifierClaim(obj)

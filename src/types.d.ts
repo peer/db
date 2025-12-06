@@ -319,5 +319,3 @@ type Optional<T> = {
 
 export type Constructor<T> = new (json: object) => T
 export type Constructee<C> = C extends Constructor<infer R> ? R : never
-
-export type AnyClaimType = "id" | "ref" | "text" | "string" | "amount" | "amountRange" | "rel" | "file" | "none" | "unknown" | "time" | "timeRange"
