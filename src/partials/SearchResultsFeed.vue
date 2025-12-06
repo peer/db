@@ -31,7 +31,7 @@ import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
 import { encodeQuery, useLimitResults } from "@/utils.ts"
-import { SEARCH_INITIAL_LIMIT, SEARCH_INCREASE, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, activeSearchState } from "@/search.ts"
+import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import Footer from "@/partials/Footer.vue"
 
@@ -58,6 +58,9 @@ const $emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
+
+const SEARCH_INITIAL_LIMIT = 50
+const SEARCH_INCREASE = 100
 
 const {
   limitedResults: limitedSearchResults,

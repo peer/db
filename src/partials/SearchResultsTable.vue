@@ -12,7 +12,7 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
 import { encodeQuery, getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
-import { activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE, SEARCH_INITIAL_LIMIT, SEARCH_TABLE_INCREASE, useFilters } from "@/search.ts"
+import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 import { useRoute, useRouter } from "vue-router"
@@ -34,6 +34,9 @@ const $emit = defineEmits<{
 const router = useRouter()
 const route = useRoute()
 
+const SEARCH_INITIAL_LIMIT = 50
+const SEARCH_INCREASE = 100
+
 const {
   limitedResults: limitedSearchResults,
   hasMore: searchHasMore,
@@ -41,7 +44,7 @@ const {
 } = useLimitResults(
   toRef(() => props.searchResults),
   SEARCH_INITIAL_LIMIT,
-  SEARCH_TABLE_INCREASE,
+  SEARCH_INCREASE,
 )
 
 const filtersEl = ref(null)
@@ -59,7 +62,7 @@ const {
   limitedResults: limitedFiltersResults,
   hasMore: filtersHasMore,
   loadMore: filtersLoadMore,
-} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_TABLE_INCREASE)
+} = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 const { track, visibles } = useVisibilityTracking()
 
@@ -85,7 +88,7 @@ onBeforeUnmount(() => {
   destroyResizeObserver()
 })
 
-const TABLE_RENDER_THRASHOLD = 50 // 50px
+const TABLE_RENDER_THRESHOLD = 50 // 50px
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const initialRouteName = route.name
@@ -204,7 +207,7 @@ function destroyResizeObserver(): void {
 }
 
 function handleTableHeightResize(height: number): void {
-  if (height < TABLE_RENDER_THRASHOLD) return
+  if (height < TABLE_RENDER_THRESHOLD) return
 
   const viewportHeight = window.innerHeight
 
@@ -215,7 +218,7 @@ function handleTableHeightResize(height: number): void {
 }
 
 function handleTableWidthResize(width: number): void {
-  if (width < TABLE_RENDER_THRASHOLD) return
+  if (width < TABLE_RENDER_THRESHOLD) return
 
   const viewportWidth = window.innerWidth
 

@@ -35,12 +35,8 @@ import { NONE } from "@/symbols"
 
 export { NONE } from "@/symbols"
 
-export const SEARCH_INITIAL_LIMIT = 50
-export const SEARCH_INCREASE = 50
-export const SEARCH_TABLE_INCREASE = 10
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
-export const FILTERS_TABLE_INCREASE = 5
 
 function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   const form = new FormData()
