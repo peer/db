@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "useDefineForClassFields": true,
+    "allowUnreachableCode": false,
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,

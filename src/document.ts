@@ -342,6 +342,8 @@ export function claimFrom(obj: object, type: ClaimTypeProp): Claim {
     case "timeRange":
       return new TimeRangeClaim(obj)
   }
+  // @ts-expect-error all types should be handled above
+  throw new Error(`claim of type "${type}" is not supported`)
 }
 
 // TODO: Sync interface with Go implementation.
