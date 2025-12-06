@@ -269,17 +269,17 @@ function validateInput(raw: string): string {
 function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
   switch (precision) {
     case "y":
-      return timeStruct.y
+      return timeStruct.y || "0"
     case "m":
-      return `${timeStruct.y}-${timeStruct.m || "01"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}`
     case "d":
-      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"}`
     case "h":
-      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}`
     case "min":
-      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}`
     case "s":
-      return `${timeStruct.y}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}:${timeStruct.s || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}:${timeStruct.s || "00"}`
     default:
       return ""
   }
