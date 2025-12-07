@@ -4,6 +4,12 @@
 @import url("tailwindcss/utilities");
 @import url("tailwindcss/variants");
 
+@layer base {
+  body {
+    container-type: inline-size;
+  }
+}
+
 @layer components {
   a:has(img) {
     @apply outline-none;
@@ -189,6 +195,22 @@
 @layer utilities {
   .data-reloading {
     filter: grayscale(0.8) contrast(0.9) brightness(1.06);
+  }
+
+  .min-h-container {
+    min-height: 100cqh;
+  }
+
+  .min-w-container {
+    min-width: 100cqw;
+  }
+
+  .h-container {
+    height: 100cqh;
+  }
+
+  .w-container {
+    width: 100cqw;
   }
 }
 
