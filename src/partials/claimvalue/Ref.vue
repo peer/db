@@ -9,5 +9,5 @@ defineProps<{
 </script>
 
 <template>
-  <a v-if="claim" :href="claim.iri" class="link">{{ claim.iri }}</a>
+  <a v-if="claim" :href="claim.iri" class="link break-all">{{ claim.iri }}</a>
 </template>

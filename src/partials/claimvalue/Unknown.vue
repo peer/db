@@ -9,5 +9,5 @@ defineProps<{
 </script>
 
 <template>
-  <template v-if="claim">unknown</template>
+  <template v-if="claim"><i>unknown</i></template>
 </template>
