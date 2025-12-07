@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
-import { PeerDBDocument } from "@/document"
 
 import Button from "@/components/Button.vue"
-import WithDocument from "@/components/WithDocument.vue"
-import { getName, loadingWidth } from "@/utils"
 import { ClaimTypes } from "@/document"
 import Id from "@/partials/claimvalue/Id.vue"
 import Ref from "@/partials/claimvalue/Ref.vue"
@@ -18,6 +15,7 @@ import None from "@/partials/claimvalue/None.vue"
 import Unknown from "@/partials/claimvalue/Unknown.vue"
 import Time from "@/partials/claimvalue/Time.vue"
 import TimeRange from "@/partials/claimvalue/TimeRange.vue"
+import ClaimProp from "@/partials/ClaimProp.vue"
 
 withDefaults(
   defineProps<{
@@ -37,8 +35,6 @@ const $emit = defineEmits<{
   removeClaim: [value: string]
 }>()
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
-
 async function onEdit(id: string) {
   $emit("editClaim", id)
 }
@@ -56,19 +52,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Id :claim="claim" />
@@ -87,19 +71,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Ref :claim="claim" />
@@ -118,19 +90,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <!-- eslint-disable vue/no-v-html -->
       <td class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -151,19 +111,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <String :claim="claim" />
@@ -182,19 +130,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Amount :claim="claim" />
@@ -213,19 +149,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <AmountRange :claim="claim" />
@@ -244,19 +168,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Rel :claim="claim" />
@@ -275,19 +187,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <File :claim="claim" />
@@ -306,19 +206,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
         <None :claim="claim" />
@@ -337,19 +225,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
         <Unknown :claim="claim" />
@@ -368,19 +244,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Time :claim="claim" />
@@ -399,19 +263,7 @@ async function onRemove(id: string) {
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
       >
-        <WithPeerDBDocument :id="claim.prop.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.prop.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.prop.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimProp :claim="claim" />
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <TimeRange :claim="claim" />
