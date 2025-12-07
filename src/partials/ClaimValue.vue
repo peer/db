@@ -20,74 +20,58 @@ const claimObj = computed(() => (props.claim ? claimFrom(props.claim, props.type
 </script>
 
 <template>
-  <span v-if="!claimObj" />
+  <template v-if="!claimObj" />
 
   <!-- Id claim -->
-  <span v-else-if="claimObj.type === 'id'">
-    <WithPeerDBDocument :id="claimObj.prop.id" name="DocumentGet">
-      <template #default="{ doc, url }">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claimObj.prop.id } }" :data-url="url" class="link" v-html="getName(doc.claims) || '<i>no name</i>'" />
-      </template>
-
-      <template #loading="{ url }">
-        <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claimObj.prop.id)]" />
-      </template>
-    </WithPeerDBDocument>
-  </span>
+  <template v-else-if="claimObj.type === 'id'">{{ claimObj.value }}</template>
 
   <!-- Ref claim -->
-  <span v-else-if="claimObj.type === 'ref'">
-    <a :href="claimObj.iri" class="link">{{ claimObj.iri }}</a>
-  </span>
+  <a v-else-if="claimObj.type === 'ref'" :href="claimObj.iri" class="link">{{ claimObj.iri }}</a>
 
   <!-- Text claim -->
-  <span v-else-if="claimObj.type === 'text'" class="prose prose-slate max-w-none" v-html="claimObj.html?.en"></span>
+  <div v-else-if="claimObj.type === 'text'" class="prose prose-slate max-w-none" v-html="claimObj.html?.en"></div>
 
   <!-- String claim -->
-  <span v-else-if="claimObj.type === 'string'">
-    {{ claimObj.string }}
-  </span>
+  <template v-else-if="claimObj.type === 'string'">{{ claimObj.string }}</template>
 
   <!-- Amount claim -->
-  <span v-else-if="claimObj.type === 'amount'">
-    {{ claimObj.amount }}<template v-if="claimObj.unit !== '1'">{{ claimObj.unit }}</template>
-  </span>
+  <template v-else-if="claimObj.type === 'amount'">
+    {{ claimObj.amount }} <template v-if="claimObj.unit !== '1'">{{ claimObj.unit }}</template>
+  </template>
 
   <!-- Amount range claim -->
-  <span v-else-if="claimObj.type === 'amountRange'">
-    {{ claimObj.lower }}–{{ claimObj.upper }}<template v-if="claimObj.unit !== '1'">{{ claimObj.unit }}</template>
-  </span>
+  <template v-else-if="claimObj.type === 'amountRange'">
+    {{ claimObj.lower }}–{{ claimObj.upper }} <template v-if="claimObj.unit !== '1'">{{ claimObj.unit }}</template>
+  </template>
 
   <!-- Relation claim -->
-  <span v-else-if="claimObj.type === 'rel'">
-    <WithPeerDBDocument :id="claimObj.to.id" name="DocumentGet">
-      <template #default="{ doc, url }">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: claimObj.to.id } }" :data-url="url" class="link" v-html="getName(doc.claims) || '<i>no name</i>'" />
-      </template>
+  <WithPeerDBDocument v-else-if="claimObj.type === 'rel'" :id="claimObj.to.id" name="DocumentGet">
+    <template #default="{ doc, url }">
+      <RouterLink :to="{ name: 'DocumentGet', params: { id: claimObj.to.id } }" :data-url="url" class="link" v-html="getName(doc.claims) || '<i>no name</i>'" />
+    </template>
 
-      <template #loading="{ url }">
-        <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claimObj.to.id)]" />
-      </template>
-    </WithPeerDBDocument>
-  </span>
+    <template #loading="{ url }">
+      <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claimObj.to.id)]" />
+    </template>
+  </WithPeerDBDocument>
 
   <!-- File claim -->
-  <span v-else-if="claimObj.type === 'file'">
-    <a :href="claimObj.url">
-      <img v-if="claimObj.preview?.[0]" :src="claimObj.preview[0]" />
-      <span v-else class="link">{{ claimObj.mediaType }}</span>
+  <template v-else-if="claimObj.type === 'file'">
+    <a v-if="claimObj.preview?.[0]" :href="claimObj.url">
+      <img :src="claimObj.preview[0]" alt="File preview" />
     </a>
-  </span>
+    <a v-else :href="claimObj.url" class="link">{{ claimObj.mediaType }}</a>
+  </template>
 
   <!-- None claim -->
-  <span v-else-if="claimObj.type === 'none'">none</span>
+  <template v-else-if="claimObj.type === 'none'">none</template>
 
   <!-- Unknown claim -->
-  <span v-else-if="claimObj.type === 'unknown'">unknown</span>
+  <template v-else-if="claimObj.type === 'unknown'">unknown</template>
 
   <!-- Time claim -->
-  <span v-else-if="claimObj.type === 'time'">{{ claimObj.timestamp }}</span>
+  <template v-else-if="claimObj.type === 'time'">{{ claimObj.timestamp }}</template>
 
   <!-- Time range claim -->
-  <span v-else-if="claimObj.type === 'timeRange'">{{ claimObj.lower }}-{{ claimObj.upper }}</span>
+  <template v-else-if="claimObj.type === 'timeRange'">{{ claimObj.lower }}-{{ claimObj.upper }}</template>
 </template>

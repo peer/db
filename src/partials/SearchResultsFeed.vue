@@ -60,7 +60,7 @@ const router = useRouter()
 const route = useRoute()
 
 const SEARCH_INITIAL_LIMIT = 50
-const SEARCH_INCREASE = 100
+const SEARCH_INCREASE = 50
 
 const {
   limitedResults: limitedSearchResults,

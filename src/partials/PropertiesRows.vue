@@ -6,6 +6,7 @@ import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
 import { ClaimTypes } from "@/document"
+import ClaimValue from "@/partials/ClaimValue.vue"
 
 withDefaults(
   defineProps<{
@@ -58,7 +59,9 @@ async function onRemove(id: string) {
           </template>
         </WithPeerDBDocument>
       </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.value }}</td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
+        <ClaimValue :claim="claim" type="id" />
+      </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -88,7 +91,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <a :href="claim.iri" class="link">{{ claim.iri }}</a>
+        <ClaimValue :claim="claim" type="ref" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -119,11 +122,9 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <!-- eslint-disable vue/no-v-html -->
-      <td
-        class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        v-html="claim.html?.en"
-      ></td>
+      <td class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
+        <ClaimValue :claim="claim" type="text" />
+      </td>
       <!-- eslint-enable vue/no-v-html -->
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -154,7 +155,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.string }}
+        <ClaimValue :claim="claim" type="string" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -185,7 +186,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.amount }} <template v-if="claim.unit !== '1'">{{ claim.unit }}</template>
+        <ClaimValue :claim="claim" type="amount" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -216,7 +217,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.lower }}-{{ claim.upper }}<template v-if="claim.unit !== '1'"> {{ claim.unit }}</template>
+        <ClaimValue :claim="claim" type="amountRange" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -247,19 +248,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <WithPeerDBDocument :id="claim.to.id" name="DocumentGet">
-          <template #default="{ doc, url }">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: claim.to.id } }"
-              :data-url="url"
-              class="link"
-              v-html="getName(doc.claims) || '<i>no name</i>'"
-            ></RouterLink>
-          </template>
-          <template #loading="{ url }">
-            <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(claim.to.id)]"></div>
-          </template>
-        </WithPeerDBDocument>
+        <ClaimValue :claim="claim" type="rel" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -290,10 +279,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <a v-if="claim.preview?.[0]" :href="claim.url">
-          <img :src="claim.preview[0]" />
-        </a>
-        <a v-else :href="claim.url" class="link">{{ claim.mediaType }}</a>
+        <ClaimValue :claim="claim" type="file" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -323,7 +309,9 @@ async function onRemove(id: string) {
           </template>
         </WithPeerDBDocument>
       </td>
-      <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">none</td>
+      <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
+        <ClaimValue :claim="claim" type="none" />
+      </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -352,7 +340,9 @@ async function onRemove(id: string) {
           </template>
         </WithPeerDBDocument>
       </td>
-      <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">unknown</td>
+      <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
+        <ClaimValue :claim="claim" type="unknown" />
+      </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -382,7 +372,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        {{ claim.timestamp }}
+        <ClaimValue :claim="claim" type="time" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -412,7 +402,9 @@ async function onRemove(id: string) {
           </template>
         </WithPeerDBDocument>
       </td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">{{ claim.lower }}-{{ claim.upper }}</td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
+        <ClaimValue :claim="claim" type="timeRange" />
+      </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>

@@ -36,7 +36,7 @@ const $emit = defineEmits<{
 const router = useRouter()
 const route = useRoute()
 
-const SEARCH_INITIAL_LIMIT = 50
+const SEARCH_INITIAL_LIMIT = 100
 const SEARCH_INCREASE = 100
 
 const {
@@ -230,14 +230,6 @@ function handleTableWidthResize(width: number): void {
     filtersLoadMore()
   }
 }
-
-function goTo(id: string): void {
-  router.push({
-    name: "DocumentGet",
-    params: { id },
-    query: encodeQuery({ s: props.s }),
-  })
-}
 </script>
 
 <template>
@@ -297,13 +289,7 @@ function goTo(id: string): void {
 
             <!-- Results -->
             <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
-              <tr
-                v-for="(result, i) in limitedSearchResults"
-                :key="result.id"
-                :ref="track(result.id) as any"
-                class="odd:bg-white even:bg-slate-100 hover:bg-slate-200 cursor-pointer"
-                @click.prevent="goTo(result.id)"
-              >
+              <tr v-for="(result, i) in limitedSearchResults" :key="result.id" :ref="track(result.id) as any" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200">
                 <td class="p-2 min-w-[50px] text-start">
                   <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ i + 1 }}</RouterLink>
                 </td>
