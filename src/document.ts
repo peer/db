@@ -43,7 +43,7 @@ type DocumentReference = {
   id: string
 }
 
-class IdentifierClaim extends CoreClaim {
+export class IdentifierClaim extends CoreClaim {
   prop!: DocumentReference
   value!: string
 
@@ -56,7 +56,7 @@ class IdentifierClaim extends CoreClaim {
   }
 }
 
-class ReferenceClaim extends CoreClaim {
+export class ReferenceClaim extends CoreClaim {
   prop!: DocumentReference
   iri!: string
 
@@ -69,7 +69,7 @@ class ReferenceClaim extends CoreClaim {
   }
 }
 
-class TextClaim extends CoreClaim {
+export class TextClaim extends CoreClaim {
   prop!: DocumentReference
   html!: TranslatableHTMLString
 
@@ -82,7 +82,7 @@ class TextClaim extends CoreClaim {
   }
 }
 
-class StringClaim extends CoreClaim {
+export class StringClaim extends CoreClaim {
   prop!: DocumentReference
   string!: string
 
@@ -95,7 +95,7 @@ class StringClaim extends CoreClaim {
   }
 }
 
-class AmountClaim extends CoreClaim {
+export class AmountClaim extends CoreClaim {
   prop!: DocumentReference
   amount!: number
   unit!: AmountUnit
@@ -109,7 +109,7 @@ class AmountClaim extends CoreClaim {
   }
 }
 
-class AmountRangeClaim extends CoreClaim {
+export class AmountRangeClaim extends CoreClaim {
   prop!: DocumentReference
   lower!: number
   upper!: number
@@ -124,7 +124,7 @@ class AmountRangeClaim extends CoreClaim {
   }
 }
 
-class RelationClaim extends CoreClaim {
+export class RelationClaim extends CoreClaim {
   prop!: DocumentReference
   to!: DocumentReference
 
@@ -137,7 +137,7 @@ class RelationClaim extends CoreClaim {
   }
 }
 
-class FileClaim extends CoreClaim {
+export class FileClaim extends CoreClaim {
   prop!: DocumentReference
   mediaType!: string
   url!: string
@@ -152,7 +152,7 @@ class FileClaim extends CoreClaim {
   }
 }
 
-class NoValueClaim extends CoreClaim {
+export class NoValueClaim extends CoreClaim {
   prop!: DocumentReference
 
   constructor(obj: object) {
@@ -164,7 +164,7 @@ class NoValueClaim extends CoreClaim {
   }
 }
 
-class UnknownValueClaim extends CoreClaim {
+export class UnknownValueClaim extends CoreClaim {
   prop!: DocumentReference
 
   constructor(obj: object) {
@@ -176,7 +176,7 @@ class UnknownValueClaim extends CoreClaim {
   }
 }
 
-class TimeClaim extends CoreClaim {
+export class TimeClaim extends CoreClaim {
   prop!: DocumentReference
   timestamp!: string
   precision!: TimePrecision
@@ -190,7 +190,7 @@ class TimeClaim extends CoreClaim {
   }
 }
 
-class TimeRangeClaim extends CoreClaim {
+export class TimeRangeClaim extends CoreClaim {
   prop!: DocumentReference
   lower!: string
   upper!: string
@@ -272,7 +272,7 @@ export class ClaimTypes {
 type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
 export type ClaimTypeProp = keyof typeof CLAIM_TYPES_MAP
 
-const CLAIM_TYPES_MAP: {
+export const CLAIM_TYPES_MAP: {
   [P in keyof ClaimTypes as ClaimTypes[P] extends CoreClaim[] | undefined ? P : never]-?: ClaimTypes[P] extends Array<infer U> | undefined ? Constructor<U> : never
 } = {
   id: IdentifierClaim,
@@ -290,6 +290,8 @@ const CLAIM_TYPES_MAP: {
 } as const
 
 export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
+
+export type ClaimForType<T extends ClaimTypeProp> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
 
 // TODO: Sync interface with Go implementation.
 interface ClaimsContainer {
