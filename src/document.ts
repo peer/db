@@ -44,8 +44,6 @@ type DocumentReference = {
 }
 
 class IdentifierClaim extends CoreClaim {
-  readonly type = "id"
-
   prop!: DocumentReference
   value!: string
 
@@ -59,8 +57,6 @@ class IdentifierClaim extends CoreClaim {
 }
 
 class ReferenceClaim extends CoreClaim {
-  readonly type = "ref"
-
   prop!: DocumentReference
   iri!: string
 
@@ -74,8 +70,6 @@ class ReferenceClaim extends CoreClaim {
 }
 
 class TextClaim extends CoreClaim {
-  readonly type = "text"
-
   prop!: DocumentReference
   html!: TranslatableHTMLString
 
@@ -89,8 +83,6 @@ class TextClaim extends CoreClaim {
 }
 
 class StringClaim extends CoreClaim {
-  readonly type = "string"
-
   prop!: DocumentReference
   string!: string
 
@@ -104,8 +96,6 @@ class StringClaim extends CoreClaim {
 }
 
 class AmountClaim extends CoreClaim {
-  readonly type = "amount"
-
   prop!: DocumentReference
   amount!: number
   unit!: AmountUnit
@@ -120,8 +110,6 @@ class AmountClaim extends CoreClaim {
 }
 
 class AmountRangeClaim extends CoreClaim {
-  readonly type = "amountRange"
-
   prop!: DocumentReference
   lower!: number
   upper!: number
@@ -137,8 +125,6 @@ class AmountRangeClaim extends CoreClaim {
 }
 
 class RelationClaim extends CoreClaim {
-  readonly type = "rel"
-
   prop!: DocumentReference
   to!: DocumentReference
 
@@ -152,8 +138,6 @@ class RelationClaim extends CoreClaim {
 }
 
 class FileClaim extends CoreClaim {
-  readonly type = "file"
-
   prop!: DocumentReference
   mediaType!: string
   url!: string
@@ -169,8 +153,6 @@ class FileClaim extends CoreClaim {
 }
 
 class NoValueClaim extends CoreClaim {
-  readonly type = "none"
-
   prop!: DocumentReference
 
   constructor(obj: object) {
@@ -183,8 +165,6 @@ class NoValueClaim extends CoreClaim {
 }
 
 class UnknownValueClaim extends CoreClaim {
-  readonly type = "unknown"
-
   prop!: DocumentReference
 
   constructor(obj: object) {
@@ -197,8 +177,6 @@ class UnknownValueClaim extends CoreClaim {
 }
 
 class TimeClaim extends CoreClaim {
-  readonly type = "time"
-
   prop!: DocumentReference
   timestamp!: string
   precision!: TimePrecision
@@ -213,8 +191,6 @@ class TimeClaim extends CoreClaim {
 }
 
 class TimeRangeClaim extends CoreClaim {
-  readonly type = "timeRange"
-
   prop!: DocumentReference
   lower!: string
   upper!: string
@@ -314,37 +290,6 @@ const CLAIM_TYPES_MAP: {
 } as const
 
 export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
-
-export function claimFrom(obj: object, type: ClaimTypeProp): Claim {
-  switch (type) {
-    case "id":
-      return new IdentifierClaim(obj)
-    case "ref":
-      return new ReferenceClaim(obj)
-    case "text":
-      return new TextClaim(obj)
-    case "string":
-      return new StringClaim(obj)
-    case "amount":
-      return new AmountClaim(obj)
-    case "amountRange":
-      return new AmountRangeClaim(obj)
-    case "rel":
-      return new RelationClaim(obj)
-    case "file":
-      return new FileClaim(obj)
-    case "none":
-      return new NoValueClaim(obj)
-    case "unknown":
-      return new UnknownValueClaim(obj)
-    case "time":
-      return new TimeClaim(obj)
-    case "timeRange":
-      return new TimeRangeClaim(obj)
-  }
-  // @ts-expect-error all types should be handled above
-  throw new Error(`claim of type "${type}" is not supported`)
-}
 
 // TODO: Sync interface with Go implementation.
 interface ClaimsContainer {
