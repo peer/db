@@ -6,7 +6,18 @@ import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
 import { ClaimTypes } from "@/document"
-import ClaimValue from "@/partials/ClaimValue.vue"
+import Id from "@/partials/claimvalue/Id.vue"
+import Ref from "@/partials/claimvalue/Ref.vue"
+import Text from "@/partials/claimvalue/Text.vue"
+import String from "@/partials/claimvalue/String.vue"
+import Amount from "@/partials/claimvalue/Amount.vue"
+import AmountRange from "@/partials/claimvalue/AmountRange.vue"
+import Rel from "@/partials/claimvalue/Rel.vue"
+import File from "@/partials/claimvalue/File.vue"
+import None from "@/partials/claimvalue/None.vue"
+import Unknown from "@/partials/claimvalue/Unknown.vue"
+import Time from "@/partials/claimvalue/Time.vue"
+import TimeRange from "@/partials/claimvalue/TimeRange.vue"
 
 withDefaults(
   defineProps<{
@@ -60,7 +71,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="id" />
+        <Id :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -91,7 +102,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="break-all border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="ref" />
+        <Ref :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -123,7 +134,7 @@ async function onRemove(id: string) {
       </td>
       <!-- eslint-disable vue/no-v-html -->
       <td class="prose prose-slate max-w-none border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="text" />
+        <Text :claim="claim" />
       </td>
       <!-- eslint-enable vue/no-v-html -->
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -155,7 +166,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="string" />
+        <String :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -186,7 +197,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="amount" />
+        <Amount :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -217,7 +228,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="amountRange" />
+        <AmountRange :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -248,7 +259,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="rel" />
+        <Rel :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -279,7 +290,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="file" />
+        <File :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -310,7 +321,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
-        <ClaimValue :claim="claim" type="none" />
+        <None :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -341,7 +352,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-t border-l border-slate-200 px-2 py-1 align-top italic">
-        <ClaimValue :claim="claim" type="unknown" />
+        <Unknown :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -372,7 +383,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="time" />
+        <Time :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
@@ -403,7 +414,7 @@ async function onRemove(id: string) {
         </WithPeerDBDocument>
       </td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <ClaimValue :claim="claim" type="timeRange" />
+        <TimeRange :claim="claim" />
       </td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
