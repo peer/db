@@ -245,7 +245,7 @@ function handleTableWidthResize(width: number): void {
 
       <div ref="tableWrapper" class="flex gap-x-1 sm:gap-x-4 w-fit">
         <div class="rounded shadow border w-fit">
-          <table class="table-fixed text-sm min-w-max">
+          <table>
             <!-- Headers -->
             <thead class="bg-slate-300 sticky top-0 z-10">
               <tr>
