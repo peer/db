@@ -99,13 +99,15 @@ const {
 const { track, visibles } = useVisibilityTracking()
 
 onMounted(() => {
-  window.addEventListener("scroll", onScroll, { passive: true })
+  window.addEventListener("scroll", onScrollOrResize, { passive: true })
+  window.addEventListener("resize", onScrollOrResize, { passive: true })
 })
 
 onBeforeUnmount(() => {
   abortController.abort()
 
-  window.removeEventListener("scroll", onScroll)
+  window.removeEventListener("scroll", onScrollOrResize)
+  window.removeEventListener("resize", onScrollOrResize)
 })
 
 const abortController = new AbortController()
@@ -160,7 +162,7 @@ watch(
   },
 )
 
-function onScroll() {
+function onScrollOrResize() {
   if (abortController.signal.aborted) {
     return
   }
