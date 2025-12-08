@@ -15,7 +15,7 @@ import ClaimValueNone from "@/partials/claimvalue/ClaimValueNone.vue"
 import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
 import ClaimValueTime from "@/partials/claimvalue/ClaimValueTime.vue"
 import ClaimValueTimeRange from "@/partials/claimvalue/ClaimValueTimeRange.vue"
-import ClaimProp from "@/partials/ClaimProp.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 withDefaults(
   defineProps<{
@@ -51,7 +51,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueId :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -67,7 +67,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -83,7 +83,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueText :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -99,7 +99,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -115,7 +115,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmount :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -131,7 +131,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmountRange :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -147,7 +147,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRel :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -163,7 +163,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueFile :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -179,7 +179,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueNone :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -195,7 +195,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -211,7 +211,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
@@ -227,7 +227,7 @@ async function onRemove(id: string) {
         class="whitespace-nowrap border-r border-slate-200 py-1 pr-2 align-top"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><ClaimProp :claim="claim"
+        ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeRange :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
