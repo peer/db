@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// We want all fallthrough attributes to be passed to the input element.
+// We want all fallthrough attributes to be passed to the footer element and not the container.
 defineOptions({
   inheritAttrs: false,
 })
