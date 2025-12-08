@@ -267,7 +267,33 @@ function validateInput(raw: string): string {
 }
 
 function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
+  const year = parseInt(timeStruct.y || "0", 10)
+
+  function roundDown(value: number, factor: number) {
+    return Math.floor(value / factor) * factor
+  }
+
   switch (precision) {
+    case "G":
+      return String(roundDown(year, 1_000_000_000))
+    case "100M":
+      return String(roundDown(year, 100_000_000))
+    case "10M":
+      return String(roundDown(year, 10_000_000))
+    case "M":
+      return String(roundDown(year, 1_000_000))
+    case "100k":
+      return String(roundDown(year, 100_000))
+    case "10k":
+      return String(roundDown(year, 10_000))
+    case "k":
+      return String(roundDown(year, 1_000))
+    case "100y":
+      return String(roundDown(year, 100))
+    case "10y": {
+      console.log(String(roundDown(year, 10)))
+      return String(roundDown(year, 10))
+    }
     case "y":
       return timeStruct.y || "0"
     case "m":
@@ -275,11 +301,11 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
     case "d":
       return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"}`
     case "h":
-      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ` + `${timeStruct.h || "00"}`
     case "min":
-      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ` + `${timeStruct.h || "00"}:${timeStruct.min || "00"}`
     case "s":
-      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ${timeStruct.h || "00"}:${timeStruct.min || "00"}:${timeStruct.s || "00"}`
+      return `${timeStruct.y || "0"}-${timeStruct.m || "01"}-${timeStruct.d || "01"} ` + `${timeStruct.h || "00"}:${timeStruct.min || "00"}:${timeStruct.s || "00"}`
     default:
       return ""
   }
