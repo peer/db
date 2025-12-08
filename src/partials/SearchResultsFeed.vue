@@ -144,9 +144,9 @@ function onScrollOrResize() {
     document.body.clientHeight,
     document.documentElement.clientHeight,
   )
-  const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
+  const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
 
-  if (currentScrollPosition > scrollHeight - 2 * viewportHeight) {
+  if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
     // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
     // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
     if (searchMoreButton.value) {
