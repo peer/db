@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
+import type { Claim, PeerDBDocument } from "@/document"
+
+import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
-import type { Claim } from "@/document"
 
 defineProps<{
   claim: Claim | DeepReadonly<Claim> | null
 }>()
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
