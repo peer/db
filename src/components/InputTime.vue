@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
-import { ref, computed, readonly as vueReadonly, watch } from "vue"
+import { ref, computed, readonly as vueReadonly, watch, onBeforeMount } from "vue"
 import { debounce } from "lodash-es"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 
@@ -13,12 +13,14 @@ const props = withDefaults(
     readonly?: boolean
     id?: string
     invalid?: boolean
+    precision?: TimePrecision
   }>(),
   {
     modelValue: "",
     readonly: false,
     id: "timestamp-input",
     invalid: false,
+    precision: "d",
   },
 )
 
@@ -44,6 +46,10 @@ const value = computed({
   set(v: string) {
     emit("update:modelValue", v)
   },
+})
+
+onBeforeMount(() => {
+  timePrecision.value = props.precision
 })
 
 const pad2 = (n: string, padToZero = true) => {
@@ -335,8 +341,9 @@ function onInput() {
   runValidationDebounce()
 }
 
-watch(timePrecision, () => {
+watch(timePrecision, (value) => {
   runValidation()
+  emit("update:precision", value)
 })
 </script>
 
@@ -345,7 +352,7 @@ watch(timePrecision, () => {
     <div class="w-full flex flex-col gap-1">
       <div class="flex gap-2">
         <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
-        <Listbox v-model="timePrecision" class="w-20">
+        <Listbox v-if="!readonly" v-model="timePrecision" class="w-20">
           <div class="relative">
             <ListboxButton class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2">
               {{ timePrecision }}
