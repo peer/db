@@ -25,9 +25,10 @@ import type {
   ClientSearchState,
   ServerSearchState,
   AmountUnit,
+  SearchResult as SearchResultType,
 } from "@/types"
 
-import { ref, watch, readonly, onBeforeUnmount, toRef } from "vue"
+import { ref, watch, readonly, onBeforeUnmount, toRef, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { getURL, postURL, getURLDirect } from "@/api"
 import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
@@ -1291,4 +1292,46 @@ export function activeSearchState(searchState: Ref<DeepReadonly<ClientSearchStat
     }
     return s.value
   })
+}
+
+export function useLocationAt(searchResults: Ref<DeepReadonly<SearchResultType[]>>, searchTotal: Ref<number | null>, visibles: ReadonlySet<string>) {
+  const router = useRouter()
+  const route = useRoute()
+
+  const idToIndex = computed(() => {
+    const map = new Map<string, number>()
+    for (const [i, result] of searchResults.value.entries()) {
+      map.set(result.id, i)
+    }
+    return map
+  })
+
+  const initialRouteName = route.name
+  watch(
+    () => {
+      const sorted = Array.from(visibles)
+      sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+      return sorted[0]
+    },
+    async (topId, oldTopId, onCleanup) => {
+      // Watch can continue to run for some time after the route changes.
+      if (initialRouteName !== route.name) {
+        return
+      }
+      // Initial data has not yet been loaded, so we wait.
+      if (!topId && searchTotal.value === null) {
+        return
+      }
+      await router.replace({
+        name: route.name as string,
+        params: route.params,
+        // We do not want to set an empty "at" query parameter.
+        query: encodeQuery({ ...route.query, at: topId || undefined }),
+        hash: route.hash,
+      })
+    },
+    {
+      immediate: true,
+    },
+  )
 }

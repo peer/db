@@ -16,8 +16,7 @@ import type {
   AmountUnit,
 } from "@/types"
 
-import { useRoute, useRouter } from "vue-router"
-import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, toRef } from "vue"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
@@ -30,8 +29,8 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
-import { encodeQuery, useLimitResults } from "@/utils.ts"
-import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search.ts"
+import { useLimitResults } from "@/utils.ts"
+import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import Footer from "@/partials/Footer.vue"
 
@@ -55,9 +54,6 @@ const $emit = defineEmits<{
   onFilterChange: [change: FilterStateChange]
   "update:searchView": [value: SearchViewType]
 }>()
-
-const router = useRouter()
-const route = useRoute()
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
@@ -125,41 +121,10 @@ const searchViewValue = computed({
   },
 })
 
-const idToIndex = computed(() => {
-  const map = new Map<string, number>()
-  for (const [i, result] of props.searchResults.entries()) {
-    map.set(result.id, i)
-  }
-  return map
-})
-
-const initialRouteName = route.name
-watch(
-  () => {
-    const sorted = Array.from(visibles)
-    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-    return sorted[0]
-  },
-  async (topId, oldTopId, onCleanup) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
-      return
-    }
-    // Initial data has not yet been loaded, so we wait.
-    if (!topId && props.searchTotal === null) {
-      return
-    }
-    await router.replace({
-      name: route.name as string,
-      params: route.params,
-      // We do not want to set an empty "at" query parameter.
-      query: encodeQuery({ ...route.query, at: topId || undefined }),
-      hash: route.hash,
-    })
-  },
-  {
-    immediate: true,
-  },
+useLocationAt(
+  toRef(() => props.searchResults),
+  toRef(() => props.searchTotal),
+  visibles,
 )
 
 function onScrollOrResize() {
