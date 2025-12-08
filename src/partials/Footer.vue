@@ -6,6 +6,11 @@ defineOptions({
 </script>
 
 <template>
+  <!--
+    TODO: No idea why w-0 (and w-fit) work here, but w-full does not.
+          One would assume that w-full is needed to make the container div as wide as the
+          body inside which then the footer horizontally shifts.
+  -->
   <div class="sticky left-0 w-0 z-30">
     <div v-bind="$attrs" class="flex w-container justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
       <ul class="flex gap-x-2 sm:gap-x-4">

@@ -11,6 +11,11 @@ const mainProgress = injectMainProgress()
 
 <template>
   <ProgressBar :progress="mainProgress" class="fixed inset-x-0 top-0 z-40 will-change-transform" />
+  <!--
+    TODO: No idea why w-0 (and w-fit) work here, but w-full does not.
+          One would assume that w-full is needed to make the container div as wide as the
+          body inside which then the navbar horizontally shifts.
+  -->
   <div class="sticky left-0 w-0 z-30">
     <div
       ref="navbar"
