@@ -3,18 +3,18 @@ import type { DeepReadonly } from "vue"
 
 import Button from "@/components/Button.vue"
 import { ClaimTypes } from "@/document"
-import Id from "@/partials/claimvalue/Id.vue"
-import Ref from "@/partials/claimvalue/Ref.vue"
-import Text from "@/partials/claimvalue/Text.vue"
-import String from "@/partials/claimvalue/String.vue"
-import Amount from "@/partials/claimvalue/Amount.vue"
-import AmountRange from "@/partials/claimvalue/AmountRange.vue"
-import Rel from "@/partials/claimvalue/Rel.vue"
-import File from "@/partials/claimvalue/File.vue"
-import None from "@/partials/claimvalue/None.vue"
-import Unknown from "@/partials/claimvalue/Unknown.vue"
-import Time from "@/partials/claimvalue/Time.vue"
-import TimeRange from "@/partials/claimvalue/TimeRange.vue"
+import ClaimValueId from "@/partials/claimvalue/ClaimValueId.vue"
+import ClaimValueRef from "@/partials/claimvalue/ClaimValueRef.vue"
+import ClaimValueText from "@/partials/claimvalue/ClaimValueText.vue"
+import ClaimValueString from "@/partials/claimvalue/ClaimValueString.vue"
+import ClaimValueAmount from "@/partials/claimvalue/ClaimValueAmount.vue"
+import ClaimValueAmountRange from "@/partials/claimvalue/ClaimValueAmountRange.vue"
+import ClaimValueRel from "@/partials/claimvalue/ClaimValueRel.vue"
+import ClaimValueFile from "@/partials/claimvalue/ClaimValueFile.vue"
+import ClaimValueNone from "@/partials/claimvalue/ClaimValueNone.vue"
+import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
+import ClaimValueTime from "@/partials/claimvalue/ClaimValueTime.vue"
+import ClaimValueTimeRange from "@/partials/claimvalue/ClaimValueTimeRange.vue"
 import ClaimProp from "@/partials/ClaimProp.vue"
 
 withDefaults(
@@ -53,7 +53,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Id :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueId :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -69,7 +69,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Ref :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -85,9 +85,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        ><Text :claim="claim"
-      /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueText :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -103,7 +101,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><String :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -119,7 +117,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Amount :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmount :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -135,7 +133,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><AmountRange :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmountRange :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -151,7 +149,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Rel :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRel :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -167,7 +165,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><File :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueFile :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -183,7 +181,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><None :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueNone :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -199,7 +197,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Unknown :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -215,7 +213,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><Time :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
@@ -231,7 +229,7 @@ async function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><ClaimProp :claim="claim"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><TimeRange :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeRange :claim="claim" /></td>
       <td v-if="editable" class="flex flex-row gap-1 ml-2" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onEdit(claim.id)">Edit</Button>
         <Button type="button" class="!px-3.5 !py-1" @click.prevent="onRemove(claim.id)">Remove</Button>
