@@ -326,8 +326,8 @@ watch(timePrecision, () => {
             </ListboxButton>
 
             <ListboxOptions class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10">
-              <ListboxOption v-for="p in timePrecisionOptions" :key="p" :value="p" class="cursor-pointer p-2 hover:bg-neutral-100">
-                {{ p }}
+              <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" :value="tp" class="cursor-pointer p-2 hover:bg-neutral-100">
+                {{ tp }}
               </ListboxOption>
             </ListboxOptions>
           </div>
