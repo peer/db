@@ -131,29 +131,28 @@ function onScrollOrResize() {
   if (abortController.signal.aborted) {
     return
   }
-  if (!searchMoreButton.value && !filtersMoreButton.value) {
-    return
-  }
 
-  const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
-  const scrollHeight = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight,
-    document.body.offsetHeight,
-    document.documentElement.offsetHeight,
-    document.body.clientHeight,
-    document.documentElement.clientHeight,
-  )
-  const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
+  if (searchMoreButton.value || filtersMoreButton.value) {
+    const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
+    const scrollHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight,
+      document.body.clientHeight,
+      document.documentElement.clientHeight,
+    )
+    const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
 
-  if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
-    // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
-    // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-    if (searchMoreButton.value) {
-      searchMoreButton.value.$el.click()
-    }
-    if (filtersMoreButton.value) {
-      filtersMoreButton.value.$el.click()
+    if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
+      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
+      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
+      if (searchMoreButton.value) {
+        searchMoreButton.value.$el.click()
+      }
+      if (filtersMoreButton.value) {
+        filtersMoreButton.value.$el.click()
+      }
     }
   }
 }
@@ -249,62 +248,62 @@ function onFilters() {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
 
-        <template v-for="result in limitedFiltersResults" :key="'id' in result ? result.id : result.type">
+        <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
           <RelFiltersResult
-            v-if="result.type === 'rel'"
+            v-if="filter.type === 'rel'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
-            :state="filtersState.rel[result.id] ?? []"
+            :result="filter"
+            :state="filtersState.rel[filter.id] ?? []"
             :update-progress="updateFiltersProgress"
-            @update:state="onRelFiltersStateUpdate(result.id, $event)"
+            @update:state="onRelFiltersStateUpdate(filter.id, $event)"
           />
 
           <AmountFiltersResult
-            v-if="result.type === 'amount'"
+            v-if="filter.type === 'amount'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
-            :state="filtersState.amount[`${result.id}/${result.unit}`] ?? null"
+            :result="filter"
+            :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
             :update-progress="updateFiltersProgress"
-            @update:state="onAmountFiltersStateUpdate(result.id, result.unit, $event)"
+            @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
           />
 
           <TimeFiltersResult
-            v-if="result.type === 'time'"
+            v-if="filter.type === 'time'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
-            :state="filtersState.time[result.id] ?? null"
+            :result="filter"
+            :state="filtersState.time[filter.id] ?? null"
             :update-progress="updateFiltersProgress"
-            @update:state="onTimeFiltersStateUpdate(result.id, $event)"
+            @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
           />
 
           <StringFiltersResult
-            v-if="result.type === 'string'"
+            v-if="filter.type === 'string'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
-            :state="filtersState.str[result.id] ?? []"
+            :result="filter"
+            :state="filtersState.str[filter.id] ?? []"
             :update-progress="updateFiltersProgress"
-            @update:state="onStringFiltersStateUpdate(result.id, $event)"
+            @update:state="onStringFiltersStateUpdate(filter.id, $event)"
           />
 
           <IndexFiltersResult
-            v-if="result.type === 'index'"
+            v-if="filter.type === 'index'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
+            :result="filter"
             :state="filtersState.index"
             :update-progress="updateFiltersProgress"
             @update:state="onIndexFiltersStateUpdate($event)"
           />
 
           <SizeFiltersResult
-            v-if="result.type === 'size'"
+            v-if="filter.type === 'size'"
             :s="s"
             :search-total="searchTotal"
-            :result="result"
+            :result="filter"
             :state="filtersState.size"
             :update-progress="updateFiltersProgress"
             @update:state="onSizeFiltersStateUpdate($event)"
