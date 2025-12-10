@@ -185,7 +185,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
   </div>
 
   <template v-else-if="searchTotal !== null && searchTotal > 0">
-    <div ref="content" class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
+    <div ref="content" class="flex flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
         <!-- Headers -->
