@@ -163,7 +163,6 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
   </div>
 
   <template v-if="searchTotal !== null && searchTotal > 0">
-
     <div ref="content" class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
@@ -172,7 +171,10 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <tr>
             <th class="p-2 text-start">#</th>
             <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
-              <th v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 truncate text-start max-w-[400px]">
+              <th
+                v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
+                class="p-2 truncate text-start max-w-[400px]"
+              >
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
             </template>
@@ -189,10 +191,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #default="{ doc }">
                 <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
                   <td v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 truncate max-w-[400px]">
-                    <ClaimValue
-                      :type="filter.type"
-                      :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)"
-                    />
+                    <ClaimValue :type="filter.type" :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)" />
                   </td>
                 </template>
               </template>
@@ -202,12 +201,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] h-full z-20">
-        <Button
-          ref="filtersMoreButton"
-          :progress="filtersProgress"
-          primary
-          class="h-1/4 min-h-fit !py-6 !px-2.5 [writing-mode:sideways-lr]"
-          @click="filtersLoadMore"
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit !py-6 !px-2.5 [writing-mode:sideways-lr]" @click="filtersLoadMore"
           >More columns</Button
         >
       </div>
@@ -220,8 +214,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     -->
     <div class="sticky left-0 w-0 z-20">
       <div class="flex w-container p-1 sm:p-4 justify-center">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click="searchLoadMore"
-          >Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click="searchLoadMore">Load more</Button>
 
         <div v-else class="my-1 sm:my-4">
           <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
@@ -232,7 +225,6 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </div>
       </div>
     </div>
-
   </template>
 
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
