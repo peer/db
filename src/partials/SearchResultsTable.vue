@@ -174,9 +174,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         <!-- Headers -->
         <thead class="bg-slate-300">
           <tr>
-            <th class="p-2 whitespace-nowrap text-start">#</th>
+            <th class="p-2 text-start">#</th>
             <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
-              <th v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 whitespace-nowrap text-start">
+              <th v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 truncate text-start max-w-[400px]">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
             </template>
@@ -186,13 +186,13 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         <!-- Results -->
         <tbody class="divide-y">
           <tr v-for="(result, index) in limitedSearchResults" :key="result.id" :ref="track(result.id) as any" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200">
-            <td class="p-2 whitespace-nowrap text-start">
+            <td class="p-2 text-start">
               <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
             </td>
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc }">
                 <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
-                  <td v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 whitespace-nowrap">
+                  <td v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 truncate max-w-[400px]">
                     <ClaimValue
                       :type="filter.type"
                       :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)"
