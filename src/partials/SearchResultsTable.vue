@@ -4,14 +4,14 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef, ref, onMounted, onBeforeUnmount } from "vue"
+import { computed, toRef, ref, onBeforeUnmount } from "vue"
 
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
-import { encodeQuery, getBestClaimOfType, useLimitResults } from "@/utils.ts"
+import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
@@ -70,19 +70,11 @@ const {
 
 const { track, visibles } = useVisibilityTracking()
 
-onMounted(async () => {
-  window.addEventListener("scroll", onScrollOrResize, { passive: true })
-  window.addEventListener("resize", onScrollOrResize, { passive: true })
-})
+const abortController = new AbortController()
 
 onBeforeUnmount(() => {
   abortController.abort()
-
-  window.removeEventListener("scroll", onScrollOrResize)
-  window.removeEventListener("resize", onScrollOrResize)
 })
-
-const abortController = new AbortController()
 
 const searchMoreButton = ref()
 const filtersMoreButton = ref()
@@ -102,6 +94,10 @@ useLocationAt(
   toRef(() => props.searchTotal),
   visibles,
 )
+
+const content = ref(null)
+
+useOnScrollOrResize(content, onScrollOrResize)
 
 function onScrollOrResize() {
   if (abortController.signal.aborted) {
@@ -168,7 +164,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
   <template v-if="searchTotal !== null && searchTotal > 0">
 
-    <div class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
+    <div ref="content" class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
         <!-- Headers -->

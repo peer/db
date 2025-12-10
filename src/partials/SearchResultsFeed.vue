@@ -16,7 +16,7 @@ import type {
   AmountUnit,
 } from "@/types"
 
-import { computed, onBeforeUnmount, onMounted, ref, toRef } from "vue"
+import { computed, onBeforeUnmount, ref, toRef } from "vue"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
@@ -29,7 +29,7 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
-import { useLimitResults } from "@/utils.ts"
+import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import Footer from "@/partials/Footer.vue"
@@ -94,19 +94,11 @@ const {
 
 const { track, visibles } = useVisibilityTracking()
 
-onMounted(() => {
-  window.addEventListener("scroll", onScrollOrResize, { passive: true })
-  window.addEventListener("resize", onScrollOrResize, { passive: true })
-})
+const abortController = new AbortController()
 
 onBeforeUnmount(() => {
   abortController.abort()
-
-  window.removeEventListener("scroll", onScrollOrResize)
-  window.removeEventListener("resize", onScrollOrResize)
 })
-
-const abortController = new AbortController()
 
 const searchMoreButton = ref()
 const filtersMoreButton = ref()
@@ -126,6 +118,10 @@ useLocationAt(
   toRef(() => props.searchTotal),
   visibles,
 )
+
+const content = ref(null)
+
+useOnScrollOrResize(content, onScrollOrResize)
 
 function onScrollOrResize() {
   if (abortController.signal.aborted) {
@@ -197,7 +193,7 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
+  <div ref="content" class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
