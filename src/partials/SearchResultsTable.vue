@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
+import type { ClientSearchState, SearchFilterResult, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onBeforeUnmount } from "vue"
@@ -11,7 +11,7 @@ import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
-import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
+import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize, loadingWidth } from "@/utils.ts"
 import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
@@ -51,6 +51,7 @@ const filtersEl = ref(null)
 const filtersProgress = injectProgress()
 const {
   results: filtersResults,
+  total: filtersTotal,
   error: filtersError,
   url: filtersURL,
 } = useFilters(
@@ -67,6 +68,23 @@ const {
   hasMore: filtersHasMore,
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
+function supportedFilter(filter: SearchFilterResult) {
+  return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
+}
+
+const rowColspan = computed(() => {
+  if (filtersTotal.value === null) {
+    return 1
+  }
+  let count = 0
+  for (const filter of limitedFiltersResults.value) {
+    if (supportedFilter(filter)) {
+      count++
+    }
+  }
+  return count
+})
 
 const { track, visibles } = useVisibilityTracking()
 
@@ -162,19 +180,23 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     />
   </div>
 
-  <template v-if="searchTotal !== null && searchTotal > 0">
+  <div v-if="filtersError" class="px-1 sm:px-4 text-center mb-1 sm:mb-4">
+    <i class="text-error-600">loading data failed</i>
+  </div>
+
+  <template v-else-if="searchTotal !== null && searchTotal > 0">
     <div ref="content" class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
         <!-- Headers -->
         <thead class="bg-slate-300">
-          <tr>
+          <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
-            <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
-              <th
-                v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
-                class="p-2 truncate text-start max-w-[400px]"
-              >
+            <th v-if="filtersTotal === null" class="p-2 text-start">
+              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/0`)]" />
+            </th>
+            <template v-for="filter in limitedFiltersResults" v-else :key="'id' in filter ? filter.id : filter.type">
+              <th v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
             </template>
@@ -183,20 +205,45 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
         <!-- Results -->
         <tbody class="divide-y">
-          <tr v-for="(result, index) in limitedSearchResults" :key="result.id" :ref="track(result.id) as any" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200">
-            <td class="p-2 text-start">
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
-            </td>
+          <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
-              <template #default="{ doc }">
-                <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
-                  <td v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 truncate max-w-[400px]">
-                    <ClaimValue :type="filter.type" :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)" />
+              <template #default="{ doc, url }">
+                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                  <td class="p-2 text-start">
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
                   </td>
-                </template>
+                  <td v-if="filtersTotal === null" class="p-2 text-start">
+                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/${index + 1}`)]" />
+                  </td>
+                  <template v-for="filter in limitedFiltersResults" v-else :key="'id' in filter ? filter.id : filter.type">
+                    <td v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
+                      <ClaimValue :type="filter.type" :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)" />
+                    </td>
+                  </template>
+                </tr>
+              </template>
+              <template #loading="{ url }">
+                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                  <td class="p-2 text-start">
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                  </td>
+                  <td :colspan="rowColspan" class="p-2 text-start">
+                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result.id)]" />
+                  </td>
+                </tr>
+              </template>
+              <template #error="{ url }">
+                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                  <td class="p-2 text-start">
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                  </td>
+                  <td :colspan="rowColspan" class="p-2 text-start">
+                    <i class="text-error-600">loading data failed</i>
+                  </td>
+                </tr>
               </template>
             </WithPeerDBDocument>
-          </tr>
+          </template>
         </tbody>
       </table>
 

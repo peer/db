@@ -524,4 +524,8 @@ function onFilterChange(change: FilterStateChange) {
       :search-progress="searchProgress"
     />
   </div>
+
+  <Teleport v-if="searchStateError || searchResultsError" to="footer">
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+  </Teleport>
 </template>

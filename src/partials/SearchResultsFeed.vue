@@ -207,7 +207,7 @@ function onFilters() {
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
-          <SearchResult :ref="track(result.id) as any" :s="s" :result="result" />
+          <SearchResult :ref="track(result.id)" :s="s" :result="result" />
         </template>
 
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
