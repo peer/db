@@ -19,12 +19,14 @@
     </style>
     <script type="module" src="/src/app.ts"></script>
   </head>
-  <body class="flex flex-col min-h-container">
-    <header></header>
-    <main class="flex-grow flex justify-center min-w-fit">
-      <div class="self-center jsonly">Loading...</div>
-      <noscript class="self-center"><style>.jsonly{display: none}</style>JavaScript is required.</noscript>
-    </main>
-    <footer></footer>
+  <body>
+    <div class="flex flex-col min-h-container min-w-fit">
+      <header></header>
+      <main class="flex-grow flex justify-center">
+        <div class="self-center jsonly">Loading...</div>
+        <noscript class="self-center"><style>.jsonly{display: none}</style>JavaScript is required.</noscript>
+      </main>
+      <footer></footer>
+    </div>
   </body>
 </html>
