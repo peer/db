@@ -4,18 +4,18 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchState, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { useRoute, useRouter } from "vue-router"
-import { computed, toRef, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue"
+import { computed, toRef, ref, onMounted, onBeforeUnmount } from "vue"
 
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
-import { encodeQuery, getBestClaimOfType, getName, loadingWidth, useLimitResults } from "@/utils.ts"
-import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters } from "@/search.ts"
+import { encodeQuery, getBestClaimOfType, useLimitResults } from "@/utils.ts"
+import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
   searchView: SearchViewType
@@ -33,9 +33,6 @@ const $emit = defineEmits<{
   "update:searchView": [value: SearchViewType]
 }>()
 
-const router = useRouter()
-const route = useRoute()
-
 const SEARCH_INITIAL_LIMIT = 100
 const SEARCH_INCREASE = 100
 
@@ -52,7 +49,11 @@ const {
 const filtersEl = ref(null)
 
 const filtersProgress = injectProgress()
-const { results: filtersResults } = useFilters(
+const {
+  results: filtersResults,
+  error: filtersError,
+  url: filtersURL,
+} = useFilters(
   activeSearchState(
     toRef(() => props.searchState),
     toRef(() => props.s),
@@ -70,37 +71,21 @@ const {
 const { track, visibles } = useVisibilityTracking()
 
 onMounted(async () => {
-  await nextTick(() => {
-    initResizeObserver()
-  })
-
-  window.addEventListener("scroll", onVerticalScroll, { passive: true })
-  if (scrollContainer.value) {
-    scrollContainer.value.addEventListener("scroll", onHorizontalScroll, { passive: true })
-  }
+  window.addEventListener("scroll", onScrollOrResize, { passive: true })
+  window.addEventListener("resize", onScrollOrResize, { passive: true })
 })
 
 onBeforeUnmount(() => {
   abortController.abort()
 
-  window.removeEventListener("scroll", onVerticalScroll)
-  if (scrollContainer.value) {
-    scrollContainer.value.removeEventListener("scroll", onHorizontalScroll)
-  }
-
-  destroyResizeObserver()
+  window.removeEventListener("scroll", onScrollOrResize)
+  window.removeEventListener("resize", onScrollOrResize)
 })
 
-const TABLE_RENDER_THRESHOLD = 50 // 50px
-
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
-const initialRouteName = route.name
-
-let resizeObserver: ResizeObserver | null = null
 const abortController = new AbortController()
 
-const tableWrapper = ref<HTMLDivElement | null>(null)
-const scrollContainer = ref<HTMLDivElement | null>(null)
+const searchMoreButton = ref()
+const filtersMoreButton = ref()
 const supportPageOffset = window.pageYOffset !== undefined
 
 const searchViewValue = computed({
@@ -112,217 +97,149 @@ const searchViewValue = computed({
   },
 })
 
-const idToIndex = computed(() => {
-  const map = new Map<string, number>()
-  for (const [i, result] of props.searchResults.entries()) {
-    map.set(result.id, i)
-  }
-  return map
-})
-
-watch(
-  () => {
-    const sorted = Array.from(visibles)
-    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-    return sorted[0]
-  },
-  async (topId) => {
-    // Watch can continue to run for some time after the route changes.
-    if (initialRouteName !== route.name) {
-      return
-    }
-    // Initial data has not yet been loaded, so we wait.
-    if (!topId && props.searchTotal === null) {
-      return
-    }
-    await router.replace({
-      name: route.name as string,
-      params: route.params,
-      // We do not want to set an empty "at" query parameter.
-      query: encodeQuery({ ...route.query, at: topId || undefined }),
-      hash: route.hash,
-    })
-  },
-  {
-    immediate: true,
-  },
+useLocationAt(
+  toRef(() => props.searchResults),
+  toRef(() => props.searchTotal),
+  visibles,
 )
 
-function onVerticalScroll() {
+function onScrollOrResize() {
   if (abortController.signal.aborted) {
     return
   }
 
-  const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
-  const scrollHeight = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight,
-    document.body.offsetHeight,
-    document.documentElement.offsetHeight,
-    document.body.clientHeight,
-    document.documentElement.clientHeight,
-  )
-  const currentScrollPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
+  if (searchMoreButton.value) {
+    const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
+    const scrollHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight,
+      document.body.clientHeight,
+      document.documentElement.clientHeight,
+    )
+    const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
 
-  if (currentScrollPosition > scrollHeight - 2 * viewportHeight) {
-    searchLoadMore()
-  }
-}
-
-function onHorizontalScroll() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  const el = scrollContainer.value
-  if (!el) return
-
-  const viewportWidth = el.clientWidth
-  const scrollWidth = el.scrollWidth
-  const currentScrollLeft = el.scrollLeft
-
-  if (currentScrollLeft > scrollWidth - 2 * viewportWidth) {
-    filtersLoadMore()
-  }
-}
-
-function initResizeObserver(): void {
-  if (!tableWrapper.value) return
-
-  resizeObserver = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const height = entry.contentRect.height
-      const width = entry.contentRect.width
-
-      handleTableHeightResize(height)
-      handleTableWidthResize(width)
+    if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
+      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
+      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
+      searchMoreButton.value.$el.click()
     }
-  })
+  }
 
-  resizeObserver.observe(tableWrapper.value)
-}
+  if (filtersMoreButton.value) {
+    const viewportWidth = document.documentElement.clientWidth || document.body.clientWidth
+    const scrollWidth = Math.max(
+      document.body.scrollWidth,
+      document.documentElement.scrollWidth,
+      document.body.offsetWidth,
+      document.documentElement.offsetWidth,
+      document.body.clientWidth,
+      document.documentElement.clientWidth,
+    )
+    const currentScrollXPosition = supportPageOffset ? window.pageXOffset : document.documentElement.scrollLeft
 
-function destroyResizeObserver(): void {
-  if (resizeObserver && tableWrapper.value) {
-    resizeObserver.unobserve(tableWrapper.value)
-    resizeObserver.disconnect()
+    if (currentScrollXPosition > scrollWidth - 2 * viewportWidth) {
+      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
+      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
+      filtersMoreButton.value.$el.click()
+    }
   }
 }
 
-function handleTableHeightResize(height: number): void {
-  if (height < TABLE_RENDER_THRESHOLD) return
-
-  const viewportHeight = window.innerHeight
-
-  // If the table is shorter than the viewport, try to load more rows
-  if (height < viewportHeight && searchHasMore.value && !abortController.signal.aborted) {
-    searchLoadMore()
-  }
-}
-
-function handleTableWidthResize(width: number): void {
-  if (width < TABLE_RENDER_THRESHOLD) return
-
-  const viewportWidth = window.innerWidth
-
-  // If the table is narrower than the viewport, try to load more columns
-  if (width < viewportWidth && searchHasMore.value && !abortController.signal.aborted) {
-    filtersLoadMore()
-  }
-}
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
-  <div class="w-full h-full">
-    <div ref="scrollContainer" class="w-full h-full flex flex-col gap-y-1 sm:gap-y-4 p-1 sm:p-4 rounded overflow-x-auto overflow-y-visible">
-      <SearchResultsHeader
-        v-model:search-view="searchViewValue"
-        class="sticky left-0 w-full"
-        :search-state="searchState"
-        :search-total="searchTotal"
-        :search-more-than-total="searchMoreThanTotal"
-      />
+  <!--
+    TODO: No idea why w-0 (and w-fit) work here, but w-full does not.
+          One would assume that w-full is needed to make the container div as wide as the
+          body inside which then the footer horizontally shifts.
+  -->
+  <div class="sticky left-0 w-0 z-20">
+    <SearchResultsHeader
+      v-model:search-view="searchViewValue"
+      class="w-container p-1 sm:p-4"
+      :search-state="searchState"
+      :search-total="searchTotal"
+      :search-more-than-total="searchMoreThanTotal"
+    />
+  </div>
 
-      <div ref="tableWrapper" class="flex gap-x-1 sm:gap-x-4 w-fit">
-        <div class="rounded shadow border w-fit">
-          <table>
-            <!-- Headers -->
-            <thead class="bg-slate-300 sticky top-0 z-10">
-              <tr>
-                <th class="p-2 min-w-[50px] text-start">#</th>
-                <th v-for="(result, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px] text-left">
-                  <div class="flex items-center gap-x-1">
-                    <template v-if="result.type === 'rel' || result.type === 'amount' || result.type === 'time' || result.type === 'string'">
-                      <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                        <template #default="{ doc, url }">
-                          <RouterLink
-                            :to="{ name: 'DocumentGet', params: { id: result.id } }"
-                            :data-url="url"
-                            class="link text-lg leading-none"
-                            v-html="getName(doc.claims) || '<i>no name</i>'"
-                          ></RouterLink>
-                        </template>
-                        <template #loading="{ url }">
-                          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
-                        </template>
-                      </WithPeerDBDocument>
-                      ({{ result.count }})
-                    </template>
+  <template v-if="searchTotal !== null && searchTotal > 0">
 
-                    <template v-else-if="result.type === 'index'">
-                      <div class="flex items-baseline gap-x-1">
-                        <span class="mb-1.5 text-lg leading-none">document index</span>
-                        ({{ result.count }})
-                      </div>
-                    </template>
+    <div class="flex w-fit flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
+      <!-- TODO: Make table have rounded corners. -->
+      <table class="shadow border">
+        <!-- Headers -->
+        <thead class="bg-slate-300">
+          <tr>
+            <th class="p-2 whitespace-nowrap text-start">#</th>
+            <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
+              <th v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 whitespace-nowrap text-start">
+                <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
+              </th>
+            </template>
+          </tr>
+        </thead>
 
-                    <template v-else-if="result.type === 'size'">
-                      <div class="flex items-baseline gap-x-1">
-                        <span class="mb-1.5 text-lg leading-none">document size</span>
-                        ({{ result.count }})
-                      </div>
-                    </template>
-                  </div>
-                </th>
-              </tr>
-            </thead>
+        <!-- Results -->
+        <tbody class="divide-y">
+          <tr v-for="(result, index) in limitedSearchResults" :key="result.id" :ref="track(result.id) as any" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200">
+            <td class="p-2 whitespace-nowrap text-start">
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+            </td>
+            <WithPeerDBDocument :id="result.id" name="DocumentGet">
+              <template #default="{ doc }">
+                <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
+                  <td v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'" class="p-2 whitespace-nowrap">
+                    <ClaimValue
+                      :type="filter.type"
+                      :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)"
+                    />
+                  </td>
+                </template>
+              </template>
+            </WithPeerDBDocument>
+          </tr>
+        </tbody>
+      </table>
 
-            <!-- Results -->
-            <tbody v-if="searchTotal !== null && searchTotal > 0" class="divide-y">
-              <tr v-for="(result, i) in limitedSearchResults" :key="result.id" :ref="track(result.id) as any" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200">
-                <td class="p-2 min-w-[50px] text-start">
-                  <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ i + 1 }}</RouterLink>
-                </td>
-                <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                  <template #default="{ doc: searchDoc }">
-                    <td v-for="(filter, index) in limitedFiltersResults" :key="index" class="p-2 min-w-[200px]">
-                      <ClaimValue
-                        v-if="filter.type === 'rel' || filter.type === 'amount' || filter.type === 'time' || filter.type === 'string'"
-                        :type="filter.type"
-                        :claim="getBestClaimOfType(searchDoc.claims, filter.type, filter.id)"
-                      />
-                    </td>
-                  </template>
-                </WithPeerDBDocument>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="absolute top-0 w-fit h-fit min-w-fit" @click="filtersLoadMore"
-          >More filters</Button
-        >
-      </div>
-
-      <div class="sticky left-0 w-full text-center">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
-          >Load more</Button
+      <div v-if="filtersHasMore" class="sticky top-[37.5%] h-full z-20">
+        <Button
+          ref="filtersMoreButton"
+          :progress="filtersProgress"
+          primary
+          class="h-1/4 min-h-fit !py-6 !px-2.5 [writing-mode:sideways-lr]"
+          @click="filtersLoadMore"
+          >More columns</Button
         >
       </div>
     </div>
-  </div>
 
-  <Teleport to="footer">
+    <!--
+      TODO: No idea why w-0 (and w-fit) work here, but w-full does not.
+            One would assume that w-full is needed to make the container div as wide as the
+            body inside which then the footer horizontally shifts.
+    -->
+    <div class="sticky left-0 w-0 z-20">
+      <div class="flex w-container p-1 sm:p-4 justify-center">
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click="searchLoadMore"
+          >Load more</Button>
+
+        <div v-else class="my-1 sm:my-4">
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">
+            All of first {{ searchResults.length }} shown of {{ searchTotal }} results found.
+          </div>
+          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
+        </div>
+      </div>
+    </div>
+
+  </template>
+
+  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>
