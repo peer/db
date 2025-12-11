@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeepReadonly, StyleValue } from "vue"
+import type { DeepReadonly } from "vue"
 
 import type { ClientSearchState, SearchFilterResult, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
@@ -161,7 +161,7 @@ function onScrollOrResize() {
   }
 }
 
-const headerAttrs = ref<{ style: StyleValue }>({ style: { top: "-1px"} })
+const headerAttrs = ref<{ style: { top: string } }>({ style: { top: "-1px" } })
 
 // TODO: Find a better way to get the header to stick to the bottom of the navbar.
 function onScroll() {
