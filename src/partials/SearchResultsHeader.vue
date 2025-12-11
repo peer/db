@@ -85,7 +85,7 @@ function countFilters(): number {
 </script>
 
 <template>
-  <div class="flex flex-row gap-x-1 sm:gap-x-4 w-full">
+  <div class="flex flex-row gap-x-1 sm:gap-x-4">
     <div class="bg-slate-200 px-4 py-2 rounded flex flex-row justify-between w-full">
       <div v-if="searchState === null">Loading...</div>
       <div v-else-if="searchState.promptError">Error interpreting your prompt.</div>

@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { StringFilterState, StringSearchResult } from "@/types"
-import type { PeerDBDocument } from "@/document"
 
 import { ref, computed, toRef, onBeforeUnmount } from "vue"
 import Button from "@/components/Button.vue"
-import WithDocument from "@/components/WithDocument.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
+import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
 import { injectProgress } from "@/progress"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
   s: string
@@ -78,26 +77,12 @@ const checkboxState = computed({
     }
   },
 })
-
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
   <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
-      <WithPeerDBDocument :id="result.id" name="DocumentGet">
-        <template #default="{ doc, url }">
-          <RouterLink
-            :to="{ name: 'DocumentGet', params: { id: result.id } }"
-            :data-url="url"
-            class="link mb-1.5 text-lg leading-none"
-            v-html="getName(doc.claims) || '<i>no name</i>'"
-          ></RouterLink>
-        </template>
-        <template #loading="{ url }">
-          <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></div>
-        </template>
-      </WithPeerDBDocument>
+      <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el">

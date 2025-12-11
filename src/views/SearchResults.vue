@@ -28,6 +28,7 @@ import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
+import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
   s: string
@@ -494,7 +495,7 @@ function onFilterChange(change: FilterStateChange) {
       </Button>
     </NavBar>
   </Teleport>
-  <div ref="searchEl" class="mt-12 w-full border-t border-transparent p-1 sm:mt-[4.5rem] sm:p-4" :data-url="searchURL">
+  <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">
     <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
       <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
     </div>
@@ -516,10 +517,20 @@ function onFilterChange(change: FilterStateChange) {
     <SearchResultsTable
       v-else-if="searchView === 'table'"
       v-model:search-view="searchView"
+      :s="s"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-state="searchState"
+      :search-progress="searchProgress"
     />
   </div>
+
+  <!--
+    When there is an error, we do not show a component to display results which otherwise
+    shows the footer. So we show the footer ourselves here in that case.
+  -->
+  <Teleport v-if="searchStateError || searchResultsError" to="footer">
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+  </Teleport>
 </template>

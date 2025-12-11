@@ -2,5 +2,6 @@
   "semi": false,
   "vueIndentScriptAndStyle": false,
   "trailingComma": "all",
-  "printWidth": 170
+  "printWidth": 170,
+  "htmlWhitespaceSensitivity": "strict"
 }

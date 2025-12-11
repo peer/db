@@ -1,4 +1,4 @@
-import { DeepReadonly, Ref, watchEffect } from "vue"
+import { DeepReadonly, onBeforeUnmount, onMounted, Ref, watchEffect } from "vue"
 import type { Mutable, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
 import type { Claim, ClaimTypes, ClaimTypeProp } from "@/document"
 
@@ -357,4 +357,29 @@ export function anySignal(...signals: AbortSignal[]): AbortSignal {
   }
 
   return controller.signal
+}
+
+export function useOnScrollOrResize(el: Ref<Element | null>, callback: () => void) {
+  const resizeObserver = new ResizeObserver(callback)
+
+  watch(el, (newEl, oldEl) => {
+    if (oldEl) {
+      resizeObserver.unobserve(oldEl)
+    }
+    if (newEl) {
+      resizeObserver.observe(newEl)
+    }
+  })
+
+  onMounted(() => {
+    window.addEventListener("scroll", callback, { passive: true })
+    window.addEventListener("resize", callback, { passive: true })
+  })
+
+  onBeforeUnmount(() => {
+    window.removeEventListener("scroll", callback)
+    window.removeEventListener("resize", callback)
+
+    resizeObserver.disconnect()
+  })
 }
