@@ -28,6 +28,7 @@ import { injectMainProgress, localProgress } from "@/progress"
 import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
+import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
   s: string
