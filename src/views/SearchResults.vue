@@ -526,6 +526,10 @@ function onFilterChange(change: FilterStateChange) {
     />
   </div>
 
+  <!--
+    When there is an error, we do not show a component to display results which otherwise
+    shows the footer. So we show the footer ourselves here in that case.
+  -->
   <Teleport v-if="searchStateError || searchResultsError" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
