@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { DeepReadonly } from "vue"
+import type { DeepReadonly, StyleValue } from "vue"
 
 import type { ClientSearchState, SearchFilterResult, SearchResult as SearchResultType, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef, ref, onBeforeUnmount } from "vue"
+import { computed, toRef, ref, onBeforeUnmount, onMounted } from "vue"
 
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
@@ -161,6 +161,30 @@ function onScrollOrResize() {
   }
 }
 
+const headerAttrs = ref<{ style: StyleValue }>({ style: { top: "-1px"} })
+
+// TODO: Find a better way to get the header to stick to the bottom of the navbar.
+function onScroll() {
+  const el = document.getElementById("navbar")
+  if (!el) {
+    return
+  }
+
+  const { bottom } = el.getBoundingClientRect()
+  // We use -1 because we have a 1px border on the table which we want to offset.Otherwise there
+  // is a 1px gap between the top edge of the window and where the header gets stuck
+  const top = Math.max(-1, bottom - 1)
+  headerAttrs.value.style.top = `${top}px`
+}
+
+onMounted(() => {
+  window.addEventListener("scroll", onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScroll)
+})
+
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
@@ -189,7 +213,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
         <!-- Headers -->
-        <thead class="bg-slate-300">
+        <!--
+          We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there
+          is a 1px gap between the top edge of the window and where the header gets stuck
+        -->
+        <thead class="bg-slate-300 sticky -top-px z-10" v-bind="headerAttrs">
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">

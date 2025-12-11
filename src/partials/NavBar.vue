@@ -18,6 +18,7 @@ const mainProgress = injectMainProgress()
   -->
   <div class="sticky left-0 w-0 z-30">
     <div
+      id="navbar"
       ref="navbar"
       class="flex w-container min-h-12 flex-grow gap-x-1 left-0 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
       v-bind="navbarAttrs"
