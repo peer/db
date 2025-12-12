@@ -3,13 +3,14 @@ import type { SearchResult, SearchStateCreateResponse } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
-import { computed, onBeforeUnmount, ref, toRef } from "vue"
+import { computed, onBeforeUnmount, ref, toRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { getURL, postURL } from "@/api.ts"
 import { getName, loadingWidth } from "@/utils.ts"
 import { activeSearchState, useSearch, useSearchState } from "@/search.ts"
+import { debounce } from "lodash-es"
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
@@ -19,11 +20,13 @@ defineOptions({
 const props = withDefaults(defineProps<{ modelValue?: string; progress?: number }>(), { modelValue: "", progress: 0 })
 
 const emit = defineEmits<{
-  (e: "update:modelValue", query: string): void
+  (e: "update:modelValue", id: string): void
   (e: "update:progress", progress: number): void
 }>()
 
 const router = useRouter()
+
+const DEBOUNCE_MS = 500
 
 const abortController = new AbortController()
 
@@ -32,16 +35,28 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const s = ref()
 const searchEl = ref(null)
 
-const selectedDocument = ref<SearchResult & { name: string }>()
+const selectedDocument = ref<(SearchResult & { name: string }) | null>(null)
+const nameCache = ref<Record<string, string>>({})
 
-const selectedDocumentValue = computed({
-  get: () => selectedDocument.value,
-  set: async (value) => {
-    if (!value) return
+watch(
+  () => props.modelValue,
+  async (id) => {
+    if (!id) return (selectedDocument.value = null)
 
-    const name = await resolveDocumentName(value.id)
-    selectedDocument.value = { ...value, name }
+    if (!nameCache.value[id]) {
+      nameCache.value[id] = await resolveDocumentName(id)
+    }
+
+    selectedDocument.value = {
+      id,
+      name: nameCache.value[id],
+    }
   },
+)
+
+watch(selectedDocument, (doc) => {
+  if (!doc) return
+  emit("update:modelValue", doc.id)
 })
 
 const progressValue = computed({
@@ -54,8 +69,8 @@ const progressValue = computed({
 const query = computed({
   get: () => props.modelValue,
   set: async (value) => {
-    await search(value)
-    emit("update:modelValue", value)
+    runSearchDebounce.cancel()
+    await runSearchDebounce(value)
   },
 })
 
@@ -84,6 +99,10 @@ const {
 onBeforeUnmount(() => {
   abortController.abort()
 })
+
+const runSearchDebounce = debounce(async (q: string) => {
+  await search(q)
+}, DEBOUNCE_MS)
 
 async function search(q: string) {
   const form = new FormData()
@@ -117,12 +136,11 @@ async function resolveDocumentName(id: string): Promise<string> {
 </script>
 
 <template>
-  <Combobox ref="searchEl" v-model="selectedDocumentValue" as="div" class="w-full">
+  <Combobox ref="searchEl" v-model="selectedDocument" as="div">
     <div class="relative">
       <ComboboxInput
-        v-bind="$attrs"
         class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
-        :display-value="(result) => result.name || ''"
+        :display-value="(doc) => doc?.name ?? ''"
         @input="query = $event.target.value"
       />
 
@@ -130,8 +148,8 @@ async function resolveDocumentName(id: string): Promise<string> {
         v-if="searchResults.length > 0"
         class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10"
       >
-        <ComboboxOption v-for="result in searchResults" v-slot="{ active }" :key="result.id" :value="result" as="template">
-          <li class="cursor-pointer p-2" :class="active ? 'bg-neutral-100' : ''">
+        <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
+          <li :class="['cursor-pointer p-2', active ? 'bg-neutral-100' : '']">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc }">
                 {{ getName(doc?.claims) || "no name" }}
