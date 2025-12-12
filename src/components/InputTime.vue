@@ -7,11 +7,15 @@ import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headless
 
 import InputText from "@/components/InputText.vue"
 
+// We want all fallthrough attributes to be passed to the link element.
+defineOptions({
+  inheritAttrs: false,
+})
+
 const props = withDefaults(
   defineProps<{
     modelValue?: string
     readonly?: boolean
-    id?: string
     invalid?: boolean
     precision?: TimePrecision
     progress?: number
@@ -19,7 +23,6 @@ const props = withDefaults(
   {
     modelValue: "",
     readonly: false,
-    id: "timestamp-input",
     invalid: false,
     precision: "d",
     progress: 0,
@@ -351,7 +354,7 @@ watch(timePrecision, (value) => {
 <template>
   <div class="w-full flex flex-col gap-1">
     <div class="flex gap-2">
-      <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" :progress="progress" class="w-full" @keydown="onKeydown" @input="onInput" />
+      <InputText v-model="value" v-bind="$attrs" :readonly="readonly" :invalid="isInvalid" :progress="progress" class="w-full" @keydown="onKeydown" @input="onInput" />
       <Listbox v-if="!readonly" v-model="timePrecision" :disabled="progress > 0" class="w-20">
         <div class="relative">
           <ListboxButton
