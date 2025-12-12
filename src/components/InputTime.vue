@@ -14,6 +14,7 @@ const props = withDefaults(
     id?: string
     invalid?: boolean
     precision?: TimePrecision
+    progress?: number
   }>(),
   {
     modelValue: "",
@@ -21,6 +22,7 @@ const props = withDefaults(
     id: "timestamp-input",
     invalid: false,
     precision: "d",
+    progress: 0,
   },
 )
 
@@ -350,10 +352,15 @@ watch(timePrecision, (value) => {
 <template>
   <div class="w-full flex flex-col gap-1">
     <div class="flex gap-2">
-      <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
-      <Listbox v-if="!readonly" v-model="timePrecision" class="w-20">
+      <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" :progress="progress" class="w-full" @keydown="onKeydown" @input="onInput" />
+      <Listbox v-if="!readonly" v-model="timePrecision" :disabled="progress > 0" class="w-20">
         <div class="relative">
-          <ListboxButton class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2">
+          <ListboxButton
+            class="w-full py-2 px-3 rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
+            :class="{
+              'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': progress > 0,
+            }"
+          >
             {{ timePrecision }}
           </ListboxButton>
 
