@@ -348,30 +348,28 @@ watch(timePrecision, (value) => {
 </script>
 
 <template>
-  <div class="w-full flex gap-2 items-center">
-    <div class="w-full flex flex-col gap-1">
-      <div class="flex gap-2">
-        <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
-        <Listbox v-if="!readonly" v-model="timePrecision" class="w-20">
-          <div class="relative">
-            <ListboxButton class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2">
-              {{ timePrecision }}
-            </ListboxButton>
+  <div class="w-full flex flex-col gap-1">
+    <div class="flex gap-2">
+      <InputText :id="id" v-model="value" :readonly="readonly" :invalid="isInvalid" class="w-full" @keydown="onKeydown" @input="onInput" />
+      <Listbox v-if="!readonly" v-model="timePrecision" class="w-20">
+        <div class="relative">
+          <ListboxButton class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2">
+            {{ timePrecision }}
+          </ListboxButton>
 
-            <ListboxOptions class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10">
-              <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" :value="tp" class="cursor-pointer p-2 hover:bg-neutral-100">
-                {{ tp }}
-              </ListboxOption>
-            </ListboxOptions>
-          </div>
-        </Listbox>
-      </div>
-
-      <p class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
-
-      <p v-if="errorMessage" class="text-sm text-red-500">
-        {{ errorMessage }}
-      </p>
+          <ListboxOptions class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10">
+            <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" :value="tp" class="cursor-pointer p-2 hover:bg-neutral-100">
+              {{ tp }}
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
     </div>
+
+    <p class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
+
+    <p v-if="errorMessage" class="text-sm text-red-500">
+      {{ errorMessage }}
+    </p>
   </div>
 </template>
