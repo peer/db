@@ -299,7 +299,6 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
     case "100y":
       return String(roundDown(year, 100))
     case "10y": {
-      console.log(String(roundDown(year, 10)))
       return String(roundDown(year, 10))
     }
     case "y":
