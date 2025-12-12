@@ -6,6 +6,7 @@ import { debounce } from "lodash-es"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 
 import InputText from "@/components/InputText.vue"
+import { daysIn } from "@/time.ts"
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
@@ -73,48 +74,78 @@ const matchFull = (s: string) => s.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2
 function progressiveValidate(raw: string): string {
   if (!raw) return ""
 
-  // Normalize 'T' to space
   const normalized = raw.replace("T", " ")
 
-  // Checks year with negativity
   if (/^-?\d*$/.test(normalized)) return ""
 
   const toMonth = matchToMonth(normalized)
   if (toMonth) {
-    const [, , month] = toMonth
-    return Number(month) >= 0 && Number(month) <= 12 ? "" : "Months need to be between 1-12."
+    const [, , monthStr] = toMonth
+    const month = Number(monthStr)
+    return month >= 1 && month <= 12 ? "" : "Months need to be between 1-12."
   }
 
   const toDay = matchToDay(normalized)
   if (toDay) {
-    const [, , month, day] = toDay
+    const [, yearStr, monthStr, dayStr] = toDay
+    const year = Number(yearStr)
+    const month = Number(monthStr)
+    const day = Number(dayStr)
 
-    let errMessage = ""
-    if (Number(month) < 1 || Number(month) > 12) errMessage = "Months need to be between 1-12."
-    if (Number(day) < 0 || Number(day) > 31) errMessage = "Days need to be between 1-31."
-    return errMessage
+    if (month < 1 || month > 12) return "Months need to be between 1-12."
+
+    const maxDay = daysIn(month, year)
+    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
+
+    return ""
   }
 
-  // Full date + space
   if (/^-?\d+-\d{1,2}-\d{1,2} $/.test(normalized)) return ""
 
   const toHours = matchToHour(normalized)
   if (toHours) {
+    const year = Number(toHours[1])
+    const month = Number(toHours[2])
+    const day = Number(toHours[3])
     const hour = Number(toHours[4])
-    return hour >= 0 && hour <= 23 ? "" : "Hours needs to be between 0-23."
+
+    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    const maxDay = daysIn(month, year)
+    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
+    if (hour < 0 || hour > 23) return "Hours needs to be between 0-23."
+
+    return ""
   }
 
   const toMinutes = matchToMinute(normalized)
   if (toMinutes) {
+    const year = Number(toMinutes[1])
+    const month = Number(toMinutes[2])
+    const day = Number(toMinutes[3])
+    const hour = Number(toMinutes[4])
     const minute = Number(toMinutes[5])
-    return minute >= 0 && minute <= 59 ? "" : "Minutes needs to be between 0-59."
+
+    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    const maxDay = daysIn(month, year)
+    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
+    if (hour < 0 || hour > 23) return "Hours needs to be between 0-23."
+    if (minute < 0 || minute > 59) return "Minutes need to be between 0-59."
+
+    return ""
   }
 
   const toSeconds = matchToSecond(normalized)
   if (toSeconds) {
-    const [, , month, day, hour, minute, second] = toSeconds.map(Number)
-    if (month < 1 || month > 12) return "Month needs to be between 1-12."
-    if (day < 1 || day > 31) return "Day needs to be between 1-31."
+    const year = Number(toSeconds[1])
+    const month = Number(toSeconds[2])
+    const day = Number(toSeconds[3])
+    const hour = Number(toSeconds[4])
+    const minute = Number(toSeconds[5])
+    const second = Number(toSeconds[6])
+
+    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    const maxDay = daysIn(month, year)
+    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
     if (hour < 0 || hour > 23) return "Hours need to be between 0-23."
     if (minute < 0 || minute > 59) return "Minutes need to be between 0-59."
     if (second < 0 || second > 59) return "Seconds need to be between 0-59."
@@ -122,7 +153,6 @@ function progressiveValidate(raw: string): string {
     return ""
   }
 
-  // Everything else is structurally broken
   return "Invalid timestamp structure."
 }
 

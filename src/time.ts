@@ -68,8 +68,21 @@ function daysSinceEpoch(year: number): bigint {
   return d
 }
 
-function isLeap(year: number): boolean {
-  return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+export function isLeap(year: number): boolean {
+  let mask = 0xf
+  if (year % 25 !== 0) {
+    mask = 3
+  }
+  return (year & mask) === 0
+}
+
+export function daysIn(month: number, year: number): number {
+  // February
+  if (month === 2) {
+    return isLeap(year) ? 29 : 28
+  }
+
+  return 30 + ((month + (month >> 3)) & 1)
 }
 
 function toAbs(unixSeconds: bigint): bigint {
