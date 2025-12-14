@@ -26,6 +26,7 @@ import type {
   ServerSearchState,
   AmountUnit,
   SearchResult as SearchResultType,
+  TextRecorderCall,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount, toRef, computed } from "vue"
@@ -1252,7 +1253,7 @@ export function useSearchState(
         _searchState.value.promptDone = data.doc.promptDone
       }
       if ("promptCalls" in data.doc) {
-        _searchState.value.promptCalls = data.doc.promptCalls
+        _searchState.value.promptCalls = data.doc.promptCalls as TextRecorderCall[] | undefined
       }
       if ("promptError" in data.doc) {
         _searchState.value.promptError = data.doc.promptError

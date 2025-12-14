@@ -228,13 +228,60 @@ export type ServerSearchState = {
   promptError?: boolean
 }
 
+type TextProvider = {
+  model: string
+  maxContextLength: number
+  maxResponseLength: number
+  temperature: number
+  seed?: number
+  promptCaching?: boolean
+  forceOutputJsonSchema?: boolean
+}
+
+type TextRecorderMessage = {
+  role: string
+  content?: string
+  toolUseId?: string
+  toolUseName?: string
+  toolDuration?: number
+  toolCalls?: TextRecorderCall[]
+  isError?: boolean
+  isRefusal?: boolean
+}
+
+type TextRecorderUsedTokens = {
+  maxTotal: number
+  maxResponse: number
+  prompt: number
+  response: number
+  total: number
+  cacheCreationInputTokens?: number
+  cacheReadInputTokens?: number
+}
+
+type TextRecorderUsedTime = {
+  prompt?: number
+  response?: number
+  total?: number
+  apiCall: number
+}
+
+type TextRecorderCall = {
+  id: string
+  provider: TextProvider
+  messages?: TextRecorderMessage[]
+  usedTokens?: Record<string, TextRecorderUsedTokens>
+  usedTime?: Record<string, TextRecorderUsedTime>
+  duration?: number
+}
+
 export type ClientSearchState = {
   s: string
   q: string
   p?: string
   filters?: FiltersState
   promptDone?: boolean
-  promptCalls?: object[]
+  promptCalls?: TextRecorderCall[]
   promptError?: boolean
 }
 
