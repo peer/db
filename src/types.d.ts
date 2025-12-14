@@ -221,24 +221,16 @@ export type FilterStateChange =
 export type ServerSearchState = {
   s: string
   q: string
-  p?: string
   filters?: Filters
-  promptDone?: boolean
-  promptCalls?: object[]
-  promptError?: boolean
 }
 
 export type ClientSearchState = {
   s: string
   q: string
-  p?: string
   filters?: FiltersState
-  promptDone?: boolean
-  promptCalls?: object[]
-  promptError?: boolean
 }
 
-export type SearchStateCreateResponse = { s: string; q?: string; p?: string }
+export type SearchStateCreateResponse = { s: string; q?: string }
 
 export type SiteContext = {
   domain: string

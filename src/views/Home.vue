@@ -20,17 +20,13 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-async function onSubmit(isPrompt: boolean) {
+async function onSubmit() {
   if (abortController.signal.aborted) {
     return
   }
 
   const form = new FormData()
-  if (isPrompt) {
-    form.set("p", searchQuery.value)
-  } else {
-    form.set("q", searchQuery.value)
-  }
+  form.set("q", searchQuery.value)
 
   progress.value += 1
   try {
@@ -48,7 +44,7 @@ async function onSubmit(isPrompt: boolean) {
 </script>
 
 <template>
-  <form class="flex flex-grow flex-col" novalidate @submit.prevent="onSubmit(false)">
+  <form class="flex flex-grow flex-col" novalidate @submit.prevent="onSubmit()">
     <div class="flex flex-grow basis-0 flex-col-reverse">
       <h1 class="mb-10 p-4 text-center text-5xl font-bold">{{ siteContext.title }}</h1>
     </div>
@@ -56,8 +52,7 @@ async function onSubmit(isPrompt: boolean) {
       <InputText v-model="searchQuery" class="mx-4 w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" tabindex="1" />
     </div>
     <div class="flex-grow basis-0 pt-4 text-center">
-      <Button type="button" class="mx-4" primary tabindex="3" :progress="progress" @click="onSubmit(false)">Search</Button>
-      <Button type="button" class="mx-4" primary tabindex="2" :progress="progress" :disabled="searchQuery.length === 0" @click="onSubmit(true)">Prompt</Button>
+      <Button type="submit" class="mx-4" primary tabindex="3" :progress="progress">Search</Button>
     </div>
   </form>
   <Teleport to="footer">

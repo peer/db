@@ -41,17 +41,6 @@ export const FILTERS_INCREASE = 10
 
 function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
   const form = new FormData()
-
-  if (Array.isArray(route.query.p)) {
-    if (route.query.p[0] != null && route.query.p[0] !== "") {
-      form.set("p", route.query.p[0])
-      return form
-    }
-  } else if (route.query.p != null && route.query.p !== "") {
-    form.set("p", route.query.p)
-    return form
-  }
-
   if (Array.isArray(route.query.q)) {
     if (route.query.q[0] != null) {
       form.set("q", route.query.q[0])
@@ -80,8 +69,6 @@ export async function postSearch(router: Router, form: FormData, abortSignal: Ab
       s: searchState.s,
     },
     query: encodeQuery({
-      // Only one of them is present at any given time.
-      p: searchState.p,
       q: searchState.q,
     }),
   })
@@ -171,19 +158,13 @@ export async function postFilters(
   if (abortSignal.aborted) {
     return
   }
-  if (
-    s !== updatedSearchState.s ||
-    !((route.query.q === null && updatedSearchState.q === undefined) || route.query.q === updatedSearchState.q) ||
-    !((route.query.p === null && updatedSearchState.p === undefined) || route.query.p === updatedSearchState.p)
-  ) {
+  if (s !== updatedSearchState.s || !((route.query.q === null && updatedSearchState.q === undefined) || route.query.q === updatedSearchState.q)) {
     await router.push({
       name: "SearchResults",
       params: {
         s: updatedSearchState.s,
       },
       query: encodeQuery({
-        // Only one of them is present at any given time.
-        p: updatedSearchState.p,
         q: updatedSearchState.q,
       }),
     })
@@ -1242,29 +1223,8 @@ export function useSearchState(
         return
       }
       _searchState.value = { s: data.doc.s, q: data.doc.q }
-      if ("p" in data.doc) {
-        _searchState.value.p = data.doc.p
-      }
       if ("filters" in data.doc && data.doc.filters) {
         _searchState.value.filters = filtersToFiltersState(data.doc.filters)
-      }
-      if ("promptDone" in data.doc) {
-        _searchState.value.promptDone = data.doc.promptDone
-      }
-      if ("promptCalls" in data.doc) {
-        _searchState.value.promptCalls = data.doc.promptCalls
-      }
-      if ("promptError" in data.doc) {
-        _searchState.value.promptError = data.doc.promptError
-      }
-
-      // If prompt is provided but parsing is not yet done, we retry shortly.
-      // TODO: Subscribe to changes to search state document instead.
-      if (data.doc.p && !data.doc.promptDone) {
-        const t = setTimeout(() => {
-          forceSearchStateRerun.value++
-        }, 100) // ms
-        onCleanup(() => clearTimeout(t))
       }
     },
     {
@@ -1285,9 +1245,6 @@ export function activeSearchState(searchState: Ref<DeepReadonly<ClientSearchStat
       return ""
     }
     if (searchState.value.s !== s.value) {
-      return ""
-    }
-    if (searchState.value.p && !searchState.value.promptDone) {
       return ""
     }
     return s.value

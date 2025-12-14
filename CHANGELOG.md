@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Importer for FoodData Central data.
-- Search using a natural language prompt which is parsed by a LLM into a search
-  query and filters.
 - Support for basic auth for the whole instance.
   [#33](https://gitlab.com/peerdb/peerdb/-/issues/33)
   [!8](https://gitlab.com/peerdb/peerdb/-/merge_requests/8)
