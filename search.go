@@ -40,8 +40,10 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 
 	site := waf.MustGetSite[*Site](ctx)
 
+	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
+	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
 	return s.esClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).AllowPartialSearchResults(false), site.propertiesTotal
+		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal
 }
 
 func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.SearchService, int64) {

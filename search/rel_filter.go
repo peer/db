@@ -54,7 +54,8 @@ func RelFilterGet(
 		).SubAggregation(
 			"total",
 			// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
-			// so we use it to get the most accurate approximation.
+			// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
+			// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
 			elastic.NewCardinalityAggregation().Field("claims.rel.to.id").PrecisionThreshold(40000), //nolint:mnd
 		),
 	)
