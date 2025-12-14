@@ -268,7 +268,7 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 	// Total is a string or a number.
 	var total interface{}
 	if res.Hits.TotalHits.Relation == "gte" {
-		total = fmt.Sprintf("+%d", res.Hits.TotalHits.Value)
+		total = fmt.Sprintf("%d+", res.Hits.TotalHits.Value)
 	} else {
 		total = res.Hits.TotalHits.Value
 	}
