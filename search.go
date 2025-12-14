@@ -244,20 +244,9 @@ func (s *Service) SearchResults(w http.ResponseWriter, req *http.Request, params
 	metrics := waf.MustGetMetrics(ctx)
 
 	var searchQuery *string
-	isPrompt := false
-	if p := req.Form.Get("p"); p != "" {
-		searchQuery = &p
-		isPrompt = true
-	} else if req.Form.Has("q") {
+	if req.Form.Has("q") {
 		q := req.Form.Get("q")
 		searchQuery = &q
-	} else if req.Form.Has("p") {
-		// We prefer "q" over empty "p" if both are provided, but if only empty "p" is provided,
-		// then we pass it on to GetOrCreateState for it to create a new search state
-		// (because no existing search state can have an empty prompt).
-		p := ""
-		searchQuery = &p
-		isPrompt = true
 	}
 
 	var filters *string
@@ -269,7 +258,7 @@ func (s *Service) SearchResults(w http.ResponseWriter, req *http.Request, params
 	site := waf.MustGetSite[*Site](req.Context())
 
 	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh, ok := search.GetOrCreateState(ctx, site.store, s.getSearchServiceClosure(req), params["s"], searchQuery, filters, isPrompt)
+	sh, ok := search.GetOrCreateState(ctx, site.store, s.getSearchServiceClosure(req), params["s"], searchQuery, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
@@ -315,11 +304,6 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 	m.Stop()
 	if sh == nil {
 		s.NotFound(w, req)
-		return
-	}
-
-	if !sh.Ready() {
-		waf.Error(w, req, http.StatusConflict)
 		return
 	}
 
@@ -371,8 +355,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 
 type searchCreateResponse struct {
 	ID          identifier.Identifier `json:"s"`
-	SearchQuery *string               `json:"q,omitempty"`
-	Prompt      string                `json:"p,omitempty"`
+	SearchQuery string                `json:"q,omitempty"`
 }
 
 // SearchCreatePost is a POST HTTP request handler which stores the search state
@@ -387,29 +370,14 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 
 	currentSearchState := req.Form.Get("s")
 
-	var searchQuery string
-	isPrompt := false
-	if req.Form.Has("p") {
-		searchQuery = req.Form.Get("p")
-		isPrompt = true
-		if searchQuery == "" {
-			s.BadRequestWithError(w, req, errors.New(`"p" cannot be empty if provided`))
-		}
-	} else {
-		searchQuery = req.Form.Get("q")
-	}
-
+	searchQuery := req.Form.Get("q")
 	filtersJSON := req.Form.Get("filters")
 
 	site := waf.MustGetSite[*Site](req.Context())
 
 	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh := search.CreateState(ctx, site.store, s.getSearchServiceClosure(req), currentSearchState, searchQuery, filtersJSON, isPrompt)
+	sh := search.CreateState(ctx, site.store, s.getSearchServiceClosure(req), currentSearchState, searchQuery, filtersJSON)
 	m.Stop()
 
-	var q *string
-	if sh.Prompt == "" {
-		q = &sh.SearchQuery
-	}
-	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID, SearchQuery: q, Prompt: sh.Prompt}, nil)
+	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID, SearchQuery: sh.SearchQuery}, nil)
 }

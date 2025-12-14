@@ -8,9 +8,7 @@ import (
 	"sync"
 
 	"github.com/olivere/elastic/v7"
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/fun"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
@@ -343,23 +341,15 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 type State struct {
 	ID          identifier.Identifier  `json:"s"`
 	SearchQuery string                 `json:"q"`
-	Prompt      string                 `json:"p,omitempty"`
 	Filters     *filters               `json:"filters,omitempty"`
 	ParentID    *identifier.Identifier `json:"-"`
 	RootID      identifier.Identifier  `json:"-"`
-	PromptDone  bool                   `json:"promptDone,omitempty"`
-	PromptCalls []fun.TextRecorderCall `json:"promptCalls,omitempty"`
-	PromptError bool                   `json:"promptError,omitempty"`
 }
 
 // Values returns search state as query string values.
 func (s *State) Values() url.Values {
 	values := url.Values{}
-	if s.Prompt != "" {
-		values.Set("p", s.Prompt)
-	} else {
-		values.Set("q", s.SearchQuery)
-	}
+	values.Set("q", s.SearchQuery)
 	return values
 }
 
@@ -410,59 +400,6 @@ func (s *State) Query() elastic.Query { //nolint:ireturn
 	return boolQuery
 }
 
-func (s *State) Ready() bool {
-	return s.Prompt == "" || s.PromptCalls != nil || s.PromptError
-}
-
-func (s *State) ParsePrompt(
-	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	getSearchService func() (*elastic.SearchService, int64),
-) {
-	ctx = fun.WithTextRecorder(ctx)
-	c := make(chan []fun.TextRecorderCall)
-	fun.GetTextRecorder(ctx).Notify(c)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for n := range c {
-			// We update state at every change to PromptCalls which
-			// we are getting over the channel while the prompt is parsed.
-			s.PromptCalls = n
-			searches.Store(s.ID, s)
-		}
-	}()
-
-	output, errE := parsePrompt(ctx, store, getSearchService, s.Prompt)
-
-	close(c)
-	wg.Wait()
-
-	s.PromptDone = true
-	s.PromptCalls = fun.GetTextRecorder(ctx).Calls()
-
-	if errE != nil {
-		zerolog.Ctx(ctx).Error().Err(errE).Str("prompt", s.Prompt).Interface("calls", s.PromptCalls).Msg("prompt parsing failed")
-		// We reuse the prompt as the search query in this case.
-		s.SearchQuery = s.Prompt
-		s.PromptError = true
-		searches.Store(s.ID, s)
-		return
-	}
-
-	s.SearchQuery = output.Query
-	s.Filters, errE = output.Filters()
-	if errE != nil {
-		zerolog.Ctx(ctx).Error().Err(errE).Interface("output", output).Interface("calls", s.PromptCalls).Msg("prompt filters conversion failed")
-		s.PromptError = true
-		searches.Store(s.ID, s)
-		return
-	}
-
-	searches.Store(s.ID, s)
-}
-
 // TODO: Use a database instead.
 var searches = sync.Map{} //nolint:gochecknoglobals
 
@@ -478,7 +415,7 @@ type field struct {
 // (can be an empty string) and new query/filters.
 func CreateState(
 	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string, isPrompt bool,
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON string,
 ) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
@@ -506,45 +443,24 @@ func CreateState(
 		}
 	}
 
-	if searchQuery == "" {
-		// Prompt cannot be empty.
-		isPrompt = false
-	}
-
-	prompt := ""
-	if isPrompt {
-		prompt = searchQuery
-		searchQuery = ""
-	}
-
 	sh := &State{
 		ID:          id,
 		SearchQuery: searchQuery,
-		Prompt:      prompt,
 		Filters:     fs,
 		ParentID:    parentSearchID,
 		RootID:      rootID,
-		PromptDone:  false,
-		PromptCalls: nil,
-		PromptError: false,
 	}
 	searches.Store(sh.ID, sh)
 
-	if isPrompt {
-		// We start parsing the prompt.
-		// TODO: We should push parsing prompt into a proper work queue and not just make a goroutine.
-		go sh.ParsePrompt(context.WithoutCancel(ctx), store, getSearchService)
-	} else { //nolint:revive,staticcheck
-		// TODO: Should we already do the query, to warm up ES cache?
-		//       Maybe we should cache response ourselves so that we do not hit store twice?
-	}
+	// TODO: Should we already do the query, to warm up ES cache?
+	//       Maybe we should cache response ourselves so that we do not hit store twice?
 
 	return sh
 }
 
 func createStateFromGetOrCreateState(
 	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool,
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string,
 ) (*State, bool) {
 	if searchQuery == nil {
 		q := ""
@@ -556,23 +472,23 @@ func createStateFromGetOrCreateState(
 	}
 	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
 	// TODO: How to prevent that CreateState calls searches.Load again?
-	return CreateState(ctx, store, getSearchService, s, *searchQuery, *filtersJSON, isPrompt), false
+	return CreateState(ctx, store, getSearchService, s, *searchQuery, *filtersJSON), false
 }
 
 // GetOrCreateState resolves an existing search state if possible and validates that
 // optional query/filters match those in the search state. If not, it creates a new search state.
 func GetOrCreateState(
 	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string, isPrompt bool,
+	getSearchService func() (*elastic.SearchService, int64), s string, searchQuery, filtersJSON *string,
 ) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON)
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON)
 	}
 
 	var fs *filters
@@ -582,20 +498,17 @@ func GetOrCreateState(
 			fs = &f
 		} else {
 			// filtersJSON was invalid, so we pass nil instead.
-			return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, nil, isPrompt)
+			return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, nil)
 		}
 	}
 
 	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 
-	if !isPrompt && searchQuery != nil && ss.SearchQuery != *searchQuery {
-		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
-	}
-	if isPrompt && searchQuery != nil && ss.Prompt != *searchQuery {
-		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+	if searchQuery != nil && ss.SearchQuery != *searchQuery {
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON)
 	}
 	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
-		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON, isPrompt)
+		return createStateFromGetOrCreateState(ctx, store, getSearchService, s, searchQuery, filtersJSON)
 	}
 
 	return ss, true

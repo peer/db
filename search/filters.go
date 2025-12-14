@@ -73,10 +73,6 @@ func FiltersGet(
 	}
 	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
-	if !sh.Ready() {
-		return nil, nil, errors.WithStack(ErrNotReady)
-	}
-
 	return filtersGet(ctx, getSearchService, sh.Query())
 }
 

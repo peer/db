@@ -53,9 +53,6 @@ const { results, error: searchResultsError } = useSearch(
     if (searchState.value.s !== searchStateS.value) {
       return ""
     }
-    if (searchState.value.p && !searchState.value.promptDone) {
-      return ""
-    }
     return searchStateS.value
   }),
   el,

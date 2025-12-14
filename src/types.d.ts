@@ -221,71 +221,16 @@ export type FilterStateChange =
 export type ServerSearchState = {
   s: string
   q: string
-  p?: string
   filters?: Filters
-  promptDone?: boolean
-  promptCalls?: object[]
-  promptError?: boolean
-}
-
-type TextProvider = {
-  model: string
-  maxContextLength: number
-  maxResponseLength: number
-  temperature: number
-  seed?: number
-  promptCaching?: boolean
-  forceOutputJsonSchema?: boolean
-}
-
-type TextRecorderMessage = {
-  role: string
-  content?: string
-  toolUseId?: string
-  toolUseName?: string
-  toolDuration?: number
-  toolCalls?: TextRecorderCall[]
-  isError?: boolean
-  isRefusal?: boolean
-}
-
-type TextRecorderUsedTokens = {
-  maxTotal: number
-  maxResponse: number
-  prompt: number
-  response: number
-  total: number
-  cacheCreationInputTokens?: number
-  cacheReadInputTokens?: number
-}
-
-type TextRecorderUsedTime = {
-  prompt?: number
-  response?: number
-  total?: number
-  apiCall: number
-}
-
-type TextRecorderCall = {
-  id: string
-  provider: TextProvider
-  messages?: TextRecorderMessage[]
-  usedTokens?: Record<string, TextRecorderUsedTokens>
-  usedTime?: Record<string, TextRecorderUsedTime>
-  duration?: number
 }
 
 export type ClientSearchState = {
   s: string
   q: string
-  p?: string
   filters?: FiltersState
-  promptDone?: boolean
-  promptCalls?: TextRecorderCall[]
-  promptError?: boolean
 }
 
-export type SearchStateCreateResponse = { s: string; q?: string; p?: string }
+export type SearchStateCreateResponse = { s: string; q?: string }
 
 export type SiteContext = {
   domain: string
