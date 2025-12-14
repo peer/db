@@ -120,7 +120,7 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 // ensureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of ensureIndex would otherwise create.
-func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, sizeField bool) errors.E {
+func ensureIndex(ctx context.Context, esClient *elastic.Client, index string) errors.E {
 	exists, err := esClient.IndexExists(index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
@@ -131,10 +131,6 @@ func ensureIndex(ctx context.Context, esClient *elastic.Client, index string, si
 		errE := x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
 		if errE != nil {
 			return errE
-		}
-
-		if sizeField {
-			config.Mappings["_size"] = map[string]interface{}{"enabled": true}
 		}
 
 		createIndex, err := esClient.CreateIndex(index).BodyJson(config).Do(ctx)
@@ -254,7 +250,7 @@ func endDocumentSession(
 	return endMetadata, nil
 }
 
-func Standalone(logger zerolog.Logger, database, elastic, schema, index string, sizeField bool) (
+func Standalone(logger zerolog.Logger, database, elastic, schema, index string) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*elastic.Client, *elastic.BulkProcessor, errors.E,
@@ -276,7 +272,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string, 
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	store, _, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
+	store, _, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, errE
 	}
@@ -322,7 +318,7 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 }
 
 func InitForSite(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string, sizeField bool,
+	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
 ) (
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
@@ -337,7 +333,7 @@ func InitForSite(
 	)
 	context.AfterFunc(ctx, func() { close(channel) })
 
-	errE := ensureIndex(ctx, esClient, index, sizeField)
+	errE := ensureIndex(ctx, esClient, index)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}

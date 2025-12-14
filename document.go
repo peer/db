@@ -71,7 +71,6 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
-	// TODO: To support "omni" instances, allow getting across multiple schemas.
 	if reqVersion != nil {
 		_, _, errE = site.store.Get(ctx, id, *reqVersion)
 	} else {
@@ -121,7 +120,6 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	var version store.Version
 
 	m := metrics.Duration(internal.MetricDatabase).Start()
-	// TODO: To support "omni" instances, allow getting across multiple schemas.
 	if reqVersion != nil {
 		version = *reqVersion
 		dataJSON, _, errE = site.store.Get(ctx, id, *reqVersion)

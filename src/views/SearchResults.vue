@@ -4,8 +4,6 @@ import type {
   AmountFilterState,
   TimeFilterState,
   StringFilterState,
-  IndexFilterState,
-  SizeFilterState,
   FiltersState,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
@@ -78,12 +76,12 @@ const {
 
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
-const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {}, index: [], size: null })
+const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
   if (searchState.value === null || !searchState.value.filters) {
-    filtersState.value = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
+    filtersState.value = { rel: {}, amount: {}, time: {}, str: {} }
   } else {
     filtersState.value = clone(searchState.value.filters)
   }
@@ -172,48 +170,6 @@ async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
     }
     // TODO: Show notification with error.
     console.error("Search.onStringFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
-}
-
-async function onIndexFiltersStateUpdate(s: IndexFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  updateFiltersProgress.value += 1
-  try {
-    const updatedState = { ...filtersState.value }
-    updatedState.index = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onIndexFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
-}
-
-async function onSizeFiltersStateUpdate(s: SizeFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  updateFiltersProgress.value += 1
-  try {
-    const updatedState = { ...filtersState.value }
-    updatedState.size = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onSizeFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
@@ -467,14 +423,6 @@ function onFilterChange(change: FilterStateChange) {
 
     case "string": {
       return onStringFiltersStateUpdate(change.id, change.value)
-    }
-
-    case "index": {
-      return onIndexFiltersStateUpdate(change.value)
-    }
-
-    case "size": {
-      return onSizeFiltersStateUpdate(change.value)
     }
   }
 }

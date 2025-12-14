@@ -140,17 +140,11 @@ func filtersGet( //nolint:maintidx
 		// so we set precision threshold to twice as much to try to always get precise counts.
 		elastic.NewCardinalityAggregation().Field("claims.string.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
-	// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
-	// so we use it to get the most accurate approximation.
-	indexAggregation := elastic.NewCardinalityAggregation().Field("_index").PrecisionThreshold(40000) //nolint:mnd
-	sizeAggregation := elastic.NewValueCountAggregation().Field("_size")
 	searchService = searchService.Size(0).Query(query).
 		Aggregation("rel", relAggregation).
 		Aggregation("amount", amountAggregation).
 		Aggregation("time", timeAggregation).
-		Aggregation("string", stringAggregation).
-		Aggregation("index", indexAggregation).
-		Aggregation("size", sizeAggregation)
+		Aggregation("string", stringAggregation)
 
 	m := metrics.Duration(internal.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -185,31 +179,9 @@ func filtersGet( //nolint:maintidx
 		m.Stop()
 		return nil, nil, errE
 	}
-	var index intValueAggregation
-	errE = x.Unmarshal(res.Aggregations["index"], &index)
-	if errE != nil {
-		m.Stop()
-		return nil, nil, errE
-	}
-	var size intValueAggregation
-	errE = x.Unmarshal(res.Aggregations["size"], &size)
-	if errE != nil {
-		m.Stop()
-		return nil, nil, errE
-	}
 	m.Stop()
 
-	indexFilter := 0
-	if index.Value > 1 {
-		indexFilter++
-	}
-
-	sizeFilter := 0
-	if size.Value > 0 {
-		sizeFilter++
-	}
-
-	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)+indexFilter+sizeFilter)
+	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = searchFiltersResult{
 			ID:    bucket.Key,
@@ -242,23 +214,6 @@ func filtersGet( //nolint:maintidx
 			Unit:  "",
 		}
 	}
-	if indexFilter != 0 {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)] = searchFiltersResult{
-			ID: "",
-			// This depends on TrackTotalHits being set to true.
-			Count: res.Hits.TotalHits.Value,
-			Type:  "index",
-			Unit:  "",
-		}
-	}
-	if sizeFilter != 0 {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets)+indexFilter] = searchFiltersResult{
-			ID:    "",
-			Count: size.Value,
-			Type:  "size",
-			Unit:  "",
-		}
-	}
 
 	// Because we combine multiple aggregations of MaxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
@@ -288,7 +243,7 @@ func filtersGet( //nolint:maintidx
 	if int64(len(str.Props.Buckets)) > str.Total.Value {
 		str.Total.Value = int64(len(str.Props.Buckets))
 	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value+int64(indexFilter)+int64(sizeFilter), 10)
+	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value, 10)
 
 	return results, map[string]interface{}{
 		"total": total,

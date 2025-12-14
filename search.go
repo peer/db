@@ -40,10 +40,8 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	// The fact that TrackTotalHits is set to true is important because the count is used as the
-	// number of documents of the filter on the _index field.
 	return s.esClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal
+		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).AllowPartialSearchResults(false), site.propertiesTotal
 }
 
 func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.SearchService, int64) {
@@ -106,28 +104,6 @@ func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, par
 	s.WriteJSON(w, req, data, metadata)
 }
 
-func (s *Service) SearchIndexFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
-		return
-	}
-
-	data, metadata, errE := search.IndexFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
-	if errors.Is(errE, search.ErrNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
-		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	s.WriteJSON(w, req, data, metadata)
-}
-
 //nolint:dupl
 func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.FromString(params["s"])
@@ -143,28 +119,6 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 	}
 
 	data, metadata, errE := search.RelFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
-	if errors.Is(errE, search.ErrNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
-		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	s.WriteJSON(w, req, data, metadata)
-}
-
-func (s *Service) SearchSizeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
-		return
-	}
-
-	data, metadata, errE := search.SizeFilterGet(req.Context(), s.getSearchServiceClosure(req), id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

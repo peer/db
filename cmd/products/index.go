@@ -18,7 +18,7 @@ var NameSpaceProducts = uuid.MustParse("55945768-34e9-4584-9310-cf78602a4aa7")
 
 func index(config *Config) errors.E {
 	mainCtx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
-		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
+		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index,
 	)
 	if errE != nil {
 		return errE

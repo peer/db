@@ -95,36 +95,6 @@ func (f stringFilter) Valid() errors.E {
 	return nil
 }
 
-type indexFilter struct {
-	Str string `json:"str"`
-}
-
-func (f indexFilter) Valid() errors.E {
-	if f.Str == "" {
-		return errors.New("str has to be set")
-	}
-	return nil
-}
-
-type sizeFilter struct {
-	Gte  *float64 `json:"gte,omitempty"`
-	Lte  *float64 `json:"lte,omitempty"`
-	None bool     `json:"none,omitempty"`
-}
-
-func (f sizeFilter) Valid() errors.E {
-	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte, lte, or none has to be set")
-	}
-	if f.Gte != nil && f.None {
-		return errors.New("gte and none cannot be both set")
-	}
-	if f.Lte != nil && f.None {
-		return errors.New("lte and none cannot be both set")
-	}
-	return nil
-}
-
 type filters struct {
 	And    []filters     `json:"and,omitempty"`
 	Or     []filters     `json:"or,omitempty"`
@@ -133,8 +103,6 @@ type filters struct {
 	Amount *amountFilter `json:"amount,omitempty"`
 	Time   *timeFilter   `json:"time,omitempty"`
 	Str    *stringFilter `json:"str,omitempty"`
-	Index  *indexFilter  `json:"index,omitempty"`
-	Size   *sizeFilter   `json:"size,omitempty"`
 }
 
 func (f filters) Valid() errors.E {
@@ -188,20 +156,6 @@ func (f filters) Valid() errors.E {
 	if f.Str != nil {
 		nonEmpty++
 		err := f.Str.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if f.Index != nil {
-		nonEmpty++
-		err := f.Index.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if f.Size != nil {
-		nonEmpty++
-		err := f.Size.Valid()
 		if err != nil {
 			return err
 		}
@@ -311,24 +265,6 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 				elastic.NewTermQuery("claims.string.string", f.Str.Str),
 			),
 		)
-	}
-	if f.Index != nil {
-		return elastic.NewTermQuery("_index", f.Index.Str)
-	}
-	if f.Size != nil {
-		if f.Size.None {
-			return elastic.NewBoolQuery().MustNot(
-				elastic.NewExistsQuery("_size"),
-			)
-		}
-		r := elastic.NewRangeQuery("_size")
-		if f.Size.Lte != nil {
-			r.Lte(*f.Size.Lte)
-		}
-		if f.Size.Gte != nil {
-			r.Gte(*f.Size.Gte)
-		}
-		return r
 	}
 	panic(errors.New("invalid filters"))
 }

@@ -74,12 +74,6 @@ function countFilters(): number {
   for (const values of Object.values(props.searchState.filters.str)) {
     n += values.length
   }
-  if (props.searchState.filters.index) {
-    n += props.searchState.filters.index.length
-  }
-  if (props.searchState.filters.size) {
-    n++
-  }
   return n
 }
 </script>

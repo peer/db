@@ -15,7 +15,6 @@ Demos:
   Wikimedia Commons files, and Wikidata data.
 - [moma.peerdb.org](https://moma.peerdb.org/): a search service for The
   Museum of Modern Art (MoMA) artists and artworks.
-- [omni.peerdb.org](https://omni.peerdb.org/): combination of other demos into one search service.
 
 ## Components
 
@@ -673,35 +672,6 @@ docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
  -E name@example.com -C /data/letsencrypt -c /data/demos.yml
 ```
-
-### Size of documents filter
-
-PeerDB Search can filter on size of documents, but it requires
-[installed mapper-size ElasticSearch plugin](https://www.elastic.co/guide/en/elasticsearch/plugins/current/mapper-size.html)
-and enabled size field in the [index](https://www.elastic.co/guide/en/elasticsearch/plugins/current/mapper-size-usage.html).
-If you use populate command to create the index, you can enable the size field with the `--size-field` argument:
-
-```sh
-./peerdb --size-field populate
-```
-
-Alternatively, you can set `sizeField` in site configuration.
-
-If you use Docker to run ElasticSearch, you can
-[use create a custom Docker image with the plugin installed](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/docker.html#_c_customized_image),
-or run on your running container:
-
-```sh
-docker exec -t -i elasticsearch bin/elasticsearch-plugin install mapper-size
-docker restart elasticsearch
-```
-
-### Use with ElasticSearch alias
-
-If you use an
-[ElasticSearch alias](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/aliases.html)
-instead of an index, PeerDB Search will provide a filter to filter documents based
-on which index they come from.
 
 ## Development
 

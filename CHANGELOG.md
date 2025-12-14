@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgrade to Go 1.23.
 
+### Removed
+
+- Filter on size of documents.
+- Filter on source index when using ElasticSearch alias.
+- Omni demo site.
+
 ## [0.3.0] - 2024-03-22
 
 ### Changed

@@ -223,7 +223,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <th v-if="filtersTotal === null" class="p-2 text-start">
               <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/0`)]" />
             </th>
-            <template v-for="filter in limitedFiltersResults" v-else :key="'id' in filter ? filter.id : filter.type">
+            <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
               <th v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
@@ -243,7 +243,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/${index + 1}`)]" />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="'id' in filter ? filter.id : filter.type">
+                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
                     <td v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
                       <ClaimValue :type="filter.type" :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)" />
                     </td>

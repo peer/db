@@ -6,6 +6,3 @@ globals:
     - domain: "moma.peerdb.org"
       title: "The Museum of Modern Art Search"
       index: "moma"
-    - domain: "omni.peerdb.org"
-      title: "Omni Search"
-      index: "omni"

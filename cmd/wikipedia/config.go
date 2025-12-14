@@ -20,9 +20,8 @@ type PostgresConfig struct {
 }
 
 type ElasticConfig struct {
-	URL       string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                              placeholder:"URL"  short:"e"`
-	Index     string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use. Default: ${default}."                             placeholder:"NAME" short:"i"`
-	SizeField bool   `                            help:"Enable size field on documents. Requires mapper-size ElasticSearch plugin installed."`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                              placeholder:"URL"  short:"e"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use. Default: ${default}."                             placeholder:"NAME" short:"i"`
 }
 
 // Globals describes top-level (global) flags.

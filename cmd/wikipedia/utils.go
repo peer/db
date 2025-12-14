@@ -108,7 +108,7 @@ func initializeElasticSearch(globals *Globals) (
 	*elastic.Client, *elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
 	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
-		globals.Logger, string(globals.Postgres.URL), globals.Elastic.URL, globals.Postgres.Schema, globals.Elastic.Index, globals.Elastic.SizeField,
+		globals.Logger, string(globals.Postgres.URL), globals.Elastic.URL, globals.Postgres.Schema, globals.Elastic.Index,
 	)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, nil, errE
