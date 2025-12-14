@@ -112,7 +112,7 @@ If you already have such an index, proceed to run PeerDB, otherwise first
 
 Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
-keypair which is then used to create a TLS certificate. Use Go 1.23.6 or newer.
+keypair which is then used to create a TLS certificate.
 
 ```sh
 go install filippo.io/mkcert@latest
@@ -149,6 +149,7 @@ obtain a HTTPS TLS certificate from [Let's Encrypt](https://letsencrypt.org) aut
 ```sh
 docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
+ -d /data/.postgresql.secret \
  --domain public.domain.example.com -E name@example.com -C /data/letsencrypt
 ```
 
@@ -582,7 +583,7 @@ post into the following two PeerDB documents:
 
 To populate search with [The Museum of Modern Art](https://www.moma.org/) (MoMA)
 artists and artworks (from [this dataset](https://github.com/MuseumofModernArt/collection)),
-clone the repository and run (you need Go 1.23.6 or newer):
+clone the repository and run:
 
 ```sh
 make moma
@@ -603,7 +604,7 @@ Fetching data from the website takes time, so runtime is around 12 hours.
 To populate search with [English Wikipedia](https://en.wikipedia.org/wiki/Main_Page)
 articles, [Wikimedia Commons](https://commons.wikimedia.org/wiki/Main_Page) files,
 and [Wikidata](https://www.wikidata.org/wiki/Wikidata:Main_Page) data,
-clone the repository and run (you need Go 1.23.6 or newer):
+clone the repository and run:
 
 ```sh
 make wikipedia
@@ -713,6 +714,11 @@ the frontend as necessary.
 The backend is implemented in [Go](https://golang.org/) (requires 1.23.6 or newer)
 and provides a HTTP2 API. Node 20 or newer is required as well.
 
+Automatic media type detection uses file extensions and a file extension database has
+to be available on the system.
+On Alpine this can be `mailcap` package.
+On Debian/Ubuntu `media-types` package.
+
 Then clone the repository and run:
 
 ```sh
@@ -724,7 +730,7 @@ make peerdb
 generated as described in the [Usage section](#usage).
 Backend listens at [https://localhost:8080/](https://localhost:8080/).
 
-`-D` CLI argument makes the backend proxy unknown requests (non-API requests)
+`-D` CLI flag makes the backend proxy unknown requests (non-API requests)
 to the frontend. In this mode any placeholders in HTML files are not rendered.
 
 You can also run `make watch` to reload the backend on file changes. You have to install
