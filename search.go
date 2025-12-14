@@ -222,17 +222,6 @@ func (s *Service) SearchResults(w http.ResponseWriter, req *http.Request, params
 		w.Header().Set("Location", path)
 		w.WriteHeader(http.StatusSeeOther)
 		return
-	} else if (req.Form.Has("p") && req.Form.Has("q")) || (!req.Form.Has("p") && !req.Form.Has("q")) {
-		// Or both "p" and "q" are present (which is invalid) or both "p" and "q" are missing.
-		// We redirect to the correct URL.
-		path, err := s.Reverse("SearchResults", waf.Params{"s": sh.ID.String()}, sh.ValuesWithAt(req.Form.Get("at")))
-		if err != nil {
-			s.InternalServerErrorWithError(w, req, err)
-			return
-		}
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
-		return
 	}
 
 	s.Home(w, req, nil)
@@ -315,10 +304,6 @@ type searchCreateResponse struct {
 func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
-
-	if req.Form.Has("p") && req.Form.Has("q") {
-		s.BadRequestWithError(w, req, errors.New(`both "p" and "q" parameters provided`))
-	}
 
 	currentSearchState := req.Form.Get("s")
 
