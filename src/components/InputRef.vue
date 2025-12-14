@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { Filters, FiltersState, RelFilter, RelFilterState, SearchResult, SearchStateCreateResponse } from "@/types"
+import type { Filters, SearchResult, SearchStateCreateResponse } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
-import { computed, onBeforeUnmount, ref, toRef, watch } from "vue"
+import { shallowRef, computed, onBeforeUnmount, ref, toRef, watch } from "vue"
 import { useRouter } from "vue-router"
 import { debounce } from "lodash-es"
 
@@ -14,64 +14,63 @@ import { activeSearchState, NONE, useSearch, useSearchState } from "@/search.ts"
 import { injectMainProgress, localProgress } from "@/progress.ts"
 import { TYPE } from "@/props.ts"
 
-// We want all fallthrough attributes to be passed to the link element.
-defineOptions({
-  inheritAttrs: false,
-})
+defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{ modelValue?: string; progress?: number; type?: string }>(), { modelValue: "", progress: 0, type: "" })
+const props = withDefaults(defineProps<{ modelValue?: string; progress?: number; type?: string }>(), {
+  modelValue: "",
+  progress: 0,
+  type: "",
+})
 
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
 }>()
 
 const router = useRouter()
-
 const DEBOUNCE_MS = 500
 
-const abortController = new AbortController()
+const searchAbort = new AbortController()
+const nameAbort = new AbortController()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
 const s = ref()
 const searchEl = ref(null)
 
-const selectedDocument = ref<(SearchResult & { name: string }) | null>(null)
+const selectedDocument = shallowRef<(SearchResult & { name: string }) | null>(null)
 const nameCache = ref<Record<string, string>>({})
 
 watch(
   () => props.modelValue,
   async (id) => {
     if (!id) return (selectedDocument.value = null)
-
     if (!nameCache.value[id]) {
       nameCache.value[id] = await resolveDocumentName(id)
     }
+    selectedDocument.value = { id, name: nameCache.value[id] }
+  },
+  { immediate: true },
+)
 
-    selectedDocument.value = {
-      id,
-      name: nameCache.value[id],
-    }
+watch(
+  () => selectedDocument.value?.id,
+  (id) => {
+    if (!id) return
+    emit("update:modelValue", id)
   },
 )
 
-watch(selectedDocument, (doc) => {
-  if (!doc) return
-  emit("update:modelValue", doc.id)
-})
+const mainProgress = injectMainProgress()
+const searchProgress = localProgress(mainProgress)
 
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 
-const query = computed({
-  get: () => props.modelValue,
-  set: async (value) => {
-    runSearchDebounce.cancel()
-    await runSearchDebounce(value)
-  },
-})
+const query = ref("")
 
-const mainProgress = injectMainProgress()
-const searchProgress = localProgress(mainProgress)
+watch(query, async (value) => {
+  runSearchDebounce.cancel()
+  await runSearchDebounce(value)
+})
 
 const {
   searchState,
@@ -91,7 +90,8 @@ const { results: searchResults, error: searchResultsError } = useSearch(
 )
 
 onBeforeUnmount(() => {
-  abortController.abort()
+  searchAbort.abort()
+  nameAbort.abort()
 })
 
 const runSearchDebounce = debounce(async (q: string) => {
@@ -103,41 +103,23 @@ async function search(q: string) {
   form.set("q", q)
 
   if (props.type) {
-    const filters: Filters = {
-      and: [],
-    }
-
+    const filters: Filters = { and: [] }
     if (props.type === NONE.toString()) {
       filters.and.push({ rel: { prop: TYPE.toString(), none: true } })
     } else {
       filters.and.push({ rel: { prop: TYPE.toString(), value: props.type } })
     }
-
     form.set("filters", JSON.stringify(filters))
   }
 
-  const searchState = await postURL<SearchStateCreateResponse>(
-    router.apiResolve({
-      name: "SearchCreate",
-    }).href,
-    form,
-    abortController.signal,
-    searchProgress,
-  )
+  const searchState = await postURL<SearchStateCreateResponse>(router.apiResolve({ name: "SearchCreate" }).href, form, searchAbort.signal, searchProgress)
 
   s.value = searchState.s
 }
 
 async function resolveDocumentName(id: string): Promise<string> {
-  const newURL = router.apiResolve({
-    name: "DocumentGet",
-    params: {
-      id,
-    },
-  }).href
-
-  const response = await getURL<PeerDBDocument>(newURL, null, abortController.signal, searchProgress)
-
+  const newURL = router.apiResolve({ name: "DocumentGet", params: { id } }).href
+  const response = await getURL<PeerDBDocument>(newURL, null, nameAbort.signal, searchProgress)
   return getName(response.doc?.claims) || "no name"
 }
 </script>
@@ -154,7 +136,7 @@ async function resolveDocumentName(id: string): Promise<string> {
             'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
             'bg-error-50': searchStateError || searchResultsError,
           }"
-          :display-value="(doc) => nameCache[doc?.id] ?? ''"
+          :display-value="(doc) => doc?.name ?? nameCache[doc?.id] ?? ''"
           @input="query = $event.target.value"
         />
 
