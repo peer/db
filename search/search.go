@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"net/url"
 	"reflect"
 	"sync"
@@ -13,8 +12,6 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/types"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -413,10 +410,7 @@ type field struct {
 
 // CreateState creates a new search state given optional existing state
 // (can be an empty string) and new query/filters.
-func CreateState(
-	_ context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	s string, searchQuery, filtersJSON string,
-) *State {
+func CreateState(_ context.Context, s string, searchQuery, filtersJSON string) *State {
 	var parentSearchID *identifier.Identifier
 	if id, errE := identifier.FromString(s); errE == nil {
 		parentSearchID = &id
@@ -458,10 +452,7 @@ func CreateState(
 	return sh
 }
 
-func createStateFromGetOrCreateState(
-	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	s string, searchQuery, filtersJSON *string,
-) (*State, bool) {
+func createStateFromGetOrCreateState(ctx context.Context, s string, searchQuery, filtersJSON *string) (*State, bool) {
 	if searchQuery == nil {
 		q := ""
 		searchQuery = &q
@@ -472,23 +463,20 @@ func createStateFromGetOrCreateState(
 	}
 	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
 	// TODO: How to prevent that CreateState calls searches.Load again?
-	return CreateState(ctx, store, s, *searchQuery, *filtersJSON), false
+	return CreateState(ctx, s, *searchQuery, *filtersJSON), false
 }
 
 // GetOrCreateState resolves an existing search state if possible and validates that
 // optional query/filters match those in the search state. If not, it creates a new search state.
-func GetOrCreateState(
-	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	s string, searchQuery, filtersJSON *string,
-) (*State, bool) {
+func GetOrCreateState(ctx context.Context, s string, searchQuery, filtersJSON *string) (*State, bool) {
 	searchID, errE := identifier.FromString(s)
 	if errE != nil {
-		return createStateFromGetOrCreateState(ctx, store, s, searchQuery, filtersJSON)
+		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
 	}
 
 	sh, ok := searches.Load(searchID)
 	if !ok {
-		return createStateFromGetOrCreateState(ctx, store, s, searchQuery, filtersJSON)
+		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
 	}
 
 	var fs *filters
@@ -498,17 +486,17 @@ func GetOrCreateState(
 			fs = &f
 		} else {
 			// filtersJSON was invalid, so we pass nil instead.
-			return createStateFromGetOrCreateState(ctx, store, s, searchQuery, nil)
+			return createStateFromGetOrCreateState(ctx, s, searchQuery, nil)
 		}
 	}
 
 	ss := sh.(*State) //nolint:errcheck,forcetypeassert
 
 	if searchQuery != nil && ss.SearchQuery != *searchQuery {
-		return createStateFromGetOrCreateState(ctx, store, s, searchQuery, filtersJSON)
+		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
 	}
 	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
-		return createStateFromGetOrCreateState(ctx, store, s, searchQuery, filtersJSON)
+		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
 	}
 
 	return ss, true
