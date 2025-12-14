@@ -5,12 +5,12 @@ import type { PeerDBDocument } from "@/document.ts"
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
 import { computed, onBeforeUnmount, ref, toRef, watch } from "vue"
 import { useRouter } from "vue-router"
+import { debounce } from "lodash-es"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { getURL, postURL } from "@/api.ts"
 import { getName, loadingWidth } from "@/utils.ts"
 import { activeSearchState, useSearch, useSearchState } from "@/search.ts"
-import { debounce } from "lodash-es"
 import { injectMainProgress, localProgress } from "@/progress.ts"
 
 // We want all fallthrough attributes to be passed to the link element.
@@ -129,41 +129,43 @@ async function resolveDocumentName(id: string): Promise<string> {
 </script>
 
 <template>
-  <Combobox ref="searchEl" v-model="selectedDocument" :data-url="searchURL" as="div">
-    <div class="relative">
-      <ComboboxInput
-        :readonly="isInProgress"
-        class="w-full p-2 text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
-        :class="{
-          'bg-white': !isInProgress && !(searchStateError || searchResultsError),
-          'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
-          'bg-error-50': searchStateError || searchResultsError,
-        }"
-        :display-value="(doc) => nameCache[doc?.id] ?? ''"
-        @input="query = $event.target.value"
-      />
+  <div class="flex flex-col gap-1">
+    <Combobox ref="searchEl" v-model="selectedDocument" :data-url="searchURL" as="div">
+      <div class="relative">
+        <ComboboxInput
+          :readonly="isInProgress"
+          class="w-full p-2 text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
+          :class="{
+            'bg-white': !isInProgress && !(searchStateError || searchResultsError),
+            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
+            'bg-error-50': searchStateError || searchResultsError,
+          }"
+          :display-value="(doc) => nameCache[doc?.id] ?? ''"
+          @input="query = $event.target.value"
+        />
 
-      <ComboboxOptions
-        v-if="searchResults.length > 0 && !isInProgress"
-        class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10"
-      >
-        <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
-          <li :class="['cursor-pointer p-2', active ? 'bg-neutral-100' : '']">
-            <WithPeerDBDocument :id="result.id" name="DocumentGet">
-              <template #default="{ doc }">
-                {{ getName(doc?.claims) || "no name" }}
-              </template>
-              <template #loading="{ url }">
-                <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-              </template>
-            </WithPeerDBDocument>
-          </li>
-        </ComboboxOption>
-      </ComboboxOptions>
-    </div>
-  </Combobox>
+        <ComboboxOptions
+          v-if="searchResults.length > 0 && !isInProgress"
+          class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10"
+        >
+          <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
+            <li :class="['cursor-pointer p-2', active ? 'bg-neutral-100' : '']">
+              <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                <template #default="{ doc }">
+                  {{ getName(doc?.claims) || "no name" }}
+                </template>
+                <template #loading="{ url }">
+                  <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+                </template>
+              </WithPeerDBDocument>
+            </li>
+          </ComboboxOption>
+        </ComboboxOptions>
+      </div>
+    </Combobox>
 
-  <div v-if="searchStateError || searchResultsError" class="my-1">
-    <div class="text-sm"><i class="text-error-600">loading data failed</i></div>
+    <template v-if="searchStateError || searchResultsError">
+      <div class="text-sm my-1"><i class="text-error-600">loading data failed</i></div>
+    </template>
   </div>
 </template>
