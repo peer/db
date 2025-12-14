@@ -258,7 +258,7 @@ func (s *Service) SearchResults(w http.ResponseWriter, req *http.Request, params
 	site := waf.MustGetSite[*Site](req.Context())
 
 	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh, ok := search.GetOrCreateState(ctx, site.store, s.getSearchServiceClosure(req), params["s"], searchQuery, filters)
+	sh, ok := search.GetOrCreateState(ctx, site.store, params["s"], searchQuery, filters)
 	m.Stop()
 	if !ok {
 		// Something was not OK, so we redirect to the correct URL.
@@ -376,7 +376,7 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 	site := waf.MustGetSite[*Site](req.Context())
 
 	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh := search.CreateState(ctx, site.store, s.getSearchServiceClosure(req), currentSearchState, searchQuery, filtersJSON)
+	sh := search.CreateState(ctx, site.store, currentSearchState, searchQuery, filtersJSON)
 	m.Stop()
 
 	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID, SearchQuery: sh.SearchQuery}, nil)
