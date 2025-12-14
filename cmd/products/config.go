@@ -16,8 +16,8 @@ type PostgresConfig struct {
 }
 
 type ElasticConfig struct {
-	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                              placeholder:"URL"  short:"e"`
-	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use. Default: ${default}."                             placeholder:"NAME" short:"i"`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."  placeholder:"URL"  short:"e"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use. Default: ${default}." placeholder:"NAME" short:"i"`
 }
 
 // Config provides configuration.

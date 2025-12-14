@@ -48,10 +48,6 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
-type intValueAggregation struct {
-	Value int64 `json:"value"`
-}
-
 type searchFiltersResult struct {
 	ID    string `json:"id,omitempty"`
 	Count int64  `json:"count,omitempty"`
@@ -76,9 +72,7 @@ func FiltersGet(
 	return filtersGet(ctx, getSearchService, sh.Query())
 }
 
-func filtersGet( //nolint:maintidx
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query elastic.Query,
-) (interface{}, map[string]interface{}, errors.E) {
+func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query elastic.Query) (interface{}, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
 	searchService, propertiesTotal := getSearchService()

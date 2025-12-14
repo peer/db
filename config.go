@@ -26,8 +26,8 @@ type PostgresConfig struct {
 
 //nolint:lll
 type ElasticConfig struct {
-	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                                            placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}."                             placeholder:"NAME"           yaml:"index"`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}." placeholder:"NAME"           yaml:"index"`
 }
 
 // Globals describes top-level (global) flags.
