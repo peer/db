@@ -5,10 +5,8 @@ import type {
   AmountFilterState,
   ClientSearchState,
   FiltersState,
-  IndexFilterState,
   RelFilterState,
   SearchResult as SearchResultType,
-  SizeFilterState,
   StringFilterState,
   TimeFilterState,
   SearchViewType,
@@ -23,10 +21,8 @@ import Button from "@/components/Button.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import RelFiltersResult from "@/partials/RelFiltersResult.vue"
-import IndexFiltersResult from "@/partials/IndexFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import StringFiltersResult from "@/partials/StringFiltersResult.vue"
-import SizeFiltersResult from "@/partials/SizeFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
 import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
@@ -169,14 +165,6 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
   $emit("onFilterChange", { type: "string", id, value })
 }
 
-function onIndexFiltersStateUpdate(value: IndexFilterState) {
-  $emit("onFilterChange", { type: "index", value })
-}
-
-function onSizeFiltersStateUpdate(value: SizeFilterState) {
-  $emit("onFilterChange", { type: "size", value })
-}
-
 function onFilters() {
   if (abortController.signal.aborted) {
     return
@@ -244,7 +232,7 @@ function onFilters() {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
 
-        <template v-for="filter in limitedFiltersResults" :key="'id' in filter ? filter.id : filter.type">
+        <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <RelFiltersResult
             v-if="filter.type === 'rel'"
             :s="s"
@@ -283,26 +271,6 @@ function onFilters() {
             :state="filtersState.str[filter.id] ?? []"
             :update-progress="updateFiltersProgress"
             @update:state="onStringFiltersStateUpdate(filter.id, $event)"
-          />
-
-          <IndexFiltersResult
-            v-if="filter.type === 'index'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.index"
-            :update-progress="updateFiltersProgress"
-            @update:state="onIndexFiltersStateUpdate($event)"
-          />
-
-          <SizeFiltersResult
-            v-if="filter.type === 'size'"
-            :s="s"
-            :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.size"
-            :update-progress="updateFiltersProgress"
-            @update:state="onSizeFiltersStateUpdate($event)"
           />
         </template>
 

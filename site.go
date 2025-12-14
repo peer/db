@@ -33,8 +33,6 @@ type Site struct {
 	Schema string `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
-	SizeField bool `json:"-" yaml:"sizeField,omitempty"`
-
 	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]

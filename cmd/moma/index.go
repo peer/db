@@ -302,7 +302,7 @@ func getArtwork(ctx context.Context, httpClient *retryablehttp.Client, objectID 
 
 func index(config *Config) errors.E { //nolint:maintidx
 	ctx, stop, httpClient, store, esClient, esProcessor, errE := es.Standalone(
-		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index, config.Elastic.SizeField,
+		config.Logger, string(config.Postgres.URL), config.Elastic.URL, config.Postgres.Schema, config.Elastic.Index,
 	)
 	if errE != nil {
 		return errE

@@ -65,13 +65,13 @@ func SaveCoreProperties(
 
 func (c *PopulateCommand) runIndex(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client,
-	schema, index string, sizeField bool,
+	schema, index string,
 ) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = context.WithValue(ctx, requestIDContextKey, "populate")
 	ctx = context.WithValue(ctx, schemaContextKey, schema)
 
-	store, _, _, esProcessor, errE := es.InitForSite(ctx, logger, dbpool, esClient, schema, index, sizeField)
+	store, _, _, esProcessor, errE := es.InitForSite(ctx, logger, dbpool, esClient, schema, index)
 	if errE != nil {
 		return errE
 	}
@@ -96,13 +96,13 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 
 	if len(globals.Sites) > 0 {
 		for _, site := range globals.Sites {
-			err := c.runIndex(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index, site.SizeField)
+			err := c.runIndex(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		err := c.runIndex(ctx, globals.Logger, dbpool, esClient, globals.Postgres.Schema, globals.Elastic.Index, globals.Elastic.SizeField)
+		err := c.runIndex(ctx, globals.Logger, dbpool, esClient, globals.Postgres.Schema, globals.Elastic.Index)
 		if err != nil {
 			return err
 		}

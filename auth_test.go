@@ -118,11 +118,10 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 							CertFile: "",
 							KeyFile:  "",
 						},
-						Build:     nil,
-						Index:     "",
-						Schema:    "",
-						Title:     tt.siteTitle,
-						SizeField: globals.Elastic.SizeField,
+						Build:  nil,
+						Index:  "",
+						Schema: "",
+						Title:  tt.siteTitle,
 					},
 				}
 				serve.Username = testUsername

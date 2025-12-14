@@ -139,9 +139,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			Schema: identifier.New().String(),
 		},
 		Elastic: peerdb.ElasticConfig{
-			URL:       os.Getenv("ELASTIC"),
-			Index:     strings.ToLower(identifier.New().String()),
-			SizeField: false,
+			URL:   os.Getenv("ELASTIC"),
+			Index: strings.ToLower(identifier.New().String()),
 		},
 	}
 

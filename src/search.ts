@@ -7,14 +7,10 @@ import type {
   AmountValuesResult,
   TimeValuesResult,
   StringValuesResult,
-  IndexValuesResult,
-  SizeValuesResult,
   RelFilter,
   AmountFilter,
   TimeFilter,
   StringFilter,
-  IndexFilter,
-  SizeFilter,
   Filters,
   FiltersState,
   SearchStateCreateResponse,
@@ -132,18 +128,6 @@ export async function postFilters(
       }
     }
   }
-  // TODO: Support also OR between values.
-  for (const str of updatedState.index) {
-    filters.and.push({ index: { str } })
-  }
-  if (updatedState.size) {
-    // TODO: Support also OR between value and none.
-    if (updatedState.size === NONE) {
-      filters.and.push({ size: { none: true } })
-    } else {
-      filters.and.push({ size: { ...updatedState.size } })
-    }
-  }
   const form = queryToFormData(route)
   form.set("s", s)
   form.set("filters", JSON.stringify(filters))
@@ -224,7 +208,7 @@ export function useFilters(
 
 function filtersToFiltersState(filters: Filters): FiltersState {
   if ("and" in filters) {
-    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {}, index: [], size: null }
+    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {} }
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
       for (const [prop, values] of Object.entries(s.rel)) {
@@ -259,18 +243,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           }
         }
       }
-      for (const str of s.index) {
-        if (!state.index.includes(str)) {
-          state.index.push(str)
-        }
-      }
-      if (s.size) {
-        if (!state.size) {
-          state.size = s.size
-        } else {
-          throw new Error(`duplicate size filter`)
-        }
-      }
     }
     return state
   }
@@ -289,8 +261,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
-        index: [],
-        size: null,
       }
     } else {
       return {
@@ -300,8 +270,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         amount: {},
         time: {},
         str: {},
-        index: [],
-        size: null,
       }
     }
   }
@@ -314,8 +282,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
-        index: [],
-        size: null,
       }
     } else {
       return {
@@ -328,8 +294,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         },
         time: {},
         str: {},
-        index: [],
-        size: null,
       }
     }
   }
@@ -342,8 +306,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           [filters.time.prop]: NONE,
         },
         str: {},
-        index: [],
-        size: null,
       }
     } else {
       return {
@@ -356,8 +318,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           },
         },
         str: {},
-        index: [],
-        size: null,
       }
     }
   }
@@ -370,8 +330,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         str: {
           [filters.str.prop]: [NONE],
         },
-        index: [],
-        size: null,
       }
     } else {
       return {
@@ -380,42 +338,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
         time: {},
         str: {
           [filters.str.prop]: [(filters.str as StringFilter).str],
-        },
-        index: [],
-        size: null,
-      }
-    }
-  }
-  if ("index" in filters) {
-    return {
-      rel: {},
-      amount: {},
-      time: {},
-      str: {},
-      index: [(filters.index as IndexFilter).str],
-      size: null,
-    }
-  }
-  if ("size" in filters) {
-    if ("none" in filters.size && filters.size.none) {
-      return {
-        rel: {},
-        amount: {},
-        time: {},
-        str: {},
-        index: [],
-        size: NONE,
-      }
-    } else {
-      return {
-        rel: {},
-        amount: {},
-        time: {},
-        str: {},
-        index: [],
-        size: {
-          gte: (filters.size as SizeFilter).gte,
-          lte: (filters.size as SizeFilter).lte,
         },
       }
     }
@@ -881,197 +803,6 @@ export function useStringFilterValues(
   }
 }
 
-export function useIndexFilterValues(
-  s: Ref<string>,
-  el: Ref<Element | null>,
-  progress: Ref<number>,
-): {
-  results: DeepReadonly<Ref<IndexValuesResult[]>>
-  total: DeepReadonly<Ref<number | null>>
-  error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
-} {
-  const router = useRouter()
-  const route = useRoute()
-
-  const _results = ref<IndexValuesResult[]>([])
-  const _total = ref<number | null>(null)
-  const _error = ref<string | null>(null)
-  const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
-
-  const mainController = new AbortController()
-  onBeforeUnmount(() => mainController.abort())
-
-  const initialRouteName = route.name
-  watch(
-    () => {
-      return router.apiResolve({
-        name: "SearchIndexFilter",
-        params: {
-          s: s.value,
-        },
-      }).href
-    },
-    async (newURL, oldURL, onCleanup) => {
-      // Watch can continue to run for some time after the route changes.
-      if (initialRouteName !== route.name) {
-        return
-      }
-      _url.value = newURL || null
-
-      // We want to eagerly remove any error.
-      _error.value = null
-
-      if (!newURL) {
-        _results.value = []
-        _total.value = null
-        return
-      }
-      const controller = new AbortController()
-      onCleanup(() => controller.abort())
-      const signal = anySignal(mainController.signal, controller.signal)
-      let data
-      try {
-        data = await getStringValues<IndexValuesResult>(newURL, el, signal, progress)
-      } catch (err) {
-        if (signal.aborted) {
-          return
-        }
-        console.error("useIndexFilterValues", newURL, err)
-        _results.value = []
-        _total.value = null
-        _error.value = `${err}`
-        return
-      }
-      if (signal.aborted) {
-        return
-      }
-      _results.value = data.results as IndexValuesResult[]
-      _total.value = data.total
-    },
-    {
-      immediate: true,
-    },
-  )
-
-  return {
-    results,
-    total,
-    error,
-    url,
-  }
-}
-
-export function useSizeHistogramValues(
-  s: Ref<string>,
-  el: Ref<Element | null>,
-  progress: Ref<number>,
-): {
-  results: DeepReadonly<Ref<SizeValuesResult[]>>
-  total: DeepReadonly<Ref<number | null>>
-  min: DeepReadonly<Ref<number | null>>
-  max: DeepReadonly<Ref<number | null>>
-  interval: DeepReadonly<Ref<number | null>>
-  error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
-} {
-  const router = useRouter()
-  const route = useRoute()
-
-  const _results = ref<SizeValuesResult[]>([])
-  const _total = ref<number | null>(null)
-  const _min = ref<number | null>(null)
-  const _max = ref<number | null>(null)
-  const _interval = ref<number | null>(null)
-  const _error = ref<string | null>(null)
-  const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const min = import.meta.env.DEV ? readonly(_min) : _min
-  const max = import.meta.env.DEV ? readonly(_max) : _max
-  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
-
-  const mainController = new AbortController()
-  onBeforeUnmount(() => mainController.abort())
-
-  const initialRouteName = route.name
-  watch(
-    () => {
-      return router.apiResolve({
-        name: "SearchSizeFilter",
-        params: {
-          s: s.value,
-        },
-      }).href
-    },
-    async (newURL, oldURL, onCleanup) => {
-      // Watch can continue to run for some time after the route changes.
-      if (initialRouteName !== route.name) {
-        return
-      }
-      _url.value = newURL || null
-
-      // We want to eagerly remove any error.
-      _error.value = null
-
-      if (!newURL) {
-        _results.value = []
-        _total.value = null
-        _min.value = null
-        _max.value = null
-        _interval.value = null
-        return
-      }
-      const controller = new AbortController()
-      onCleanup(() => controller.abort())
-      const signal = anySignal(mainController.signal, controller.signal)
-      let data
-      try {
-        data = await getHistogramValues(newURL, el, controller.signal, progress)
-      } catch (err) {
-        if (signal.aborted) {
-          return
-        }
-        console.error("useSizeHistogramValues", newURL, err)
-        _results.value = []
-        _total.value = null
-        _min.value = null
-        _max.value = null
-        _interval.value = null
-        _error.value = `${err}`
-        return
-      }
-      if (signal.aborted) {
-        return
-      }
-      _results.value = data.results as SizeValuesResult[]
-      _total.value = data.total
-      _min.value = data.min != null ? parseInt(data.min) : null
-      _max.value = data.max != null ? parseInt(data.max) : null
-      _interval.value = data.interval != null ? parseFloat(data.interval) : null
-    },
-    {
-      immediate: true,
-    },
-  )
-
-  return {
-    results,
-    total,
-    min,
-    max,
-    interval,
-    error,
-    url,
-  }
-}
-
 async function getSearchResults<T extends SearchResult | SearchFilterResult | RelSearchResult>(
   url: string,
   el: Ref<Element | null> | null,
@@ -1090,7 +821,7 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   return { results: doc, total } as { results: T[]; total: number | string }
 }
 
-async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult | SizeValuesResult>(
+async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
@@ -1131,7 +862,7 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   return res
 }
 
-async function getStringValues<Type extends StringValuesResult | IndexValuesResult>(
+async function getStringValues<Type extends StringValuesResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,

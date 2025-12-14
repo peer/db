@@ -26,9 +26,8 @@ type PostgresConfig struct {
 
 //nolint:lll
 type ElasticConfig struct {
-	URL       string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                                            placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index     string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}."                             placeholder:"NAME"           yaml:"index"`
-	SizeField bool   `                            help:"Enable size field on documents when sites are not configured. Requires mapper-size ElasticSearch plugin installed."                              yaml:"sizeField"`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}." placeholder:"NAME"           yaml:"index"`
 }
 
 // Globals describes top-level (global) flags.
@@ -43,7 +42,7 @@ type Globals struct {
 	Postgres PostgresConfig `embed:"" envprefix:"POSTGRES_" prefix:"postgres." yaml:"postgres"`
 	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
 
-	Sites []Site `help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", \"key\", and \"sizeField\". Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
+	Sites []Site `help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", and \"key\". Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 func (g *Globals) Validate() error {

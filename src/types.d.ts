@@ -34,17 +34,7 @@ export type StringSearchResult = {
   type: "string"
 }
 
-export type IndexSearchResult = {
-  count: number
-  type: "index"
-}
-
-export type SizeSearchResult = {
-  count: number
-  type: "size"
-}
-
-export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult | IndexSearchResult | SizeSearchResult
+export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
 
 export type SearchResult = {
   id: string
@@ -67,16 +57,6 @@ export type TimeValuesResult = {
 
 export type StringValuesResult = {
   str: string
-  count: number
-}
-
-export type IndexValuesResult = {
-  str: string
-  count: number
-}
-
-export type SizeValuesResult = {
-  min: number
   count: number
 }
 
@@ -124,19 +104,6 @@ export type StringNoneFilter = {
   none: true
 }
 
-export type IndexFilter = {
-  str: string
-}
-
-export type SizeFilter = {
-  gte?: number
-  lte?: number
-}
-
-export type SizeNoneFilter = {
-  none: true
-}
-
 export type Filters =
   | {
       and: Filters[]
@@ -151,8 +118,6 @@ export type Filters =
   | { amount: AmountFilter | AmountNoneFilter }
   | { time: TimeFilter | TimeNoneFilter }
   | { str: StringFilter | StringNoneFilter }
-  | { index: IndexFilter }
-  | { size: SizeFilter | SizeNoneFilter }
 
 export type RelFilterState = (string | typeof NONE)[]
 
@@ -162,17 +127,11 @@ export type TimeFilterState = null | typeof NONE | { gte?: string; lte?: string 
 
 export type StringFilterState = (string | typeof NONE)[]
 
-export type IndexFilterState = string[]
-
-export type SizeFilterState = null | typeof NONE | { gte?: number; lte?: number }
-
 export type FiltersState = {
   rel: Record<string, RelFilterState>
   amount: Record<string, AmountFilterState>
   time: Record<string, TimeFilterState>
   str: Record<string, StringFilterState>
-  index: IndexFilterState
-  size: SizeFilterState
 }
 
 export type RelFilterStateChange = {
@@ -200,23 +159,7 @@ export type StringFilterStateChange = {
   value: StringFilterState
 }
 
-export type IndexFilterStateChange = {
-  type: "index"
-  value: IndexFilterState
-}
-
-export type SizeFilterStateChange = {
-  type: "size"
-  value: SizeFilterState
-}
-
-export type FilterStateChange =
-  | RelFilterStateChange
-  | AmountFilterStateChange
-  | TimeFilterStateChange
-  | StringFilterStateChange
-  | IndexFilterStateChange
-  | SizeFilterStateChange
+export type FilterStateChange = RelFilterStateChange | AmountFilterStateChange | TimeFilterStateChange | StringFilterStateChange
 
 export type ServerSearchState = {
   s: string
