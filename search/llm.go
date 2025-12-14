@@ -370,6 +370,7 @@ type stringPropertyValue struct {
 	Score float64 `json:"relevance_score"`
 }
 
+// TODO: This should be something available in the frontend to the users to search over all filters and values shown. And LLMs would then just use it.
 func findProperties(
 	ctx context.Context, store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	getSearchService func() (*elastic.SearchService, int64), query string,
@@ -578,6 +579,7 @@ func parsePrompt(
 					return findProperties(ctx, store, getSearchService, input.Query)
 				},
 			},
+			// TODO: We should show results immediately when LLM calls show_results and not wait for call into LLM to finish (but we can show any followup messages in its log).
 			"show_results": &fun.TextTool[outputStruct, string]{
 				Description:      showResultsDescription,
 				InputJSONSchema:  outputStructSchema,
