@@ -80,7 +80,7 @@ function countFilters(): number {
 
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4">
-    <div class="bg-slate-200 px-4 py-2 rounded flex flex-row justify-between w-full">
+    <div class="bg-slate-200 px-2 sm:px-4 py-1 sm:py-2 rounded flex flex-row justify-between items-center w-full gap-x-1 sm:gap-x-4">
       <div v-if="searchState === null">Loading...</div>
       <div v-else-if="searchState.q && countFilters() === 1">
         Searching query <i>{{ searchState.q }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
