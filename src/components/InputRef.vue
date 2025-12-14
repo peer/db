@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SearchResult, SearchStateCreateResponse } from "@/types"
+import type { Filters, FiltersState, RelFilter, RelFilterState, SearchResult, SearchStateCreateResponse } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
@@ -10,15 +10,16 @@ import { debounce } from "lodash-es"
 import WithDocument from "@/components/WithDocument.vue"
 import { getURL, postURL } from "@/api.ts"
 import { getName, loadingWidth } from "@/utils.ts"
-import { activeSearchState, useSearch, useSearchState } from "@/search.ts"
+import { activeSearchState, NONE, useSearch, useSearchState } from "@/search.ts"
 import { injectMainProgress, localProgress } from "@/progress.ts"
+import { TYPE } from "@/props.ts"
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
   inheritAttrs: false,
 })
 
-const props = withDefaults(defineProps<{ modelValue?: string; progress?: number }>(), { modelValue: "", progress: 0 })
+const props = withDefaults(defineProps<{ modelValue?: string; progress?: number; type?: string }>(), { modelValue: "", progress: 0, type: "" })
 
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
@@ -100,7 +101,20 @@ const runSearchDebounce = debounce(async (q: string) => {
 async function search(q: string) {
   const form = new FormData()
   form.set("q", q)
-  form.set("filters", '{"and":[{"rel":{"prop":"CAfaL1ZZs6L4uyFdrJZ2wN","value":"8z5YTfJAd2c23dd5WFv4R5"}}]}')
+
+  if (props.type) {
+    const filters: Filters = {
+      and: [],
+    }
+
+    if (props.type === NONE.toString()) {
+      filters.and.push({ rel: { prop: TYPE.toString(), none: true } })
+    } else {
+      filters.and.push({ rel: { prop: TYPE.toString(), value: props.type } })
+    }
+
+    form.set("filters", JSON.stringify(filters))
+  }
 
   const searchState = await postURL<SearchStateCreateResponse>(
     router.apiResolve({
