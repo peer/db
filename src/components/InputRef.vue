@@ -135,8 +135,9 @@ async function resolveDocumentName(id: string): Promise<string> {
         :readonly="isInProgress"
         class="w-full p-2 text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
         :class="{
-          'bg-white': !isInProgress,
+          'bg-white': !isInProgress && !(searchStateError || searchResultsError),
           'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
+          'bg-error-50': searchStateError || searchResultsError,
         }"
         :display-value="(doc) => nameCache[doc?.id] ?? ''"
         @input="query = $event.target.value"
@@ -161,4 +162,8 @@ async function resolveDocumentName(id: string): Promise<string> {
       </ComboboxOptions>
     </div>
   </Combobox>
+
+  <div v-if="searchStateError || searchResultsError" class="my-1">
+    <div class="text-sm"><i class="text-error-600">loading data failed</i></div>
+  </div>
 </template>
