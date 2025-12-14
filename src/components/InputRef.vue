@@ -11,6 +11,7 @@ import { getURL, postURL } from "@/api.ts"
 import { getName, loadingWidth } from "@/utils.ts"
 import { activeSearchState, useSearch, useSearchState } from "@/search.ts"
 import { debounce } from "lodash-es"
+import { injectMainProgress, localProgress } from "@/progress.ts"
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
@@ -21,7 +22,6 @@ const props = withDefaults(defineProps<{ modelValue?: string; progress?: number 
 
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
-  (e: "update:progress", progress: number): void
 }>()
 
 const router = useRouter()
@@ -59,12 +59,7 @@ watch(selectedDocument, (doc) => {
   emit("update:modelValue", doc.id)
 })
 
-const progressValue = computed({
-  get: () => props.progress,
-  set: (value) => {
-    emit("update:progress", value)
-  },
-})
+const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 
 const query = computed({
   get: () => props.modelValue,
@@ -74,26 +69,24 @@ const query = computed({
   },
 })
 
+const mainProgress = injectMainProgress()
+const searchProgress = localProgress(mainProgress)
+
 const {
   searchState,
   error: searchStateError,
   url: searchURL,
 } = useSearchState(
   toRef(() => s.value),
-  progressValue,
+  searchProgress,
 )
-const {
-  results: searchResults,
-  total: searchTotal,
-  moreThanTotal: searchMoreThanTotal,
-  error: searchResultsError,
-} = useSearch(
+const { results: searchResults, error: searchResultsError } = useSearch(
   activeSearchState(
     searchState,
     toRef(() => s.value),
   ),
   searchEl,
-  progressValue,
+  searchProgress,
 )
 
 onBeforeUnmount(() => {
@@ -115,7 +108,7 @@ async function search(q: string) {
     }).href,
     form,
     abortController.signal,
-    progressValue,
+    searchProgress,
   )
 
   s.value = searchState.s
@@ -129,23 +122,28 @@ async function resolveDocumentName(id: string): Promise<string> {
     },
   }).href
 
-  const response = await getURL<PeerDBDocument>(newURL, null, abortController.signal, progressValue)
+  const response = await getURL<PeerDBDocument>(newURL, null, abortController.signal, searchProgress)
 
   return getName(response.doc?.claims) || "no name"
 }
 </script>
 
 <template>
-  <Combobox ref="searchEl" v-model="selectedDocument" as="div">
+  <Combobox ref="searchEl" v-model="selectedDocument" :data-url="searchURL" as="div">
     <div class="relative">
       <ComboboxInput
-        class="w-full cursor-pointer p-2 bg-white text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
-        :display-value="(doc) => doc?.name ?? ''"
+        :readonly="isInProgress"
+        class="w-full p-2 text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
+        :class="{
+          'bg-white': !isInProgress,
+          'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
+        }"
+        :display-value="(doc) => nameCache[doc?.id] ?? ''"
         @input="query = $event.target.value"
       />
 
       <ComboboxOptions
-        v-if="searchResults.length > 0"
+        v-if="searchResults.length > 0 && !isInProgress"
         class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10"
       >
         <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
