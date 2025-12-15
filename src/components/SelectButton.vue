@@ -29,7 +29,7 @@ for (const slot in useSlots()) {
 </script>
 
 <template>
-  <div class="flex gap-1 items-center bg-slate-200 py-1 px-2 rounded">
+  <div class="flex gap-1 items-center bg-slate-200 py-1 px-1 rounded">
     <button
       v-for="option in options"
       :key="option.name"
