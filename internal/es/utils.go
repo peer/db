@@ -250,6 +250,22 @@ func endDocumentSession(
 	return endMetadata, nil
 }
 
+func NewHTTPClient(simpleHTTPClient *http.Client, logger zerolog.Logger) *retryablehttp.Client {
+	httpClient := retryablehttp.NewClient()
+	httpClient.HTTPClient = simpleHTTPClient
+	httpClient.RetryWaitMax = clientRetryWaitMax
+	httpClient.RetryMax = clientRetryMax
+	httpClient.Logger = retryableHTTPLoggerAdapter{logger}
+
+	// Set User-Agent header.
+	httpClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, _ int) {
+		// TODO: Make contact e-mail into a CLI argument.
+		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
+	}
+
+	return httpClient
+}
+
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
@@ -277,17 +293,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string) 
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient = simpleHTTPClient
-	httpClient.RetryWaitMax = clientRetryWaitMax
-	httpClient.RetryMax = clientRetryMax
-	httpClient.Logger = retryableHTTPLoggerAdapter{logger}
-
-	// Set User-Agent header.
-	httpClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, _ int) {
-		// TODO: Make contact e-mail into a CLI argument.
-		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
-	}
+	httpClient := NewHTTPClient(simpleHTTPClient, logger)
 
 	return ctx, stop, httpClient, store, esClient, esProcessor, nil
 }

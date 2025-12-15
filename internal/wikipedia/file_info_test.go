@@ -4,19 +4,24 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 func TestGetImageInfoForFilename(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-	httpClient := retryablehttp.NewClient()
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	ii, err := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "", 50, "Logo_Google_2013_Official.svg")
-	require.NoError(t, err)
+	ctx := context.Background()
+	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+
+	ii, errE := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "", 50, "Logo_Google_2013_Official.svg")
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, ImageInfo{
 		Mime:                "image/svg+xml",
 		Size:                6380,
