@@ -57,8 +57,7 @@ async function onSubmit() {
       <InputText id="home-input-search" v-model="searchQuery" class="w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
       <Button type="submit" primary :progress="progress">Search</Button>
     </div>
-    <div class="flex flex-grow basis-0">
-    </div>
+    <div class="flex flex-grow basis-0"></div>
   </form>
   <Teleport to="footer">
     <Footer />
