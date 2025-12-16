@@ -12,13 +12,13 @@ import type {
 } from "@/types"
 
 import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import { useSearch, useSearchState, postFilters, activeSearchState } from "@/search"
+import { useSearch, useSearchSession, updateSearchSession } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, encodeQuery } from "@/utils"
@@ -29,11 +29,10 @@ import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
-  s: string
+  id: string
 }>()
 
 const router = useRouter()
-const route = useRoute()
 
 const mainProgress = injectMainProgress()
 const createProgress = localProgress(mainProgress)
@@ -50,29 +49,18 @@ onBeforeUnmount(() => {
 const searchEl = ref(null)
 
 const searchView = ref<SearchViewType>("feed")
+const searchSessionVersion = ref(0)
 
 const searchProgress = localProgress(mainProgress)
 const {
-  searchState,
-  error: searchStateError,
+  searchSession,
+  error: searchSessionError,
   url: searchURL,
-} = useSearchState(
-  toRef(() => props.s),
+} = useSearchSession(
+  toRef(() => ({ id: props.id, version: searchSessionVersion.value })),
   searchProgress,
 )
-const {
-  results: searchResults,
-  total: searchTotal,
-  moreThanTotal: searchMoreThanTotal,
-  error: searchResultsError,
-} = useSearch(
-  activeSearchState(
-    searchState,
-    toRef(() => props.s),
-  ),
-  searchEl,
-  searchProgress,
-)
+const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
 const updateFiltersProgress = localProgress(mainProgress)
 // A non-read-only version of filters state so that we can modify it as necessary.
@@ -80,24 +68,26 @@ const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} 
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
-  if (searchState.value === null || !searchState.value.filters) {
+  if (searchSession.value === null || !searchSession.value.filters) {
     filtersState.value = { rel: {}, amount: {}, time: {}, str: {} }
   } else {
-    filtersState.value = clone(searchState.value.filters)
+    filtersState.value = clone(searchSession.value.filters)
   }
 })
 
-async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
+async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateFiltersProgress.value += 1
   try {
-    const updatedState = { ...filtersState.value }
-    updatedState.rel = { ...updatedState.rel }
-    updatedState.rel[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
+    const updatedFilters = { ...filtersState.value }
+    updatedFilters.rel = { ...updatedFilters.rel }
+    updatedFilters.rel[id] = state
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.filters = updatedFilters
+    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -109,17 +99,19 @@ async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
   }
 }
 
-async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFilterState) {
+async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateFiltersProgress.value += 1
   try {
-    const updatedState = { ...filtersState.value }
-    updatedState.amount = { ...updatedState.amount }
-    updatedState.amount[`${id}/${unit}`] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
+    const updatedFilters = { ...filtersState.value }
+    updatedFilters.amount = { ...updatedFilters.amount }
+    updatedFilters.amount[`${id}/${unit}`] = state
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.filters = updatedFilters
+    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -131,17 +123,19 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFil
   }
 }
 
-async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
+async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateFiltersProgress.value += 1
   try {
-    const updatedState = { ...filtersState.value }
-    updatedState.time = { ...updatedState.time }
-    updatedState.time[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
+    const updatedFilters = { ...filtersState.value }
+    updatedFilters.time = { ...updatedFilters.time }
+    updatedFilters.time[id] = state
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.filters = updatedFilters
+    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -153,17 +147,19 @@ async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
   }
 }
 
-async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
+async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateFiltersProgress.value += 1
   try {
-    const updatedState = { ...filtersState.value }
-    updatedState.str = { ...updatedState.str }
-    updatedState.str[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
+    const updatedFilters = { ...filtersState.value }
+    updatedFilters.str = { ...updatedFilters.str }
+    updatedFilters.str[id] = state
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.filters = updatedFilters
+    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -431,7 +427,7 @@ function onFilterChange(change: FilterStateChange) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch :s="s" />
+      <NavBarSearch :search-session="searchSession" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
@@ -444,18 +440,17 @@ function onFilterChange(change: FilterStateChange) {
     </NavBar>
   </Teleport>
   <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
-    <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
+    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4">
       <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
     </div>
 
     <SearchResultsFeed
       v-else-if="searchView === 'feed'"
       v-model:search-view="searchView"
-      :s="s"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-filters-progress="updateFiltersProgress"
@@ -465,11 +460,10 @@ function onFilterChange(change: FilterStateChange) {
     <SearchResultsTable
       v-else-if="searchView === 'table'"
       v-model:search-view="searchView"
-      :s="s"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-progress="searchProgress"
     />
   </div>
@@ -478,7 +472,7 @@ function onFilterChange(change: FilterStateChange) {
     When there is an error, we do not show a component to display results which otherwise
     shows the footer. So we show the footer ourselves here in that case.
   -->
-  <Teleport v-if="searchStateError || searchResultsError" to="footer">
+  <Teleport v-if="searchSessionError || searchResultsError" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>

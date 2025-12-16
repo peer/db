@@ -36,7 +36,7 @@ export { NONE } from "@/symbols"
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-function filtersStateToFilters(filters: FiltersState | undefined): Filters {
+function filtersStateToFilters(filters: FiltersState | DeepReadonly<FiltersState> | undefined): Filters {
   const f: Filters = {
     and: [],
   }
@@ -92,7 +92,7 @@ function filtersStateToFilters(filters: FiltersState | undefined): Filters {
   return f
 }
 
-function clientToServerSearchSession(searchSession: ClientSearchSession): ServerSearchSession {
+function clientToServerSearchSession(searchSession: ClientSearchSession | DeepReadonly<ClientSearchSession>): ServerSearchSession {
   const s: ServerSearchSession = {
     id: searchSession.id,
     version: searchSession.version,
@@ -290,7 +290,7 @@ export async function createSearchSession(router: Router, createSearchSessionReq
 
 export async function updateSearchSession(
   router: Router,
-  searchSession: ClientSearchSession,
+  searchSession: ClientSearchSession | DeepReadonly<ClientSearchSession>,
   abortSignal: AbortSignal,
   progress: Ref<number>,
 ): Promise<SearchSessionRef | null> {
@@ -330,6 +330,11 @@ export function useSearch(
       params: {
         id: searchSessionRef.value.id,
       },
+      // We should not really be passing a version here, it is not used by the API (currently it
+      // is ignored and always the latest version is returned), but we pass it anyway so that
+      // URL changes when version changes and search results are re-fetched.
+      // TODO: Change this once we have proper support for versions.
+      query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
     }).href
   })
 }
@@ -355,6 +360,11 @@ export function useFilters(
       params: {
         id: searchSessionRef.value.id,
       },
+      // We should not really be passing a version here, it is not used by the API (currently it
+      // is ignored and always the latest version is returned), but we pass it anyway so that
+      // URL changes when version changes and search results are re-fetched.
+      // TODO: Change this once we have proper support for versions.
+      query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
     }).href
   })
 }
@@ -394,7 +404,14 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
       if (initialRouteName !== route.name) {
         return
       }
-      _url.value = newURL || null
+      if (newURL) {
+        // We remove the query string because we artificially appended a version to the URL.
+        // TODO: Change this once we have proper support for versions.
+        newURL = newURL.split("?", 1)[0]
+        _url.value = newURL
+      } else {
+        _url.value = null
+      }
 
       // We want to eagerly remove any error.
       _error.value = null
@@ -925,8 +942,8 @@ export function useSearchSession(
 
   const initialRouteName = route.name
   watch(
-    [searchSessionRef],
-    async ([searchSessionRef], old, onCleanup) => {
+    searchSessionRef,
+    async (searchSessionRef, old, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
