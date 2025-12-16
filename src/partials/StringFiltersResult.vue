@@ -10,7 +10,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  s: string
+  searchSessionId: string
   searchTotal: number
   result: StringSearchResult
   state: StringFilterState
@@ -36,7 +36,7 @@ const {
   error,
   url: resultsUrl,
 } = useStringFilterValues(
-  toRef(() => props.s),
+  toRef(() => props.searchSessionId),
   toRef(() => props.result),
   el,
   progress,

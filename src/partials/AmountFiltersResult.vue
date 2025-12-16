@@ -11,7 +11,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  s: string
+  searchSessionId: string
   searchTotal: number
   result: AmountSearchResult
   state: AmountFilterState
@@ -38,7 +38,7 @@ const {
   error,
   url: resultsUrl,
 } = useAmountHistogramValues(
-  toRef(() => props.s),
+  toRef(() => props.searchSessionId),
   toRef(() => props.result),
   el,
   progress,

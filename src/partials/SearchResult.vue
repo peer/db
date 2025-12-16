@@ -29,7 +29,7 @@ import {
 } from "@/props"
 
 defineProps<{
-  s: string
+  searchSessionId: string
   result: SearchResult
 }>()
 
@@ -119,7 +119,7 @@ const rowSpan = computed(() => {
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s }) }"
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
               class="link"
               v-html="docName || '<i>no name</i>'"
             ></RouterLink>
@@ -142,7 +142,7 @@ const rowSpan = computed(() => {
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s }) }"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
               ><img :src="previewFiles[0]" class="mx-auto bg-white"
             /></RouterLink>
           </div>

@@ -13,7 +13,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  s: string
+  searchSessionId: string
   searchTotal: number
   result: RelSearchResult
   state: RelFilterState
@@ -39,7 +39,7 @@ const {
   error,
   url: resultsUrl,
 } = useRelFilterValues(
-  computed(() => props.s),
+  computed(() => props.searchSessionId),
   computed(() => props.result),
   el,
   progress,
