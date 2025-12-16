@@ -208,7 +208,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 }
 
 // SearchFiltersGet is a GET/HEAD HTTP request API handler which returns filters available for the search session.
-func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -238,7 +238,7 @@ func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, par
 // SearchResultsGet is a GET/HEAD HTTP request API handler and it searches ElasticSearch index for the provided
 // search session and returns to the client a JSON with an array of IDs of found documents.
 // It returns search metadata (e.g., total results) as waf HTTP response header.
-func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -265,11 +265,11 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchResultsPost is a POST HTTP request API handler and it searches ElasticSearch index without
+// SearchJustResultsPost is a POST HTTP request API handler and it searches ElasticSearch index without
 // creating a search session and returns to the client a JSON with an array of IDs of found documents.
 // It returns search metadata (e.g., total results) as waf HTTP response header.
-func (s *Service) SearchResultsPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
+func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	defer req.Body.Close()
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -307,7 +307,7 @@ func (s *Service) SearchResultsPost(w http.ResponseWriter, req *http.Request, pa
 
 // SearchCreatePost is a POST HTTP API request handler which creates a new search session.
 func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
+	defer req.Body.Close()
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -341,7 +341,7 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 
 // SearchUpdatePost is a POST HTTP API request handler which updates the search session.
 func (s *Service) SearchUpdatePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
+	defer req.Body.Close()
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()

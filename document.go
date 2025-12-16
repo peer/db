@@ -38,7 +38,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	// We validate the "s" parameter.
 	if req.Form.Has("s") {
 		m := metrics.Duration(internal.MetricSearchSession).Start()
-		_, errE := search.GetSessionFromID(ctx, req.Form.Get("s"))
+		_, errE = search.GetSessionFromID(ctx, req.Form.Get("s"))
 		m.Stop()
 		if errors.Is(errE, search.ErrNotFound) {
 			// Session not found, so we redirect to the URL without "s".

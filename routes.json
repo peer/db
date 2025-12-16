@@ -61,6 +61,12 @@
       "get": {}
     },
     {
+      "name": "SearchJustResults",
+      "path": "/s/results",
+      "api": {},
+      "get": null
+    },
+    {
       "name": "SearchResults",
       "path": "/s/results/:id",
       "api": {},
