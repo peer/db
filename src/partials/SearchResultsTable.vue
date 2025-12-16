@@ -5,7 +5,7 @@ import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
-import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
@@ -254,7 +254,10 @@ function getButtonTitle(resultId: string): string {
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
+                <div class="flex flex-row justify-between">
+                  <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
+                  <FunnelIcon class="h-5 w-5 ml-2 text-primary-500 hover:text-primary-700 cursor-pointer" alt="Filters" />
+                </div>
               </th>
             </template>
           </tr>
