@@ -2,6 +2,7 @@
 import type { StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed, toRef, onBeforeUnmount } from "vue"
+
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"

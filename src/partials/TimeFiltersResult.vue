@@ -4,6 +4,7 @@ import type { TimeFilterState, TimeSearchResult } from "@/types"
 
 import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
+
 import CheckBox from "@/components/CheckBox.vue"
 import { useTimeHistogramValues, NONE } from "@/search"
 import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, useInitialLoad, loadingShortHeights } from "@/utils"

@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import type { ComponentExposed } from "vue-component-type-helpers"
+
 import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
-import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { ref, computed, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+
 import InputTextLink from "@/components/InputTextLink.vue"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
