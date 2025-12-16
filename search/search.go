@@ -388,7 +388,7 @@ func CreateSession(ctx context.Context, session *Session) errors.E {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	searches.Store(session.ID, session)
+	searches.Store(*session.ID, session)
 
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit store twice?
@@ -412,7 +412,7 @@ func UpdateSession(ctx context.Context, session *Session) errors.E {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	searches.Store(session.ID, session)
+	searches.Store(*session.ID, session)
 
 	return nil
 }
