@@ -47,8 +47,8 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
-// FiltersResult describes filters available as an union of results for each filter type.
-type FiltersResult struct {
+// FilterResult describes an available filter as an union of possible fields for each supported filter type.
+type FilterResult struct {
 	ID    string `json:"id"`
 	Count int64  `json:"count"`
 	Type  string `json:"type"`
@@ -57,7 +57,7 @@ type FiltersResult struct {
 
 func FiltersGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session,
-) ([]FiltersResult, map[string]interface{}, errors.E) {
+) ([]FilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
 	query := searchSession.ToQuery()
@@ -162,9 +162,9 @@ func FiltersGet(
 	}
 	m.Stop()
 
-	results := make([]FiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
+	results := make([]FilterResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
 	for i, bucket := range rel.Props.Buckets {
-		results[i] = FiltersResult{
+		results[i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "rel",
@@ -172,7 +172,7 @@ func FiltersGet(
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
-		results[len(rel.Props.Buckets)+i] = FiltersResult{
+		results[len(rel.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
 			Type:  "amount",
@@ -180,7 +180,7 @@ func FiltersGet(
 		}
 	}
 	for i, bucket := range timeA.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = FiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
@@ -188,7 +188,7 @@ func FiltersGet(
 		}
 	}
 	for i, bucket := range str.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = FiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "string",
@@ -198,7 +198,7 @@ func FiltersGet(
 
 	// Because we combine multiple aggregations of MaxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
-	slices.SortStableFunc(results, func(a FiltersResult, b FiltersResult) int {
+	slices.SortStableFunc(results, func(a FilterResult, b FilterResult) int {
 		if a.Count > b.Count {
 			return -1
 		} else if a.Count < b.Count {

@@ -34,7 +34,7 @@ export type StringSearchResult = {
   type: "string"
 }
 
-export type FiltersResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
+export type FilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
 
 export type Result = {
   id: string
