@@ -68,8 +68,6 @@ watchEffect(async (onCleanup) => {
         id: props.id,
       },
       // Maybe route.query has non-empty "tab" parameter which we want to keep.
-      // We do not use query argument in useSearchState callback because it
-      // is about (new) search state which we just discard here.
       query: encodeQuery({ tab: route.query.tab || undefined }),
     })
   }
