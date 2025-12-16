@@ -76,7 +76,7 @@ watchEffect(async (onCleanup) => {
 })
 
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
-  const res = { previous: null, next: null } as { previous: string | null; next: string | null }
+  const res: { previous: string | null; next: string | null } = { previous: null, next: null }
   for (let i = 0; i < results.value.length; i++) {
     if (results.value[i].id === props.id) {
       if (i > 0) {
