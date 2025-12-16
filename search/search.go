@@ -2,29 +2,30 @@ package search
 
 import (
 	"context"
-	"net/url"
-	"reflect"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
 	MaxResultsCount = 1000
 )
 
-type relFilter struct {
+type RelFilter struct {
 	Prop  identifier.Identifier  `json:"prop"`
 	Value *identifier.Identifier `json:"value,omitempty"`
 	None  bool                   `json:"none,omitempty"`
 }
 
-func (f relFilter) Valid() errors.E {
+func (f RelFilter) Valid() errors.E {
 	if f.Value == nil && !f.None {
 		return errors.New("value or none has to be set")
 	}
@@ -34,7 +35,7 @@ func (f relFilter) Valid() errors.E {
 	return nil
 }
 
-type amountFilter struct {
+type AmountFilter struct {
 	Prop identifier.Identifier `json:"prop"`
 	Unit *document.AmountUnit  `json:"unit,omitempty"`
 	Gte  *float64              `json:"gte,omitempty"`
@@ -42,7 +43,7 @@ type amountFilter struct {
 	None bool                  `json:"none,omitempty"`
 }
 
-func (f amountFilter) Valid() errors.E {
+func (f AmountFilter) Valid() errors.E {
 	// TODO: Why is f.Unit a pointer and can be nil at all?
 	if f.Unit == nil {
 		return errors.New("unit has to be set")
@@ -59,14 +60,14 @@ func (f amountFilter) Valid() errors.E {
 	return nil
 }
 
-type timeFilter struct {
+type TimeFilter struct {
 	Prop identifier.Identifier `json:"prop"`
 	Gte  *document.Timestamp   `json:"gte,omitempty"`
 	Lte  *document.Timestamp   `json:"lte,omitempty"`
 	None bool                  `json:"none,omitempty"`
 }
 
-func (f timeFilter) Valid() errors.E {
+func (f TimeFilter) Valid() errors.E {
 	if f.Gte == nil && f.Lte == nil && !f.None {
 		return errors.New("gte, lte, or none has to be set")
 	}
@@ -79,13 +80,13 @@ func (f timeFilter) Valid() errors.E {
 	return nil
 }
 
-type stringFilter struct {
+type StringFilter struct {
 	Prop identifier.Identifier `json:"prop"`
 	Str  string                `json:"str,omitempty"`
 	None bool                  `json:"none,omitempty"`
 }
 
-func (f stringFilter) Valid() errors.E {
+func (f StringFilter) Valid() errors.E {
 	if f.Str == "" && !f.None {
 		return errors.New("str or none has to be set")
 	}
@@ -95,17 +96,17 @@ func (f stringFilter) Valid() errors.E {
 	return nil
 }
 
-type filters struct {
-	And    []filters     `json:"and,omitempty"`
-	Or     []filters     `json:"or,omitempty"`
-	Not    *filters      `json:"not,omitempty"`
-	Rel    *relFilter    `json:"rel,omitempty"`
-	Amount *amountFilter `json:"amount,omitempty"`
-	Time   *timeFilter   `json:"time,omitempty"`
-	Str    *stringFilter `json:"str,omitempty"`
+type Filters struct {
+	And    []Filters     `json:"and,omitempty"`
+	Or     []Filters     `json:"or,omitempty"`
+	Not    *Filters      `json:"not,omitempty"`
+	Rel    *RelFilter    `json:"rel,omitempty"`
+	Amount *AmountFilter `json:"amount,omitempty"`
+	Time   *TimeFilter   `json:"time,omitempty"`
+	Str    *StringFilter `json:"str,omitempty"`
 }
 
-func (f filters) Valid() errors.E {
+func (f Filters) Valid() errors.E {
 	nonEmpty := 0
 	if len(f.And) > 0 {
 		nonEmpty++
@@ -168,7 +169,7 @@ func (f filters) Valid() errors.E {
 	return nil
 }
 
-func (f filters) ToQuery() elastic.Query { //nolint:ireturn
+func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 	if len(f.And) > 0 {
 		boolQuery := elastic.NewBoolQuery()
 		for _, filter := range f.And {
@@ -269,31 +270,67 @@ func (f filters) ToQuery() elastic.Query { //nolint:ireturn
 	panic(errors.New("invalid filters"))
 }
 
-// State represents current search state.
-// Search states form a tree with a link to the previous (parent) state.
-type State struct {
-	ID          identifier.Identifier  `json:"s"`
-	SearchQuery string                 `json:"q"`
-	Filters     *filters               `json:"filters,omitempty"`
-	ParentID    *identifier.Identifier `json:"-"`
-	RootID      identifier.Identifier  `json:"-"`
+// Session represents a search session.
+//
+// A search session includes WHAT is being searched for and HOW are
+// results shown/visualized, but not WHERE the user is looking at.
+type Session struct {
+	ID      *identifier.Identifier `json:"id"`
+	Version int                    `json:"version"`
+	Query   string                 `json:"query"`
+	Filters *Filters               `json:"filters,omitempty"`
 }
 
-// Values returns search state as query string values.
-func (s *State) Values() url.Values {
-	values := url.Values{}
-	values.Set("q", s.SearchQuery)
-	return values
-}
-
-// ValuesWithAt returns search state as query string values, with additional "at" parameter.
-func (s *State) ValuesWithAt(at string) url.Values {
-	values := s.Values()
-	if at == "" {
-		return values
+// Validate validates the Session struct.
+func (s *Session) Validate(_ context.Context, existing *Session) errors.E {
+	if existing == nil {
+		if s.ID != nil {
+			errE := errors.New("ID provided for new document")
+			errors.Details(errE)["id"] = *s.ID
+			return errE
+		}
+		id := identifier.New()
+		s.ID = &id
+	} else if s.ID == nil {
+		// This should not really happen because we fetch existing based on i.ID.
+		return errors.New("ID missing for existing document")
+	} else if existing.ID == nil {
+		// This should not really happen because we always store documents with ID.
+		return errors.New("ID missing for existing document")
+	} else if *s.ID != *existing.ID {
+		// This should not really happen because we fetch existing based on i.ID.
+		errE := errors.New("payload ID does not match existing ID")
+		errors.Details(errE)["payload"] = *s.ID
+		errors.Details(errE)["existing"] = *existing.ID
+		return errE
 	}
-	values.Set("at", at)
-	return values
+
+	if existing == nil {
+		// We set the version to zero for new sessions.
+		s.Version = 0
+	} else {
+		// We increase the version by one.
+		// TODO: This is not race safe, needs improvement once we have storage that supports transactions.
+		s.Version = existing.Version + 1
+	}
+
+	if s.Filters != nil {
+		errE := s.Filters.Valid()
+		if errE != nil {
+			return errE
+		}
+	}
+
+	return nil
+}
+
+type SessionRef struct {
+	ID      identifier.Identifier `json:"id"`
+	Version int                   `json:"version"`
+}
+
+func (s *Session) Ref() SessionRef {
+	return SessionRef{ID: *s.ID, Version: s.Version}
 }
 
 func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query { //nolint:ireturn
@@ -319,11 +356,11 @@ func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query 
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *State) Query() elastic.Query { //nolint:ireturn
+func (s *Session) ToQuery() elastic.Query { //nolint:ireturn
 	boolQuery := elastic.NewBoolQuery()
 
-	if s.SearchQuery != "" {
-		boolQuery.Must(documentTextSearchQuery(s.SearchQuery, "AND"))
+	if s.Query != "" {
+		boolQuery.Must(documentTextSearchQuery(s.Query, "OR"))
 	}
 
 	if s.Filters != nil {
@@ -344,109 +381,96 @@ type field struct {
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
-// CreateState creates a new search state given optional existing state
-// (can be an empty string) and new query/filters.
-func CreateState(_ context.Context, s string, searchQuery, filtersJSON string) *State {
-	var parentSearchID *identifier.Identifier
-	if id, errE := identifier.FromString(s); errE == nil {
-		parentSearchID = &id
+// CreateSession creates a new search session.
+func CreateSession(ctx context.Context, session *Session) errors.E {
+	errE := session.Validate(ctx, nil)
+	if errE != nil {
+		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	var fs *filters
-	if filtersJSON != "" {
-		var f filters
-		if x.UnmarshalWithoutUnknownFields([]byte(filtersJSON), &f) == nil && f.Valid() == nil {
-			fs = &f
-		}
-	}
-
-	id := identifier.New()
-	rootID := id
-	if parentSearchID != nil {
-		ps, ok := searches.Load(*parentSearchID)
-		if ok {
-			parentSearch := ps.(*State) //nolint:errcheck,forcetypeassert
-			rootID = parentSearch.RootID
-		} else {
-			// Unknown ID.
-			parentSearchID = nil
-		}
-	}
-
-	sh := &State{
-		ID:          id,
-		SearchQuery: searchQuery,
-		Filters:     fs,
-		ParentID:    parentSearchID,
-		RootID:      rootID,
-	}
-	searches.Store(sh.ID, sh)
+	searches.Store(session.ID, session)
 
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit store twice?
 
-	return sh
+	return nil
 }
 
-func createStateFromGetOrCreateState(ctx context.Context, s string, searchQuery, filtersJSON *string) (*State, bool) {
-	if searchQuery == nil {
-		q := ""
-		searchQuery = &q
+func UpdateSession(ctx context.Context, session *Session) errors.E {
+	if session.ID == nil {
+		return errors.WithMessage(ErrValidationFailed, "ID is missing")
 	}
-	if filtersJSON == nil {
-		f := ""
-		filtersJSON = &f
-	}
-	// TODO: How to prevent that CreateState unmarshals filtersJSON again?
-	// TODO: How to prevent that CreateState calls searches.Load again?
-	return CreateState(ctx, s, *searchQuery, *filtersJSON), false
-}
 
-// GetOrCreateState resolves an existing search state if possible and validates that
-// optional query/filters match those in the search state. If not, it creates a new search state.
-func GetOrCreateState(ctx context.Context, s string, searchQuery, filtersJSON *string) (*State, bool) {
-	searchID, errE := identifier.FromString(s)
+	// TODO: This is not race safe, needs improvement once we have storage that supports transactions.
+	existingSession, errE := GetSession(ctx, *session.ID)
 	if errE != nil {
-		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
+		return errE
 	}
 
-	sh, ok := searches.Load(searchID)
-	if !ok {
-		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
+	errE = session.Validate(ctx, existingSession)
+	if errE != nil {
+		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	var fs *filters
-	if filtersJSON != nil && *filtersJSON != "" {
-		var f filters
-		if x.UnmarshalWithoutUnknownFields([]byte(*filtersJSON), &f) == nil && f.Valid() == nil {
-			fs = &f
-		} else {
-			// filtersJSON was invalid, so we pass nil instead.
-			return createStateFromGetOrCreateState(ctx, s, searchQuery, nil)
-		}
-	}
+	searches.Store(session.ID, session)
 
-	ss := sh.(*State) //nolint:errcheck,forcetypeassert
-
-	if searchQuery != nil && ss.SearchQuery != *searchQuery {
-		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
-	}
-	if filtersJSON != nil && !reflect.DeepEqual(ss.Filters, fs) {
-		return createStateFromGetOrCreateState(ctx, s, searchQuery, filtersJSON)
-	}
-
-	return ss, true
+	return nil
 }
 
-// GetState resolves an existing search state if possible.
-func GetState(s string) *State {
-	searchID, errE := identifier.FromString(s)
+// GetSessionFromID resolves an existing search session if possible.
+func GetSessionFromID(ctx context.Context, value string) (*Session, errors.E) {
+	id, errE := identifier.FromString(value)
 	if errE != nil {
-		return nil
+		return nil, errors.WrapWith(errE, ErrNotFound)
 	}
-	sh, ok := searches.Load(searchID)
+
+	return GetSession(ctx, id)
+}
+
+// GetSearch resolves an existing search session if possible.
+func GetSession(_ context.Context, id identifier.Identifier) (*Session, errors.E) {
+	session, ok := searches.Load(id)
 	if !ok {
-		return nil
+		return nil, errors.WithDetails(ErrNotFound, "id", id)
 	}
-	return sh.(*State) //nolint:forcetypeassert,errcheck
+	return session.(*Session), nil //nolint:forcetypeassert,errcheck
+}
+
+type Result struct {
+	ID string `json:"id"`
+}
+
+func ResultsGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session) ([]Result, map[string]interface{}, errors.E) {
+	metrics := waf.MustGetMetrics(ctx)
+
+	query := searchSession.ToQuery()
+
+	searchService, _ := getSearchService()
+
+	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
+
+	m := metrics.Duration(internal.MetricElasticSearch).Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+
+	results := make([]Result, len(res.Hits.Hits))
+	for i, hit := range res.Hits.Hits {
+		results[i] = Result{ID: hit.Id}
+	}
+
+	// Total is a string or a number.
+	var total interface{}
+	if res.Hits.TotalHits.Relation == "gte" {
+		total = fmt.Sprintf("%d+", res.Hits.TotalHits.Value)
+	} else {
+		total = res.Hits.TotalHits.Value
+	}
+
+	return results, map[string]interface{}{
+		"total": total,
+	}, nil
 }

@@ -18,7 +18,7 @@ type filteredTermAggregations struct {
 	Filter termAggregations `json:"filter"`
 }
 
-type searchRelFilterResult struct {
+type RelFilterResult struct {
 	ID    string `json:"id"`
 	Count int64  `json:"count"`
 }
@@ -26,19 +26,17 @@ type searchRelFilterResult struct {
 //nolint:dupl
 func RelFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
-) (interface{}, map[string]interface{}, errors.E) {
+) ([]RelFilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	ss, ok := searches.Load(id)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we return not found.
-		return nil, nil, errors.WithStack(ErrNotFound)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
-	query := sh.Query()
+	query := searchSession.ToQuery()
 
 	searchService, _ := getSearchService()
 	aggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
@@ -71,15 +69,15 @@ func RelFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var rel filteredTermAggregations
-	errE := x.Unmarshal(res.Aggregations["rel"], &rel)
+	errE = x.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
 	}
 
-	results := make([]searchRelFilterResult, len(rel.Filter.Props.Buckets))
+	results := make([]RelFilterResult, len(rel.Filter.Props.Buckets))
 	for i, bucket := range rel.Filter.Props.Buckets {
-		results[i] = searchRelFilterResult{ID: bucket.Key, Count: bucket.Docs.Count}
+		results[i] = RelFilterResult{ID: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.

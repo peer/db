@@ -43,26 +43,24 @@ type histogramTimeAggregations struct {
 	} `json:"filter"`
 }
 
-type histogramTimeResult struct {
+type HistogramTimeResult struct {
 	Min   document.Timestamp `json:"min"`
 	Count int64              `json:"count"`
 }
 
 func TimeFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
-) (interface{}, map[string]interface{}, errors.E) {
+) ([]HistogramTimeResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	ss, ok := searches.Load(id)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we return not found.
-		return nil, nil, errors.WithStack(ErrNotFound)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
-	query := sh.Query()
+	query := searchSession.ToQuery()
 
 	minMaxSearchService, _ := getSearchService()
 	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
@@ -89,7 +87,7 @@ func TimeFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxTimeAggregations
-	errE := x.Unmarshal(res.Aggregations["minMax"], &minMax)
+	errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
@@ -100,7 +98,7 @@ func TimeFilterGet(
 	// See: https://github.com/elastic/elasticsearch/issues/83101
 	var minValue, interval int64
 	if minMax.Filter.Count == 0 {
-		return make([]histogramTimeResult, 0), map[string]interface{}{
+		return make([]HistogramTimeResult, 0), map[string]interface{}{
 			"total": 0,
 		}, nil
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
@@ -149,9 +147,9 @@ func TimeFilterGet(
 		return nil, nil, errE
 	}
 
-	results := make([]histogramTimeResult, len(histogram.Filter.Hist.Buckets))
+	results := make([]HistogramTimeResult, len(histogram.Filter.Hist.Buckets))
 	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = histogramTimeResult{
+		results[i] = HistogramTimeResult{
 			Min:   bucket.Key,
 			Count: bucket.Docs.Count,
 		}

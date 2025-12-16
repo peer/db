@@ -37,11 +37,11 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 
 	// We validate the "s" parameter.
 	if req.Form.Has("s") {
-		m := metrics.Duration(internal.MetricSearchState).Start()
-		sh := search.GetState(req.Form.Get("s"))
+		m := metrics.Duration(internal.MetricSearchSession).Start()
+		_, errE := search.GetSessionFromID(ctx, req.Form.Get("s"))
 		m.Stop()
-		if sh == nil {
-			// Something was not OK, so we redirect to the URL without "s".
+		if errors.Is(errE, search.ErrNotFound) {
+			// Session not found, so we redirect to the URL without "s".
 			path, err := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
 			if err != nil {
 				s.InternalServerErrorWithError(w, req, err)
@@ -51,6 +51,9 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 			//       Maybe we should cache response ourselves so that we do not hit store twice?
 			w.Header().Set("Location", path)
 			w.WriteHeader(http.StatusSeeOther)
+			return
+		} else if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
 			return
 		}
 	}
@@ -101,8 +104,8 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		return
 	}
 
-	// We do not check "s" and "q" parameters because the expectation is that
-	// they are not provided with JSON request (because they are not used).
+	// We do not check the "s" parameter because the expectation is that
+	// it is not provided with JSON request (because it is not used).
 
 	var reqVersion *store.Version
 	if req.Form.Has("version") {

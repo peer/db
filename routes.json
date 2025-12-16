@@ -20,31 +20,31 @@
     },
     {
       "name": "SearchFilters",
-      "path": "/s/filters/:s",
+      "path": "/s/filters/:id",
       "api": {},
       "get": null
     },
     {
       "name": "SearchRelFilter",
-      "path": "/s/filters/:s/rel/:prop",
+      "path": "/s/filters/:id/rel/:prop",
       "api": {},
       "get": null
     },
     {
       "name": "SearchAmountFilter",
-      "path": "/s/filters/:s/amount/:prop/:unit",
+      "path": "/s/filters/:id/amount/:prop/:unit",
       "api": {},
       "get": null
     },
     {
       "name": "SearchTimeFilter",
-      "path": "/s/filters/:s/time/:prop",
+      "path": "/s/filters/:id/time/:prop",
       "api": {},
       "get": null
     },
     {
       "name": "SearchStringFilter",
-      "path": "/s/filters/:s/string/:prop",
+      "path": "/s/filters/:id/string/:prop",
       "api": {},
       "get": null
     },
@@ -56,15 +56,21 @@
     },
     {
       "name": "SearchGet",
-      "path": "/s/get/:s",
+      "path": "/s/:id",
+      "api": {},
+      "get": {}
+    },
+    {
+      "name": "SearchResults",
+      "path": "/s/results/:id",
       "api": {},
       "get": null
     },
     {
-      "name": "SearchResults",
-      "path": "/s/:s",
+      "name": "SearchUpdate",
+      "path": "/s/update/:id",
       "api": {},
-      "get": {}
+      "get": null
     },
     {
       "name": "DocumentCreate",

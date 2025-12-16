@@ -14,7 +14,7 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-type searchStringFilterResult struct {
+type StringFilterResult struct {
 	Str   string `json:"str"`
 	Count int64  `json:"count"`
 }
@@ -22,19 +22,17 @@ type searchStringFilterResult struct {
 //nolint:dupl
 func StringFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
-) (interface{}, map[string]interface{}, errors.E) {
+) ([]StringFilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	ss, ok := searches.Load(id)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we return not found.
-		return nil, nil, errors.WithStack(ErrNotFound)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
-	query := sh.Query()
+	query := searchSession.ToQuery()
 
 	searchService, _ := getSearchService()
 	aggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
@@ -67,15 +65,15 @@ func StringFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
 	var str filteredTermAggregations
-	errE := x.Unmarshal(res.Aggregations["string"], &str)
+	errE = x.Unmarshal(res.Aggregations["string"], &str)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
 	}
 
-	results := make([]searchStringFilterResult, len(str.Filter.Props.Buckets))
+	results := make([]StringFilterResult, len(str.Filter.Props.Buckets))
 	for i, bucket := range str.Filter.Props.Buckets {
-		results[i] = searchStringFilterResult{Str: bucket.Key, Count: bucket.Docs.Count}
+		results[i] = StringFilterResult{Str: bucket.Key, Count: bucket.Docs.Count}
 	}
 
 	// Cardinality count is approximate, so we make sure the total is sane.
