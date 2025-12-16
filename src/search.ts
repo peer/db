@@ -297,6 +297,9 @@ export async function updateSearchSession(
   const updatedSearchSession = await postJSON<SearchSessionRef>(
     router.apiResolve({
       name: "SearchUpdate",
+      params: {
+        id: searchSession.id,
+      },
     }).href,
     clientToServerSearchSession(searchSession),
     abortSignal,
