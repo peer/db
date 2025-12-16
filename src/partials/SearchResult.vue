@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SearchResult } from "@/types"
+import type { Result } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
 import type { PeerDBDocument } from "@/document"
 
@@ -30,7 +30,7 @@ import {
 
 defineProps<{
   searchSessionId: string
-  result: SearchResult
+  result: Result
 }>()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
