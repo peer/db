@@ -1,32 +1,33 @@
 import type { Ref, DeepReadonly } from "vue"
-import type { RouteLocationNormalizedLoaded, Router } from "vue-router"
+import type { Router } from "vue-router"
+
 import type {
-  SearchResult,
-  SearchFilterResult,
-  RelValuesResult,
-  AmountValuesResult,
-  TimeValuesResult,
-  StringValuesResult,
+  Result,
+  FilterResult,
+  RelFilterResult,
+  HistogramAmountResult,
+  HistogramTimeResult,
+  StringFilterResult,
   RelFilter,
   AmountFilter,
   TimeFilter,
   StringFilter,
   Filters,
   FiltersState,
-  SearchStateCreateResponse,
   RelSearchResult,
   AmountSearchResult,
   TimeSearchResult,
   StringSearchResult,
-  ClientSearchState,
-  ServerSearchState,
+  ClientSearchSession,
+  ServerSearchSession,
   AmountUnit,
-  SearchResult as SearchResultType,
+  SearchSessionRef,
+  CreateSearchSessionRequest,
 } from "@/types"
 
-import { ref, watch, readonly, onBeforeUnmount, toRef, computed } from "vue"
+import { ref, watch, readonly, onBeforeUnmount, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { getURL, postURL, getURLDirect } from "@/api"
+import { getURL, postJSON, getURLDirect } from "@/api"
 import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
 import { NONE } from "@/symbols"
 
@@ -35,175 +36,74 @@ export { NONE } from "@/symbols"
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-function queryToFormData(route: RouteLocationNormalizedLoaded): FormData {
-  const form = new FormData()
-  if (Array.isArray(route.query.q)) {
-    if (route.query.q[0] != null) {
-      form.set("q", route.query.q[0])
-    }
-  } else if (route.query.q != null) {
-    form.set("q", route.query.q)
-  }
-  return form
-}
-
-export async function postSearch(router: Router, form: FormData, abortSignal: AbortSignal, progress: Ref<number>) {
-  const searchState = await postURL<SearchStateCreateResponse>(
-    router.apiResolve({
-      name: "SearchCreate",
-    }).href,
-    form,
-    abortSignal,
-    progress,
-  )
-  if (abortSignal.aborted) {
-    return
-  }
-  await router.push({
-    name: "SearchResults",
-    params: {
-      s: searchState.s,
-    },
-    query: encodeQuery({
-      q: searchState.q,
-    }),
-  })
-}
-
-export async function postFilters(
-  router: Router,
-  route: RouteLocationNormalizedLoaded,
-  s: string,
-  updatedState: FiltersState,
-  abortSignal: AbortSignal,
-  progress: Ref<number>,
-) {
-  const filters: Filters = {
+function filtersStateToFilters(filters: FiltersState | undefined): Filters {
+  const f: Filters = {
     and: [],
   }
-  for (const [prop, values] of Object.entries(updatedState.rel)) {
-    // TODO: Support also OR between values.
-    for (const value of values) {
+  if (filters) {
+    for (const [prop, values] of Object.entries(filters.rel)) {
+      // TODO: Support also OR between values.
+      for (const value of values) {
+        if (value === NONE) {
+          f.and.push({ rel: { prop, none: true } })
+        } else {
+          f.and.push({ rel: { prop, value } })
+        }
+      }
+    }
+    for (const [path, value] of Object.entries(filters.amount)) {
+      if (!value) {
+        continue
+      }
+      const segments = path.split("/")
+      if (segments.length !== 2) {
+        throw new Error(`invalid amount filter path: ${path}`)
+      }
+      const [prop, unit] = segments
+      // TODO: Support also OR between value and none.
       if (value === NONE) {
-        filters.and.push({ rel: { prop, none: true } })
+        f.and.push({ amount: { prop, unit: unit as AmountUnit, none: true } })
       } else {
-        filters.and.push({ rel: { prop, value } })
+        f.and.push({ amount: { prop, unit: unit as AmountUnit, ...value } })
+      }
+    }
+    for (const [prop, value] of Object.entries(filters.time)) {
+      if (!value) {
+        continue
+      }
+      // TODO: Support also OR between value and none.
+      if (value === NONE) {
+        f.and.push({ time: { prop, none: true } })
+      } else {
+        f.and.push({ time: { prop, ...value } })
+      }
+    }
+    for (const [prop, strings] of Object.entries(filters.str)) {
+      // TODO: Support also OR between values.
+      for (const str of strings) {
+        if (str === NONE) {
+          f.and.push({ str: { prop, none: true } })
+        } else {
+          f.and.push({ str: { prop, str } })
+        }
       }
     }
   }
-  for (const [path, value] of Object.entries(updatedState.amount)) {
-    if (!value) {
-      continue
-    }
-    const segments = path.split("/")
-    if (segments.length !== 2) {
-      throw new Error(`invalid amount filter path: ${path}`)
-    }
-    const [prop, unit] = segments
-    // TODO: Support also OR between value and none.
-    if (value === NONE) {
-      filters.and.push({ amount: { prop, unit: unit as AmountUnit, none: true } })
-    } else {
-      filters.and.push({ amount: { prop, unit: unit as AmountUnit, ...value } })
-    }
-  }
-  for (const [prop, value] of Object.entries(updatedState.time)) {
-    if (!value) {
-      continue
-    }
-    // TODO: Support also OR between value and none.
-    if (value === NONE) {
-      filters.and.push({ time: { prop, none: true } })
-    } else {
-      filters.and.push({ time: { prop, ...value } })
-    }
-  }
-  for (const [prop, strings] of Object.entries(updatedState.str)) {
-    // TODO: Support also OR between values.
-    for (const str of strings) {
-      if (str === NONE) {
-        filters.and.push({ str: { prop, none: true } })
-      } else {
-        filters.and.push({ str: { prop, str } })
-      }
-    }
-  }
-  const form = queryToFormData(route)
-  form.set("s", s)
-  form.set("filters", JSON.stringify(filters))
-  const updatedSearchState: SearchStateCreateResponse = await postURL(
-    router.apiResolve({
-      name: "SearchCreate",
-    }).href,
-    form,
-    abortSignal,
-    progress,
-  )
-  if (abortSignal.aborted) {
-    return
-  }
-  if (s !== updatedSearchState.s || !((route.query.q === null && updatedSearchState.q === undefined) || route.query.q === updatedSearchState.q)) {
-    await router.push({
-      name: "SearchResults",
-      params: {
-        s: updatedSearchState.s,
-      },
-      query: encodeQuery({
-        q: updatedSearchState.q,
-      }),
-    })
-  }
+  return f
 }
 
-export function useSearch(
-  s: Ref<string>,
-  el: Ref<Element | null>,
-  progress: Ref<number>,
-): {
-  results: DeepReadonly<Ref<SearchResult[]>>
-  total: DeepReadonly<Ref<number | null>>
-  moreThanTotal: DeepReadonly<Ref<boolean>>
-  error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
-} {
-  const router = useRouter()
-
-  return useSearchResults<SearchResult>(el, progress, () => {
-    if (!s.value) {
-      return null
-    }
-    return router.apiResolve({
-      name: "SearchResults",
-      params: {
-        s: s.value,
-      },
-    }).href
-  })
-}
-
-export function useFilters(
-  s: Ref<string>,
-  el: Ref<Element | null>,
-  progress: Ref<number>,
-): {
-  results: DeepReadonly<Ref<SearchFilterResult[]>>
-  total: DeepReadonly<Ref<number | null>>
-  error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
-} {
-  const router = useRouter()
-
-  return useSearchResults<SearchFilterResult>(el, progress, () => {
-    if (!s.value) {
-      return null
-    }
-    return router.apiResolve({
-      name: "SearchFilters",
-      params: {
-        s: s.value,
-      },
-    }).href
-  })
+function clientToServerSearchSession(searchSession: ClientSearchSession): ServerSearchSession {
+  const s: ServerSearchSession = {
+    id: searchSession.id,
+    version: searchSession.version,
+    query: searchSession.query,
+  }
+  const filters = filtersStateToFilters(searchSession.filters)
+  // TODO: Currently assumes only "and" filters are set.
+  if ("and" in filters && filters.and.length > 0) {
+    s.filters = filters
+  }
+  return s
 }
 
 function filtersToFiltersState(filters: Filters): FiltersState {
@@ -345,12 +245,126 @@ function filtersToFiltersState(filters: Filters): FiltersState {
   throw new Error(`invalid filter`)
 }
 
-function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSearchResult>(
+function serverToClientSearchSession(searchSession: ServerSearchSession): ClientSearchSession {
+  const s: ClientSearchSession = {
+    id: searchSession.id,
+    version: searchSession.version,
+    query: searchSession.query,
+  }
+  if (searchSession.filters) {
+    s.filters = filtersToFiltersState(searchSession.filters)
+  }
+  return s
+}
+
+export async function createSearchSession(router: Router, createSearchSessionRequest: CreateSearchSessionRequest, abortSignal: AbortSignal, progress: Ref<number>) {
+  const payload: {
+    query: string
+    filters?: Filters
+  } = {
+    query: createSearchSessionRequest.query,
+  }
+  const filters = filtersStateToFilters(createSearchSessionRequest.filters)
+  // TODO: Currently assumes only "and" filters are set.
+  if ("and" in filters && filters.and.length > 0) {
+    payload.filters = filters
+  }
+  const sessionRef = await postJSON<SearchSessionRef>(
+    router.apiResolve({
+      name: "SearchCreate",
+    }).href,
+    payload,
+    abortSignal,
+    progress,
+  )
+  if (abortSignal.aborted) {
+    return
+  }
+  await router.push({
+    name: "SearchGet",
+    params: {
+      id: sessionRef.id,
+    },
+  })
+}
+
+export async function updateSearchSession(
+  router: Router,
+  searchSession: ClientSearchSession,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
+): Promise<SearchSessionRef | null> {
+  const updatedSearchSession = await postJSON<SearchSessionRef>(
+    router.apiResolve({
+      name: "SearchUpdate",
+    }).href,
+    clientToServerSearchSession(searchSession),
+    abortSignal,
+    progress,
+  )
+  if (abortSignal.aborted) {
+    return null
+  }
+  return updatedSearchSession
+}
+
+export function useSearch(
+  searchSessionRef: Ref<SearchSessionRef | null>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<Result[]>>
+  total: DeepReadonly<Ref<number | null>>
+  moreThanTotal: DeepReadonly<Ref<boolean>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  return useSearchResults<Result>(el, progress, () => {
+    if (!searchSessionRef.value) {
+      return null
+    }
+    return router.apiResolve({
+      name: "SearchResults",
+      params: {
+        id: searchSessionRef.value.id,
+      },
+    }).href
+  })
+}
+
+export function useFilters(
+  searchSessionRef: Ref<SearchSessionRef | null>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<FilterResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  return useSearchResults<FilterResult>(el, progress, () => {
+    if (!searchSessionRef.value) {
+      return null
+    }
+    return router.apiResolve({
+      name: "SearchFilters",
+      params: {
+        id: searchSessionRef.value.id,
+      },
+    }).href
+  })
+}
+
+function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
 ): {
-  results: DeepReadonly<Ref<Type[]>>
+  results: DeepReadonly<Ref<T[]>>
   total: DeepReadonly<Ref<number | null>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
@@ -358,12 +372,12 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
 } {
   const route = useRoute()
 
-  const _results = ref<Type[]>([]) as Ref<Type[]>
+  const _results = ref<T[]>([]) as Ref<T[]>
   const _total = ref<number | null>(null)
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
+  const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
   const total = import.meta.env.DEV ? readonly(_total) : _total
   const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
   const error = import.meta.env.DEV ? readonly(_error) : _error
@@ -396,7 +410,7 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getSearchResults<Type>(newURL, el, signal, progress)
+        data = await getSearchResults<T>(newURL, el, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
@@ -441,12 +455,12 @@ function useSearchResults<Type extends SearchResult | SearchFilterResult | RelSe
 }
 
 export function useRelFilterValues(
-  s: Ref<string>,
+  searchSessionId: Ref<string>,
   result: Ref<RelSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<RelValuesResult[]>>
+  results: DeepReadonly<Ref<RelFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -462,7 +476,7 @@ export function useRelFilterValues(
       return router.apiResolve({
         name: "SearchRelFilter",
         params: {
-          s: s.value,
+          id: searchSessionId.value,
           prop: r.id,
         },
       }).href
@@ -473,12 +487,12 @@ export function useRelFilterValues(
 }
 
 export function useAmountHistogramValues(
-  s: Ref<string>,
+  searchSessionId: Ref<string>,
   result: Ref<AmountSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<AmountValuesResult[]>>
+  results: DeepReadonly<Ref<HistogramAmountResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<number | null>>
   max: DeepReadonly<Ref<number | null>>
@@ -489,7 +503,7 @@ export function useAmountHistogramValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<AmountValuesResult[]>([])
+  const _results = ref<HistogramAmountResult[]>([])
   const _total = ref<number | null>(null)
   const _min = ref<number | null>(null)
   const _max = ref<number | null>(null)
@@ -521,7 +535,7 @@ export function useAmountHistogramValues(
         return router.apiResolve({
           name: "SearchAmountFilter",
           params: {
-            s: s.value,
+            id: searchSessionId.value,
             prop: r.id,
             unit: r.unit,
           },
@@ -570,7 +584,7 @@ export function useAmountHistogramValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as AmountValuesResult[]
+      _results.value = data.results as HistogramAmountResult[]
       _total.value = data.total
       _min.value = data.min != null ? parseFloat(data.min) : null
       _max.value = data.max != null ? parseFloat(data.max) : null
@@ -593,12 +607,12 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  s: Ref<string>,
+  searchSessionId: Ref<string>,
   result: Ref<TimeSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<TimeValuesResult[]>>
+  results: DeepReadonly<Ref<HistogramTimeResult[]>>
   total: DeepReadonly<Ref<number | null>>
   min: DeepReadonly<Ref<bigint | null>>
   max: DeepReadonly<Ref<bigint | null>>
@@ -609,7 +623,7 @@ export function useTimeHistogramValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<TimeValuesResult[]>([])
+  const _results = ref<HistogramTimeResult[]>([])
   const _total = ref<number | null>(null)
   const _min = ref<bigint | null>(null)
   const _max = ref<bigint | null>(null)
@@ -638,7 +652,7 @@ export function useTimeHistogramValues(
         return router.apiResolve({
           name: "SearchTimeFilter",
           params: {
-            s: s.value,
+            id: searchSessionId.value,
             prop: r.id,
           },
         }).href
@@ -686,7 +700,7 @@ export function useTimeHistogramValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as TimeValuesResult[]
+      _results.value = data.results as HistogramTimeResult[]
       _total.value = data.total
       _min.value = data.min != null ? timestampToSeconds(data.min) : null
       _max.value = data.max != null ? timestampToSeconds(data.max) : null
@@ -709,12 +723,12 @@ export function useTimeHistogramValues(
 }
 
 export function useStringFilterValues(
-  s: Ref<string>,
+  searchSessionId: Ref<string>,
   result: Ref<StringSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<StringValuesResult[]>>
+  results: DeepReadonly<Ref<StringFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -722,7 +736,7 @@ export function useStringFilterValues(
   const router = useRouter()
   const route = useRoute()
 
-  const _results = ref<StringValuesResult[]>([])
+  const _results = ref<StringFilterResult[]>([])
   const _total = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
@@ -745,7 +759,7 @@ export function useStringFilterValues(
         return router.apiResolve({
           name: "SearchStringFilter",
           params: {
-            s: s.value,
+            id: searchSessionId.value,
             prop: r.id,
           },
         }).href
@@ -773,7 +787,7 @@ export function useStringFilterValues(
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getStringValues<StringValuesResult>(newURL, el, signal, progress)
+        data = await getStringValues<StringFilterResult>(newURL, el, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
@@ -787,7 +801,7 @@ export function useStringFilterValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as StringValuesResult[]
+      _results.value = data.results as StringFilterResult[]
       _total.value = data.total
     },
     {
@@ -803,7 +817,7 @@ export function useStringFilterValues(
   }
 }
 
-async function getSearchResults<T extends SearchResult | SearchFilterResult | RelSearchResult>(
+async function getSearchResults<T extends Result | FilterResult | RelSearchResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
@@ -821,13 +835,13 @@ async function getSearchResults<T extends SearchResult | SearchFilterResult | Re
   return { results: doc, total } as { results: T[]; total: number | string }
 }
 
-async function getHistogramValues<Type extends AmountValuesResult | TimeValuesResult>(
+async function getHistogramValues<T extends HistogramAmountResult | HistogramTimeResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
   progress: Ref<number>,
 ): Promise<{
-  results: Type[]
+  results: T[]
   total: number
   min?: string
   max?: string
@@ -843,7 +857,7 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   }
   const total = metadata["total"] as number
   const res = { results: doc, total: total } as {
-    results: Type[]
+    results: T[]
     total: number
     min?: string
     max?: string
@@ -862,13 +876,13 @@ async function getHistogramValues<Type extends AmountValuesResult | TimeValuesRe
   return res
 }
 
-async function getStringValues<Type extends StringValuesResult>(
+async function getStringValues<T extends StringFilterResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
   progress: Ref<number>,
 ): Promise<{
-  results: Type[]
+  results: T[]
   total: number
 }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
@@ -881,40 +895,38 @@ async function getStringValues<Type extends StringValuesResult>(
   }
   const total = metadata["total"] as number
   const res = { results: doc, total: total } as {
-    results: Type[]
+    results: T[]
     total: number
   }
 
   return res
 }
 
-export function useSearchState(
-  s: Ref<string | null | undefined>,
+export function useSearchSession(
+  searchSessionRef: Ref<SearchSessionRef | null | undefined>,
   progress: Ref<number>,
 ): {
-  searchState: DeepReadonly<Ref<ClientSearchState | null>>
+  searchSession: DeepReadonly<Ref<ClientSearchSession | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
-  const _searchState = ref<ClientSearchState | null>(null)
+  const _searchSession = ref<ClientSearchSession | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const searchState = import.meta.env.DEV ? readonly(_searchState) : _searchState
+  const searchSession = import.meta.env.DEV ? readonly(_searchSession) : _searchSession
   const error = import.meta.env.DEV ? readonly(_error) : _error
   const url = import.meta.env.DEV ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
 
-  const forceSearchStateRerun = ref(0)
-
   const initialRouteName = route.name
   watch(
-    [s, forceSearchStateRerun],
-    async ([s], old, onCleanup) => {
+    [searchSessionRef],
+    async ([searchSessionRef], old, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
         return
@@ -923,15 +935,15 @@ export function useSearchState(
       // We want to eagerly remove any error.
       _error.value = null
 
-      if (!s) {
-        _searchState.value = null
+      if (!searchSessionRef) {
+        _searchSession.value = null
         _url.value = null
         return
       }
       const newURL = router.apiResolve({
         name: "SearchGet",
         params: {
-          s,
+          id: searchSessionRef.id,
         },
       }).href
       _url.value = newURL
@@ -940,23 +952,20 @@ export function useSearchState(
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
-        data = await getURLDirect<ServerSearchState>(newURL, signal, progress)
+        data = await getURLDirect<ServerSearchSession>(newURL, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
         }
-        console.error("useSearchState", newURL, err)
-        _searchState.value = null
+        console.error("useSearchSession", newURL, err)
+        _searchSession.value = null
         _error.value = `${err}`
         return
       }
       if (signal.aborted) {
         return
       }
-      _searchState.value = { s: data.doc.s, q: data.doc.q }
-      if ("filters" in data.doc && data.doc.filters) {
-        _searchState.value.filters = filtersToFiltersState(data.doc.filters)
-      }
+      _searchSession.value = serverToClientSearchSession(data.doc)
     },
     {
       immediate: true,
@@ -964,25 +973,13 @@ export function useSearchState(
   )
 
   return {
-    searchState,
+    searchSession,
     error,
     url,
   }
 }
 
-export function activeSearchState(searchState: Ref<DeepReadonly<ClientSearchState | null>>, s: Ref<string>): Ref<string> {
-  return toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== s.value) {
-      return ""
-    }
-    return s.value
-  })
-}
-
-export function useLocationAt(searchResults: Ref<DeepReadonly<SearchResultType[]>>, searchTotal: Ref<number | null>, visibles: ReadonlySet<string>) {
+export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, searchTotal: Ref<number | null>, visibles: ReadonlySet<string>) {
   const router = useRouter()
   const route = useRoute()
 
