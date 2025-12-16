@@ -140,6 +140,16 @@ export function getBestClaimOfType<K extends ClaimTypeProp>(
   return null
 }
 
+export function getClaimOfTypeWithThreshold<K extends ClaimTypeProp>(
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+  threshold: number = 0.5,
+): Required<DeepReadonly<ClaimTypes>>[K][number][] {
+  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  return claims.filter((claim) => claim.confidence >= threshold)
+}
+
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
 export function getClaimsListsOfType<K extends ClaimTypeProp>(

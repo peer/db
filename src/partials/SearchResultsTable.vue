@@ -11,7 +11,7 @@ import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
-import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize, loadingWidth } from "@/utils.ts"
+import { encodeQuery, useLimitResults, useOnScrollOrResize, loadingWidth, getClaimOfTypeWithThreshold } from "@/utils.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
@@ -231,8 +231,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
-                    <td v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
-                      <ClaimValue :type="filter.type" :claim="getBestClaimOfType(doc.claims, filter.type, filter.id)" />
+                    <td v-if="supportedFilter(filter)" class="max-w-[400px] text-start truncate p-2">
+                      <span v-for="(claim, cIndex) in getClaimOfTypeWithThreshold(doc.claims, filter.type, filter.id)" :key="claim.GetID">
+                        <ClaimValue :type="filter.type" :claim="claim" />
+                        <span v-if="cIndex !== getClaimOfTypeWithThreshold(doc.claims, filter.type, filter.id).length - 1">, </span>
+                      </span>
                     </td>
                   </template>
                 </tr>
