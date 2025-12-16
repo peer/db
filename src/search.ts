@@ -294,7 +294,7 @@ export async function updateSearchSession(
   abortSignal: AbortSignal,
   progress: Ref<number>,
 ): Promise<SearchSessionRef | null> {
-  const updatedSearchSession = await postJSON<SearchSessionRef>(
+  const updatedSearchSessionRef = await postJSON<SearchSessionRef>(
     router.apiResolve({
       name: "SearchUpdate",
       params: {
@@ -308,7 +308,10 @@ export async function updateSearchSession(
   if (abortSignal.aborted) {
     return null
   }
-  return updatedSearchSession
+  if (updatedSearchSessionRef.id !== searchSession.id) {
+    throw new Error(`unexpected search session ID change, new ${updatedSearchSessionRef.id}, old ${searchSession.id}`)
+  }
+  return updatedSearchSessionRef
 }
 
 export function useSearch(

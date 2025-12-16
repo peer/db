@@ -75,100 +75,59 @@ watchEffect((onCleanup) => {
   }
 })
 
-async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
+async function onFiltersStateUpdate(updatedFilters: FiltersState) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateFiltersProgress.value += 1
   try {
-    const updatedFilters = { ...filtersState.value }
-    updatedFilters.rel = { ...updatedFilters.rel }
-    updatedFilters.rel[id] = state
     const updatedSearchSession = { ...searchSession.value! }
     updatedSearchSession.filters = updatedFilters
-    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
+    if (abortController.signal.aborted || updatedSearchSessionRef === null) {
+      return
+    }
+    // We know that updatedSearchSessionRef.id is the same as searchSession.id
+    // because we validated that in updateSearchSession.
+    searchSessionVersion.value = updatedSearchSessionRef.version
   } catch (err) {
     if (abortController.signal.aborted) {
       return
     }
     // TODO: Show notification with error.
-    console.error("Search.onRelFiltersStateUpdate", err)
+    console.error("SearchGet.onFiltersStateUpdate", err)
   } finally {
     updateFiltersProgress.value -= 1
   }
+}
+
+async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.rel = { ...updatedFilters.rel }
+  updatedFilters.rel[id] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
 async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  updateFiltersProgress.value += 1
-  try {
-    const updatedFilters = { ...filtersState.value }
-    updatedFilters.amount = { ...updatedFilters.amount }
-    updatedFilters.amount[`${id}/${unit}`] = state
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.filters = updatedFilters
-    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onAmountFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.amount = { ...updatedFilters.amount }
+  updatedFilters.amount[`${id}/${unit}`] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
 async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  updateFiltersProgress.value += 1
-  try {
-    const updatedFilters = { ...filtersState.value }
-    updatedFilters.time = { ...updatedFilters.time }
-    updatedFilters.time[id] = state
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.filters = updatedFilters
-    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onTimeFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.time = { ...updatedFilters.time }
+  updatedFilters.time[id] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
 async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  updateFiltersProgress.value += 1
-  try {
-    const updatedFilters = { ...filtersState.value }
-    updatedFilters.str = { ...updatedFilters.str }
-    updatedFilters.str[id] = state
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.filters = updatedFilters
-    await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onStringFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.str = { ...updatedFilters.str }
+  updatedFilters.str[id] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
 async function onCreate() {
