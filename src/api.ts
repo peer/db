@@ -113,40 +113,6 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
   }
 }
 
-export async function postURL<T>(url: string, form: FormData, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
-  progress.value += 1
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-      // Have to cast to "any". See: https://github.com/microsoft/TypeScript/issues/30584
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: new URLSearchParams(form as any),
-      mode: "same-origin",
-      credentials: "same-origin",
-      redirect: "error",
-      referrer: document.location.href,
-      referrerPolicy: "strict-origin-when-cross-origin",
-      signal: abortSignal,
-    })
-    const contentType = response.headers.get("Content-Type")
-    if (!contentType || !contentType.includes("application/json")) {
-      const body = await response.text()
-      throw new FetchError(`fetch POST error ${response.status}: ${body}`, {
-        status: response.status,
-        body,
-        url,
-        requestID: response.headers.get("Request-ID"),
-      })
-    }
-    return await response.json()
-  } finally {
-    progress.value -= 1
-  }
-}
-
 export async function postJSON<T>(url: string, data: object, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T> {
   if (progress) {
     progress.value += 1
