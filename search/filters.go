@@ -47,10 +47,11 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
+// FiltersResult describes filters available as an union of results for each filter type.
 type FiltersResult struct {
-	ID    string `json:"id,omitempty"`
-	Count int64  `json:"count,omitempty"`
-	Type  string `json:"type,omitempty"`
+	ID    string `json:"id"`
+	Count int64  `json:"count"`
+	Type  string `json:"type"`
 	Unit  string `json:"unit,omitempty"`
 }
 
