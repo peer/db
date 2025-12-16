@@ -15,7 +15,7 @@ import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { useSearchState, useSearch } from "@/search"
+import { useSearchSession, useSearch } from "@/search"
 import { postJSON } from "@/api"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
@@ -42,25 +42,24 @@ onBeforeUnmount(() => {
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const searchStateS = toRef(() => (Array.isArray(route.query.s) ? route.query.s[0] : route.query.s))
+const searchSessionRef = toRef(() => {
+  const searchSessionId = Array.isArray(route.query.s) ? route.query.s[0] : route.query.s
+  if (!searchSessionId) {
+    return null
+  }
+  return {
+    id: searchSessionId,
+    // We always set it to 0 as it is not really used.
+    // TODO: Use and track real versions on the client.
+    version: 0,
+  }
+})
 
-const { searchState, error: searchStateError } = useSearchState(searchStateS, progress)
-const { results, error: searchResultsError } = useSearch(
-  toRef(() => {
-    if (!searchState.value) {
-      return ""
-    }
-    if (searchState.value.s !== searchStateS.value) {
-      return ""
-    }
-    return searchStateS.value
-  }),
-  el,
-  progress,
-)
+const { searchSession, error: searchSessionError } = useSearchSession(searchSessionRef, progress)
+const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
 
 watchEffect(async (onCleanup) => {
-  if (searchStateError.value || searchResultsError.value) {
+  if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
     router.replace({
       name: "DocumentGet",
@@ -160,20 +159,20 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchState !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
+      <div v-if="searchSession !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputTextLink
           class="max-w-xl flex-grow"
-          :to="{ name: 'SearchResults', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
+          :to="{ name: 'SearchResults', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
           :after-click="afterClick"
         >
-          {{ searchState.q }}
+          {{ searchSession.query }}
         </InputTextLink>
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink
             primary
             class="!px-3.5"
             :disabled="!prevNext.previous"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchState.s }) }"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
@@ -182,7 +181,7 @@ async function onEdit() {
             primary
             class="!px-3.5"
             :disabled="!prevNext.next"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchState.s }) }"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
             <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>
