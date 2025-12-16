@@ -3,10 +3,10 @@ import type { DeepReadonly } from "vue"
 
 import type {
   AmountFilterState,
-  ClientSearchState,
+  ClientSearchSession,
   FiltersState,
   RelFilterState,
-  SearchResult as SearchResultType,
+  Result as SearchResultType,
   StringFilterState,
   TimeFilterState,
   SearchViewType,
@@ -26,7 +26,7 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
 import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
-import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
+import { useFilters, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import Footer from "@/partials/Footer.vue"
 
@@ -34,11 +34,10 @@ const props = defineProps<{
   searchView: SearchViewType
 
   // Search props.
-  s: string
   searchResults: DeepReadonly<SearchResultType[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchState: DeepReadonly<ClientSearchState | null>
+  searchSession: DeepReadonly<ClientSearchSession | null>
   searchProgress: number
 
   // Filter props.
@@ -74,10 +73,7 @@ const {
   error: filtersError,
   url: filtersURL,
 } = useFilters(
-  activeSearchState(
-    toRef(() => props.searchState),
-    toRef(() => props.s),
-  ),
+  toRef(() => props.searchSession),
   filtersEl,
   filtersProgress,
 )
@@ -184,9 +180,14 @@ function onFilters() {
   <div ref="content" class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
-      <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
+      <SearchResultsHeader
+        v-model:search-view="searchViewValue"
+        :search-session="searchSession"
+        :search-total="searchTotal"
+        :search-more-than-total="searchMoreThanTotal"
+      />
 
-      <template v-if="searchTotal !== null && searchTotal > 0">
+      <template v-if="searchSession !== null && searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
             <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
@@ -195,7 +196,7 @@ function onFilters() {
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
-          <SearchResult :ref="track(result.id)" :s="s" :result="result" />
+          <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
@@ -221,7 +222,7 @@ function onFilters() {
         <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
       </div>
 
-      <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
+      <div v-else-if="searchSession === null || searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
         <div class="text-center text-sm">Determining filters...</div>
       </div>
 
@@ -235,7 +236,7 @@ function onFilters() {
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <RelFiltersResult
             v-if="filter.type === 'rel'"
-            :s="s"
+            :search-session-id="searchSession.id"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.rel[filter.id] ?? []"
@@ -245,7 +246,7 @@ function onFilters() {
 
           <AmountFiltersResult
             v-if="filter.type === 'amount'"
-            :s="s"
+            :search-session-id="searchSession.id"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
@@ -255,7 +256,7 @@ function onFilters() {
 
           <TimeFiltersResult
             v-if="filter.type === 'time'"
-            :s="s"
+            :search-session-id="searchSession.id"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.time[filter.id] ?? null"
@@ -265,7 +266,7 @@ function onFilters() {
 
           <StringFiltersResult
             v-if="filter.type === 'string'"
-            :s="s"
+            :search-session-id="searchSession.id"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.str[filter.id] ?? []"

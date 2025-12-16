@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchState, SearchFilterResult, SearchResult as SearchResultType, SearchViewType } from "@/types"
+import type { ClientSearchSession, FilterResult, Result, SearchViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onBeforeUnmount, onMounted } from "vue"
@@ -12,7 +12,7 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
 import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize, loadingWidth } from "@/utils.ts"
-import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -21,11 +21,10 @@ const props = defineProps<{
   searchView: SearchViewType
 
   // Search props.
-  s: string
-  searchResults: DeepReadonly<SearchResultType[]>
+  searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchState: DeepReadonly<ClientSearchState | null>
+  searchSession: DeepReadonly<ClientSearchSession | null>
   searchProgress: number
 }>()
 
@@ -55,10 +54,7 @@ const {
   error: filtersError,
   url: filtersURL,
 } = useFilters(
-  activeSearchState(
-    toRef(() => props.searchState),
-    toRef(() => props.s),
-  ),
+  toRef(() => props.searchSession),
   filtersEl,
   filtersProgress,
 )
@@ -69,7 +65,7 @@ const {
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
-function supportedFilter(filter: SearchFilterResult) {
+function supportedFilter(filter: FilterResult) {
   return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
 }
 
@@ -198,7 +194,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     <SearchResultsHeader
       v-model:search-view="searchViewValue"
       class="w-container p-1 sm:p-4"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
     />
@@ -208,7 +204,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     <i class="text-error-600">loading data failed</i>
   </div>
 
-  <template v-else-if="searchTotal !== null && searchTotal > 0">
+  <template v-else-if="searchSession !== null && searchTotal !== null && searchTotal > 0">
     <div ref="content" class="flex flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">
@@ -221,7 +217,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
-              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/0`)]" />
+              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
               <th v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
@@ -238,10 +234,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/${index + 1}`)]" />
+                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
                     <td v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
@@ -253,7 +251,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #loading="{ url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result.id)]" />
@@ -263,7 +263,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #error="{ url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
                     <i class="text-error-600">loading data failed</i>
