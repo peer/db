@@ -85,7 +85,7 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
     const updatedSearchSession = { ...searchSession.value! }
     updatedSearchSession.filters = updatedFilters
     const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
-    if (abortController.signal.aborted || updatedSearchSessionRef === null) {
+    if (abortController.signal.aborted || !updatedSearchSessionRef) {
       return
     }
     // We know that updatedSearchSessionRef.id is the same as searchSession.id
