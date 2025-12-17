@@ -44,20 +44,21 @@ onBeforeUnmount(() => {
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const searchSessionRef = toRef(() => {
-  const searchSessionId = Array.isArray(route.query.s) ? route.query.s[0] : route.query.s
-  if (!searchSessionId) {
-    return null
-  }
-  return {
-    id: searchSessionId,
-    // We always set it to 0 as it is not really used.
-    // TODO: Use and track real versions on the client.
-    version: 0,
-  }
-})
-
-const { searchSession, error: searchSessionError } = useSearchSession(searchSessionRef, progress)
+const { searchSession, error: searchSessionError } = useSearchSession(
+  toRef(() => {
+    const searchSessionId = Array.isArray(route.query.s) ? route.query.s[0] : route.query.s
+    if (!searchSessionId) {
+      return null
+    }
+    return {
+      id: searchSessionId,
+      // We always set it to 0 as it is not really used.
+      // TODO: Use and track real versions on the client.
+      version: 0,
+    }
+  }),
+  progress,
+)
 const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
 
 watchEffect(async (onCleanup) => {
