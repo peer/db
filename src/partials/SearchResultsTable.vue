@@ -238,7 +238,14 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 </tr>
               </template>
               <template #loading="{ url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <!--
+                  We do not track(result.id) <tr> here because in that case Vue would first track loading <tr>, then it would remove it and untrack it,
+                  and then it would track the final <tr>. That makes "at" URL query parameter to first show the first ID (because loading <tr>s are visible),
+                  then it loops through all IDs as their loading <tr>s are being removed and "new" top (loading) <tr>s are found, and then finally again "at"
+                  URL query parameter is set to the first ID for final <tr>s, the same one which was the first ID for loading <tr>s. To prevent this "flicker"
+                  of "at" URL query parameter we do not track loading and error <tr>s.
+                -->
+                <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
@@ -249,8 +256,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   </td>
                 </tr>
               </template>
+              <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
