@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { StringFilterState, StringSearchResult } from "@/types"
+import type { DeepReadonly } from "vue"
+
+import type { ClientSearchSession, StringFilterState, StringSearchResult } from "@/types"
 
 import { ref, computed, toRef, onBeforeUnmount } from "vue"
 
@@ -11,7 +13,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  searchSessionId: string
+  searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
   result: StringSearchResult
   state: StringFilterState
@@ -37,7 +39,7 @@ const {
   error,
   url: resultsUrl,
 } = useStringFilterValues(
-  toRef(() => props.searchSessionId),
+  toRef(() => props.searchSession),
   toRef(() => props.result),
   el,
   progress,

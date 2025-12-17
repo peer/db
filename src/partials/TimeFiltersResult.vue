@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { TimeFilterState, TimeSearchResult } from "@/types"
+import type { DeepReadonly } from "vue"
+
+import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
 
 import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
@@ -12,7 +14,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  searchSessionId: string
+  searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
   result: TimeSearchResult
   state: TimeFilterState
@@ -39,7 +41,7 @@ const {
   error,
   url: resultsUrl,
 } = useTimeHistogramValues(
-  toRef(() => props.searchSessionId),
+  toRef(() => props.searchSession),
   toRef(() => props.result),
   el,
   progress,

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import type { RelFilterState, RelSearchResult } from "@/types"
+import type { DeepReadonly } from "vue"
+
+import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 import type { PeerDBDocument } from "@/document"
 
-import { ref, computed, onBeforeUnmount } from "vue"
+import { ref, computed, onBeforeUnmount, toRef } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -13,7 +15,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  searchSessionId: string
+  searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
   result: RelSearchResult
   state: RelFilterState
@@ -39,8 +41,8 @@ const {
   error,
   url: resultsUrl,
 } = useRelFilterValues(
-  computed(() => props.searchSessionId),
-  computed(() => props.result),
+  toRef(() => props.searchSession),
+  toRef(() => props.result),
   el,
   progress,
 )

@@ -336,10 +336,9 @@ export function useSearch(
       params: {
         id: searchSessionRef.value.id,
       },
-      // We should not really be passing a version here, it is not used by the API (currently it
-      // is ignored and always the latest version is returned), but we pass it anyway so that
-      // URL changes when version changes and search results are re-fetched.
-      // TODO: Change this once we have proper support for versions.
+      // TODO: Implement proper versioning.
+      //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+      //       but the backend does not really use the parameter and always returns the latest version.
       query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
     }).href
   })
@@ -410,14 +409,7 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
       if (initialRouteName !== route.name) {
         return
       }
-      if (newURL) {
-        // We remove the query string because we artificially appended a version to the URL.
-        // TODO: Change this once we have proper support for versions.
-        newURL = newURL.split("?", 1)[0]
-        _url.value = newURL
-      } else {
-        _url.value = null
-      }
+      _url.value = newURL || null
 
       // We want to eagerly remove any error.
       _error.value = null
@@ -478,7 +470,7 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
 }
 
 export function useRelFilterValues(
-  searchSessionId: Ref<string>,
+  searchSessionRef: Ref<SearchSessionRef | null>,
   result: Ref<RelSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -496,12 +488,19 @@ export function useRelFilterValues(
       return null
     }
     if (r.type === "rel") {
+      if (!searchSessionRef.value) {
+        return null
+      }
       return router.apiResolve({
         name: "SearchRelFilter",
         params: {
-          id: searchSessionId.value,
+          id: searchSessionRef.value.id,
           prop: r.id,
         },
+        // TODO: Implement proper versioning.
+        //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+        //       but the backend does not really use the parameter and always returns the latest version.
+        query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
       }).href
     } else {
       throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
@@ -510,7 +509,7 @@ export function useRelFilterValues(
 }
 
 export function useAmountHistogramValues(
-  searchSessionId: Ref<string>,
+  searchSessionRef: Ref<SearchSessionRef | null>,
   result: Ref<AmountSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -555,13 +554,20 @@ export function useAmountHistogramValues(
         if (!r.unit) {
           throw new Error(`property "${r.id}" is missing unit`)
         }
+        if (!searchSessionRef.value) {
+          return null
+        }
         return router.apiResolve({
           name: "SearchAmountFilter",
           params: {
-            id: searchSessionId.value,
+            id: searchSessionRef.value.id,
             prop: r.id,
             unit: r.unit,
           },
+          // TODO: Implement proper versioning.
+          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+          //       but the backend does not really use the parameter and always returns the latest version.
+          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
@@ -630,7 +636,7 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  searchSessionId: Ref<string>,
+  searchSessionRef: Ref<SearchSessionRef | null>,
   result: Ref<TimeSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -672,12 +678,19 @@ export function useTimeHistogramValues(
         return null
       }
       if (r.type === "time") {
+        if (!searchSessionRef.value) {
+          return null
+        }
         return router.apiResolve({
           name: "SearchTimeFilter",
           params: {
-            id: searchSessionId.value,
+            id: searchSessionRef.value.id,
             prop: r.id,
           },
+          // TODO: Implement proper versioning.
+          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+          //       but the backend does not really use the parameter and always returns the latest version.
+          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
@@ -746,7 +759,7 @@ export function useTimeHistogramValues(
 }
 
 export function useStringFilterValues(
-  searchSessionId: Ref<string>,
+  searchSessionRef: Ref<SearchSessionRef | null>,
   result: Ref<StringSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -779,12 +792,19 @@ export function useStringFilterValues(
         return null
       }
       if (r.type === "string") {
+        if (!searchSessionRef.value) {
+          return null
+        }
         return router.apiResolve({
           name: "SearchStringFilter",
           params: {
-            id: searchSessionId.value,
+            id: searchSessionRef.value.id,
             prop: r.id,
           },
+          // TODO: Implement proper versioning.
+          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+          //       but the backend does not really use the parameter and always returns the latest version.
+          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)

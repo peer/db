@@ -236,7 +236,7 @@ function onFilters() {
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <RelFiltersResult
             v-if="filter.type === 'rel'"
-            :search-session-id="searchSession.id"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.rel[filter.id] ?? []"
@@ -246,7 +246,7 @@ function onFilters() {
 
           <AmountFiltersResult
             v-if="filter.type === 'amount'"
-            :search-session-id="searchSession.id"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
@@ -256,7 +256,7 @@ function onFilters() {
 
           <TimeFiltersResult
             v-if="filter.type === 'time'"
-            :search-session-id="searchSession.id"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.time[filter.id] ?? null"
@@ -266,7 +266,7 @@ function onFilters() {
 
           <StringFiltersResult
             v-if="filter.type === 'string'"
-            :search-session-id="searchSession.id"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.str[filter.id] ?? []"
