@@ -15,11 +15,11 @@ import { injectProgress } from "@/progress"
 const props = withDefaults(
   defineProps<{
     searchSession?: DeepReadonly<ClientSearchSession> | ClientSearchSession | null
-    updateQueryProgress?: number
+    updateSearchSessionProgress?: number
   }>(),
   {
     searchSession: undefined,
-    updateQueryProgress: 0,
+    updateSearchSessionProgress: 0,
   },
 )
 
@@ -88,8 +88,8 @@ async function onSubmit() {
 
 <template>
   <form class="flex flex-grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
-    <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateQueryProgress" class="max-w-xl flex-grow" />
-    <Button :progress="progress + updateQueryProgress" type="submit" primary class="!px-3.5">
+    <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateSearchSessionProgress" class="max-w-xl flex-grow" />
+    <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="!px-3.5">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>

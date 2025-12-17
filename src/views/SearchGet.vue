@@ -7,8 +7,8 @@ import type {
   FiltersState,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
-  SearchViewType,
   FilterStateChange,
+  ViewType,
 } from "@/types"
 
 import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
@@ -48,7 +48,6 @@ onBeforeUnmount(() => {
 
 const searchEl = ref(null)
 
-const searchView = ref<SearchViewType>("feed")
 const searchSessionVersion = ref(0)
 
 const searchProgress = localProgress(mainProgress)
@@ -62,7 +61,8 @@ const {
 )
 const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
-const updateFiltersProgress = localProgress(mainProgress)
+const updateSearchSessionProgress = localProgress(mainProgress)
+
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
 // We keep it in sync with upstream version.
@@ -80,11 +80,11 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
     return
   }
 
-  updateFiltersProgress.value += 1
+  updateSearchSessionProgress.value += 1
   try {
     const updatedSearchSession = { ...searchSession.value! }
     updatedSearchSession.filters = updatedFilters
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateFiltersProgress)
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
     if (abortController.signal.aborted || !updatedSearchSessionRef) {
       return
     }
@@ -98,7 +98,7 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
     // TODO: Show notification with error.
     console.error("SearchGet.onFiltersStateUpdate", err)
   } finally {
-    updateFiltersProgress.value -= 1
+    updateSearchSessionProgress.value -= 1
   }
 }
 
@@ -392,18 +392,16 @@ function onFilterChange(change: FilterStateChange) {
   }
 }
 
-const updateQueryProgress = localProgress(mainProgress)
-
 async function onQueryChange(query: string) {
   if (abortController.signal.aborted) {
     return
   }
 
-  updateQueryProgress.value += 1
+  updateSearchSessionProgress.value += 1
   try {
     const updatedSearchSession = { ...searchSession.value! }
     updatedSearchSession.query = query
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateQueryProgress)
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
     if (abortController.signal.aborted || !updatedSearchSessionRef) {
       return
     }
@@ -417,7 +415,34 @@ async function onQueryChange(query: string) {
     // TODO: Show notification with error.
     console.error("SearchGet.onQueryChange", err)
   } finally {
-    updateQueryProgress.value -= 1
+    updateSearchSessionProgress.value -= 1
+  }
+}
+
+async function onViewChange(view: ViewType) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  updateSearchSessionProgress.value += 1
+  try {
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.view = view
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
+    if (abortController.signal.aborted || !updatedSearchSessionRef) {
+      return
+    }
+    // We know that updatedSearchSessionRef.id is the same as searchSession.id
+    // because we validated that in updateSearchSession.
+    searchSessionVersion.value = updatedSearchSessionRef.version
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("SearchGet.onViewChange", err)
+  } finally {
+    updateSearchSessionProgress.value -= 1
   }
 }
 </script>
@@ -425,7 +450,7 @@ async function onQueryChange(query: string) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch :search-session="searchSession" :update-query-progress="updateQueryProgress" @query-change="onQueryChange" />
+      <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
@@ -438,31 +463,31 @@ async function onQueryChange(query: string) {
     </NavBar>
   </Teleport>
   <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
-    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4">
-      <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
-    </div>
+    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4 text-center"><i class="text-error-600">loading data failed</i></div>
+
+    <div v-else-if="searchSession === null"  class="my-1 sm:my-4  text-center">Loading...</div>
 
     <SearchResultsFeed
-      v-else-if="searchView === 'feed'"
-      v-model:search-view="searchView"
+      v-else-if="searchSession.view === 'feed'"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
       :search-progress="searchProgress"
       :filters-state="filtersState"
-      :update-filters-progress="updateFiltersProgress"
+      :update-search-session-progress="updateSearchSessionProgress"
       @filter-change="onFilterChange"
+      @view-change="onViewChange"
     />
 
     <SearchResultsTable
-      v-else-if="searchView === 'table'"
-      v-model:search-view="searchView"
+      v-else-if="searchSession.view === 'table'"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
       :search-progress="searchProgress"
+      @view-change="onViewChange"
     />
   </div>
 

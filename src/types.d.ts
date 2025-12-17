@@ -164,6 +164,7 @@ export type FilterStateChange = RelFilterStateChange | AmountFilterStateChange |
 export type ServerSearchSession = {
   id: string
   version: number
+  view: ViewType
   query: string
   filters?: Filters
 }
@@ -171,11 +172,13 @@ export type ServerSearchSession = {
 export type ClientSearchSession = {
   id: string
   version: number
+  view: ViewType
   query: string
   filters?: FiltersState
 }
 
 export type CreateSearchSessionRequest = {
+  view?: ViewType
   query: string
   filters?: FiltersState
 }
@@ -234,7 +237,7 @@ export type DocumentBeginMetadata = {
   version: string
 }
 
-export type SearchViewType = "table" | "feed"
+export type ViewType = "table" | "feed"
 
 export type SelectButtonOption<T> = {
   name: string

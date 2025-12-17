@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, FilterResult, Result, SearchViewType } from "@/types"
+import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onBeforeUnmount, onMounted } from "vue"
@@ -18,18 +18,16 @@ import { useVisibilityTracking } from "@/visibility.ts"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  searchView: SearchViewType
-
   // Search props.
   searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchSession: DeepReadonly<ClientSearchSession | null>
+  searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
 }>()
 
 const $emit = defineEmits<{
-  "update:searchView": [value: SearchViewType]
+  viewChange: [value: ViewType]
 }>()
 
 const SEARCH_INITIAL_LIMIT = 100
@@ -93,15 +91,6 @@ onBeforeUnmount(() => {
 const searchMoreButton = ref()
 const filtersMoreButton = ref()
 const supportPageOffset = window.pageYOffset !== undefined
-
-const searchViewValue = computed({
-  get() {
-    return props.searchView
-  },
-  set(value) {
-    $emit("update:searchView", value)
-  },
-})
 
 useLocationAt(
   toRef(() => props.searchResults),
@@ -192,11 +181,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
   -->
   <div class="sticky left-0 w-0 z-20">
     <SearchResultsHeader
-      v-model:search-view="searchViewValue"
       class="w-container p-1 sm:p-4"
       :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
+      @view-change="(v) => $emit('viewChange', v)"
     />
   </div>
 
@@ -204,7 +193,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     <i class="text-error-600">loading data failed</i>
   </div>
 
-  <template v-else-if="searchSession !== null && searchTotal !== null && searchTotal > 0">
+  <template v-else-if="searchTotal !== null && searchTotal > 0">
     <div ref="content" class="flex flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="shadow border">

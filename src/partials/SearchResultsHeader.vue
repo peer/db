@@ -1,34 +1,23 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, SearchViewType, SelectButtonOption } from "@/types"
+import type { ClientSearchSession, ViewType, SelectButtonOption } from "@/types"
 
-import { computed } from "vue"
 import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
 
 import SelectButton from "@/components/SelectButton.vue"
 
 const props = defineProps<{
-  searchSession: DeepReadonly<ClientSearchSession | null>
+  searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchView: SearchViewType
 }>()
 
 const $emit = defineEmits<{
-  "update:searchView": [value: SearchViewType]
+  viewChange: [value: ViewType]
 }>()
 
-const selectButtonValue = computed({
-  get() {
-    return props.searchView
-  },
-  set(newValue) {
-    $emit("update:searchView", newValue)
-  },
-})
-
-const selectButtonOptions: SelectButtonOption<SearchViewType>[] = [
+const selectButtonOptions: SelectButtonOption<ViewType>[] = [
   {
     name: "feed",
     icon: {
@@ -50,9 +39,6 @@ const selectButtonOptions: SelectButtonOption<SearchViewType>[] = [
 // TODO: Use a computed property instead of computing countFilters multiple times.
 
 function countFilters(): number {
-  if (!props.searchSession) {
-    return 0
-  }
   if (!props.searchSession.filters) {
     return 0
   }
@@ -81,8 +67,7 @@ function countFilters(): number {
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4">
     <div class="bg-slate-200 px-2 sm:px-4 py-1 sm:py-2 rounded flex flex-row justify-between items-center w-full gap-x-1 sm:gap-x-4">
-      <div v-if="searchSession === null">Loading...</div>
-      <div v-else-if="searchSession.query && countFilters() === 1">
+      <div v-if="searchSession.query && countFilters() === 1">
         Searching query <i>{{ searchSession.query }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>
       <div v-else-if="searchSession.query">
@@ -102,6 +87,6 @@ function countFilters(): number {
       </template>
     </div>
 
-    <SelectButton v-model="selectButtonValue" :options="selectButtonOptions" class="flex-shrink-0" />
+    <SelectButton :model-value="searchSession.view" :options="selectButtonOptions" class="flex-shrink-0" @update:model-value="(v) => $emit('viewChange', v)" />
   </div>
 </template>

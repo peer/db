@@ -23,6 +23,7 @@ import type {
   AmountUnit,
   SearchSessionRef,
   CreateSearchSessionRequest,
+  ViewType,
 } from "@/types"
 
 import { ref, watch, readonly, onBeforeUnmount, computed } from "vue"
@@ -96,6 +97,7 @@ function clientToServerSearchSession(searchSession: ClientSearchSession | DeepRe
   const s: ServerSearchSession = {
     id: searchSession.id,
     version: searchSession.version,
+    view: searchSession.view,
     query: searchSession.query,
   }
   const filters = filtersStateToFilters(searchSession.filters)
@@ -249,6 +251,7 @@ function serverToClientSearchSession(searchSession: ServerSearchSession): Client
   const s: ClientSearchSession = {
     id: searchSession.id,
     version: searchSession.version,
+    view: searchSession.view,
     query: searchSession.query,
   }
   if (searchSession.filters) {
@@ -259,9 +262,11 @@ function serverToClientSearchSession(searchSession: ServerSearchSession): Client
 
 export async function createSearchSession(router: Router, createSearchSessionRequest: CreateSearchSessionRequest, abortSignal: AbortSignal, progress: Ref<number>) {
   const payload: {
+    view?: ViewType
     query: string
     filters?: Filters
   } = {
+    view: createSearchSessionRequest.view,
     query: createSearchSessionRequest.query,
   }
   const filters = filtersStateToFilters(createSearchSessionRequest.filters)
@@ -345,7 +350,7 @@ export function useSearch(
 }
 
 export function useFilters(
-  searchSessionRef: Ref<SearchSessionRef | null>,
+  searchSessionRef: Ref<SearchSessionRef>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -357,9 +362,6 @@ export function useFilters(
   const router = useRouter()
 
   return useSearchResults<FilterResult>(el, progress, () => {
-    if (!searchSessionRef.value) {
-      return null
-    }
     return router.apiResolve({
       name: "SearchFilters",
       params: {
@@ -470,7 +472,7 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
 }
 
 export function useRelFilterValues(
-  searchSessionRef: Ref<SearchSessionRef | null>,
+  searchSessionRef: Ref<SearchSessionRef>,
   result: Ref<RelSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -488,9 +490,6 @@ export function useRelFilterValues(
       return null
     }
     if (r.type === "rel") {
-      if (!searchSessionRef.value) {
-        return null
-      }
       return router.apiResolve({
         name: "SearchRelFilter",
         params: {
@@ -509,7 +508,7 @@ export function useRelFilterValues(
 }
 
 export function useAmountHistogramValues(
-  searchSessionRef: Ref<SearchSessionRef | null>,
+  searchSessionRef: Ref<SearchSessionRef>,
   result: Ref<AmountSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -553,9 +552,6 @@ export function useAmountHistogramValues(
       if (r.type === "amount") {
         if (!r.unit) {
           throw new Error(`property "${r.id}" is missing unit`)
-        }
-        if (!searchSessionRef.value) {
-          return null
         }
         return router.apiResolve({
           name: "SearchAmountFilter",
@@ -636,7 +632,7 @@ export function useAmountHistogramValues(
 }
 
 export function useTimeHistogramValues(
-  searchSessionRef: Ref<SearchSessionRef | null>,
+  searchSessionRef: Ref<SearchSessionRef>,
   result: Ref<TimeSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -678,9 +674,6 @@ export function useTimeHistogramValues(
         return null
       }
       if (r.type === "time") {
-        if (!searchSessionRef.value) {
-          return null
-        }
         return router.apiResolve({
           name: "SearchTimeFilter",
           params: {
@@ -759,7 +752,7 @@ export function useTimeHistogramValues(
 }
 
 export function useStringFilterValues(
-  searchSessionRef: Ref<SearchSessionRef | null>,
+  searchSessionRef: Ref<SearchSessionRef>,
   result: Ref<StringSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -792,9 +785,6 @@ export function useStringFilterValues(
         return null
       }
       if (r.type === "string") {
-        if (!searchSessionRef.value) {
-          return null
-        }
         return router.apiResolve({
           name: "SearchStringFilter",
           params: {
@@ -946,7 +936,7 @@ async function getStringValues<T extends StringFilterResult>(
 }
 
 export function useSearchSession(
-  searchSessionRef: Ref<SearchSessionRef | null | undefined>,
+  searchSessionRef: Ref<SearchSessionRef | null>,
   progress: Ref<number>,
 ): {
   searchSession: DeepReadonly<Ref<ClientSearchSession | null>>

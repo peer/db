@@ -19,6 +19,15 @@ const (
 	MaxResultsCount = 1000
 )
 
+// ViewType represents the type of search view.
+type ViewType string
+
+// ViewType values.
+const (
+	ViewFeed  ViewType = "feed"
+	ViewTable ViewType = "table"
+)
+
 type RelFilter struct {
 	Prop  identifier.Identifier  `json:"prop"`
 	Value *identifier.Identifier `json:"value,omitempty"`
@@ -277,6 +286,7 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 type Session struct {
 	ID      *identifier.Identifier `json:"id"`
 	Version int                    `json:"version"`
+	View    ViewType               `json:"view"`
 	Query   string                 `json:"query"`
 	Filters *Filters               `json:"filters,omitempty"`
 }
@@ -319,6 +329,15 @@ func (s *Session) Validate(_ context.Context, existing *Session) errors.E {
 		if errE != nil {
 			return errE
 		}
+	}
+
+	if s.View == "" {
+		s.View = ViewFeed
+	}
+	if s.View != ViewFeed && s.View != ViewTable {
+		errE := errors.New("invalid view")
+		errors.Details(errE)["view"] = s.View
+		return errE
 	}
 
 	return nil
