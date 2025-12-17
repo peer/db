@@ -6,7 +6,7 @@ import type {
   ClientSearchSession,
   FiltersState,
   RelFilterState,
-  Result as SearchResultType,
+  Result,
   StringFilterState,
   TimeFilterState,
   ViewType,
@@ -32,7 +32,7 @@ import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
   // Search props.
-  searchResults: DeepReadonly<SearchResultType[]>
+  searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
