@@ -465,7 +465,7 @@ async function onViewChange(view: ViewType) {
   <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
     <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4 text-center"><i class="text-error-600">loading data failed</i></div>
 
-    <div v-else-if="searchSession === null"  class="my-1 sm:my-4  text-center">Loading...</div>
+    <div v-else-if="searchSession === null" class="my-1 sm:my-4 text-center">Loading...</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"
