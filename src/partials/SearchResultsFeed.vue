@@ -47,7 +47,7 @@ const props = defineProps<{
 }>()
 
 const $emit = defineEmits<{
-  onFilterChange: [change: FilterStateChange]
+  filterChange: [change: FilterStateChange]
   "update:searchView": [value: SearchViewType]
 }>()
 
@@ -150,19 +150,19 @@ function onScrollOrResize() {
 }
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
-  $emit("onFilterChange", { type: "rel", id, value })
+  $emit("filterChange", { type: "rel", id, value })
 }
 
 function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
-  $emit("onFilterChange", { type: "amount", id, unit, value })
+  $emit("filterChange", { type: "amount", id, unit, value })
 }
 
 function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
-  $emit("onFilterChange", { type: "time", id, value })
+  $emit("filterChange", { type: "time", id, value })
 }
 
 function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
-  $emit("onFilterChange", { type: "string", id, value })
+  $emit("filterChange", { type: "string", id, value })
 }
 
 function onFilters() {

@@ -459,7 +459,7 @@ function onFilterChange(change: FilterStateChange) {
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-filters-progress="updateFiltersProgress"
-      @on-filter-change="onFilterChange"
+      @filter-change="onFilterChange"
     />
 
     <SearchResultsTable

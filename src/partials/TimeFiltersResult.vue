@@ -19,7 +19,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: "update:state", state: TimeFilterState): void
+  "update:state": [state: TimeFilterState]
 }>()
 
 const el = ref(null)
