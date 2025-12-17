@@ -270,6 +270,10 @@ async function onRemoveClaim(id: string) {
 }
 
 function onChangeTab(index: number) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   claimType.value = claimTypes[index]
 }
 </script>

@@ -103,6 +103,8 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
 }
 
 async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
+  // Checking abortController is done inside onFiltersStateUpdate.
+
   const updatedFilters = { ...filtersState.value }
   updatedFilters.rel = { ...updatedFilters.rel }
   updatedFilters.rel[id] = state
@@ -110,6 +112,8 @@ async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
 }
 
 async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
+  // Checking abortController is done inside onFiltersStateUpdate.
+
   const updatedFilters = { ...filtersState.value }
   updatedFilters.amount = { ...updatedFilters.amount }
   updatedFilters.amount[`${id}/${unit}`] = state
@@ -117,6 +121,8 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, state: Amoun
 }
 
 async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
+  // Checking abortController is done inside onFiltersStateUpdate.
+
   const updatedFilters = { ...filtersState.value }
   updatedFilters.time = { ...updatedFilters.time }
   updatedFilters.time[id] = state
@@ -124,6 +130,8 @@ async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
 }
 
 async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
+  // Checking abortController is done inside onFiltersStateUpdate.
+
   const updatedFilters = { ...filtersState.value }
   updatedFilters.str = { ...updatedFilters.str }
   updatedFilters.str[id] = state
@@ -363,6 +371,8 @@ async function onChange() {
 }
 
 function onFilterChange(change: FilterStateChange) {
+  // Checking abortController is done inside onFiltersStateUpdate.
+
   switch (change.type) {
     case "rel": {
       return onRelFiltersStateUpdate(change.id, change.value)
@@ -381,12 +391,41 @@ function onFilterChange(change: FilterStateChange) {
     }
   }
 }
+
+const updateQueryProgress = localProgress(mainProgress)
+
+async function onQueryChange(query: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  updateQueryProgress.value += 1
+  try {
+    const updatedSearchSession = { ...searchSession.value! }
+    updatedSearchSession.query = query
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateQueryProgress)
+    if (abortController.signal.aborted || !updatedSearchSessionRef) {
+      return
+    }
+    // We know that updatedSearchSessionRef.id is the same as searchSession.id
+    // because we validated that in updateSearchSession.
+    searchSessionVersion.value = updatedSearchSessionRef.version
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("SearchGet.onQueryChange", err)
+  } finally {
+    updateQueryProgress.value -= 1
+  }
+}
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch :search-session="searchSession" />
+      <NavBarSearch :search-session="searchSession" :update-query-progress="updateQueryProgress" @query-change="onQueryChange" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>

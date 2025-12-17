@@ -12,8 +12,19 @@ import Button from "@/components/Button.vue"
 import { createSearchSession } from "@/search"
 import { injectProgress } from "@/progress"
 
-const props = defineProps<{
-  searchSession?: DeepReadonly<ClientSearchSession> | ClientSearchSession | null
+const props = withDefaults(
+  defineProps<{
+    searchSession?: DeepReadonly<ClientSearchSession> | ClientSearchSession | null
+    updateQueryProgress?: number
+  }>(),
+  {
+    searchSession: undefined,
+    updateQueryProgress: 0,
+  },
+)
+
+const $emit = defineEmits<{
+  queryChange: [change: string]
 }>()
 
 const router = useRouter()
@@ -46,6 +57,13 @@ async function onSubmit() {
     return
   }
 
+  // If searchSession is provided, we do not create a new search session but notify
+  // the parent component that the query has changed.
+  if (props.searchSession) {
+    $emit("queryChange", searchQuery.value)
+    return
+  }
+
   progress.value += 1
   try {
     await createSearchSession(
@@ -70,8 +88,8 @@ async function onSubmit() {
 
 <template>
   <form class="flex flex-grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
-    <InputText id="search-input-text" v-model="searchQuery" :progress="progress" class="max-w-xl flex-grow" />
-    <Button :progress="progress" type="submit" primary class="!px-3.5">
+    <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateQueryProgress" class="max-w-xl flex-grow" />
+    <Button :progress="progress + updateQueryProgress" type="submit" primary class="!px-3.5">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>

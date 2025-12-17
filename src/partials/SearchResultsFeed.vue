@@ -146,18 +146,34 @@ function onScrollOrResize() {
 }
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "rel", id, value })
 }
 
 function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "amount", id, unit, value })
 }
 
 function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "time", id, value })
 }
 
 function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "string", id, value })
 }
 
