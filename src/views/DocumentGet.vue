@@ -164,7 +164,7 @@ async function onEdit() {
       <div v-if="searchSession !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
         <InputTextLink
           class="max-w-xl flex-grow"
-          :to="{ name: 'SearchResults', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
+          :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
           :after-click="afterClick"
         >
           {{ searchSession.query }}
