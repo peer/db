@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
+
 import type {
   RelFilterState,
   AmountFilterState,
@@ -9,6 +11,7 @@ import type {
   DocumentCreateResponse,
   FilterStateChange,
   ViewType,
+  ClientSearchSession,
 } from "@/types"
 
 import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
@@ -75,15 +78,13 @@ watchEffect((onCleanup) => {
   }
 })
 
-async function onFiltersStateUpdate(updatedFilters: FiltersState) {
+async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSearchSession>) {
   if (abortController.signal.aborted) {
     return
   }
 
   updateSearchSessionProgress.value += 1
   try {
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.filters = updatedFilters
     const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
     if (abortController.signal.aborted || !updatedSearchSessionRef) {
       return
@@ -96,14 +97,20 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
       return
     }
     // TODO: Show notification with error.
-    console.error("SearchGet.onFiltersStateUpdate", err)
+    console.error("SearchGet.onSearchSessionUpdate", err)
   } finally {
     updateSearchSessionProgress.value -= 1
   }
 }
 
+async function onFiltersStateUpdate(updatedFilters: FiltersState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({ ...searchSession.value!, filters: updatedFilters })
+}
+
 async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
-  // Checking abortController is done inside onFiltersStateUpdate.
+  // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
   updatedFilters.rel = { ...updatedFilters.rel }
@@ -112,7 +119,7 @@ async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
 }
 
 async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
-  // Checking abortController is done inside onFiltersStateUpdate.
+  // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
   updatedFilters.amount = { ...updatedFilters.amount }
@@ -121,7 +128,7 @@ async function onAmountFiltersStateUpdate(id: string, unit: string, state: Amoun
 }
 
 async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
-  // Checking abortController is done inside onFiltersStateUpdate.
+  // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
   updatedFilters.time = { ...updatedFilters.time }
@@ -130,7 +137,7 @@ async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
 }
 
 async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
-  // Checking abortController is done inside onFiltersStateUpdate.
+  // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
   updatedFilters.str = { ...updatedFilters.str }
@@ -371,7 +378,7 @@ async function onChange() {
 }
 
 function onFilterChange(change: FilterStateChange) {
-  // Checking abortController is done inside onFiltersStateUpdate.
+  // Checking abortController is done inside onSearchSessionUpdate.
 
   switch (change.type) {
     case "rel": {
@@ -393,57 +400,15 @@ function onFilterChange(change: FilterStateChange) {
 }
 
 async function onQueryChange(query: string) {
-  if (abortController.signal.aborted) {
-    return
-  }
+  // Checking abortController is done inside onSearchSessionUpdate.
 
-  updateSearchSessionProgress.value += 1
-  try {
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.query = query
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
-    if (abortController.signal.aborted || !updatedSearchSessionRef) {
-      return
-    }
-    // We know that updatedSearchSessionRef.id is the same as searchSession.id
-    // because we validated that in updateSearchSession.
-    searchSessionVersion.value = updatedSearchSessionRef.version
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("SearchGet.onQueryChange", err)
-  } finally {
-    updateSearchSessionProgress.value -= 1
-  }
+  await onSearchSessionUpdate({ ...searchSession.value!, query })
 }
 
 async function onViewChange(view: ViewType) {
-  if (abortController.signal.aborted) {
-    return
-  }
+  // Checking abortController is done inside onSearchSessionUpdate.
 
-  updateSearchSessionProgress.value += 1
-  try {
-    const updatedSearchSession = { ...searchSession.value! }
-    updatedSearchSession.view = view
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
-    if (abortController.signal.aborted || !updatedSearchSessionRef) {
-      return
-    }
-    // We know that updatedSearchSessionRef.id is the same as searchSession.id
-    // because we validated that in updateSearchSession.
-    searchSessionVersion.value = updatedSearchSessionRef.version
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("SearchGet.onViewChange", err)
-  } finally {
-    updateSearchSessionProgress.value -= 1
-  }
+  await onSearchSessionUpdate({ ...searchSession.value!, view })
 }
 </script>
 
