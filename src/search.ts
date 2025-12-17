@@ -969,6 +969,8 @@ export function useSearchSession(
   const initialRouteName = route.name
   watch(
     searchSessionRef,
+    // TODO: Use the pattern where we construct the URL here and then use it in the watcher once proper versioning is implemented.
+    //       For now we use whole searchSessionRef and getURLDirect so that we always load the latest version in DocumentGet which uses fake version.
     async (searchSessionRef, old, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
       if (initialRouteName !== route.name) {
@@ -995,6 +997,8 @@ export function useSearchSession(
       const signal = anySignal(mainController.signal, controller.signal)
       let data
       try {
+        // TODO: Use the pattern where we construct the URL here and then use it in the watcher once proper versioning is implemented.
+        //       For now we use whole searchSessionRef and getURLDirect so that we always load the latest version in DocumentGet which uses fake version.
         data = await getURLDirect<ServerSearchSession>(newURL, signal, progress)
       } catch (err) {
         if (signal.aborted) {
