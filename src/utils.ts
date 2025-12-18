@@ -1,8 +1,8 @@
-import { DeepReadonly, onBeforeUnmount, onMounted, Ref, watchEffect } from "vue"
+import type { DeepReadonly, Ref } from "vue"
 import type { Mutable, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
 import type { Claim, ClaimTypes, ClaimTypeProp } from "@/document"
 
-import { toRaw, ref, readonly, watch } from "vue"
+import { toRaw, ref, readonly, watch, onBeforeUnmount, onMounted, watchEffect } from "vue"
 import { cloneDeep, isEqual } from "lodash-es"
 import { prng_alea } from "esm-seedrandom"
 import { fromDate, toDate, hour, minute, second } from "@/time"
@@ -178,20 +178,20 @@ export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null)
   return null
 }
 
-export function useLimitResults<Type>(
-  results: DeepReadonly<Ref<Type[]>>,
+export function useLimitResults<T>(
+  results: DeepReadonly<Ref<T[]>>,
   initialLimit: number,
   increase: number,
 ): {
-  limitedResults: DeepReadonly<Ref<Type[]>>
+  limitedResults: DeepReadonly<Ref<T[]>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
 } {
   let limit = 0
 
-  const _limitedResults = ref<Type[]>([]) as Ref<Type[]>
+  const _limitedResults = ref<T[]>([]) as Ref<T[]>
   const _hasMore = ref(false)
-  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : (_limitedResults as unknown as Readonly<Ref<readonly DeepReadonly<Type>[]>>)
+  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : (_limitedResults as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
   const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
 
   watchEffect(() => {
@@ -201,7 +201,7 @@ export function useLimitResults<Type>(
       limit = results.value.length
     }
     _hasMore.value = limit < results.value.length
-    _limitedResults.value = results.value.slice(0, limit) as Type[]
+    _limitedResults.value = results.value.slice(0, limit) as T[]
   })
 
   return {
@@ -214,7 +214,7 @@ export function useLimitResults<Type>(
         limit = results.value.length
       }
       _hasMore.value = limit < results.value.length
-      _limitedResults.value = results.value.slice(0, limit) as Type[]
+      _limitedResults.value = results.value.slice(0, limit) as T[]
     },
   }
 }

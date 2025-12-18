@@ -2,7 +2,7 @@ import type { InjectionKey, Ref } from "vue"
 
 import { ref, inject, computed } from "vue"
 
-export const progressKey = Symbol() as InjectionKey<Ref<number>>
+export const progressKey: InjectionKey<Ref<number>> = Symbol()
 
 // injectProgress returns a reactive and mutable local view of the
 // main progress (as injected with progressKey). It starts at 0

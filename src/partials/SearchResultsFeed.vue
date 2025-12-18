@@ -3,18 +3,18 @@ import type { DeepReadonly } from "vue"
 
 import type {
   AmountFilterState,
-  ClientSearchState,
+  ClientSearchSession,
   FiltersState,
   RelFilterState,
-  SearchResult as SearchResultType,
+  Result,
   StringFilterState,
   TimeFilterState,
-  SearchViewType,
+  ViewType,
   FilterStateChange,
   AmountUnit,
 } from "@/types"
 
-import { computed, onBeforeUnmount, ref, toRef } from "vue"
+import { onBeforeUnmount, ref, toRef } from "vue"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
@@ -26,29 +26,26 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import { useVisibilityTracking } from "@/visibility"
 import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
-import { useFilters, activeSearchState, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
+import { useFilters, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
-  searchView: SearchViewType
-
   // Search props.
-  s: string
-  searchResults: DeepReadonly<SearchResultType[]>
+  searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchState: DeepReadonly<ClientSearchState | null>
+  searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
+  updateSearchSessionProgress: number
 
   // Filter props.
   filtersState: FiltersState
-  updateFiltersProgress: number
 }>()
 
 const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
-  "update:searchView": [value: SearchViewType]
+  viewChange: [value: ViewType]
 }>()
 
 const SEARCH_INITIAL_LIMIT = 50
@@ -74,10 +71,7 @@ const {
   error: filtersError,
   url: filtersURL,
 } = useFilters(
-  activeSearchState(
-    toRef(() => props.searchState),
-    toRef(() => props.s),
-  ),
+  toRef(() => props.searchSession),
   filtersEl,
   filtersProgress,
 )
@@ -99,15 +93,6 @@ onBeforeUnmount(() => {
 const searchMoreButton = ref()
 const filtersMoreButton = ref()
 const supportPageOffset = window.pageYOffset !== undefined
-
-const searchViewValue = computed({
-  get() {
-    return props.searchView
-  },
-  set(value) {
-    $emit("update:searchView", value)
-  },
-})
 
 useLocationAt(
   toRef(() => props.searchResults),
@@ -150,18 +135,34 @@ function onScrollOrResize() {
 }
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "rel", id, value })
 }
 
 function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "amount", id, unit, value })
 }
 
 function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "time", id, value })
 }
 
 function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("filterChange", { type: "string", id, value })
 }
 
@@ -184,7 +185,12 @@ function onFilters() {
   <div ref="content" class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
-      <SearchResultsHeader v-model:search-view="searchViewValue" :search-state="searchState" :search-total="searchTotal" :search-more-than-total="searchMoreThanTotal" />
+      <SearchResultsHeader
+        :search-session="searchSession"
+        :search-total="searchTotal"
+        :search-more-than-total="searchMoreThanTotal"
+        @view-change="(v) => $emit('viewChange', v)"
+      />
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
@@ -195,7 +201,7 @@ function onFilters() {
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
-          <SearchResult :ref="track(result.id)" :s="s" :result="result" />
+          <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
@@ -235,41 +241,41 @@ function onFilters() {
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <RelFiltersResult
             v-if="filter.type === 'rel'"
-            :s="s"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.rel[filter.id] ?? []"
-            :update-progress="updateFiltersProgress"
+            :update-progress="updateSearchSessionProgress"
             @update:state="onRelFiltersStateUpdate(filter.id, $event)"
           />
 
           <AmountFiltersResult
             v-if="filter.type === 'amount'"
-            :s="s"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
-            :update-progress="updateFiltersProgress"
+            :update-progress="updateSearchSessionProgress"
             @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
           />
 
           <TimeFiltersResult
             v-if="filter.type === 'time'"
-            :s="s"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.time[filter.id] ?? null"
-            :update-progress="updateFiltersProgress"
+            :update-progress="updateSearchSessionProgress"
             @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
           />
 
           <StringFiltersResult
             v-if="filter.type === 'string'"
-            :s="s"
+            :search-session="searchSession"
             :search-total="searchTotal"
             :result="filter"
             :state="filtersState.str[filter.id] ?? []"
-            :update-progress="updateFiltersProgress"
+            :update-progress="updateSearchSessionProgress"
             @update:state="onStringFiltersStateUpdate(filter.id, $event)"
           />
         </template>

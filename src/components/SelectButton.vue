@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T">
-import { useSlots } from "vue"
+import type { SelectButtonOption } from "@/types"
 
-import { SelectButtonOption } from "@/types"
+import { useSlots } from "vue"
 
 const props = defineProps<{
   modelValue: T

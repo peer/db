@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { API } from "nouislider"
-import type { AmountFilterState, AmountSearchResult } from "@/types"
+import type { DeepReadonly } from "vue"
+
+import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from "@/types"
 
 import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
@@ -11,7 +13,7 @@ import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  s: string
+  searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
   result: AmountSearchResult
   state: AmountFilterState
@@ -38,7 +40,7 @@ const {
   error,
   url: resultsUrl,
 } = useAmountHistogramValues(
-  toRef(() => props.s),
+  toRef(() => props.searchSession),
   toRef(() => props.result),
   el,
   progress,

@@ -2,12 +2,12 @@ package peerdb
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"net/http"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -53,9 +53,9 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 }
 
 func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
+	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -69,34 +69,8 @@ func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
+	} else if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	s.WriteJSON(w, req, data, metadata)
-}
-
-func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
-		return
-	}
-
-	data, metadata, errE := search.FiltersGet(req.Context(), s.getSearchServiceClosure(req), id)
-	if errors.Is(errE, search.ErrNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
-		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, search.ErrNotReady) {
-		s.WithError(req.Context(), errE)
-		waf.Error(w, req, http.StatusConflict)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -108,9 +82,9 @@ func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, par
 
 //nolint:dupl
 func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
+	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -124,7 +98,7 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
+	} else if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -137,9 +111,9 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 
 //nolint:dupl
 func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
+	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -153,7 +127,7 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
+	} else if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -166,9 +140,9 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 
 //nolint:dupl
 func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["s"])
+	id, errE := identifier.FromString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"s" is not a valid identifier`))
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -182,7 +156,7 @@ func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, 
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, search.ErrInvalidArgument) {
+	} else if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -193,128 +167,215 @@ func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, 
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchResults is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-// If search state is invalid, it redirects to a valid one.
-func (s *Service) SearchResults(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// SearchGet is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	var searchQuery *string
-	if req.Form.Has("q") {
-		q := req.Form.Get("q")
-		searchQuery = &q
-	}
-
-	var filters *string
-	if req.Form.Has("filters") {
-		f := req.Form.Get("filters")
-		filters = &f
-	}
-
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh, ok := search.GetOrCreateState(ctx, params["s"], searchQuery, filters)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	_, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we redirect to the correct URL.
-		path, err := s.Reverse("SearchResults", waf.Params{"s": sh.ID.String()}, sh.Values())
-		if err != nil {
-			s.InternalServerErrorWithError(w, req, err)
-			return
-		}
-		w.Header().Set("Location", path)
-		w.WriteHeader(http.StatusSeeOther)
+	if errors.Is(errE, search.ErrNotFound) {
+		// TODO: We should show some nice 404 error page here.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		// TODO: We should show some nice 500 error page here.
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
 	s.Home(w, req, nil)
 }
 
-type searchResult struct {
-	ID string `json:"id"`
-}
-
-// SearchResultsGet is a GET/HEAD HTTP request handler and it searches ElasticSearch index using provided
-// search state and returns to the client a JSON with an array of IDs of found documents.
-// It returns search metadata (e.g., total results) as PeerDB HTTP response headers.
-func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	ctx := req.Context()
-	metrics := waf.MustGetMetrics(ctx)
-
-	// TODO: Move most of this logic to search package (similar to SearchFiltersGet).
-
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh := search.GetState(params["s"])
-	m.Stop()
-	if sh == nil {
-		s.NotFound(w, req)
-		return
-	}
-
-	searchService, _ := s.getSearchService(req)
-	searchService = searchService.From(0).Size(search.MaxResultsCount).Query(sh.Query())
-
-	m = metrics.Duration(internal.MetricElasticSearch).Start()
-	res, err := searchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		s.InternalServerErrorWithError(w, req, errors.WithStack(err))
-		return
-	}
-	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	results := make([]searchResult, len(res.Hits.Hits))
-	for i, hit := range res.Hits.Hits {
-		results[i] = searchResult{ID: hit.Id}
-	}
-
-	// Total is a string or a number.
-	var total interface{}
-	if res.Hits.TotalHits.Relation == "gte" {
-		total = fmt.Sprintf("%d+", res.Hits.TotalHits.Value)
-	} else {
-		total = res.Hits.TotalHits.Value
-	}
-
-	s.WriteJSON(w, req, results, map[string]interface{}{
-		"total": total,
-	})
-}
-
-// SearchGetGet is a GET/HEAD HTTP request handler and returns the search state.
+// SearchGetGet is a GET/HEAD HTTP request API handler which returns a search session.
 func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh := search.GetState(params["s"])
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
-	if sh == nil {
-		s.NotFound(w, req)
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
-	s.WriteJSON(w, req, sh, nil)
+	s.WriteJSON(w, req, searchSession, nil)
 }
 
-type searchCreateResponse struct {
-	ID          identifier.Identifier `json:"s"`
-	SearchQuery string                `json:"q,omitempty"`
-}
-
-// SearchCreatePost is a POST HTTP request handler which stores the search state
-// and returns the search state ID in the response.
-func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+// SearchFiltersGet is a GET/HEAD HTTP request API handler which returns filters available for the search session.
+func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	currentSearchState := req.Form.Get("s")
-
-	searchQuery := req.Form.Get("q")
-	filtersJSON := req.Form.Get("filters")
-
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	sh := search.CreateState(ctx, currentSearchState, searchQuery, filtersJSON)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 
-	s.WriteJSON(w, req, searchCreateResponse{ID: sh.ID, SearchQuery: sh.SearchQuery}, nil)
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchResultsGet is a GET/HEAD HTTP request API handler and it searches ElasticSearch index for the provided
+// search session and returns to the client a JSON with an array of IDs of found documents.
+// It returns search metadata (e.g., total results) as waf HTTP response header.
+func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
+	m.Stop()
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), searchSession)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchJustResultsPost is a POST HTTP request API handler and it searches ElasticSearch index without
+// creating a search session and returns to the client a JSON with an array of IDs of found documents.
+// It returns search metadata (e.g., total results) as waf HTTP response header.
+func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	defer req.Body.Close()
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+
+	var searchSession search.Session
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &searchSession)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	if searchSession.ID != nil {
+		s.BadRequestWithError(w, req, errors.New("payload contains ID"))
+		return
+	}
+
+	errE = searchSession.Validate(ctx, nil)
+	if errE != nil {
+		errE = errors.WrapWith(errE, search.ErrValidationFailed)
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchCreatePost is a POST HTTP API request handler which creates a new search session.
+func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	defer req.Body.Close()
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	var searchSession search.Session
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &searchSession)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	if searchSession.ID != nil {
+		s.BadRequestWithError(w, req, errors.New("payload contains ID"))
+		return
+	}
+
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	errE = search.CreateSession(ctx, &searchSession)
+	m.Stop()
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, searchSession.Ref(), nil)
+}
+
+// SearchUpdatePost is a POST HTTP API request handler which updates the search session.
+func (s *Service) SearchUpdatePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	defer req.Body.Close()
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	var searchSession search.Session
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &searchSession)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	// If searchSession.ID == nil, UpdateSession returns an error.
+	if searchSession.ID != nil && params["id"] != searchSession.ID.String() {
+		errE = errors.New("params ID does not match payload ID")
+		errors.Details(errE)["params"] = params["id"]
+		errors.Details(errE)["payload"] = *searchSession.ID
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	errE = search.UpdateSession(ctx, &searchSession)
+	m.Stop()
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, searchSession.Ref(), nil)
 }

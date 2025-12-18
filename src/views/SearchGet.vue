@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
+
 import type {
   RelFilterState,
   AmountFilterState,
@@ -7,18 +9,19 @@ import type {
   FiltersState,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
-  SearchViewType,
   FilterStateChange,
+  ViewType,
+  ClientSearchSession,
 } from "@/types"
 
 import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import { useSearch, useSearchState, postFilters, activeSearchState } from "@/search"
+import { useSearch, useSearchSession, updateSearchSession } from "@/search"
 import { postJSON } from "@/api"
 import { uploadFile } from "@/upload"
 import { clone, encodeQuery } from "@/utils"
@@ -29,11 +32,10 @@ import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 import Footer from "@/partials/Footer.vue"
 
 const props = defineProps<{
-  s: string
+  id: string
 }>()
 
 const router = useRouter()
-const route = useRoute()
 
 const mainProgress = injectMainProgress()
 const createProgress = localProgress(mainProgress)
@@ -49,130 +51,98 @@ onBeforeUnmount(() => {
 
 const searchEl = ref(null)
 
-const searchView = ref<SearchViewType>("feed")
+const searchSessionVersion = ref(0)
 
 const searchProgress = localProgress(mainProgress)
 const {
-  searchState,
-  error: searchStateError,
+  searchSession,
+  error: searchSessionError,
   url: searchURL,
-} = useSearchState(
-  toRef(() => props.s),
+} = useSearchSession(
+  toRef(() => ({ id: props.id, version: searchSessionVersion.value })),
   searchProgress,
 )
-const {
-  results: searchResults,
-  total: searchTotal,
-  moreThanTotal: searchMoreThanTotal,
-  error: searchResultsError,
-} = useSearch(
-  activeSearchState(
-    searchState,
-    toRef(() => props.s),
-  ),
-  searchEl,
-  searchProgress,
-)
+const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
-const updateFiltersProgress = localProgress(mainProgress)
+const updateSearchSessionProgress = localProgress(mainProgress)
+
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
-  if (searchState.value === null || !searchState.value.filters) {
+  if (searchSession.value === null || !searchSession.value.filters) {
     filtersState.value = { rel: {}, amount: {}, time: {}, str: {} }
   } else {
-    filtersState.value = clone(searchState.value.filters)
+    filtersState.value = clone(searchSession.value.filters)
   }
 })
 
-async function onRelFiltersStateUpdate(id: string, s: RelFilterState) {
+async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSearchSession>) {
   if (abortController.signal.aborted) {
     return
   }
 
-  updateFiltersProgress.value += 1
+  updateSearchSessionProgress.value += 1
   try {
-    const updatedState = { ...filtersState.value }
-    updatedState.rel = { ...updatedState.rel }
-    updatedState.rel[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
+    if (abortController.signal.aborted || !updatedSearchSessionRef) {
+      return
+    }
+    // We know that updatedSearchSessionRef.id is the same as searchSession.id
+    // because we validated that in updateSearchSession.
+    searchSessionVersion.value = updatedSearchSessionRef.version
   } catch (err) {
     if (abortController.signal.aborted) {
       return
     }
     // TODO: Show notification with error.
-    console.error("Search.onRelFiltersStateUpdate", err)
+    console.error("SearchGet.onSearchSessionUpdate", err)
   } finally {
-    updateFiltersProgress.value -= 1
+    updateSearchSessionProgress.value -= 1
   }
 }
 
-async function onAmountFiltersStateUpdate(id: string, unit: string, s: AmountFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
+async function onFiltersStateUpdate(updatedFilters: FiltersState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
 
-  updateFiltersProgress.value += 1
-  try {
-    const updatedState = { ...filtersState.value }
-    updatedState.amount = { ...updatedState.amount }
-    updatedState.amount[`${id}/${unit}`] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onAmountFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  await onSearchSessionUpdate({ ...searchSession.value!, filters: updatedFilters })
 }
 
-async function onTimeFiltersStateUpdate(id: string, s: TimeFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
+async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
 
-  updateFiltersProgress.value += 1
-  try {
-    const updatedState = { ...filtersState.value }
-    updatedState.time = { ...updatedState.time }
-    updatedState.time[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onTimeFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.rel = { ...updatedFilters.rel }
+  updatedFilters.rel[id] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
-async function onStringFiltersStateUpdate(id: string, s: StringFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
+async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
 
-  updateFiltersProgress.value += 1
-  try {
-    const updatedState = { ...filtersState.value }
-    updatedState.str = { ...updatedState.str }
-    updatedState.str[id] = s
-    await postFilters(router, route, props.s, updatedState, abortController.signal, updateFiltersProgress)
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("Search.onStringFiltersStateUpdate", err)
-  } finally {
-    updateFiltersProgress.value -= 1
-  }
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.amount = { ...updatedFilters.amount }
+  updatedFilters.amount[`${id}/${unit}`] = state
+  await onFiltersStateUpdate(updatedFilters)
+}
+
+async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.time = { ...updatedFilters.time }
+  updatedFilters.time[id] = state
+  await onFiltersStateUpdate(updatedFilters)
+}
+
+async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  const updatedFilters = { ...filtersState.value }
+  updatedFilters.str = { ...updatedFilters.str }
+  updatedFilters.str[id] = state
+  await onFiltersStateUpdate(updatedFilters)
 }
 
 async function onCreate() {
@@ -408,6 +378,8 @@ async function onChange() {
 }
 
 function onFilterChange(change: FilterStateChange) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
   switch (change.type) {
     case "rel": {
       return onRelFiltersStateUpdate(change.id, change.value)
@@ -426,12 +398,24 @@ function onFilterChange(change: FilterStateChange) {
     }
   }
 }
+
+async function onQueryChange(query: string) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({ ...searchSession.value!, query })
+}
+
+async function onViewChange(view: ViewType) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({ ...searchSession.value!, view })
+}
 </script>
 
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch :s="s" />
+      <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
       <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
@@ -444,33 +428,31 @@ function onFilterChange(change: FilterStateChange) {
     </NavBar>
   </Teleport>
   <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
-    <div v-if="searchStateError || searchResultsError" class="my-1 sm:my-4">
-      <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
-    </div>
+    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4 text-center"><i class="text-error-600">loading data failed</i></div>
+
+    <div v-else-if="searchSession === null" class="my-1 sm:my-4 text-center">Loading...</div>
 
     <SearchResultsFeed
-      v-else-if="searchView === 'feed'"
-      v-model:search-view="searchView"
-      :s="s"
+      v-else-if="searchSession.view === 'feed'"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-progress="searchProgress"
       :filters-state="filtersState"
-      :update-filters-progress="updateFiltersProgress"
+      :update-search-session-progress="updateSearchSessionProgress"
       @filter-change="onFilterChange"
+      @view-change="onViewChange"
     />
 
     <SearchResultsTable
-      v-else-if="searchView === 'table'"
-      v-model:search-view="searchView"
-      :s="s"
+      v-else-if="searchSession.view === 'table'"
       :search-results="searchResults"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-progress="searchProgress"
+      @view-change="onViewChange"
     />
   </div>
 
@@ -478,7 +460,7 @@ function onFilterChange(change: FilterStateChange) {
     When there is an error, we do not show a component to display results which otherwise
     shows the footer. So we show the footer ourselves here in that case.
   -->
-  <Teleport v-if="searchStateError || searchResultsError" to="footer">
+  <Teleport v-if="searchSessionError || searchResultsError" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
   </Teleport>
 </template>

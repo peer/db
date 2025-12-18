@@ -5,7 +5,6 @@ import (
 )
 
 var (
-	ErrNotFound        = errors.Base("not found")
-	ErrInvalidArgument = errors.Base("invalid argument")
-	ErrNotReady        = errors.Base("not ready")
+	ErrNotFound         = errors.Base("not found")
+	ErrValidationFailed = errors.Base("validation failed")
 )

@@ -50,33 +50,31 @@ type histogramAmountAggregations struct {
 	} `json:"filter"`
 }
 
-type histogramAmountResult struct {
+type HistogramAmountResult struct {
 	Min   float64 `json:"min"`
 	Count int64   `json:"count"`
 }
 
 func AmountFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string,
-) (interface{}, map[string]interface{}, errors.E) {
+) ([]HistogramAmountResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
 	if !document.ValidAmountUnit(unit) {
-		return nil, nil, errors.Errorf(`%w: "unit" is not a valid unit`, ErrInvalidArgument)
+		return nil, nil, errors.Errorf(`%w: "unit" is not a valid unit`, ErrValidationFailed)
 	}
 	if unit == "@" {
-		return nil, nil, errors.Errorf(`%w: "unit" cannot be "@"`, ErrInvalidArgument)
+		return nil, nil, errors.Errorf(`%w: "unit" cannot be "@"`, ErrValidationFailed)
 	}
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	ss, ok := searches.Load(id)
+	m := metrics.Duration(internal.MetricSearchSession).Start()
+	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
-	if !ok {
-		// Something was not OK, so we return not found.
-		return nil, nil, errors.WithStack(ErrNotFound)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	sh := ss.(*State) //nolint:errcheck,forcetypeassert
 
-	query := sh.Query()
+	query := searchSession.ToQuery()
 
 	minMaxSearchService, _ := getSearchService()
 	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
@@ -115,7 +113,7 @@ func AmountFilterGet(
 
 	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
 	var minMax minMaxAmountAggregations
-	errE := x.Unmarshal(res.Aggregations["minMax"], &minMax)
+	errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
 	if errE != nil {
 		return nil, nil, errE
@@ -123,7 +121,7 @@ func AmountFilterGet(
 
 	var minValue, interval float64
 	if minMax.Filter.Count == 0 {
-		return make([]histogramAmountResult, 0), map[string]interface{}{
+		return make([]HistogramAmountResult, 0), map[string]interface{}{
 			"total": 0,
 		}, nil
 	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
@@ -179,9 +177,9 @@ func AmountFilterGet(
 		return nil, nil, errE
 	}
 
-	results := make([]histogramAmountResult, len(histogram.Filter.Hist.Buckets))
+	results := make([]HistogramAmountResult, len(histogram.Filter.Hist.Buckets))
 	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = histogramAmountResult{
+		results[i] = HistogramAmountResult{
 			Min:   bucket.Key,
 			Count: bucket.Docs.Count,
 		}

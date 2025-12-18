@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
+import { onBeforeUnmount } from "vue"
+
 import Button from "@/components/Button.vue"
 import { ClaimTypes } from "@/document"
 import ClaimValueId from "@/partials/claimvalue/ClaimValueId.vue"
@@ -35,11 +37,25 @@ const $emit = defineEmits<{
   removeClaim: [value: string]
 }>()
 
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 async function onEdit(id: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("editClaim", id)
 }
 
 async function onRemove(id: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   $emit("removeClaim", id)
 }
 </script>

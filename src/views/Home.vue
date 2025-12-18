@@ -5,7 +5,7 @@ import { useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
 import Footer from "@/partials/Footer.vue"
-import { postSearch } from "@/search"
+import { createSearchSession } from "@/search"
 import { injectProgress } from "@/progress"
 import siteContext from "@/context"
 
@@ -30,12 +30,16 @@ async function onSubmit() {
     return
   }
 
-  const form = new FormData()
-  form.set("q", searchQuery.value)
-
   progress.value += 1
   try {
-    await postSearch(router, form, abortController.signal, progress)
+    await createSearchSession(
+      router,
+      {
+        query: searchQuery.value,
+      },
+      abortController.signal,
+      progress,
+    )
   } catch (err) {
     if (abortController.signal.aborted) {
       return

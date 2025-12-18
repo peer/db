@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import type { ComponentExposed } from "vue-component-type-helpers"
+
 import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
-import type { ComponentExposed } from "vue-component-type-helpers"
 
 import { ref, computed, toRef, onBeforeUnmount, watchEffect } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+
 import InputTextLink from "@/components/InputTextLink.vue"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -15,7 +17,7 @@ import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { useSearchState, useSearch } from "@/search"
+import { useSearchSession, useSearch } from "@/search"
 import { postJSON } from "@/api"
 import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
 import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
@@ -42,25 +44,25 @@ onBeforeUnmount(() => {
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
 
-const searchStateS = toRef(() => (Array.isArray(route.query.s) ? route.query.s[0] : route.query.s))
-
-const { searchState, error: searchStateError } = useSearchState(searchStateS, progress)
-const { results, error: searchResultsError } = useSearch(
+const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
-    if (!searchState.value) {
-      return ""
+    const searchSessionId = Array.isArray(route.query.s) ? route.query.s[0] : route.query.s
+    if (!searchSessionId) {
+      return null
     }
-    if (searchState.value.s !== searchStateS.value) {
-      return ""
+    return {
+      id: searchSessionId,
+      // We always set it to 0 as it is not really used.
+      // TODO: Use and track real versions on the client.
+      version: 0,
     }
-    return searchStateS.value
   }),
-  el,
   progress,
 )
+const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
 
 watchEffect(async (onCleanup) => {
-  if (searchStateError.value || searchResultsError.value) {
+  if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
     router.replace({
       name: "DocumentGet",
@@ -68,15 +70,13 @@ watchEffect(async (onCleanup) => {
         id: props.id,
       },
       // Maybe route.query has non-empty "tab" parameter which we want to keep.
-      // We do not use query argument in useSearchState callback because it
-      // is about (new) search state which we just discard here.
       query: encodeQuery({ tab: route.query.tab || undefined }),
     })
   }
 })
 
 const prevNext = computed<{ previous: string | null; next: string | null }>(() => {
-  const res = { previous: null, next: null } as { previous: string | null; next: string | null }
+  const res: { previous: string | null; next: string | null } = { previous: null, next: null }
   for (let i = 0; i < results.value.length; i++) {
     if (results.value[i].id === props.id) {
       if (i > 0) {
@@ -162,20 +162,16 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchState !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <InputTextLink
-          class="max-w-xl flex-grow"
-          :to="{ name: 'SearchResults', params: { s: searchState.s }, query: encodeQuery({ q: searchState.q, at: id }) }"
-          :after-click="afterClick"
-        >
-          {{ searchState.q }}
+      <div v-if="searchSession !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
+        <InputTextLink class="max-w-xl flex-grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
+          {{ searchSession.query }}
         </InputTextLink>
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink
             primary
             class="!px-3.5"
             :disabled="!prevNext.previous"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchState.s }) }"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
             <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
@@ -184,7 +180,7 @@ async function onEdit() {
             primary
             class="!px-3.5"
             :disabled="!prevNext.next"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchState.s }) }"
+            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
             <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>

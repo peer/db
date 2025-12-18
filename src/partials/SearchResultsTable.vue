@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchState, SearchFilterResult, SearchResult as SearchResultType, SearchViewType } from "@/types"
+import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
 import { computed, toRef, ref, onBeforeUnmount, onMounted } from "vue"
@@ -12,25 +12,22 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
 import { encodeQuery, getBestClaimOfType, useLimitResults, useOnScrollOrResize, loadingWidth } from "@/utils.ts"
-import { activeSearchState, FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
-  searchView: SearchViewType
-
   // Search props.
-  s: string
-  searchResults: DeepReadonly<SearchResultType[]>
+  searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchState: DeepReadonly<ClientSearchState | null>
+  searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
 }>()
 
 const $emit = defineEmits<{
-  "update:searchView": [value: SearchViewType]
+  viewChange: [value: ViewType]
 }>()
 
 const SEARCH_INITIAL_LIMIT = 100
@@ -55,10 +52,7 @@ const {
   error: filtersError,
   url: filtersURL,
 } = useFilters(
-  activeSearchState(
-    toRef(() => props.searchState),
-    toRef(() => props.s),
-  ),
+  toRef(() => props.searchSession),
   filtersEl,
   filtersProgress,
 )
@@ -69,7 +63,7 @@ const {
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
-function supportedFilter(filter: SearchFilterResult) {
+function supportedFilter(filter: FilterResult) {
   return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
 }
 
@@ -97,15 +91,6 @@ onBeforeUnmount(() => {
 const searchMoreButton = ref()
 const filtersMoreButton = ref()
 const supportPageOffset = window.pageYOffset !== undefined
-
-const searchViewValue = computed({
-  get() {
-    return props.searchView
-  },
-  set(value) {
-    $emit("update:searchView", value)
-  },
-})
 
 useLocationAt(
   toRef(() => props.searchResults),
@@ -196,11 +181,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
   -->
   <div class="sticky left-0 w-0 z-20">
     <SearchResultsHeader
-      v-model:search-view="searchViewValue"
       class="w-container p-1 sm:p-4"
-      :search-state="searchState"
+      :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
+      @view-change="(v) => $emit('viewChange', v)"
     />
   </div>
 
@@ -221,7 +206,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
-              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/0`)]" />
+              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
               <th v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
@@ -238,10 +223,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${s}/${index + 1}`)]" />
+                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
                     <td v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
@@ -251,19 +238,31 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 </tr>
               </template>
               <template #loading="{ url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <!--
+                  We do not track(result.id) <tr> here because in that case Vue would first track loading <tr>, then it would remove it and untrack it,
+                  and then it would track the final <tr>. That makes "at" URL query parameter to first show the first ID (because loading <tr>s are visible),
+                  then it loops through all IDs as their loading <tr>s are being removed and "new" top (loading) <tr>s are found, and then finally again "at"
+                  URL query parameter is set to the first ID for final <tr>s, the same one which was the first ID for loading <tr>s. To prevent this "flicker"
+                  of "at" URL query parameter we do not track loading and error <tr>s.
+                -->
+                <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
               </template>
+              <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s }) }" class="link">{{ index + 1 }}</RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
                     <i class="text-error-600">loading data failed</i>

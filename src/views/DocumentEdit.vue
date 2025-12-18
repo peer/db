@@ -5,6 +5,7 @@ import { ref, computed, readonly, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -269,6 +270,10 @@ async function onRemoveClaim(id: string) {
 }
 
 function onChangeTab(index: number) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   claimType.value = claimTypes[index]
 }
 </script>

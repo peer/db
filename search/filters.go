@@ -9,7 +9,6 @@ import (
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -48,32 +47,20 @@ type filteredMultiTermAggregations struct {
 	} `json:"filter"`
 }
 
-type searchFiltersResult struct {
-	ID    string `json:"id,omitempty"`
-	Count int64  `json:"count,omitempty"`
-	Type  string `json:"type,omitempty"`
+// FilterResult describes an available filter as an union of possible fields for each supported filter type.
+type FilterResult struct {
+	ID    string `json:"id"`
+	Count int64  `json:"count"`
+	Type  string `json:"type"`
 	Unit  string `json:"unit,omitempty"`
 }
 
 func FiltersGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id identifier.Identifier,
-) (interface{}, map[string]interface{}, errors.E) {
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session,
+) ([]FilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchState).Start()
-	ss, ok := searches.Load(id)
-	m.Stop()
-	if !ok {
-		// Something was not OK, so we return not found.
-		return nil, nil, errors.WithStack(ErrNotFound)
-	}
-	sh := ss.(*State) //nolint:errcheck,forcetypeassert
-
-	return filtersGet(ctx, getSearchService, sh.Query())
-}
-
-func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), query elastic.Query) (interface{}, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
+	query := searchSession.ToQuery()
 
 	searchService, propertiesTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
@@ -175,9 +162,9 @@ func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 	}
 	m.Stop()
 
-	results := make([]searchFiltersResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
+	results := make([]FilterResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
 	for i, bucket := range rel.Props.Buckets {
-		results[i] = searchFiltersResult{
+		results[i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "rel",
@@ -185,7 +172,7 @@ func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 		}
 	}
 	for i, bucket := range amount.Filter.Props.Buckets {
-		results[len(rel.Props.Buckets)+i] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
 			Type:  "amount",
@@ -193,7 +180,7 @@ func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 		}
 	}
 	for i, bucket := range timeA.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
@@ -201,7 +188,7 @@ func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 		}
 	}
 	for i, bucket := range str.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = searchFiltersResult{
+		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "string",
@@ -211,7 +198,7 @@ func filtersGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 
 	// Because we combine multiple aggregations of MaxResultsCount each, we have to
 	// re-sort results and limit them ourselves.
-	slices.SortStableFunc(results, func(a searchFiltersResult, b searchFiltersResult) int {
+	slices.SortStableFunc(results, func(a FilterResult, b FilterResult) int {
 		if a.Count > b.Count {
 			return -1
 		} else if a.Count < b.Count {

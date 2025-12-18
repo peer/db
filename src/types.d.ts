@@ -34,28 +34,28 @@ export type StringSearchResult = {
   type: "string"
 }
 
-export type SearchFilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
+export type FilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
 
-export type SearchResult = {
+export type Result = {
   id: string
 }
 
-export type RelValuesResult = {
+export type RelFilterResult = {
   id: string
   count: number
 }
 
-export type AmountValuesResult = {
+export type HistogramAmountResult = {
   min: number
   count: number
 }
 
-export type TimeValuesResult = {
+export type HistogramTimeResult = {
   min: string
   count: number
 }
 
-export type StringValuesResult = {
+export type StringFilterResult = {
   str: string
   count: number
 }
@@ -161,19 +161,32 @@ export type StringFilterStateChange = {
 
 export type FilterStateChange = RelFilterStateChange | AmountFilterStateChange | TimeFilterStateChange | StringFilterStateChange
 
-export type ServerSearchState = {
-  s: string
-  q: string
+export type ServerSearchSession = {
+  id: string
+  version: number
+  view: ViewType
+  query: string
   filters?: Filters
 }
 
-export type ClientSearchState = {
-  s: string
-  q: string
+export type ClientSearchSession = {
+  id: string
+  version: number
+  view: ViewType
+  query: string
   filters?: FiltersState
 }
 
-export type SearchStateCreateResponse = { s: string; q?: string }
+export type CreateSearchSessionRequest = {
+  view?: ViewType
+  query: string
+  filters?: FiltersState
+}
+
+export type SearchSessionRef = {
+  id: string
+  version: number
+}
 
 export type SiteContext = {
   domain: string
@@ -224,7 +237,7 @@ export type DocumentBeginMetadata = {
   version: string
 }
 
-export type SearchViewType = "table" | "feed"
+export type ViewType = "table" | "feed"
 
 export type SelectButtonOption<T> = {
   name: string
