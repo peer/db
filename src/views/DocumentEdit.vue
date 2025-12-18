@@ -9,7 +9,7 @@ import { useRouter } from "vue-router"
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
-import InputTime from "@/components/InputTime.vue";
+import InputTime from "@/components/InputTime.vue"
 import { AddClaimChange, changeFrom, idAtChange, PeerDBDocument, RemoveClaimChange } from "@/document"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"

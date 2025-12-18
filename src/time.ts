@@ -74,10 +74,10 @@ export function isLeap(year: number): boolean {
 
 export function daysIn(month: number, year: number): number {
   // February.
-	if (month == 2 && isLeap(year)) {
-		return 29
-	}
-	return Number(daysBefore[month] - daysBefore[month-1])
+  if (month == 2 && isLeap(year)) {
+    return 29
+  }
+  return Number(daysBefore[month] - daysBefore[month - 1])
 }
 
 function toAbs(unixSeconds: bigint): bigint {
