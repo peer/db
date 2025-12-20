@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
-import { ref, computed, readonly as vueReadonly, watch, onBeforeMount } from "vue"
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ref, computed, readonly as vueReadonly, watch, onBeforeMount, useAttrs } from "vue"
 import { debounce } from "lodash-es"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 
@@ -35,15 +36,38 @@ const emit = defineEmits<{
   "update:precision": [value: TimePrecision]
 }>()
 
+const attrs = useAttrs()
+
 const DEBOUNCE_MS = 2000
 
 const timePrecisionOptions = vueReadonly(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const)
+const precisionLabels: Record<TimePrecision, string> = {
+  G: "giga years",
+  "100M": "hundred megayears",
+  "10M": "ten megayears",
+  M: "megayears",
+  "100k": "hundred kiloyears",
+  "10k": "ten kiloyears",
+  k: "kiloyears",
+  "100y": "hundred years",
+  "10y": "ten years",
+  y: "years",
+  m: "months",
+  d: "days",
+  h: "hours",
+  min: "minutes",
+  s: "seconds",
+}
 const timePrecision = ref<TimePrecision>("d")
 
 const isTimeInvalid = ref(false)
 const errorMessage = ref("")
 
 const isInvalid = computed(() => props.invalid || isTimeInvalid.value)
+
+const inputId = computed(() => {
+  return typeof attrs.id === "string" ? attrs.id : "identifier-property"
+})
 
 const value = computed({
   get() {
@@ -70,6 +94,10 @@ const matchToHour = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2
 const matchToMinute = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/)
 const matchToSecond = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/)
 const matchFull = (s: string) => s.match(/^(-?\d+)-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+
+function precisionLabel(p: TimePrecision): string {
+  return precisionLabels[p]
+}
 
 function progressiveValidate(raw: string): string {
   if (!raw) return ""
@@ -383,36 +411,60 @@ watch(timePrecision, (value) => {
 
 <template>
   <div class="w-full flex flex-col gap-1">
-    <div class="flex gap-2">
-      <InputText
-        v-model="value"
-        v-bind="$attrs"
-        :spellcheck="false"
-        :readonly="readonly"
-        :invalid="isInvalid"
-        :progress="progress"
-        class="w-full"
-        @keydown="onKeydown"
-        @input="onInput"
-      />
-      <Listbox v-if="!readonly" v-model="timePrecision" :disabled="progress > 0" class="w-20">
-        <div class="relative">
-          <ListboxButton
-            class="w-full py-2 px-3 rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
-            :class="{
-              'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': progress > 0,
-            }"
-          >
-            {{ timePrecision }}
-          </ListboxButton>
+    <div class="flex gap-2 w-full">
+      <div class="flex flex-col gap-1 w-full">
+        <label :for="inputId" class="mt-4 mb-1">Timestamp</label>
 
-          <ListboxOptions class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10">
-            <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" :value="tp" class="cursor-pointer p-2 hover:bg-neutral-100">
-              {{ tp }}
-            </ListboxOption>
-          </ListboxOptions>
-        </div>
-      </Listbox>
+        <InputText
+          :id="inputId"
+          v-model="value"
+          v-bind="$attrs"
+          :spellcheck="false"
+          :readonly="readonly"
+          :invalid="isInvalid"
+          :progress="progress"
+          class="w-full"
+          @keydown="onKeydown"
+          @input="onInput"
+        />
+      </div>
+
+      <div v-if="!readonly" class="flex flex-col gap-1">
+        <label for="precision-list" class="mt-4 mb-1">Precision</label>
+
+        <Listbox id="precision-list" v-model="timePrecision" :disabled="progress > 0" class="w-48">
+          <div class="relative">
+            <ListboxButton
+              class="relative w-full rounded p-2 text-left shadow hover:cursor-pointer ring-2 ring-neutral-300 hover:ring-neutral-400"
+              :class="{
+                '!cursor-not-allowed bg-gray-100 text-gray-800 hover:!ring-neutral-300 focus:!border-primary-300 focus:!ring-primary-300': progress > 0,
+              }"
+            >
+              <span class="block truncate">
+                {{ precisionLabel(timePrecision) }}
+              </span>
+
+              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
+              </span>
+            </ListboxButton>
+
+            <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded bg-white shadow ring-2 ring-neutral-300 focus:outline-none">
+              <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
+                <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default select-none py-2 pl-10 pr-4']">
+                  <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
+                    {{ precisionLabel(tp) }}
+                  </span>
+
+                  <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
+                    <CheckIcon class="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
     </div>
 
     <p class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
