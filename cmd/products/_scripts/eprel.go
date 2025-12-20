@@ -2,50 +2,60 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
+	"net/http"
 	"sort"
 	"strings"
 
+	"github.com/alecthomas/kong"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
+	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
+	z "gitlab.com/tozd/go/zerolog"
+
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
-func getAPIKey() (string, error) {
-	key, err := os.ReadFile("../../.eprel.secret")
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-	return strings.TrimSpace(string(key)), nil
+type App struct {
+	z.LoggingConfig `yaml:",inline"`
+
+	Version kong.VersionFlag `help:"Show program's version and exit." short:"V" yaml:"-"`
+
+	APIKey kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
 }
 
-func mapAllWasherDrierFields(ctx context.Context, apiKey string) error {
-	httpClient := retryablehttp.NewClient()
-	httpClient.Logger = nil
+func mapAllWasherDrierFields(ctx context.Context, logger zerolog.Logger, apiKey string) errors.E {
+	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
 
 	seenFields := make(map[string][]interface{})
 
 	page := 1
 	for {
 		url := fmt.Sprintf("https://eprel.ec.europa.eu/api/products/washerdriers?_limit=100&_page=%d", page)
-		req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
+		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			return errors.WithStack(err)
+			errE := errors.WithStack(err)
+			errors.Details(errE)["url"] = url
+			return errE
 		}
 		req.Header.Set("X-Api-Key", apiKey)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			return errors.WithStack(err)
+			errE := errors.WithStack(err)
+			errors.Details(errE)["url"] = url
+			return errE
 		}
 
 		var result map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			resp.Body.Close()
-			return errors.WithStack(err)
-		}
+		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
 		resp.Body.Close()
+		if errE != nil {
+			return errE
+		}
 
 		hits, ok := result["hits"].([]interface{})
 		if !ok {
@@ -62,16 +72,14 @@ func mapAllWasherDrierFields(ctx context.Context, apiKey string) error {
 			}
 
 			for field, value := range product {
-				if _, exists := seenFields[field]; !exists {
-					seenFields[field] = []interface{}{value}
-				}
+				seenFields[field] = append(seenFields[field], value)
 			}
 		}
 
 		page++
 	}
 
-	// Print fields and sample values
+	// Print fields and sample values.
 	fields := make([]string, 0, len(seenFields))
 	for field := range seenFields {
 		fields = append(fields, field)
@@ -83,13 +91,15 @@ func mapAllWasherDrierFields(ctx context.Context, apiKey string) error {
 		value := seenFields[field][0]
 		fmt.Printf("- %s: %T\n", field, value)
 
-		// Print structure of nested objects
+		// Print structure of nested objects.
 		if m, ok := value.(map[string]interface{}); ok {
+			// TODO: Print in sorted order.
 			for k := range m {
 				fmt.Printf("  - %s\n", k)
 			}
 		} else if a, ok := value.([]interface{}); ok && len(a) > 0 {
 			if m, ok := a[0].(map[string]interface{}); ok {
+				// TODO: Print in sorted order.
 				for k := range m {
 					fmt.Printf("  - %s\n", k)
 				}
@@ -101,14 +111,10 @@ func mapAllWasherDrierFields(ctx context.Context, apiKey string) error {
 }
 
 func main() {
-	apiKey, err := getAPIKey()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading API key: %v\n", err)
-		os.Exit(1)
-	}
+	var app App
+	cli.Run(&app, nil, func(ctx *kong.Context) errors.E {
+		apiKey := strings.TrimSpace(string(app.APIKey))
 
-	if err := mapAllWasherDrierFields(context.Background(), apiKey); err != nil {
-		fmt.Fprintf(os.Stderr, "Error mapping fields: %v\n", err)
-		os.Exit(1)
-	}
+		return mapAllWasherDrierFields(context.Background(), app.Logger, apiKey)
+	})
 }
