@@ -3,19 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	z "gitlab.com/tozd/go/zerolog"
 
+	"gitlab.com/peerdb/peerdb/internal/eprel"
 	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
@@ -30,53 +28,16 @@ type App struct {
 func mapAllWasherDrierFields(ctx context.Context, logger zerolog.Logger, apiKey string) errors.E {
 	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
 
-	seenFields := make(map[string][]interface{})
+	washerDriers, errE := eprel.GetWasherDriers[map[string]any](ctx, httpClient, apiKey)
+	if errE != nil {
+		return errE
+	}
 
-	page := 1
-	for {
-		url := fmt.Sprintf("https://eprel.ec.europa.eu/api/products/washerdriers?_limit=100&_page=%d", page)
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			errE := errors.WithStack(err)
-			errors.Details(errE)["url"] = url
-			return errE
+	seenFields := make(map[string][]any)
+	for _, washerDrier := range washerDriers {
+		for field, value := range washerDrier {
+			seenFields[field] = append(seenFields[field], value)
 		}
-		req.Header.Set("X-Api-Key", apiKey)
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			errE := errors.WithStack(err)
-			errors.Details(errE)["url"] = url
-			return errE
-		}
-
-		var result map[string]interface{}
-		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
-		resp.Body.Close()
-		if errE != nil {
-			return errE
-		}
-
-		hits, ok := result["hits"].([]interface{})
-		if !ok {
-			return errors.New("result['hits'] is not []interface{}")
-		}
-		if len(hits) == 0 {
-			break
-		}
-
-		for _, hit := range hits {
-			product, ok := hit.(map[string]interface{})
-			if !ok {
-				return errors.New("hit is not map[string]interface{}")
-			}
-
-			for field, value := range product {
-				seenFields[field] = append(seenFields[field], value)
-			}
-		}
-
-		page++
 	}
 
 	// Print fields and sample values.

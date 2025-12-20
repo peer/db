@@ -8,7 +8,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/eprel"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
@@ -316,63 +316,6 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 	}
 
 	return urlCodes, nil
-}
-
-func getWasherDriers(ctx context.Context, httpClient *retryablehttp.Client, apiKey string) ([]WasherDrierProduct, errors.E) {
-	var allWasherDriers []WasherDrierProduct
-	limit := 100
-	page := 1
-
-	var totalSize int
-
-	for {
-		baseURL := "https://eprel.ec.europa.eu/api/products/washerdriers"
-		params := url.Values{}
-		params.Add("_limit", strconv.Itoa(limit))
-		params.Add("_page", strconv.Itoa(page))
-
-		url := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		req.Header.Set("X-Api-Key", apiKey)
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		defer resp.Body.Close()
-		defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
-
-		var result WasherDrierResponse
-		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
-		if errE != nil {
-			return nil, errE
-		}
-
-		if len(result.Hits) == 0 {
-			break
-		}
-
-		if page == 1 {
-			totalSize = result.Size
-		}
-
-		allWasherDriers = append(allWasherDriers, result.Hits...)
-		page++
-	}
-
-	if len(allWasherDriers) != totalSize {
-		errE := errors.New("unexpected number of washer driers")
-		errors.Details(errE)["expected"] = totalSize
-		errors.Details(errE)["got"] = len(allWasherDriers)
-		return nil, errE
-	}
-
-	return allWasherDriers, nil
 }
 
 //nolint:maintidx // Reason: function is large but logically cohesive and tested
@@ -747,7 +690,7 @@ func (e EPREL) Run(
 		return errors.New("missing EPREL API key")
 	}
 
-	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
+	washerDriers, errE := eprel.GetWasherDriers[WasherDrierProduct](ctx, httpClient, apiKey)
 	if errE != nil {
 		return errE
 	}
