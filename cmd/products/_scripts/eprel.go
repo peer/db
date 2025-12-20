@@ -25,6 +25,7 @@ type App struct {
 	APIKey kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
 }
 
+// mapAllWasherDrierFields prints all fields and sample values of all washer driers.
 func mapAllWasherDrierFields(ctx context.Context, logger zerolog.Logger, apiKey string) errors.E {
 	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
 
