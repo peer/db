@@ -175,6 +175,7 @@ var productsProperties = []struct {
 		`Country of incorporation.`,
 		[]string{`"string" claim type`},
 	},
+
 	// Datakick specific properties start here.
 	{
 		"datakick id",
@@ -245,7 +246,6 @@ var productsProperties = []struct {
 		"A document is about a washer drier product.",
 		[]string{`item`},
 	},
-
 	{
 		"EPREL contact ID",
 		nil,
@@ -258,7 +258,6 @@ var productsProperties = []struct {
 		`The registration number of the EU eco-label.`,
 		[]string{`"identifier" claim type`},
 	},
-
 	{
 		"energy class",
 		nil,
