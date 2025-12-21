@@ -19,7 +19,6 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/eprel"
 	"gitlab.com/peerdb/peerdb/internal/es"
 )
@@ -143,94 +142,4 @@ func TestNullUnmarshalingAndMarshaling(t *testing.T) {
 
 	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":123}`), &s)
 	assert.Error(t, errE)
-}
-
-func TestAddUploadedLabels(t *testing.T) {
-	t.Parallel()
-	doc := document.D{
-		CoreDocument: document.CoreDocument{
-			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123"),
-			Score: document.HighConfidence,
-		},
-		Claims: &document.ClaimTypes{},
-	}
-
-	uploadedLabels := []string{
-		"label1.pdf",
-		"label2.jpg",
-		"label3.png",
-		"label4.svg",
-		"invalid.jfif",
-		".50583513_17mb211s_invalid",
-		"label5.jpeg",
-		"",
-		" ",
-		".pd",
-	}
-
-	for i, uploadedLabel := range uploadedLabels {
-		uploadedLabel = strings.TrimSpace(uploadedLabel)
-
-		if uploadedLabel != "" {
-			var mediaType string
-			if strings.HasSuffix(strings.ToLower(uploadedLabel), ".pdf") {
-				mediaType = "application/pdf"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpg") ||
-				strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpeg") {
-				mediaType = "image/jpeg"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".png") {
-				mediaType = "image/png"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".svg") {
-				mediaType = "image/svg+xml"
-			} else {
-				// Skip invalid extensions.
-				continue
-			}
-			errE := doc.Add(&document.FileClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "UPLOADED_LABEL", i),
-					Confidence: document.HighConfidence,
-				},
-				Prop:      document.GetCorePropertyReference("UPLOADED_LABEL"),
-				MediaType: mediaType,
-				URL:       "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel,
-				Preview:   []string{"https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel},
-			})
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-	}
-
-	// Check the number of valid labels added.
-	uploadedLabelClaims := doc.Get(document.GetCorePropertyID("UPLOADED_LABEL"))
-	assert.Len(t, uploadedLabelClaims, 5, "should have added 5 valid uploaded labels")
-
-	// Verify the media types are correct.
-	var foundMediaTypes []string
-	var foundURLs []string
-	for _, claim := range uploadedLabelClaims {
-		if fileClaim, ok := claim.(*document.FileClaim); ok {
-			foundMediaTypes = append(foundMediaTypes, fileClaim.MediaType)
-			foundURLs = append(foundURLs, fileClaim.URL)
-		}
-	}
-
-	// Check media types.
-	expectedMediaTypes := []string{
-		"application/pdf",
-		"image/jpeg",
-		"image/png",
-		"image/svg+xml",
-		"image/jpeg",
-	}
-	assert.ElementsMatch(t, expectedMediaTypes, foundMediaTypes, "should have correct media types")
-
-	// Check URLs.
-	expectedURLs := []string{
-		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label1.pdf",
-		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label2.jpg",
-		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label3.png",
-		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label4.svg",
-		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label5.jpeg",
-	}
-	assert.ElementsMatch(t, expectedURLs, foundURLs, "should have correct URLs")
 }
