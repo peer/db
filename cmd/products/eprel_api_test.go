@@ -35,7 +35,8 @@ func TestGetProductGroups(t *testing.T) {
 	// Assert that we got results.
 	assert.NotEmpty(t, urlCodes, "product groups list should not be empty")
 
-	// Assert that washerdriers are present (add more later when we process other product groups).
+	// Assert that washerdriers are present.
+	// TODO: Add more once we process other product groups.
 	expectedGroups := []string{
 		"washerdriers",
 	}
@@ -193,7 +194,7 @@ func getWasherDrierTestCases(t *testing.T, washerDrier WasherDrierProduct) []was
 			func(t *testing.T, c document.Claim) string {
 				t.Helper()
 				textClaim, ok := c.(*document.TextClaim)
-				require.True(t, ok, "name property is not a Text claim")
+				require.True(t, ok, "name property is not a text claim")
 				return textClaim.HTML["en"]
 			},
 			html.EscapeString(fmt.Sprintf("%s %s",
@@ -401,59 +402,76 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 	}
 }
 
-func TestInvalidNullUnmarshaling(t *testing.T) {
+func TestNullUnmarshalingAndMarshaling(t *testing.T) {
 	t.Parallel()
 
-	validWasherDrier := createTestWasherDrier(t)
+	type testStruct struct {
+		Field Null `json:"field"`
+	}
 
-	validJSON, errE := x.MarshalWithoutEscapeHTML(validWasherDrier)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	var s testStruct
+	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":null}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	invalidJSON := strings.Replace(string(validJSON), `"generatedLabels":null`,
-		`"generatedLabels":"test non null value"`, 1)
+	b, errE := x.MarshalWithoutEscapeHTML(s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, `{"field":null}`, string(b))
 
-	var invalidWasherDrier WasherDrierProduct
-	errE = x.UnmarshalWithoutUnknownFields([]byte(invalidJSON), &invalidWasherDrier)
-
-	assert.Error(t, errE, "unmarshaling should fail when a Null field contains a non-null value")
-	assert.Contains(t, errE.Error(), "only null value is excepted",
-		"error should indicate that only null values are accepted")
+	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":123}`), &s)
+	assert.Error(t, errE)
 }
 
 func TestEnergyClassUnmarshaling(t *testing.T) {
 	t.Parallel()
 
-	washerDrier := createTestWasherDrier(t)
-	assert.Equal(t, "APPP", string(washerDrier.EnergyClass), "initial energy class should be URL-safe format")
+	type testStruct struct {
+		Field EnergyClass `json:"field"`
+	}
 
-	jsonData, errE := x.MarshalWithoutEscapeHTML(washerDrier)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	var s testStruct
+	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"H"}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, EnergyClass("H"), s.Field)
 
-	assert.Contains(t, string(jsonData), `"energyClass":"APPP"`, "JSON should contain URL-safe format")
+	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"APPP"}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, EnergyClass("A+++"), s.Field)
+}
 
-	var unmarshaled WasherDrierProduct
-	errE = x.UnmarshalWithoutUnknownFields(jsonData, &unmarshaled)
-	require.NoError(t, errE, "% -+#.1v", errE)
+func TestStatusUnmarshaling(t *testing.T) {
+	t.Parallel()
 
-	assert.Equal(t, "A+++", string(unmarshaled.EnergyClass),
-		"unmarshaled energy class should be converted to display format with + characters")
+	type testStruct struct {
+		Field Status `json:"field"`
+	}
 
-	doc, errE := makeWasherDrierDoc(unmarshaled)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	var s testStruct
+	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"PUBLISHED"}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
 
-	claims := doc.Get(document.GetCorePropertyID("ENERGY_CLASS"))
-	require.NotEmpty(t, claims, "no energy class claims found")
+	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"something else"}`), &s)
+	assert.Error(t, errE)
+}
 
-	stringClaim, ok := claims[0].(*document.StringClaim)
-	require.True(t, ok, "energy class claim is not a string claim")
-	assert.Equal(t, "A+++", stringClaim.String,
-		"energy class in document should use display format with + characters")
+func TestTrademarkVerificationStatusUnmarshaling(t *testing.T) {
+	t.Parallel()
+
+	type testStruct struct {
+		Field TrademarkVerificationStatus `json:"field"`
+	}
+
+	var s testStruct
+	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"VERIFIED"}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"something else"}`), &s)
+	assert.Error(t, errE)
 }
 
 func TestEpochTimeUnmarshalingAndMarshaling(t *testing.T) {
 	t.Parallel()
 
-	jsonData := []byte(`{"timestamp": 1540512000}`)
+	jsonData := []byte(`{"timestamp":1540512000}`)
 	var result struct {
 		Timestamp EpochTime `json:"timestamp"`
 	}
@@ -471,7 +489,7 @@ func TestEpochTimeUnmarshalingAndMarshaling(t *testing.T) {
 	marshalledData, errE := x.MarshalWithoutEscapeHTML(result)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Contains(t, string(marshalledData), `"timestamp":1540512000`)
+	assert.Equal(t, `{"timestamp":1540512000}`, string(marshalledData))
 }
 
 func TestAddPlacementCountries(t *testing.T) {
