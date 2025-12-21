@@ -30,15 +30,16 @@ const (
 	KilowattHoursToJoules = 3.6e6
 )
 
-/*
-We are defining a custom struct, Null, to address fields passed by the EPREL API whose values are currently always null so we do not know how to best type them.
-Upon unmarshaling, the Null struct will automatically check if the field is null or not. That means that once we actually get non-null data from the API,
-we'll be notified about it and can change the field type from Null to what it actually is.
-*/
+// Null is used to address fields returned by the EPREL API whose values are currently always null
+// so we do not know what values they could have and cannot map them to better Go types.
+// Upon JSON unmarshaling, the Null struct will automatically check if the field is null or not.
+// That means that if we ever get non-null data from the API, JSON unmarshaling will fail and we will
+// be notified about it and can change the field type from Null to what it actually is.
 type Null struct{}
 
 var (
-	// Assertions also silence this lint error: https://github.com/mvdan/unparam/issues/52
+	// Silence the lint error.
+	// See: https://github.com/mvdan/unparam/issues/52
 	_ json.Unmarshaler = (*Null)(nil)
 	_ json.Marshaler   = (*Null)(nil)
 )
@@ -54,12 +55,9 @@ func (n Null) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-/*
-We are defining a custom struct, EnergyClass, so that we can apply custom unmarshaling behavior to it.
-The values of the energyClass field in the EPREL API can be 'A', 'B', 'C', 'D', 'E', 'F', 'G'
-and 'AP', 'APP', 'APPP', and 'APPPP', where EPREL has replaced '+' with 'P'.
-We want to replace 'P' with '+' in our dataset, since that is the correct value.
-*/
+// EnergyClass uses custom JSON unmarshaling. The values of the energyClass field in the EPREL API
+// can be "A", "B", "C", "D", "E", "F", "G" and "AP", "APP", "APPP", and "APPPP", where EPREL has
+// replaced "+" with "P". We want to replace "P" with "+" in our dataset, since that is the correct value.
 type EnergyClass string
 
 func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
@@ -73,10 +71,8 @@ func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-/*
-We are defining a custom struct, Status, so that we can make sure that the status field in the EPREL API is always "PUBLISHED".
-If the status is not "PUBLISHED", an error will be returned so we know we'll need to look into this again.
-*/
+// Status makes sure that the status field in the EPREL API is always "PUBLISHED". If the status is
+// ever not "PUBLISHED", an error will be returned to notify us that this aspect of the API changed.
 type Status string
 
 func (s *Status) UnmarshalJSON(data []byte) error {
@@ -92,12 +88,9 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-/*
-We are defining a custom struct, TrademarkVerificationStatus, so that we can make
-sure that the trademarkVerificationStatus field in the EPREL API is always "VERIFIED".
-If the status is not "VERIFIED", an error will be returned so we know we'll
-need to look into this again.
-*/
+// TrademarkVerificationStatus makes sure that the trademarkVerificationStatus field in the EPREL API
+// is always "VERIFIED". If the status is ever not "VERIFIED", an error will be returned to notify us
+// that this aspect of the API changed.
 type TrademarkVerificationStatus string
 
 func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
@@ -113,26 +106,23 @@ func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-/*
-We are defining a custom struct, EpochTime, so that we can
-unmarshall the timestamp fields in the EPREL API from epochs to dates.
-*/
-
+// EpochTime supports timestamps in JSON represented as numeric UNIX epoch timestamp.
 type EpochTime time.Time
 
-// Silence "error is always nil" lint error for the MarshalJSON() method.
+// Silence the lint error.
+// See: https://github.com/mvdan/unparam/issues/52
 var _ json.Marshaler = (*EpochTime)(nil)
 
-func (et EpochTime) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatInt(time.Time(et).Unix(), 10)), nil
+func (e EpochTime) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatInt(time.Time(e).Unix(), 10)), nil
 }
 
-func (et *EpochTime) UnmarshalJSON(data []byte) error {
+func (e *EpochTime) UnmarshalJSON(data []byte) error {
 	i, err := strconv.ParseInt(string(data), 10, 64)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	*(*time.Time)(et) = time.Unix(i, 0)
+	*(*time.Time)(e) = time.Unix(i, 0)
 	return nil
 }
 
@@ -141,13 +131,7 @@ type EPREL struct {
 	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
 }
 
-type WasherDrierResponse struct {
-	Size   int                  `json:"size"`
-	Offset int                  `json:"offset"`
-	Hits   []WasherDrierProduct `json:"hits"`
-}
-
-//nolint:tagliatelle // JSON tags must match external EPREL API format.
+//nolint:tagliatelle
 type ProductGroup struct {
 	Code       string `json:"code"`
 	URLCode    string `json:"url_code"`
@@ -156,23 +140,30 @@ type ProductGroup struct {
 }
 
 type PlacementCountry struct {
-	// TODO: Map Country to MARKET_COUNTRY existing property claim. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193.
+	// TODO: Map Country to MARKET_COUNTRY existing property claim.
+	// 			 See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2358255193.
 	Country     string `json:"country"`
 	OrderNumber int    `json:"orderNumber"`
 }
 
-//nolint:tagliatelle // JSON tags must match external EPREL API format.
+//nolint:tagliatelle
 type WasherDrierProduct struct {
-	// TODO: Map all timestamp fields to a custom type. See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179.
-	AllowEPRELLabelGeneration bool `json:"allowEprelLabelGeneration"` // Did not map this field, as we will not use it.
-	Blocked                   bool `json:"blocked"`                   // Did not map this field, as we will not use it.
+	// TODO: Map all timestamp fields to a custom type.
+	// 			 See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2357945179.
+
+	// Not mapping this field, as we do not use it.
+	AllowEPRELLabelGeneration bool `json:"allowEprelLabelGeneration"`
+	// Not mapping this field, as we do not use it.
+	Blocked bool `json:"blocked"`
 	// TODO: Move ContactDetails to a separate document.
-	ContactDetails ContactDetails `json:"contactDetails"` // Did not map this field, as we will not use it.
-	EPRELContactID int64          `json:"contactId,omitempty"`
+	ContactDetails ContactDetails `json:"contactDetails"`
+	// TODO: Move EPRELContactID together with ContactDetails to a separate document.
+	EPRELContactID int64 `json:"contactId,omitempty"`
 	// TODO: Move cycles to a separate document.
-	Cycles                     []Cycle `json:"cycles"`
-	EcoLabel                   bool    `json:"ecoLabel"` // Did not map this field, as we will not use it.
-	EcoLabelRegistrationNumber string  `json:"ecoLabelRegistrationNumber"`
+	Cycles []Cycle `json:"cycles"`
+	// Not mapping this field, as we do not use it.
+	EcoLabel                   bool   `json:"ecoLabel"`
+	EcoLabelRegistrationNumber string `json:"ecoLabelRegistrationNumber"`
 
 	EnergyAnnualWash          float64     `json:"energyAnnualWash"`
 	EnergyAnnualWashAndDry    float64     `json:"energyAnnualWashAndDry"`
@@ -182,59 +173,86 @@ type WasherDrierProduct struct {
 	EnergyClassRange          string      `json:"energyClassRange"`
 	EnergyLabelID             int         `json:"energyLabelId"`
 
-	EPRELRegistrationNumber       string `json:"eprelRegistrationNumber"`
-	ExportDateTimestamp           int64  `json:"exportDateTS"`
-	FirstPublicationDate          []int  `json:"firstPublicationDate"`   // Not mapping, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
-	FirstPublicationDateTimestamp int64  `json:"firstPublicationDateTS"` // Not mapping, see: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
-	FormType                      string `json:"formType"`               // Did not map this field, as we will not use it.
-	GeneratedLabels               Null   `json:"generatedLabels"`        // Did not map this field, as we will not use it.
+	EPRELRegistrationNumber string `json:"eprelRegistrationNumber"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	ExportDateTimestamp int64 `json:"exportDateTS"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	FirstPublicationDate []int `json:"firstPublicationDate"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	FirstPublicationDateTimestamp int64 `json:"firstPublicationDateTS"`
+	// Not mapping this field, as we do not use it.
+	FormType string `json:"formType"`
+	// Not mapping this field, as we do not use it.
+	GeneratedLabels Null `json:"generatedLabels"`
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
-	LastVersion     bool   `json:"lastVersion"` // Did not map this field, as we will not use it.
+	// Not mapping this field, as we do not use it.
+	LastVersion     bool   `json:"lastVersion"`
 	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
 	NoiseSpin float64 `json:"noiseSpin"`
 	NoiseWash float64 `json:"noiseWash"`
 
-	OnMarketEndDate                 []int     `json:"onMarketEndDate"` // Not mapping, as using the TS version of this field.
-	OnMarketEndDateTimestamp        EpochTime `json:"onMarketEndDateTS"`
-	OnMarketFirstStartDate          []int     `json:"onMarketFirstStartDate"`   // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
-	OnMarketFirstStartDateTimestamp int64     `json:"onMarketFirstStartDateTS"` // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
-	OnMarketStartDate               []int     `json:"onMarketStartDate"`        // Not mapping, as using the TS version of this field.
-	OnMarketStartDateTimestamp      EpochTime `json:"onMarketStartDateTS"`
-	// TODO: OrgVerificationStatus - We may add this to the org/company/contact doc in the future. https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
+	// Not mapping this field, as we use the TS version of this field.
+	OnMarketEndDate          []int     `json:"onMarketEndDate"`
+	OnMarketEndDateTimestamp EpochTime `json:"onMarketEndDateTS"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	OnMarketFirstStartDate []int `json:"onMarketFirstStartDate"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
+	// Not mapping this field, as we use the TS version of this field.
+	OnMarketStartDate          []int     `json:"onMarketStartDate"`
+	OnMarketStartDateTimestamp EpochTime `json:"onMarketStartDateTS"`
+	// TODO: We may add this to the org/company/contact document in the future.
+	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
 	OrgVerificationStatus string `json:"orgVerificationStatus"`
 	// TODO: Map Organisation to a separate document.
-	Organisation       Organisation       `json:"organisation"` // Not mapped, as we will not use it.
+	Organisation       Organisation       `json:"organisation"`
 	OtherIdentifiers   []OtherIdentifiers `json:"otherIdentifiers"`
 	PlacementCountries []PlacementCountry `json:"placementCountries"`
 
-	ProductGroup             string `json:"productGroup"`
-	ProductModelCoreID       int    `json:"productModelCoreId"`
-	PublishedOnDate          []int  `json:"publishedOnDate"`   // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
-	PublishedOnDateTimestamp int64  `json:"publishedOnDateTS"` // Not mapping, see https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072.
+	ProductGroup       string `json:"productGroup"`
+	ProductModelCoreID int    `json:"productModelCoreId"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	PublishedOnDate []int `json:"publishedOnDate"`
+	// Not mapping because it is internal to EPREL publishing process.
+	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
+	PublishedOnDateTimestamp int64 `json:"publishedOnDateTS"`
 
-	// TODO: Map RegistrantNature to organization/company/contacts doc.
-	RegistrantNature            string                      `json:"registrantNature"` // Not mapping this as we will not use it in this doc.
-	Status                      Status                      `json:"status"`           // Status is always "PUBLISHED", not mapping as this is not useful to us.
-	SupplierOrTrademark         string                      `json:"supplierOrTrademark"`
-	TrademarkID                 int                         `json:"trademarkId"`                 // this is an EPREL internal ID, so it is not useful to us. Not mapping.
-	TrademarkOwner              Null                        `json:"trademarkOwner,omitempty"`    // Value is always NIL, not mapping as this is not useful to us.
-	TrademarkVerificationStatus TrademarkVerificationStatus `json:"trademarkVerificationStatus"` // Values is always VERIFIED, not mapping as this not useful to us.
+	// TODO: Map RegistrantNature to organization/company/contacts document.
+	RegistrantNature string `json:"registrantNature"`
+	// Status is always "PUBLISHED". Not mapping this field as this is not useful.
+	Status              Status `json:"status"`
+	SupplierOrTrademark string `json:"supplierOrTrademark"`
+	// This is an EPREL internal ID, so it is not useful. Not mapping.
+	TrademarkID int `json:"trademarkId"`
+	// Value is always null. Not mapping this field as this is not useful.
+	TrademarkOwner Null `json:"trademarkOwner,omitempty"`
+	// Value is always "VERIFIED". Not mapping this field as this is not useful.
+	TrademarkVerificationStatus TrademarkVerificationStatus `json:"trademarkVerificationStatus"`
 
 	UploadedLabels []string `json:"uploadedLabels"`
-	VersionID      int      `json:"versionId"` // Not mapped as we will not use this field.
+	// Not mapping this field, as we do not use it.
+	VersionID int `json:"versionId"`
 	// In theory, VersionNumber should probably be an integer, but we observe float values (3.001, 1.001), so we leave it as float.
-	VersionNumber                                     float64 `json:"versionNumber"`  // Not mapped as we will not use this field.
-	VisibleToUnitedKingdomMarketSurveillanceAuthority bool    `json:"visibleToUkMsa"` // Not mapped as we will not use this field.
+	// Not mapping this field, as we do not use it.
+	VersionNumber float64 `json:"versionNumber"`
+	// Not mapping this field, as we do not use it.
+	VisibleToUnitedKingdomMarketSurveillanceAuthority bool `json:"visibleToUkMsa"`
 
 	WaterAnnualWash       float64 `json:"waterAnnualWash"`
 	WaterAnnualWashAndDry float64 `json:"waterAnnualWashAndDry"`
 }
 
-//nolint:tagliatelle // JSON tags must match external EPREL API format.
+//nolint:tagliatelle
 type ContactDetails struct {
 	Address              string `json:"addressBloc,omitempty"`
 	City                 string `json:"city"`
@@ -256,7 +274,7 @@ type ContactDetails struct {
 	WebSiteURL           string `json:"webSiteURL,omitempty"`
 }
 
-//nolint:tagliatelle // JSON tags must match external EPREL API format.
+//nolint:tagliatelle
 type Cycle struct {
 	CapacityDry                 float64 `json:"capacityDry"`
 	CapacityWash                float64 `json:"capacityWash"`
