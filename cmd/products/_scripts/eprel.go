@@ -76,6 +76,9 @@ func main() {
 	var app App
 	cli.Run(&app, nil, func(ctx *kong.Context) errors.E {
 		apiKey := strings.TrimSpace(string(app.APIKey))
+		if apiKey == "" {
+			return errors.New("missing EPREL API key")
+		}
 
 		return mapAllWasherDrierFields(context.Background(), app.Logger, apiKey)
 	})

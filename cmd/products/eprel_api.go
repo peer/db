@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -310,17 +309,21 @@ type OtherIdentifiers struct {
 }
 
 func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]string, errors.E) {
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, "https://eprel.ec.europa.eu/api/product-groups", nil)
+	url := "https://eprel.ec.europa.eu/api/product-groups"
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return nil, errE
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
 	}
 	defer resp.Body.Close()
-	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	var result []ProductGroup
 	errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
@@ -336,7 +339,7 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 	return urlCodes, nil
 }
 
-//nolint:maintidx // Reason: function is large but logically cohesive and tested
+//nolint:maintidx
 func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
@@ -693,9 +696,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 }
 
 func (e EPREL) Run(
-	ctx context.Context,
-	config *Config,
-	httpClient *retryablehttp.Client,
+	ctx context.Context, config *Config, httpClient *retryablehttp.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
