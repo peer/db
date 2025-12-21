@@ -572,10 +572,10 @@ func TestAddUploadedLabels(t *testing.T) {
 			}
 			errE := doc.Add(&document.FileClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "UPLOADED_LABELS", i),
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "UPLOADED_LABEL", i),
 					Confidence: document.HighConfidence,
 				},
-				Prop:      document.GetCorePropertyReference("UPLOADED_LABELS"),
+				Prop:      document.GetCorePropertyReference("UPLOADED_LABEL"),
 				MediaType: mediaType,
 				URL:       "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel,
 				Preview:   []string{"https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel},
@@ -585,7 +585,7 @@ func TestAddUploadedLabels(t *testing.T) {
 	}
 
 	// Check the number of valid labels added.
-	uploadedLabelClaims := doc.Get(document.GetCorePropertyID("UPLOADED_LABELS"))
+	uploadedLabelClaims := doc.Get(document.GetCorePropertyID("UPLOADED_LABEL"))
 	assert.Len(t, uploadedLabelClaims, 5, "should have added 5 valid uploaded labels")
 
 	// Verify the media types are correct.
