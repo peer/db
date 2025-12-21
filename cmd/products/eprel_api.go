@@ -117,7 +117,7 @@ type WasherDrierProduct struct {
 	FirstPublicationDateTimestamp int64 `json:"firstPublicationDateTS"`
 	// Not mapping this field, as we do not use it.
 	FormType string `json:"formType"`
-	// Not mapping this field, as we do not use it.
+	// Value is always null. Not mapping this field as this is not useful.
 	GeneratedLabels Null `json:"generatedLabels"`
 
 	ImplementingAct string `json:"implementingAct"`
