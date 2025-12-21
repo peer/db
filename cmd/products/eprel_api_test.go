@@ -421,6 +421,25 @@ func TestNullUnmarshalingAndMarshaling(t *testing.T) {
 	assert.Error(t, errE)
 }
 
+func TestBoolUnmarshalingAndMarshaling(t *testing.T) {
+	t.Parallel()
+
+	type testStruct struct {
+		Field Bool `json:"field"`
+	}
+
+	var s testStruct
+	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":true}`), &s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+
+	b, errE := x.MarshalWithoutEscapeHTML(s)
+	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, `{"field":true}`, string(b))
+
+	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":false}`), &s)
+	assert.Error(t, errE)
+}
+
 func TestEnergyClassUnmarshaling(t *testing.T) {
 	t.Parallel()
 

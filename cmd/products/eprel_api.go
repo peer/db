@@ -70,6 +70,23 @@ func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Bool makes sure that the boolean value is always true. If the value is ever not true,
+// an error will be returned to notify us that this aspect of the API changed.
+type Bool bool
+
+func (b *Bool) UnmarshalJSON(data []byte) error {
+	var eprelBool bool
+	errE := x.UnmarshalWithoutUnknownFields(data, &eprelBool)
+	if errE != nil {
+		return errE
+	}
+	if eprelBool != true {
+		return errors.New("bool is not true")
+	}
+	*b = Bool(eprelBool)
+	return nil
+}
+
 // Status makes sure that the status field in the EPREL API is always "PUBLISHED". If the status is
 // ever not "PUBLISHED", an error will be returned to notify us that this aspect of the API changed.
 type Status string
@@ -194,7 +211,7 @@ type WasherDrierProduct struct {
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
 	// Not mapping this field, as we do not use it.
-	LastVersion     bool   `json:"lastVersion"`
+	LastVersion     Bool   `json:"lastVersion"`
 	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
