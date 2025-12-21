@@ -48,11 +48,11 @@ func TestGetProductGroups(t *testing.T) {
 func getAPIKey(t *testing.T) string {
 	t.Helper()
 
-	if os.Getenv("EPREL_API_KEY") == "" {
-		t.Skip("EPREL_API_KEY is not available")
+	if os.Getenv("EPREL_API_KEY_PATH") == "" {
+		t.Skip("EPREL_API_KEY_PATH is not available")
 	}
 
-	key, err := os.ReadFile(os.Getenv("EPREL_API_KEY"))
+	key, err := os.ReadFile(os.Getenv("EPREL_API_KEY_PATH"))
 	require.NoError(t, err)
 
 	return strings.TrimSpace(string(key))
