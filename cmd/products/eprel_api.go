@@ -607,25 +607,25 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 
 	for i, otherIdentifier := range washerDrier.OtherIdentifiers {
 		if strings.TrimSpace(otherIdentifier.ModelIdentifier) != "" {
+			var identifierType string
+			switch otherIdentifier.Type {
+			case "EAN_13", "EAN_14", "EAN_8", "EAN_VELOCITY", "UPC_A":
+				identifierType = "GTIN"
+			case "OTHER":
+				identifierType = "UNKNOWN_PRODUCT_IDENTIFIER"
+			default:
+				errE := errors.New("unknown other product identifier type")
+				errors.Details(errE)["type"] = otherIdentifier.Type
+				errors.Details(errE)["id"] = washerDrier.EPRELRegistrationNumber
+				return doc, errE
+			}
+
 			errE := doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "EPREL_OTHER_IDENTIFIER", i),
+					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, identifierType, i),
 					Confidence: document.HighConfidence,
-					// Add metadata about the identifier type.
-					Meta: &document.ClaimTypes{
-						String: document.StringClaims{
-							{
-								CoreClaim: document.CoreClaim{
-									ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "EPREL_OTHER_IDENTIFIER", i, "TYPE", 0),
-									Confidence: document.HighConfidence,
-								},
-								Prop:   document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER_TYPE"),
-								String: otherIdentifier.Type,
-							},
-						},
-					},
 				},
-				Prop:  document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER"),
+				Prop:  document.GetCorePropertyReference(identifierType),
 				Value: otherIdentifier.ModelIdentifier,
 			})
 			if errE != nil {

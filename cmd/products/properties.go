@@ -367,16 +367,10 @@ var productsProperties = []struct {
 		[]string{`"file" claim type`},
 	},
 	{
-		"eprel other identifier",
+		"unknown product identifier",
 		nil,
-		`EPREL other identifier.`,
+		`unknown product identifier.`,
 		[]string{`"identifier" claim type`},
-	},
-	{
-		"eprel other identifier type",
-		nil,
-		`The type of the EPREL other identifier.`,
-		[]string{`"string" claim type`},
 	},
 }
 
