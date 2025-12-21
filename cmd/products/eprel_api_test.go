@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"os"
@@ -11,13 +10,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/eprel"
+	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 func TestGetProductGroups(t *testing.T) {
@@ -43,17 +46,14 @@ func TestGetProductGroups(t *testing.T) {
 	}
 }
 
-func skipIfNoAPIKey(t *testing.T) {
+func getAPIKey(t *testing.T) string {
 	t.Helper()
+
 	if os.Getenv("EPREL_API_KEY") == "" {
 		t.Skip("EPREL_API_KEY is not available")
 	}
-}
 
-func getAPIKey(t *testing.T) string {
-	t.Helper()
-	skipIfNoAPIKey(t)
-	key, err := os.ReadFile("../../.eprel.secret")
+	key, err := os.ReadFile(os.Getenv("EPREL_API_KEY"))
 	require.NoError(t, err)
 
 	return strings.TrimSpace(string(key))
@@ -62,65 +62,22 @@ func getAPIKey(t *testing.T) string {
 func TestGetWasherDriers(t *testing.T) {
 	t.Parallel()
 
-	skipIfNoAPIKey(t)
-	ctx := context.Background()
-	httpClient := retryablehttp.NewClient()
-	httpClient.Logger = nil // suppress unnecessary debug logs unless something fails.
 	apiKey := getAPIKey(t)
 
-	washerDriers, errE := getWasherDriers(ctx, httpClient, apiKey)
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+
+	ctx := context.Background()
+	washerDriers, errE := eprel.GetWasherDriers[WasherDrierProduct](ctx, httpClient, apiKey)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	t.Logf("Total washer driers retrieved: %d", len(washerDriers))
-
-	// Test first item has expected fields.
-	if len(washerDriers) > 0 {
-		first := washerDriers[0]
-		t.Log("First washer drier:")
-		t.Logf("Model: %s", first.ModelIdentifier)
-		t.Logf("Energy class: %s", first.EnergyClass)
-		t.Logf("Number of cycles: %d", len(first.Cycles))
-	}
+	assert.NotEmpty(t, washerDriers)
 }
 
-func TestInspectSingleWasherDrier(t *testing.T) {
-	t.Parallel()
+func createTestWasherDrier(t *testing.T) WasherDrierProduct {
+	t.Helper()
 
-	skipIfNoAPIKey(t)
-	ctx := context.Background()
-	httpClient := retryablehttp.NewClient()
-	httpClient.Logger = nil
-	apiKey := getAPIKey(t)
-
-	// Get just one washer-drier.
-	url := "https://eprel.ec.europa.eu/api/products/washerdriers?_limit=1&_page=1"
-	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
-	require.NoError(t, err)
-
-	req.Header.Set("X-Api-Key", apiKey)
-
-	resp, err := httpClient.Do(req)
-	require.NoError(t, err)
-
-	defer resp.Body.Close()
-
-	var result map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err)
-
-	hits, ok := result["hits"].([]interface{})
-	require.True(t, ok, "result['hits'] is not []interface{}")
-	require.NotEmpty(t, hits, "no washer-driers found")
-
-	// Pretty print the first washer-drier.
-	washerDrier := hits[0]
-	prettyJSON, err := json.MarshalIndent(washerDrier, "", "    ")
-	require.NoError(t, err)
-
-	t.Logf("Single washer-drier example:\n%s", string(prettyJSON))
-}
-
-func createTestWasherDrier() WasherDrierProduct {
 	return WasherDrierProduct{
 		EPRELRegistrationNumber:    "132300",
 		ModelIdentifier:            "F94J8VH2WD",
@@ -214,7 +171,9 @@ type washerDrierTestCase struct {
 	expected  string
 }
 
-func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCase {
+func getWasherDrierTestCases(t *testing.T, washerDrier WasherDrierProduct) []washerDrierTestCase {
+	t.Helper()
+
 	return []washerDrierTestCase{
 		{
 			"Type",
@@ -413,24 +372,17 @@ func getWasherDrierTestCases(washerDrier WasherDrierProduct) []washerDrierTestCa
 func TestMakeWasherDrierDoc(t *testing.T) {
 	t.Parallel()
 
-	skipIfNoAPIKey(t)
-
-	washerDrier := createTestWasherDrier()
+	washerDrier := createTestWasherDrier(t)
 
 	doc, errE := makeWasherDrierDoc(washerDrier)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Print document to inspect in console.
-	prettyDoc, errE := x.MarshalWithoutEscapeHTML(doc)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	t.Logf("Document structure:\n%s", string(prettyDoc))
-
-	tests := getWasherDrierTestCases(washerDrier)
+	tests := getWasherDrierTestCases(t, washerDrier)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			claims := doc.Get(document.GetCorePropertyID(tt.propName))
 			require.NotEmpty(t, claims, "no claims found for property %s", tt.propName)
 
@@ -505,63 +457,61 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 					break
 				}
 			}
-			if !found {
-				t.Errorf("expected value %s not found for property %s", tt.expected, tt.propName)
-			}
+			assert.True(t, found, "expected value %s not found for property %s", tt.expected, tt.propName)
 		})
 	}
 }
 
-func TestInvalidNullUnmarshalling(t *testing.T) {
+func TestInvalidNullUnmarshaling(t *testing.T) {
 	t.Parallel()
 
-	validWasherDrier := createTestWasherDrier()
+	validWasherDrier := createTestWasherDrier(t)
 
-	validJSON, err := json.Marshal(validWasherDrier)
-	require.NoError(t, err, "Failed to marshal valid washer drier")
+	validJSON, errE := x.MarshalWithoutEscapeHTML(validWasherDrier)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	invalidJSON := strings.Replace(string(validJSON), `"generatedLabels":null`,
 		`"generatedLabels":"test non null value"`, 1)
 
 	var invalidWasherDrier WasherDrierProduct
-	err = json.Unmarshal([]byte(invalidJSON), &invalidWasherDrier)
+	errE = x.UnmarshalWithoutUnknownFields([]byte(invalidJSON), &invalidWasherDrier)
 
-	assert.Error(t, err, "Unmarshaling should fail when a Null field contains a non-null value")
-	assert.Contains(t, err.Error(), "only null value is excepted",
-		"Error should indicate that only null values are accepted")
+	assert.Error(t, errE, "unmarshaling should fail when a Null field contains a non-null value")
+	assert.Contains(t, errE.Error(), "only null value is excepted",
+		"error should indicate that only null values are accepted")
 }
 
-func TestEnergyClassUnmarshalling(t *testing.T) {
+func TestEnergyClassUnmarshaling(t *testing.T) {
 	t.Parallel()
 
-	washerDrier := createTestWasherDrier()
-	assert.Equal(t, "APPP", string(washerDrier.EnergyClass), "Initial energy class should be URL-safe format")
+	washerDrier := createTestWasherDrier(t)
+	assert.Equal(t, "APPP", string(washerDrier.EnergyClass), "initial energy class should be URL-safe format")
 
-	jsonData, err := json.Marshal(washerDrier)
-	require.NoError(t, err, "Failed to marshal valid washer drier")
+	jsonData, errE := x.MarshalWithoutEscapeHTML(washerDrier)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Contains(t, string(jsonData), `"energyClass":"APPP"`, "JSON should contain URL-safe format")
 
 	var unmarshaled WasherDrierProduct
-	err = json.Unmarshal(jsonData, &unmarshaled)
-	require.NoError(t, err, "Failed to unmarshal washer drier")
+	errE = x.UnmarshalWithoutUnknownFields(jsonData, &unmarshaled)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "A+++", string(unmarshaled.EnergyClass),
-		"Unmarshaled energy class should be converted to display format with + characters")
+		"unmarshaled energy class should be converted to display format with + characters")
 
 	doc, errE := makeWasherDrierDoc(unmarshaled)
-	require.NoError(t, errE, "Failed to create document from washer drier")
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	claims := doc.Get(document.GetCorePropertyID("ENERGY_CLASS"))
-	require.NotEmpty(t, claims, "No energy class claims found")
+	require.NotEmpty(t, claims, "no energy class claims found")
 
 	stringClaim, ok := claims[0].(*document.StringClaim)
-	require.True(t, ok, "Energy class claim is not a string claim")
+	require.True(t, ok, "energy class claim is not a string claim")
 	assert.Equal(t, "A+++", stringClaim.String,
-		"Energy class in document should use display format with + characters")
+		"energy class in document should use display format with + characters")
 }
 
-func TestEpochTimeUnmarshallingAndMarshalling(t *testing.T) {
+func TestEpochTimeUnmarshalingAndMarshaling(t *testing.T) {
 	t.Parallel()
 
 	jsonData := []byte(`{"timestamp": 1540512000}`)
@@ -569,8 +519,8 @@ func TestEpochTimeUnmarshallingAndMarshalling(t *testing.T) {
 		Timestamp EpochTime `json:"timestamp"`
 	}
 
-	err := json.Unmarshal(jsonData, &result)
-	require.NoError(t, err, "Failed to unmarshal JSON data")
+	errE := x.UnmarshalWithoutUnknownFields(jsonData, &result)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	expectedTime := time.Date(2018, 10, 26, 0, 0, 0, 0, time.UTC)
 	actualTime := time.Time(result.Timestamp)
@@ -579,8 +529,8 @@ func TestEpochTimeUnmarshallingAndMarshalling(t *testing.T) {
 	assert.Equal(t, expectedTime.Month(), actualTime.Month())
 	assert.Equal(t, expectedTime.Day(), actualTime.Day())
 
-	marshalledData, err := json.Marshal(result)
-	require.NoError(t, err, "Failed to marshal result")
+	marshalledData, errE := x.MarshalWithoutEscapeHTML(result)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Contains(t, string(marshalledData), `"timestamp":1540512000`)
 }
@@ -605,7 +555,7 @@ func TestAddPlacementCountries(t *testing.T) {
 	for i, placementCountry := range placementCountries {
 		country := strings.TrimSpace(placementCountry.Country)
 		if country != "" {
-			err := doc.Add(&document.StringClaim{
+			errE := doc.Add(&document.StringClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "PLACEMENT_COUNTRY", i),
 					Confidence: document.HighConfidence,
@@ -613,14 +563,12 @@ func TestAddPlacementCountries(t *testing.T) {
 				Prop:   document.GetCorePropertyReference("MARKET_COUNTRY"),
 				String: country,
 			})
-			if err != nil {
-				t.Fatalf("Error adding claim: %v", err)
-			}
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 	}
 
 	marketCountryClaims := doc.Get(document.GetCorePropertyID("MARKET_COUNTRY"))
-	assert.Len(t, marketCountryClaims, len(placementCountries)-1, "Should have added 3 valid placement countries")
+	assert.Len(t, marketCountryClaims, len(placementCountries)-1, "should have added 3 valid placement countries")
 
 	var foundCountries []string
 	for _, claim := range marketCountryClaims {
@@ -628,7 +576,7 @@ func TestAddPlacementCountries(t *testing.T) {
 			foundCountries = append(foundCountries, stringClaim.String)
 		}
 	}
-	assert.ElementsMatch(t, []string{"DE", "FR", "IT"}, foundCountries, "Should contain DE, FR, IT placement countries")
+	assert.ElementsMatch(t, []string{"DE", "FR", "IT"}, foundCountries, "should contain DE, FR, IT placement countries")
 }
 
 func TestAddUploadedLabels(t *testing.T) {
@@ -672,7 +620,7 @@ func TestAddUploadedLabels(t *testing.T) {
 				// Skip invalid extensions.
 				continue
 			}
-			err := doc.Add(&document.FileClaim{
+			errE := doc.Add(&document.FileClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "UPLOADED_LABELS", i),
 					Confidence: document.HighConfidence,
@@ -682,15 +630,13 @@ func TestAddUploadedLabels(t *testing.T) {
 				URL:       "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel,
 				Preview:   []string{"https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel},
 			})
-			if err != nil {
-				t.Fatalf("Error adding claim: %v", err)
-			}
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 	}
 
 	// Check the number of valid labels added.
 	uploadedLabelClaims := doc.Get(document.GetCorePropertyID("UPLOADED_LABELS"))
-	assert.Len(t, uploadedLabelClaims, 5, "Should have added 5 valid uploaded labels")
+	assert.Len(t, uploadedLabelClaims, 5, "should have added 5 valid uploaded labels")
 
 	// Verify the media types are correct.
 	var foundMediaTypes []string
@@ -710,7 +656,7 @@ func TestAddUploadedLabels(t *testing.T) {
 		"image/svg+xml",
 		"image/jpeg",
 	}
-	assert.ElementsMatch(t, expectedMediaTypes, foundMediaTypes, "Should have correct media types")
+	assert.ElementsMatch(t, expectedMediaTypes, foundMediaTypes, "should have correct media types")
 
 	// Check URLs.
 	expectedURLs := []string{
@@ -720,7 +666,7 @@ func TestAddUploadedLabels(t *testing.T) {
 		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label4.svg",
 		"https://eprel.ec.europa.eu/supplier-labels/washerdriers/label5.jpeg",
 	}
-	assert.ElementsMatch(t, expectedURLs, foundURLs, "Should have correct URLs")
+	assert.ElementsMatch(t, expectedURLs, foundURLs, "should have correct URLs")
 }
 
 func TestAddOtherIdentifiers(t *testing.T) {
@@ -743,7 +689,7 @@ func TestAddOtherIdentifiers(t *testing.T) {
 
 	for i, otherIdentifier := range otherIdentifiers {
 		if strings.TrimSpace(otherIdentifier.ModelIdentifier) != "" {
-			err := doc.Add(&document.IdentifierClaim{
+			errE := doc.Add(&document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", "TEST123", "EPREL_OTHER_IDENTIFIER", i),
 					Confidence: document.HighConfidence,
@@ -763,38 +709,27 @@ func TestAddOtherIdentifiers(t *testing.T) {
 				Prop:  document.GetCorePropertyReference("EPREL_OTHER_IDENTIFIER"),
 				Value: otherIdentifier.ModelIdentifier,
 			})
-			if err != nil {
-				t.Fatalf("Error adding claim: %v", err)
-			}
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 	}
 
 	otherIdentifierClaims := doc.Get(document.GetCorePropertyID("EPREL_OTHER_IDENTIFIER"))
-	assert.Len(t, otherIdentifierClaims, 3, "Should have added 3 valid identifiers")
+	assert.Len(t, otherIdentifierClaims, 3, "should have added 3 valid identifiers")
 
 	foundIdentifiers := make([]string, 0, len(otherIdentifierClaims))
 	identifierToType := map[string]string{}
 
 	for _, claim := range otherIdentifierClaims {
 		identifierClaim, ok := claim.(*document.IdentifierClaim)
-		if !ok {
-			t.Error("Claim should be an IdentifierClaim")
-			continue
-		}
+		require.True(t, ok, "claim should be an IdentifierClaim")
 
 		foundIdentifiers = append(foundIdentifiers, identifierClaim.Value)
 		typeClaims := identifierClaim.Get(document.GetCorePropertyID("EPREL_OTHER_IDENTIFIER_TYPE"))
 
-		if len(typeClaims) == 0 {
-			t.Error("Missing type metadata for identifier", identifierClaim.Value)
-			continue
-		}
+		require.NotEmpty(t, typeClaims, "missing type metadata for identifier %s", identifierClaim.Value)
 
 		stringClaim, ok := typeClaims[0].(*document.StringClaim)
-		if !ok {
-			t.Error("Type claim should be a StringClaim")
-			continue
-		}
+		require.True(t, ok, "type claim should be a StringClaim")
 		identifierToType[identifierClaim.Value] = stringClaim.String
 	}
 
@@ -803,7 +738,7 @@ func TestAddOtherIdentifiers(t *testing.T) {
 		"SAND_IS40E",
 		"5901234123457",
 	}
-	assert.ElementsMatch(t, expectedIdentifiers, foundIdentifiers, "Should have correct identifiers")
+	assert.ElementsMatch(t, expectedIdentifiers, foundIdentifiers, "should have correct identifiers")
 
 	expectedIdentifierToType := map[string]string{
 		"7381032426154": "EAN_13",
@@ -813,8 +748,8 @@ func TestAddOtherIdentifiers(t *testing.T) {
 
 	for identifier, expectedType := range expectedIdentifierToType {
 		actualType, exists := identifierToType[identifier]
-		assert.True(t, exists, "Identifier %s should have a type", identifier)
-		assert.Equal(t, expectedType, actualType, "Identifier %s should have type %s, got %s",
+		assert.True(t, exists, "identifier %s should have a type", identifier)
+		assert.Equal(t, expectedType, actualType, "identifier %s should have type %s, got %s",
 			identifier, expectedType, actualType)
 	}
 }
