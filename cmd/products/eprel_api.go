@@ -54,94 +54,6 @@ func (n Null) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-// EnergyClass uses custom JSON unmarshaling. The values of the energyClass field in the EPREL API
-// can be "A", "B", "C", "D", "E", "F", "G" and "AP", "APP", "APPP", and "APPPP", where EPREL has
-// replaced "+" with "P". We want to replace "P" with "+" in our dataset, since that is the correct value.
-type EnergyClass string
-
-func (ec *EnergyClass) UnmarshalJSON(data []byte) error {
-	var eprelEnergyClass string
-	errE := x.UnmarshalWithoutUnknownFields(data, &eprelEnergyClass)
-	if errE != nil {
-		return errE
-	}
-	peerDBEnergyClass := strings.ReplaceAll(eprelEnergyClass, "P", "+")
-	*ec = EnergyClass(peerDBEnergyClass)
-	return nil
-}
-
-// Bool makes sure that the boolean value is always true. If the value is ever not true,
-// an error will be returned to notify us that this aspect of the API changed.
-type Bool bool
-
-func (b *Bool) UnmarshalJSON(data []byte) error {
-	var eprelBool bool
-	errE := x.UnmarshalWithoutUnknownFields(data, &eprelBool)
-	if errE != nil {
-		return errE
-	}
-	if eprelBool != true {
-		return errors.New("bool is not true")
-	}
-	*b = Bool(eprelBool)
-	return nil
-}
-
-// Status makes sure that the status field in the EPREL API is always "PUBLISHED". If the status is
-// ever not "PUBLISHED", an error will be returned to notify us that this aspect of the API changed.
-type Status string
-
-func (s *Status) UnmarshalJSON(data []byte) error {
-	var eprelStatus string
-	errE := x.UnmarshalWithoutUnknownFields(data, &eprelStatus)
-	if errE != nil {
-		return errE
-	}
-	if eprelStatus != "PUBLISHED" {
-		return errors.New("status is not PUBLISHED")
-	}
-	*s = Status(eprelStatus)
-	return nil
-}
-
-// TrademarkVerificationStatus makes sure that the trademarkVerificationStatus field in the EPREL API
-// is always "VERIFIED". If the status is ever not "VERIFIED", an error will be returned to notify us
-// that this aspect of the API changed.
-type TrademarkVerificationStatus string
-
-func (tvs *TrademarkVerificationStatus) UnmarshalJSON(data []byte) error {
-	var eprelTrademarkVerificationStatus string
-	errE := x.UnmarshalWithoutUnknownFields(data, &eprelTrademarkVerificationStatus)
-	if errE != nil {
-		return errE
-	}
-	if eprelTrademarkVerificationStatus != "VERIFIED" {
-		return errors.New("trademark verification status is not VERIFIED")
-	}
-	*tvs = TrademarkVerificationStatus(eprelTrademarkVerificationStatus)
-	return nil
-}
-
-// EpochTime supports timestamps in JSON represented as numeric UNIX epoch timestamp.
-type EpochTime time.Time
-
-// Silence the lint error.
-// See: https://github.com/mvdan/unparam/issues/52
-var _ json.Marshaler = (*EpochTime)(nil)
-
-func (e EpochTime) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatInt(time.Time(e).Unix(), 10)), nil
-}
-
-func (e *EpochTime) UnmarshalJSON(data []byte) error {
-	i, err := strconv.ParseInt(string(data), 10, 64)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*(*time.Time)(e) = time.Unix(i, 0)
-	return nil
-}
-
 type EPREL struct {
 	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
 	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
@@ -182,11 +94,11 @@ type WasherDrierProduct struct {
 	EcoLabel                   bool   `json:"ecoLabel"`
 	EcoLabelRegistrationNumber string `json:"ecoLabelRegistrationNumber"`
 
-	EnergyAnnualWash          float64     `json:"energyAnnualWash"`
-	EnergyAnnualWashAndDry    float64     `json:"energyAnnualWashAndDry"`
-	EnergyClass               EnergyClass `json:"energyClass"`
-	EnergyClassImage          string      `json:"energyClassImage"`
-	EnergyClassImageWithScale string      `json:"energyClassImageWithScale"`
+	EnergyAnnualWash          float64 `json:"energyAnnualWash"`
+	EnergyAnnualWashAndDry    float64 `json:"energyAnnualWashAndDry"`
+	EnergyClass               string  `json:"energyClass"`
+	EnergyClassImage          string  `json:"energyClassImage"`
+	EnergyClassImageWithScale string  `json:"energyClassImageWithScale"`
 	// TODO: Use the range to normalize the EnergyClass value?
 	//       It is a range of possible classes at the time the class has been assigned.
 	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2412120710
@@ -210,8 +122,8 @@ type WasherDrierProduct struct {
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
-	// Not mapping this field, as we do not use it.
-	LastVersion     Bool   `json:"lastVersion"`
+	// Value is always true. Not mapping this field as this is not useful.
+	LastVersion     bool   `json:"lastVersion"`
 	ModelIdentifier string `json:"modelIdentifier"`
 
 	NoiseDry  float64 `json:"noiseDry"`
@@ -219,8 +131,8 @@ type WasherDrierProduct struct {
 	NoiseWash float64 `json:"noiseWash"`
 
 	// Not mapping this field, as we use the TS version of this field.
-	OnMarketEndDate          []int     `json:"onMarketEndDate"`
-	OnMarketEndDateTimestamp EpochTime `json:"onMarketEndDateTS"`
+	OnMarketEndDate          []int `json:"onMarketEndDate"`
+	OnMarketEndDateTimestamp int64 `json:"onMarketEndDateTS"`
 	// Not mapping because it is internal to EPREL publishing process.
 	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
 	OnMarketFirstStartDate []int `json:"onMarketFirstStartDate"`
@@ -228,8 +140,8 @@ type WasherDrierProduct struct {
 	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
 	OnMarketFirstStartDateTimestamp int64 `json:"onMarketFirstStartDateTS"`
 	// Not mapping this field, as we use the TS version of this field.
-	OnMarketStartDate          []int     `json:"onMarketStartDate"`
-	OnMarketStartDateTimestamp EpochTime `json:"onMarketStartDateTS"`
+	OnMarketStartDate          []int `json:"onMarketStartDate"`
+	OnMarketStartDateTimestamp int64 `json:"onMarketStartDateTS"`
 	// TODO: We may add this to the org/company/contact document in the future.
 	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
 	OrgVerificationStatus string `json:"orgVerificationStatus"`
@@ -251,15 +163,15 @@ type WasherDrierProduct struct {
 
 	// TODO: Map RegistrantNature to organization/company/contacts document.
 	RegistrantNature string `json:"registrantNature"`
-	// Status is always "PUBLISHED". Not mapping this field as this is not useful.
-	Status              Status `json:"status"`
+	// Value is always "PUBLISHED". Not mapping this field as this is not useful.
+	Status              string `json:"status"`
 	SupplierOrTrademark string `json:"supplierOrTrademark"`
 	// This is an EPREL internal ID, so it is not useful. Not mapping.
 	TrademarkID int `json:"trademarkId"`
 	// Value is always null. Not mapping this field as this is not useful.
 	TrademarkOwner Null `json:"trademarkOwner,omitempty"`
 	// Value is always "VERIFIED". Not mapping this field as this is not useful.
-	TrademarkVerificationStatus TrademarkVerificationStatus `json:"trademarkVerificationStatus"`
+	TrademarkVerificationStatus string `json:"trademarkVerificationStatus"`
 
 	UploadedLabels []string `json:"uploadedLabels"`
 	// Not mapping this field, as we do not use it.
@@ -364,6 +276,19 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 
 //nolint:maintidx
 func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
+	if !washerDrier.LastVersion {
+		// Currently last version is always true in EPREL API responses.
+		return document.D{}, errors.New("last version is false")
+	}
+	if washerDrier.Status != "PUBLISHED" {
+		// Currently status is always "PUBLISHED" in EPREL API responses.
+		return document.D{}, errors.New("status is not PUBLISHED")
+	}
+	if washerDrier.TrademarkVerificationStatus != "VERIFIED" {
+		// Currently trademark verification status is always "VERIFIED" in EPREL API responses.
+		return document.D{}, errors.New("trademark verification status is not VERIFIED")
+	}
+
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
 			ID:    document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber),
@@ -457,7 +382,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
-					String: string(washerDrier.EnergyClass),
+					String: strings.ReplaceAll(washerDrier.EnergyClass, "P", "+"),
 				},
 				{
 					CoreClaim: document.CoreClaim{
@@ -521,7 +446,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:      document.GetCorePropertyReference("ON_MARKET_START_DATE"),
-					Timestamp: document.Timestamp(washerDrier.OnMarketStartDateTimestamp),
+					Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketStartDateTimestamp, 0)),
 					Precision: document.TimePrecisionDay,
 				},
 				{
@@ -530,7 +455,7 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 						Confidence: document.HighConfidence,
 					},
 					Prop:      document.GetCorePropertyReference("ON_MARKET_END_DATE"),
-					Timestamp: document.Timestamp(washerDrier.OnMarketEndDateTimestamp),
+					Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketEndDateTimestamp, 0)),
 					Precision: document.TimePrecisionDay,
 				},
 			},

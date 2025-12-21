@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
@@ -127,11 +126,11 @@ func createTestWasherDrier(t *testing.T) WasherDrierProduct {
 		NoiseSpin:                       72.0,
 		NoiseWash:                       58.0,
 		OnMarketEndDate:                 []int{},
-		OnMarketEndDateTimestamp:        EpochTime(time.Unix(1540512000, 0)),
+		OnMarketEndDateTimestamp:        1540512000,
 		OnMarketFirstStartDate:          []int{},
 		OnMarketFirstStartDateTimestamp: 0,
 		OnMarketStartDate:               []int{},
-		OnMarketStartDateTimestamp:      EpochTime(time.Unix(1540512000, 0)),
+		OnMarketStartDateTimestamp:      1540512000,
 		OrgVerificationStatus:           "",
 		Organisation: Organisation{
 			CloseDate:         "",
@@ -419,96 +418,6 @@ func TestNullUnmarshalingAndMarshaling(t *testing.T) {
 
 	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":123}`), &s)
 	assert.Error(t, errE)
-}
-
-func TestBoolUnmarshalingAndMarshaling(t *testing.T) {
-	t.Parallel()
-
-	type testStruct struct {
-		Field Bool `json:"field"`
-	}
-
-	var s testStruct
-	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":true}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	b, errE := x.MarshalWithoutEscapeHTML(s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `{"field":true}`, string(b))
-
-	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":false}`), &s)
-	assert.Error(t, errE)
-}
-
-func TestEnergyClassUnmarshaling(t *testing.T) {
-	t.Parallel()
-
-	type testStruct struct {
-		Field EnergyClass `json:"field"`
-	}
-
-	var s testStruct
-	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"H"}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, EnergyClass("H"), s.Field)
-
-	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"APPP"}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, EnergyClass("A+++"), s.Field)
-}
-
-func TestStatusUnmarshaling(t *testing.T) {
-	t.Parallel()
-
-	type testStruct struct {
-		Field Status `json:"field"`
-	}
-
-	var s testStruct
-	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"PUBLISHED"}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"something else"}`), &s)
-	assert.Error(t, errE)
-}
-
-func TestTrademarkVerificationStatusUnmarshaling(t *testing.T) {
-	t.Parallel()
-
-	type testStruct struct {
-		Field TrademarkVerificationStatus `json:"field"`
-	}
-
-	var s testStruct
-	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":"VERIFIED"}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
-
-	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":"something else"}`), &s)
-	assert.Error(t, errE)
-}
-
-func TestEpochTimeUnmarshalingAndMarshaling(t *testing.T) {
-	t.Parallel()
-
-	jsonData := []byte(`{"timestamp":1540512000}`)
-	var result struct {
-		Timestamp EpochTime `json:"timestamp"`
-	}
-
-	errE := x.UnmarshalWithoutUnknownFields(jsonData, &result)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	expectedTime := time.Date(2018, 10, 26, 0, 0, 0, 0, time.UTC)
-	actualTime := time.Time(result.Timestamp)
-
-	assert.Equal(t, expectedTime.Year(), actualTime.Year())
-	assert.Equal(t, expectedTime.Month(), actualTime.Month())
-	assert.Equal(t, expectedTime.Day(), actualTime.Day())
-
-	marshalledData, errE := x.MarshalWithoutEscapeHTML(result)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	assert.Equal(t, `{"timestamp":1540512000}`, string(marshalledData))
 }
 
 func TestAddPlacementCountries(t *testing.T) {
