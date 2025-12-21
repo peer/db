@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -69,6 +75,55 @@ func TestGetWasherDriers(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.NotEmpty(t, washerDriers)
+}
+
+func TestMakeWasherDrierDoc(t *testing.T) {
+	entries, err := content.ReadDir("testdata/eprel")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), "_in.json") {
+			continue
+		}
+		base := strings.TrimSuffix(entry.Name(), "_in.json")
+		t.Run(base, func(t *testing.T) {
+			input, err := content.ReadFile(filepath.Join("testdata/eprel", entry.Name()))
+			require.NoError(t, err)
+
+			type washerDrierResponse struct {
+				Offset int                  `json:"offset"`
+				Size   int                  `json:"size"`
+				Hits   []WasherDrierProduct `json:"hits"`
+			}
+
+			var result washerDrierResponse
+			errE := x.UnmarshalWithoutUnknownFields(input, &result)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			for i := range result.Hits {
+				outputDoc, errE := makeWasherDrierDoc(result.Hits[i])
+				require.NoError(t, errE, "% -+#.1v", errE)
+				outputJSON, errE := x.MarshalWithoutEscapeHTML(outputDoc)
+				require.NoError(t, errE, "% -+#.1v", errE)
+				var buf bytes.Buffer
+				err := json.Indent(&buf, outputJSON, "", "  ")
+				require.NoError(t, err)
+				output := buf.Bytes()
+				expectedFilePath := filepath.Join("testdata/eprel", fmt.Sprintf("%s_%03d_out.json", base, i))
+				expected, err := content.ReadFile(expectedFilePath)
+				if errors.Is(err, fs.ErrNotExist) {
+					f, err := os.Create(expectedFilePath)
+					require.NoError(t, err)
+					_, _ = f.Write(output)
+				} else {
+					assert.JSONEq(t, string(expected), string(output))
+				}
+			}
+		})
+	}
 }
 
 func TestNullUnmarshalingAndMarshaling(t *testing.T) {

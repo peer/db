@@ -1,0 +1,213 @@
+{
+  "id": "2LWyzkvE4aVB9d2p3zvpku",
+  "score": 1,
+  "claims": {
+    "id": [
+      {
+        "id": "N8EUCeSaroJzD4FQVd4MqZ",
+        "confidence": 1,
+        "prop": {
+          "id": "HA5HJnBikaLFnmcXFuv1pM"
+        },
+        "value": "362647"
+      },
+      {
+        "id": "8Tdcm7qpVAd8HGAatKtrrB",
+        "confidence": 1,
+        "prop": {
+          "id": "GDqRMjNviATUsfkaULxkfP"
+        },
+        "value": "F4DV7009S1W"
+      },
+      {
+        "id": "UEkpX4jcspkMzZxQSv7NCq",
+        "confidence": 1,
+        "prop": {
+          "id": "DZ4crVWtnZgLbRfADv95uW"
+        },
+        "value": "996462"
+      }
+    ],
+    "text": [
+      {
+        "id": "XaQ27Spgn5ctYELtvhcXa5",
+        "confidence": 1,
+        "prop": {
+          "id": "CjZig63YSyvb2KdyCL3XTg"
+        },
+        "html": {
+          "en": "LG Electronics Inc. F4DV7009S1W"
+        }
+      }
+    ],
+    "string": [
+      {
+        "id": "9nV7h5FPfSbqJbh6dXSY98",
+        "confidence": 1,
+        "prop": {
+          "id": "AYJqLPUxMrUkRDAt5CHTcn"
+        },
+        "string": "LG Electronics Inc."
+      },
+      {
+        "id": "EBGUw3vTKAMTPdkXDx75p6",
+        "confidence": 1,
+        "prop": {
+          "id": "XFZUsVRWYj2HoHHv5vEAvT"
+        },
+        "string": "A"
+      },
+      {
+        "id": "YXjFeihNkAUjvY8FoPEnV6",
+        "confidence": 1,
+        "prop": {
+          "id": "JG4Ap6GRzcNHQBaBmihyPj"
+        },
+        "string": "EC_96_60"
+      },
+      {
+        "id": "7YhFTbhkrW8YLWxXbN9oqK",
+        "confidence": 1,
+        "prop": {
+          "id": "Ktcmd3ZoZrYfPtrzwapLbC"
+        },
+        "string": "washerdriers"
+      }
+    ],
+    "amount": [
+      {
+        "id": "TJsF8ZCcA5EnuPWDHsLn1x",
+        "confidence": 1,
+        "prop": {
+          "id": "WDXvCVCVHoAho74hhN6xv5"
+        },
+        "amount": 1094400000,
+        "unit": "J"
+      },
+      {
+        "id": "LDGLYuVeMQCNprPwqKreVZ",
+        "confidence": 1,
+        "prop": {
+          "id": "51Y52ZKw1wn93giQ463Ue8"
+        },
+        "amount": 4406400000,
+        "unit": "J"
+      },
+      {
+        "id": "1iAhvdiGe4jfakZPD5peBS",
+        "confidence": 1,
+        "prop": {
+          "id": "G2YiCWCWQxHF1FmS3hapju"
+        },
+        "amount": 12400,
+        "unit": "l"
+      },
+      {
+        "id": "6QHeUe9cxBThjNfeAvLBmj",
+        "confidence": 1,
+        "prop": {
+          "id": "5rNpsdyLUC3GBzr71asmmE"
+        },
+        "amount": 33000,
+        "unit": "l"
+      },
+      {
+        "id": "MivCR5XczacicrbJvo6Pnv",
+        "confidence": 1,
+        "prop": {
+          "id": "BMg3PtmzVa3rhe7DHyga6D"
+        },
+        "amount": 54,
+        "unit": "dB"
+      },
+      {
+        "id": "MwZnJ51NfvTxZ1yF65JVxe",
+        "confidence": 1,
+        "prop": {
+          "id": "6wWZHBmVgC7zTzMEnVHNhq"
+        },
+        "amount": 71,
+        "unit": "dB"
+      },
+      {
+        "id": "YEf4uNmGhf1iijPKqfgRaF",
+        "confidence": 1,
+        "prop": {
+          "id": "R4hB4BrGZXndAKQt8T8MyS"
+        },
+        "amount": 52,
+        "unit": "dB"
+      }
+    ],
+    "rel": [
+      {
+        "id": "Dns7K7XVBH1Uoswy5Uw9Kh",
+        "confidence": 1,
+        "prop": {
+          "id": "CAfaL1ZZs6L4uyFdrJZ2wN"
+        },
+        "to": {
+          "id": "RRq5Ba2cbuqzm2bVvSCkaG"
+        }
+      }
+    ],
+    "file": [
+      {
+        "id": "DXfufFmfMFCd5CPUrUubTa",
+        "confidence": 1,
+        "prop": {
+          "id": "X1KXjRY3QURZCC8HWnXa1Q"
+        },
+        "mediaType": "image/svg+xml",
+        "url": "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/A-Left-DarkGreen.png",
+        "preview": [
+          "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/A-Left-DarkGreen.png"
+        ]
+      },
+      {
+        "id": "UnZcGWSPE3DQUiMEgFkNYV",
+        "confidence": 1,
+        "prop": {
+          "id": "Hp14aXuR2HP8bdDZKYzobM"
+        },
+        "mediaType": "image/svg+xml",
+        "url": "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/A-Left-DarkGreen-WithAGScale.svg",
+        "preview": [
+          "https://ec.europa.eu/assets/move-ener/eprel/EPREL%20Public/Nested-labels%20thumbnails/A-Left-DarkGreen-WithAGScale.svg"
+        ]
+      },
+      {
+        "id": "WPn8YPALxykdxmYLtF7T8Z",
+        "confidence": 1,
+        "prop": {
+          "id": "SbFfw73HSrbWcFhjskwk5o"
+        },
+        "mediaType": "application/pdf",
+        "url": "https://eprel.ec.europa.eu/supplier-labels/washerdriers/Label_362647_0.pdf",
+        "preview": [
+          "https://eprel.ec.europa.eu/supplier-labels/washerdriers/Label_362647_0.pdf"
+        ]
+      }
+    ],
+    "time": [
+      {
+        "id": "UTDfaoyQDrqD8CqzqbMncp",
+        "confidence": 1,
+        "prop": {
+          "id": "1784u4GBuqsA8xqFVvgWjP"
+        },
+        "timestamp": "2020-09-07T00:00:00Z",
+        "precision": "d"
+      },
+      {
+        "id": "Mxwz6mppa5hX9HrRRPATQN",
+        "confidence": 1,
+        "prop": {
+          "id": "CvBLDbh9GiPojzYVV94jsF"
+        },
+        "timestamp": "2099-09-07T00:00:00Z",
+        "precision": "d"
+      }
+    ]
+  }
+}

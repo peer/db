@@ -122,7 +122,7 @@ type WasherDrierProduct struct {
 
 	ImplementingAct string `json:"implementingAct"`
 	ImportedOn      int64  `json:"importedOn"`
-	// Value is always true. Not mapping this field as this is not useful.
+	// Value is always false. Not mapping this field as this is not useful.
 	LastVersion     bool   `json:"lastVersion"`
 	ModelIdentifier string `json:"modelIdentifier"`
 
@@ -235,6 +235,8 @@ type Organisation struct {
 	OrganisationName  string `json:"organisationName"`
 	OrganisationTitle string `json:"organisationTitle"`
 	Website           string `json:"website,omitempty"`
+	GUID              string `json:"guid"`
+	PersonType        string `json:"personType"`
 }
 
 type OtherIdentifiers struct {
@@ -276,9 +278,9 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 
 //nolint:maintidx
 func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
-	if !washerDrier.LastVersion {
-		// Currently last version is always true in EPREL API responses.
-		return document.D{}, errors.New("last version is false")
+	if washerDrier.LastVersion {
+		// Currently last version is always false in EPREL API responses.
+		return document.D{}, errors.New("last version is true")
 	}
 	if washerDrier.Status != "PUBLISHED" {
 		// Currently status is always "PUBLISHED" in EPREL API responses.
