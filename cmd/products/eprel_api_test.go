@@ -389,16 +389,16 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 			for _, claim := range claims {
 				switch tt.claimType {
 				case "identifier":
-					assert.IsType(t, &document.IdentifierClaim{}, claim, "property %s should be an identifier claim", tt.propName)
+					assert.IsType(t, &document.IdentifierClaim{}, claim, "property %s should be an identifier claim", tt.propName) //nolint:exhaustruct
 					continue
 				case "file":
-					assert.IsType(t, &document.FileClaim{}, claim, "property %s should be a file claim", tt.propName)
+					assert.IsType(t, &document.FileClaim{}, claim, "property %s should be a file claim", tt.propName) //nolint:exhaustruct
 					continue
 				case "string":
-					assert.IsType(t, &document.StringClaim{}, claim, "property %s should be a string claim", tt.propName)
+					assert.IsType(t, &document.StringClaim{}, claim, "property %s should be a string claim", tt.propName) //nolint:exhaustruct
 					continue
 				case "relation":
-					assert.IsType(t, &document.RelationClaim{}, claim, "property %s should be a relation claim", tt.propName)
+					assert.IsType(t, &document.RelationClaim{}, claim, "property %s should be a relation claim", tt.propName) //nolint:exhaustruct
 					continue
 				}
 				value := tt.getValue(t, claim)
