@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
-	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/eprel"
@@ -388,68 +387,19 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 
 			found := false
 			for _, claim := range claims {
-				// First verify the claim type.
 				switch tt.claimType {
 				case "identifier":
-					if _, ok := claim.(*document.IdentifierClaim); !ok {
-						assert.IsType(t, &document.IdentifierClaim{
-							CoreClaim: document.CoreClaim{
-								ID:         identifier.Identifier{},
-								Confidence: 0,
-							},
-							Prop: document.Reference{
-								ID: nil,
-							},
-							Value: "",
-						}, claim, "property %s should be an identifier claim", tt.propName)
-						continue
-					}
+					assert.IsType(t, &document.IdentifierClaim{}, claim, "property %s should be an identifier claim", tt.propName)
+					continue
 				case "file":
-					if _, ok := claim.(*document.FileClaim); !ok {
-						assert.IsType(t, &document.FileClaim{
-							CoreClaim: document.CoreClaim{
-								ID:         identifier.Identifier{},
-								Confidence: 0,
-							},
-							Prop: document.Reference{
-								ID: nil,
-							},
-							MediaType: "",
-							Preview:   []string{},
-							URL:       "",
-						}, claim, "property %s should be a file claim", tt.propName)
-						continue
-					}
+					assert.IsType(t, &document.FileClaim{}, claim, "property %s should be a file claim", tt.propName)
+					continue
 				case "string":
-					if _, ok := claim.(*document.StringClaim); !ok {
-						assert.IsType(t, &document.StringClaim{
-							CoreClaim: document.CoreClaim{
-								ID:         identifier.Identifier{},
-								Confidence: 0,
-							},
-							Prop: document.Reference{
-								ID: nil,
-							},
-							String: "",
-						}, claim, "property %s should be a string claim", tt.propName)
-						continue
-					}
+					assert.IsType(t, &document.StringClaim{}, claim, "property %s should be a string claim", tt.propName)
+					continue
 				case "relation":
-					if _, ok := claim.(*document.RelationClaim); !ok {
-						assert.IsType(t, &document.RelationClaim{
-							CoreClaim: document.CoreClaim{
-								ID:         identifier.Identifier{},
-								Confidence: 0,
-							},
-							Prop: document.Reference{
-								ID: nil,
-							},
-							To: document.Reference{
-								ID: nil,
-							},
-						}, claim, "property %s should be a relation claim", tt.propName)
-						continue
-					}
+					assert.IsType(t, &document.RelationClaim{}, claim, "property %s should be a relation claim", tt.propName)
+					continue
 				}
 				value := tt.getValue(t, claim)
 				if value == tt.expected {
