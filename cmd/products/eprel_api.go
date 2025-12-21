@@ -155,6 +155,7 @@ type WasherDrierProduct struct {
 	// Not mapping this field, as we do not use it.
 	Blocked bool `json:"blocked"`
 	// TODO: Move ContactDetails to a separate document.
+	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424229750
 	ContactDetails ContactDetails `json:"contactDetails"`
 	// TODO: Move EPRELContactID together with ContactDetails to a separate document.
 	EPRELContactID int64 `json:"contactId,omitempty"`
@@ -216,6 +217,7 @@ type WasherDrierProduct struct {
 	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424837827
 	OrgVerificationStatus string `json:"orgVerificationStatus"`
 	// TODO: Map Organisation to a separate document.
+	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2424229750
 	Organisation       Organisation       `json:"organisation"`
 	OtherIdentifiers   []OtherIdentifiers `json:"otherIdentifiers"`
 	PlacementCountries []PlacementCountry `json:"placementCountries"`
