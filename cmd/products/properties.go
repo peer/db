@@ -277,12 +277,6 @@ var productsProperties = []struct {
 		[]string{`"file" claim type`},
 	},
 	{
-		"energy class range",
-		nil,
-		`Range of energy classes, represented by the energy class letter.`,
-		[]string{`"string" claim type`},
-	},
-	{
 		"energy label id",
 		nil,
 		`Internal identifier to EPREL that corresponds to the energy label.`,
@@ -315,25 +309,25 @@ var productsProperties = []struct {
 	{
 		"energy annual wash",
 		nil,
-		`Annual Energy consumption washing and spinning (washing cycle)`,
+		`Annual energy consumption washing and spinning (washing cycle)`,
 		[]string{`"amount" claim type`},
 	},
 	{
 		"energy annual wash and dry",
 		nil,
-		`Annual Energy consumption washing, spinning and drying  (complete operating cycle)`,
+		`Annual energy consumption washing, spinning and drying (complete operating cycle)`,
 		[]string{`"amount" claim type`},
 	},
 	{
 		"noise dry",
 		nil,
-		`Noise (Drying phase)`,
+		`Noise (drying phase)`,
 		[]string{`"amount" claim type`},
 	},
 	{
 		"noise spin",
 		nil,
-		`Noise (Spinning phase)`,
+		`Noise (spinning phase)`,
 		[]string{`"amount" claim type`},
 	},
 	{
@@ -351,66 +345,39 @@ var productsProperties = []struct {
 	{
 		"water annual wash and dry",
 		nil,
-		`Annual water consumption washing, spinning and drying  (complete operating cycle), in liters`,
+		`Annual water consumption washing, spinning and drying (complete operating cycle), in liters`,
 		[]string{`"amount" claim type`},
 	},
-
 	{
 		"on market end date",
 		nil,
-		`Timestamp the last model is placed on the market, in epochs. ` +
-			`Optional field, could be empty. It is used internally to verify if Basic filter ` +
-			`"Include models not placed on the market anymore" applies to the model.`,
+		`Date until the product will be or has been placed on the market.`,
 		[]string{`"time" claim type`},
 	},
 	{
 		"on market start date",
 		nil,
-		`Date the first model is placed on the market, in epochs. ` +
-			`It marks also the date the model becomes Published and appears ont the EPREL site.` +
-			`A model can be Published many times, due to changes introduced by supplier ` +
-			`that creates a new version of the model, or due to technical modifications ` +
-			`that makes necessary that a model is Published again and re-exported to Public ` +
-			`site. One of these changes can be on the “On market start date” field. This + ` +
-			`field stores the last on market start date that model had on last Publication. ` +
-			`(Normally these 2 dates must be the same, changes in on market start date are not normal)`,
+		`Date the product is placed on the market.`,
 		[]string{`"time" claim type`},
 	},
-
 	{
-		"uploaded labels",
+		"uploaded label",
 		nil,
-		`The Supplier can also upload their own energy labels. This field links to the supplier uploaded label.`,
+		`The uploaded label by the supplier.`,
 		[]string{`"file" claim type`},
 	},
-
 	{
 		"eprel other identifier",
 		nil,
-		`EPREL provides an "other identifier" field that are linked to other identifiers, such as EANs, of the product model.`,
+		`EPREL other identifier.`,
 		[]string{`"identifier" claim type`},
 	},
-
 	{
 		"eprel other identifier type",
 		nil,
-		`EPREL provides an "other identifier" field, mapped to types 'EAN_13', 'EAN_14', 'EAN_8', 'EAN_VELOCITY', 'OTHER', 'UPC_A'.` +
-			` This field is used to store the type of the identifier in the "other identifier" field.`,
+		`The type of the EPREL other identifier.`,
 		[]string{`"string" claim type`},
 	},
-
-	/* The following properties are not currently mapped within the eprel_api file.
-
-	// {
-	// 	"product model core id",
-	// 	nil,
-	// 	`Internal id of product model for EPREL.`,
-	// 	[]string{`"identifier" claim type`},
-	// },
-
-
-	// END EPREL API properties
-	*/
 }
 
 func init() { //nolint:gochecknoinits

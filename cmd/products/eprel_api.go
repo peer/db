@@ -169,8 +169,11 @@ type WasherDrierProduct struct {
 	EnergyClass               EnergyClass `json:"energyClass"`
 	EnergyClassImage          string      `json:"energyClassImage"`
 	EnergyClassImageWithScale string      `json:"energyClassImageWithScale"`
-	EnergyClassRange          string      `json:"energyClassRange"`
-	EnergyLabelID             int         `json:"energyLabelId"`
+	// TODO: Use the range to normalize the EnergyClass value?
+	//       It is a range of possible classes at the time the class has been assigned.
+	//       See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2412120710
+	EnergyClassRange string `json:"energyClassRange"`
+	EnergyLabelID    int    `json:"energyLabelId"`
 
 	EPRELRegistrationNumber string `json:"eprelRegistrationNumber"`
 	// Not mapping because it is internal to EPREL publishing process.
@@ -217,8 +220,9 @@ type WasherDrierProduct struct {
 	OtherIdentifiers   []OtherIdentifiers `json:"otherIdentifiers"`
 	PlacementCountries []PlacementCountry `json:"placementCountries"`
 
-	ProductGroup       string `json:"productGroup"`
-	ProductModelCoreID int    `json:"productModelCoreId"`
+	ProductGroup string `json:"productGroup"`
+	// TODO: Figure out what this field is.
+	ProductModelCoreID int `json:"productModelCoreId"`
 	// Not mapping because it is internal to EPREL publishing process.
 	// See: https://gitlab.com/peerdb/peerdb/-/merge_requests/3#note_2502211072
 	PublishedOnDate []int `json:"publishedOnDate"`
@@ -435,14 +439,6 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 					},
 					Prop:   document.GetCorePropertyReference("ENERGY_CLASS"),
 					String: string(washerDrier.EnergyClass),
-				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ENERGY_CLASS_RANGE", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:   document.GetCorePropertyReference("ENERGY_CLASS_RANGE"),
-					String: washerDrier.EnergyClassRange,
 				},
 				{
 					CoreClaim: document.CoreClaim{
