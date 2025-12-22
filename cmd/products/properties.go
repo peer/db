@@ -38,7 +38,7 @@ var productsProperties = []struct {
 	{
 		"category",
 		nil,
-		"A branded food product category.",
+		"A product category.",
 		[]string{`"string" claim type`},
 	},
 	{
@@ -86,7 +86,7 @@ var productsProperties = []struct {
 	{
 		"market country",
 		nil,
-		"A country in which a branded food product is marketed.",
+		"A country in which a product is marketed.",
 		[]string{`"string" claim type`},
 	},
 	{
@@ -175,6 +175,7 @@ var productsProperties = []struct {
 		`Country of incorporation.`,
 		[]string{`"string" claim type`},
 	},
+
 	// Datakick specific properties start here.
 	{
 		"datakick id",
@@ -236,6 +237,140 @@ var productsProperties = []struct {
 		nil,
 		`Address country of a company.`,
 		[]string{`"string" claim type`},
+	},
+
+	// EPREL specific properties here.
+	{
+		"washer drier",
+		[]string{"washer dryer", "washer-dryer", "washer-drier"},
+		"A document is about a washer drier product.",
+		[]string{`item`},
+	},
+	{
+		"EPREL contact ID",
+		nil,
+		`A unique identifier for contact information.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"ecolabel registration number",
+		nil,
+		`The registration number of the EU eco-label.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"energy class",
+		nil,
+		`Letter of the energy efficiency class.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"energy class image",
+		nil,
+		`URL for the file image for the arrow of the energy class.`,
+		[]string{`"file" claim type`},
+	},
+	{
+		"energy class image with scale",
+		nil,
+		`URL for the file image for the arrow of the energy class, with scale.`,
+		[]string{`"file" claim type`},
+	},
+	{
+		"energy label id",
+		nil,
+		`Internal identifier to EPREL that corresponds to the energy label.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"eprel registration number",
+		nil,
+		`Unique identifier determined at registration time by the EPREL system.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"implementing act",
+		nil,
+		`Delegated act number.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"model identifier",
+		nil,
+		`Supplier's model identifier.`,
+		[]string{`"identifier" claim type`},
+	},
+	{
+		"supplier or trademark",
+		nil,
+		`Supplier's name or trademark.`,
+		[]string{`"string" claim type`},
+	},
+	{
+		"energy annual wash",
+		nil,
+		`Annual energy consumption washing and spinning (washing cycle)`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"energy annual wash and dry",
+		nil,
+		`Annual energy consumption washing, spinning and drying (complete operating cycle)`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"noise dry",
+		nil,
+		`Noise (drying phase)`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"noise spin",
+		nil,
+		`Noise (spinning phase)`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"noise wash",
+		nil,
+		`Noise (Washing phase)`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"water annual wash",
+		nil,
+		`Annual Water consumption washing and spinning (washing cycle), in liters`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"water annual wash and dry",
+		nil,
+		`Annual water consumption washing, spinning and drying (complete operating cycle), in liters`,
+		[]string{`"amount" claim type`},
+	},
+	{
+		"on market end date",
+		nil,
+		`Date until the product will be or has been placed on the market.`,
+		[]string{`"time" claim type`},
+	},
+	{
+		"on market start date",
+		nil,
+		`Date the product is placed on the market.`,
+		[]string{`"time" claim type`},
+	},
+	{
+		"uploaded label",
+		nil,
+		`The uploaded label by the supplier.`,
+		[]string{`"file" claim type`},
+	},
+	{
+		"unknown product identifier",
+		nil,
+		`unknown product identifier.`,
+		[]string{`"identifier" claim type`},
 	},
 }
 
