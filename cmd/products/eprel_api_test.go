@@ -76,7 +76,7 @@ func TestGetWasherDriers(t *testing.T) {
 	assert.NotEmpty(t, washerDriers)
 }
 
-func TestMakeWasherDrierDoc(t *testing.T) {
+func TestMakeWasherDrierDoc(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 
 	entries, err := content.ReadDir("testdata/eprel")
