@@ -77,6 +77,8 @@ func TestGetWasherDriers(t *testing.T) {
 }
 
 func TestMakeWasherDrierDoc(t *testing.T) {
+	t.Parallel()
+
 	entries, err := content.ReadDir("testdata/eprel")
 	require.NoError(t, err)
 
@@ -84,7 +86,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
 	ctx := context.Background()
 
-	for _, entry := range entries {
+	for _, entry := range entries { //nolint:paralleltest
 		if entry.IsDir() {
 			continue
 		}
@@ -138,10 +140,10 @@ func TestNullUnmarshalingAndMarshaling(t *testing.T) {
 
 	var s testStruct
 	errE := x.UnmarshalWithoutUnknownFields([]byte(`{"field":null}`), &s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	b, errE := x.MarshalWithoutEscapeHTML(s)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, `{"field":null}`, string(b))
 
 	errE = x.UnmarshalWithoutUnknownFields([]byte(`{"field":123}`), &s)
