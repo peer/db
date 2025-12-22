@@ -11,6 +11,7 @@ require (
 	github.com/cockroachdb/field-eng-powertools v0.1.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/foolin/pagser v0.1.6
+	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.6.0

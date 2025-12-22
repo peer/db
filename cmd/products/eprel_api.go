@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
@@ -28,6 +30,8 @@ import (
 const (
 	KilowattHoursToJoules = 3.6e6
 )
+
+var errLabelNotFound = errors.Base("label not found")
 
 // Null is used to address fields returned by the EPREL API whose values are currently always null
 // so we do not know what values they could have and cannot map them to better Go types.
@@ -52,6 +56,44 @@ func (n *Null) UnmarshalJSON(data []byte) error {
 
 func (n Null) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
+}
+
+func detectMediaType(ctx context.Context, httpClient *http.Client, url string) (string, errors.E) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return "", errE
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return "", errE
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+		errE := errors.WithStack(errLabelNotFound)
+		errors.Details(errE)["status"] = resp.StatusCode
+		errors.Details(errE)["url"] = url
+		return "", errE
+	} else if resp.StatusCode != http.StatusOK {
+		errE := errors.New("unexpected status code")
+		errors.Details(errE)["status"] = resp.StatusCode
+		errors.Details(errE)["url"] = url
+		return "", errE
+	}
+
+	mtype, err := mimetype.DetectReader(resp.Body)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["url"] = url
+		return "", errE
+	}
+
+	return mtype.String(), nil
 }
 
 type EPREL struct {
@@ -259,8 +301,16 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
+		return nil, errE
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errE := errors.New("unexpected status code")
+		errors.Details(errE)["status"] = resp.StatusCode
+		errors.Details(errE)["url"] = url
+		return nil, errE
+	}
 
 	var result []ProductGroup
 	errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
@@ -277,7 +327,7 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 }
 
 //nolint:maintidx
-func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
+func makeWasherDrierDoc(ctx context.Context, logger zerolog.Logger, httpClient *http.Client, washerDrier WasherDrierProduct) (document.D, errors.E) {
 	if washerDrier.LastVersion {
 		// Currently last version is always false in EPREL API responses.
 		return document.D{}, errors.New("last version is true")
@@ -557,47 +607,31 @@ func makeWasherDrierDoc(washerDrier WasherDrierProduct) (document.D, errors.E) {
 
 	for i, uploadedLabel := range washerDrier.UploadedLabels {
 		uploadedLabel = strings.TrimSpace(uploadedLabel)
-
 		if uploadedLabel != "" {
-			var mediaType string
-			if strings.HasSuffix(strings.ToLower(uploadedLabel), ".pdf") {
-				mediaType = "application/pdf"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpg") ||
-				strings.HasSuffix(strings.ToLower(uploadedLabel), ".jpeg") {
-				mediaType = "image/jpeg"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".png") {
-				mediaType = "image/png"
-			} else if strings.HasSuffix(strings.ToLower(uploadedLabel), ".svg") {
-				mediaType = "image/svg+xml"
-			} else {
-				/* There are some weird file extensions, that are probably errors. We shouldn't add them as claims as they don't represent valid data.
-				'.',
-				'. d39h500x1cw_10131230_(ku-epr)_60x125_cbox_',
-				'.50583513_17mb211s 24550lb andersson led2445hdsdvd_10129099_(ku-epr)_60x125_cbox_',
-				'.50591146_17mb140tc 32552dlb techwood 32hdtet2s2_10131635_(ku-epr)_60x125_cbox_sp',
-				'.50596124_17mb181tc 32553dlb elbe xtv-3203-wifi_10131759_(ku-epr)_60x125_cbox_spe',
-				'.50597390_17mb181tc 32550dlb kendo 32 led 5211 w_10131822_(ku-epr)_60x125_cbox_sp',
-				'.50597450_17mb181tc 22502lb finlux 22-fwdf-5161_10131837_(ku-epr)_60x125_cbox_spe',
-				'.50598402_17mb181tc 24550lb finlux 24-fwe-5760_10131910_(ku-epr)_60x125_cbox_spek',
-				'.ai',
-				'.funken d43u551n1cw_10128456_(ku-epr)_60x125_cbox_spe',
-				'.funken d50v900m4cwh_10128899_(ku-epr)_96x200_cbox_spe',
-				'.funken tfa55u550uhd_10131605_(ku-epr)_96x200_cbox_sp',
-				'.jfif',
-				'.p',
-				'.pd'
-				*/
+			url := "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel
+
+			mediaType, errE := detectMediaType(ctx, httpClient, url)
+			if errors.Is(errE, errLabelNotFound) {
+				logger.Warn().
+					Str("doc", doc.ID.String()).
+					Str("id", washerDrier.EPRELRegistrationNumber).
+					Str("url", url).
+					Any("status", errors.Details(errE)["status"]).
+					Msg("label not found")
 				continue
+			} else if errE != nil {
+				return doc, errE
 			}
-			errE := doc.Add(&document.FileClaim{
+
+			errE = doc.Add(&document.FileClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "UPLOADED_LABEL", i),
 					Confidence: document.HighConfidence,
 				},
 				Prop:      document.GetCorePropertyReference("UPLOADED_LABEL"),
 				MediaType: mediaType,
-				URL:       "https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel,
-				Preview:   []string{"https://eprel.ec.europa.eu/supplier-labels/washerdriers/" + uploadedLabel},
+				URL:       url,
+				Preview:   []string{url},
 			})
 			if errE != nil {
 				return doc, errE
@@ -680,7 +714,7 @@ func (e EPREL) Run(
 			Str("id", washerDrier.EPRELRegistrationNumber).
 			Msg("processing EPREL washer-driers record")
 
-		doc, errE := makeWasherDrierDoc(washerDrier)
+		doc, errE := makeWasherDrierDoc(ctx, config.Logger, httpClient.StandardClient(), washerDrier)
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EPRELRegistrationNumber
 			return errE

@@ -80,6 +80,10 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 	entries, err := content.ReadDir("testdata/eprel")
 	require.NoError(t, err)
 
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+	ctx := context.Background()
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -103,7 +107,7 @@ func TestMakeWasherDrierDoc(t *testing.T) {
 			require.NoError(t, errE, "% -+#.1v", errE)
 
 			for i := range result.Hits {
-				outputDoc, errE := makeWasherDrierDoc(result.Hits[i])
+				outputDoc, errE := makeWasherDrierDoc(ctx, logger, httpClient.StandardClient(), result.Hits[i])
 				require.NoError(t, errE, "% -+#.1v", errE)
 				outputJSON, errE := x.MarshalWithoutEscapeHTML(outputDoc)
 				require.NoError(t, errE, "% -+#.1v", errE)
