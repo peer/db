@@ -491,27 +491,37 @@ func makeWasherDrierDoc(ctx context.Context, logger zerolog.Logger, httpClient *
 					Unit:   document.AmountUnitLitre,
 				},
 			},
-			Time: document.TimeClaims{
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_START_DATE", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:      document.GetCorePropertyReference("ON_MARKET_START_DATE"),
-					Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketStartDateTimestamp, 0)),
-					Precision: document.TimePrecisionDay,
-				},
-				{
-					CoreClaim: document.CoreClaim{
-						ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_END_DATE", 0),
-						Confidence: document.HighConfidence,
-					},
-					Prop:      document.GetCorePropertyReference("ON_MARKET_END_DATE"),
-					Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketEndDateTimestamp, 0)),
-					Precision: document.TimePrecisionDay,
-				},
-			},
 		},
+	}
+
+	if washerDrier.OnMarketStartDateTimestamp != 0 {
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_START_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("ON_MARKET_START_DATE"),
+			Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketStartDateTimestamp, 0)),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
+	}
+
+	if washerDrier.OnMarketEndDateTimestamp != 0 {
+		errE := doc.Add(&document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         document.GetID(NameSpaceProducts, "WASHER_DRIER", washerDrier.EPRELRegistrationNumber, "ON_MARKET_END_DATE", 0),
+				Confidence: document.HighConfidence,
+			},
+			Prop:      document.GetCorePropertyReference("ON_MARKET_END_DATE"),
+			Timestamp: document.Timestamp(time.Unix(washerDrier.OnMarketEndDateTimestamp, 0)),
+			Precision: document.TimePrecisionDay,
+		})
+		if errE != nil {
+			return doc, errE
+		}
 	}
 
 	if s := strings.TrimSpace(washerDrier.EcoLabelRegistrationNumber); s != "" {
