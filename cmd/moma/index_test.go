@@ -49,7 +49,7 @@ func testExtractData[T any](t *testing.T, dir string) {
 			expectedFilePath := filepath.Join("testdata", dir, base+"_out.json")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
+				f, err := os.Create(filepath.Clean(expectedFilePath))
 				require.NoError(t, err)
 				_, _ = f.Write(output)
 			} else {

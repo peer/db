@@ -51,7 +51,7 @@ func GetWasherDriers[T any](ctx context.Context, httpClient *retryablehttp.Clien
 
 		var result washerDrierResponse
 		errE := x.DecodeJSONWithoutUnknownFields(resp.Body, &result)
-		resp.Body.Close() //nolint:errcheck
+		resp.Body.Close() //nolint:errcheck,gosec
 		if errE != nil {
 			return nil, errE
 		}

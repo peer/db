@@ -205,7 +205,7 @@ func getIngredients(ingredientsDir string, food FoodDataCentralBrandedFood) (Ing
 	}
 
 	p := filepath.Join(ingredientsDir, fmt.Sprintf("%d.json", food.FDCID))
-	file, err := os.Open(p)
+	file, err := os.Open(filepath.Clean(p))
 	if errors.Is(err, fs.ErrNotExist) {
 		return Ingredients{}, nil
 	} else if err != nil {

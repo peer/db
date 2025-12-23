@@ -171,7 +171,7 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 		return nil, errors.WithStack(err)
 	}
 
-	context.AfterFunc(ctx, func() { processor.Close() })
+	context.AfterFunc(ctx, func() { processor.Close() }) //nolint:errcheck
 
 	return processor, nil
 }

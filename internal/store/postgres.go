@@ -97,7 +97,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	defer conn.Close(ctx)
+	defer conn.Close(ctx) //nolint:errcheck
 
 	var maxConnectionsStr string
 	err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)

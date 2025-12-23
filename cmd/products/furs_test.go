@@ -19,7 +19,7 @@ func TestProcessFursDejFile(t *testing.T) {
 	if err != nil {
 		require.NoError(t, err)
 	}
-	t.Cleanup(func() { file.Close() }) //nolint:errcheck
+	t.Cleanup(func() { file.Close() }) //nolint:errcheck,gosec
 
 	readFile := bufio.NewReader(file)
 

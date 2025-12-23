@@ -44,7 +44,7 @@ func populateSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.
 		return nil
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -78,7 +78,7 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	if path == "-" {
 		w = os.Stdout
 	} else {
-		file, err := os.Create(path)
+		file, err := os.Create(filepath.Clean(path))
 		if err != nil {
 			return errors.WithStack(err)
 		}

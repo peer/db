@@ -79,6 +79,7 @@ func RetryTransaction(
 				AccessMode:     accessMode,
 				DeferrableMode: pgx.NotDeferrable,
 				BeginQuery:     "",
+				CommitQuery:    "",
 			})
 			if err != nil {
 				return WithPgxError(err)

@@ -328,7 +328,7 @@ func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType
 							return mediawiki.WikiBaseProperty, nil
 						case mediawiki.ItemType:
 							return mediawiki.WikiBaseItem, nil
-						case mediawiki.LexemeType, mediawiki.FormType, mediawiki.SenseType:
+						case mediawiki.LexemeType, mediawiki.FormType, mediawiki.SenseType, mediawiki.EntitySchemaType:
 							fallthrough
 						default:
 							err := errors.Errorf("%w: not supported value type", errNotSupportedDataType)
