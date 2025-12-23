@@ -262,7 +262,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			}
 			return errE
 		}
-		version.Changeset = identifier.MustFromString(changeset)
+		version.Changeset = identifier.String(changeset)
 		version.Revision = revision
 		if dataIsNull {
 			// We return an error because this method is asking for the current version of the value
@@ -399,7 +399,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
-			values = append(values, identifier.MustFromString(i))
+			values = append(values, identifier.String(i))
 			return nil
 		})
 		if err != nil {
@@ -503,7 +503,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
-			changesets = append(changesets, identifier.MustFromString(i))
+			changesets = append(changesets, identifier.String(i))
 			return nil
 		})
 		if err != nil {
@@ -595,7 +595,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
-			changesets = append(changesets, identifier.MustFromString(i))
+			changesets = append(changesets, identifier.String(i))
 			return nil
 		})
 		if err != nil {

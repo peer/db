@@ -29,7 +29,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
@@ -98,7 +98,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
@@ -201,7 +201,7 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -246,7 +246,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -314,7 +314,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -341,7 +341,7 @@ func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Reques
 func (s *Service) DocumentGetChangeGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -391,7 +391,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -438,13 +438,13 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
@@ -478,13 +478,13 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return

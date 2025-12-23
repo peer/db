@@ -438,7 +438,7 @@ func UpdateSession(ctx context.Context, session *Session) errors.E {
 
 // GetSessionFromID resolves an existing search session if possible.
 func GetSessionFromID(ctx context.Context, value string) (*Session, errors.E) {
-	id, errE := identifier.FromString(value)
+	id, errE := identifier.MaybeString(value)
 	if errE != nil {
 		return nil, errors.WrapWith(errE, ErrNotFound)
 	}

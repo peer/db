@@ -15,7 +15,7 @@ import (
 func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
 	namespace := uuid.UUID(base)
 	res := uuid.NewSHA1(namespace, []byte(strconv.FormatInt(i, 10)))
-	return identifier.FromUUID(res)
+	return identifier.UUID(res)
 }
 
 func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn

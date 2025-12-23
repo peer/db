@@ -223,7 +223,7 @@ func GetID(namespace uuid.UUID, args ...interface{}) identifier.Identifier {
 	for _, arg := range args {
 		res = uuid.NewSHA1(res, []byte(fmt.Sprint(arg)))
 	}
-	return identifier.FromUUID(res)
+	return identifier.UUID(res)
 }
 
 func GetCorePropertyID(mnemonic string) identifier.Identifier {

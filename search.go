@@ -53,13 +53,13 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 }
 
 func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -82,13 +82,13 @@ func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request
 
 //nolint:dupl
 func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -111,13 +111,13 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 
 //nolint:dupl
 func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -140,13 +140,13 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 
 //nolint:dupl
 func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return

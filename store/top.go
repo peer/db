@@ -32,7 +32,7 @@ func VersionFromString(text string) (Version, errors.E) {
 	if !ok {
 		return Version{}, errors.Errorf("invalid version string: %s", text)
 	}
-	changeset, errE := identifier.FromString(changesetStr)
+	changeset, errE := identifier.MaybeString(changesetStr)
 	if errE != nil {
 		return Version{}, errE
 	}

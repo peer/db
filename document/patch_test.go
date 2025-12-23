@@ -15,10 +15,10 @@ import (
 func TestPatchJSON(t *testing.T) {
 	t.Parallel()
 
-	id1 := identifier.MustFromString("LpcGdCUThc22mhuBwQJQ5Z")
-	id2 := identifier.MustFromString("AyNNP5CVsSx3w9b75erF1m")
-	prop1 := identifier.MustFromString("XkbTJqwFCFkfoxMBXow4HU")
-	prop2 := identifier.MustFromString("3EL2nZdWVbw85XG1zTH2o5")
+	id1 := identifier.String("LpcGdCUThc22mhuBwQJQ5Z")
+	id2 := identifier.String("AyNNP5CVsSx3w9b75erF1m")
+	prop1 := identifier.String("XkbTJqwFCFkfoxMBXow4HU")
+	prop2 := identifier.String("3EL2nZdWVbw85XG1zTH2o5")
 	confidence := document.Confidence(1.0)
 	amount := 42.1
 	value := "foobar"
@@ -60,7 +60,7 @@ func TestPatchJSON(t *testing.T) {
 			Score: 1.0,
 		},
 	}
-	base := identifier.MustFromString("TqtRsbk7rTKviW3TJapTim")
+	base := identifier.String("TqtRsbk7rTKviW3TJapTim")
 	errE = changes.Validate(context.Background(), base)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)

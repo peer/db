@@ -66,7 +66,7 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -123,7 +123,7 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 func (s *Service) StorageListChunksGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -154,7 +154,7 @@ type storageGetChunkResponse struct {
 func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -194,7 +194,7 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -233,7 +233,7 @@ func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Requ
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -266,7 +266,7 @@ func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Requ
 func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return

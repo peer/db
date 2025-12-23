@@ -237,7 +237,7 @@ func getDocumentFromByProp(
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
 	for _, hit := range searchResult.Hits.Hits {
-		doc, version, errE := getDocumentFromByID(ctx, s, identifier.MustFromString(hit.Id))
+		doc, version, errE := getDocumentFromByID(ctx, s, identifier.String(hit.Id))
 		if errE != nil {
 			// Caller should add details to the error.
 			return nil, store.Version{}, errE
