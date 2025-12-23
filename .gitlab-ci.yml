@@ -64,7 +64,6 @@ test_go:
         coverage_format: cobertura
         path: coverage.xml
     paths:
-      - tests.json
       - tests.xml
       - coverage.html
       - coverage.xml

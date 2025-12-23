@@ -82,7 +82,7 @@ func parsePRSEntry(row []string) (PRSEntry, errors.E) {
 }
 
 func processPRSFile(reader io.ReadCloser) ([]PRSEntry, errors.E) {
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	utf16Decoder := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()
 	utf8Reader := transform.NewReader(reader, utf16Decoder)
@@ -121,7 +121,7 @@ func getPRS(ctx context.Context, httpClient *retryablehttp.Client, logger zerolo
 	if errE != nil {
 		return nil, errE
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	records, errE := processPRSFile(reader)
 	if errE != nil {
@@ -362,7 +362,8 @@ func (p PRS) Run(
 	}()
 
 	for i, record := range records {
-		if err := ctx.Err(); err != nil {
+		err := ctx.Err()
+		if err != nil {
 			return errors.WithStack(err)
 		}
 		config.Logger.Debug().

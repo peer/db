@@ -34,7 +34,6 @@ dist-ssr
 
 # Testing
 tests.xml
-tests.json
 coverage.*
 codeclimate.json
 /coverage

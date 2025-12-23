@@ -197,7 +197,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, insertVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -244,7 +244,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, updateVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -298,7 +298,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, replaceVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -359,7 +359,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, deleteVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -446,7 +446,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
@@ -502,7 +502,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
 		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
-		committedChangeset, errE := c[0].WithStore(ctx, s) //nolint:govet
+		committedChangeset, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := committedChangeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {

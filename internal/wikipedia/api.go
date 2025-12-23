@@ -118,7 +118,7 @@ func ListAllPages(
 				}
 				return errE
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close()              //nolint:errcheck
 			defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 			if resp.StatusCode != http.StatusOK {
@@ -236,7 +236,7 @@ func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, site, ti
 		errors.Details(errE)["url"] = htmlURL
 		return "", errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)

@@ -164,7 +164,8 @@ func (d FURSDEJ) Run(
 	}()
 
 	for i, record := range records {
-		if err := ctx.Err(); err != nil { // Check if context is canceled.
+		err := ctx.Err()
+		if err != nil { // Check if context is canceled.
 			return errors.WithStack(err)
 		}
 		config.Logger.Debug().
@@ -203,7 +204,7 @@ func downloadFurs(ctx context.Context, httpClient *retryablehttp.Client, logger 
 	if errE != nil {
 		return nil, errE
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	zipReader := zipstream.NewReader(reader)
 	var file *zip.FileHeader
@@ -266,7 +267,8 @@ func processFursDejFile(reader io.Reader) ([]FursEntry, errors.E) {
 		})
 	}
 
-	if err := scanner.Err(); err != nil {
+	err := scanner.Err()
+	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 

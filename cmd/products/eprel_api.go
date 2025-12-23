@@ -72,7 +72,7 @@ func detectMediaType(ctx context.Context, httpClient *http.Client, url string) (
 		errors.Details(errE)["url"] = url
 		return "", errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		errE := errors.WithStack(errLabelNotFound)
@@ -303,7 +303,7 @@ func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]
 		errors.Details(errE)["url"] = url
 		return nil, errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		errE := errors.New("unexpected status code")

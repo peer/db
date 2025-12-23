@@ -173,7 +173,7 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 	if errE != nil {
 		return nil, errE
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	zipReader := zipstream.NewReader(reader)
 	var file *zip.FileHeader
@@ -201,17 +201,17 @@ func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zero
 
 func getIngredients(ingredientsDir string, food FoodDataCentralBrandedFood) (Ingredients, errors.E) {
 	if ingredientsDir == "" {
-		return Ingredients{}, nil //nolint:exhaustruct
+		return Ingredients{}, nil
 	}
 
 	p := filepath.Join(ingredientsDir, fmt.Sprintf("%d.json", food.FDCID))
 	file, err := os.Open(p)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Ingredients{}, nil //nolint:exhaustruct
+		return Ingredients{}, nil
 	} else if err != nil {
 		return Ingredients{}, errors.WithStack(err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 	var result Ingredients
 	errE := x.DecodeJSONWithoutUnknownFields(file, &result)
 	if errE != nil {

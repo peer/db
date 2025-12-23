@@ -37,7 +37,7 @@ type storageBeginUploadResponse struct {
 }
 
 func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -61,7 +61,7 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 }
 
 func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -189,7 +189,7 @@ func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, p
 type emptyRequest struct{}
 
 func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -228,7 +228,7 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 }
 
 func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()

@@ -59,7 +59,7 @@ func (c *WikidataCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = mediawiki.ProcessWikidataDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
 		return c.processEntity(ctx, globals, store, cache, entity)

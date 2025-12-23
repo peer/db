@@ -51,7 +51,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		return nil, errors.WithStack(err)
 	}
 
-	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
+	dbconfig.ConnConfig.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
 		l := logger.
 			WithLevel(noticeSeverityToLogLevel[notice.SeverityUnlocalized]).
 			Fields(ErrorDetails((*pgconn.PgError)(notice))).
@@ -141,7 +141,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
 		schema, requestID := getRequest(ctx)
 
-		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID)) //nolint:govet
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
 			return false
@@ -162,7 +162,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		delete(conn.PgConn().CustomData(), "schema")
 		delete(conn.PgConn().CustomData(), "request")
 
-		_, err := conn.Exec(ctx, `RESET application_name`) //nolint:govet
+		_, err := conn.Exec(ctx, `RESET application_name`)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to reset "application_name" for PostgreSQL connection`)
 			return false

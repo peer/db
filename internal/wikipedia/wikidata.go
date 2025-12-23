@@ -872,7 +872,8 @@ func ConvertEntity( //nolint:maintidx
 		logger.Error().Str("entity", entity.ID).Err(errE).Msg("claim cannot be added")
 	}
 
-	if entity.Type == mediawiki.Property {
+	switch entity.Type {
+	case mediawiki.Property:
 		doc.Claims = &document.ClaimTypes{
 			Identifier: document.IdentifierClaims{
 				{
@@ -905,7 +906,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else if entity.Type == mediawiki.Item {
+	case mediawiki.Item:
 		doc.Claims = &document.ClaimTypes{
 			Identifier: document.IdentifierClaims{
 				{
@@ -938,7 +939,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else if entity.Type == mediawiki.MediaInfo {
+	case mediawiki.MediaInfo:
 		// It is expected that this document will be merged with another document with standard
 		// file claims, so the claims here are just a set of additional claims to be added and
 		// are missing standard file claims.
@@ -954,7 +955,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else {
+	default:
 		return nil, errors.Errorf(`entity has invalid type: %d`, entity.Type)
 	}
 

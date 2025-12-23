@@ -42,7 +42,7 @@ func (c *PrepareCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = c.saveCoreProperties(ctx, globals, store, esClient, esProcessor)
 	if errE != nil {

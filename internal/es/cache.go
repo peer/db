@@ -12,6 +12,7 @@ import (
 // Cache is a LRU cache which counts cache misses.
 type Cache struct {
 	*lru.Cache[any, *document.D]
+
 	missCount uint64
 }
 

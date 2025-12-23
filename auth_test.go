@@ -76,9 +76,9 @@ func TestBasicAuth(t *testing.T) {
 				req.Header.Set("Authorization", "Basic "+encoded)
 			}
 
-			resp, err := ts.Client().Do(req)
+			resp, err := ts.Client().Do(req) //nolint:bodyclose
 			require.NoError(t, err)
-			t.Cleanup(func() { resp.Body.Close() })
+			t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp)) //nolint:errcheck,gosec
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
@@ -132,9 +132,9 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 			require.NoError(t, err)
 			req.Host = tt.domain
 
-			resp, err := ts.Client().Do(req)
+			resp, err := ts.Client().Do(req) //nolint:bodyclose
 			require.NoError(t, err)
-			t.Cleanup(func() { resp.Body.Close() })
+			t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp)) //nolint:errcheck,gosec
 
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 			authHeader := resp.Header.Get("WWW-Authenticate")

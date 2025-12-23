@@ -72,7 +72,7 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = mediawiki.ProcessCommonsEntitiesDump(ctx, config, func(ctx context.Context, entity mediawiki.Entity) errors.E {
 		return c.processEntity(ctx, globals, store, esClient, cache, entity)
@@ -217,7 +217,7 @@ func (c *CommonsFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
@@ -387,7 +387,7 @@ func (c *CommonsCategoriesCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()

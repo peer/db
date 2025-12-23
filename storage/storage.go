@@ -123,7 +123,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 
 	chunks := make([]chunk, 0, len(chunksList))
 	for _, c := range chunksList {
-		data, metadata, errE := s.coordinator.GetData(ctx, session, c) //nolint:govet
+		data, metadata, errE := s.coordinator.GetData(ctx, session, c)
 		if errE != nil {
 			errors.Details(errE)["chunk"] = c
 			return nil, errE

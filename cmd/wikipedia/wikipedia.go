@@ -139,7 +139,7 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
 		return c.processArticle(ctx, globals, store, esClient, article)
@@ -274,7 +274,7 @@ func wikipediaArticlesRun(
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = mediawiki.ProcessWikipediaDump(ctx, config, func(ctx context.Context, article mediawiki.Article) errors.E {
 		return wikipediaArticlesProcessArticle(ctx, globals, store, esClient, article, convertArticle)

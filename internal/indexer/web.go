@@ -92,7 +92,7 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 		errors.Details(errE)["url"] = url
 		return *new(T), errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
@@ -136,7 +136,7 @@ func GetRobotsTxt(ctx context.Context, httpClient *retryablehttp.Client, u strin
 		errors.Details(errE)["url"] = u
 		return nil, errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	robots, err := robotstxt.FromResponse(resp)

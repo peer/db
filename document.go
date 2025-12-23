@@ -60,7 +60,7 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 
 	var reqVersion *store.Version
 	if req.Form.Has("version") {
-		v, errE := store.VersionFromString(req.Form.Get("version")) //nolint:govet
+		v, errE := store.VersionFromString(req.Form.Get("version"))
 		if errE != nil {
 			s.BadRequestWithError(w, req, errE)
 			return
@@ -109,7 +109,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	var reqVersion *store.Version
 	if req.Form.Has("version") {
-		v, errE := store.VersionFromString(req.Form.Get("version")) //nolint:govet
+		v, errE := store.VersionFromString(req.Form.Get("version"))
 		if errE != nil {
 			s.BadRequestWithError(w, req, errE)
 			return
@@ -152,7 +152,7 @@ type documentCreateResponse struct {
 }
 
 func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -196,7 +196,7 @@ type documentBeginEditResponse struct {
 }
 
 func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -241,7 +241,7 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 }
 
 func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -386,7 +386,7 @@ func (s *Service) DocumentDiscardEditPost(w http.ResponseWriter, req *http.Reque
 }
 
 func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, params waf.Params, discard bool) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()

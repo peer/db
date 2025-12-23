@@ -212,7 +212,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		var changeset string
 		var revision int64

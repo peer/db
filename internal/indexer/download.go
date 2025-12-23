@@ -222,7 +222,7 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
 			// attempt to delete the file if it has not been downloaded fully for any reason.
 			// TODO: But it might be that the file exists because it is being downloaded in parallel so this would return incomplete file.
-			cachedReadFile, err := os.Open(cachedPath) //nolint:govet
+			cachedReadFile, err := os.Open(cachedPath)
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}

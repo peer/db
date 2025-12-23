@@ -122,7 +122,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 		errors.Details(errE)["url"] = debugURL
 		return errE
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
@@ -242,7 +242,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 			}
 		} else if len(page.ImageInfo) == 0 {
 			for _, task := range pageTasks {
-				ii := ImageInfo{} //nolint:exhaustruct
+				ii := ImageInfo{}
 				// Set redirect if there is one, otherwise this sets an empty string.
 				ii.Redirect = redirects[page.Title]
 				ii.Redirect = strings.TrimPrefix(ii.Redirect, "File:")

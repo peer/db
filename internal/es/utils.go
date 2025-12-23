@@ -201,7 +201,7 @@ func endDocumentSession(
 
 	changes := make(document.Changes, 0, len(changesList))
 	for _, ch := range changesList {
-		data, _, errE := c.GetData(ctx, session, ch) //nolint:govet
+		data, _, errE := c.GetData(ctx, session, ch)
 		if errE != nil {
 			errors.Details(errE)["change"] = ch
 			return nil, errE

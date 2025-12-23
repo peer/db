@@ -97,7 +97,7 @@ func testStaticFile(t *testing.T, route, filePath, contentType string) {
 
 	resp, err := ts.Client().Get(ts.URL + path) //nolint:noctx,bodyclose
 	if assert.NoError(t, err) {
-		t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp))
+		t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp)) //nolint:errcheck,gosec
 		out, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -192,8 +192,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for i := range globals.Sites {
-		globals.Sites[i].Site.CertFile = certPath
-		globals.Sites[i].Site.KeyFile = keyPath
+		globals.Sites[i].CertFile = certPath
+		globals.Sites[i].KeyFile = keyPath
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -234,7 +234,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	dialerContext := cleanhttp.DefaultTransport().DialContext
 	ts.Client().Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) { //nolint:errcheck,forcetypeassert
-		host, port, err := net.SplitHostPort(addr) //nolint:govet
+		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
