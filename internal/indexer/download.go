@@ -73,10 +73,10 @@ func (r *downloadingReader) Read(p []byte) (int, error) {
 func (r *downloadingReader) Close() error {
 	defer func() {
 		if r.WriteFile != nil {
-			r.WriteFile.Close() //nolint:errcheck
+			r.WriteFile.Close() //nolint:errcheck,gosec
 		}
 		if r.ReadFile != nil {
-			r.ReadFile.Close() //nolint:errcheck
+			r.ReadFile.Close() //nolint:errcheck,gosec
 		}
 		if r.ticker != nil {
 			r.ticker.Stop()
@@ -95,15 +95,15 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
 	if err != nil {
-		r.WriteFile.Close() //nolint:errcheck
-		r.ReadFile.Close()  //nolint:errcheck
+		r.WriteFile.Close() //nolint:errcheck,gosec
+		r.ReadFile.Close()  //nolint:errcheck,gosec
 		_ = os.Remove(r.Path)
 		return 0, errors.WithStack(err)
 	}
 	httpResponseReader, errE := x.NewRetryableResponse(httpClient, req)
 	if errE != nil {
-		r.WriteFile.Close() //nolint:errcheck
-		r.ReadFile.Close()  //nolint:errcheck
+		r.WriteFile.Close() //nolint:errcheck,gosec
+		r.ReadFile.Close()  //nolint:errcheck,gosec
 		_ = os.Remove(r.Path)
 		return 0, errE
 	}
@@ -132,7 +132,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 				_ = os.Remove(r.Path)
 			}
 		}()
-		defer r.WriteFile.Close()        //nolint:errcheck
+		defer r.WriteFile.Close() //nolint:errcheck
 		defer r.ticker.Stop()
 		defer httpResponseReader.Close() //nolint:errcheck
 
@@ -213,7 +213,7 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 	cachedPath, url := getPathAndURL(cacheDir, url)
 
 	// The try to create the cached file.
-	cachedWriteFile, err := os.OpenFile(filepath.Clean(cachedPath), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd
+	cachedWriteFile, err := os.OpenFile(filepath.Clean(cachedPath), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd,gosec
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			// The simple code path: the cached file already exist.
@@ -249,7 +249,7 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 
 	cachedReadFile, err := os.Open(filepath.Clean(cachedPath))
 	if err != nil {
-		cachedWriteFile.Close() //nolint:errcheck
+		cachedWriteFile.Close() //nolint:errcheck,gosec
 		_ = os.Remove(cachedPath)
 		return nil, 0, errors.WithStack(err)
 	}

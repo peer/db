@@ -178,7 +178,7 @@ func (i *Image) UnmarshalJSON(b []byte) error {
 	}
 	timestamp, err := time.ParseInLocation("20060102150405", ii.Timestamp, time.UTC)
 	if err != nil {
-		return errors.WithStack(errE)
+		return errors.WithStack(err)
 	}
 
 	*i = Image(ii.ImageSub)

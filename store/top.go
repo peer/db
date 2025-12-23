@@ -18,7 +18,7 @@ type Version struct {
 	Revision int64
 }
 
-func (v Version) String() string {
+func (v *Version) String() string {
 	s := new(strings.Builder)
 	s.WriteString(v.Changeset.String())
 	s.WriteString("-")
