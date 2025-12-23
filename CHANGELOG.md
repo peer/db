@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Importer for FoodData Central data.
-- Importer for EPREL data.
+- Importers for FoodData Central, EPREL, and other data.
 - Support for basic auth for the whole instance.
   [#33](https://gitlab.com/peerdb/peerdb/-/issues/33)
   [!8](https://gitlab.com/peerdb/peerdb/-/merge_requests/8)
