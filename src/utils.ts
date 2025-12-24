@@ -140,6 +140,19 @@ export function getBestClaimOfType<K extends ClaimTypeProp>(
   return null
 }
 
+const LOW_CONFIDENCE = 0.5
+
+// TODO: Support also negation claims (i.e., those with negative confidence).
+export function getClaimsOfTypeWithConfidence<K extends ClaimTypeProp>(
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+  confidence: number = LOW_CONFIDENCE,
+): Required<DeepReadonly<ClaimTypes>>[K][number][] {
+  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  return claims.filter((claim) => claim.confidence >= confidence)
+}
+
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
 export function getClaimsListsOfType<K extends ClaimTypeProp>(
