@@ -51,6 +51,8 @@ func (d CoreDocument) GetID() identifier.Identifier {
 type Mnemonic string
 
 // Timestamp represents a point in time, extending time.Time to support JSON marshaling with extended year format.
+//
+//nolint:recvcheck
 type Timestamp time.Time
 
 var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
@@ -237,6 +239,8 @@ type (
 )
 
 // CoreClaim contains fields common to all claim types.
+//
+//nolint:recvcheck
 type CoreClaim struct {
 	ID         identifier.Identifier `                       json:"id"`
 	Confidence Confidence            `                       json:"confidence"`
@@ -280,7 +284,7 @@ func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 }
 
 // Remove removes and returns all metadata claims with the given property ID.
-func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim { //nolint:ireturn
+func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
 		Action: Drop,
@@ -387,6 +391,8 @@ type StringClaim struct {
 }
 
 // AmountUnit represents the unit of measurement for an amount claim.
+//
+//nolint:recvcheck
 type AmountUnit int
 
 const (

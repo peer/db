@@ -50,6 +50,8 @@ func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 }
 
 // Changes is a slice of Change operations to apply to a document.
+//
+//nolint:recvcheck
 type Changes []Change
 
 // Apply applies all changes in order to the given document.
@@ -215,6 +217,8 @@ var (
 )
 
 // AddClaimChange represents a change that adds a new claim to a document.
+//
+//nolint:recvcheck
 type AddClaimChange struct {
 	Under *identifier.Identifier `json:"under,omitempty"`
 	ID    identifier.Identifier  `json:"id"`
@@ -295,6 +299,8 @@ func (c AddClaimChange) MarshalJSON() ([]byte, error) {
 }
 
 // SetClaimChange represents a change that modifies an existing claim in a document.
+//
+//nolint:recvcheck
 type SetClaimChange struct {
 	ID    identifier.Identifier `json:"id"`
 	Patch ClaimPatch            `json:"patch"`
@@ -357,6 +363,8 @@ func (c SetClaimChange) MarshalJSON() ([]byte, error) {
 }
 
 // RemoveClaimChange represents a change that removes a claim from a document.
+//
+//nolint:recvcheck
 type RemoveClaimChange struct {
 	ID identifier.Identifier `json:"id"`
 }
@@ -412,6 +420,8 @@ func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 }
 
 // IdentifierClaimPatch represents a patch for an identifier claim.
+//
+//nolint:recvcheck
 type IdentifierClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -497,6 +507,8 @@ func (p IdentifierClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // ReferenceClaimPatch represents a patch for a reference claim.
+//
+//nolint:recvcheck
 type ReferenceClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -582,6 +594,8 @@ func (p ReferenceClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // TextClaimPatch represents a patch for a text claim.
+//
+//nolint:recvcheck
 type TextClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -674,6 +688,8 @@ func (p TextClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // StringClaimPatch represents a patch for a string claim.
+//
+//nolint:recvcheck
 type StringClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -759,6 +775,8 @@ func (p StringClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // AmountClaimPatch represents a patch for an amount claim.
+//
+//nolint:recvcheck
 type AmountClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -849,6 +867,8 @@ func (p AmountClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // AmountRangeClaimPatch represents a patch for an amount range claim.
+//
+//nolint:recvcheck
 type AmountRangeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -944,6 +964,8 @@ func (p AmountRangeClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // RelationClaimPatch represents a patch for a relation claim.
+//
+//nolint:recvcheck
 type RelationClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1031,6 +1053,8 @@ func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // FileClaimPatch represents a patch for a file claim.
+//
+//nolint:recvcheck
 type FileClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1126,6 +1150,8 @@ func (p FileClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // NoValueClaimPatch represents a patch for a no value claim.
+//
+//nolint:recvcheck
 type NoValueClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1206,6 +1232,8 @@ func (p NoValueClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // UnknownValueClaimPatch represents a patch for an unknown value claim.
+//
+//nolint:recvcheck
 type UnknownValueClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1286,6 +1314,8 @@ func (p UnknownValueClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // TimeClaimPatch represents a patch for a time claim.
+//
+//nolint:recvcheck
 type TimeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1376,6 +1406,8 @@ func (p TimeClaimPatch) MarshalJSON() ([]byte, error) {
 }
 
 // TimeRangeClaimPatch represents a patch for a time range claim.
+//
+//nolint:recvcheck
 type TimeRangeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`

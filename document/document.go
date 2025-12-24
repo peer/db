@@ -6,6 +6,8 @@ import (
 )
 
 // D represents a PeerDB document.
+//
+//nolint:recvcheck
 type D struct {
 	CoreDocument
 
