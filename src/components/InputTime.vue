@@ -502,6 +502,7 @@ const emitCanonicalDebounce = debounce(() => {
 }, DEBOUNCE_MS)
 
 function onKeydown() {
+  errorMessage.value = ""
   emitCanonicalDebounce.cancel()
 }
 
