@@ -21,6 +21,7 @@ const props = withDefaults(
     invalid?: boolean
     precision?: TimePrecision
     progress?: number
+    maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
     modelValue: "",
@@ -28,6 +29,7 @@ const props = withDefaults(
     invalid: false,
     precision: "y",
     progress: 0,
+    maxPrecision: "G",
   },
 )
 
@@ -59,6 +61,19 @@ const precisionLabels: Record<TimePrecision, string> = {
   s: "seconds",
 }
 
+const ALLOWED_TYPES = new Set(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y"])
+const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
+
+watch(
+  () => props.maxPrecision,
+  (v) => {
+    if (!ALLOWED_TYPES.has(v)) {
+      throw new Error(`[InputText] Invalid prop "type": "${v}". Allowed: ${[...ALLOWED_TYPES].join(", ")}.`)
+    }
+  },
+  { immediate: true },
+)
+
 const timePrecision = ref<TimePrecision>("y")
 
 const isEditing = ref(false)
@@ -69,6 +84,15 @@ const isInvalid = computed(() => props.invalid || isTimeInvalid.value)
 
 const inputId = computed(() => {
   return typeof attrs.id === "string" ? attrs.id : "identifier-property"
+})
+
+const timePrecisionWithMax = computed(() => {
+  const reversed = timePrecisionOptions.toReversed()
+  const maxPrecision = reversed.indexOf(props.maxPrecision)
+
+  if (maxPrecision < 0) return reversed
+
+  return reversed.slice(0, maxPrecision + 1)
 })
 
 const displayValue = ref(props.modelValue ?? "")
@@ -304,7 +328,7 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
   return timeStruct
 }
 
-function inferYearPrecision(yearStr: string): TimePrecision {
+function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
   const year = parseInt(yearStr || "0", 10)
   const abs = Math.abs(year)
 
@@ -321,24 +345,40 @@ function inferYearPrecision(yearStr: string): TimePrecision {
   ]
 
   for (const [p, factor] of candidates) {
-    if (abs >= factor && year % factor === 0) return p
+    if (abs >= factor && year % factor === 0) return clampToMax(p, max)
   }
 
-  return "y"
+  return clampToMax("y", max)
 }
 
 function inferPrecisionFromNormalized(normalized: string): TimePrecision {
-  if (matchToSecond(normalized)) return "s"
-  if (matchToMinute(normalized)) return "min"
-  if (matchToHour(normalized)) return "h"
-  if (matchToDay(normalized)) return "d"
-  if (matchToMonth(normalized)) return "m"
+  const inferred = matchToSecond(normalized)
+    ? "s"
+    : matchToMinute(normalized)
+      ? "min"
+      : matchToHour(normalized)
+        ? "h"
+        : matchToDay(normalized)
+          ? "d"
+          : matchToMonth(normalized)
+            ? "m"
+            : (() => {
+                const y = matchToYear(normalized)
+                if (y) return inferYearPrecision(y[1], props.maxPrecision)
+                return timePrecision.value
+              })()
 
-  const y = matchToYear(normalized)
-  if (y) return inferYearPrecision(y[1])
+  return clampToMax(inferred, props.maxPrecision as TimePrecision)
+}
 
-  // While typing, we might be between tokens. Keep current precision.
-  return timePrecision.value
+function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
+  const pr = PRECISION_RANK.get(p)
+  const mr = PRECISION_RANK.get(max)
+
+  if (pr == null) throw new Error(`[TimeInput] Unknown precision: ${String(p)}`)
+  if (mr == null) throw new Error(`[TimeInput] Unknown maxPrecision: ${String(max)}`)
+
+  return pr < mr ? max : p
 }
 
 function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
@@ -550,7 +590,7 @@ watch(
             </ListboxButton>
 
             <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded bg-white shadow ring-2 ring-neutral-300 focus:outline-none">
-              <ListboxOption v-for="tp in timePrecisionOptions" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
+              <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
                 <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default select-none py-2 pl-10 pr-4']">
                   <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
                     {{ precisionLabel(tp) }}
