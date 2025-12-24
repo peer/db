@@ -417,6 +417,11 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
 }
 
 function emitCanonicalFromDisplay(): void {
+  if (!displayValue.value) {
+    emit("update:modelValue", "")
+    return
+  }
+
   const normalized = normalizeForParsing(displayValue.value)
   const cleaned = cleanInputNormalized(normalized)
 
