@@ -331,7 +331,7 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
 }
 
 function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
-  const year = parseInt(yearStr || "0", 10)
+  const year = parseInt(yearStr || "0000", 10)
   const abs = Math.abs(year)
 
   const candidates: Array<[TimePrecision, number]> = [
@@ -384,7 +384,7 @@ function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
 }
 
 function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
-  const y = timeStruct.y || "0"
+  const y = timeStruct.y || "0000"
 
   if (
     precision === "G" ||
@@ -420,7 +420,7 @@ function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: str
 }
 
 function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
-  const year = parseInt(timeStruct.y || "0", 10)
+  const year = parseInt(timeStruct.y || "0000", 10)
 
   function roundDown(value: number, factor: number) {
     return Math.floor(value / factor) * factor
