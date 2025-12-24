@@ -5,6 +5,7 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// D represents a PeerDB document.
 type D struct {
 	CoreDocument
 
@@ -12,6 +13,7 @@ type D struct {
 	Claims   *ClaimTypes `exhaustruct:"optional" json:"claims,omitempty"`
 }
 
+// ClaimsContainer defines the interface for types that can hold and manipulate claims.
 type ClaimsContainer interface {
 	GetID() identifier.Identifier
 	Visit(visitor Visitor) errors.E
@@ -26,12 +28,14 @@ type ClaimsContainer interface {
 
 var _ ClaimsContainer = (*D)(nil)
 
+// Reference returns a Reference to this document.
 func (d D) Reference() Reference {
 	return Reference{
 		ID: &d.ID,
 	}
 }
 
+// Visit applies a visitor to the document's claims.
 func (d *D) Visit(visitor Visitor) errors.E {
 	if d.Claims != nil {
 		err := d.Claims.Visit(visitor)
@@ -46,6 +50,7 @@ func (d *D) Visit(visitor Visitor) errors.E {
 	return nil
 }
 
+// Get returns all claims with the given property ID.
 func (d *D) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -56,6 +61,7 @@ func (d *D) Get(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
+// Remove removes and returns all claims with the given property ID.
 func (d *D) Remove(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -66,7 +72,8 @@ func (d *D) Remove(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
-func (d *D) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
+// GetByID returns the claim with the given ID.
+func (d *D) GetByID(id identifier.Identifier) Claim {
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -76,7 +83,8 @@ func (d *D) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
-func (d *D) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
+// RemoveByID removes and returns the claim with the given ID.
+func (d *D) RemoveByID(id identifier.Identifier) Claim {
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,
@@ -86,6 +94,7 @@ func (d *D) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
+// Add adds a claim to the document, ensuring no duplicate claim IDs exist.
 func (d *D) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
@@ -96,10 +105,12 @@ func (d *D) Add(claim Claim) errors.E {
 	return d.Claims.Add(claim)
 }
 
+// Size returns the total number of claims in the document.
 func (d *D) Size() int {
 	return d.Claims.Size()
 }
 
+// AllClaims returns all claims in the document as a flat slice.
 func (d *D) AllClaims() []Claim {
 	v := AllClaimsVisitor{
 		Result: []Claim{},
@@ -108,6 +119,7 @@ func (d *D) AllClaims() []Claim {
 	return v.Result
 }
 
+// MergeFrom merges claims from one or more other documents into this document.
 func (d *D) MergeFrom(other ...*D) errors.E {
 	// TODO: What to do about duplicate equal claims (e.g., same NAME claim)?
 	//       Skip them? What is an equal claim, what if just metadata is different?

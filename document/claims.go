@@ -1,3 +1,4 @@
+// Package document provides data structures and operations for PeerDB documents and their claims.
 package document
 
 import (
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// Claim is the interface for all claim types in PeerDB documents.
 type Claim interface {
 	ClaimsContainer
 
@@ -33,26 +35,32 @@ var (
 	_ Claim = (*TimeRangeClaim)(nil)
 )
 
+// CoreDocument contains the core fields present in all PeerDB documents.
 type CoreDocument struct {
 	ID     identifier.Identifier `                       json:"id"`
 	Score  Score                 `                       json:"score"`
 	Scores Scores                `exhaustruct:"optional" json:"scores,omitempty"`
 }
 
+// GetID returns the document's identifier.
 func (d CoreDocument) GetID() identifier.Identifier {
 	return d.ID
 }
 
+// Mnemonic is a human-readable identifier for a document.
 type Mnemonic string
 
+// Timestamp represents a point in time, extending time.Time to support JSON marshaling with extended year format.
 type Timestamp time.Time
 
 var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
 
+// MarshalText implements encoding.TextMarshaler for Timestamp.
 func (t Timestamp) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
+// MarshalJSON implements json.Marshaler for Timestamp.
 func (t Timestamp) MarshalJSON() ([]byte, error) {
 	b := bytes.Buffer{}
 	b.WriteString(`"`)
@@ -61,6 +69,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// String returns the string representation of Timestamp in ISO 8601 format with extended year support.
 func (t Timestamp) String() string {
 	x := time.Time(t).UTC()
 	w := 4
@@ -75,6 +84,7 @@ func (t Timestamp) String() string {
 // We cannot use standard time.Time implementation.
 // See: https://github.com/golang/go/issues/4556
 
+// UnmarshalText implements encoding.TextUnmarshaler for Timestamp.
 func (t *Timestamp) UnmarshalText(text []byte) error {
 	s := string(text)
 	match := timeRegex.FindStringSubmatch(s)
@@ -109,6 +119,7 @@ func (t *Timestamp) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for Timestamp.
 func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil
@@ -121,12 +132,13 @@ func (t *Timestamp) UnmarshalJSON(data []byte) error {
 	return t.UnmarshalText([]byte(s))
 }
 
-// Language to HTML string mapping.
+// TranslatableHTMLString maps language codes to HTML strings for multilingual content.
 type TranslatableHTMLString map[string]string
 
-// Score name to score mapping.
+// Scores maps score names to score values.
 type Scores map[string]Score
 
+// ClaimTypes organizes claims by their type.
 type ClaimTypes struct {
 	Identifier   IdentifierClaims   `exhaustruct:"optional" json:"id,omitempty"`
 	Reference    ReferenceClaims    `exhaustruct:"optional" json:"ref,omitempty"`
@@ -142,6 +154,7 @@ type ClaimTypes struct {
 	TimeRange    TimeRangeClaims    `exhaustruct:"optional" json:"timeRange,omitempty"`
 }
 
+// Add adds a claim to the appropriate typed slice based on the claim's type.
 func (c *ClaimTypes) Add(claim Claim) errors.E {
 	switch cl := claim.(type) {
 	case *IdentifierClaim:
@@ -174,6 +187,7 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 	return nil
 }
 
+// Size returns the total number of claims across all types.
 func (c *ClaimTypes) Size() int {
 	if c == nil {
 		return 0
@@ -196,34 +210,50 @@ func (c *ClaimTypes) Size() int {
 }
 
 type (
-	IdentifierClaims   = []IdentifierClaim
-	ReferenceClaims    = []ReferenceClaim
-	TextClaims         = []TextClaim
-	StringClaims       = []StringClaim
-	AmountClaims       = []AmountClaim
-	AmountRangeClaims  = []AmountRangeClaim
-	RelationClaims     = []RelationClaim
-	FileClaims         = []FileClaim
-	NoValueClaims      = []NoValueClaim
+	// IdentifierClaims is a slice of IdentifierClaim.
+	IdentifierClaims = []IdentifierClaim
+	// ReferenceClaims is a slice of ReferenceClaim.
+	ReferenceClaims = []ReferenceClaim
+	// TextClaims is a slice of TextClaim.
+	TextClaims = []TextClaim
+	// StringClaims is a slice of StringClaim.
+	StringClaims = []StringClaim
+	// AmountClaims is a slice of AmountClaim.
+	AmountClaims = []AmountClaim
+	// AmountRangeClaims is a slice of AmountRangeClaim.
+	AmountRangeClaims = []AmountRangeClaim
+	// RelationClaims is a slice of RelationClaim.
+	RelationClaims = []RelationClaim
+	// FileClaims is a slice of FileClaim.
+	FileClaims = []FileClaim
+	// NoValueClaims is a slice of NoValueClaim.
+	NoValueClaims = []NoValueClaim
+	// UnknownValueClaims is a slice of UnknownValueClaim.
 	UnknownValueClaims = []UnknownValueClaim
-	TimeClaims         = []TimeClaim
-	TimeRangeClaims    = []TimeRangeClaim
+	// TimeClaims is a slice of TimeClaim.
+	TimeClaims = []TimeClaim
+	// TimeRangeClaims is a slice of TimeRangeClaim.
+	TimeRangeClaims = []TimeRangeClaim
 )
 
+// CoreClaim contains fields common to all claim types.
 type CoreClaim struct {
 	ID         identifier.Identifier `                       json:"id"`
 	Confidence Confidence            `                       json:"confidence"`
 	Meta       *ClaimTypes           `exhaustruct:"optional" json:"meta,omitempty"`
 }
 
+// GetID returns the claim's identifier.
 func (cc CoreClaim) GetID() identifier.Identifier {
 	return cc.ID
 }
 
+// GetConfidence returns the claim's confidence score.
 func (cc CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
 }
 
+// Visit applies a visitor to the claim's metadata claims.
 func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
 	if cc.Meta != nil {
 		err := cc.Meta.Visit(visitor)
@@ -238,6 +268,7 @@ func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
 	return nil
 }
 
+// Get returns all metadata claims with the given property ID.
 func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -248,6 +279,7 @@ func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
+// Remove removes and returns all metadata claims with the given property ID.
 func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -258,7 +290,8 @@ func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
-func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
+// GetByID returns the metadata claim with the given ID.
+func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim {
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -268,7 +301,8 @@ func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
-func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
+// RemoveByID removes and returns the metadata claim with the given ID.
+func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim {
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,
@@ -278,6 +312,7 @@ func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:iretu
 	return v.Result
 }
 
+// Add adds a metadata claim to the claim.
 func (cc *CoreClaim) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); cc.GetByID(claimID) != nil {
 		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
@@ -288,10 +323,12 @@ func (cc *CoreClaim) Add(claim Claim) errors.E {
 	return cc.Meta.Add(claim)
 }
 
+// Size returns the number of metadata claims in the claim.
 func (cc *CoreClaim) Size() int {
 	return cc.Meta.Size()
 }
 
+// AllClaims returns all metadata claims as a flat slice.
 func (cc *CoreClaim) AllClaims() []Claim {
 	v := AllClaimsVisitor{
 		Result: []Claim{},
@@ -300,10 +337,16 @@ func (cc *CoreClaim) AllClaims() []Claim {
 	return v.Result
 }
 
+// Confidence is an alias for Score representing the confidence level of a claim.
 type Confidence = Score
 
+// Score represents a confidence or relevance score as a float64.
 type Score float64
 
+// Reference represents a reference to another document, either by ID or as a temporary opaque reference to be resolved other.
+//
+// Temporary references are used to support reference cycles between documents in the same import session and allow storing
+// foreign identifiers in the first pass which are then resolved to PeerDB identifiers in the second pass.
 type Reference struct {
 	ID *identifier.Identifier `json:"id,omitempty"`
 
@@ -311,6 +354,7 @@ type Reference struct {
 	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"` //nolint:tagliatelle
 }
 
+// IdentifierClaim represents a claim with a string identifier value.
 type IdentifierClaim struct {
 	CoreClaim
 
@@ -318,6 +362,7 @@ type IdentifierClaim struct {
 	Value string    `json:"value"`
 }
 
+// ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
 type ReferenceClaim struct {
 	CoreClaim
 
@@ -325,6 +370,7 @@ type ReferenceClaim struct {
 	IRI  string    `json:"iri"`
 }
 
+// TextClaim represents a claim with HTML text content in multiple languages.
 type TextClaim struct {
 	CoreClaim
 
@@ -332,6 +378,7 @@ type TextClaim struct {
 	HTML TranslatableHTMLString `json:"html"`
 }
 
+// StringClaim represents a claim with a plain string value.
 type StringClaim struct {
 	CoreClaim
 
@@ -339,37 +386,62 @@ type StringClaim struct {
 	String string    `json:"string"`
 }
 
+// AmountUnit represents the unit of measurement for an amount claim.
 type AmountUnit int
 
 const (
+	// AmountUnitCustom represents a custom amount unit.
 	AmountUnitCustom AmountUnit = iota
+	// AmountUnitNone represents no specific unit.
 	AmountUnitNone
+	// AmountUnitRatio represents a dimensionless ratio unit.
 	AmountUnitRatio
+	// AmountUnitLitre represents the litre unit.
 	AmountUnitLitre
+	// AmountUnitKilogramPerKilogram represents the kilogram per kilogram ratio unit.
 	AmountUnitKilogramPerKilogram
+	// AmountUnitKilogram represents the kilogram mass unit.
 	AmountUnitKilogram
+	// AmountUnitKilogramPerCubicMetre represents the kilogram per cubic metre density unit.
 	AmountUnitKilogramPerCubicMetre
+	// AmountUnitMetre represents the metre length unit.
 	AmountUnitMetre
+	// AmountUnitSquareMetre represents the square metre area unit.
 	AmountUnitSquareMetre
+	// AmountUnitMetrePerSecond represents the metre per second velocity unit.
 	AmountUnitMetrePerSecond
+	// AmountUnitVolt represents the volt electric potential unit.
 	AmountUnitVolt
+	// AmountUnitWatt represents the watt power unit.
 	AmountUnitWatt
+	// AmountUnitPascal represents the pascal pressure unit.
 	AmountUnitPascal
+	// AmountUnitCoulomb represents the coulomb electric charge unit.
 	AmountUnitCoulomb
+	// AmountUnitJoule represents the joule energy unit.
 	AmountUnitJoule
+	// AmountUnitCelsius represents the Celsius temperature unit.
 	AmountUnitCelsius
+	// AmountUnitRadian represents the radian angle unit.
 	AmountUnitRadian
+	// AmountUnitHertz represents the hertz frequency unit.
 	AmountUnitHertz
+	// AmountUnitDollar represents the dollar currency unit.
 	AmountUnitDollar
+	// AmountUnitByte represents the byte data size unit.
 	AmountUnitByte
+	// AmountUnitPixel represents the pixel screen measurement unit.
 	AmountUnitPixel
+	// AmountUnitSecond represents the second time unit.
 	AmountUnitSecond
+	// AmountUnitDecibel represents the decibel sound intensity unit.
 	AmountUnitDecibel
 
-	// Count of the number of possible values.
+	// AmountUnitsTotal is the count of the number of possible amount unit values.
 	AmountUnitsTotal
 )
 
+// MarshalJSON implements json.Marshaler for AmountUnit.
 func (u AmountUnit) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	switch u {
@@ -428,6 +500,7 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for AmountUnit.
 func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 	var s string
 	errE := x.UnmarshalWithoutUnknownFields(b, &s)
@@ -487,16 +560,19 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// JSONSchemaAlias returns the JSON schema alias for AmountUnit.
 func (u AmountUnit) JSONSchemaAlias() any {
 	return ""
 }
 
+// ValidAmountUnit checks if a given string represents a valid amount unit.
 func ValidAmountUnit(unit string) bool {
 	var u AmountUnit
 	err := x.UnmarshalWithoutUnknownFields([]byte(`"`+unit+`"`), &u)
 	return err == nil
 }
 
+// AmountClaim represents a claim with a numeric amount and unit.
 type AmountClaim struct {
 	CoreClaim
 
@@ -505,6 +581,7 @@ type AmountClaim struct {
 	Unit   AmountUnit `json:"unit"`
 }
 
+// AmountRangeClaim represents a claim with a numeric range (lower to upper) and unit.
 type AmountRangeClaim struct {
 	CoreClaim
 
@@ -514,6 +591,7 @@ type AmountRangeClaim struct {
 	Unit  AmountUnit `json:"unit"`
 }
 
+// RelationClaim represents a claim that relates this document to another document.
 type RelationClaim struct {
 	CoreClaim
 
@@ -521,6 +599,7 @@ type RelationClaim struct {
 	To   Reference `json:"to"`
 }
 
+// FileClaim represents a claim with a file reference including media type and URL.
 type FileClaim struct {
 	CoreClaim
 
@@ -530,38 +609,57 @@ type FileClaim struct {
 	Preview   []string  `json:"preview,omitempty"`
 }
 
+// NoValueClaim represents a claim that explicitly states no value exists for a property.
 type NoValueClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 }
 
+// UnknownValueClaim represents a claim where the value for a property is unknown.
 type UnknownValueClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 }
 
+// TimePrecision represents the precision level of a timestamp.
 type TimePrecision int
 
 const (
+	// TimePrecisionGigaYears represents a time precision of giga-years (1 billion years).
 	TimePrecisionGigaYears TimePrecision = iota
+	// TimePrecisionHundredMegaYears represents a time precision of 100 million years.
 	TimePrecisionHundredMegaYears
+	// TimePrecisionTenMegaYears represents a time precision of 10 million years.
 	TimePrecisionTenMegaYears
+	// TimePrecisionMegaYears represents a time precision of 1 million years (mega-years).
 	TimePrecisionMegaYears
+	// TimePrecisionHundredKiloYears represents a time precision of 100 thousand years.
 	TimePrecisionHundredKiloYears
+	// TimePrecisionTenKiloYears represents a time precision of 10 thousand years.
 	TimePrecisionTenKiloYears
+	// TimePrecisionKiloYears represents a time precision of 1 thousand years (kilo-years).
 	TimePrecisionKiloYears
+	// TimePrecisionHundredYears represents a time precision of 100 years (centuries).
 	TimePrecisionHundredYears
+	// TimePrecisionTenYears represents a time precision of 10 years (decades).
 	TimePrecisionTenYears
+	// TimePrecisionYear represents a time precision of 1 year.
 	TimePrecisionYear
+	// TimePrecisionMonth represents a time precision of 1 month.
 	TimePrecisionMonth
+	// TimePrecisionDay represents a time precision of 1 day.
 	TimePrecisionDay
+	// TimePrecisionHour represents a time precision of 1 hour.
 	TimePrecisionHour
+	// TimePrecisionMinute represents a time precision of 1 minute.
 	TimePrecisionMinute
+	// TimePrecisionSecond represents a time precision of 1 second.
 	TimePrecisionSecond
 )
 
+// MarshalJSON implements json.Marshaler for TimePrecision.
 func (p TimePrecision) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	switch p {
@@ -600,6 +698,7 @@ func (p TimePrecision) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for TimePrecision.
 func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 	var s string
 	errE := x.UnmarshalWithoutUnknownFields(b, &s)
@@ -643,6 +742,7 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// TimeClaim represents a claim with a timestamp and precision.
 type TimeClaim struct {
 	CoreClaim
 
@@ -651,6 +751,7 @@ type TimeClaim struct {
 	Precision TimePrecision `json:"precision"`
 }
 
+// TimeRangeClaim represents a claim with a time range (lower to upper) and precision.
 type TimeRangeClaim struct {
 	CoreClaim
 
