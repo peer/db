@@ -13,6 +13,8 @@ import (
 var DummyData = []byte(`{}`) //nolint:gochecknoglobals
 
 // TestData represents test data with an integer value and patch flag.
+//
+//nolint:recvcheck
 type TestData struct {
 	Data  int
 	Patch bool
@@ -44,6 +46,8 @@ func (t TestData) TextValue() (pgtype.Text, error) {
 }
 
 // TestMetadata represents test metadata with a string value.
+//
+//nolint:recvcheck
 type TestMetadata struct {
 	Metadata string
 }
@@ -74,6 +78,8 @@ func (t TestMetadata) TextValue() (pgtype.Text, error) {
 }
 
 // TestPatch represents a test patch with patch data.
+//
+//nolint:recvcheck
 type TestPatch struct {
 	Patch bool
 }
