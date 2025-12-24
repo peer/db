@@ -1,3 +1,4 @@
+// Package store provides store utility functions and error handling.
 package store
 
 import (
@@ -6,6 +7,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+// ErrorDetails extracts detailed information from a PostgreSQL error.
 func ErrorDetails(e *pgconn.PgError) map[string]interface{} {
 	details := map[string]interface{}{}
 	if e.Severity != "" {
@@ -64,6 +66,7 @@ func ErrorDetails(e *pgconn.PgError) map[string]interface{} {
 	return details
 }
 
+// WithPgxError wraps a pgx error with additional context information.
 func WithPgxError(err error) errors.E {
 	if err == nil {
 		return nil

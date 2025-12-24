@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	// MaxPageLength is the maximum number of items that can be returned in a single page.
 	MaxPageLength    = 5000
 	maxPageLengthStr = "5000"
 )

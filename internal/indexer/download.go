@@ -1,3 +1,4 @@
+// Package indexer provides utilities for downloading and indexing web content.
 package indexer
 
 import (

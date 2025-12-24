@@ -1,3 +1,4 @@
+// Package wikipedia provides functionality for interacting with Wikipedia and Wikimedia APIs.
 package wikipedia
 
 import (
@@ -17,16 +18,18 @@ import (
 )
 
 const (
-	// All pages API has this limit and it does not depend on the token used.
+	// APILimit is the limit for all pages API requests, independent of the token used.
 	APILimit = 500
 )
 
+// PageReference represents a reference to a Wikipedia page with its identifier, namespace, and title.
 type PageReference struct {
 	Identifier int64  `json:"pageid,omitempty"`
 	Namespace  int    `json:"ns"`
 	Title      string `json:"title"`
 }
 
+// AllPagesPage represents a page returned by the allpages API.
 type AllPagesPage struct {
 	Identifier int64             `json:"pageid"`
 	Namespace  int               `json:"ns"`
@@ -57,6 +60,7 @@ func shallowCopy(in url.Values) url.Values {
 	return out
 }
 
+// ListAllPages retrieves all pages from Wikipedia in the specified namespaces.
 func ListAllPages(
 	ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, site string, limiter *rate.Limiter, output chan<- AllPagesPage,
 ) errors.E {
@@ -218,6 +222,7 @@ func ListAllPages(
 	return nil
 }
 
+// GetPageHTML retrieves the HTML content for a page from the Mediawiki REST API.
 func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (string, errors.E) {
 	title = strings.ReplaceAll(title, " ", "_")
 	htmlURL := fmt.Sprintf("https://%s/api/rest_v1/page/html/%s", site, url.PathEscape(title))

@@ -18,11 +18,14 @@ type filteredTermAggregations struct {
 	Filter termAggregations `json:"filter"`
 }
 
+// RelFilterResult represents occurrences count for a single relation in a relation filter.
 type RelFilterResult struct {
 	ID    string `json:"id"`
 	Count int64  `json:"count"`
 }
 
+// RelFilterGet retrieves relation filter data for search results.
+//
 //nolint:dupl
 func RelFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,

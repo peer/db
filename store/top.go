@@ -46,10 +46,12 @@ func VersionFromString(text string) (Version, errors.E) {
 	}, errE
 }
 
+// MarshalText marshals a Version to text format.
 func (v Version) MarshalText() ([]byte, error) {
 	return []byte(v.String()), nil
 }
 
+// UnmarshalText unmarshals a Version from text format.
 func (v *Version) UnmarshalText(text []byte) error {
 	version, errE := VersionFromString(string(text))
 	if errE != nil {

@@ -19,6 +19,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// ImageInfo represents metadata about an image file.
 type ImageInfo struct {
 	Mime                string  `json:"mime"`
 	Size                int     `json:"size"`
@@ -372,6 +373,8 @@ func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, sit
 	}
 }
 
+// FirstUpperCase converts the first character of a string to uppercase.
+//
 // Implementation changes case only of ASCII characters. Using unicode.ToUpper sometimes
 // changes case of characters for which Mediawiki does not change it. If we do change case when
 // Mediawiki does not a corresponding file is not found. On the other hand, if we do not change
@@ -404,6 +407,7 @@ func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Clie
 	return ii, err
 }
 
+// GetImageInfo retrieves image information from the Mediawiki API.
 func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, title string) (ImageInfo, errors.E) {
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, token, apiLimit, title)
 

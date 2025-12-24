@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/x"
 )
 
+// SchemaOrg represents Schema.org structured data extracted from web pages.
 type SchemaOrg struct {
 	Type        string `json:"@type"`
 	Name        string `json:"name"`
@@ -58,7 +59,8 @@ func pagserSchemaOrg(node *goquery.Selection, _ ...string) (interface{}, error) 
 	return s, nil
 }
 
-func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
+// ExtractData extracts structured data of type T from an HTML reader using pagser.
+func ExtractData[T any](in io.Reader) (T, errors.E) {
 	config := pagser.DefaultConfig()
 	config.CastError = true
 	p, _ := pagser.NewWithConfig(config)
@@ -79,7 +81,8 @@ func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 // TODO: Respect robots.txt.
 // TODO: Make sure we are making only one request per domain at once.
 
-func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) { //nolint:ireturn
+// GetWebData fetches data from a URL and extracts structured data using the provided extraction function.
+func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -109,6 +112,7 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 
 // TODO: Cache robots.txt per domain.
 
+// GetRobotsTxt fetches and parses the robots.txt file from a URL's domain.
 func GetRobotsTxt(ctx context.Context, httpClient *retryablehttp.Client, u string) (*robotstxt.RobotsData, errors.E) {
 	url, err := url.Parse(u)
 	if err != nil {

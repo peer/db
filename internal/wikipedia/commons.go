@@ -35,6 +35,7 @@ const (
 
 //nolint:gochecknoglobals
 var (
+	// NameSpaceWikimediaCommonsFile is the UUID namespace for Wikimedia Commons files.
 	NameSpaceWikimediaCommonsFile = uuid.MustParse("31974ea8-ab0c-466d-9aaa-e1bf3c959edc")
 
 	// We have a list of media types we support primarily to make sure we use consistent media
@@ -141,6 +142,8 @@ var (
 	}
 )
 
+// Image represents a Wikimedia Commons image with its metadata and content.
+//
 //nolint:tagliatelle
 type Image struct {
 	Name          string                 `json:"img_name"`
@@ -158,6 +161,7 @@ type Image struct {
 	SHA1          string                 `json:"img_sha1"`
 }
 
+// UnmarshalJSON unmarshals an Image from JSON, handling metadata and timestamp decoding.
 func (i *Image) UnmarshalJSON(b []byte) error {
 	type ImageSub Image
 	//nolint:tagliatelle
@@ -188,6 +192,7 @@ func (i *Image) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// GetMediawikiFilePrefix computes the MD5-based prefix path for a Mediawiki file.
 func GetMediawikiFilePrefix(filename string) string {
 	sum := md5.Sum([]byte(filename)) //nolint:gosec
 	digest := hex.EncodeToString(sum[:])
@@ -404,6 +409,7 @@ func fitBoxWidth(width, height float64) int {
 	return int(roundedUp)
 }
 
+// ConvertWikimediaCommonsImage converts a Wikimedia Commons image to a document.
 func ConvertWikimediaCommonsImage(
 	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
 ) (*document.D, errors.E) {
@@ -744,6 +750,7 @@ func convertImage( //nolint:maintidx
 	return doc, errE
 }
 
+// GetWikimediaCommonsFile retrieves and converts a Wikimedia Commons file to a document.
 func GetWikimediaCommonsFile(
 	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	index string, esClient *elastic.Client, name string,

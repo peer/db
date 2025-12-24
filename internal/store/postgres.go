@@ -45,6 +45,7 @@ var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknogloba
 	"WARNING": zerolog.WarnLevel,
 }
 
+// InitPostgres initializes and configures a PostgreSQL connection pool with the specified settings.
 func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {
@@ -186,6 +187,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	return dbpool, nil
 }
 
+// EnsureSchema creates a database schema if it doesn't exist, ignoring duplicate errors.
 func EnsureSchema(ctx context.Context, tx pgx.Tx, schema string) errors.E {
 	// TODO: Could we just use "CREATE SCHEMA IF NOT EXISTS" here?
 	//       See: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error

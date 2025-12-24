@@ -25,17 +25,25 @@ import (
 )
 
 const (
-	WikidataReference                 = "Wikidata"
-	WikimediaCommonsEntityReference   = "CommonsEntity"
-	WikimediaCommonsFileReference     = "CommonsFile"
-	WikipediaCategoryReference        = "WikipediaCategory"
-	WikipediaTemplateReference        = "WikipediaTemplate"
+	// WikidataReference is the temporary reference string for Wikidata entities.
+	WikidataReference = "Wikidata"
+	// WikimediaCommonsEntityReference is the temporary reference string for Wikimedia Commons entities.
+	WikimediaCommonsEntityReference = "CommonsEntity"
+	// WikimediaCommonsFileReference is the temporary reference string for Wikimedia Commons files.
+	WikimediaCommonsFileReference = "CommonsFile"
+	// WikipediaCategoryReference is the temporary reference string for Wikipedia categories.
+	WikipediaCategoryReference = "WikipediaCategory"
+	// WikipediaTemplateReference is the temporary reference string for Wikipedia templates.
+	WikipediaTemplateReference = "WikipediaTemplate"
+	// WikimediaCommonsCategoryReference is the temporary reference string for Wikimedia Commons categories.
 	WikimediaCommonsCategoryReference = "CommonsCategory"
+	// WikimediaCommonsTemplateReference is the temporary reference string for Wikimedia Commons templates.
 	WikimediaCommonsTemplateReference = "CommonsTemplate"
 )
 
 //nolint:gochecknoglobals
 var (
+	// NameSpaceWikidata is the UUID namespace for Wikidata entities.
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
 	errNotSupportedDataValueType = errors.BaseWrap(ErrSilentSkipped, "not supported data value type")
@@ -95,6 +103,7 @@ func init() { //nolint:gochecknoinits
 	}
 }
 
+// GetWikidataDocumentID returns the document identifier for a Wikidata entity ID.
 func GetWikidataDocumentID(id string) identifier.Identifier {
 	return document.GetID(NameSpaceWikidata, id)
 }
@@ -286,6 +295,7 @@ func getDocumentFromByID(
 	return &doc, version, nil
 }
 
+// GetWikidataItem retrieves and converts a Wikidata item to a document.
 func GetWikidataItem(
 	ctx context.Context,
 	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],

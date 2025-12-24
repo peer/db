@@ -43,11 +43,13 @@ type histogramTimeAggregations struct {
 	} `json:"filter"`
 }
 
+// HistogramTimeResult represents count for a single time bucket in a time filter.
 type HistogramTimeResult struct {
 	Min   document.Timestamp `json:"min"`
 	Count int64              `json:"count"`
 }
 
+// TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
 ) ([]HistogramTimeResult, map[string]interface{}, errors.E) {

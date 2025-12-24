@@ -52,6 +52,7 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 	}
 }
 
+// SearchAmountFilterGet handles GET requests for amount filter search endpoints.
 func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
@@ -80,6 +81,8 @@ func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchRelFilterGet handles GET requests for relation filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
@@ -109,6 +112,8 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchStringFilterGet handles GET requests for string filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
@@ -138,6 +143,8 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchTimeFilterGet handles GET requests for time filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])

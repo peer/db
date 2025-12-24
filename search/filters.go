@@ -55,6 +55,7 @@ type FilterResult struct {
 	Unit  string `json:"unit,omitempty"`
 }
 
+// FiltersGet retrieves all available filters for the current search.
 func FiltersGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session,
 ) ([]FilterResult, map[string]interface{}, errors.E) {

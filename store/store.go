@@ -1,3 +1,4 @@
+// Package store provides a versioned object store.
 package store
 
 import (
