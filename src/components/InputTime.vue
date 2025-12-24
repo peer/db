@@ -408,13 +408,13 @@ function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: str
   if (precision === "d") return `${y}-${m}-${d}`
 
   const h = pad2(timeStruct.h || "00")
-  if (precision === "h") return `${y}-${m}-${d}T${h}`
+  if (precision === "h") return `${y}-${m}-${d} ${h}`
 
   const min = pad2(timeStruct.min || "00")
-  if (precision === "min") return `${y}-${m}-${d}T${h}:${min}`
+  if (precision === "min") return `${y}-${m}-${d} ${h}:${min}`
 
   const s = pad2(timeStruct.s || "00")
-  if (precision === "s") return `${y}-${m}-${d}T${h}:${min}:${s}`
+  if (precision === "s") return `${y}-${m}-${d} ${h}:${min}:${s}`
 
   return ""
 }
