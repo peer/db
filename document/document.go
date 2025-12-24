@@ -73,7 +73,7 @@ func (d *D) Remove(propID identifier.Identifier) []Claim {
 }
 
 // GetByID returns the claim with the given ID.
-func (d *D) GetByID(id identifier.Identifier) Claim {
+func (d *D) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -84,7 +84,7 @@ func (d *D) GetByID(id identifier.Identifier) Claim {
 }
 
 // RemoveByID removes and returns the claim with the given ID.
-func (d *D) RemoveByID(id identifier.Identifier) Claim {
+func (d *D) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,

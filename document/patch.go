@@ -19,7 +19,7 @@ func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
 }
 
 // ChangeUnmarshalJSON unmarshals a Change from JSON bytes.
-func ChangeUnmarshalJSON(data []byte) (Change, errors.E) {
+func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
 	}
@@ -131,8 +131,8 @@ func claimPatchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) {
 	return d, nil
 }
 
+// ClaimPatchUnmarshalJSON unmarshals a ClaimPatch from JSON bytes.
 func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
-	// ClaimPatchUnmarshalJSON unmarshals a ClaimPatch from JSON bytes.
 	var t struct {
 		Type string `json:"type"`
 	}

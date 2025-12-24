@@ -280,7 +280,7 @@ func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 }
 
 // Remove removes and returns all metadata claims with the given property ID.
-func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
+func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim { //nolint:ireturn
 	v := GetByPropIDVisitor{
 		ID:     propID,
 		Action: Drop,
@@ -291,7 +291,7 @@ func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 }
 
 // GetByID returns the metadata claim with the given ID.
-func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim {
+func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: KeepAndStop,
@@ -302,7 +302,7 @@ func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim {
 }
 
 // RemoveByID removes and returns the metadata claim with the given ID.
-func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim {
+func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
 		Action: DropAndStop,
