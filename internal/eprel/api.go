@@ -1,3 +1,4 @@
+// Package eprel provides functionality for interacting with the EPREL API.
 package eprel
 
 import (
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/tozd/go/x"
 )
 
+// GetWasherDriers retrieves washer-drier product data from the EPREL API.
 func GetWasherDriers[T any](ctx context.Context, httpClient *retryablehttp.Client, apiKey string) ([]T, errors.E) {
 	type washerDrierResponse struct {
 		Offset int `json:"offset"`
