@@ -10,20 +10,30 @@ import (
 )
 
 const (
-	DefaultProxyTo  = "http://localhost:5173"
+	// DefaultProxyTo is the default URL to proxy to during development.
+	DefaultProxyTo = "http://localhost:5173"
+	// DefaultTLSCache is the default TLS cache directory name for Let's Encrypt certificates.
 	DefaultTLSCache = "letsencrypt"
-	DefaultElastic  = "http://127.0.0.1:9200"
-	DefaultIndex    = "docs"
-	DefaultSchema   = "docs"
-	DefaultTitle    = "PeerDB"
+	// DefaultElastic is the default Elasticsearch URL.
+	DefaultElastic = "http://127.0.0.1:9200"
+	// DefaultIndex is the default Elasticsearch index name.
+	DefaultIndex = "docs"
+	// DefaultSchema is the default database schema name.
+	DefaultSchema = "docs"
+	// DefaultTitle is the default application title.
+	DefaultTitle = "PeerDB"
 )
 
+// PostgresConfig contains configuration for PostgreSQL database connection.
+//
 //nolint:lll
 type PostgresConfig struct {
 	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                     placeholder:"PATH" required:"" short:"d" yaml:"database"`
 	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${default}." placeholder:"NAME"                       yaml:"schema"`
 }
 
+// ElasticConfig contains configuration for ElasticSearch connection.
+//
 //nolint:lll
 type ElasticConfig struct {
 	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                placeholder:"URL"  short:"e" yaml:"elastic"`
@@ -45,6 +55,7 @@ type Globals struct {
 	Sites []Site `help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", and \"key\". Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
+// Validate validates the global configuration.
 func (g *Globals) Validate() error {
 	domains := mapset.NewThreadUnsafeSet[string]()
 	for i, site := range g.Sites {
@@ -87,6 +98,8 @@ type Config struct {
 	Populate PopulateCommand `cmd:""                    help:"Populate search index or indices with core properties." yaml:"populate"`
 }
 
+// ServeCommand contains configuration for the serve command.
+//
 //nolint:lll
 type ServeCommand struct {
 	Server waf.Server[*Site] `embed:"" yaml:",inline"`
@@ -98,6 +111,7 @@ type ServeCommand struct {
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
 }
 
+// Validate validates the serve command configuration.
 func (c *ServeCommand) Validate() error {
 	// We have to call Validate on kong-embedded structs ourselves.
 	// See: https://github.com/alecthomas/kong/issues/90
@@ -117,4 +131,5 @@ func (c *ServeCommand) Validate() error {
 	return nil
 }
 
+// PopulateCommand contains configuration for the populate command.
 type PopulateCommand struct{}
