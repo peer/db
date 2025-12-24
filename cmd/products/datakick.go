@@ -26,7 +26,7 @@ const (
 )
 
 type Datakick struct {
-	Disabled bool `default:"false" help:"Do not import Datakick data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import Datakick data."`
 }
 
 type DatakickEntry struct {

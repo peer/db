@@ -97,8 +97,8 @@ func detectMediaType(ctx context.Context, httpClient *http.Client, url string) (
 }
 
 type EPREL struct {
-	Disabled bool                 `default:"false"                          help:"Do not import EPREL data. Default: false."`
-	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
+	Disabled bool                 `default:"false"                          help:"Do not import EPREL data."`
+	APIKey   kong.FileContentFlag `                env:"EPREL_API_KEY_PATH" help:"File with EPREL API key." placeholder:"PATH" required:""`
 }
 
 //nolint:tagliatelle

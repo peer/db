@@ -24,7 +24,7 @@ const (
 )
 
 type Natureta struct {
-	Disabled bool `default:"false" help:"Do not import Natureta data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import Natureta data."`
 }
 
 type NaturetaProducts struct {

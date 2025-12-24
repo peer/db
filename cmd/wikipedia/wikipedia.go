@@ -73,8 +73,8 @@ var (
 //
 //nolint:lll
 type WikipediaFilesCommand struct {
-	Token       string `                             env:"WIKIPEDIA_TOKEN" help:"Access token for Wikipedia API. Not required. Environment variable: ${env}."                                                               placeholder:"TOKEN"`
-	APILimit    int    `default:"${defaultAPILimit}"                       help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits. Default: ${default}." placeholder:"INT"` //nolint:lll
+	Token       string `                             env:"WIKIPEDIA_TOKEN" help:"Access token for Wikipedia API. Not required."                                                               placeholder:"TOKEN"`
+	APILimit    int    `default:"${defaultAPILimit}"                       help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits." placeholder:"INT"` //nolint:lll
 	SaveSkipped string `                                                   help:"Save filenames of skipped Wikipedia files."                                                                                                placeholder:"PATH"  type:"path"`
 	URL         string `                                                   help:"URL of Wikipedia image table SQL dump to use. It can be a local file path, too. Default: the latest."                                      placeholder:"URL"`
 }

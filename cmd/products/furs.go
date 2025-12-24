@@ -28,7 +28,7 @@ const (
 )
 
 type FURSDEJ struct {
-	Disabled bool `default:"false" help:"Do not import FURS DEJ data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import FURS DEJ data."`
 }
 
 type FursEntry struct {

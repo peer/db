@@ -28,16 +28,16 @@ const (
 //
 //nolint:lll
 type PostgresConfig struct {
-	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}."                     placeholder:"PATH" required:"" short:"d" yaml:"database"`
-	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured. Default: ${default}." placeholder:"NAME"                       yaml:"schema"`
+	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL."                     placeholder:"PATH" required:"" short:"d" yaml:"database"`
+	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use when sites are not configured." placeholder:"NAME"                       yaml:"schema"`
 }
 
 // ElasticConfig contains configuration for ElasticSearch connection.
 //
 //nolint:lll
 type ElasticConfig struct {
-	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."                                placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured. Default: ${default}." placeholder:"NAME"           yaml:"index"`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured." placeholder:"NAME"           yaml:"index"`
 }
 
 // Globals describes top-level (global) flags.
@@ -108,7 +108,7 @@ type ServeCommand struct {
 	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
-	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured. Default: ${default}."                      placeholder:"NAME"   short:"T" yaml:"title"`
+	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured."                      placeholder:"NAME"   short:"T" yaml:"title"`
 }
 
 // Validate validates the serve command configuration.

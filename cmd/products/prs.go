@@ -33,7 +33,7 @@ const (
 )
 
 type PRS struct {
-	Disabled bool `default:"false" help:"Do not import PRS data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import PRS data."`
 }
 
 type PRSEntry struct {

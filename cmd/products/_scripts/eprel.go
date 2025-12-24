@@ -22,7 +22,7 @@ type App struct {
 
 	Version kong.VersionFlag `help:"Show program's version and exit." short:"V" yaml:"-"`
 
-	APIKey kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key. Environment variable: ${env}." placeholder:"PATH" required:""`
+	APIKey kong.FileContentFlag `env:"EPREL_API_KEY_PATH" help:"File with EPREL API key." placeholder:"PATH" required:""`
 }
 
 // mapAllWasherDrierFields prints all fields and sample values of all washer driers.
