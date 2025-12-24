@@ -1,3 +1,4 @@
+// Package peerdb provides a collaboration platform (database and application framework).
 package peerdb
 
 import (

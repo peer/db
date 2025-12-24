@@ -1,3 +1,4 @@
+// Package products provides the products data import tool.
 package main
 
 import (

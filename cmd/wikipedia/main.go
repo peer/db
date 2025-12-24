@@ -1,3 +1,4 @@
+// Package wikipedia provides the Wikidata and Wikipedia data import tool.
 package main
 
 import (

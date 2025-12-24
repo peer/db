@@ -151,6 +151,7 @@ type documentCreateResponse struct {
 	ID identifier.Identifier `json:"id"`
 }
 
+// DocumentCreatePost handles POST requests to create a new document.
 func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -195,6 +196,7 @@ type documentBeginEditResponse struct {
 	Version store.Version         `json:"version"`
 }
 
+// DocumentBeginEditPost handles POST requests to begin an edit session for a document.
 func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -240,6 +242,7 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, documentBeginEditResponse{Session: session, Version: version}, nil)
 }
 
+// DocumentSaveChangePost handles POST requests to save a change within an edit session.
 func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -311,6 +314,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
+// DocumentListChangesGet handles GET requests to list all changes in an edit session.
 func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -338,6 +342,7 @@ func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, changes, nil)
 }
 
+// DocumentGetChangeGet handles GET requests to retrieve a specific change from an edit session.
 func (s *Service) DocumentGetChangeGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -377,10 +382,12 @@ type documentEndEditResponse struct {
 	Changeset identifier.Identifier `json:"changeset"`
 }
 
+// DocumentEndEditPost handles POST requests to finalize an edit session and commit changes.
 func (s *Service) DocumentEndEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	s.documentEndEdit(w, req, params, false)
 }
 
+// DocumentDiscardEditPost handles POST requests to discard an edit session without committing changes.
 func (s *Service) DocumentDiscardEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	s.documentEndEdit(w, req, params, true)
 }
@@ -435,6 +442,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	}, nil)
 }
 
+// DocumentEdit is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
 func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -475,6 +483,7 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 	s.Home(w, req, nil)
 }
 
+// DocumentEditGet handles GET requests to retrieve metadata about a document edit session.
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 

@@ -45,14 +45,14 @@ type DocumentMetadata struct {
 	At Time `json:"at"`
 }
 
-// DocumentBeginMetadata contains metadata captured at the beginning of document editing session.
+// DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
 	At      Time                  `json:"at"`
 	ID      identifier.Identifier `json:"id"`
 	Version store.Version         `json:"version"`
 }
 
-// DocumentEndMetadata contains metadata captured at the end of document editing session.
+// DocumentEndMetadata contains metadata captured at the end of document edit session.
 type DocumentEndMetadata struct {
 	At        Time                   `json:"at"`
 	Discarded bool                   `json:"discarded,omitempty"`

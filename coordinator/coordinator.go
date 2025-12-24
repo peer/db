@@ -1,3 +1,4 @@
+// Package coordinator provides a coordinator for synchronizing real-time collaboration sessions.
 package coordinator
 
 import (
@@ -13,6 +14,7 @@ import (
 )
 
 const (
+	// MaxPageLength is the maximum number of results that can be returned in a single page.
 	MaxPageLength    = 5000
 	maxPageLengthStr = "5000"
 )

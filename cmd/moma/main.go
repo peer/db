@@ -1,3 +1,4 @@
+// Package moma provides the MoMA (Museum of Modern Art) data import tool.
 package main
 
 import (
