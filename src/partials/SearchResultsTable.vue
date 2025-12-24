@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { DeepReadonly } from "vue"
+import type { DeepReadonly, ComponentPublicInstance } from "vue"
 
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
 
-import { computed, toRef, ref, onBeforeUnmount, onMounted } from "vue"
+import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
 
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
@@ -43,7 +43,7 @@ const {
   SEARCH_INCREASE,
 )
 
-const filtersEl = ref(null)
+const content = useTemplateRef<HTMLElement>('content')
 
 const filtersProgress = injectProgress()
 const {
@@ -53,7 +53,9 @@ const {
   url: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
-  filtersEl,
+  // We use the content element because data about filters is needed to display columns for the whole table.
+  // Using only <tr> element inside <thead> (where data-url attribute is set for filters) would not convey that requirement.
+  content,
   filtersProgress,
 )
 
@@ -88,8 +90,8 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchMoreButton = ref()
-const filtersMoreButton = ref()
+const searchMoreButton = useTemplateRef<ComponentPublicInstance>('searchMoreButton')
+const filtersMoreButton = useTemplateRef<ComponentPublicInstance>('filtersMoreButton')
 const supportPageOffset = window.pageYOffset !== undefined
 
 useLocationAt(
@@ -97,8 +99,6 @@ useLocationAt(
   toRef(() => props.searchTotal),
   visibles,
 )
-
-const content = ref(null)
 
 useOnScrollOrResize(content, onScrollOrResize)
 

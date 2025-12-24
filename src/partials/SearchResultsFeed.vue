@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeepReadonly } from "vue"
+import type { DeepReadonly, ComponentPublicInstance } from "vue"
 
 import type {
   AmountFilterState,
@@ -14,7 +14,7 @@ import type {
   AmountUnit,
 } from "@/types"
 
-import { onBeforeUnmount, ref, toRef } from "vue"
+import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
@@ -61,7 +61,7 @@ const {
   SEARCH_INCREASE,
 )
 
-const filtersEl = ref(null)
+const filtersEl = useTemplateRef<HTMLElement>('filtersEl')
 const filtersEnabled = ref(false)
 
 const filtersProgress = injectProgress()
@@ -90,8 +90,8 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchMoreButton = ref()
-const filtersMoreButton = ref()
+const searchMoreButton = useTemplateRef<ComponentPublicInstance>('searchMoreButton')
+const filtersMoreButton = useTemplateRef<ComponentPublicInstance>('filtersMoreButton')
 const supportPageOffset = window.pageYOffset !== undefined
 
 useLocationAt(
@@ -100,7 +100,7 @@ useLocationAt(
   visibles,
 )
 
-const content = ref(null)
+const content = useTemplateRef<HTMLElement>('content')
 
 useOnScrollOrResize(content, onScrollOrResize)
 

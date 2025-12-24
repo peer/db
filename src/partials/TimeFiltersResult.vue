@@ -4,7 +4,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
 
-import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
+import { computed, toRef, watchEffect, onBeforeUnmount, useTemplateRef } from "vue"
 import noUiSlider from "nouislider"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -25,7 +25,7 @@ const emit = defineEmits<{
   "update:state": [state: TimeFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>('el')
 
 const abortController = new AbortController()
 
@@ -93,7 +93,7 @@ const scale = 1024n
 
 let slider: API | null = null
 let scaledRange = false
-const sliderEl = ref()
+const sliderEl = useTemplateRef<HTMLElement>('sliderEl')
 
 watchEffect((onCleanup) => {
   if (slider && slider.target != sliderEl.value) {

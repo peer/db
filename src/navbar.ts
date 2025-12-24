@@ -3,7 +3,7 @@ import type { Ref, StyleValue } from "vue"
 import { ref, onMounted, onBeforeUnmount } from "vue"
 
 export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
-  const navbar = ref()
+  const navbar = ref<HTMLInputElement | null>()
   const attrs = ref({
     style: { position: "absolute" as "absolute" | "fixed", top: "0px" },
     class: { "animate-navbar": false },

@@ -14,7 +14,7 @@ import type {
   ClientSearchSession,
 } from "@/types"
 
-import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
+import { ref, toRef, onBeforeUnmount, watchEffect, useTemplateRef } from "vue"
 import { useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 
@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchEl = ref(null)
+const searchEl = useTemplateRef<HTMLElement>('searchEl')
 
 const searchSessionVersion = ref(0)
 

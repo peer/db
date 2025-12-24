@@ -4,7 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 import type { PeerDBDocument } from "@/document"
 
-import { ref, computed, onBeforeUnmount, toRef } from "vue"
+import { useTemplateRef, computed, onBeforeUnmount, toRef } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -26,7 +26,7 @@ const emit = defineEmits<{
   "update:state": [state: RelFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>('el')
 
 const abortController = new AbortController()
 

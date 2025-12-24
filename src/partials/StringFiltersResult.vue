@@ -3,7 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, StringFilterState, StringSearchResult } from "@/types"
 
-import { ref, computed, toRef, onBeforeUnmount } from "vue"
+import { useTemplateRef, computed, toRef, onBeforeUnmount } from "vue"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
@@ -24,7 +24,7 @@ const emit = defineEmits<{
   "update:state": [state: StringFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>('el')
 
 const abortController = new AbortController()
 

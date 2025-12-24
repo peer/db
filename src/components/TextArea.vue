@@ -7,7 +7,7 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, onUpdated, ref } from "vue"
+import { onBeforeUnmount, onMounted, onUpdated, useTemplateRef } from "vue"
 
 withDefaults(
   defineProps<{
@@ -24,7 +24,7 @@ withDefaults(
 
 const model = defineModel<string>({ default: "" })
 
-const el = ref()
+const el = useTemplateRef<HTMLFormElement>("el")
 
 function resize() {
   if (!el.value) {

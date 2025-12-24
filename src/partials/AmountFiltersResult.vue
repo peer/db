@@ -4,7 +4,7 @@ import type { DeepReadonly } from "vue"
 
 import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from "@/types"
 
-import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
+import { computed, toRef, watchEffect, onBeforeUnmount, useTemplateRef } from "vue"
 import noUiSlider from "nouislider"
 import CheckBox from "@/components/CheckBox.vue"
 import { useAmountHistogramValues, NONE } from "@/search"
@@ -24,7 +24,7 @@ const emit = defineEmits<{
   "update:state": [state: AmountFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 
@@ -88,7 +88,7 @@ const maxCount = computed(() => {
 })
 
 let slider: API | null = null
-const sliderEl = ref()
+const sliderEl = useTemplateRef<HTMLElement>('sliderEl')
 
 watchEffect((onCleanup) => {
   if (slider && slider.target != sliderEl.value) {

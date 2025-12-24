@@ -4,7 +4,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
 
-import { ref, computed, toRef, onBeforeUnmount, watchEffect } from "vue"
+import { ref, computed, toRef, onBeforeUnmount, watchEffect, useTemplateRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
@@ -30,7 +30,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>('el')
 
 const progress = injectProgress()
 const editProgress = injectProgress()
