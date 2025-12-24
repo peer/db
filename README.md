@@ -81,7 +81,7 @@ PeerDB requires a [PostgreSQL](https://www.postgresql.org/) database. Using Dock
 docker network create peerdb
 docker run -d --network peerdb --name pgsql -p 127.0.0.1:5432:5432 \
  -e LOG_TO_STDOUT=1 -e PGSQL_ROLE_1_USERNAME=test -e PGSQL_ROLE_1_PASSWORD=test -e PGSQL_DB_1_NAME=test -e PGSQL_DB_1_OWNER=test \
- registry.gitlab.com/tozd/docker/postgresql:16
+ registry.gitlab.com/tozd/docker/postgresql:18
 ```
 
 Create also a file with PostgreSQL secret:

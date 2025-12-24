@@ -48,7 +48,7 @@ test_go:
         discovery.type: single-node
         xpack.security.enabled: false
         ingest.geoip.downloader.enabled: false
-    - name: registry.gitlab.com/tozd/docker/postgresql:16
+    - name: registry.gitlab.com/tozd/docker/postgresql:18
       alias: potgres
       variables:
         LOG_TO_STDOUT: 1
