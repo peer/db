@@ -83,8 +83,10 @@ const errorMessage = ref("")
 const isInvalid = computed(() => props.invalid || isTimeInvalid.value)
 
 const inputId = computed(() => {
-  return typeof attrs.id === "string" ? attrs.id : "identifier-property"
+  return typeof attrs.id === "string" ? attrs.id : "timestamp-input"
 })
+
+const precisionId = computed(() => `${inputId.value}-precision`)
 
 const timePrecisionWithMax = computed(() => {
   const reversed = timePrecisionOptions.toReversed()
@@ -551,7 +553,9 @@ watch(
   <div class="w-full flex flex-col gap-1">
     <div class="flex gap-2 w-full">
       <div class="flex flex-col gap-1 w-full">
-        <label :for="inputId" class="mt-4 mb-1">Timestamp</label>
+        <slot name="timestamp-label" :for="inputId">
+          <label :for="inputId" class="mt-4 mb-1"> Timestamp </label>
+        </slot>
 
         <InputText
           :id="inputId"
@@ -570,9 +574,11 @@ watch(
       </div>
 
       <div v-if="!readonly" class="flex flex-col gap-1">
-        <label for="precision-list" class="mt-4 mb-1">Precision</label>
+        <slot name="precision-label" :for="precisionId">
+          <label :for="precisionId" class="mt-4 mb-1"> Precision </label>
+        </slot>
 
-        <Listbox id="precision-list" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
+        <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
           <div class="relative">
             <ListboxButton
               class="relative w-full rounded p-2 text-left shadow hover:cursor-pointer ring-2 ring-neutral-300 hover:ring-neutral-400"
