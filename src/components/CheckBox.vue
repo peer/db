@@ -7,40 +7,23 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts" generic="T">
-import { computed } from "vue"
-
-const props = withDefaults(
+withDefaults(
   defineProps<{
     progress?: number
     disabled?: boolean
-    modelValue?: T
   }>(),
   {
     progress: 0,
     disabled: false,
-    modelValue: undefined,
   },
 )
 
-const $emit = defineEmits<{
-  "update:modelValue": [value: T]
-}>()
-
-const v = computed({
-  get() {
-    // We use ! operator here to satisfy type constraints and assert that modelValue cannot be undefined,
-    // but in fact modelValue can be undefined, but that is handled correctly by Vue's v-model on <input>.
-    return props.modelValue!
-  },
-  set(value: T) {
-    $emit("update:modelValue", value)
-  },
-})
+const model = defineModel<T>()
 </script>
 
 <template>
   <input
-    v-model="v"
+    v-model="model"
     :disabled="progress > 0 || disabled"
     type="checkbox"
     class="rounded"

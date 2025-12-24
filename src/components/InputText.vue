@@ -7,42 +7,27 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import { computed } from "vue"
-
-const props = withDefaults(
+withDefaults(
   defineProps<{
     progress?: number
     readonly?: boolean
-    modelValue?: string
     type?: string
     invalid?: boolean
   }>(),
   {
     progress: 0,
     readonly: false,
-    modelValue: "",
     type: "text",
     invalid: false,
   },
 )
 
-const $emit = defineEmits<{
-  "update:modelValue": [value: string]
-}>()
-
-const v = computed({
-  get() {
-    return props.modelValue
-  },
-  set(value: string) {
-    $emit("update:modelValue", value)
-  },
-})
+const model = defineModel<string>({ default: "" })
 </script>
 
 <template>
   <input
-    v-model="v"
+    v-model="model"
     :readonly="progress > 0 || readonly"
     :type="type"
     class="rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
