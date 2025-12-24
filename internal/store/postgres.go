@@ -139,25 +139,23 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		Str("sessionAuthorization", conn.PgConn().ParameterStatus("session_authorization")).
 		Msg("database connection successful")
 
-	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
+	dbconfig.PrepareConn = func(context.Context, *pgx.Conn) (bool, error) {
 		schema, requestID := getRequest(ctx)
 
 		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID))
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
-			return false
+			return false, errors.WithMessage(WithPgxError(err), "unable to set \"application_name\" for PostgreSQL connection")
 		}
 
 		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, schema))
 		if err != nil {
-			zerolog.Ctx(ctx).Err(WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
-			return false
+			return false, errors.WithMessage(WithPgxError(err), "unable to set \"search_path\" for PostgreSQL connection")
 		}
 
 		conn.PgConn().CustomData()["schema"] = schema
 		conn.PgConn().CustomData()["request"] = requestID
 
-		return true
+		return true, nil
 	}
 	dbconfig.AfterRelease = func(conn *pgx.Conn) bool {
 		delete(conn.PgConn().CustomData(), "schema")

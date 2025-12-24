@@ -1,4 +1,6 @@
 // Package types provides type definitions and utilities for document metadata and time handling.
+//
+//nolint:revive
 package types
 
 import (
