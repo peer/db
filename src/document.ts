@@ -219,7 +219,7 @@ export class ClaimTypes {
   time?: TimeClaim[]
   timeRange?: TimeRangeClaim[]
 
-  constructor(obj: Record<string, object> | ClaimTypes) {
+  constructor(obj: Record<string, object[]> | ClaimTypes) {
     for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
       if (!obj?.[name]) continue
       if (!Array.isArray(obj[name])) throw new Error(`"${name}" is not an array`)
