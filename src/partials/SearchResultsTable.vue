@@ -12,7 +12,6 @@ import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
@@ -20,6 +19,8 @@ import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } fr
 import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue"
 
 const props = defineProps<{
   // Search props.
@@ -215,6 +216,37 @@ function onToggleRow(resultId: string) {
 function getButtonTitle(resultId: string): string {
   return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
 }
+
+// Popover workaround, had to implement teleporting to the body, because table has its own container
+// and popover content was not visible
+
+const anchorEl = ref<HTMLElement | null>(null)
+
+function onPopoverClick(event: MouseEvent) {
+  anchorEl.value = event.currentTarget as HTMLElement
+}
+
+const POPOVER_WIDTH = 18 * 16 // 18rem in px
+const POPOVER_DEFAULT_OFFSET = 24
+const POPOVER_DEFAULT_OFFSET_BOTTOM = 6
+
+const popoverStyle = computed(() => {
+  if (!anchorEl.value) return {}
+
+  const rect = anchorEl.value.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+
+  let left = rect.right - POPOVER_DEFAULT_OFFSET
+
+  if (left + POPOVER_WIDTH > viewportWidth) {
+    left = rect.left - POPOVER_WIDTH + POPOVER_DEFAULT_OFFSET
+  }
+
+  return {
+    top: `${rect.bottom + POPOVER_DEFAULT_OFFSET_BOTTOM}px`,
+    left: `${left}px`,
+  }
+})
 </script>
 
 <template>
@@ -254,9 +286,20 @@ function getButtonTitle(resultId: string): string {
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                <div class="flex flex-row justify-between">
+                <div class="flex flex-row justify-between items-center">
                   <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
-                  <FunnelIcon class="h-5 w-5 ml-2 text-primary-500 hover:text-primary-700 cursor-pointer" alt="Filters" />
+
+                  <Popover>
+                    <PopoverButton class="ml-2 flex justify-center items-center" @click="onPopoverClick">
+                      <FunnelIcon class="h-5 w-5 text-primary-500 hover:text-primary-700" />
+                    </PopoverButton>
+
+                    <teleport to="body">
+                      <PopoverPanel class="fixed w-72 rounded bg-white shadow border" :style="popoverStyle">
+                        <div class="p-3">Filters go here</div>
+                      </PopoverPanel>
+                    </teleport>
+                  </Popover>
                 </div>
               </th>
             </template>
