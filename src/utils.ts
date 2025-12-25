@@ -96,12 +96,9 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
     propertyId = [propertyId]
   }
   const claims: DeepReadonly<Claim>[] = []
-  for (const [name, cs] of Object.entries(claimTypes ?? {})) {
-    if (!Array.isArray(cs)) throw new Error(`"${name}" is not an array`)
-    for (const claim of cs) {
-      if (propertyId.includes(claim.prop.id)) {
-        claims.push(claim)
-      }
+  for (const claim of claimTypes?.AllClaims() ?? []) {
+    if (propertyId.includes(claim.prop.id)) {
+      claims.push(claim)
     }
   }
   claims.sort((a, b) => b.confidence - a.confidence)

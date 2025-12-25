@@ -267,6 +267,10 @@ export class ClaimTypes {
       }
     }
   }
+
+  AllClaims(): Claim[] {
+    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeProp[]).flatMap(k => this[k] ?? [])
+  }
 }
 
 type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
