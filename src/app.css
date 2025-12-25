@@ -332,7 +332,7 @@ to use less.
 }
 
 .noUi-state-drag .noUi-handle {
-  @apply cursor-grabbing !important;
+  @apply !cursor-grabbing;
 }
 
 .noUi-handle::before,

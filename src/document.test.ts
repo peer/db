@@ -1,5 +1,5 @@
-import { assert, test } from "vitest"
 import { Identifier } from "@tozd/identifier"
+import { assert, test } from "vitest"
 
 import { Changes, PeerDBDocument } from "@/document"
 
