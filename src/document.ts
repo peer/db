@@ -269,7 +269,7 @@ export class ClaimTypes {
   }
 
   AllClaims(): Claim[] {
-    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeProp[]).flatMap(k => this[k] ?? [])
+    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeProp[]).flatMap((k) => this[k] ?? [])
   }
 }
 

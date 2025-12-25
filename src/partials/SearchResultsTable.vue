@@ -12,9 +12,9 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { encodeQuery, useLimitResults, useOnScrollOrResize, loadingWidth, getClaimsOfTypeWithConfidence, getBestClaimOfType } from "@/utils.ts"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 
 const props = defineProps<{
@@ -231,7 +231,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
-                    <td v-if="supportedFilter(filter)" class="max-w-[400px] text-start truncate p-2">
+                    <td v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
                       <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                         <template v-if="cIndex !== 0">, </template>
                         <ClaimValue :type="filter.type" :claim="claim" />

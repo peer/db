@@ -142,7 +142,7 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return await response.json() as T
+    return (await response.json()) as T
   } finally {
     if (progress) {
       progress.value -= 1
@@ -173,7 +173,7 @@ export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSig
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return await response.json() as T
+    return (await response.json()) as T
   } finally {
     progress.value -= 1
   }
