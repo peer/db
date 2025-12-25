@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite"
 import vue from "@vitejs/plugin-vue"
 import path from "path"
 import license from "rollup-plugin-license"
@@ -28,6 +29,7 @@ export default defineConfig({
         },
       },
     }),
+    tailwindcss(),
   ],
   server: {
     strictPort: true,
