@@ -835,7 +835,7 @@ export function useStringFilterValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as StringFilterResult[]
+      _results.value = data.results
       _total.value = data.total
     },
     {
