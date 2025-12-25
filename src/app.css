@@ -1,3 +1,4 @@
+@import url("nouislider/dist/nouislider.css");
 @import "tailwindcss" source(none);
 
 @source "../src";
@@ -6,8 +7,6 @@
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 @plugin "@headlessui/tailwindcss";
-
-@import url("nouislider/dist/nouislider.css");
 
 @theme inline {
   /* Primary color */
