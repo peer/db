@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { DeepReadonly, ComponentPublicInstance } from "vue"
+import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
+import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
-import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
+import Button from "@/components/Button.vue"
+import WithDocument from "@/components/WithDocument.vue"
+import ClaimValue from "@/partials/ClaimValue.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import ClaimValue from "@/partials/ClaimValue.vue"
-import WithDocument from "@/components/WithDocument.vue"
-import Button from "@/components/Button.vue"
-import { encodeQuery, useLimitResults, useOnScrollOrResize, loadingWidth, getClaimsOfTypeWithConfidence } from "@/utils.ts"
+import { encodeQuery, useLimitResults, useOnScrollOrResize, loadingWidth, getClaimsOfTypeWithConfidence, getBestClaimOfType } from "@/utils.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { injectProgress } from "@/progress.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = defineProps<{
   // Search props.
@@ -43,7 +43,7 @@ const {
   SEARCH_INCREASE,
 )
 
-const content = useTemplateRef<HTMLElement>('content')
+const content = useTemplateRef<HTMLElement>("content")
 
 const filtersProgress = injectProgress()
 const {
@@ -90,8 +90,8 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchMoreButton = useTemplateRef<ComponentPublicInstance>('searchMoreButton')
-const filtersMoreButton = useTemplateRef<ComponentPublicInstance>('filtersMoreButton')
+const searchMoreButton = useTemplateRef<ComponentPublicInstance>("searchMoreButton")
+const filtersMoreButton = useTemplateRef<ComponentPublicInstance>("filtersMoreButton")
 const supportPageOffset = window.pageYOffset !== undefined
 
 useLocationAt(
@@ -179,7 +179,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           One would assume that w-full is needed to make the container div as wide as the
           body inside which then the footer horizontally shifts.
   -->
-  <div class="sticky left-0 w-0 z-20">
+  <div class="sticky left-0 z-20 w-0">
     <SearchResultsHeader
       class="w-container p-1 sm:p-4"
       :search-session="searchSession"
@@ -189,27 +189,27 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     />
   </div>
 
-  <div v-if="filtersError" class="px-1 sm:px-4 text-center mb-1 sm:mb-4">
+  <div v-if="filtersError" class="mb-1 px-1 text-center sm:mb-4 sm:px-4">
     <i class="text-error-600">loading data failed</i>
   </div>
 
   <template v-else-if="searchTotal !== null && searchTotal > 0">
-    <div ref="content" class="flex flex-row gap-x-1 sm:gap-x-4 px-1 sm:px-4">
+    <div ref="content" class="flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
-      <table class="shadow border">
+      <table class="border shadow">
         <!-- Headers -->
         <!--
           We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there
           is a 1px gap between the top edge of the window and where the header gets stuck
         -->
-        <thead class="bg-slate-300 sticky -top-px z-10" v-bind="headerAttrs">
+        <thead class="sticky -top-px z-10 bg-slate-300" v-bind="headerAttrs">
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
               <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
-              <th v-if="supportedFilter(filter)" class="p-2 text-start truncate max-w-[400px]">
+              <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
             </template>
@@ -277,8 +277,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </tbody>
       </table>
 
-      <div v-if="filtersHasMore" class="sticky top-[37.5%] h-full z-20">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit !py-6 !px-2.5 [writing-mode:sideways-lr]" @click="filtersLoadMore"
+      <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit !px-2.5 !py-6 [writing-mode:sideways-lr]" @click="filtersLoadMore"
           >More columns</Button
         >
       </div>
@@ -289,8 +289,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             One would assume that w-full is needed to make the container div as wide as the
             body inside which then the footer horizontally shifts.
     -->
-    <div class="sticky left-0 w-0 z-20">
-      <div class="flex w-container p-1 sm:p-4 justify-center">
+    <div class="sticky left-0 z-20 w-0">
+      <div class="w-container flex justify-center p-1 sm:p-4">
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click="searchLoadMore">Load more</Button>
 
         <div v-else class="my-1 sm:my-4">

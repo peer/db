@@ -1,5 +1,5 @@
-import { v5 as uuidv5 } from "uuid"
 import { Identifier } from "@tozd/identifier"
+import { v5 as uuidv5 } from "uuid"
 
 const nameSpaceCoreProperties = "34cd10b4-5731-46b8-a6dd-45444680ca62"
 const nameSpaceWikidata = "8f8ba777-bcce-4e45-8dd4-a328e6722c82"

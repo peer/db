@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, ViewType, SelectButtonOption } from "@/types"
+import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
 
 import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
 
@@ -66,7 +66,7 @@ function countFilters(): number {
 
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4">
-    <div class="bg-slate-200 px-2 sm:px-4 py-1 sm:py-2 rounded flex flex-row justify-between items-center w-full gap-x-1 sm:gap-x-4">
+    <div class="flex w-full flex-row items-center justify-between gap-x-1 rounded bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2">
       <div v-if="searchSession.query && countFilters() === 1">
         Searching query <i>{{ searchSession.query }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
       </div>

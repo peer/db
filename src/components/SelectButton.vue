@@ -26,15 +26,15 @@ for (const slot in useSlots()) {
 </script>
 
 <template>
-  <div class="flex gap-1 items-center bg-slate-200 py-1 px-1 rounded">
+  <div class="flex items-center gap-1 rounded bg-slate-200 px-1 py-1">
     <button
       v-for="option in options"
       :key="option.name"
       :disabled="(option.progress || 0) > 0 || option.disabled"
-      class="py-0.5 px-2 rounded"
+      class="rounded px-2 py-0.5"
       :class="{
         'bg-white shadow-sm disabled:bg-slate-100': model === option.value,
-        'enabled:hover:bg-slate-100 disabled:': model !== option.value,
+        'disabled: enabled:hover:bg-slate-100': model !== option.value,
         'disabled:text-slate-300': (option.progress || 0) > 0 || option.disabled,
       }"
       @click.prevent="model = option.value"
@@ -43,7 +43,7 @@ for (const slot in useSlots()) {
       <slot :option="option" :selected="model === option.value" :name="option.name">
         <!-- Or you can use a default slot to control contents of all option buttons (which do not have a named slot set). -->
         <slot :option="option" :selected="model === option.value">
-          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="w-7 h-7" />
+          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="h-7 w-7" />
         </slot>
       </slot>
     </button>

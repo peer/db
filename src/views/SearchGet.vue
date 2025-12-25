@@ -2,34 +2,34 @@
 import type { DeepReadonly } from "vue"
 
 import type {
-  RelFilterState,
   AmountFilterState,
-  TimeFilterState,
-  StringFilterState,
-  FiltersState,
+  ClientSearchSession,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
+  FiltersState,
   FilterStateChange,
+  RelFilterState,
+  StringFilterState,
+  TimeFilterState,
   ViewType,
-  ClientSearchSession,
 } from "@/types"
 
-import { ref, toRef, onBeforeUnmount, watchEffect, useTemplateRef } from "vue"
-import { useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
+import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useRouter } from "vue-router"
 
+import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
+import { AddClaimChange } from "@/document"
+import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import { useSearch, useSearchSession, updateSearchSession } from "@/search"
-import { postJSON } from "@/api"
-import { uploadFile } from "@/upload"
-import { clone, encodeQuery } from "@/utils"
-import { injectMainProgress, localProgress } from "@/progress"
-import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import Footer from "@/partials/Footer.vue"
+import { injectMainProgress, localProgress } from "@/progress"
+import { updateSearchSession, useSearch, useSearchSession } from "@/search"
+import { uploadFile } from "@/upload"
+import { clone, encodeQuery } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchEl = useTemplateRef<HTMLElement>('searchEl')
+const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
 const searchSessionVersion = ref(0)
 
@@ -427,10 +427,10 @@ async function onViewChange(view: ViewType) {
       </Button>
     </NavBar>
   </Teleport>
-  <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
-    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4 text-center"><i class="text-error-600">loading data failed</i></div>
+  <div ref="searchEl" class="mt-12 w-full border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">
+    <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"><i class="text-error-600">loading data failed</i></div>
 
-    <div v-else-if="searchSession === null" class="my-1 sm:my-4 text-center">Loading...</div>
+    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">Loading...</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"

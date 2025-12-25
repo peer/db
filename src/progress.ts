@@ -1,6 +1,6 @@
 import type { InjectionKey, Ref } from "vue"
 
-import { ref, inject, computed } from "vue"
+import { computed, inject, ref } from "vue"
 
 export const progressKey: InjectionKey<Ref<number>> = Symbol()
 

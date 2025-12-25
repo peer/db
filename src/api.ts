@@ -1,8 +1,8 @@
-import type { Ref } from "vue"
 import type { Metadata } from "@/types"
+import type { Ref } from "vue"
 
-import { Queue } from "@/queue"
 import { decodeMetadata } from "@/metadata"
+import { Queue } from "@/queue"
 
 const queue = new Queue({ concurrency: 100 })
 

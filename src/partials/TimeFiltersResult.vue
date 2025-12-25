@@ -4,14 +4,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
 
-import { computed, toRef, watchEffect, onBeforeUnmount, useTemplateRef } from "vue"
 import noUiSlider from "nouislider"
+import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
 
 import CheckBox from "@/components/CheckBox.vue"
-import { useTimeHistogramValues, NONE } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, useInitialLoad, loadingShortHeights } from "@/utils"
-import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { NONE, useTimeHistogramValues } from "@/search"
+import { bigIntMax, equals, formatTime, loadingShortHeights, secondsToTimestamp, timestampToSeconds, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -25,7 +25,7 @@ const emit = defineEmits<{
   "update:state": [state: TimeFilterState]
 }>()
 
-const el = useTemplateRef<HTMLElement>('el')
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 
@@ -93,7 +93,7 @@ const scale = 1024n
 
 let slider: API | null = null
 let scaledRange = false
-const sliderEl = useTemplateRef<HTMLElement>('sliderEl')
+const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
 watchEffect((onCleanup) => {
   if (slider && slider.target != sliderEl.value) {

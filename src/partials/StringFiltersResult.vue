@@ -3,14 +3,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, StringFilterState, StringSearchResult } from "@/types"
 
-import { useTemplateRef, computed, toRef, onBeforeUnmount } from "vue"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
-import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
-import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useStringFilterValues } from "@/search"
+import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -24,7 +24,7 @@ const emit = defineEmits<{
   "update:state": [state: StringFilterState]
 }>()
 
-const el = useTemplateRef<HTMLElement>('el')
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 

@@ -1,6 +1,6 @@
 import type { Ref, StyleValue } from "vue"
 
-import { ref, onMounted, onBeforeUnmount } from "vue"
+import { onBeforeUnmount, onMounted, ref } from "vue"
 
 export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
   const navbar = ref<HTMLInputElement | null>()

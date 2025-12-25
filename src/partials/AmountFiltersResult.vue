@@ -4,13 +4,13 @@ import type { DeepReadonly } from "vue"
 
 import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from "@/types"
 
-import { computed, toRef, watchEffect, onBeforeUnmount, useTemplateRef } from "vue"
-import noUiSlider from "nouislider"
 import CheckBox from "@/components/CheckBox.vue"
-import { useAmountHistogramValues, NONE } from "@/search"
-import { formatValue, equals, useInitialLoad, loadingShortHeights } from "@/utils"
-import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { NONE, useAmountHistogramValues } from "@/search"
+import { equals, formatValue, loadingShortHeights, useInitialLoad } from "@/utils"
+import noUiSlider from "nouislider"
+import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -88,7 +88,7 @@ const maxCount = computed(() => {
 })
 
 let slider: API | null = null
-const sliderEl = useTemplateRef<HTMLElement>('sliderEl')
+const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
 watchEffect((onCleanup) => {
   if (slider && slider.target != sliderEl.value) {

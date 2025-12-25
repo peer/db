@@ -1,6 +1,6 @@
 import { assert, test } from "vitest"
 
-import { timestampToSeconds, secondsToTimestamp } from "@/utils"
+import { secondsToTimestamp, timestampToSeconds } from "@/utils"
 
 test.each([
   ["2006-12-04T12:34:45Z", 1165235685n],

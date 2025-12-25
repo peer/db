@@ -3,14 +3,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession } from "@/types"
 
+import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, watchEffect } from "vue"
 import { useRouter } from "vue-router"
-import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 
-import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
-import { createSearchSession } from "@/search"
+import InputText from "@/components/InputText.vue"
 import { injectProgress } from "@/progress"
+import { createSearchSession } from "@/search"
 
 const props = withDefaults(
   defineProps<{

@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { DocumentEndEditResponse, DocumentBeginMetadata } from "@/types"
+import type { DocumentBeginMetadata, DocumentEndEditResponse } from "@/types"
 
-import { ref, computed, readonly, onBeforeUnmount } from "vue"
-import { useRouter } from "vue-router"
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
-import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+import { computed, onBeforeUnmount, readonly, ref } from "vue"
+import { useRouter } from "vue-router"
 
+import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
-import NavBar from "@/partials/NavBar.vue"
+import { AddClaimChange, changeFrom, idAtChange, PeerDBDocument, RemoveClaimChange } from "@/document"
 import Footer from "@/partials/Footer.vue"
+import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { changeFrom, PeerDBDocument, RemoveClaimChange, idAtChange, AddClaimChange } from "@/document"
-import { getName, encodeQuery } from "@/utils"
 import { injectProgress } from "@/progress"
-import { getURL, postJSON, getURLDirect, deleteFromCache } from "@/api"
+import { encodeQuery, getName } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -297,7 +297,7 @@ function onChangeTab(index: number) {
             <tr>
               <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
               <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
-              <th class="flex flex-row gap-1 max-w-fit"></th>
+              <th class="flex max-w-fit flex-row gap-1"></th>
             </tr>
           </thead>
           <tbody>
@@ -308,51 +308,51 @@ function onChangeTab(index: number) {
         <TabGroup @change="onChangeTab">
           <TabList class="mt-4 flex border-collapse flex-row border bg-slate-100">
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Identifier</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Reference</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Text</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >String</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Amount</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Amount range</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Relation</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >File</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >No value</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Unknown value</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Time</Tab
             >
             <Tab
-              class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >Time range</Tab
             >
           </TabList>
@@ -360,79 +360,79 @@ function onChangeTab(index: number) {
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Value</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">IRI</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Text</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">String</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Amount</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Lower</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Upper</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">To</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Media type</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">URL</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Preview URL</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Timestamp</label>
-              <InputText id="identifier-property" v-model="claimValue" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Lower</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
               <label for="identifier-property" class="mt-4 mb-1">Upper</label>
-              <InputText id="identifier-property" class="flex-grow flex-auto min-w-0" />
+              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
           </TabPanels>
         </TabGroup>

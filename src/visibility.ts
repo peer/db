@@ -1,6 +1,6 @@
 import type { ComponentPublicInstance } from "vue"
 
-import { reactive, readonly, onBeforeUnmount } from "vue"
+import { onBeforeUnmount, reactive, readonly } from "vue"
 
 export function useVisibilityTracking(): {
   track: (id: string) => (el: Element | ComponentPublicInstance | null) => void

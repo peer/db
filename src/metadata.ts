@@ -1,5 +1,5 @@
+import type { ItemTypes, Metadata } from "@/types"
 import type { Item } from "structured-field-values"
-import type { Metadata, ItemTypes } from "@/types"
 
 // TODO: Consider moving to https://www.npmjs.com/package/structured-headers, once it supports parsing timestamps.
 import { decodeDict } from "structured-field-values"

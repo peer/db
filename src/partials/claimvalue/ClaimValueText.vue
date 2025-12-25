@@ -9,5 +9,5 @@ defineProps<{
 </script>
 
 <template>
-  <div v-if="claim" class="prose prose-slate max-w-none" v-html="claim.html?.en"></div>
+  <div v-if="claim" class="prose max-w-none prose-slate" v-html="claim.html?.en"></div>
 </template>

@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import type { DeepReadonly, ComponentPublicInstance } from "vue"
+import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type {
   AmountFilterState,
+  AmountUnit,
   ClientSearchSession,
   FiltersState,
+  FilterStateChange,
   RelFilterState,
   Result,
   StringFilterState,
   TimeFilterState,
   ViewType,
-  FilterStateChange,
-  AmountUnit,
 } from "@/types"
 
-import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 import { FunnelIcon } from "@heroicons/vue/20/solid"
+import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
+import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
+import Footer from "@/partials/Footer.vue"
+import RelFiltersResult from "@/partials/RelFiltersResult.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import RelFiltersResult from "@/partials/RelFiltersResult.vue"
-import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import StringFiltersResult from "@/partials/StringFiltersResult.vue"
-import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
-import { useVisibilityTracking } from "@/visibility"
-import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
-import { useFilters, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE, useLocationAt } from "@/search.ts"
+import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import { injectProgress } from "@/progress.ts"
-import Footer from "@/partials/Footer.vue"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
+import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
   // Search props.
@@ -61,7 +61,7 @@ const {
   SEARCH_INCREASE,
 )
 
-const filtersEl = useTemplateRef<HTMLElement>('filtersEl')
+const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
 
 const filtersProgress = injectProgress()
@@ -90,8 +90,8 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchMoreButton = useTemplateRef<ComponentPublicInstance>('searchMoreButton')
-const filtersMoreButton = useTemplateRef<ComponentPublicInstance>('filtersMoreButton')
+const searchMoreButton = useTemplateRef<ComponentPublicInstance>("searchMoreButton")
+const filtersMoreButton = useTemplateRef<ComponentPublicInstance>("filtersMoreButton")
 const supportPageOffset = window.pageYOffset !== undefined
 
 useLocationAt(
@@ -100,7 +100,7 @@ useLocationAt(
   visibles,
 )
 
-const content = useTemplateRef<HTMLElement>('content')
+const content = useTemplateRef<HTMLElement>("content")
 
 useOnScrollOrResize(content, onScrollOrResize)
 
@@ -182,7 +182,7 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div ref="content" class="flex w-full gap-x-1 sm:gap-x-4 p-1 sm:p-4">
+  <div ref="content" class="flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader

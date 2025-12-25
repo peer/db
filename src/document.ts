@@ -1,4 +1,4 @@
-import type { TranslatableHTMLString, AmountUnit, TimePrecision, Constructee, Constructor } from "@/types"
+import type { AmountUnit, Constructee, Constructor, TimePrecision, TranslatableHTMLString } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { v5 as uuidv5 } from "uuid"

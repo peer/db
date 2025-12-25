@@ -1,32 +1,32 @@
 <script setup lang="ts">
+import type { PeerDBDocument } from "@/document"
 import type { Result } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
-import type { PeerDBDocument } from "@/document"
 
-import { computed, ref } from "vue"
 import WithDocument from "@/components/WithDocument.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth, encodeQuery } from "@/utils"
 import {
+  CATEGORY,
+  CLASSIFICATION,
+  COPYRIGHT_STATUS,
+  DEPARTMENT,
   DESCRIPTION,
-  ORIGINAL_CATALOG_DESCRIPTION,
-  TITLE,
-  LABEL,
-  TYPE,
+  GENDER,
+  INGREDIENTS,
   INSTANCE_OF,
-  SUBCLASS_OF,
+  LABEL,
   MEDIAWIKI_MEDIA_TYPE,
   MEDIA_TYPE,
-  COPYRIGHT_STATUS,
-  PREVIEW_URL,
-  DEPARTMENT,
-  CLASSIFICATION,
   MEDIUM,
-  NATIONALITY,
-  GENDER,
-  CATEGORY,
-  INGREDIENTS,
   NAME,
+  NATIONALITY,
+  ORIGINAL_CATALOG_DESCRIPTION,
+  PREVIEW_URL,
+  SUBCLASS_OF,
+  TITLE,
+  TYPE,
 } from "@/props"
+import { encodeQuery, getBestClaimOfType, getClaimsListsOfType, getClaimsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
+import { computed, ref } from "vue"
 
 defineProps<{
   searchSessionId: string
@@ -126,11 +126,11 @@ const rowSpan = computed(() => {
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
-              <li v-if="'string' in tag" class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm">{{ tag.string }}</li>
+              <li v-if="'string' in tag" class="rounded-sm bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-sm">{{ tag.string }}</li>
               <WithPeerDBDocument v-else-if="'id' in tag" :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li
-                    class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm"
+                    class="rounded-sm bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-sm"
                     :data-url="url"
                     v-html="getName(doc.claims) || '<i>no name</i>'"
                   ></li>
@@ -147,7 +147,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
+          <p v-if="description" class="prose max-w-none prose-slate" v-html="description"></p>
         </div>
       </template>
       <template #loading>

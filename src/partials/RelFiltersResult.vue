@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 import type { PeerDBDocument } from "@/document"
+import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 
-import { useTemplateRef, computed, onBeforeUnmount, toRef } from "vue"
-import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import Button from "@/components/Button.vue"
-import WithDocument from "@/components/WithDocument.vue"
 import CheckBox from "@/components/CheckBox.vue"
-import { useRelFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
-import { injectProgress } from "@/progress"
+import WithDocument from "@/components/WithDocument.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRelFilterValues } from "@/search"
+import { equals, getName, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
+import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -26,7 +26,7 @@ const emit = defineEmits<{
   "update:state": [state: RelFilterState]
 }>()
 
-const el = useTemplateRef<HTMLElement>('el')
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 

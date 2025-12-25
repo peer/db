@@ -1,10 +1,10 @@
 <script setup lang="ts" generic="T">
 import type { Metadata } from "@/types"
 
-import { ref, watch, readonly, onMounted, onUpdated, onUnmounted, getCurrentInstance, Ref, DeepReadonly } from "vue"
-import { useRouter } from "vue-router"
 import { getURL } from "@/api"
 import { injectMainProgress } from "@/progress"
+import { DeepReadonly, getCurrentInstance, onMounted, onUnmounted, onUpdated, readonly, ref, Ref, watch } from "vue"
+import { useRouter } from "vue-router"
 
 const props = defineProps<{
   id: string

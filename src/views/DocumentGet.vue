@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
+import type { DocumentBeginEditResponse } from "@/types"
 
-import { ref, computed, toRef, onBeforeUnmount, watchEffect, useTemplateRef } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
-import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useRoute, useRouter } from "vue-router"
 
-import InputTextLink from "@/components/InputTextLink.vue"
+import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
+import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
+import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { useSearchSession, useSearch } from "@/search"
-import { postJSON } from "@/api"
-import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
-import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 import { injectProgress } from "@/progress"
+import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
+import { useSearch, useSearchSession } from "@/search"
+import { encodeQuery, getBestClaimOfType, getName, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -30,7 +30,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 
-const el = useTemplateRef<HTMLElement>('el')
+const el = useTemplateRef<HTMLElement>("el")
 
 const progress = injectProgress()
 const editProgress = injectProgress()
@@ -206,16 +206,16 @@ async function onEdit() {
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100">
               <Tab
                 v-if="article"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >Article</Tab
               >
               <Tab
                 v-if="file"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >File</Tab
               >
               <Tab
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >All properties</Tab
               >
             </TabList>
@@ -224,7 +224,7 @@ async function onEdit() {
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanel v-if="article" tabindex="-1">
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <div class="prose prose-slate max-w-none" v-html="article.html.en"></div>
+                <div class="prose max-w-none prose-slate" v-html="article.html.en"></div>
               </TabPanel>
               <TabPanel v-if="file" tabindex="-1">
                 <template v-if="file.mediaType?.startsWith('image/')">

@@ -1,20 +1,20 @@
 <script setup lang="ts" generic="T extends ClaimTypeProp">
 import type { DeepReadonly } from "vue"
 
-import type { ClaimTypeProp, ClaimForType } from "@/document"
+import type { ClaimForType, ClaimTypeProp } from "@/document"
 
-import ClaimValueId from "@/partials/claimvalue/ClaimValueId.vue"
-import ClaimValueRef from "@/partials/claimvalue/ClaimValueRef.vue"
-import ClaimValueText from "@/partials/claimvalue/ClaimValueText.vue"
-import ClaimValueString from "@/partials/claimvalue/ClaimValueString.vue"
 import ClaimValueAmount from "@/partials/claimvalue/ClaimValueAmount.vue"
 import ClaimValueAmountRange from "@/partials/claimvalue/ClaimValueAmountRange.vue"
-import ClaimValueRel from "@/partials/claimvalue/ClaimValueRel.vue"
 import ClaimValueFile from "@/partials/claimvalue/ClaimValueFile.vue"
+import ClaimValueId from "@/partials/claimvalue/ClaimValueId.vue"
 import ClaimValueNone from "@/partials/claimvalue/ClaimValueNone.vue"
-import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
+import ClaimValueRef from "@/partials/claimvalue/ClaimValueRef.vue"
+import ClaimValueRel from "@/partials/claimvalue/ClaimValueRel.vue"
+import ClaimValueString from "@/partials/claimvalue/ClaimValueString.vue"
+import ClaimValueText from "@/partials/claimvalue/ClaimValueText.vue"
 import ClaimValueTime from "@/partials/claimvalue/ClaimValueTime.vue"
 import ClaimValueTimeRange from "@/partials/claimvalue/ClaimValueTimeRange.vue"
+import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
 
 defineProps<{
   claim: ClaimForType<T> | DeepReadonly<ClaimForType<T>> | null
