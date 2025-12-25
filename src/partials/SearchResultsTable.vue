@@ -7,16 +7,16 @@ import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/type
 import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
 import { ChevronUpDownIcon, ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 
-import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import ClaimValue from "@/partials/ClaimValue.vue"
+import Button from "@/components/Button.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import ClaimValue from "@/partials/ClaimValue.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { truncated } from "@/directives/trucated.ts"
 
 const vTruncated = truncated
@@ -176,11 +176,15 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-// Truncate logic, map used for performance, also only keeping cells which
-// are truncated to keep the ref as small as possible
+// Truncate logic, set used for performance, also only keeping cells
+// which are truncated to keep the ref as small as possible
 
+// Keeps track of each cell state if it is expended/collapsed
 const truncatedCells = ref<Set<string>>(new Set())
+// Keeps track of all currently expended rows
 const expandedRows = ref<Set<number>>(new Set())
+// Keeps a set of all rows that have at least one expendable cell
+const expendableRows = ref<Set<number>>(new Set())
 
 function cellKey(rowIndex: number, colIndex: number) {
   return `${rowIndex}:${colIndex}`
@@ -191,6 +195,7 @@ function updateCellTruncation(rowIndex: number, colIndex: number, isTruncated: b
 
   if (isTruncated) {
     truncatedCells.value.add(key)
+    expendableRows.value.add(rowIndex)
   } else {
     truncatedCells.value.delete(key)
   }
@@ -202,6 +207,10 @@ function isCellTruncated(rowIndex: number, colIndex: number): boolean {
 
 function isRowExpanded(rowIndex: number): boolean {
   return expandedRows.value.has(rowIndex)
+}
+
+function canRowExpand(row: number) {
+  return expendableRows.value.has(row)
 }
 
 function toggleRow(rowIndex: number) {
@@ -263,9 +272,13 @@ function toggleRow(rowIndex: number) {
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      rowIndex + 1
-                    }}</RouterLink>
+                    <span class="relative inline-flex items-center gap-1">
+                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
+                        {{ rowIndex + 1 }}
+                      </RouterLink>
+
+                      <ChevronUpDownIcon v-if="canRowExpand(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
+                    </span>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
