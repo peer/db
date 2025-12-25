@@ -43,7 +43,7 @@ const uploadProgress = localProgress(mainProgress)
 
 const abortController = new AbortController()
 
-const upload = ref<HTMLInputElement>()
+const upload = useTemplateRef<HTMLInputElement>("upload")
 
 onBeforeUnmount(() => {
   abortController.abort()

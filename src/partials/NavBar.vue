@@ -5,7 +5,7 @@ import ProgressBar from "@/components/ProgressBar.vue"
 import { useNavbar } from "@/navbar"
 import { injectMainProgress } from "@/progress"
 
-const { ref: navbar, attrs: navbarAttrs } = useNavbar()
+const { attrs: navbarAttrs } = useNavbar()
 
 const mainProgress = injectMainProgress()
 </script>

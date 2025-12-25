@@ -1,9 +1,9 @@
-import type { Ref, StyleValue } from "vue"
+import type { Ref, StyleValue, TemplateRef } from "vue"
 
-import { onBeforeUnmount, onMounted, ref } from "vue"
+import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
 
-export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
-  const navbar = ref<HTMLInputElement | null>()
+export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
+  const navbar = useTemplateRef<HTMLElement>("navbar")
   const attrs = ref({
     style: { position: "absolute" as "absolute" | "fixed", top: "0px" },
     class: { "animate-navbar": false },
@@ -67,5 +67,5 @@ export function useNavbar(): { ref: Ref; attrs: Ref<{ style: StyleValue; class: 
     window.removeEventListener("scroll", onScroll)
   })
 
-  return { ref: navbar, attrs }
+  return { navbar, attrs }
 }
