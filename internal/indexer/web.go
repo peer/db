@@ -60,7 +60,7 @@ func pagserSchemaOrg(node *goquery.Selection, _ ...string) (interface{}, error) 
 }
 
 // ExtractData extracts structured data of type T from an HTML reader using pagser.
-func ExtractData[T any](in io.Reader) (T, errors.E) {
+func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	config := pagser.DefaultConfig()
 	config.CastError = true
 	p, _ := pagser.NewWithConfig(config)
@@ -82,7 +82,7 @@ func ExtractData[T any](in io.Reader) (T, errors.E) {
 // TODO: Make sure we are making only one request per domain at once.
 
 // GetWebData fetches data from a URL and extracts structured data using the provided extraction function.
-func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) {
+func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) { //nolint:ireturn
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)

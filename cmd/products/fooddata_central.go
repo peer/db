@@ -36,7 +36,7 @@ const (
 type FoodDataCentral struct {
 	Disabled       bool   `default:"false"                            help:"Do not import FoodDataCentral data."`
 	DataURL        string `default:"${defaultFoodDataCentralDataURL}" help:"URL of FoodCentral dataset to use. It can be a local file path, too." name:"data"        placeholder:"URL"`
-	IngredientsDir string `                                           help:"Path to a directory with JSONs with parsed ingredients."                                   name:"ingredients" placeholder:"DIR" type:"path"`
+	IngredientsDir string `                                           help:"Path to a directory with JSONs with parsed ingredients."              name:"ingredients" placeholder:"DIR" type:"path"`
 }
 
 type Nutrient struct {

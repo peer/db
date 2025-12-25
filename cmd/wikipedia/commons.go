@@ -164,10 +164,10 @@ func (c *CommonsCommand) processEntity(
 //
 //nolint:lll
 type CommonsFilesCommand struct {
-	Token       string `                             env:"WIKIMEDIA_COMMONS_TOKEN" help:"Access token for Wikimedia Commons API. Not required."                                                       placeholder:"TOKEN"`
+	Token       string `                             env:"WIKIMEDIA_COMMONS_TOKEN" help:"Access token for Wikimedia Commons API. Not required."                                                                placeholder:"TOKEN"`
 	APILimit    int    `default:"${defaultAPILimit}"                               help:"Maximum number of titles to work on in a single API request. Use 500 if you have an access token with higher limits." placeholder:"INT"` //nolint:lll
-	SaveSkipped string `                                                           help:"Save filenames of skipped Wikimedia Commons files."                                                                                        placeholder:"PATH"  type:"path"`
-	URL         string `                                                           help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."                              placeholder:"URL"`
+	SaveSkipped string `                                                           help:"Save filenames of skipped Wikimedia Commons files."                                                                   placeholder:"PATH"  type:"path"`
+	URL         string `                                                           help:"URL of Wikimedia Commons image table SQL dump to use. It can be a local file path, too. Default: the latest."         placeholder:"URL"`
 }
 
 func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
