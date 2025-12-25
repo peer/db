@@ -9,7 +9,7 @@ const props = withDefaults(
     to: RouteLocationRaw
     replace?: boolean
     disabled?: boolean
-    afterClick?: () => void
+    afterClick?: () => void | Promise<void>
   }>(),
   {
     replace: false,
@@ -18,6 +18,7 @@ const props = withDefaults(
   },
 )
 
+// eslint-disable-next-line @typescript-eslint/unbound-method
 const { navigate, href } = useLink(props)
 
 async function onClick(event: MouseEvent) {

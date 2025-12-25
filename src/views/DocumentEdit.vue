@@ -55,7 +55,7 @@ const doc = import.meta.env.DEV ? readonly(_doc) : _doc
 
 let latestChange = 0
 
-;(async () => {
+async function loadAndSubscribe() {
   const { doc: beginMetadata } = await getURL<DocumentBeginMetadata>(
     router.apiResolve({
       name: "DocumentEdit",
@@ -90,51 +90,61 @@ let latestChange = 0
 
   _doc.value = new PeerDBDocument(initialDoc)
 
+  // TODO: Use websocket to watch for new changes.
   let running = false
-  const timer = setInterval(async () => {
-    if (running) {
-      return
-    }
-    running = true
-    try {
-      const { doc: changesList } = await getURLDirect<number[]>(
-        router.apiResolve({
-          name: "DocumentListChanges",
-          params: {
-            session: props.session,
-          },
-        }).href,
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
+  const timer = setInterval(() => {
+    ;(async () => {
+      if (running) {
         return
       }
-      for (; changesList.length > 0 && latestChange < changesList[0]; latestChange++) {
-        const { doc: changeDoc } = await getURL<object>(
+      running = true
+      try {
+        const { doc: changesList } = await getURLDirect<number[]>(
           router.apiResolve({
-            name: "DocumentGetChange",
+            name: "DocumentListChanges",
             params: {
               session: props.session,
-              change: latestChange + 1,
             },
           }).href,
-          null,
           abortController.signal,
           null,
         )
         if (abortController.signal.aborted) {
           return
         }
-        const change = changeFrom(changeDoc)
-        change.Apply(_doc.value!, idAtChange(props.session, latestChange + 1))
+        for (; changesList.length > 0 && latestChange < changesList[0]; latestChange++) {
+          const { doc: changeDoc } = await getURL<object>(
+            router.apiResolve({
+              name: "DocumentGetChange",
+              params: {
+                session: props.session,
+                change: latestChange + 1,
+              },
+            }).href,
+            null,
+            abortController.signal,
+            null,
+          )
+          if (abortController.signal.aborted) {
+            return
+          }
+          const change = changeFrom(changeDoc)
+          change.Apply(_doc.value!, idAtChange(props.session, latestChange + 1))
+        }
+      } finally {
+        running = false
       }
-    } finally {
-      running = false
-    }
+    })().catch((error) => {
+      // TODO: Show error state to the user.
+      console.error("loadAndSubscribe interval", error)
+    })
   }, 1000)
   abortController.signal.addEventListener("abort", () => clearTimeout(timer))
-})()
+}
+loadAndSubscribe().catch((error) => {
+  // TODO: Show error state to the user.
+  console.error("loadAndSubscribe", error)
+})
 
 const docName = computed(() => getName(doc.value?.claims))
 
@@ -229,11 +239,12 @@ async function onAddClaim() {
   }
 }
 
-async function onEditClaim(id: string) {
+function onEditClaim(id: string) {
   if (abortController.signal.aborted) {
     return
   }
 
+  // TODO: Implement.
   console.log("edit", id)
 }
 

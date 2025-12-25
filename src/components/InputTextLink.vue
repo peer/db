@@ -12,7 +12,7 @@ withDefaults(
     to: RouteLocationRaw
     replace?: boolean
     disabled?: boolean
-    afterClick?: () => void
+    afterClick?: () => void | Promise<void>
   }>(),
   {
     replace: false,

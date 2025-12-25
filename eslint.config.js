@@ -31,6 +31,13 @@ export default tseslint.config(
         },
       ],
       "vue/multi-word-component-names": ["off"],
+      "vue/no-v-html": ["off"],
+      "vue/no-v-text-v-html-on-component": [
+        "error",
+        {
+          allow: ["RouterLink"],
+        },
+      ],
       // TODO: Remove these once this is fixed upstream.
       //       See: https://github.com/vuejs/eslint-plugin-vue/issues/2956
       "@typescript-eslint/no-redundant-type-constituents": "off",

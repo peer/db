@@ -195,7 +195,7 @@ async function onCreate() {
   }
 }
 
-async function onUpload() {
+function onUpload() {
   if (abortController.signal.aborted) {
     return
   }

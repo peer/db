@@ -366,6 +366,7 @@ export function changeFrom(obj: object): Change {
     case "remove":
       return new RemoveClaimChange(obj)
   }
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   throw new Error(`change of type "${obj.type}" is not supported`)
 }
 
@@ -376,6 +377,7 @@ export class AddClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "add") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "add"
@@ -407,6 +409,7 @@ export class SetClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "set") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "set"
@@ -429,6 +432,7 @@ export class RemoveClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "remove") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "remove"
@@ -504,6 +508,7 @@ export function claimPatchFrom(obj: object): ClaimPatch {
     case "timeRange":
       return new TimeRangeClaimPatch(obj)
   }
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   throw new Error(`patch of type "${obj.type}" is not supported`)
 }
 
@@ -514,6 +519,7 @@ export class IdentifierClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "id") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "id"
@@ -560,6 +566,7 @@ export class ReferenceClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "ref") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "ref"
@@ -607,6 +614,7 @@ export class TextClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "text") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "text"
@@ -662,6 +670,7 @@ export class StringClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "string") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "string"
@@ -709,6 +718,7 @@ export class AmountClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "amount") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "amount"
@@ -761,6 +771,7 @@ export class AmountRangeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "amountRange") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "amountRange"
@@ -815,6 +826,7 @@ export class RelationClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "rel") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "rel"
@@ -865,6 +877,7 @@ export class FileClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "file") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "file"
@@ -918,6 +931,7 @@ export class NoValueClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "none") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "none"
@@ -959,6 +973,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "unknown") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "unknown"
@@ -1002,6 +1017,7 @@ export class TimeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "time") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "time"
@@ -1054,6 +1070,7 @@ export class TimeRangeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "timeRange") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "timeRange"

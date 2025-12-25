@@ -61,10 +61,12 @@ const { searchSession, error: searchSessionError } = useSearchSession(
 )
 const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
 
+// See: https://github.com/vuejs/core/issues/14249
+//eslint-disable-next-line @typescript-eslint/no-misused-promises
 watchEffect(async (onCleanup) => {
   if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
-    router.replace({
+    await router.replace({
       name: "DocumentGet",
       params: {
         id: props.id,
@@ -92,6 +94,7 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   if (results.value.length > 0) {
     // Results are loaded but we could not find ID. Redirect to the URL without "s".
     // Ugly, a side effect inside computed. But it works well.
+    //eslint-disable-next-line @typescript-eslint/no-floating-promises
     router.replace({
       name: "DocumentGet",
       params: {
@@ -102,7 +105,7 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   return res
 })
 
-async function afterClick() {
+function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 

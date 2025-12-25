@@ -20,6 +20,8 @@ const props = withDefaults(
 
 // We use fake "/" when disabled. The link is not really active then, so that is OK.
 // We have to make both be computed to retain reactivity.
+//
+// eslint-disable-next-line @typescript-eslint/unbound-method
 const { navigate, href } = useLink({
   to: toRef(() => (props.disabled ? "/" : props.to)),
   replace: toRef(() => props.replace),

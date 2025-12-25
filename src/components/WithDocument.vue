@@ -81,6 +81,7 @@ watch(
         return
       }
       console.error("WithDocument", error)
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       _error.value = `${error}`
       return
     }

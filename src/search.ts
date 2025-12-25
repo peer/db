@@ -437,6 +437,7 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -503,6 +504,7 @@ export function useRelFilterValues(
         query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
       }).href
     } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
     }
   })
@@ -567,6 +569,7 @@ export function useAmountHistogramValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -604,6 +607,7 @@ export function useAmountHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -687,6 +691,7 @@ export function useTimeHistogramValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -724,6 +729,7 @@ export function useTimeHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -798,6 +804,7 @@ export function useStringFilterValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -829,6 +836,7 @@ export function useStringFilterValues(
         console.error("useStringFilterValues", newURL, err)
         _results.value = []
         _total.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -997,6 +1005,7 @@ export function useSearchSession(
         }
         console.error("useSearchSession", newURL, err)
         _searchSession.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
