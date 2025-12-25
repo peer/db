@@ -1,4 +1,4 @@
-import type { RouteLocationRaw, RouteLocationNormalizedLoaded, RouteLocation } from "vue-router"
+import type { RouteLocation, RouteLocationNormalizedLoaded, RouteLocationRaw } from "vue-router"
 
 declare module "vue-router" {
   interface Router {
