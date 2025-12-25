@@ -4,6 +4,9 @@ import type { DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document"
 import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 
+import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
+
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -11,8 +14,6 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRelFilterValues } from "@/search"
 import { equals, getName, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
-import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>

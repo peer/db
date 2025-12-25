@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { ComponentExposed } from "vue-component-type-helpers"
+
 import type { PeerDBDocument } from "@/document"
 import type { Result } from "@/types"
-import type { ComponentExposed } from "vue-component-type-helpers"
+
+import { computed, ref } from "vue"
 
 import WithDocument from "@/components/WithDocument.vue"
 import {
@@ -26,7 +29,6 @@ import {
   TYPE,
 } from "@/props"
 import { encodeQuery, getBestClaimOfType, getClaimsListsOfType, getClaimsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
-import { computed, ref } from "vue"
 
 defineProps<{
   searchSessionId: string

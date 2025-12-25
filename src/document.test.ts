@@ -1,7 +1,7 @@
 import { assert, test } from "vitest"
-
 import { Identifier } from "@tozd/identifier"
-import { Changes, PeerDBDocument } from "./document"
+
+import { Changes, PeerDBDocument } from "@/document"
 
 test("patch json", () => {
   const id1 = "LpcGdCUThc22mhuBwQJQ5Z"

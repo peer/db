@@ -26,11 +26,12 @@ import type {
   ViewType,
 } from "@/types"
 
+import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
+
 import { getURL, getURLDirect, postJSON } from "@/api"
 import { NONE } from "@/symbols"
 import { anySignal, encodeQuery, timestampToSeconds } from "@/utils"
-import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
-import { useRoute, useRouter } from "vue-router"
 
 export { NONE } from "@/symbols"
 

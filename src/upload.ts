@@ -1,12 +1,13 @@
-import type { StorageBeginUploadRequest, StorageBeginUploadResponse } from "@/types"
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
 
-// 10 MB.
-const maxPayloadSize = 10 << 20
+import type { StorageBeginUploadRequest, StorageBeginUploadResponse } from "@/types"
 
 import { postBlob, postJSON } from "@/api"
 import { encodeQuery } from "@/utils"
+
+// 10 MB.
+const maxPayloadSize = 10 << 20
 
 export async function uploadFile(router: Router, file: File, abortSignal: AbortSignal, progress: Ref<number>): Promise<string> {
   // TODO: If abortSignal is aborted, we should attempt to discard the upload (with fetch's keepalive set).

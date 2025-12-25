@@ -1,12 +1,14 @@
-import type { Claim, ClaimTypeProp, ClaimTypes } from "@/document"
-import type { AmountUnit, Mutable, QueryValues, QueryValuesWithOptional, Required } from "@/types"
 import type { DeepReadonly, Ref } from "vue"
 
-import { DESCRIPTION, LIST, NAME, ORDER } from "@/props"
-import { fromDate, hour, minute, second, toDate } from "@/time"
+import type { Claim, ClaimTypeProp, ClaimTypes } from "@/document"
+import type { AmountUnit, Mutable, QueryValues, QueryValuesWithOptional, Required } from "@/types"
+
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
+
+import { DESCRIPTION, LIST, NAME, ORDER } from "@/props"
+import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2

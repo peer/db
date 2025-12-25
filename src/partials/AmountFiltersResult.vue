@@ -4,13 +4,14 @@ import type { DeepReadonly } from "vue"
 
 import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from "@/types"
 
+import noUiSlider from "nouislider"
+import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
+
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
 import { NONE, useAmountHistogramValues } from "@/search"
 import { equals, formatValue, loadingShortHeights, useInitialLoad } from "@/utils"
-import noUiSlider from "nouislider"
-import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>

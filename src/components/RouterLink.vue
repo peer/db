@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { nextTick } from "vue"
 import type { RouteLocationRaw } from "vue-router"
 
+import { nextTick } from "vue"
 import { useLink } from "vue-router"
 
 const props = withDefaults(

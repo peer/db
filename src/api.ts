@@ -1,5 +1,6 @@
-import type { Metadata } from "@/types"
 import type { Ref } from "vue"
+
+import type { Metadata } from "@/types"
 
 import { decodeMetadata } from "@/metadata"
 import { Queue } from "@/queue"
