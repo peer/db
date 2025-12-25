@@ -1,6 +1,6 @@
 import type { DeepReadonly, Ref } from "vue"
 
-import type { Claim, ClaimTypeProp, ClaimTypes } from "@/document"
+import type { Claim, ClaimTypeName, ClaimTypes } from "@/document"
 import type { AmountUnit, Mutable, QueryValues, QueryValuesWithOptional, Required } from "@/types"
 
 import { prng_alea } from "esm-seedrandom"
@@ -108,7 +108,7 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
   return null
 }
 
-export function getClaimsOfType<K extends ClaimTypeProp>(
+export function getClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -127,7 +127,7 @@ export function getClaimsOfType<K extends ClaimTypeProp>(
   return claims
 }
 
-export function getBestClaimOfType<K extends ClaimTypeProp>(
+export function getBestClaimOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -142,7 +142,7 @@ export function getBestClaimOfType<K extends ClaimTypeProp>(
 const LOW_CONFIDENCE = 0.5
 
 // TODO: Support also negation claims (i.e., those with negative confidence).
-export function getClaimsOfTypeWithConfidence<K extends ClaimTypeProp>(
+export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -154,7 +154,7 @@ export function getClaimsOfTypeWithConfidence<K extends ClaimTypeProp>(
 
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
-export function getClaimsListsOfType<K extends ClaimTypeProp>(
+export function getClaimsListsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],

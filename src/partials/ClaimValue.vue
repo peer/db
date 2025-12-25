@@ -1,7 +1,7 @@
-<script setup lang="ts" generic="T extends ClaimTypeProp">
+<script setup lang="ts" generic="T extends ClaimTypeName">
 import type { DeepReadonly } from "vue"
 
-import type { ClaimForType, ClaimTypeProp } from "@/document"
+import type { ClaimForType, ClaimTypeName } from "@/document"
 
 import ClaimValueAmount from "@/partials/claimvalue/ClaimValueAmount.vue"
 import ClaimValueAmountRange from "@/partials/claimvalue/ClaimValueAmountRange.vue"

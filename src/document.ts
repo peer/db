@@ -220,7 +220,7 @@ export class ClaimTypes {
   timeRange?: TimeRangeClaim[]
 
   constructor(obj: Record<string, object[]> | ClaimTypes) {
-    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypesEntry[]) {
       if (!obj?.[name]) continue
       if (!Array.isArray(obj[name])) throw new Error(`"${name}" is not an array`)
       ;(this[name] as Constructee<typeof claimType>[]) = obj[name].map((claim) => new claimType(claim))
@@ -228,7 +228,7 @@ export class ClaimTypes {
   }
 
   GetByID(id: string): Claim | undefined {
-    for (const claims of Object.values(this)) {
+    for (const claims of Object.values(this) as Claim[][]) {
       for (const claim of claims || []) {
         if (claim.GetID() === id) {
           return claim
@@ -242,7 +242,7 @@ export class ClaimTypes {
   }
 
   RemoveByID(id: string): Claim | undefined {
-    for (const claims of Object.values(this)) {
+    for (const claims of Object.values(this) as Claim[][]) {
       for (const [i, claim] of (claims || []).entries()) {
         if (claim.GetID() === id) {
           claims.splice(i, 1)
@@ -257,7 +257,7 @@ export class ClaimTypes {
   }
 
   Add(claim: Claim): void {
-    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypesEntry[]) {
       if (claim instanceof claimType) {
         if (!this[name]) {
           this[name] = []
@@ -269,12 +269,13 @@ export class ClaimTypes {
   }
 
   AllClaims(): Claim[] {
-    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeProp[]).flatMap((k) => this[k] ?? [])
+    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
   }
 }
 
-type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
-export type ClaimTypeProp = keyof typeof CLAIM_TYPES_MAP
+export type ClaimTypeName = keyof typeof CLAIM_TYPES_MAP
+type ClaimTypeConstructor = (typeof CLAIM_TYPES_MAP)[ClaimTypeName]
+type ClaimTypesEntry = [ClaimTypeName, ClaimTypeConstructor]
 
 export const CLAIM_TYPES_MAP: {
   [P in keyof ClaimTypes as ClaimTypes[P] extends CoreClaim[] | undefined ? P : never]-?: ClaimTypes[P] extends Array<infer U> | undefined ? Constructor<U> : never
@@ -293,9 +294,9 @@ export const CLAIM_TYPES_MAP: {
   timeRange: TimeRangeClaim,
 } as const
 
-export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
+export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[ClaimTypeName]>
 
-export type ClaimForType<T extends ClaimTypeProp> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
+export type ClaimForType<T extends ClaimTypeName> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
 
 // TODO: Sync interface with Go implementation.
 interface ClaimsContainer {
