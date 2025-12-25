@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-async function onEdit(id: string) {
+function onEdit(id: string) {
   if (abortController.signal.aborted) {
     return
   }
@@ -51,7 +51,7 @@ async function onEdit(id: string) {
   $emit("editClaim", id)
 }
 
-async function onRemove(id: string) {
+function onRemove(id: string) {
   if (abortController.signal.aborted) {
     return
   }

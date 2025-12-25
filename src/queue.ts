@@ -1,7 +1,7 @@
 export class Queue {
   concurrency = 1
 
-  _tasks: (() => Promise<void>)[] = []
+  _tasks: (() => void)[] = []
   _pendingCount = 0
 
   constructor(options?: { concurrency?: number }) {
@@ -12,19 +12,19 @@ export class Queue {
 
   add<T>(fn: () => Promise<T>, options?: { signal?: AbortSignal }): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      const run = async (): Promise<void> => {
-        this._pendingCount++
-        try {
-          options?.signal?.throwIfAborted()
-
-          const result = await fn()
-          resolve(result)
-        } catch (error: unknown) {
-          reject(error)
-        } finally {
-          this._pendingCount--
-          this._flush()
+      const run = () => {
+        if (options?.signal?.aborted) {
+          //eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          reject(options.signal.reason)
+        } else {
+          this._pendingCount++
+          try {
+            fn().then(resolve, reject)
+          } finally {
+            this._pendingCount--
+          }
         }
+        this._flush()
       }
 
       this._tasks.push(run)
