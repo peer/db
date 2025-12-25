@@ -139,7 +139,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		Str("sessionAuthorization", conn.PgConn().ParameterStatus("session_authorization")).
 		Msg("database connection successful")
 
-	dbconfig.PrepareConn = func(context.Context, *pgx.Conn) (bool, error) {
+	dbconfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
 		schema, requestID := getRequest(ctx)
 
 		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID))
