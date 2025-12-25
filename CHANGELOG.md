@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgrade to Go 1.25.
+- Upgrade to Go 1.25 and Node 24.
 
 ### Removed
 

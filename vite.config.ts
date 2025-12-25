@@ -1,11 +1,17 @@
-import { defineConfig } from "vitest/config"
 import vue from "@vitejs/plugin-vue"
-import license from "rollup-plugin-license"
 import path from "path"
+import license from "rollup-plugin-license"
+import url from "url"
+import { defineConfig } from "vitest/config"
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 // https://vitest.dev/config/
 export default defineConfig({
+  define: {
+    __VUE_OPTIONS_API__: false,
+  },
   plugins: [
     vue(),
     license({
@@ -42,9 +48,10 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      include: ["src/**/*.{ts,vue}"],
+      exclude: ["**/*.d.ts"],
       provider: "v8",
       reporter: ["text", "cobertura", "html"],
-      all: true,
     },
   },
   esbuild: {

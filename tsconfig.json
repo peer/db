@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "esnext",
     "useDefineForClassFields": true,
-    "allowUnreachableCode": false,
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
+    "skipLibCheck": true,
     "noUnusedLocals": true,
     "jsx": "preserve",
     "resolveJsonModule": true,
@@ -20,6 +20,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "tests/**/*.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
