@@ -179,7 +179,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 // Truncate logic, map used for performance, also only keeping cells which
 // are truncated to keep the ref as small as possible
 
-const truncatedCells = ref<Map<string, true>>(new Map())
+const truncatedCells = ref<Set<string>>(new Set())
 const expandedRows = ref<Set<number>>(new Set())
 
 function cellKey(rowIndex: number, colIndex: number) {
@@ -190,14 +190,14 @@ function updateCellTruncation(rowIndex: number, colIndex: number, isTruncated: b
   const key = cellKey(rowIndex, colIndex)
 
   if (isTruncated) {
-    truncatedCells.value.set(key, true)
+    truncatedCells.value.add(key)
   } else {
     truncatedCells.value.delete(key)
   }
 }
 
-function isCellTruncated(rowIndex: number, columnIndex: number): boolean {
-  return truncatedCells.value.has(cellKey(rowIndex, columnIndex))
+function isCellTruncated(rowIndex: number, colIndex: number): boolean {
+  return truncatedCells.value.has(cellKey(rowIndex, colIndex))
 }
 
 function isRowExpanded(rowIndex: number): boolean {
