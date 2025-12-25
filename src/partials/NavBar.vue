@@ -18,6 +18,7 @@ const mainProgress = injectMainProgress()
           body inside which then the navbar horizontally shifts.
   -->
   <div class="sticky left-0 z-30 w-0">
+    <!-- useNavbar uses a template ref named "navbar". -->
     <div
       id="navbar"
       ref="navbar"
