@@ -4,18 +4,22 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
-import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
+import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { truncated } from "@/directives/trucated.ts"
+
+const vTruncated = truncated
 
 const props = defineProps<{
   // Search props.
@@ -171,6 +175,29 @@ onBeforeUnmount(() => {
 })
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
+
+// Truncate logic, map used for performance, also only keeping cells which
+// are truncated to keep the ref as small as possible
+
+const truncatedCells = ref<Map<string, true>>(new Map())
+
+function cellKey(rowIndex: number, colIndex: number) {
+  return `${rowIndex}:${colIndex}`
+}
+
+function updateCellTruncation(rowIndex: number, colIndex: number, isTruncated: boolean) {
+  const key = cellKey(rowIndex, colIndex)
+
+  if (isTruncated) {
+    truncatedCells.value.set(key, true)
+  } else {
+    truncatedCells.value.delete(key)
+  }
+}
+
+function isCellTruncated(rowIndex: number, columnIndex: number): boolean {
+  return truncatedCells.value.has(cellKey(rowIndex, columnIndex))
+}
 </script>
 
 <template>
@@ -218,23 +245,36 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
         <!-- Results -->
         <tbody class="divide-y divide-gray-200">
-          <template v-for="(result, index) in limitedSearchResults" :key="result.id">
+          <template v-for="(result, rowIndex) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
+                      rowIndex + 1
                     }}</RouterLink>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
-                    <td v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
+                  <template v-for="(filter, columnIndex) in limitedFiltersResults" v-else :key="filter.id">
+                    <td
+                      v-if="supportedFilter(filter)"
+                      v-truncated="{
+                        onChange: (isTruncated: boolean) => {
+                          updateCellTruncation(rowIndex, columnIndex, isTruncated)
+                        },
+                      }"
+                      class="relative max-w-[400px] truncate p-2 text-start"
+                      :class="{
+                        'pr-4': isCellTruncated(rowIndex, columnIndex),
+                      }"
+                    >
                       <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                         <template v-if="cIndex !== 0">, </template>
                         <ClaimValue :type="filter.type" :claim="claim" />
+
+                        <ChevronUpDownIcon v-if="isCellTruncated(rowIndex, columnIndex)" class="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 hover:cursor-pointer" />
                       </template>
                     </td>
                   </template>
@@ -251,7 +291,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
+                      rowIndex + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
@@ -264,7 +304,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
+                      rowIndex + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
