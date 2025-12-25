@@ -164,7 +164,7 @@ at runtime without having to reconfigure PeerDB Search, e.g., it adapts filters 
 The schema also allows multiple data sources to be used and merged together.
 
 PeerDB schema of documents is fully described in
-[JSON Schema](https://json-schema.org/) and is available [here](./schema/doc.json).
+[JSON Schema](https://json-schema.org/) and is available [in this file](./schema/doc.json).
 But at a high-level look like:
 
 ```json
