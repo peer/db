@@ -1,26 +1,42 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
+import type {
+  AmountFilterState,
+  AmountUnit,
+  ClientSearchSession,
+  FilterResult,
+  FiltersState,
+  FilterStateChange,
+  RelFilterState,
+  Result,
+  StringFilterState,
+  TimeFilterState,
+  ViewType,
+} from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
-import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
-import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import ClaimValue from "@/partials/ClaimValue.vue"
+import Button from "@/components/Button.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
+import ClaimValue from "@/partials/ClaimValue.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
+import RelFiltersResult from "@/partials/RelFiltersResult.vue"
+import StringFiltersResult from "@/partials/StringFiltersResult.vue"
+import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue"
 
 const props = defineProps<{
   // Search props.
@@ -29,9 +45,14 @@ const props = defineProps<{
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
+  updateSearchSessionProgress: number
+
+  // Filter props.
+  filtersState: FiltersState
 }>()
 
 const $emit = defineEmits<{
+  filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
 }>()
 
@@ -73,6 +94,11 @@ const {
 function supportedFilter(filter: FilterResult) {
   return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
 }
+
+const isFilterActive = computed(() => (filter: FilterResult) => {
+  const filterType = filter.type === "string" ? "str" : filter.type
+  return !!props.filtersState?.[filterType]?.[filter.id]
+})
 
 const rowColspan = computed(() => {
   if (filtersTotal.value === null) {
@@ -169,6 +195,38 @@ function onScroll() {
   // is a 1px gap between the top edge of the window and where the header gets stuck
   const top = Math.max(-1, bottom - 1)
   headerAttrs.value.style.top = `${top}px`
+}
+
+function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  $emit("filterChange", { type: "rel", id, value })
+}
+
+function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  $emit("filterChange", { type: "amount", id, unit, value })
+}
+
+function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  $emit("filterChange", { type: "time", id, value })
+}
+
+function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  $emit("filterChange", { type: "string", id, value })
 }
 
 onMounted(() => {
@@ -291,12 +349,55 @@ const popoverStyle = computed(() => {
 
                   <Popover>
                     <PopoverButton class="ml-2 flex justify-center items-center" @click="onPopoverClick">
-                      <FunnelIcon class="h-5 w-5 text-primary-500 hover:text-primary-700" />
+                      <FunnelIcon
+                        class="h-5 w-5 text-neutral-400 hover:text-neutral-600"
+                        :class="{
+                          '!text-primary-500 !hover:text-primary-700': isFilterActive(filter),
+                        }"
+                      />
                     </PopoverButton>
 
                     <teleport to="body">
-                      <PopoverPanel class="fixed w-72 rounded bg-white shadow border" :style="popoverStyle">
-                        <div class="p-3">Filters go here</div>
+                      <PopoverPanel class="fixed max-h-96 w-72 overflow-auto rounded bg-white shadow border" :style="popoverStyle">
+                        <RelFiltersResult
+                          v-if="filter.type === 'rel'"
+                          :search-session="searchSession"
+                          :search-total="searchTotal"
+                          :result="filter"
+                          :state="filtersState.rel[filter.id] ?? []"
+                          :update-progress="updateSearchSessionProgress"
+                          @update:state="onRelFiltersStateUpdate(filter.id, $event)"
+                        />
+
+                        <AmountFiltersResult
+                          v-if="filter.type === 'amount'"
+                          :search-session="searchSession"
+                          :search-total="searchTotal"
+                          :result="filter"
+                          :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
+                          :update-progress="updateSearchSessionProgress"
+                          @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
+                        />
+
+                        <TimeFiltersResult
+                          v-if="filter.type === 'time'"
+                          :search-session="searchSession"
+                          :search-total="searchTotal"
+                          :result="filter"
+                          :state="filtersState.time[filter.id] ?? null"
+                          :update-progress="updateSearchSessionProgress"
+                          @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
+                        />
+
+                        <StringFiltersResult
+                          v-if="filter.type === 'string'"
+                          :search-session="searchSession"
+                          :search-total="searchTotal"
+                          :result="filter"
+                          :state="filtersState.str[filter.id] ?? []"
+                          :update-progress="updateSearchSessionProgress"
+                          @update:state="onStringFiltersStateUpdate(filter.id, $event)"
+                        />
                       </PopoverPanel>
                     </teleport>
                   </Popover>
