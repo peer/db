@@ -5,7 +5,7 @@ import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
 import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
-import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ChevronUpDownIcon, ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -180,6 +180,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 // are truncated to keep the ref as small as possible
 
 const truncatedCells = ref<Map<string, true>>(new Map())
+const expandedRows = ref<Set<number>>(new Set())
 
 function cellKey(rowIndex: number, colIndex: number) {
   return `${rowIndex}:${colIndex}`
@@ -197,6 +198,18 @@ function updateCellTruncation(rowIndex: number, colIndex: number, isTruncated: b
 
 function isCellTruncated(rowIndex: number, columnIndex: number): boolean {
   return truncatedCells.value.has(cellKey(rowIndex, columnIndex))
+}
+
+function isRowExpanded(rowIndex: number): boolean {
+  return expandedRows.value.has(rowIndex)
+}
+
+function toggleRow(rowIndex: number) {
+  if (expandedRows.value.has(rowIndex)) {
+    expandedRows.value.delete(rowIndex)
+  } else {
+    expandedRows.value.add(rowIndex)
+  }
 }
 </script>
 
@@ -258,24 +271,36 @@ function isCellTruncated(rowIndex: number, columnIndex: number): boolean {
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
                   </td>
                   <template v-for="(filter, columnIndex) in limitedFiltersResults" v-else :key="filter.id">
-                    <td
-                      v-if="supportedFilter(filter)"
-                      v-truncated="{
-                        onChange: (isTruncated: boolean) => {
-                          updateCellTruncation(rowIndex, columnIndex, isTruncated)
-                        },
-                      }"
-                      class="relative max-w-[400px] truncate p-2 text-start"
-                      :class="{
-                        'pr-4': isCellTruncated(rowIndex, columnIndex),
-                      }"
-                    >
-                      <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
-                        <template v-if="cIndex !== 0">, </template>
-                        <ClaimValue :type="filter.type" :claim="claim" />
+                    <td class="relative max-w-[400px] truncate p-2 text-start">
+                      <!-- Div is used on purpose, so truncation on 5 rows works normally -->
+                      <div
+                        v-if="supportedFilter(filter)"
+                        v-truncated="{
+                          onChange: (isTruncated: boolean) => {
+                            updateCellTruncation(rowIndex, columnIndex, isTruncated)
+                          },
+                        }"
+                        :class="[isRowExpanded(rowIndex) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
+                      >
+                        <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
+                          <template v-if="cIndex !== 0">, </template>
+                          <ClaimValue :type="filter.type" :claim="claim" />
 
-                        <ChevronUpDownIcon v-if="isCellTruncated(rowIndex, columnIndex)" class="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 hover:cursor-pointer" />
-                      </template>
+                          <ChevronUpDownIcon
+                            v-if="isCellTruncated(rowIndex, columnIndex) && !isRowExpanded(rowIndex)"
+                            class="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 hover:cursor-pointer"
+                            @click.stop="toggleRow(rowIndex)"
+                          />
+
+                          <RouterLink
+                            v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
+                            :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                            class="link absolute right-0 bottom-1"
+                          >
+                            <ArrowTopRightOnSquareIcon class="h-5 w-5 hover:cursor-pointer" @click.stop="toggleRow(rowIndex)" />
+                          </RouterLink>
+                        </template>
+                      </div>
                     </td>
                   </template>
                 </tr>
