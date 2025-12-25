@@ -36,7 +36,7 @@ test("patch json", () => {
     `[{"type":"add","patch":{"type":"amount","prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"unit":"°C"}},{"type":"add","under":"LpcGdCUThc22mhuBwQJQ5Z","patch":{"type":"id","prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar"}}]`,
   )
 
-  const changes2 = new Changes(...JSON.parse(out))
+  const changes2 = new Changes(...(JSON.parse(out) as object[]))
   assert.deepEqual(changes, changes2)
 
   const id = Identifier.new().toString()

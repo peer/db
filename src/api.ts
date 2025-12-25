@@ -106,7 +106,7 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return { doc: await response.json(), metadata: decodeMetadata(response.headers) }
+    return { doc: (await response.json()) as T, metadata: decodeMetadata(response.headers) }
   } finally {
     if (progress) {
       progress.value -= 1
@@ -142,7 +142,7 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return await response.json()
+    return await response.json() as T
   } finally {
     if (progress) {
       progress.value -= 1
@@ -173,7 +173,7 @@ export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSig
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return await response.json()
+    return await response.json() as T
   } finally {
     progress.value -= 1
   }

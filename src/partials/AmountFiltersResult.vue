@@ -149,16 +149,14 @@ watchEffect((onCleanup) => {
 })
 
 watchEffect((onCleanup) => {
-  if (!sliderEl.value) {
+  if (!slider) {
     return
   }
 
-  // TODO: Handles should not be focused when disabled.
-  //       See: https://github.com/leongersen/noUiSlider/issues/1227
   if (props.updateProgress > 0) {
-    sliderEl.value.setAttribute("disabled", true)
+    slider.disable()
   } else {
-    sliderEl.value.removeAttribute("disabled")
+    slider.enable()
   }
 })
 
