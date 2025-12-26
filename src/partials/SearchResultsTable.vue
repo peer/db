@@ -122,7 +122,7 @@ function onScrollOrResize() {
     if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
       // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
       // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-      searchMoreButton.value.$el.click()
+      (searchMoreButton.value.$el as HTMLButtonElement).click()
     }
   }
 
@@ -141,7 +141,7 @@ function onScrollOrResize() {
     if (currentScrollXPosition > scrollWidth - 2 * viewportWidth) {
       // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
       // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-      filtersMoreButton.value.$el.click()
+      (filtersMoreButton.value.$el as HTMLButtonElement).click()
     }
   }
 }
