@@ -331,7 +331,7 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
       values[key] = ""
     } else if (Array.isArray(value)) {
       const vs: string[] = []
-      for (const v in value) {
+      for (const v of value) {
         if (v === null) {
           vs.push("")
         } else {
