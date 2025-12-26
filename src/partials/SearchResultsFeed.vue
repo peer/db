@@ -125,10 +125,10 @@ function onScrollOrResize() {
       // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
       // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
       if (searchMoreButton.value) {
-        (searchMoreButton.value.$el as HTMLButtonElement).click()
+        ;(searchMoreButton.value.$el as HTMLButtonElement).click()
       }
       if (filtersMoreButton.value) {
-        (filtersMoreButton.value.$el as HTMLButtonElement).click()
+        ;(filtersMoreButton.value.$el as HTMLButtonElement).click()
       }
     }
   }
