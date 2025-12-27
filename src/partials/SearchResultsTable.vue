@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const {track: trackTruncation, truncated} = useTruncationTracking()
+const {track: trackTruncation, cellUpdated, truncated} = useTruncationTracking()
 
 // Keeps track of all currently expanded rows.
 const expandedRows = reactive(new Set<number>())
@@ -195,6 +195,9 @@ function toggleRow(rowIndex: number) {
   if (expandedRows.has(rowIndex)) {
     expandedRows.delete(rowIndex)
   } else {
+    // TODO: Call cellUpdated on all cells in the row to check if they are really truncated.
+    //       Then expand only if the cell the user clicked on (or any cell if the user clicked on
+    //       row-level button) is still expanded.
     expandedRows.add(rowIndex)
   }
 }

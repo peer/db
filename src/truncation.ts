@@ -12,6 +12,7 @@ function cellId(rowIndex: number, colIndex: number): string {
 
 export function useTruncationTracking(): {
   track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
+  cellUpdated: (el: Element) => void
   truncated: ReadonlyMap<number, ReadonlySet<number>>
 } {
   const idToElement = new Map<string, Element>()
@@ -93,6 +94,7 @@ export function useTruncationTracking(): {
         }
       }
     },
+    cellUpdated,
     truncated,
   }
 }
