@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const {track: trackTruncation, onUpdated: onUpdatedTruncation, truncated} = useTruncationTracking()
+const {track: trackTruncation, truncated} = useTruncationTracking()
 
 // Keeps track of all currently expanded rows.
 const expandedRows = reactive(new Set<number>())
@@ -268,7 +268,6 @@ function toggleRow(rowIndex: number) {
                         v-if="supportedFilter(filter)"
                         :ref="trackTruncation(rowIndex, columnIndex)"
                         :class="[isRowExpanded(rowIndex) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
-                        @vue:updated="onUpdatedTruncation"
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>

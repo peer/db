@@ -1,4 +1,4 @@
-import type { ComponentPublicInstance, VNode } from "vue"
+import type { ComponentPublicInstance } from "vue"
 
 import { reactive, readonly, onBeforeUnmount } from "vue"
 
@@ -12,7 +12,6 @@ function cellId(rowIndex: number, colIndex: number): string {
 
 export function useTruncationTracking(): {
   track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
-  onUpdated: (vnode: VNode) => void
   truncated: ReadonlyMap<number, ReadonlySet<number>>
 } {
   const idToElement = new Map<string, Element>()
@@ -92,11 +91,6 @@ export function useTruncationTracking(): {
         } else {
           untrackElement(rowIndex, columnIndex)
         }
-      }
-    },
-    onUpdated: (vnode) => {
-      if (vnode.el) {
-        cellUpdated(vnode.el as Element)
       }
     },
     truncated,
