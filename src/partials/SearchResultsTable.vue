@@ -4,7 +4,7 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
-import { computed, toRef, ref, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { computed, toRef, ref, onBeforeUnmount, onMounted, reactive, useTemplateRef } from "vue"
 import { ChevronUpDownIcon, ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 
 import WithDocument from "@/components/WithDocument.vue"
@@ -17,9 +17,7 @@ import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import { truncated } from "@/directives/trucated.ts"
-
-const vTruncated = truncated
+import { useTruncationTracking } from "@/truncation.ts"
 
 const props = defineProps<{
   // Search props.
@@ -176,48 +174,28 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-// Truncate logic, set used for performance, also only keeping cells
-// which are truncated to keep the ref as small as possible
+const {track: trackTruncation, onUpdated: onUpdatedTruncation, truncated} = useTruncationTracking()
 
-// Keeps track of each cell state if it is expended/collapsed
-const truncatedCells = ref<Set<string>>(new Set())
-// Keeps track of all currently expended rows
-const expandedRows = ref<Set<number>>(new Set())
-// Keeps a set of all rows that have at least one expendable cell
-const expendableRows = ref<Set<number>>(new Set())
-
-function cellKey(rowIndex: number, colIndex: number) {
-  return `${rowIndex}:${colIndex}`
-}
-
-function updateCellTruncation(rowIndex: number, colIndex: number, isTruncated: boolean) {
-  const key = cellKey(rowIndex, colIndex)
-
-  if (isTruncated) {
-    truncatedCells.value.add(key)
-    expendableRows.value.add(rowIndex)
-  } else {
-    truncatedCells.value.delete(key)
-  }
-}
+// Keeps track of all currently expanded rows.
+const expandedRows = reactive(new Set<number>())
 
 function isCellTruncated(rowIndex: number, colIndex: number): boolean {
-  return truncatedCells.value.has(cellKey(rowIndex, colIndex))
+  return truncated.get(rowIndex)?.has(colIndex) ?? false
 }
 
 function isRowExpanded(rowIndex: number): boolean {
-  return expandedRows.value.has(rowIndex)
+  return expandedRows.has(rowIndex)
 }
 
-function canRowExpand(row: number) {
-  return expendableRows.value.has(row)
+function canRowExpand(rowIndex: number) {
+  return truncated.has(rowIndex)
 }
 
 function toggleRow(rowIndex: number) {
-  if (expandedRows.value.has(rowIndex)) {
-    expandedRows.value.delete(rowIndex)
+  if (expandedRows.has(rowIndex)) {
+    expandedRows.delete(rowIndex)
   } else {
-    expandedRows.value.add(rowIndex)
+    expandedRows.add(rowIndex)
   }
 }
 </script>
@@ -288,12 +266,9 @@ function toggleRow(rowIndex: number) {
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
-                        v-truncated="{
-                          onChange: (isTruncated: boolean) => {
-                            updateCellTruncation(rowIndex, columnIndex, isTruncated)
-                          },
-                        }"
+                        :ref="trackTruncation(rowIndex, columnIndex)"
                         :class="[isRowExpanded(rowIndex) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
+                        @vue:updated="onUpdatedTruncation"
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>
