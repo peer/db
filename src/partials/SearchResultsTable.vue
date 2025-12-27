@@ -255,7 +255,7 @@ function toggleRow(rowIndex: number) {
                         {{ rowIndex + 1 }}
                       </RouterLink>
 
-                      <ChevronUpDownIcon v-if="canRowExpand(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
+                      <ChevronUpDownIcon v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
                     </span>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
