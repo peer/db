@@ -196,7 +196,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
   <template v-else-if="searchTotal !== null && searchTotal > 0">
     <div ref="content" class="flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
-      <table class="border shadow-sm">
+      <table class="border shadow-sm border-gray-200">
         <!-- Headers -->
         <!--
           We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there
@@ -217,7 +217,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </thead>
 
         <!-- Results -->
-        <tbody class="divide-y">
+        <tbody class="divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">

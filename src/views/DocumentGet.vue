@@ -198,7 +198,7 @@ async function onEdit() {
     </NavBar>
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
-    <div class="rounded-sm border bg-white p-4 shadow-sm">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
@@ -206,19 +206,19 @@ async function onEdit() {
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
           <TabGroup>
-            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100">
+            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
                 v-if="article"
-                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >Article</Tab
               >
               <Tab
                 v-if="file"
-                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >File</Tab
               >
               <Tab
-                class="border-r px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >All properties</Tab
               >
             </TabList>
