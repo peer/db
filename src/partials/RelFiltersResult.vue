@@ -88,7 +88,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col rounded-sm border bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
@@ -99,9 +99,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
-          <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
+          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
         </li>
       </template>
       <template v-else>
@@ -119,7 +119,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 ></label>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithPeerDBDocument>
             <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
@@ -136,7 +136,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithPeerDBDocument>
             <div class="my-1 inline-block leading-none">({{ res.count }})</div>

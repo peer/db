@@ -29,7 +29,7 @@ const mainProgress = injectMainProgress()
         :to="{ name: 'Home' }"
         class="group -my-1 -ml-1 border-r border-slate-400 p-1.5 outline-none hover:bg-slate-400 active:bg-slate-200 sm:-my-4 sm:ml-0 sm:p-0"
       >
-        <GlobeAltIcon class="m-1 h-7 w-7 rounded group-focus:ring-2 group-focus:ring-primary-500 sm:m-4 sm:h-10 sm:w-10" />
+        <GlobeAltIcon class="m-1 h-7 w-7 rounded-sm group-focus:ring-2 group-focus:ring-primary-500 sm:m-4 sm:h-10 sm:w-10" />
       </RouterLink>
       <slot />
     </div>

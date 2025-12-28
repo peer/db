@@ -198,7 +198,7 @@ async function onEdit() {
     </NavBar>
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
-    <div class="rounded border bg-white p-4 shadow-sm">
+    <div class="rounded-sm border bg-white p-4 shadow-sm">
       <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
@@ -252,14 +252,14 @@ async function onEdit() {
         </template>
         <template #loading>
           <div class="flex animate-pulse flex-col gap-y-2">
-            <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
+            <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
             <div class="flex gap-x-4">
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
             </div>
             <div class="flex gap-x-4">
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
             </div>
           </div>
         </template>

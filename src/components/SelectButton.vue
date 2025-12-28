@@ -26,12 +26,12 @@ for (const slot in useSlots()) {
 </script>
 
 <template>
-  <div class="flex items-center gap-1 rounded bg-slate-200 px-1 py-1">
+  <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
     <button
       v-for="option in options"
       :key="option.name"
       :disabled="(option.progress || 0) > 0 || option.disabled"
-      class="rounded px-2 py-0.5"
+      class="rounded-sm px-2 py-0.5"
       :class="{
         'bg-white shadow-xs disabled:bg-slate-100': model === option.value,
         'disabled: enabled:hover:bg-slate-100': model !== option.value,

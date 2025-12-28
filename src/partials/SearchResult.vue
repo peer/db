@@ -115,7 +115,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow-sm" :data-url="withDocument?.url">
+  <div class="rounded-sm border bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
@@ -138,7 +138,7 @@ const rowSpan = computed(() => {
                   ></li>
                 </template>
                 <template #loading="{ url }">
-                  <li class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  <li class="h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
               </WithPeerDBDocument>
             </template>
@@ -154,14 +154,14 @@ const rowSpan = computed(() => {
       </template>
       <template #loading>
         <div class="flex animate-pulse flex-col gap-y-2">
-          <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
+          <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/3`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/3`)]"></div>
           </div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/4`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/5`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/4`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/5`)]"></div>
           </div>
         </div>
       </template>

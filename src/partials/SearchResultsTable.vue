@@ -206,7 +206,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
-              <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
+              <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
@@ -228,7 +228,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     }}</RouterLink>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
                     <td v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
@@ -255,7 +255,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :class="[loadingWidth(result.id)]" />
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
               </template>

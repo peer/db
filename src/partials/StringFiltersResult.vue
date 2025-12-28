@@ -83,7 +83,7 @@ const checkboxState = computed({
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col rounded-sm border bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
@@ -94,9 +94,9 @@ const checkboxState = computed({
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
-          <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
+          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
         </li>
       </template>
       <template v-else>
