@@ -265,7 +265,7 @@ function getButtonTitle(rowIndex: number): string {
                     <div
                       v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)"
                       :title="getButtonTitle(rowIndex)"
-                      class="h-5 w-5 cursor-pointer"
+                      class="h-5 w-5 hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200 rounded"
                       @click.stop="toggleRow(rowIndex)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
@@ -291,7 +291,7 @@ function getButtonTitle(rowIndex: number): string {
                         <div
                           v-if="isTogglable(rowIndex, columnIndex)"
                           :title="getButtonTitle(rowIndex)"
-                          class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
+                          class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200 rounded"
                           @click.stop="toggleRow(rowIndex)"
                         >
                           <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
