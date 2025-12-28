@@ -222,7 +222,7 @@ async function onEdit() {
                 >All properties</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>no name</i>'"></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanel v-if="article" tabindex="-1">

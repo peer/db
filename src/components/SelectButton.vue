@@ -33,7 +33,7 @@ for (const slot in useSlots()) {
       :disabled="(option.progress || 0) > 0 || option.disabled"
       class="rounded px-2 py-0.5"
       :class="{
-        'bg-white shadow-sm disabled:bg-slate-100': model === option.value,
+        'bg-white shadow-xs disabled:bg-slate-100': model === option.value,
         'disabled: enabled:hover:bg-slate-100': model !== option.value,
         'disabled:text-slate-300': (option.progress || 0) > 0 || option.disabled,
       }"

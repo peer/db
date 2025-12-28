@@ -302,7 +302,7 @@ function onChangeTab(index: number) {
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded border bg-white p-4 shadow">
       <template v-if="doc">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>no name</i>'"></h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
@@ -315,7 +315,7 @@ function onChangeTab(index: number) {
             <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
           </tbody>
         </table>
-        <h2 class="mt-4 text-xl font-bold drop-shadow-sm">Add claim</h2>
+        <h2 class="mt-4 text-xl font-bold drop-shadow-xs">Add claim</h2>
         <TabGroup @change="onChangeTab">
           <TabList class="mt-4 flex border-collapse flex-row border bg-slate-100">
             <Tab

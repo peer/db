@@ -95,7 +95,7 @@
 
   .link,
   .prose a {
-    @apply rounded-sm font-medium text-primary-600 drop-shadow-sm outline-none;
+    @apply rounded-sm font-medium text-primary-600 drop-shadow-xs outline-none;
 
     text-decoration: unset;
   }
@@ -105,7 +105,7 @@
   }
 
   a > img {
-    @apply rounded-sm drop-shadow-sm;
+    @apply rounded-sm drop-shadow-xs;
   }
 
   .prose img {
