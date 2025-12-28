@@ -16,10 +16,16 @@ import ClaimValueTime from "@/partials/claimvalue/ClaimValueTime.vue"
 import ClaimValueTimeRange from "@/partials/claimvalue/ClaimValueTimeRange.vue"
 import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
 
-defineProps<{
-  claim: ClaimForType<T> | DeepReadonly<ClaimForType<T>> | null
-  type: T
-}>()
+withDefaults(
+  defineProps<{
+    claim: ClaimForType<T> | DeepReadonly<ClaimForType<T>> | null
+    type: T
+    loadingWidth: "auto" | "fixed"
+  }>(),
+  {
+    loadingWidth: "fixed",
+  },
+)
 </script>
 
 <template>
@@ -29,7 +35,7 @@ defineProps<{
   <ClaimValueString v-else-if="type === 'string'" :claim="claim as ClaimForType<'string'>" />
   <ClaimValueAmount v-else-if="type === 'amount'" :claim="claim as ClaimForType<'amount'>" />
   <ClaimValueAmountRange v-else-if="type === 'amountRange'" :claim="claim as ClaimForType<'amountRange'>" />
-  <ClaimValueRel v-else-if="type === 'rel'" :claim="claim as ClaimForType<'rel'>" />
+  <ClaimValueRel v-else-if="type === 'rel'" :claim="claim as ClaimForType<'rel'>" :loading-width="loadingWidth" />
   <ClaimValueFile v-else-if="type === 'file'" :claim="claim as ClaimForType<'file'>" />
   <ClaimValueNone v-else-if="type === 'none'" :claim="claim as ClaimForType<'none'>" />
   <ClaimValueUnknown v-else-if="type === 'unknown'" :claim="claim as ClaimForType<'unknown'>" />
