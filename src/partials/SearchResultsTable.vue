@@ -252,20 +252,18 @@ function toggleRow(rowIndex: number) {
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
-                    <span class="relative inline-flex items-center gap-1">
-                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
-                        {{ rowIndex + 1 }}
-                      </RouterLink>
+                  <td class="w-full text-start align-top inline-flex items-center justify-between gap-1 p-2">
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
+                      {{ rowIndex + 1 }}
+                    </RouterLink>
 
-                      <ChevronUpDownIcon v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
-                    </span>
+                    <ChevronUpDownIcon v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
                   </td>
                   <template v-for="(filter, columnIndex) in limitedFiltersResults" v-else :key="filter.id">
-                    <td class="relative max-w-[400px] truncate p-2 text-start">
+                    <td class="relative max-w-[400px] text-start truncate align-top p-2">
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
@@ -278,14 +276,14 @@ function toggleRow(rowIndex: number) {
 
                           <ChevronUpDownIcon
                             v-if="isTogglable(rowIndex, columnIndex)"
-                            class="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 hover:cursor-pointer"
+                            class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
                             @click.stop="toggleRow(rowIndex)"
                           />
 
                           <RouterLink
                             v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
                             :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
-                            class="link absolute right-0 bottom-1"
+                            class="link absolute right-0 bottom-2.5"
                           >
                             <ArrowTopRightOnSquareIcon class="h-5 w-5 hover:cursor-pointer" @click.stop="toggleRow(rowIndex)" />
                           </RouterLink>
