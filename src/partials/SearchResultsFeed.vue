@@ -177,7 +177,7 @@ function onFilters() {
 
 <template>
   <Teleport to="#navbarsearch-teleport-end">
-    <Button primary class="!px-3.5 sm:hidden" type="button" @click="onFilters">
+    <Button primary class="px-3.5! sm:hidden" type="button" @click="onFilters">
       <FunnelIcon class="h-5 w-5" alt="Filters" />
     </Button>
   </Teleport>

@@ -416,12 +416,12 @@ async function onViewChange(view: ViewType) {
   <Teleport to="header">
     <NavBar>
       <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
-      <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
+      <Button :progress="createProgress" type="button" primary class="px-3.5!" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
       </Button>
       <input ref="upload" type="file" class="hidden" @change="onChange" />
-      <Button :progress="uploadProgress" type="button" primary class="!px-3.5" @click.prevent="onUpload">
+      <Button :progress="uploadProgress" type="button" primary class="px-3.5!" @click.prevent="onUpload">
         <ArrowUpTrayIcon class="h-5 w-5 sm:hidden" alt="Upload" />
         <span class="hidden sm:inline">Upload</span>
       </Button>

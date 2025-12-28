@@ -172,7 +172,7 @@ async function onEdit() {
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5!"
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
@@ -181,7 +181,7 @@ async function onEdit() {
           </ButtonLink>
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5!"
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
@@ -191,7 +191,7 @@ async function onEdit() {
         </div>
       </div>
       <NavBarSearch v-else />
-      <Button :progress="editProgress" type="button" primary class="!px-3.5" @click.prevent="onEdit">
+      <Button :progress="editProgress" type="button" primary class="px-3.5!" @click.prevent="onEdit">
         <PencilIcon class="h-5 w-5 sm:hidden" alt="Edit" />
         <span class="hidden sm:inline">Edit</span>
       </Button>

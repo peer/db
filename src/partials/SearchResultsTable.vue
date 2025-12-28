@@ -278,7 +278,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit !px-2.5 !py-6 [writing-mode:sideways-lr]" @click="filtersLoadMore"
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit px-2.5! py-6! [writing-mode:sideways-lr]" @click="filtersLoadMore"
           >More columns</Button
         >
       </div>
