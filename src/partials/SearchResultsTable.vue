@@ -201,6 +201,10 @@ function toggleRow(rowIndex: number) {
     expandedRows.add(rowIndex)
   }
 }
+
+function getButtonTitle(rowIndex: number): string {
+  return isRowExpanded(rowIndex) ? "Collapse row" : "Expend row"
+}
 </script>
 
 <template>
@@ -257,7 +261,14 @@ function toggleRow(rowIndex: number) {
                       {{ rowIndex + 1 }}
                     </RouterLink>
 
-                    <ChevronUpDownIcon v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)" class="h-5 w-5 cursor-pointer" @click.stop="toggleRow(rowIndex)" />
+                    <div
+                      v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)"
+                      :title="getButtonTitle(rowIndex)"
+                      class="h-5 w-5 cursor-pointer"
+                      @click.stop="toggleRow(rowIndex)"
+                    >
+                      <ChevronUpDownIcon />
+                    </div>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
@@ -274,11 +285,14 @@ function toggleRow(rowIndex: number) {
                           <template v-if="cIndex !== 0">, </template>
                           <ClaimValue :type="filter.type" :claim="claim" />
 
-                          <ChevronUpDownIcon
+                          <div
                             v-if="isTogglable(rowIndex, columnIndex)"
+                            :title="getButtonTitle(rowIndex)"
                             class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
                             @click.stop="toggleRow(rowIndex)"
-                          />
+                          >
+                            <ChevronUpDownIcon />
+                          </div>
 
                           <RouterLink
                             v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
