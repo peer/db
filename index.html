@@ -6,12 +6,12 @@
     <title>{{ .Title }}</title>
     <style>
       body{margin: 0; container-type: inline-size;}
-      .text-gray-900{color: rgb(17 24 39)}
-      .bg-slate-100{background-color: rgb(241 245 249)}
-      .font-sans{font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"}
+      .text-gray-900{color: oklch(21% 0.034 264.665)}
+      .bg-slate-100{background-color: oklch(96.8% 0.007 247.896)}
+      .font-sans{font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'}
       .flex{display: flex}
       .flex-col{flex-direction: column}
-      .flex-grow{flex-grow: 1}
+      .grow{flex-grow: 1}
       .min-h-container{min-height: 100cqh}
       .justify-center{justify-content: center}
       .self-center{align-self: center}
@@ -22,7 +22,7 @@
   <body>
     <div class="flex flex-col min-h-container min-w-fit">
       <header></header>
-      <main class="flex-grow flex justify-center">
+      <main class="grow flex justify-center">
         <div class="self-center jsonly">Loading...</div>
         <noscript class="self-center"><style>.jsonly{display: none}</style>JavaScript is required.</noscript>
       </main>
