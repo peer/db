@@ -87,6 +87,6 @@ function countFilters(): number {
       </template>
     </div>
 
-    <SelectButton :model-value="searchSession.view" :options="selectButtonOptions" class="flex-shrink-0" @update:model-value="(v) => $emit('viewChange', v)" />
+    <SelectButton :model-value="searchSession.view" :options="selectButtonOptions" class="shrink-0" @update:model-value="(v) => $emit('viewChange', v)" />
   </div>
 </template>
