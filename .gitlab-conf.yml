@@ -1,6 +1,6 @@
 project:
   # Set whether or not merge requests can be merged with skipped jobs. Type: boolean
-  allow_merge_on_skipped_pipeline: null
+  allow_merge_on_skipped_pipeline: false
   # Set whether or not a pipeline triggerer is allowed to approve deployments. Type:
   # boolean
   allow_pipeline_trigger_approve_deployment: false
@@ -57,7 +57,7 @@ project:
   # Enforce auth checks on uploads. Type: boolean
   enforce_auth_checks_on_uploads: true
   # One of disabled, private, or enabled. Type: string
-  environments_access_level: disabled
+  environments_access_level: enabled
   # The classification label for the project. Type: string
   external_authorization_classification_label: ""
   # One of disabled, private, or enabled. Type: string
@@ -87,16 +87,16 @@ project:
   # GitLab 14.5.) Type: string
   merge_commit_template: null
   # Set the merge method used. Type: string
-  merge_method: merge
+  merge_method: rebase_merge
   # Enable or disable merge pipelines. Type: boolean
-  merge_pipelines_enabled: false
+  merge_pipelines_enabled: true
   # One of disabled, private, or enabled. Type: string
   merge_requests_access_level: enabled
   # Default description for merge requests. Description is parsed with GitLab
   # Flavored Markdown. See Templates for issues and merge requests. Type: string
-  merge_requests_template: null
+  merge_requests_template: ""
   # Enable or disable merge trains. Type: boolean
-  merge_trains_enabled: false
+  merge_trains_enabled: true
   # One of disabled, private, or enabled. Type: string
   monitor_access_level: disabled
   # Set whether merge requests can only be merged when all the discussions are
@@ -152,7 +152,7 @@ project:
   # One of never, always, default_on, or default_off. Type: string
   squash_option: default_off
   # The commit message used to apply merge request suggestions. Type: string
-  suggestion_commit_message: null
+  suggestion_commit_message: ""
   # The list of topics for the project. This replaces any existing topics that are
   # already added to the project. (Introduced in GitLab 14.0.) Type: array
   topics:
@@ -178,7 +178,7 @@ approvals:
   # Type: boolean
   require_password_to_approve: false
   # Reset approvals on a new push. Type: boolean
-  reset_approvals_on_push: true
+  reset_approvals_on_push: false
   # Reset approvals from Code Owners if their files changed. Can be enabled only if
   # reset_approvals_on_push is disabled. Type: boolean
   selective_code_owner_removals: false
@@ -255,12 +255,23 @@ protected_branches:
         group_id: null
         id: 50870687
         user_id: null
+      # Developers + Maintainers
+      - access_level: 30
+        group_id: null
+        id: 201398418
+        user_id: null
     allowed_to_push:
       # Maintainers
       - access_level: 40
         deploy_key_id: null
         group_id: null
         id: 51260814
+        user_id: null
+      # Developers + Maintainers
+      - access_level: 30
+        deploy_key_id: null
+        group_id: null
+        id: 243626497
         user_id: null
     allowed_to_unprotect: []
     code_owner_approval_required: false
@@ -271,11 +282,6 @@ protected_branches:
 # name: The name of the tag or wildcard. Type: string
 protected_tags:
   - allowed_to_create:
-      # PeerDB Bot
-      - access_level: 40
-        deploy_key_id: null
-        group_id: null
-        user_id: 12670371
       # Maintainers
       - access_level: 40
         deploy_key_id: null
