@@ -3,7 +3,7 @@ import type { ComponentPublicInstance } from "vue"
 import { reactive, readonly, onBeforeUnmount } from "vue"
 
 function isTruncated(el: Element): boolean {
-  return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
+  return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
 }
 
 function cellId(rowIndex: number, colIndex: number): string {
@@ -14,17 +14,31 @@ export function useTruncationTracking(): {
   track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
   cellUpdated: (el: Element) => void
   truncated: ReadonlyMap<number, ReadonlySet<number>>
+  isTogglable: (rowIndex: number, colIndex: number) => boolean
 } {
   const idToElement = new Map<string, Element>()
   const elementToCell = new Map<Element, [number, number]>()
   const _truncated = reactive(new Map<number, Set<number>>())
   const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
 
+  // Truncated candidates are all elements that were able to be truncated
+  const _truncatedCandidates = reactive(new Map<number, Set<number>>())
+  const truncatedCandidates = import.meta.env.DEV ? readonly(_truncatedCandidates) : _truncatedCandidates
+
+  function isTogglable(rowIndex: number, colIndex: number): boolean {
+    return truncatedCandidates.get(rowIndex)?.has(colIndex) ?? false
+  }
+
   function addTruncated(rowIndex: number, columnIndex: number) {
     if (!_truncated.has(rowIndex)) {
       _truncated.set(rowIndex, new Set<number>())
     }
     _truncated.get(rowIndex)!.add(columnIndex)
+
+    if (!_truncatedCandidates.has(rowIndex)) {
+      _truncatedCandidates.set(rowIndex, new Set<number>())
+    }
+    _truncatedCandidates.get(rowIndex)!.add(columnIndex)
   }
 
   function deleteTruncated(rowIndex: number, columnIndex: number) {
@@ -49,13 +63,11 @@ export function useTruncationTracking(): {
     }
   }
 
-  const observer = new ResizeObserver(
-    (entries) => {
-      for (const entry of entries) {
-        cellUpdated(entry.target)
-      }
-    },
-  )
+  const observer = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      cellUpdated(entry.target)
+    }
+  })
 
   onBeforeUnmount(() => observer.disconnect())
 
@@ -96,5 +108,6 @@ export function useTruncationTracking(): {
     },
     cellUpdated,
     truncated,
+    isTogglable,
   }
 }

@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const {track: trackTruncation, cellUpdated, truncated} = useTruncationTracking()
+const { track: trackTruncation, cellUpdated, truncated, isTogglable } = useTruncationTracking()
 
 // Keeps track of all currently expanded rows.
 const expandedRows = reactive(new Set<number>())
@@ -277,7 +277,7 @@ function toggleRow(rowIndex: number) {
                           <ClaimValue :type="filter.type" :claim="claim" />
 
                           <ChevronUpDownIcon
-                            v-if="isCellTruncated(rowIndex, columnIndex) && !isRowExpanded(rowIndex)"
+                            v-if="isTogglable(rowIndex, columnIndex)"
                             class="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 hover:cursor-pointer"
                             @click.stop="toggleRow(rowIndex)"
                           />
