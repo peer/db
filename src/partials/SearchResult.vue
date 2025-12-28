@@ -115,7 +115,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
+  <div class="rounded border bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">

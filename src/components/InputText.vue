@@ -30,7 +30,7 @@ const model = defineModel<string>({ default: "" })
     v-model="model"
     :readonly="progress > 0 || readonly"
     :type="type"
-    class="rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
+    class="rounded border-0 shadow-sm ring-2 ring-neutral-300 focus:ring-2"
     :class="{
       'cursor-not-allowed': progress > 0 || readonly,
       'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': progress > 0 || readonly,

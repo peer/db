@@ -198,7 +198,7 @@ async function onEdit() {
     </NavBar>
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
-    <div class="rounded border bg-white p-4 shadow">
+    <div class="rounded border bg-white p-4 shadow-sm">
       <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
@@ -270,6 +270,6 @@ async function onEdit() {
     </div>
   </div>
   <Teleport to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>

@@ -300,7 +300,7 @@ function onChangeTab(index: number) {
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
-    <div class="rounded border bg-white p-4 shadow">
+    <div class="rounded border bg-white p-4 shadow-sm">
       <template v-if="doc">
         <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
         <table class="w-full table-auto border-collapse">
@@ -452,6 +452,6 @@ function onChangeTab(index: number) {
     </div>
   </div>
   <Teleport to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>

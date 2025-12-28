@@ -461,6 +461,6 @@ async function onViewChange(view: ViewType) {
     shows the footer. So we show the footer ourselves here in that case.
   -->
   <Teleport v-if="searchSessionError || searchResultsError" to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>
