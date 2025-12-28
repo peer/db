@@ -1,12 +1,14 @@
 import type { DeepReadonly, Ref } from "vue"
-import type { Mutable, Required, AmountUnit, QueryValuesWithOptional, QueryValues } from "@/types"
-import type { Claim, ClaimTypes, ClaimTypeProp } from "@/document"
 
-import { toRaw, ref, readonly, watch, onBeforeUnmount, onMounted, watchEffect } from "vue"
-import { cloneDeep, isEqual } from "lodash-es"
+import type { Claim, ClaimTypeName, ClaimTypes } from "@/document"
+import type { AmountUnit, Mutable, QueryValues, QueryValuesWithOptional, Required } from "@/types"
+
 import { prng_alea } from "esm-seedrandom"
-import { fromDate, toDate, hour, minute, second } from "@/time"
-import { LIST, ORDER, NAME, DESCRIPTION } from "@/props"
+import { cloneDeep, isEqual } from "lodash-es"
+import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
+
+import { DESCRIPTION, LIST, NAME, ORDER } from "@/props"
+import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
@@ -94,12 +96,9 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
     propertyId = [propertyId]
   }
   const claims: DeepReadonly<Claim>[] = []
-  for (const [name, cs] of Object.entries(claimTypes ?? {})) {
-    if (!Array.isArray(cs)) throw new Error(`"${name}" is not an array`)
-    for (const claim of cs) {
-      if (propertyId.includes(claim.prop.id)) {
-        claims.push(claim)
-      }
+  for (const claim of claimTypes?.AllClaims() ?? []) {
+    if (propertyId.includes(claim.prop.id)) {
+      claims.push(claim)
     }
   }
   claims.sort((a, b) => b.confidence - a.confidence)
@@ -109,7 +108,7 @@ export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | 
   return null
 }
 
-export function getClaimsOfType<K extends ClaimTypeProp>(
+export function getClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -128,7 +127,7 @@ export function getClaimsOfType<K extends ClaimTypeProp>(
   return claims
 }
 
-export function getBestClaimOfType<K extends ClaimTypeProp>(
+export function getBestClaimOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -143,7 +142,7 @@ export function getBestClaimOfType<K extends ClaimTypeProp>(
 const LOW_CONFIDENCE = 0.5
 
 // TODO: Support also negation claims (i.e., those with negative confidence).
-export function getClaimsOfTypeWithConfidence<K extends ClaimTypeProp>(
+export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -155,7 +154,7 @@ export function getClaimsOfTypeWithConfidence<K extends ClaimTypeProp>(
 
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
-export function getClaimsListsOfType<K extends ClaimTypeProp>(
+export function getClaimsListsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
@@ -332,7 +331,7 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
       values[key] = ""
     } else if (Array.isArray(value)) {
       const vs: string[] = []
-      for (const v in value) {
+      for (const v of value) {
         if (v === null) {
           vs.push("")
         } else {

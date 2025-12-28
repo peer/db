@@ -25,20 +25,26 @@ dist-ssr
 *.sln
 *.sw?
 
-# Other
+# Secrets
+/keys.txt
+*.pem
+*.env
+*.secret
+*.jwk
+
+# Testing
 tests.xml
-tests.json
 coverage.*
 codeclimate.json
 /coverage
+
+# Data
 /.cache
 /output
+
+# Binaries
 /peerdb
 /wikipedia
 /mapping
 /moma
 /products
-*.pem
-/keys.txt
-*.env
-*.secret

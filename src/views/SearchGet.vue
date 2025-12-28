@@ -2,34 +2,34 @@
 import type { DeepReadonly } from "vue"
 
 import type {
-  RelFilterState,
   AmountFilterState,
-  TimeFilterState,
-  StringFilterState,
-  FiltersState,
+  ClientSearchSession,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
+  FiltersState,
   FilterStateChange,
+  RelFilterState,
+  StringFilterState,
+  TimeFilterState,
   ViewType,
-  ClientSearchSession,
 } from "@/types"
 
-import { ref, toRef, onBeforeUnmount, watchEffect } from "vue"
-import { useRouter } from "vue-router"
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
+import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useRouter } from "vue-router"
 
+import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
+import { AddClaimChange } from "@/document"
+import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import { useSearch, useSearchSession, updateSearchSession } from "@/search"
-import { postJSON } from "@/api"
-import { uploadFile } from "@/upload"
-import { clone, encodeQuery } from "@/utils"
-import { injectMainProgress, localProgress } from "@/progress"
-import { AddClaimChange } from "@/document"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import Footer from "@/partials/Footer.vue"
+import { injectMainProgress, localProgress } from "@/progress"
+import { updateSearchSession, useSearch, useSearchSession } from "@/search"
+import { uploadFile } from "@/upload"
+import { clone, encodeQuery } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -43,13 +43,13 @@ const uploadProgress = localProgress(mainProgress)
 
 const abortController = new AbortController()
 
-const upload = ref<HTMLInputElement>()
+const upload = useTemplateRef<HTMLInputElement>("upload")
 
 onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const searchEl = ref(null)
+const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
 const searchSessionVersion = ref(0)
 
@@ -195,7 +195,7 @@ async function onCreate() {
   }
 }
 
-async function onUpload() {
+function onUpload() {
   if (abortController.signal.aborted) {
     return
   }
@@ -416,21 +416,21 @@ async function onViewChange(view: ViewType) {
   <Teleport to="header">
     <NavBar>
       <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
-      <Button :progress="createProgress" type="button" primary class="!px-3.5" @click.prevent="onCreate">
+      <Button :progress="createProgress" type="button" primary class="px-3.5!" @click.prevent="onCreate">
         <PlusIcon class="h-5 w-5 sm:hidden" alt="Create" />
         <span class="hidden sm:inline">Create</span>
       </Button>
       <input ref="upload" type="file" class="hidden" @change="onChange" />
-      <Button :progress="uploadProgress" type="button" primary class="!px-3.5" @click.prevent="onUpload">
+      <Button :progress="uploadProgress" type="button" primary class="px-3.5!" @click.prevent="onUpload">
         <ArrowUpTrayIcon class="h-5 w-5 sm:hidden" alt="Upload" />
         <span class="hidden sm:inline">Upload</span>
       </Button>
     </NavBar>
   </Teleport>
-  <div ref="searchEl" class="mt-12 border-t border-transparent sm:mt-[4.5rem] w-full" :data-url="searchURL">
-    <div v-if="searchSessionError || searchResultsError" class="my-1 sm:my-4 text-center"><i class="text-error-600">loading data failed</i></div>
+  <div ref="searchEl" class="mt-12 w-full border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">
+    <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"><i class="text-error-600">loading data failed</i></div>
 
-    <div v-else-if="searchSession === null" class="my-1 sm:my-4 text-center">Loading...</div>
+    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">Loading...</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"
@@ -461,6 +461,6 @@ async function onViewChange(view: ViewType) {
     shows the footer. So we show the footer ourselves here in that case.
   -->
   <Teleport v-if="searchSessionError || searchResultsError" to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>

@@ -15,9 +15,10 @@ import (
 func idAtIndex(base identifier.Identifier, i int64) identifier.Identifier {
 	namespace := uuid.UUID(base)
 	res := uuid.NewSHA1(namespace, []byte(strconv.FormatInt(i, 10)))
-	return identifier.FromUUID(res)
+	return identifier.UUID(res)
 }
 
+// ChangeUnmarshalJSON unmarshals a Change from JSON bytes.
 func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
@@ -38,6 +39,7 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 	}
 }
 
+// ChangeMarshalJSON marshals a Change to JSON bytes.
 func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
 	case AddClaimChange, SetClaimChange, RemoveClaimChange:
@@ -47,8 +49,12 @@ func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	return x.MarshalWithoutEscapeHTML(change)
 }
 
+// Changes is a slice of Change operations to apply to a document.
+//
+//nolint:recvcheck
 type Changes []Change
 
+// Apply applies all changes in order to the given document.
 func (c Changes) Apply(doc *D) errors.E {
 	for i, change := range c {
 		errE := change.Apply(doc)
@@ -60,6 +66,7 @@ func (c Changes) Apply(doc *D) errors.E {
 	return nil
 }
 
+// Validate validates all changes in the slice.
 func (c Changes) Validate(ctx context.Context, base identifier.Identifier) errors.E {
 	for i, change := range c {
 		errE := change.Validate(ctx, base, int64(i))
@@ -71,6 +78,7 @@ func (c Changes) Validate(ctx context.Context, base identifier.Identifier) error
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for Changes.
 func (c *Changes) UnmarshalJSON(data []byte) error {
 	var changes []json.RawMessage
 	errE := x.UnmarshalWithoutUnknownFields(data, &changes)
@@ -88,6 +96,7 @@ func (c *Changes) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON implements json.Marshaler for Changes.
 func (c Changes) MarshalJSON() ([]byte, error) {
 	buffer := bytes.Buffer{}
 	buffer.WriteString("[")
@@ -124,6 +133,7 @@ func claimPatchUnmarshalJSON[T ClaimPatch](data []byte) (ClaimPatch, errors.E) {
 	return d, nil
 }
 
+// ClaimPatchUnmarshalJSON unmarshals a ClaimPatch from JSON bytes.
 func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //nolint:ireturn
 	var t struct {
 		Type string `json:"type"`
@@ -162,6 +172,7 @@ func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //no
 	}
 }
 
+// ClaimPatchMarshalJSON marshals a ClaimPatch to JSON bytes.
 func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	switch patch.(type) {
 	case IdentifierClaimPatch, ReferenceClaimPatch, TextClaimPatch, StringClaimPatch, AmountClaimPatch, AmountRangeClaimPatch,
@@ -172,17 +183,19 @@ func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	return x.MarshalWithoutEscapeHTML(patch)
 }
 
+// Change represents a modification operation that can be applied to a document.
 type Change interface {
 	Apply(doc *D) errors.E
 	Validate(ctx context.Context, base identifier.Identifier, operation int64) errors.E
 }
 
 var (
-	_ Change = AddClaimChange{}    //nolint:exhaustruct
-	_ Change = SetClaimChange{}    //nolint:exhaustruct
-	_ Change = RemoveClaimChange{} //nolint:exhaustruct
+	_ Change = AddClaimChange{}
+	_ Change = SetClaimChange{}
+	_ Change = RemoveClaimChange{}
 )
 
+// ClaimPatch represents a modification that can be applied to create or update a claim.
 type ClaimPatch interface {
 	New(id identifier.Identifier) (Claim, errors.E)
 	Apply(claim Claim) errors.E
@@ -203,12 +216,16 @@ var (
 	_ ClaimPatch = TimeRangeClaimPatch{}
 )
 
+// AddClaimChange represents a change that adds a new claim to a document.
+//
+//nolint:recvcheck
 type AddClaimChange struct {
 	Under *identifier.Identifier `json:"under,omitempty"`
 	ID    identifier.Identifier  `json:"id"`
 	Patch ClaimPatch             `json:"patch"`
 }
 
+// Apply applies the add claim change to the document.
 func (c AddClaimChange) Apply(doc *D) errors.E {
 	newClaim, errE := c.Patch.New(c.ID)
 	if errE != nil {
@@ -226,6 +243,7 @@ func (c AddClaimChange) Apply(doc *D) errors.E {
 	return claim.Add(newClaim)
 }
 
+// Validate validates the add claim change.
 func (c AddClaimChange) Validate(_ context.Context, base identifier.Identifier, operation int64) errors.E {
 	expectedID := idAtIndex(base, operation)
 	if expectedID != c.ID {
@@ -237,13 +255,15 @@ func (c AddClaimChange) Validate(_ context.Context, base identifier.Identifier, 
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for AddClaimChange.
 func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C AddClaimChange
 	var t struct {
+		C
+
 		Type  string          `json:"type"`
 		Patch json.RawMessage `json:"patch"`
-		C
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -262,24 +282,31 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON implements json.Marshaler for AddClaimChange.
 func (c AddClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C AddClaimChange
 	t := struct {
-		Type string `json:"type"`
 		C
+
+		Type string `json:"type"`
 	}{
+		C: C(c),
+
 		Type: "add",
-		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// SetClaimChange represents a change that modifies an existing claim in a document.
+//
+//nolint:recvcheck
 type SetClaimChange struct {
 	ID    identifier.Identifier `json:"id"`
 	Patch ClaimPatch            `json:"patch"`
 }
 
+// Apply applies the set claim change to the document.
 func (c SetClaimChange) Apply(doc *D) errors.E {
 	claim := doc.GetByID(c.ID)
 	if claim == nil {
@@ -288,17 +315,20 @@ func (c SetClaimChange) Apply(doc *D) errors.E {
 	return c.Patch.Apply(claim)
 }
 
+// Validate validates the set claim change.
 func (c SetClaimChange) Validate(_ context.Context, _ identifier.Identifier, _ int64) errors.E {
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for SetClaimChange.
 func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C SetClaimChange
 	var t struct {
+		C
+
 		Type  string          `json:"type"`
 		Patch json.RawMessage `json:"patch"`
-		C
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -316,23 +346,30 @@ func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON implements json.Marshaler for SetClaimChange.
 func (c SetClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C SetClaimChange
 	t := struct {
-		Type string `json:"type"`
 		C
+
+		Type string `json:"type"`
 	}{
+		C: C(c),
+
 		Type: "set",
-		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// RemoveClaimChange represents a change that removes a claim from a document.
+//
+//nolint:recvcheck
 type RemoveClaimChange struct {
 	ID identifier.Identifier `json:"id"`
 }
 
+// Apply applies the remove claim change to the document.
 func (c RemoveClaimChange) Apply(doc *D) errors.E {
 	claim := doc.RemoveByID(c.ID)
 	if claim == nil {
@@ -341,16 +378,19 @@ func (c RemoveClaimChange) Apply(doc *D) errors.E {
 	return nil
 }
 
+// Validate validates the remove claim change.
 func (c RemoveClaimChange) Validate(_ context.Context, _ identifier.Identifier, _ int64) errors.E {
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler for RemoveClaimChange.
 func (c *RemoveClaimChange) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C RemoveClaimChange
 	var t struct {
-		Type string `json:"type"`
 		C
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -363,25 +403,32 @@ func (c *RemoveClaimChange) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON implements json.Marshaler for RemoveClaimChange.
 func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type C RemoveClaimChange
 	t := struct {
-		Type string `json:"type"`
 		C
+
+		Type string `json:"type"`
 	}{
+		C: C(c),
+
 		Type: "remove",
-		C:    C(c),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// IdentifierClaimPatch represents a patch for an identifier claim.
+//
+//nolint:recvcheck
 type IdentifierClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	Value      *string                `exhaustruct:"optional" json:"value,omitempty"`
 }
 
+// New creates a new identifier claim from the patch.
 func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Value == nil {
 		return nil, errors.New("incomplete patch")
@@ -399,6 +446,7 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 	}, nil
 }
 
+// Apply applies the patch to an existing identifier claim.
 func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Value == nil {
 		return errors.New("empty patch")
@@ -422,12 +470,14 @@ func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals an identifier claim patch from JSON.
 func (p *IdentifierClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P IdentifierClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -440,25 +490,32 @@ func (p *IdentifierClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals an identifier claim patch to JSON.
 func (p IdentifierClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P IdentifierClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "id",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// ReferenceClaimPatch represents a patch for a reference claim.
+//
+//nolint:recvcheck
 type ReferenceClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	IRI        *string                `exhaustruct:"optional" json:"iri,omitempty"`
 }
 
+// New creates a new reference claim from the patch.
 func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.IRI == nil {
 		return nil, errors.New("incomplete patch")
@@ -476,6 +533,7 @@ func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 	}, nil
 }
 
+// Apply applies the patch to an existing reference claim.
 func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop == nil && p.IRI == nil {
 		return errors.New("empty patch")
@@ -499,12 +557,14 @@ func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a reference claim patch from JSON.
 func (p *ReferenceClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P ReferenceClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -517,19 +577,25 @@ func (p *ReferenceClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a reference claim patch to JSON.
 func (p ReferenceClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P ReferenceClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "ref",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// TextClaimPatch represents a patch for a text claim.
+//
+//nolint:recvcheck
 type TextClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -537,6 +603,7 @@ type TextClaimPatch struct {
 	Remove     []string               `exhaustruct:"optional" json:"remove,omitempty"`
 }
 
+// New creates a new text claim from the patch.
 func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.HTML) == 0 {
 		return nil, errors.New("incomplete patch")
@@ -557,6 +624,7 @@ func (p TextClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	}, nil
 }
 
+// Apply applies the patch to an existing text claim.
 func (p TextClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && len(p.HTML) == 0 && len(p.Remove) == 0 {
 		return errors.New("empty patch")
@@ -583,12 +651,14 @@ func (p TextClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a text claim patch from JSON.
 func (p *TextClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TextClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -601,25 +671,32 @@ func (p *TextClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a text claim patch to JSON.
 func (p TextClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TextClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "text",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// StringClaimPatch represents a patch for a string claim.
+//
+//nolint:recvcheck
 type StringClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	String     *string                `exhaustruct:"optional" json:"string,omitempty"`
 }
 
+// New creates a new string claim from the patch.
 func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.String == nil {
 		return nil, errors.New("incomplete patch")
@@ -637,6 +714,7 @@ func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 	}, nil
 }
 
+// Apply applies the patch to an existing string claim.
 func (p StringClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.String == nil {
 		return errors.New("empty patch")
@@ -660,12 +738,14 @@ func (p StringClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a string claim patch from JSON.
 func (p *StringClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P StringClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -678,19 +758,25 @@ func (p *StringClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a string claim patch to JSON.
 func (p StringClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P StringClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "string",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// AmountClaimPatch represents a patch for an amount claim.
+//
+//nolint:recvcheck
 type AmountClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -698,6 +784,7 @@ type AmountClaimPatch struct {
 	Unit       *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
 }
 
+// New creates a new amount claim from the patch.
 func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Amount == nil || p.Unit == nil {
 		return nil, errors.New("incomplete patch")
@@ -716,6 +803,7 @@ func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 	}, nil
 }
 
+// Apply applies the patch to an existing amount claim.
 func (p AmountClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Amount == nil && p.Unit == nil {
 		return errors.New("empty patch")
@@ -742,12 +830,14 @@ func (p AmountClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals an amount claim patch from JSON.
 func (p *AmountClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P AmountClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -760,19 +850,25 @@ func (p *AmountClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals an amount claim patch to JSON.
 func (p AmountClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P AmountClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "amount",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// AmountRangeClaimPatch represents a patch for an amount range claim.
+//
+//nolint:recvcheck
 type AmountRangeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -781,6 +877,7 @@ type AmountRangeClaimPatch struct {
 	Unit       *AmountUnit            `exhaustruct:"optional" json:"unit,omitempty"`
 }
 
+// New creates a new amount range claim from the patch.
 func (p AmountRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Unit == nil {
 		return nil, errors.New("incomplete patch")
@@ -800,6 +897,7 @@ func (p AmountRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) {
 	}, nil
 }
 
+// Apply applies the patch to an existing amount range claim.
 func (p AmountRangeClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Unit == nil {
 		return errors.New("empty patch")
@@ -829,12 +927,14 @@ func (p AmountRangeClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals an amount range claim patch from JSON.
 func (p *AmountRangeClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P AmountRangeClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -847,25 +947,32 @@ func (p *AmountRangeClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals an amount range claim patch to JSON.
 func (p AmountRangeClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P AmountRangeClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "amountRange",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// RelationClaimPatch represents a patch for a relation claim.
+//
+//nolint:recvcheck
 type RelationClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	To         *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
 }
 
+// New creates a new relation claim from the patch.
 func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.To == nil {
 		return nil, errors.New("incomplete patch")
@@ -885,6 +992,7 @@ func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //
 	}, nil
 }
 
+// Apply applies the patch to an existing relation claim.
 func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.To == nil {
 		return errors.New("empty patch")
@@ -908,12 +1016,14 @@ func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a relation claim patch from JSON.
 func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P RelationClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -926,19 +1036,25 @@ func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a relation claim patch to JSON.
 func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P RelationClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "rel",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// FileClaimPatch represents a patch for a file claim.
+//
+//nolint:recvcheck
 type FileClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -947,6 +1063,7 @@ type FileClaimPatch struct {
 	Preview    []string               `exhaustruct:"optional" json:"preview"`
 }
 
+// New creates a new file claim from the patch.
 func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.MediaType == nil || p.URL == nil || p.Preview == nil {
 		return nil, errors.New("incomplete patch")
@@ -966,6 +1083,7 @@ func (p FileClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	}, nil
 }
 
+// Apply applies the patch to an existing file claim.
 func (p FileClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.MediaType == nil && p.URL == nil && p.Preview == nil {
 		return errors.New("empty patch")
@@ -995,12 +1113,14 @@ func (p FileClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a file claim patch from JSON.
 func (p *FileClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P FileClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -1013,24 +1133,31 @@ func (p *FileClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a file claim patch to JSON.
 func (p FileClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P FileClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "file",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// NoValueClaimPatch represents a patch for a no value claim.
+//
+//nolint:recvcheck
 type NoValueClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 }
 
+// New creates a new no value claim from the patch.
 func (p NoValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
@@ -1047,6 +1174,7 @@ func (p NoValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //n
 	}, nil
 }
 
+// Apply applies the patch to an existing no value claim.
 func (p NoValueClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
@@ -1067,12 +1195,14 @@ func (p NoValueClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a no value claim patch from JSON.
 func (p *NoValueClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P NoValueClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -1085,24 +1215,31 @@ func (p *NoValueClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a no value claim patch to JSON.
 func (p NoValueClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P NoValueClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "none",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// UnknownValueClaimPatch represents a patch for an unknown value claim.
+//
+//nolint:recvcheck
 type UnknownValueClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 }
 
+// New creates a new unknown value claim from the patch.
 func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
@@ -1119,6 +1256,7 @@ func (p UnknownValueClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 	}, nil
 }
 
+// Apply applies the patch to an existing unknown value claim.
 func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
@@ -1139,12 +1277,14 @@ func (p UnknownValueClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals an unknown value claim patch from JSON.
 func (p *UnknownValueClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P UnknownValueClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -1157,19 +1297,25 @@ func (p *UnknownValueClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals an unknown value claim patch to JSON.
 func (p UnknownValueClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P UnknownValueClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "unknown",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// TimeClaimPatch represents a patch for a time claim.
+//
+//nolint:recvcheck
 type TimeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1177,6 +1323,7 @@ type TimeClaimPatch struct {
 	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
+// New creates a new time claim from the patch.
 func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Timestamp == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
@@ -1195,6 +1342,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	}, nil
 }
 
+// Apply applies the patch to an existing time claim.
 func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Timestamp == nil && p.Precision == nil {
 		return errors.New("empty patch")
@@ -1221,12 +1369,14 @@ func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a time claim patch from JSON.
 func (p *TimeClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TimeClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -1239,19 +1389,25 @@ func (p *TimeClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a time claim patch to JSON.
 func (p TimeClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TimeClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "time",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
+// TimeRangeClaimPatch represents a patch for a time range claim.
+//
+//nolint:recvcheck
 type TimeRangeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
@@ -1260,6 +1416,7 @@ type TimeRangeClaimPatch struct {
 	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
+// New creates a new time range claim from the patch.
 func (p TimeRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Lower == nil || p.Upper == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
@@ -1279,6 +1436,7 @@ func (p TimeRangeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 	}, nil
 }
 
+// Apply applies the patch to an existing time range claim.
 func (p TimeRangeClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Lower == nil && p.Upper == nil && p.Precision == nil {
 		return errors.New("empty patch")
@@ -1308,12 +1466,14 @@ func (p TimeRangeClaimPatch) Apply(claim Claim) errors.E {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a time range claim patch from JSON.
 func (p *TimeRangeClaimPatch) UnmarshalJSON(data []byte) error {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TimeRangeClaimPatch
 	var t struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}
 	errE := x.UnmarshalWithoutUnknownFields(data, &t)
 	if errE != nil {
@@ -1326,15 +1486,18 @@ func (p *TimeRangeClaimPatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a time range claim patch to JSON.
 func (p TimeRangeClaimPatch) MarshalJSON() ([]byte, error) {
 	// We define a new type to not recurse into this same MarshalJSON.
 	type P TimeRangeClaimPatch
 	t := struct {
-		Type string `json:"type"`
 		P
+
+		Type string `json:"type"`
 	}{
+		P: P(p),
+
 		Type: "timeRange",
-		P:    P(p),
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }

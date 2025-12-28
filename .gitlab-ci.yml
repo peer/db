@@ -6,6 +6,16 @@ stages:
   - deploy
   - sync
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      # To prevent duplicate pipelines, when a branch has a merge request, we only
+      # run a merge request pipeline when the branch is pushed.
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   # We want full history so that "git describe" always works correctly.
@@ -14,15 +24,19 @@ variables:
   # We always want to run with the Go version installed in a Docker image.
   GOTOOLCHAIN: local
   DOCKER_PIPELINE_IMAGE_NAME: "$CI_REGISTRY_IMAGE/pipeline:$CI_PIPELINE_ID"
-  DOCKER_DRIVER: overlay2
-  DOCKER_BUILDKIT: "1"
+  DOCKER_DRIVER: overlayfs
   FF_NETWORK_PER_BUILD: 1
+  DOCKER_HOST: tcp://docker:2375
+  # Disable umask 0000. See: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/1736
+  FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: 1
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic"
+  FF_SCRIPT_SECTIONS: 1
+  FF_TIMESTAMPS: 1
 
 test_go:
   stage: test
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   services:
     - name: elasticsearch:7.16.3
@@ -34,7 +48,7 @@ test_go:
         discovery.type: single-node
         xpack.security.enabled: false
         ingest.geoip.downloader.enabled: false
-    - name: registry.gitlab.com/tozd/docker/postgresql:16
+    - name: registry.gitlab.com/tozd/docker/postgresql:18
       alias: potgres
       variables:
         LOG_TO_STDOUT: 1
@@ -47,10 +61,10 @@ test_go:
     POSTGRES: postgres://test:test@potgres:5432/test
 
   before_script:
-    - apk --update add make bash gcc musl-dev mailcap git git-lfs jq
+    - apk --update add make bash gcc musl-dev mailcap git git-lfs
     - git lfs fetch
-    - (cd /go; go install gotest.tools/gotestsum@v1.12.0)
-    - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.3.0)
+    - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
+    - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.4.0)
     - go version
 
   script:
@@ -64,7 +78,6 @@ test_go:
         coverage_format: cobertura
         path: coverage.xml
     paths:
-      - tests.json
       - tests.xml
       - coverage.html
       - coverage.xml
@@ -75,7 +88,7 @@ test_go:
 test_node:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -103,12 +116,12 @@ test_node:
 lint_go:
   stage: test
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   before_script:
     - apk --update add make bash gcc musl-dev git git-lfs
     - git lfs fetch
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.5
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0
 
   script:
     - make lint-ci
@@ -122,7 +135,7 @@ lint_go:
 lint_node:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -130,13 +143,19 @@ lint_node:
 
   script:
     - npm ci --audit=false
-    - npm run lint
+    - npm run lint-ci
     - git diff --exit-code --color=always
+
+  artifacts:
+    when: always
+    reports:
+      codequality: codeclimate.json
+    expire_in: never
 
 lint_vue:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -149,7 +168,7 @@ lint_vue:
 lint_style:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -157,19 +176,25 @@ lint_style:
 
   script:
     - npm ci --audit=false
-    - npm run lint-style
+    - npm run lint-style-ci
     - git diff --exit-code --color=always
+
+  artifacts:
+    when: always
+    reports:
+      codequality: codeclimate.json
+    expire_in: never
 
 fmt_go:
   stage: test
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   before_script:
     - apk --update add make bash git gcc musl-dev grep git-lfs
     - git lfs fetch
-    - go install mvdan.cc/gofumpt@v0.7.0
-    - go install golang.org/x/tools/cmd/goimports@v0.30.0
+    - go install mvdan.cc/gofumpt@v0.9.1
+    - go install golang.org/x/tools/cmd/goimports@v0.37.0
 
   script:
     - make fmt-ci
@@ -177,7 +202,7 @@ fmt_go:
 fmt_node:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -191,7 +216,7 @@ fmt_node:
 lint_docs:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add make bash git git-lfs
@@ -203,12 +228,12 @@ lint_docs:
 audit_go:
   stage: test
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   before_script:
     - apk --update add make bash git gcc musl-dev git-lfs
     - git lfs fetch
-    - go install github.com/sonatype-nexus-community/nancy@v1.0.46
+    - go install github.com/sonatype-nexus-community/nancy@v1.0.52
 
   script:
     - make audit
@@ -216,7 +241,7 @@ audit_go:
 audit_node:
   stage: test
 
-  image: node:20.17-alpine3.20
+  image: node:24.10-alpine3.22
 
   before_script:
     - apk --update add git git-lfs
@@ -229,7 +254,7 @@ audit_node:
 commits:
   stage: test
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   variables:
     GIT_DEPTH: "0"
@@ -253,14 +278,17 @@ reuse:
 docker:
   stage: build
 
-  image: docker:23-git
+  image: docker:28-cli
 
   services:
-    - docker:23-dind
+    - name: docker:28-dind
+      command:
+        - "--feature"
+        - "containerd-snapshotter=true"
 
   before_script:
     - docker info
-    - echo "$CI_JOB_TOKEN" | docker login --username gitlab-ci-token --password-stdin "$CI_REGISTRY"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - apk --update add git-lfs
     - git lfs fetch
 
@@ -308,27 +336,18 @@ docker:
 push_branch:
   stage: deploy
 
-  image: docker:23
-
-  services:
-    - docker:23-dind
+  image:
+    name: gcr.io/go-containerregistry/crane/debug:v0.20.3
+    entrypoint: [""]
 
   before_script:
-    - docker info
-    - echo "$CI_JOB_TOKEN" | docker login --username gitlab-ci-token --password-stdin "$CI_REGISTRY"
+    - echo "$CI_REGISTRY_PASSWORD" | crane auth login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-  # TODO: Improve so that pulling is not necessary. See: https://gitlab.com/gitlab-org/gitlab/-/issues/15252
   script:
-    - docker pull "$DOCKER_PIPELINE_IMAGE_NAME"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:latest"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
-    - docker pull "$DOCKER_PIPELINE_IMAGE_NAME-debug"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:latest-debug"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
-    - docker push "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:latest"
-    - docker push "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:latest-debug"
-    - docker push "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
+    - crane cp "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
+    - crane tag "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA" latest
+    - crane cp "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
+    - crane tag "$CI_REGISTRY_IMAGE/branch/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug" latest-debug
 
   rules:
     - if: $CI_COMMIT_BRANCH
@@ -339,27 +358,18 @@ push_branch:
 push_tag:
   stage: deploy
 
-  image: docker:23
-
-  services:
-    - docker:23-dind
+  image:
+    name: gcr.io/go-containerregistry/crane/debug:v0.20.3
+    entrypoint: [""]
 
   before_script:
-    - docker info
-    - echo "$CI_JOB_TOKEN" | docker login --username gitlab-ci-token --password-stdin "$CI_REGISTRY"
+    - echo "$CI_REGISTRY_PASSWORD" | crane auth login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-  # TODO: Improve so that pulling is not necessary. See: https://gitlab.com/gitlab-org/gitlab/-/issues/15252
   script:
-    - docker pull "$DOCKER_PIPELINE_IMAGE_NAME"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:latest"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
-    - docker pull "$DOCKER_PIPELINE_IMAGE_NAME-debug"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:latest-debug"
-    - docker tag "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
-    - docker push "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:latest"
-    - docker push "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:latest-debug"
-    - docker push "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
+    - crane cp "$DOCKER_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
+    - crane tag "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA" latest
+    - crane cp "$DOCKER_PIPELINE_IMAGE_NAME-debug" "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug"
+    - crane tag "$CI_REGISTRY_IMAGE/tag/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA-debug" latest-debug
 
   rules:
     # Only on protected tags. Protected tags start with "v".
@@ -386,7 +396,7 @@ upload_binaries:
 publish:
   stage: deploy
 
-  image: golang:1.23.6-alpine3.21
+  image: golang:1.25-alpine3.22
 
   script:
     - GOPROXY=proxy.golang.org go list -m "gitlab.com/peerdb/peerdb@$CI_COMMIT_REF_NAME"

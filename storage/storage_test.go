@@ -122,7 +122,7 @@ func TestHappyPath(t *testing.T) {
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		changeset, errE := c[0].WithStore(ctx, s.Store()) //nolint:govet
+		changeset, errE := c[0].WithStore(ctx, s.Store())
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
 			changes, errE := changeset.Changeset.Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {

@@ -12,9 +12,11 @@ import (
 // Cache is a LRU cache which counts cache misses.
 type Cache struct {
 	*lru.Cache[any, *document.D]
+
 	missCount uint64
 }
 
+// NewCache creates a new LRU cache for document storage with the specified size.
 func NewCache(size int) (*Cache, errors.E) {
 	cache, err := lru.New[any, *document.D](size)
 	if err != nil {
@@ -26,6 +28,7 @@ func NewCache(size int) (*Cache, errors.E) {
 	}, nil
 }
 
+// Get retrieves a document from the cache and tracks cache misses.
 func (c *Cache) Get(key interface{}) (*document.D, bool) {
 	value, ok := c.Cache.Get(key)
 	if !ok {

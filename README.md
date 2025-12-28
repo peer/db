@@ -81,7 +81,7 @@ PeerDB requires a [PostgreSQL](https://www.postgresql.org/) database. Using Dock
 docker network create peerdb
 docker run -d --network peerdb --name pgsql -p 127.0.0.1:5432:5432 \
  -e LOG_TO_STDOUT=1 -e PGSQL_ROLE_1_USERNAME=test -e PGSQL_ROLE_1_PASSWORD=test -e PGSQL_DB_1_NAME=test -e PGSQL_DB_1_OWNER=test \
- registry.gitlab.com/tozd/docker/postgresql:16
+ registry.gitlab.com/tozd/docker/postgresql:18
 ```
 
 Create also a file with PostgreSQL secret:
@@ -164,7 +164,7 @@ at runtime without having to reconfigure PeerDB Search, e.g., it adapts filters 
 The schema also allows multiple data sources to be used and merged together.
 
 PeerDB schema of documents is fully described in
-[JSON Schema](https://json-schema.org/) and is available [here](./schema/doc.json).
+[JSON Schema](https://json-schema.org/) and is available [in this file](./schema/doc.json).
 But at a high-level look like:
 
 ```json
@@ -681,8 +681,8 @@ the frontend as necessary.
 
 ### Backend
 
-The backend is implemented in [Go](https://golang.org/) (requires 1.23.6 or newer)
-and provides a HTTP2 API. Node 20 or newer is required as well.
+The backend is implemented in [Go](https://golang.org/) (requires 1.25 or newer)
+and provides a HTTP2 API. Node 24 or newer is required as well.
 
 Automatic media type detection uses file extensions and a file extension database has
 to be available on the system.
@@ -715,7 +715,7 @@ go install github.com/githubnemo/CompileDaemon@latest
 The frontend is implemented in [TypeScript](https://www.typescriptlang.org/) and
 [Vue](https://vuejs.org/) and during development we use [Vite](https://vitejs.dev/).
 Vite compiles frontend files and serves them. It also watches for changes in frontend files,
-recompiles them, and hot-reloads the frontend as necessary. Node 20 or newer is required.
+recompiles them, and hot-reloads the frontend as necessary.
 
 To install all dependencies and run frontend for development:
 

@@ -22,18 +22,23 @@ import (
 )
 
 var (
+	// NameSpaceWikipediaFile is the UUID namespace for Wikipedia files.
+	//
 	//nolint:gochecknoglobals
 	NameSpaceWikipediaFile = uuid.MustParse("94b1c372-bc28-454c-a45a-2e4d29d15146")
 
 	ErrWikimediaCommonsFile = errors.Base("file is from Wikimedia Commons error")
 )
 
+// ConvertWikipediaImage converts a Wikipedia image to a document.
 func ConvertWikipediaImage(
 	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
 ) (*document.D, errors.E) {
 	return convertImage(ctx, logger, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }
 
+// ConvertWikipediaArticle converts Wikipedia article HTML to document claims.
+//
 // TODO: Store the revision, license, and source used for the HTML into a meta claim.
 // TODO: Investigate how to make use of additional entities metadata. See: https://www.mediawiki.org/wiki/Topic:Wotwu75akwx2wnsb
 // TODO: Make internal links to other articles work in HTML (link to PeerDB documents instead).
@@ -93,6 +98,7 @@ func ConvertWikipediaArticle(id, html string, doc *document.D) errors.E {
 	return nil
 }
 
+// ConvertFileDescription converts file descriptions from HTML to document claims.
 func ConvertFileDescription(namespace uuid.UUID, id, from, html string, doc *document.D) errors.E {
 	descriptions, err := ExtractFileDescriptions(html)
 	if err != nil {
@@ -112,6 +118,7 @@ func ConvertFileDescription(namespace uuid.UUID, id, from, html string, doc *doc
 	return nil
 }
 
+// ConvertCategoryDescription converts category description from HTML to document claims.
 func ConvertCategoryDescription(id, from, html string, doc *document.D) errors.E {
 	return convertDescription(NameSpaceWikidata, id, from, html, doc, ExtractCategoryDescription)
 }
@@ -177,6 +184,7 @@ func convertDescription(namespace uuid.UUID, id, from, html string, doc *documen
 	return nil
 }
 
+// SetPageID sets the page ID claim for a document.
 func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int64, doc *document.D) errors.E {
 	claimID := document.GetID(namespace, id, mnemonicPrefix+"_PAGE_ID", 0)
 	existingClaim := doc.GetByID(claimID)
@@ -213,10 +221,12 @@ func SetPageID(namespace uuid.UUID, mnemonicPrefix string, id string, pageID int
 	return nil
 }
 
+// ConvertTemplateDescription converts template description from HTML to document claims.
 func ConvertTemplateDescription(id, from string, html string, doc *document.D) errors.E {
 	return convertDescription(NameSpaceWikidata, id, from, html, doc, ExtractTemplateDescription)
 }
 
+// GetWikipediaFile retrieves and converts a Wikipedia file to a document.
 func GetWikipediaFile(
 	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	index string, esClient *elastic.Client, name string,
@@ -253,6 +263,8 @@ func GetWikipediaFile(
 	return nil, store.Version{}, errE
 }
 
+// ConvertArticleInCategories converts article categories to document claims.
+//
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, category := range article.Categories {
@@ -261,6 +273,8 @@ func ConvertArticleInCategories(logger zerolog.Logger, namespace uuid.UUID, mnem
 	return nil
 }
 
+// ConvertArticleUsedTemplates converts article used templates to document claims.
+//
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, template := range article.Templates {
@@ -269,6 +283,8 @@ func ConvertArticleUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mne
 	return nil
 }
 
+// ConvertPageInCategories converts page categories to document claims.
+//
 // TODO: How to remove categories which has previously been added but are later on removed?
 func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, category := range page.Categories {
@@ -277,6 +293,8 @@ func ConvertPageInCategories(logger zerolog.Logger, namespace uuid.UUID, mnemoni
 	return nil
 }
 
+// ConvertPageUsedTemplates converts page used templates to document claims.
+//
 // TODO: How to remove templates which has previously been added but are later on removed?
 func ConvertPageUsedTemplates(logger zerolog.Logger, namespace uuid.UUID, mnemonicPrefix, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, template := range page.Templates {
@@ -333,6 +351,8 @@ func convertUsedTemplate(logger zerolog.Logger, namespace uuid.UUID, mnemonicPre
 	}
 }
 
+// ConvertArticleRedirects converts article redirects to document name claims.
+//
 // TODO: How to remove redirects which has previously been added but are later on removed?
 func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, article mediawiki.Article, doc *document.D) errors.E {
 	for _, redirect := range article.Redirects {
@@ -341,6 +361,8 @@ func ConvertArticleRedirects(logger zerolog.Logger, namespace uuid.UUID, id stri
 	return nil
 }
 
+// ConvertPageRedirects converts page redirects to document name claims.
+//
 // TODO: How to remove redirects which has previously been added but are later on removed?
 func ConvertPageRedirects(logger zerolog.Logger, namespace uuid.UUID, id string, page AllPagesPage, doc *document.D) errors.E {
 	for _, redirect := range page.Redirects {

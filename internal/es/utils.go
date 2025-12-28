@@ -101,6 +101,7 @@ func (a loggerAdapter) Printf(format string, v ...interface{}) {
 
 var _ elastic.Logger = (*loggerAdapter)(nil)
 
+// GetClient creates and configures an Elasticsearch client with the specified HTTP client, logger, and URL.
 func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elastic.Client, errors.E) {
 	esClient, err := elastic.NewClient(
 		elastic.SetURL(strings.TrimSpace(url)),
@@ -171,7 +172,7 @@ func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic
 		return nil, errors.WithStack(err)
 	}
 
-	context.AfterFunc(ctx, func() { processor.Close() })
+	context.AfterFunc(ctx, func() { processor.Close() }) //nolint:errcheck,gosec
 
 	return processor, nil
 }
@@ -201,7 +202,7 @@ func endDocumentSession(
 
 	changes := make(document.Changes, 0, len(changesList))
 	for _, ch := range changesList {
-		data, _, errE := c.GetData(ctx, session, ch) //nolint:govet
+		data, _, errE := c.GetData(ctx, session, ch)
 		if errE != nil {
 			errors.Details(errE)["change"] = ch
 			return nil, errE
@@ -250,6 +251,7 @@ func endDocumentSession(
 	return endMetadata, nil
 }
 
+// NewHTTPClient creates a retryable HTTP client with the specified base HTTP client and logger.
 func NewHTTPClient(simpleHTTPClient *http.Client, logger zerolog.Logger) *retryablehttp.Client {
 	httpClient := retryablehttp.NewClient()
 	httpClient.HTTPClient = simpleHTTPClient
@@ -266,6 +268,7 @@ func NewHTTPClient(simpleHTTPClient *http.Client, logger zerolog.Logger) *retrya
 	return httpClient
 }
 
+// Standalone initializes and returns all components needed for standalone operation including store, Elasticsearch client, and bulk processor.
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string) (
 	context.Context, context.CancelFunc, *retryablehttp.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
@@ -298,6 +301,7 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string) 
 	return ctx, stop, httpClient, store, esClient, esProcessor, nil
 }
 
+// Progress creates a progress callback function for logging indexing progress including Elasticsearch processor stats and cache metrics.
 func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
 	if description == "" {
 		description = "progress"
@@ -323,6 +327,7 @@ func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *
 	}
 }
 
+// InitForSite initializes the store and Elasticsearch bulk processor for a specific site, creating necessary database tables.
 func InitForSite(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
 ) (

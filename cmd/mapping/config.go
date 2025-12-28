@@ -14,6 +14,6 @@ const (
 type Config struct {
 	zerolog.LoggingConfig
 
-	Version kong.VersionFlag `                           help:"Show program's version and exit."                                           short:"V"`
-	Output  string           `default:"${defaultOutput}" help:"Where to output generated mapping. Default: ${default}." placeholder:"PATH" short:"o" type:"path"`
+	Version kong.VersionFlag `                           help:"Show program's version and exit."                      short:"V"`
+	Output  string           `default:"${defaultOutput}" help:"Where to output generated mapping." placeholder:"PATH" short:"o" type:"path"`
 }

@@ -12,7 +12,7 @@ func (c *OptimizeCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	_, err := esClient.Forcemerge(globals.Elastic.Index).Do(ctx)
 	if err != nil {

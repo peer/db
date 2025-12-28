@@ -1,32 +1,34 @@
 <script setup lang="ts">
-import type { Result } from "@/types"
 import type { ComponentExposed } from "vue-component-type-helpers"
+
 import type { PeerDBDocument } from "@/document"
+import type { Result } from "@/types"
 
 import { computed, ref } from "vue"
+
 import WithDocument from "@/components/WithDocument.vue"
-import { getBestClaimOfType, getClaimsOfType, getClaimsListsOfType, getName, loadingLongWidth, loadingWidth, encodeQuery } from "@/utils"
 import {
+  CATEGORY,
+  CLASSIFICATION,
+  COPYRIGHT_STATUS,
+  DEPARTMENT,
   DESCRIPTION,
-  ORIGINAL_CATALOG_DESCRIPTION,
-  TITLE,
-  LABEL,
-  TYPE,
+  GENDER,
+  INGREDIENTS,
   INSTANCE_OF,
-  SUBCLASS_OF,
+  LABEL,
   MEDIAWIKI_MEDIA_TYPE,
   MEDIA_TYPE,
-  COPYRIGHT_STATUS,
-  PREVIEW_URL,
-  DEPARTMENT,
-  CLASSIFICATION,
   MEDIUM,
-  NATIONALITY,
-  GENDER,
-  CATEGORY,
-  INGREDIENTS,
   NAME,
+  NATIONALITY,
+  ORIGINAL_CATALOG_DESCRIPTION,
+  PREVIEW_URL,
+  SUBCLASS_OF,
+  TITLE,
+  TYPE,
 } from "@/props"
+import { encodeQuery, getBestClaimOfType, getClaimsListsOfType, getClaimsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
   searchSessionId: string
@@ -113,7 +115,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div class="rounded border bg-white p-4 shadow" :data-url="withDocument?.url">
+  <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
@@ -126,17 +128,17 @@ const rowSpan = computed(() => {
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
-              <li v-if="'string' in tag" class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm">{{ tag.string }}</li>
+              <li v-if="'string' in tag" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.string }}</li>
               <WithPeerDBDocument v-else-if="'id' in tag" :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li
-                    class="rounded-sm bg-slate-100 py-0.5 px-1.5 leading-none text-gray-600 shadow-sm"
+                    class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
                     :data-url="url"
                     v-html="getName(doc.claims) || '<i>no name</i>'"
                   ></li>
                 </template>
                 <template #loading="{ url }">
-                  <li class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  <li class="h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
               </WithPeerDBDocument>
             </template>
@@ -147,19 +149,19 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose prose-slate max-w-none" v-html="description"></p>
+          <p v-if="description" class="prose max-w-none prose-slate" v-html="description"></p>
         </div>
       </template>
       <template #loading>
         <div class="flex animate-pulse flex-col gap-y-2">
-          <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
+          <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/3`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/3`)]"></div>
           </div>
           <div class="flex gap-x-4">
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/4`)]"></div>
-            <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${result.id}/5`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/4`)]"></div>
+            <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/5`)]"></div>
           </div>
         </div>
       </template>

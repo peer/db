@@ -9,15 +9,14 @@ const (
 	DefaultCacheDir = ".cache"
 )
 
-//nolint:lll
 type PostgresConfig struct {
-	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL. Environment variable: ${env}." placeholder:"PATH" required:"" short:"d"`
-	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use. Default: ${default}."           placeholder:"NAME"             short:"s"`
+	URL    kong.FileContentFlag `                           env:"URL_PATH" help:"File with PostgreSQL database URL." placeholder:"PATH" required:"" short:"d"`
+	Schema string               `default:"${defaultSchema}"                help:"Name of PostgreSQL schema to use."  placeholder:"NAME"             short:"s"`
 }
 
 type ElasticConfig struct {
-	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance. Default: ${default}."  placeholder:"URL"  short:"e"`
-	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use. Default: ${default}." placeholder:"NAME" short:"i"`
+	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."  placeholder:"URL"  short:"e"`
+	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use." placeholder:"NAME" short:"i"`
 }
 
 // Config provides configuration.
@@ -27,10 +26,10 @@ type ElasticConfig struct {
 type Config struct {
 	zerolog.LoggingConfig
 
-	Version  kong.VersionFlag `                                                            help:"Show program's version and exit."                                                                short:"V"`
-	CacheDir string           `default:"${defaultCacheDir}"                                help:"Where to cache files to. Default: ${default}." name:"cache" placeholder:"DIR"                    short:"C" type:"path"`
-	Postgres PostgresConfig   `                             embed:"" envprefix:"POSTGRES_"                                                                                     prefix:"postgres."`
-	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                                      prefix:"elastic."`
+	Version  kong.VersionFlag `                                                            help:"Show program's version and exit."                                                   short:"V"`
+	CacheDir string           `default:"${defaultCacheDir}"                                help:"Where to cache files to."         name:"cache" placeholder:"DIR"                    short:"C" type:"path"`
+	Postgres PostgresConfig   `                             embed:"" envprefix:"POSTGRES_"                                                                        prefix:"postgres."`
+	Elastic  ElasticConfig    `                             embed:"" envprefix:"ELASTIC_"                                                                         prefix:"elastic."`
 
 	FoodDataCentral     FoodDataCentral     `embed:"" prefix:"fooddatacentral."`
 	EPREL               EPREL               `embed:"" prefix:"eprel."`

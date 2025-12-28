@@ -49,8 +49,8 @@ func TestTimestampMarshal(t *testing.T) {
 func TestDocument(t *testing.T) {
 	t.Parallel()
 
-	doc := document.D{}                //nolint:exhaustruct
-	assert.Equal(t, document.D{}, doc) //nolint:exhaustruct
+	doc := document.D{}
+	assert.Equal(t, document.D{}, doc)
 
 	id := identifier.New()
 
@@ -101,7 +101,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetCorePropertyReference("ARTICLE"),
 	}, claim)
-	assert.Equal(t, document.D{}, doc) //nolint:exhaustruct
+	assert.Equal(t, document.D{}, doc)
 
 	id2 := identifier.New()
 

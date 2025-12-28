@@ -1,36 +1,37 @@
-import type { Ref, DeepReadonly } from "vue"
+import type { DeepReadonly, Ref } from "vue"
 import type { Router } from "vue-router"
 
 import type {
-  Result,
-  FilterResult,
-  RelFilterResult,
-  HistogramAmountResult,
-  HistogramTimeResult,
-  StringFilterResult,
-  RelFilter,
   AmountFilter,
-  TimeFilter,
-  StringFilter,
+  AmountSearchResult,
+  AmountUnit,
+  ClientSearchSession,
+  CreateSearchSessionRequest,
+  FilterResult,
   Filters,
   FiltersState,
+  HistogramAmountResult,
+  HistogramTimeResult,
+  RelFilter,
+  RelFilterResult,
   RelSearchResult,
-  AmountSearchResult,
-  TimeSearchResult,
-  StringSearchResult,
-  ClientSearchSession,
-  ServerSearchSession,
-  AmountUnit,
+  Result,
   SearchSessionRef,
-  CreateSearchSessionRequest,
+  ServerSearchSession,
+  StringFilter,
+  StringFilterResult,
+  StringSearchResult,
+  TimeFilter,
+  TimeSearchResult,
   ViewType,
 } from "@/types"
 
-import { ref, watch, readonly, onBeforeUnmount, computed } from "vue"
+import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { getURL, postJSON, getURLDirect } from "@/api"
-import { encodeQuery, timestampToSeconds, anySignal } from "@/utils"
+
+import { getURL, getURLDirect, postJSON } from "@/api"
 import { NONE } from "@/symbols"
+import { anySignal, encodeQuery, timestampToSeconds } from "@/utils"
 
 export { NONE } from "@/symbols"
 
@@ -436,6 +437,7 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -502,6 +504,7 @@ export function useRelFilterValues(
         query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
       }).href
     } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
     }
   })
@@ -566,6 +569,7 @@ export function useAmountHistogramValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -603,6 +607,7 @@ export function useAmountHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -686,6 +691,7 @@ export function useTimeHistogramValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -723,6 +729,7 @@ export function useTimeHistogramValues(
         _min.value = null
         _max.value = null
         _interval.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
@@ -797,6 +804,7 @@ export function useStringFilterValues(
           query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
         }).href
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
     },
@@ -828,13 +836,14 @@ export function useStringFilterValues(
         console.error("useStringFilterValues", newURL, err)
         _results.value = []
         _total.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as StringFilterResult[]
+      _results.value = data.results
       _total.value = data.total
     },
     {
@@ -996,6 +1005,7 @@ export function useSearchSession(
         }
         console.error("useSearchSession", newURL, err)
         _searchSession.value = null
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
       }

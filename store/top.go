@@ -18,7 +18,7 @@ type Version struct {
 	Revision int64
 }
 
-func (v Version) String() string {
+func (v *Version) String() string {
 	s := new(strings.Builder)
 	s.WriteString(v.Changeset.String())
 	s.WriteString("-")
@@ -32,7 +32,7 @@ func VersionFromString(text string) (Version, errors.E) {
 	if !ok {
 		return Version{}, errors.Errorf("invalid version string: %s", text)
 	}
-	changeset, errE := identifier.FromString(changesetStr)
+	changeset, errE := identifier.MaybeString(changesetStr)
 	if errE != nil {
 		return Version{}, errE
 	}
@@ -46,10 +46,12 @@ func VersionFromString(text string) (Version, errors.E) {
 	}, errE
 }
 
+// MarshalText marshals a Version to text format.
 func (v Version) MarshalText() ([]byte, error) {
 	return []byte(v.String()), nil
 }
 
+// UnmarshalText unmarshals a Version from text format.
 func (v *Version) UnmarshalText(text []byte) error {
 	version, errE := VersionFromString(string(text))
 	if errE != nil {

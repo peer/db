@@ -1,8 +1,9 @@
 <script setup lang="ts" generic="T">
 import type { Metadata } from "@/types"
 
-import { ref, watch, readonly, onMounted, onUpdated, onUnmounted, getCurrentInstance, Ref, DeepReadonly } from "vue"
+import { DeepReadonly, getCurrentInstance, onMounted, onUnmounted, onUpdated, readonly, ref, Ref, watch } from "vue"
 import { useRouter } from "vue-router"
+
 import { getURL } from "@/api"
 import { injectMainProgress } from "@/progress"
 
@@ -15,18 +16,22 @@ const router = useRouter()
 
 const mainProgress = injectMainProgress()
 
-const _doc = ref<T | null>(null) as Ref<T | null>
+const _doc = ref<T | null>(null)
 const _metadata = ref<Metadata>({})
 const _error = ref<string | null>(null)
 const _url = ref<string | null>(null)
-const doc = (import.meta.env.DEV ? readonly(_doc) : _doc) as DeepReadonly<Ref<T | null>>
-const metadata = import.meta.env.DEV ? readonly(_metadata) : _metadata
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+const doc = (import.meta.env.DEV ? readonly(_doc) : (_doc as DeepReadonly<Ref<T | null>>)) as DeepReadonly<Ref<T | null>>
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+const metadata = (import.meta.env.DEV ? readonly(_metadata) : (_metadata as DeepReadonly<Ref<Metadata>>)) as DeepReadonly<Ref<Metadata>>
 const error = import.meta.env.DEV ? readonly(_error) : _error
 const url = import.meta.env.DEV ? readonly(_url) : _url
 
 const el = ref<HTMLElement | null>(null)
 
 onMounted(() => {
+  // TODO: Make sure $el is really a HTMLElement and not for example a text node.
+  //       We can search for the first sibling element? Or element with data-url attribute.
   el.value = getCurrentInstance()?.proxy?.$el
 })
 
@@ -35,6 +40,8 @@ onUnmounted(() => {
 })
 
 onUpdated(() => {
+  // TODO: Make sure $el is really a HTMLElement and not for example a text node.
+  //       We can search for the first sibling element? Or element with data-url attribute.
   const el = getCurrentInstance()?.proxy?.$el
   if (el !== el.value) {
     el.value = el
@@ -74,6 +81,7 @@ watch(
         return
       }
       console.error("WithDocument", error)
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       _error.value = `${error}`
       return
     }

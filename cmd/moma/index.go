@@ -269,7 +269,7 @@ func getJSON[T any](ctx context.Context, httpClient *retryablehttp.Client, logge
 	if errE != nil {
 		return nil, errE
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	var result []T
 	// TODO: We should stream results as they are downloaded/decompressed/decoded like go-mediawiki package does.
@@ -511,7 +511,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		}
 
 		if config.WebsiteData { //nolint:dupl,nestif
-			data, errE := getArtist(ctx, httpClient, artist.ConstituentID) //nolint:govet
+			data, errE := getArtist(ctx, httpClient, artist.ConstituentID)
 			if errE != nil {
 				if errors.AllDetails(errE)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("artist not found, skipping")
@@ -523,7 +523,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
-					image, errE := picture.Image() //nolint:govet
+					image, errE := picture.Image()
 					if errE != nil {
 						config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("constituentID", artist.ConstituentID).Send()
 					} else {
@@ -642,7 +642,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 		// We first check website data because for skipped artists (those artists which exist in the dataset
 		// but not on the website) also artworks are generally not on the website, too.
 		if config.WebsiteData { //nolint:dupl,nestif
-			data, errE := getArtwork(ctx, httpClient, artwork.ObjectID) //nolint:govet
+			data, errE := getArtwork(ctx, httpClient, artwork.ObjectID)
 			if errE != nil {
 				if errors.AllDetails(errE)["code"] == http.StatusNotFound {
 					config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("artwork not found, skipping")
@@ -654,7 +654,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 				config.Logger.Warn().Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Msg("CloudFlare bot blocking")
 			} else {
 				for i, picture := range data.Pictures {
-					image, errE := picture.Image() //nolint:govet
+					image, errE := picture.Image()
 					if errE != nil {
 						config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 					} else {
@@ -727,7 +727,7 @@ func index(config *Config) errors.E { //nolint:maintidx
 				continue
 			}
 			processedConstituentIDs[constituentID] = true
-			to, errE := getArtistReference(artistsMap, constituentID) //nolint:govet
+			to, errE := getArtistReference(artistsMap, constituentID)
 			if errE != nil {
 				config.Logger.Warn().Err(errE).Str("doc", doc.ID.String()).Int("objectID", artwork.ObjectID).Send()
 				continue

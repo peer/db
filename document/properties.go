@@ -206,6 +206,7 @@ var (
 	CoreProperties = map[identifier.Identifier]D{}
 )
 
+// GetCorePropertyReference returns a reference to a core property by its mnemonic.
 func GetCorePropertyReference(mnemonic string) Reference {
 	property, ok := CoreProperties[GetCorePropertyID(mnemonic)]
 	if !ok {
@@ -218,14 +219,16 @@ func getMnemonic(data string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(data), " ", "_"), `"`, "")
 }
 
+// GetID generates an identifier from a namespace and arguments using SHA1 hashing.
 func GetID(namespace uuid.UUID, args ...interface{}) identifier.Identifier {
 	res := namespace
 	for _, arg := range args {
 		res = uuid.NewSHA1(res, []byte(fmt.Sprint(arg)))
 	}
-	return identifier.FromUUID(res)
+	return identifier.UUID(res)
 }
 
+// GetCorePropertyID returns the identifier for a core property by its mnemonic.
 func GetCorePropertyID(mnemonic string) identifier.Identifier {
 	return GetID(nameSpaceCoreProperties, mnemonic)
 }
@@ -241,6 +244,7 @@ func getPropertyClaimID(propertyMnemonic, claimMnemonic string, i int, args ...i
 	return GetID(nameSpaceCoreProperties, a...)
 }
 
+// GenerateCoreProperties generates core property documents from a list of property definitions.
 func GenerateCoreProperties(properties []struct {
 	Name            string
 	ExtraNames      []string

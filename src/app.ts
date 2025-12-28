@@ -1,11 +1,12 @@
 import { createApp, ref } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
-import App from "@/App.vue"
-import { progressKey } from "@/progress"
+
 import { routes } from "@/../routes.json"
 import "@/app.css"
-import siteContext from "@/context"
+import App from "@/App.vue"
 import RouterLink from "@/components/RouterLink.vue"
+import siteContext from "@/context"
+import { progressKey } from "@/progress"
 
 // During development when requests are proxied to Vite, placeholders
 // in HTML files are not rendered. So we set them here as well.

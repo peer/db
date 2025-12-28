@@ -19,7 +19,7 @@ func TestProcessFursDejFile(t *testing.T) {
 	if err != nil {
 		require.NoError(t, err)
 	}
-	t.Cleanup(func() { file.Close() })
+	t.Cleanup(func() { file.Close() }) //nolint:errcheck,gosec
 
 	readFile := bufio.NewReader(file)
 
@@ -32,7 +32,7 @@ func TestProcessFursDejFile(t *testing.T) {
 	assert.NotEmpty(t, records)
 
 	// Check the problematic record, if SKD is an empty string.
-	assert.Equal(t, "", records[5].SKD, "SKD mismatch")
+	assert.Empty(t, records[5].SKD, "SKD mismatch")
 
 	for record := range records {
 		assert.Len(t, records[record].VATNumber, 8, "VATNumber should be 8 characters long")

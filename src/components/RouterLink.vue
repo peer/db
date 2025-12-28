@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { nextTick } from "vue"
 import type { RouteLocationRaw } from "vue-router"
 
+import { nextTick } from "vue"
 import { useLink } from "vue-router"
 
 const props = withDefaults(
@@ -9,7 +9,7 @@ const props = withDefaults(
     to: RouteLocationRaw
     replace?: boolean
     disabled?: boolean
-    afterClick?: () => void
+    afterClick?: () => void | Promise<void>
   }>(),
   {
     replace: false,
@@ -18,6 +18,7 @@ const props = withDefaults(
   },
 )
 
+// eslint-disable-next-line @typescript-eslint/unbound-method
 const { navigate, href } = useLink(props)
 
 async function onClick(event: MouseEvent) {

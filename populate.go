@@ -22,6 +22,7 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// SaveCoreProperties saves the core property documents to the store and indexes them in ElasticSearch.
 func SaveCoreProperties(
 	ctx context.Context, logger zerolog.Logger,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
@@ -79,6 +80,7 @@ func (c *PopulateCommand) runIndex(
 	return SaveCoreProperties(ctx, logger, store, esClient, esProcessor, index, nil, nil)
 }
 
+// Run executes the populate command to populate the database and index with core properties.
 func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

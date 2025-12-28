@@ -52,14 +52,15 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 	}
 }
 
+// SearchAmountFilterGet handles GET requests for amount filter search endpoints.
 func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -80,15 +81,17 @@ func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchRelFilterGet handles GET requests for relation filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -109,15 +112,17 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchStringFilterGet handles GET requests for string filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -138,15 +143,17 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchTimeFilterGet handles GET requests for time filter search endpoints.
+//
 //nolint:dupl
 func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
-	prop, errE := identifier.FromString(params["prop"])
+	prop, errE := identifier.MaybeString(params["prop"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
 		return
@@ -269,7 +276,7 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 // creating a search session and returns to the client a JSON with an array of IDs of found documents.
 // It returns search metadata (e.g., total results) as waf HTTP response header.
 func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -307,7 +314,7 @@ func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request
 
 // SearchCreatePost is a POST HTTP API request handler which creates a new search session.
 func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -341,7 +348,7 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 
 // SearchUpdatePost is a POST HTTP API request handler which updates the search session.
 func (s *Service) SearchUpdatePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()

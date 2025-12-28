@@ -45,13 +45,14 @@ var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknogloba
 	"WARNING": zerolog.WarnLevel,
 }
 
+// InitPostgres initializes and configures a PostgreSQL connection pool with the specified settings.
 func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	dbconfig.ConnConfig.Config.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
+	dbconfig.ConnConfig.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
 		l := logger.
 			WithLevel(noticeSeverityToLogLevel[notice.SeverityUnlocalized]).
 			Fields(ErrorDetails((*pgconn.PgError)(notice))).
@@ -97,7 +98,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	defer conn.Close(ctx)
+	defer conn.Close(ctx) //nolint:errcheck
 
 	var maxConnectionsStr string
 	err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
@@ -138,31 +139,29 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		Str("sessionAuthorization", conn.PgConn().ParameterStatus("session_authorization")).
 		Msg("database connection successful")
 
-	dbconfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
+	dbconfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
 		schema, requestID := getRequest(ctx)
 
-		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID)) //nolint:govet
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID))
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to set "application_name" for PostgreSQL connection`)
-			return false
+			return false, errors.WithMessage(WithPgxError(err), "unable to set \"application_name\" for PostgreSQL connection")
 		}
 
 		_, err = conn.Exec(ctx, fmt.Sprintf(`SET search_path TO "%s"`, schema))
 		if err != nil {
-			zerolog.Ctx(ctx).Err(WithPgxError(err)).Msg(`unable to set "search_path" for PostgreSQL connection`)
-			return false
+			return false, errors.WithMessage(WithPgxError(err), "unable to set \"search_path\" for PostgreSQL connection")
 		}
 
 		conn.PgConn().CustomData()["schema"] = schema
 		conn.PgConn().CustomData()["request"] = requestID
 
-		return true
+		return true, nil
 	}
 	dbconfig.AfterRelease = func(conn *pgx.Conn) bool {
 		delete(conn.PgConn().CustomData(), "schema")
 		delete(conn.PgConn().CustomData(), "request")
 
-		_, err := conn.Exec(ctx, `RESET application_name`) //nolint:govet
+		_, err := conn.Exec(ctx, `RESET application_name`)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(WithPgxError(err)).Msg(`unable to reset "application_name" for PostgreSQL connection`)
 			return false
@@ -186,6 +185,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	return dbpool, nil
 }
 
+// EnsureSchema creates a database schema if it doesn't exist, ignoring duplicate errors.
 func EnsureSchema(ctx context.Context, tx pgx.Tx, schema string) errors.E {
 	// TODO: Could we just use "CREATE SCHEMA IF NOT EXISTS" here?
 	//       See: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error

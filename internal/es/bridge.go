@@ -1,3 +1,4 @@
+// Package es provides Elasticsearch integration functionality for PeerDB.
 package es
 
 import (
@@ -17,6 +18,7 @@ import (
 //       where they were indexed and continue on (new) bridge start from we left the last time.
 //       At the same time make it work when peerdb process is horizontally scaled.
 
+// Bridge synchronizes changes from the store to Elasticsearch by listening to committed changesets.
 func Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
 	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 	esProcessor *elastic.BulkProcessor, index string,

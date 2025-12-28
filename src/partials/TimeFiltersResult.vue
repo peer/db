@@ -4,14 +4,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
 
-import { ref, computed, toRef, watchEffect, onBeforeUnmount } from "vue"
 import noUiSlider from "nouislider"
+import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
 
 import CheckBox from "@/components/CheckBox.vue"
-import { useTimeHistogramValues, NONE } from "@/search"
-import { timestampToSeconds, secondsToTimestamp, formatTime, bigIntMax, equals, useInitialLoad, loadingShortHeights } from "@/utils"
-import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { NONE, useTimeHistogramValues } from "@/search"
+import { bigIntMax, equals, formatTime, loadingShortHeights, secondsToTimestamp, timestampToSeconds, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -25,7 +25,7 @@ const emit = defineEmits<{
   "update:state": [state: TimeFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 
@@ -93,7 +93,7 @@ const scale = 1024n
 
 let slider: API | null = null
 let scaledRange = false
-const sliderEl = ref()
+const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
 watchEffect((onCleanup) => {
   if (slider && slider.target != sliderEl.value) {
@@ -186,16 +186,14 @@ watchEffect((onCleanup) => {
 })
 
 watchEffect((onCleanup) => {
-  if (!sliderEl.value) {
+  if (!slider) {
     return
   }
 
-  // TODO: Handles should not be focused when disabled.
-  //       See: https://github.com/leongersen/noUiSlider/issues/1227
   if (props.updateProgress > 0) {
-    sliderEl.value.setAttribute("disabled", true)
+    slider.disable()
   } else {
-    sliderEl.value.removeAttribute("disabled")
+    slider.enable()
   }
 })
 
@@ -208,7 +206,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
@@ -219,13 +217,13 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="min === null || max === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-          <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded bg-slate-200" :class="h"></div>
+          <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
         <div class="flex flex-row justify-between gap-x-1">
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
         </div>
-        <div class="my-1.5 h-2 rounded bg-slate-200"></div>
+        <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
       <li v-else-if="min !== max">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->

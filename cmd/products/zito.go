@@ -27,7 +27,7 @@ const (
 )
 
 type Zito struct {
-	Disabled bool `default:"false" help:"Do not import Zito data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import Zito data."`
 }
 
 type ZitoProductDetail struct {

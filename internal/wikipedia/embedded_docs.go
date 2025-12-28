@@ -532,6 +532,8 @@ func (v *updateEmbeddedDocumentsVisitor) VisitFile(claim *document.FileClaim) (d
 	return document.Keep, nil
 }
 
+// UpdateEmbeddedDocuments updates all temporary document references in the given documents
+// to their real references as stored in PeerDB.
 func UpdateEmbeddedDocuments(
 	ctx context.Context, logger zerolog.Logger,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],

@@ -14,11 +14,14 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// StringFilterResult represents occurrences count for a single string in a string filter.
 type StringFilterResult struct {
 	Str   string `json:"str"`
 	Count int64  `json:"count"`
 }
 
+// StringFilterGet retrieves string filter data for search results.
+//
 //nolint:dupl
 func StringFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,

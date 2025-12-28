@@ -22,7 +22,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <RouterLink :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link" v-html="getName(doc.claims) || '<i>no name</i>'" />
     </template>
     <template #loading="{ url }">
-      <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
+      <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
     </template>
   </WithPeerDBDocument>
 </template>

@@ -1,3 +1,4 @@
+// Package storage provides file storage functionality for PeerDB.
 package storage
 
 import (
@@ -43,6 +44,7 @@ type chunk struct {
 	Metadata chunkMetadata
 }
 
+// FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
 	At        types.Time `json:"at"`
 	Size      int64      `json:"size"`
@@ -51,6 +53,7 @@ type FileMetadata struct {
 	Etag      string     `json:"etag"`
 }
 
+// Storage provides file storage operations.
 type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
@@ -66,6 +69,7 @@ type Storage struct {
 	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
 }
 
+// Init initializes the Storage with the given database connection pool.
 func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
@@ -102,6 +106,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 	return nil
 }
 
+// Store returns the underlying store.Store instance.
 func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None] {
 	return s.store
 }
@@ -123,7 +128,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 
 	chunks := make([]chunk, 0, len(chunksList))
 	for _, c := range chunksList {
-		data, metadata, errE := s.coordinator.GetData(ctx, session, c) //nolint:govet
+		data, metadata, errE := s.coordinator.GetData(ctx, session, c)
 		if errE != nil {
 			errors.Details(errE)["chunk"] = c
 			return nil, errE
@@ -197,6 +202,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 	return endMetadata, nil
 }
 
+// BeginUpload starts a new file upload session.
 func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
 	metadata := &beginMetadata{
 		At:        types.Time(time.Now().UTC()),
@@ -207,6 +213,7 @@ func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filena
 	return s.coordinator.Begin(ctx, metadata)
 }
 
+// UploadChunk uploads a chunk of data for an ongoing upload session.
 func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier, chunk []byte, start int64) errors.E {
 	if len(chunk) == 0 {
 		return errors.Errorf("%w: zero length chunk", ErrInvalidChunk)
@@ -234,11 +241,13 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 	return errE
 }
 
+// ListChunks returns a list of chunk IDs for an upload session.
 func (s *Storage) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
 	// TODO: Support more than 5000 chunks.
 	return s.coordinator.List(ctx, session, nil)
 }
 
+// GetChunk retrieves the start position and length of a chunk.
 func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, chunk int64) (int64, int64, errors.E) {
 	metadata, errE := s.coordinator.GetMetadata(ctx, session, chunk)
 	if errE != nil {
@@ -247,6 +256,7 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 	return metadata.Start, metadata.Length, nil
 }
 
+// EndUpload finalizes an upload session and assembles the file.
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
@@ -258,6 +268,7 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) 
 	return errE
 }
 
+// DiscardUpload discards an upload session without saving the file.
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),

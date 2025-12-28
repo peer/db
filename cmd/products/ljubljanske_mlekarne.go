@@ -27,7 +27,7 @@ const (
 )
 
 type LjubljanskeMlekarne struct {
-	Disabled bool `default:"false" help:"Do not import Ljubljanske mlekarne data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import Ljubljanske mlekarne data."`
 }
 
 type LjubljanskeMlekarneProduct struct {

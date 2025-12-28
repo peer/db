@@ -12,7 +12,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping moma products build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit watch
+.PHONY: build peerdb wikipedia mapping moma products build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
 
 build: peerdb wikipedia mapping moma products
 
@@ -25,16 +25,18 @@ wikipedia mapping moma products:
 
 # dist is build only if it is missing. Use "make clean" to remove it to build it again.
 build-static: dist
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/peerdb/cmd/mapping
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/peerdb/cmd/moma
-	go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o products gitlab.com/peerdb/peerdb/cmd/products
+	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
+	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
+	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/peerdb/cmd/mapping
+	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/peerdb/cmd/moma
+	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o products gitlab.com/peerdb/peerdb/cmd/products
 
-dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json tailwind.config.js LICENSE
+dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
 	npm run build
 
-node_modules:
+node_modules: package-lock.json
+
+package-lock.json: package.json
 	npm install
 
 dist/index.html:
@@ -42,27 +44,18 @@ dist/index.html:
 	if [ ! -e dist/index.html ]; then echo "<html><body>dummy content</body></html>" > dist/index.html; fi
 
 test: dist/index.html
-	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic -coverpkg ./...
+	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
 
-# GitLab CI uses the last coverage which matches the regexp, so we use jq to obtain it and print it last.
-# This might not be necessary if we could define the order of packages in the output and we could have the main package be the last.
-# See: https://github.com/gotestyourself/gotestsum/issues/392
-# This might not be necessary if "go tool covdata percent" could be used with --coverpkg and output the same value for the main package
-# as it is reported during testing.
-# See: https://github.com/golang/go/issues/66464
-# TODO: Correctly compute total coverage across all packages and not use the main package's coverage.
-#       See: https://github.com/golang/go/issues/66506
 test-ci: dist/index.html
-	gotestsum --format pkgname --jsonfile tests.json --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic -coverpkg ./...
+	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
 	gocover-cobertura < coverage.txt > coverage.xml
 	go tool cover -html=coverage.txt -o coverage.html
-	jq -r '. | select(.Action == "output") | select(.Package == "gitlab.com/peerdb/peerdb") | select(.Output | startswith("coverage")) | .Output' tests.json
 
 lint: dist/index.html
-	golangci-lint run --timeout 4m --color always --allow-parallel-runners --fix --max-issues-per-linter 0 --max-same-issues 0
+	golangci-lint run --output.text.colors --allow-parallel-runners --fix
 
 lint-ci: dist/index.html
-	golangci-lint run --timeout 4m --max-issues-per-linter 0 --max-same-issues 0 --out-format colored-line-number,code-climate:codeclimate.json
+	golangci-lint run --output.text.path=stdout --output.code-climate.path=codeclimate.json
 
 fmt:
 	go mod tidy
@@ -77,19 +70,28 @@ upgrade:
 	go mod tidy
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml tests.json coverage dist peerdb wikipedia mapping moma products
+	rm -rf coverage.* codeclimate.json tests.xml coverage dist peerdb wikipedia mapping moma products
 
 release:
-	npx --yes --package 'release-it@15.4.2' --package '@release-it/keep-a-changelog@3.1.0' -- release-it
+	npx --yes --package 'release-it@19.0.5' --package '@release-it/keep-a-changelog@7.0.0' -- release-it
 
 lint-docs:
-	npx --yes --package 'markdownlint-cli@~0.41.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ --fix '**/*.md'
+	npx --yes --package 'markdownlint-cli@~0.45.0' -- markdownlint --ignore-path .gitignore --ignore testdata/ --fix '**/*.md'
 
 lint-docs-ci: lint-docs
 	git diff --exit-code --color=always
 
 audit: dist/index.html
 	go list -json -deps ./... | nancy sleuth --skip-update-check
+
+encrypt:
+	gitlab-config sops --encrypt --mac-only-encrypted --in-place --encrypted-comment-regex sops:enc .gitlab-conf.yml
+
+decrypt:
+	SOPS_AGE_KEY_FILE=keys.txt gitlab-config sops --decrypt --in-place .gitlab-conf.yml
+
+sops:
+	SOPS_AGE_KEY_FILE=keys.txt gitlab-config sops .gitlab-conf.yml
 
 watch:
 	CompileDaemon -build="make --silent peerdb" -command="./peerdb -D -k localhost+2.pem -K localhost+2-key.pem" -include="*.tmpl" -include="*.json" -include="go.mod" -include="go.sum" -exclude-dir=.git -exclude-dir=.cache -exclude-dir=output -graceful-kill=true -log-prefix=false -color=true

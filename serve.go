@@ -1,3 +1,4 @@
+// Package peerdb provides a collaboration platform (database and application framework).
 package peerdb
 
 import (
@@ -27,13 +28,14 @@ var routesConfiguration []byte
 //go:embed dist
 var files embed.FS
 
+// Service is the main HTTP service for PeerDB.
 type Service struct {
 	waf.Service[*Site]
 
 	esClient *elastic.Client
 }
 
-// Init is used primarily in tests. Use Run otherwise.
+// Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.ReadFileFS) (http.Handler, *Service, errors.E) {
 	// Routes come from a single source of truth, e.g., a file.
 	var routesConfig struct {
@@ -118,7 +120,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		siteCtx := context.WithValue(ctx, requestIDContextKey, "serve")
 		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
 
-		store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index) //nolint:govet
+		store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -184,6 +186,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 	return handler, service, nil
 }
 
+// Run starts the HTTP server and serves the PeerDB application.
 func (c *ServeCommand) Run(globals *Globals) errors.E {
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

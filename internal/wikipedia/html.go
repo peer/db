@@ -189,6 +189,7 @@ func extractArticle(doc *goquery.Document) (*goquery.Document, errors.E) { //nol
 	return doc, nil
 }
 
+// ExtractArticle extracts and cleans the main article content from HTML.
 func ExtractArticle(input string) (string, *goquery.Document, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
@@ -238,6 +239,7 @@ func exctractSummary(sel *goquery.Selection) (string, errors.E) {
 	return html, nil
 }
 
+// ExtractCategoryDescription extracts the description text from a category page HTML.
 func ExtractCategoryDescription(input string) (string, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
@@ -276,6 +278,7 @@ func cleanupTemplateDocument(doc *goquery.Document) {
 	})
 }
 
+// ExtractTemplateDescription extracts the description text from a template page HTML.
 func ExtractTemplateDescription(input string) (string, errors.E) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))
 	if err != nil {
@@ -295,6 +298,7 @@ func ExtractTemplateDescription(input string) (string, errors.E) {
 	return ExtractArticleSummary(doc)
 }
 
+// ExtractFileDescriptions extracts description texts from a file page HTML.
 func ExtractFileDescriptions(input string) ([]string, errors.E) {
 	descriptions := []string{}
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(input))

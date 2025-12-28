@@ -1,3 +1,4 @@
+// Package indexer provides utilities for downloading and indexing web content.
 package indexer
 
 import (
@@ -73,10 +74,10 @@ func (r *downloadingReader) Read(p []byte) (int, error) {
 func (r *downloadingReader) Close() error {
 	defer func() {
 		if r.WriteFile != nil {
-			r.WriteFile.Close()
+			r.WriteFile.Close() //nolint:errcheck,gosec
 		}
 		if r.ReadFile != nil {
-			r.ReadFile.Close()
+			r.ReadFile.Close() //nolint:errcheck,gosec
 		}
 		if r.ticker != nil {
 			r.ticker.Stop()
@@ -95,15 +96,15 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
 	if err != nil {
-		r.WriteFile.Close()
-		r.ReadFile.Close()
+		r.WriteFile.Close() //nolint:errcheck,gosec
+		r.ReadFile.Close()  //nolint:errcheck,gosec
 		_ = os.Remove(r.Path)
 		return 0, errors.WithStack(err)
 	}
 	httpResponseReader, errE := x.NewRetryableResponse(httpClient, req)
 	if errE != nil {
-		r.WriteFile.Close()
-		r.ReadFile.Close()
+		r.WriteFile.Close() //nolint:errcheck,gosec
+		r.ReadFile.Close()  //nolint:errcheck,gosec
 		_ = os.Remove(r.Path)
 		return 0, errE
 	}
@@ -132,9 +133,9 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 				_ = os.Remove(r.Path)
 			}
 		}()
-		defer r.WriteFile.Close()
+		defer r.WriteFile.Close() //nolint:errcheck
 		defer r.ticker.Stop()
-		defer httpResponseReader.Close()
+		defer httpResponseReader.Close() //nolint:errcheck
 
 		var written int64
 		var errE errors.E
@@ -193,7 +194,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp
 }
 
 func getPathAndURL(cacheDir, url string) (string, string) {
-	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd
+	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd,gosec
 	_, err := os.Stat(url)
 	if os.IsNotExist(err) {
 		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
@@ -213,7 +214,7 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 	cachedPath, url := getPathAndURL(cacheDir, url)
 
 	// The try to create the cached file.
-	cachedWriteFile, err := os.OpenFile(cachedPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd
+	cachedWriteFile, err := os.OpenFile(filepath.Clean(cachedPath), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd,gosec
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			// The simple code path: the cached file already exist.
@@ -222,7 +223,7 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
 			// attempt to delete the file if it has not been downloaded fully for any reason.
 			// TODO: But it might be that the file exists because it is being downloaded in parallel so this would return incomplete file.
-			cachedReadFile, err := os.Open(cachedPath) //nolint:govet
+			cachedReadFile, err := os.Open(filepath.Clean(cachedPath))
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}
@@ -247,9 +248,9 @@ func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logge
 		return nil, 0, errors.WithStack(err)
 	}
 
-	cachedReadFile, err := os.Open(cachedPath)
+	cachedReadFile, err := os.Open(filepath.Clean(cachedPath))
 	if err != nil {
-		cachedWriteFile.Close()
+		cachedWriteFile.Close() //nolint:errcheck,gosec
 		_ = os.Remove(cachedPath)
 		return nil, 0, errors.WithStack(err)
 	}

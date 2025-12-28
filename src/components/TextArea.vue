@@ -7,28 +7,24 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, onUpdated, ref, computed } from "vue"
+import { onBeforeUnmount, onMounted, onUpdated, useTemplateRef } from "vue"
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     progress?: number
     readonly?: boolean
-    modelValue?: string
     invalid?: boolean
   }>(),
   {
     progress: 0,
     readonly: false,
-    modelValue: "",
     invalid: false,
   },
 )
 
-const $emit = defineEmits<{
-  "update:modelValue": [value: string]
-}>()
+const model = defineModel<string>({ default: "" })
 
-const el = ref()
+const el = useTemplateRef<HTMLFormElement>("el")
 
 function resize() {
   if (!el.value) {
@@ -49,27 +45,17 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("resize", resize)
 })
-
-const v = computed({
-  get() {
-    return props.modelValue
-  },
-  set(value: string) {
-    $emit("update:modelValue", value)
-    resize()
-  },
-})
 </script>
 
 <template>
   <textarea
     ref="el"
-    v-model="v"
+    v-model="model"
     :readonly="progress > 0 || readonly"
-    class="rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2 resize-none h-10"
+    class="h-10 resize-none rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2"
     :class="{
       'cursor-not-allowed': progress > 0 || readonly,
-      'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': progress > 0 || readonly,
+      'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
       'bg-white hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
       'bg-error-50': invalid,
     }"

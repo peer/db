@@ -1,3 +1,4 @@
+// Package search provides search functionality including filters and result handling.
 package search
 
 import (
@@ -50,11 +51,13 @@ type histogramAmountAggregations struct {
 	} `json:"filter"`
 }
 
+// HistogramAmountResult represents count for a single amount bucket in an amount filter.
 type HistogramAmountResult struct {
 	Min   float64 `json:"min"`
 	Count int64   `json:"count"`
 }
 
+// AmountFilterGet retrieves amount filter data for search results.
 func AmountFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string,
 ) ([]HistogramAmountResult, map[string]interface{}, errors.E) {

@@ -3,5 +3,7 @@
   "vueIndentScriptAndStyle": false,
   "trailingComma": "all",
   "printWidth": 170,
-  "htmlWhitespaceSensitivity": "strict"
+  "htmlWhitespaceSensitivity": "strict",
+  "tailwindStylesheet": "./src/app.css",
+  "plugins": ["prettier-plugin-organize-imports", "prettier-plugin-tailwindcss"]
 }

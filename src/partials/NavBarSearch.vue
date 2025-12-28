@@ -3,14 +3,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession } from "@/types"
 
+import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, watchEffect } from "vue"
 import { useRouter } from "vue-router"
-import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 
-import InputText from "@/components/InputText.vue"
 import Button from "@/components/Button.vue"
-import { createSearchSession } from "@/search"
+import InputText from "@/components/InputText.vue"
 import { injectProgress } from "@/progress"
+import { createSearchSession } from "@/search"
 
 const props = withDefaults(
   defineProps<{
@@ -89,7 +89,7 @@ async function onSubmit() {
 <template>
   <form class="flex flex-grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
     <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateSearchSessionProgress" class="max-w-xl flex-grow" />
-    <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="!px-3.5">
+    <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="px-3.5!">
       <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
       <span class="hidden sm:inline">Search</span>
     </Button>

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 import type { PeerDBDocument } from "@/document"
+import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
 
-import { ref, computed, onBeforeUnmount, toRef } from "vue"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
+
 import Button from "@/components/Button.vue"
-import WithDocument from "@/components/WithDocument.vue"
 import CheckBox from "@/components/CheckBox.vue"
-import { useRelFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { equals, getName, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
-import { injectProgress } from "@/progress"
+import WithDocument from "@/components/WithDocument.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRelFilterValues } from "@/search"
+import { equals, getName, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -26,7 +27,7 @@ const emit = defineEmits<{
   "update:state": [state: RelFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 
@@ -87,7 +88,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
@@ -98,9 +99,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
-          <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
+          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
         </li>
       </template>
       <template v-else>
@@ -118,7 +119,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 ></label>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithPeerDBDocument>
             <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
@@ -135,7 +136,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || '<i>no name</i>'"></div>
               </template>
               <template #loading="{ url }">
-                <div class="inline-block h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
+                <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
             </WithPeerDBDocument>
             <div class="my-1 inline-block leading-none">({{ res.count }})</div>

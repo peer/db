@@ -36,8 +36,9 @@ type storageBeginUploadResponse struct {
 	Session identifier.Identifier `json:"session"`
 }
 
+// StorageBeginUploadPost handles POST requests to begin a chunked file upload session.
 func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
@@ -60,13 +61,14 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, storageBeginUploadResponse{Session: session}, nil)
 }
 
+// StorageUploadChunkPost handles POST requests to upload a chunk of data during a file upload session.
 func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -120,10 +122,11 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
+// StorageListChunksGet handles GET requests to list all uploaded chunks for a file upload session.
 func (s *Service) StorageListChunksGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -151,10 +154,11 @@ type storageGetChunkResponse struct {
 	Length int64 `json:"length"`
 }
 
+// StorageGetChunkGet handles GET requests to retrieve start position and length of a specific chunk in a file upload session.
 func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -188,13 +192,14 @@ func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, p
 
 type emptyRequest struct{}
 
+// StorageEndUploadPost handles POST requests to finalize a file upload session.
 func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -227,13 +232,14 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
+// StorageDiscardUploadPost handles POST requests to discard a file upload session.
 func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	defer req.Body.Close()
+	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
 
-	session, errE := identifier.FromString(params["session"])
+	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -263,10 +269,11 @@ func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Requ
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
+// StorageGet handles GET requests to retrieve a stored file by its ID.
 func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	id, errE := identifier.FromString(params["id"])
+	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return

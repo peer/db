@@ -1,5 +1,6 @@
 import type { Item } from "structured-field-values"
-import type { Metadata, ItemTypes } from "@/types"
+
+import type { ItemTypes, Metadata } from "@/types"
 
 // TODO: Consider moving to https://www.npmjs.com/package/structured-headers, once it supports parsing timestamps.
 import { decodeDict } from "structured-field-values"
@@ -13,7 +14,7 @@ function convertItem(item: Item): ItemTypes {
   }
 
   if (Array.isArray(item.value)) {
-    return item.value.map((i) => convertItem(i))
+    return item.value.map((i) => convertItem(i as Item))
   }
 
   return item.value

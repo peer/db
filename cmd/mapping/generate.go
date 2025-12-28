@@ -372,7 +372,7 @@ func generate(config *Config) errors.E {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	_, err = io.Copy(f, &res)
 	if err != nil {

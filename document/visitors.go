@@ -5,15 +5,21 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// VisitResult represents the result of visiting a claim during traversal.
 type VisitResult int
 
 const (
+	// Keep indicates the claim should be kept and traversal should continue.
 	Keep VisitResult = iota
+	// KeepAndStop indicates the claim should be kept and traversal should stop.
 	KeepAndStop
+	// Drop indicates the claim should be dropped and traversal should continue.
 	Drop
+	// DropAndStop indicates the claim should be dropped and traversal should stop.
 	DropAndStop
 )
 
+// Visitor is an interface for visiting different claim types in a document.
 type Visitor interface { //nolint:interfacebloat
 	VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E)
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
@@ -29,6 +35,7 @@ type Visitor interface { //nolint:interfacebloat
 	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
 }
 
+// Visit traverses all claims in the ClaimTypes and applies the visitor to each one.
 func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	if c == nil {
 		return nil
@@ -372,6 +379,7 @@ type GetByIDVisitor struct {
 
 var _ Visitor = (*GetByIDVisitor)(nil)
 
+// VisitIdentifier visits an identifier claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -384,6 +392,7 @@ func (v *GetByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, e
 	return Keep, errE
 }
 
+// VisitReference visits a reference claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -396,6 +405,7 @@ func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 	return Keep, errE
 }
 
+// VisitText visits a text claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -408,6 +418,7 @@ func (v *GetByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	return Keep, errE
 }
 
+// VisitString visits a string claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -420,6 +431,7 @@ func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E)
 	return Keep, errE
 }
 
+// VisitAmount visits an amount claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -432,6 +444,7 @@ func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 	return Keep, errE
 }
 
+// VisitAmountRange visits an amount range claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -444,6 +457,7 @@ func (v *GetByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult,
 	return Keep, errE
 }
 
+// VisitRelation visits a relation claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -456,6 +470,7 @@ func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 	return Keep, errE
 }
 
+// VisitFile visits a file claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -468,6 +483,7 @@ func (v *GetByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	return Keep, errE
 }
 
+// VisitNoValue visits a no value claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -480,6 +496,7 @@ func (v *GetByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.
 	return Keep, errE
 }
 
+// VisitUnknownValue visits an unknown value claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -492,6 +509,7 @@ func (v *GetByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResul
 	return Keep, errE
 }
 
+// VisitTime visits a time claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -504,6 +522,7 @@ func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	return Keep, errE
 }
 
+// VisitTimeRange visits a time range claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
@@ -525,6 +544,7 @@ type GetByPropIDVisitor struct {
 	Result []Claim
 }
 
+// VisitIdentifier visits an identifier claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -533,6 +553,7 @@ func (v *GetByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResul
 	return Keep, nil
 }
 
+// VisitReference visits a reference claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -541,6 +562,7 @@ func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult,
 	return Keep, nil
 }
 
+// VisitText visits a text claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -549,6 +571,7 @@ func (v *GetByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E)
 	return Keep, nil
 }
 
+// VisitString visits a string claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -557,6 +580,7 @@ func (v *GetByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, error
 	return Keep, nil
 }
 
+// VisitAmount visits an amount claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -565,6 +589,7 @@ func (v *GetByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, error
 	return Keep, nil
 }
 
+// VisitAmountRange visits an amount range claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -573,6 +598,7 @@ func (v *GetByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitRes
 	return Keep, nil
 }
 
+// VisitRelation visits a relation claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -581,6 +607,7 @@ func (v *GetByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, e
 	return Keep, nil
 }
 
+// VisitFile visits a file claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -589,6 +616,7 @@ func (v *GetByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E)
 	return Keep, nil
 }
 
+// VisitNoValue visits a no value claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -597,6 +625,7 @@ func (v *GetByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, err
 	return Keep, nil
 }
 
+// VisitUnknownValue visits an unknown value claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -605,6 +634,7 @@ func (v *GetByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitR
 	return Keep, nil
 }
 
+// VisitTime visits a time claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -613,6 +643,7 @@ func (v *GetByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	return Keep, nil
 }
 
+// VisitTimeRange visits a time range claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
@@ -630,61 +661,73 @@ type AllClaimsVisitor struct {
 	Result []Claim
 }
 
+// VisitIdentifier visits an identifier claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitReference visits a reference claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitText visits a text claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitString visits a string claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitAmount visits an amount claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitAmountRange visits an amount range claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitRelation visits a relation claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitFile visits a file claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitNoValue visits a no value claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitUnknownValue visits an unknown value claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitTime visits a time claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
 
+// VisitTimeRange visits a time range claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil

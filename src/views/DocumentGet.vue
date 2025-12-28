@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { DocumentBeginEditResponse } from "@/types"
 import type { PeerDBDocument } from "@/document"
+import type { DocumentBeginEditResponse } from "@/types"
 
-import { ref, computed, toRef, onBeforeUnmount, watchEffect } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
-import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/vue"
+import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useRoute, useRouter } from "vue-router"
 
-import InputTextLink from "@/components/InputTextLink.vue"
+import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
+import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import NavBar from "@/partials/NavBar.vue"
 import Footer from "@/partials/Footer.vue"
+import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { useSearchSession, useSearch } from "@/search"
-import { postJSON } from "@/api"
-import { getBestClaimOfType, getName, loadingLongWidth, encodeQuery } from "@/utils"
-import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 import { injectProgress } from "@/progress"
+import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
+import { useSearch, useSearchSession } from "@/search"
+import { encodeQuery, getBestClaimOfType, getName, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -30,7 +30,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>("el")
 
 const progress = injectProgress()
 const editProgress = injectProgress()
@@ -61,10 +61,12 @@ const { searchSession, error: searchSessionError } = useSearchSession(
 )
 const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
 
+// See: https://github.com/vuejs/core/issues/14249
+//eslint-disable-next-line @typescript-eslint/no-misused-promises
 watchEffect(async (onCleanup) => {
   if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
-    router.replace({
+    await router.replace({
       name: "DocumentGet",
       params: {
         id: props.id,
@@ -92,6 +94,7 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   if (results.value.length > 0) {
     // Results are loaded but we could not find ID. Redirect to the URL without "s".
     // Ugly, a side effect inside computed. But it works well.
+    //eslint-disable-next-line @typescript-eslint/no-floating-promises
     router.replace({
       name: "DocumentGet",
       params: {
@@ -102,7 +105,7 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   return res
 })
 
-async function afterClick() {
+function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
@@ -169,7 +172,7 @@ async function onEdit() {
         <div class="grid grid-cols-2 gap-x-1">
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5!"
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
@@ -178,7 +181,7 @@ async function onEdit() {
           </ButtonLink>
           <ButtonLink
             primary
-            class="!px-3.5"
+            class="px-3.5!"
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
@@ -188,14 +191,14 @@ async function onEdit() {
         </div>
       </div>
       <NavBarSearch v-else />
-      <Button :progress="editProgress" type="button" primary class="!px-3.5" @click.prevent="onEdit">
+      <Button :progress="editProgress" type="button" primary class="px-3.5!" @click.prevent="onEdit">
         <PencilIcon class="h-5 w-5 sm:hidden" alt="Edit" />
         <span class="hidden sm:inline">Edit</span>
       </Button>
     </NavBar>
   </Teleport>
   <div ref="el" class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
-    <div class="rounded border bg-white p-4 shadow">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
@@ -203,28 +206,28 @@ async function onEdit() {
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
           <TabGroup>
-            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b bg-slate-100">
+            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
                 v-if="article"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >Article</Tab
               >
               <Tab
                 v-if="file"
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >File</Tab
               >
               <Tab
-                class="select-none border-r px-4 py-3 font-medium uppercase leading-tight outline-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >All properties</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-sm" v-html="docName || '<i>no name</i>'"></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanel v-if="article" tabindex="-1">
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <div class="prose prose-slate max-w-none" v-html="article.html.en"></div>
+                <div class="prose max-w-none prose-slate" v-html="article.html.en"></div>
               </TabPanel>
               <TabPanel v-if="file" tabindex="-1">
                 <template v-if="file.mediaType?.startsWith('image/')">
@@ -249,14 +252,14 @@ async function onEdit() {
         </template>
         <template #loading>
           <div class="flex animate-pulse flex-col gap-y-2">
-            <div class="inline-block h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
+            <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
             <div class="flex gap-x-4">
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
             </div>
             <div class="flex gap-x-4">
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
-              <div class="h-2 rounded bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
+              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
             </div>
           </div>
         </template>
@@ -267,6 +270,6 @@ async function onEdit() {
     </div>
   </div>
   <Teleport to="footer">
-    <Footer class="border-t border-slate-50 bg-slate-200 shadow" />
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>

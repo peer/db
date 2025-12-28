@@ -25,17 +25,25 @@ import (
 )
 
 const (
-	WikidataReference                 = "Wikidata"
-	WikimediaCommonsEntityReference   = "CommonsEntity"
-	WikimediaCommonsFileReference     = "CommonsFile"
-	WikipediaCategoryReference        = "WikipediaCategory"
-	WikipediaTemplateReference        = "WikipediaTemplate"
+	// WikidataReference is the temporary reference string for Wikidata entities.
+	WikidataReference = "Wikidata"
+	// WikimediaCommonsEntityReference is the temporary reference string for Wikimedia Commons entities.
+	WikimediaCommonsEntityReference = "CommonsEntity"
+	// WikimediaCommonsFileReference is the temporary reference string for Wikimedia Commons files.
+	WikimediaCommonsFileReference = "CommonsFile"
+	// WikipediaCategoryReference is the temporary reference string for Wikipedia categories.
+	WikipediaCategoryReference = "WikipediaCategory"
+	// WikipediaTemplateReference is the temporary reference string for Wikipedia templates.
+	WikipediaTemplateReference = "WikipediaTemplate"
+	// WikimediaCommonsCategoryReference is the temporary reference string for Wikimedia Commons categories.
 	WikimediaCommonsCategoryReference = "CommonsCategory"
+	// WikimediaCommonsTemplateReference is the temporary reference string for Wikimedia Commons templates.
 	WikimediaCommonsTemplateReference = "CommonsTemplate"
 )
 
 //nolint:gochecknoglobals
 var (
+	// NameSpaceWikidata is the UUID namespace for Wikidata entities.
 	NameSpaceWikidata = uuid.MustParse("8f8ba777-bcce-4e45-8dd4-a328e6722c82")
 
 	errNotSupportedDataValueType = errors.BaseWrap(ErrSilentSkipped, "not supported data value type")
@@ -95,6 +103,7 @@ func init() { //nolint:gochecknoinits
 	}
 }
 
+// GetWikidataDocumentID returns the document identifier for a Wikidata entity ID.
 func GetWikidataDocumentID(id string) identifier.Identifier {
 	return document.GetID(NameSpaceWikidata, id)
 }
@@ -237,7 +246,7 @@ func getDocumentFromByProp(
 
 	// There might be multiple hits because IDs are not unique (we remove zeroes and do a case insensitive matching).
 	for _, hit := range searchResult.Hits.Hits {
-		doc, version, errE := getDocumentFromByID(ctx, s, identifier.MustFromString(hit.Id))
+		doc, version, errE := getDocumentFromByID(ctx, s, identifier.String(hit.Id))
 		if errE != nil {
 			// Caller should add details to the error.
 			return nil, store.Version{}, errE
@@ -286,6 +295,7 @@ func getDocumentFromByID(
 	return &doc, version, nil
 }
 
+// GetWikidataItem retrieves and converts a Wikidata item to a document.
 func GetWikidataItem(
 	ctx context.Context,
 	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
@@ -328,7 +338,7 @@ func resolveDataTypeFromPropertyDocument(doc *document.D, prop string, valueType
 							return mediawiki.WikiBaseProperty, nil
 						case mediawiki.ItemType:
 							return mediawiki.WikiBaseItem, nil
-						case mediawiki.LexemeType, mediawiki.FormType, mediawiki.SenseType:
+						case mediawiki.LexemeType, mediawiki.FormType, mediawiki.SenseType, mediawiki.EntitySchemaType:
 							fallthrough
 						default:
 							err := errors.Errorf("%w: not supported value type", errNotSupportedDataType)
@@ -872,7 +882,8 @@ func ConvertEntity( //nolint:maintidx
 		logger.Error().Str("entity", entity.ID).Err(errE).Msg("claim cannot be added")
 	}
 
-	if entity.Type == mediawiki.Property {
+	switch entity.Type {
+	case mediawiki.Property:
 		doc.Claims = &document.ClaimTypes{
 			Identifier: document.IdentifierClaims{
 				{
@@ -905,7 +916,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else if entity.Type == mediawiki.Item {
+	case mediawiki.Item:
 		doc.Claims = &document.ClaimTypes{
 			Identifier: document.IdentifierClaims{
 				{
@@ -938,7 +949,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else if entity.Type == mediawiki.MediaInfo {
+	case mediawiki.MediaInfo:
 		// It is expected that this document will be merged with another document with standard
 		// file claims, so the claims here are just a set of additional claims to be added and
 		// are missing standard file claims.
@@ -954,7 +965,7 @@ func ConvertEntity( //nolint:maintidx
 				},
 			},
 		}
-	} else {
+	default:
 		return nil, errors.Errorf(`entity has invalid type: %d`, entity.Type)
 	}
 

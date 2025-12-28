@@ -74,7 +74,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
@@ -125,7 +125,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
@@ -189,7 +189,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
@@ -244,7 +244,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
@@ -296,7 +296,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var version Version
 	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		version = Version{} //nolint:exhaustruct
+		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
@@ -376,7 +376,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 				// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
 				c.store.Committed <- CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 					Changeset: Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-						id:    identifier.MustFromString(changeset),
+						id:    identifier.String(changeset),
 						store: nil,
 					},
 					View: View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
@@ -394,7 +394,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	}
 	var chs []Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 	for _, changeset := range committedChangesets {
-		id := identifier.MustFromString(changeset)
+		id := identifier.String(changeset)
 		if id == c.id {
 			chs = append(chs, c)
 		} else {
@@ -500,7 +500,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		var revision int64
 		_, err = pgx.ForEachRow(rows, []any{&id, &revision}, func() error {
 			changes = append(changes, Change{
-				ID: identifier.MustFromString(id),
+				ID: identifier.String(id),
 				Version: Version{
 					Changeset: c.id,
 					Revision:  revision,

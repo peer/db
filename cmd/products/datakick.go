@@ -26,7 +26,7 @@ const (
 )
 
 type Datakick struct {
-	Disabled bool `default:"false" help:"Do not import Datakick data. Default: false."`
+	Disabled bool `default:"false" help:"Do not import Datakick data."`
 }
 
 type DatakickEntry struct {
@@ -43,7 +43,7 @@ func getDatakick(ctx context.Context, httpClient *retryablehttp.Client, logger z
 	if errE != nil {
 		return nil, errE
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	records, errE := processDatakickFile(reader)
 	if errE != nil {
@@ -208,7 +208,8 @@ func (g Datakick) Run(
 	}()
 
 	for i, record := range records {
-		if err := ctx.Err(); err != nil {
+		err := ctx.Err()
+		if err != nil {
 			return errors.WithStack(err)
 		}
 		config.Logger.Debug().

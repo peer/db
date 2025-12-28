@@ -44,11 +44,11 @@ func populateSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.
 		return nil
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	r := bufio.NewReader(file)
 	for {
@@ -78,11 +78,11 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	if path == "-" {
 		w = os.Stdout
 	} else {
-		file, err := os.Create(path)
+		file, err := os.Create(filepath.Clean(path))
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck
 		w = file
 	}
 
@@ -177,7 +177,7 @@ func templatesCommandRun(globals *Globals, site, skippedWikidataEntitiesPath, mn
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	pages := make(chan wikipedia.AllPagesPage, wikipedia.APILimit)
 	rateLimit := wikipediaRESTRateLimit / wikipediaRESTRatePeriod.Seconds()
@@ -358,7 +358,7 @@ func filesCommandRun(
 		return errE
 	}
 	defer stop()
-	defer esProcessor.Close()
+	defer esProcessor.Close() //nolint:errcheck
 
 	errE = mediawiki.Process(ctx, &mediawiki.ProcessConfig[wikipedia.Image]{
 		URL:                    config.URL,

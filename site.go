@@ -18,12 +18,14 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// Build contains version and build metadata.
 type Build struct {
 	Version        string `json:"version,omitempty"`
 	BuildTimestamp string `json:"buildTimestamp,omitempty"`
 	Revision       string `json:"revision,omitempty"`
 }
 
+// Site represents a single site in the PeerDB application with its configuration and state.
 type Site struct {
 	waf.Site `yaml:",inline"`
 
@@ -43,6 +45,7 @@ type Site struct {
 	propertiesTotal int64
 }
 
+// Decode implements kong.MapperValue to decode Site from JSON/YAML configuration.
 func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	var value string
 	err := ctx.Scan.PopValueInto("value", &value)

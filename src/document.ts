@@ -1,4 +1,4 @@
-import type { TranslatableHTMLString, AmountUnit, TimePrecision, Constructee, Constructor } from "@/types"
+import type { AmountUnit, Constructee, Constructor, TimePrecision, TranslatableHTMLString } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { v5 as uuidv5 } from "uuid"
@@ -219,8 +219,8 @@ export class ClaimTypes {
   time?: TimeClaim[]
   timeRange?: TimeRangeClaim[]
 
-  constructor(obj: Record<string, object> | ClaimTypes) {
-    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+  constructor(obj: Record<string, object[]> | ClaimTypes) {
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypesEntry[]) {
       if (!obj?.[name]) continue
       if (!Array.isArray(obj[name])) throw new Error(`"${name}" is not an array`)
       ;(this[name] as Constructee<typeof claimType>[]) = obj[name].map((claim) => new claimType(claim))
@@ -228,7 +228,7 @@ export class ClaimTypes {
   }
 
   GetByID(id: string): Claim | undefined {
-    for (const claims of Object.values(this)) {
+    for (const claims of Object.values(this) as Claim[][]) {
       for (const claim of claims || []) {
         if (claim.GetID() === id) {
           return claim
@@ -242,7 +242,7 @@ export class ClaimTypes {
   }
 
   RemoveByID(id: string): Claim | undefined {
-    for (const claims of Object.values(this)) {
+    for (const claims of Object.values(this) as Claim[][]) {
       for (const [i, claim] of (claims || []).entries()) {
         if (claim.GetID() === id) {
           claims.splice(i, 1)
@@ -257,7 +257,7 @@ export class ClaimTypes {
   }
 
   Add(claim: Claim): void {
-    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypeEntry[]) {
+    for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypesEntry[]) {
       if (claim instanceof claimType) {
         if (!this[name]) {
           this[name] = []
@@ -267,10 +267,15 @@ export class ClaimTypes {
       }
     }
   }
+
+  AllClaims(): Claim[] {
+    return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
+  }
 }
 
-type ClaimTypeEntry = [keyof typeof CLAIM_TYPES_MAP, (typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]]
-export type ClaimTypeProp = keyof typeof CLAIM_TYPES_MAP
+export type ClaimTypeName = keyof typeof CLAIM_TYPES_MAP
+type ClaimTypeConstructor = (typeof CLAIM_TYPES_MAP)[ClaimTypeName]
+type ClaimTypesEntry = [ClaimTypeName, ClaimTypeConstructor]
 
 export const CLAIM_TYPES_MAP: {
   [P in keyof ClaimTypes as ClaimTypes[P] extends CoreClaim[] | undefined ? P : never]-?: ClaimTypes[P] extends Array<infer U> | undefined ? Constructor<U> : never
@@ -289,9 +294,9 @@ export const CLAIM_TYPES_MAP: {
   timeRange: TimeRangeClaim,
 } as const
 
-export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[keyof typeof CLAIM_TYPES_MAP]>
+export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[ClaimTypeName]>
 
-export type ClaimForType<T extends ClaimTypeProp> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
+export type ClaimForType<T extends ClaimTypeName> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
 
 // TODO: Sync interface with Go implementation.
 interface ClaimsContainer {
@@ -362,6 +367,7 @@ export function changeFrom(obj: object): Change {
     case "remove":
       return new RemoveClaimChange(obj)
   }
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   throw new Error(`change of type "${obj.type}" is not supported`)
 }
 
@@ -372,6 +378,7 @@ export class AddClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "add") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "add"
@@ -403,6 +410,7 @@ export class SetClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "set") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "set"
@@ -425,6 +433,7 @@ export class RemoveClaimChange implements Change {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "remove") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "remove"
@@ -500,6 +509,7 @@ export function claimPatchFrom(obj: object): ClaimPatch {
     case "timeRange":
       return new TimeRangeClaimPatch(obj)
   }
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   throw new Error(`patch of type "${obj.type}" is not supported`)
 }
 
@@ -510,6 +520,7 @@ export class IdentifierClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "id") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "id"
@@ -556,6 +567,7 @@ export class ReferenceClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "ref") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "ref"
@@ -603,6 +615,7 @@ export class TextClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "text") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "text"
@@ -658,6 +671,7 @@ export class StringClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "string") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "string"
@@ -705,6 +719,7 @@ export class AmountClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "amount") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "amount"
@@ -757,6 +772,7 @@ export class AmountRangeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "amountRange") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "amountRange"
@@ -811,6 +827,7 @@ export class RelationClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "rel") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "rel"
@@ -861,6 +878,7 @@ export class FileClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "file") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "file"
@@ -914,6 +932,7 @@ export class NoValueClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "none") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "none"
@@ -955,6 +974,7 @@ export class UnknownValueClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "unknown") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "unknown"
@@ -998,6 +1018,7 @@ export class TimeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "time") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "time"
@@ -1050,6 +1071,7 @@ export class TimeRangeClaimPatch implements ClaimPatch {
 
   constructor(obj: object) {
     if ("type" in obj && obj.type !== "timeRange") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`invalid type "${obj.type}"`)
     }
     this.type = "timeRange"

@@ -43,7 +43,7 @@ func TestExtractArticle(t *testing.T) {
 			expectedFilePath := filepath.Join("testdata", "article", base+"_out.html")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
+				f, err := os.Create(filepath.Clean(expectedFilePath))
 				require.NoError(t, err)
 				_, _ = f.WriteString(output)
 			} else {
@@ -79,7 +79,7 @@ func TestExtractArticleSummary(t *testing.T) {
 			expectedFilePath := filepath.Join("testdata", "article", base+"_summary.html")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
+				f, err := os.Create(filepath.Clean(expectedFilePath))
 				require.NoError(t, err)
 				_, _ = f.WriteString(output)
 			} else {
@@ -117,7 +117,7 @@ func TestExtractFileDescriptions(t *testing.T) {
 			expectedFilePath := filepath.Join("testdata", "file", base+"_out.json")
 			expected, err := content.ReadFile(expectedFilePath)
 			if errors.Is(err, fs.ErrNotExist) {
-				f, err := os.Create(expectedFilePath)
+				f, err := os.Create(filepath.Clean(expectedFilePath))
 				require.NoError(t, err)
 				data, err := x.MarshalWithoutEscapeHTML(got)
 				require.NoError(t, err)
@@ -169,7 +169,7 @@ func TestExtractCategoryAndTemplateDescription(t *testing.T) {
 					expectedFilePath := filepath.Join("testdata", conf.Dir, base+"_out.html")
 					expected, err := content.ReadFile(expectedFilePath)
 					if errors.Is(err, fs.ErrNotExist) {
-						f, err := os.Create(expectedFilePath)
+						f, err := os.Create(filepath.Clean(expectedFilePath))
 						require.NoError(t, err)
 						_, _ = f.WriteString(output)
 					} else {

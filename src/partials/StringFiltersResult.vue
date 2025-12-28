@@ -3,14 +3,14 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, StringFilterState, StringSearchResult } from "@/types"
 
-import { ref, computed, toRef, onBeforeUnmount } from "vue"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
-import { useStringFilterValues, NONE, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE } from "@/search"
-import { equals, useLimitResults, loadingWidth, useInitialLoad } from "@/utils"
-import { injectProgress } from "@/progress"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useStringFilterValues } from "@/search"
+import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -24,7 +24,7 @@ const emit = defineEmits<{
   "update:state": [state: StringFilterState]
 }>()
 
-const el = ref(null)
+const el = useTemplateRef<HTMLElement>("el")
 
 const abortController = new AbortController()
 
@@ -83,7 +83,7 @@ const checkboxState = computed({
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4 shadow" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
@@ -94,9 +94,9 @@ const checkboxState = computed({
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
-          <div class="my-1.5 h-2 w-4 rounded bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded bg-slate-200"></div>
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
+          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
         </li>
       </template>
       <template v-else>

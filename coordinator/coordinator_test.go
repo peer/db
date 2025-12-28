@@ -374,7 +374,7 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for range 6000 {
-		o, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, nil) //nolint:govet
+		o, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, nil)
 		require.NoError(t, errE, "%d % -+#.1v", errE)
 
 		operations = append(operations, o)

@@ -48,6 +48,7 @@ func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context
 	return WithPgxError(err)
 }
 
+// RetryTransaction executes a database transaction with automatic retry logic for serialization failures.
 func RetryTransaction(
 	ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.TxAccessMode,
 	fn func(ctx context.Context, tx pgx.Tx) errors.E,
@@ -79,6 +80,7 @@ func RetryTransaction(
 				AccessMode:     accessMode,
 				DeferrableMode: pgx.NotDeferrable,
 				BeginQuery:     "",
+				CommitQuery:    "",
 			})
 			if err != nil {
 				return WithPgxError(err)
