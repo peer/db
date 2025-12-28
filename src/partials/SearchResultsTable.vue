@@ -13,6 +13,7 @@ import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import ChevronDownUpIcon from "@/assets/icons/ChevronDownUpIcon.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
@@ -267,7 +268,8 @@ function getButtonTitle(rowIndex: number): string {
                       class="h-5 w-5 cursor-pointer"
                       @click.stop="toggleRow(rowIndex)"
                     >
-                      <ChevronUpDownIcon />
+                      <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
+                      <ChevronUpDownIcon v-else />
                     </div>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
@@ -291,7 +293,8 @@ function getButtonTitle(rowIndex: number): string {
                             class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
                             @click.stop="toggleRow(rowIndex)"
                           >
-                            <ChevronUpDownIcon />
+                            <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
+                            <ChevronUpDownIcon v-else />
                           </div>
 
                           <RouterLink
