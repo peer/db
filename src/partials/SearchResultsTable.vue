@@ -286,25 +286,25 @@ function getButtonTitle(rowIndex: number): string {
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>
                           <ClaimValue :type="filter.type" :claim="claim" />
-
-                          <div
-                            v-if="isTogglable(rowIndex, columnIndex)"
-                            :title="getButtonTitle(rowIndex)"
-                            class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
-                            @click.stop="toggleRow(rowIndex)"
-                          >
-                            <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
-                            <ChevronUpDownIcon v-else />
-                          </div>
-
-                          <RouterLink
-                            v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
-                            :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
-                            class="link absolute right-0 bottom-2.5"
-                          >
-                            <ArrowTopRightOnSquareIcon class="h-5 w-5 hover:cursor-pointer" @click.stop="toggleRow(rowIndex)" />
-                          </RouterLink>
                         </template>
+
+                        <div
+                          v-if="isTogglable(rowIndex, columnIndex)"
+                          :title="getButtonTitle(rowIndex)"
+                          class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer"
+                          @click.stop="toggleRow(rowIndex)"
+                        >
+                          <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
+                          <ChevronUpDownIcon v-else />
+                        </div>
+
+                        <RouterLink
+                          v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
+                          :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                          class="link absolute right-0 bottom-2.5"
+                        >
+                          <ArrowTopRightOnSquareIcon class="h-5 w-5 hover:cursor-pointer" />
+                        </RouterLink>
                       </div>
                     </td>
                   </template>
