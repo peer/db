@@ -128,11 +128,11 @@ const rowSpan = computed(() => {
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
-              <li v-if="'string' in tag" class="rounded-sm bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.string }}</li>
+              <li v-if="'string' in tag" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.string }}</li>
               <WithPeerDBDocument v-else-if="'id' in tag" :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li
-                    class="rounded-sm bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
+                    class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
                     :data-url="url"
                     v-html="getName(doc.claims) || '<i>no name</i>'"
                   ></li>
