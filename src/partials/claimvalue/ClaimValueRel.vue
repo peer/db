@@ -8,7 +8,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 withDefaults(
   defineProps<{
     claim: RelationClaim | DeepReadonly<RelationClaim> | null
-    loadingWidth?: "auto" | "fixed"
+    loadingWidth: "auto" | "fixed"
   }>(),
   {
     loadingWidth: "fixed",

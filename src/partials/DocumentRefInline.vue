@@ -7,7 +7,7 @@ import { getName, loadingWidth as loadingWidthClass } from "@/utils"
 withDefaults(
   defineProps<{
     id: string | null
-    loadingWidth?: "auto" | "fixed"
+    loadingWidth: "auto" | "fixed"
   }>(),
   {
     loadingWidth: "fixed",
