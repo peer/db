@@ -5,10 +5,10 @@ import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ChevronDownUpIcon } from  "@sidekickicons/vue/20/solid";
 import { cloneDeep } from "lodash-es"
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, useTemplateRef } from "vue"
 
-import ChevronDownUpIcon from "@/assets/icons/ChevronDownUpIcon.vue"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
