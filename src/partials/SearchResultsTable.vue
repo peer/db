@@ -7,7 +7,7 @@ import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/type
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { cloneDeep } from "lodash-es"
-import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -178,18 +178,18 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
 const { track: trackTruncation, truncated } = useTruncationTracking()
 
-const expandedRows = reactive(new Map<string, Set<string>>())
+const expandedRows = ref(new Map<string, Set<string>>())
 
 function isCellTruncated(resultId: string, propertyId: string): boolean {
   return truncated.value.get(resultId)?.has(propertyId) ?? false
 }
 
 function isRowExpanded(resultId: string): boolean {
-  return expandedRows.has(resultId)
+  return expandedRows.value.has(resultId)
 }
 
 function isTogglable(resultId: string, propertyId: string): boolean {
-  return expandedRows.get(resultId)?.has(propertyId) ?? false
+  return expandedRows.value.get(resultId)?.has(propertyId) ?? false
 }
 
 function canRowExpand(resultId: string) {
@@ -197,19 +197,19 @@ function canRowExpand(resultId: string) {
 }
 
 function toggleRow(resultId: string) {
-  if (!expandedRows.has(resultId)) {
+  if (!expandedRows.value.has(resultId)) {
     const ids = cloneDeep(truncated.value.get(resultId))
 
     if (!ids) {
-      expandedRows.set(resultId, new Set<string>())
+      expandedRows.value.set(resultId, new Set<string>())
       return
     }
 
-    expandedRows.set(resultId, new Set<string>(ids))
+    expandedRows.value.set(resultId, new Set<string>(ids))
     return
   }
 
-  expandedRows.delete(resultId)
+  expandedRows.value.delete(resultId)
 }
 
 function getButtonTitle(resultId: string): string {
