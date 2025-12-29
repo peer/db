@@ -1026,7 +1026,7 @@ export function useSearchSession(
   }
 }
 
-export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, searchTotal: Ref<number | null>, visibles: ReadonlySet<string>) {
+export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, searchTotal: Ref<number | null>, visibles: DeepReadonly<Ref<Set<string>>>) {
   const router = useRouter()
   const route = useRoute()
 
@@ -1041,7 +1041,7 @@ export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, search
   const initialRouteName = route.name
   watch(
     () => {
-      const sorted = Array.from(visibles)
+      const sorted = Array.from(visibles.value)
       sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
       return sorted[0]
     },

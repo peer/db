@@ -181,7 +181,7 @@ const { track: trackTruncation, truncated } = useTruncationTracking()
 const expandedRows = reactive(new Map<string, Set<string>>())
 
 function isCellTruncated(rowIndex: number, colIndex: number): boolean {
-  return truncated.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
+  return truncated.value.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
 }
 
 function isRowExpanded(rowIndex: number): boolean {
@@ -193,12 +193,12 @@ function isTogglable(rowIndex: number, colIndex: number): boolean {
 }
 
 function canRowExpand(rowIndex: number) {
-  return truncated.has(rowIndex.toString())
+  return truncated.value.has(rowIndex.toString())
 }
 
 function toggleRow(rowIndex: number) {
   if (!expandedRows.has(rowIndex.toString())) {
-    const ids = cloneDeep(truncated.get(rowIndex.toString()))
+    const ids = cloneDeep(truncated.value.get(rowIndex.toString()))
 
     if (!ids) {
       expandedRows.set(rowIndex.toString(), new Set<string>())

@@ -1,14 +1,14 @@
-import type { ComponentPublicInstance } from "vue"
+import type { ComponentPublicInstance, DeepReadonly, Ref } from "vue"
 
-import { onBeforeUnmount, reactive, readonly } from "vue"
+import { ref, readonly, onBeforeUnmount } from "vue"
 
 export function useVisibilityTracking(): {
   track: (id: string) => (el: Element | ComponentPublicInstance | null) => void
-  visibles: ReadonlySet<string>
+  visibles: DeepReadonly<Ref<Set<string>>>
 } {
   const idToElement = new Map<string, Element>()
   const elementToId = new Map<Element, string>()
-  const _visibles = reactive(new Set<string>())
+  const _visibles = ref(new Set<string>())
   const visibles = import.meta.env.DEV ? readonly(_visibles) : _visibles
 
   const observer = new IntersectionObserver(
@@ -17,9 +17,9 @@ export function useVisibilityTracking(): {
         const id = elementToId.get(entry.target)
         if (id) {
           if (entry.isIntersecting) {
-            _visibles.add(id)
+            _visibles.value.add(id)
           } else {
-            _visibles.delete(id)
+            _visibles.value.delete(id)
           }
         }
       }
@@ -50,7 +50,7 @@ export function useVisibilityTracking(): {
     idToElement.delete(id)
     elementToId.delete(old)
     observer.unobserve(old)
-    _visibles.delete(id)
+    _visibles.value.delete(id)
   }
 
   return {

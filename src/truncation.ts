@@ -1,5 +1,6 @@
-import { ComponentPublicInstance } from "vue"
-import { reactive, readonly, onBeforeUnmount } from "vue"
+import type { ComponentPublicInstance, DeepReadonly, Ref } from "vue"
+
+import { ref, readonly, onBeforeUnmount } from "vue"
 
 function isTruncated(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
@@ -12,26 +13,26 @@ function itemKey(groupId: string, itemId: string): string {
 export function useTruncationTracking(): {
   track: (groupId: string, itemId: string) => (el: Element | ComponentPublicInstance | null) => void
   cellUpdated: (el: Element) => void
-  truncated: ReadonlyMap<string, ReadonlySet<string>>
+  truncated: DeepReadonly<Ref<Map<string, Set<string>>>>
 } {
   const keyToElement = new Map<string, Element>()
   const elementToItem = new Map<Element, [string, string]>()
-  const _truncated = reactive(new Map<string, Set<string>>())
+  const _truncated = ref(new Map<string, Set<string>>())
   const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
 
   function addTruncated(groupId: string, itemId: string) {
-    if (!_truncated.has(groupId)) {
-      _truncated.set(groupId, new Set<string>())
+    if (!_truncated.value.has(groupId)) {
+      _truncated.value.set(groupId, new Set<string>())
     }
-    _truncated.get(groupId)!.add(itemId)
+    _truncated.value.get(groupId)!.add(itemId)
   }
 
   function deleteTruncated(groupId: string, itemId: string) {
-    const group = _truncated.get(groupId)
+    const group = _truncated.value.get(groupId)
     if (group) {
       group.delete(itemId)
       if (group.size === 0) {
-        _truncated.delete(groupId)
+        _truncated.value.delete(groupId)
       }
     }
   }
