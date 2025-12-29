@@ -1,5 +1,5 @@
-import type { ComponentPublicInstance } from "vue"
-
+import { ComponentPublicInstance } from "vue"
+import { cloneDeep } from "lodash-es"
 import { reactive, readonly, onBeforeUnmount } from "vue"
 
 function isTruncated(el: Element): boolean {
@@ -14,19 +14,30 @@ export function useTruncationTracking(): {
   track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
   cellUpdated: (el: Element) => void
   truncated: ReadonlyMap<number, ReadonlySet<number>>
-  isTogglable: (rowIndex: number, colIndex: number) => boolean
+  toggleRow: (rowIndex: number) => void
+  expandedRows: ReadonlyMap<number, ReadonlySet<number>>
 } {
   const idToElement = new Map<string, Element>()
   const elementToCell = new Map<Element, [number, number]>()
   const _truncated = reactive(new Map<number, Set<number>>())
   const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
+  const _expandedRows = reactive(new Map<number, Set<number>>())
+  const expandedRows = import.meta.env.DEV ? readonly(_expandedRows) : _expandedRows
 
-  // Truncated candidates are all elements that were able to be truncated
-  const _truncatedCandidates = reactive(new Map<number, Set<number>>())
-  const truncatedCandidates = import.meta.env.DEV ? readonly(_truncatedCandidates) : _truncatedCandidates
+  function toggleRow(rowIndex: number) {
+    if (!_expandedRows.has(rowIndex)) {
+      const ids = cloneDeep(_truncated.get(rowIndex))
 
-  function isTogglable(rowIndex: number, colIndex: number): boolean {
-    return truncatedCandidates.get(rowIndex)?.has(colIndex) ?? false
+      if (!ids) {
+        _expandedRows.set(rowIndex, new Set<number>())
+        return
+      }
+
+      _expandedRows.set(rowIndex, ids)
+      return
+    }
+
+    _expandedRows.delete(rowIndex)
   }
 
   function addTruncated(rowIndex: number, columnIndex: number) {
@@ -34,11 +45,6 @@ export function useTruncationTracking(): {
       _truncated.set(rowIndex, new Set<number>())
     }
     _truncated.get(rowIndex)!.add(columnIndex)
-
-    if (!_truncatedCandidates.has(rowIndex)) {
-      _truncatedCandidates.set(rowIndex, new Set<number>())
-    }
-    _truncatedCandidates.get(rowIndex)!.add(columnIndex)
   }
 
   function deleteTruncated(rowIndex: number, columnIndex: number) {
@@ -107,7 +113,8 @@ export function useTruncationTracking(): {
       }
     },
     cellUpdated,
+    toggleRow,
     truncated,
-    isTogglable,
+    expandedRows,
   }
 }

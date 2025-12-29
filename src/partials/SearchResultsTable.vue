@@ -175,10 +175,7 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const { track: trackTruncation, cellUpdated, truncated, isTogglable } = useTruncationTracking()
-
-// Keeps track of all currently expanded rows.
-const expandedRows = reactive(new Set<number>())
+const { track: trackTruncation, truncated, expandedRows, toggleRow } = useTruncationTracking()
 
 function isCellTruncated(rowIndex: number, colIndex: number): boolean {
   return truncated.get(rowIndex)?.has(colIndex) ?? false
@@ -188,19 +185,12 @@ function isRowExpanded(rowIndex: number): boolean {
   return expandedRows.has(rowIndex)
 }
 
-function canRowExpand(rowIndex: number) {
-  return truncated.has(rowIndex)
+function isTogglable(rowIndex: number, colIndex: number): boolean {
+  return expandedRows.get(rowIndex)?.has(colIndex) ?? false
 }
 
-function toggleRow(rowIndex: number) {
-  if (expandedRows.has(rowIndex)) {
-    expandedRows.delete(rowIndex)
-  } else {
-    // TODO: Call cellUpdated on all cells in the row to check if they are really truncated.
-    //       Then expand only if the cell the user clicked on (or any cell if the user clicked on
-    //       row-level button) is still expanded.
-    expandedRows.add(rowIndex)
-  }
+function canRowExpand(rowIndex: number) {
+  return truncated.has(rowIndex)
 }
 
 function getButtonTitle(rowIndex: number): string {
@@ -290,7 +280,7 @@ function getButtonTitle(rowIndex: number): string {
                         </template>
 
                         <div
-                          v-if="isTogglable(rowIndex, columnIndex)"
+                          v-if="isTogglable(rowIndex, columnIndex) || isCellTruncated(rowIndex, columnIndex)"
                           :title="getButtonTitle(rowIndex)"
                           class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200 rounded"
                           @click.stop="toggleRow(rowIndex)"
