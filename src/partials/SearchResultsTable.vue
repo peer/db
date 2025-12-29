@@ -6,7 +6,7 @@ import type { PeerDBDocument } from "@/document.ts"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue"
-import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
+import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
@@ -22,6 +22,7 @@ import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } fr
 import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
+import ButtonIcon from "@/components/ButtonIcon.vue"
 
 const props = defineProps<{
   // Search props.
@@ -302,12 +303,14 @@ const popoverStyle = computed(() => {
 
                   <Popover>
                     <PopoverButton class="ml-2 flex justify-center items-center" @click="onPopoverClick">
-                      <FunnelIcon
-                        class="h-5 w-5 text-neutral-400 hover:text-neutral-600"
-                        :class="{
-                          '!text-primary-500 !hover:text-primary-700': isFilterActive(filter),
-                        }"
-                      />
+                      <ButtonIcon class="shadow-none">
+                        <AdjustmentsHorizontalIcon
+                          class="h-5 w-5"
+                          :class="{
+                            '!text-primary-500 rounded !hover:text-primary-700': isFilterActive(filter),
+                          }"
+                        />
+                      </ButtonIcon>
                     </PopoverButton>
 
                     <teleport to="body">
