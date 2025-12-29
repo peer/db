@@ -5,7 +5,7 @@ import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange
 import type { PeerDBDocument } from "@/document.ts"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
-import { Dialog, DialogPanel, DialogTitle, TransitionRoot } from "@headlessui/vue"
+import { Dialog, DialogPanel, TransitionRoot } from "@headlessui/vue"
 import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
@@ -450,22 +450,22 @@ function closeFilterModal() {
 
       <div class="fixed inset-0 flex items-center justify-center">
         <DialogPanel
-          class="fixed inset-0 sm:relative sm:inset-auto w-full h-full sm:h-auto sm:max-w-xl bg-white p-4 sm:p-6 shadow-none sm:shadow-xl rounded-none sm:rounded-2xl"
+          class="fixed inset-0 sm:relative sm:inset-auto w-full h-full sm:h-auto sm:max-h-[600px] sm:max-w-xl bg-white rounded-none sm:rounded shadow-none sm:shadow flex flex-col"
         >
-          <DialogTitle class="text-lg font-medium text-gray-900"> Filters </DialogTitle>
-
-          <div v-if="activeFilter && searchTotal" class="mt-4">
-            <FiltersResult
-              :filter="activeFilter"
-              :search-session="searchSession"
-              :search-total="searchTotal"
-              :update-search-session-progress="updateSearchSessionProgress"
-              :filters-state="filtersState"
-              @filter-change="$emit('filterChange', $event)"
-            />
+          <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+            <div v-if="activeFilter && searchTotal">
+              <FiltersResult
+                :filter="activeFilter"
+                :search-session="searchSession"
+                :search-total="searchTotal"
+                :update-search-session-progress="updateSearchSessionProgress"
+                :filters-state="filtersState"
+                @filter-change="$emit('filterChange', $event)"
+              />
+            </div>
           </div>
 
-          <div class="mt-6 flex justify-end">
+          <div class="shrink-0 border-t p-2 sm:p-4 flex justify-end">
             <Button @click="closeFilterModal">Close</Button>
           </div>
         </DialogPanel>
