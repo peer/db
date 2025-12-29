@@ -188,7 +188,7 @@ function isRowExpanded(resultId: string): boolean {
   return expandedRows.value.has(resultId)
 }
 
-function isTogglable(resultId: string, propertyId: string): boolean {
+function isCellExpanded(resultId: string, propertyId: string): boolean {
   return expandedRows.value.get(resultId)?.has(propertyId) ?? false
 }
 
@@ -298,7 +298,7 @@ function getButtonTitle(resultId: string): string {
                         </template>
 
                         <div
-                          v-if="isTogglable(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                          v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
                           :title="getButtonTitle(result.id)"
                           class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
                           @click.stop="toggleRow(result.id)"
