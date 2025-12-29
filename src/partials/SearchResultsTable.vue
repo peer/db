@@ -4,22 +4,22 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
-import { computed, toRef, ref, onBeforeUnmount, onMounted, reactive, useTemplateRef } from "vue"
-import { ChevronUpDownIcon, ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { cloneDeep } from "lodash-es"
+import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, useTemplateRef } from "vue"
 
-import WithDocument from "@/components/WithDocument.vue"
+import ChevronDownUpIcon from "@/assets/icons/ChevronDownUpIcon.vue"
 import Button from "@/components/Button.vue"
-import Footer from "@/partials/Footer.vue"
-import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import ChevronDownUpIcon from "@/assets/icons/ChevronDownUpIcon.vue"
+import Footer from "@/partials/Footer.vue"
+import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import { useTruncationTracking } from "@/truncation.ts"
 
 const props = defineProps<{
   // Search props.
@@ -267,7 +267,7 @@ function getButtonTitle(rowIndex: number): string {
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <!-- Index column -->
-                  <td class="w-full text-start align-top inline-flex items-center justify-between gap-1 p-2">
+                  <td class="inline-flex w-full items-center justify-between gap-1 p-2 text-start align-top">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
                       {{ rowIndex + 1 }}
                     </RouterLink>
@@ -275,7 +275,7 @@ function getButtonTitle(rowIndex: number): string {
                     <div
                       v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)"
                       :title="getButtonTitle(rowIndex)"
-                      class="h-5 w-5 hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200 rounded"
+                      class="h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
                       @click.stop="toggleRow(rowIndex)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
@@ -286,7 +286,7 @@ function getButtonTitle(rowIndex: number): string {
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
                   </td>
                   <template v-for="(filter, columnIndex) in limitedFiltersResults" v-else :key="filter.id">
-                    <td class="relative max-w-[400px] text-start truncate align-top p-2">
+                    <td class="relative max-w-[400px] truncate p-2 text-start align-top">
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
@@ -301,7 +301,7 @@ function getButtonTitle(rowIndex: number): string {
                         <div
                           v-if="isTogglable(rowIndex, columnIndex) || isCellTruncated(rowIndex, columnIndex)"
                           :title="getButtonTitle(rowIndex)"
-                          class="absolute right-0 top-2.5 h-5 w-5 hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200 rounded"
+                          class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
                           @click.stop="toggleRow(rowIndex)"
                         >
                           <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />

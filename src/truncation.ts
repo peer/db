@@ -1,6 +1,6 @@
 import type { ComponentPublicInstance, DeepReadonly, Ref } from "vue"
 
-import { ref, readonly, onBeforeUnmount } from "vue"
+import { onBeforeUnmount, readonly, ref } from "vue"
 
 function isTruncated(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
