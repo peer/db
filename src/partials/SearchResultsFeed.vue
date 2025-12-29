@@ -199,14 +199,16 @@ function onFilters() {
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
-          <FiltersResult
-            :filter="filter"
-            :search-session="searchSession"
-            :search-total="searchTotal"
-            :update-search-session-progress="updateSearchSessionProgress"
-            :filters-state="filtersState"
-            @filter-change="$emit('filterChange', $event)"
-          />
+          <div class="rounded border shadow overflow-hidden p-4 bg-white">
+            <FiltersResult
+              :filter="filter"
+              :search-session="searchSession"
+              :search-total="searchTotal"
+              :update-search-session-progress="updateSearchSessionProgress"
+              :filters-state="filtersState"
+              @filter-change="$emit('filterChange', $event)"
+            />
+          </div>
         </template>
 
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore"

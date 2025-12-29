@@ -83,7 +83,7 @@ const checkboxState = computed({
 </script>
 
 <template>
-  <div class="flex flex-col rounded border bg-white p-4" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="flex flex-col bg-white" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
