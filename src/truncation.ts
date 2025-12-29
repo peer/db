@@ -12,7 +12,7 @@ function itemKey(groupId: string, itemId: string): string {
 
 export function useTruncationTracking(): {
   track: (groupId: string, itemId: string) => (el: Element | ComponentPublicInstance | null) => void
-  cellUpdated: (el: Element) => void
+  updated: (el: Element) => void
   truncated: DeepReadonly<Ref<Map<string, Set<string>>>>
 } {
   const keyToElement = new Map<string, Element>()
@@ -92,7 +92,7 @@ export function useTruncationTracking(): {
         }
       }
     },
-    cellUpdated: updated,
+    updated,
     truncated,
   }
 }
