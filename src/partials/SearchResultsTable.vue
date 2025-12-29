@@ -252,7 +252,7 @@ function getButtonTitle(resultId: string): string {
             <th v-if="filtersTotal === null" class="p-2 text-start">
               <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
-            <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
+            <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
@@ -284,12 +284,12 @@ function getButtonTitle(resultId: string): string {
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
+                  <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
                     <td class="relative max-w-[400px] truncate p-2 text-start align-top">
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
-                        :ref="trackTruncation(result.id, filter.id)"
+                        :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
                         :class="[isRowExpanded(result.id) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
@@ -298,7 +298,7 @@ function getButtonTitle(resultId: string): string {
                         </template>
 
                         <div
-                          v-if="isTogglable(result.id, filter.id) || isCellTruncated(result.id, filter.id)"
+                          v-if="isTogglable(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
                           :title="getButtonTitle(result.id)"
                           class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
                           @click.stop="toggleRow(result.id)"
@@ -308,7 +308,7 @@ function getButtonTitle(resultId: string): string {
                         </div>
 
                         <RouterLink
-                          v-if="isCellTruncated(result.id, filter.id) && isRowExpanded(result.id)"
+                          v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
                           :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                           class="link absolute right-0 bottom-2.5"
                         >
