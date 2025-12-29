@@ -20,7 +20,7 @@ withDefaults(
   defineProps<{
     claim: ClaimForType<T> | DeepReadonly<ClaimForType<T>> | null
     type: T
-    loadingWidth: "auto" | "fixed"
+    loadingWidth?: "auto" | "fixed"
   }>(),
   {
     loadingWidth: "fixed",
