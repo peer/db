@@ -6,6 +6,7 @@ import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/type
 
 import { computed, toRef, ref, onBeforeUnmount, onMounted, reactive, useTemplateRef } from "vue"
 import { ChevronUpDownIcon, ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { cloneDeep } from "lodash-es"
 
 import WithDocument from "@/components/WithDocument.vue"
 import Button from "@/components/Button.vue"
@@ -175,7 +176,9 @@ onBeforeUnmount(() => {
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const { track: trackTruncation, truncated, expandedRows, toggleRow } = useTruncationTracking()
+const { track: trackTruncation, truncated } = useTruncationTracking()
+
+const expandedRows = reactive(new Map<number, Set<number>>())
 
 function isCellTruncated(rowIndex: number, colIndex: number): boolean {
   return truncated.get(rowIndex)?.has(colIndex) ?? false
@@ -191,6 +194,22 @@ function isTogglable(rowIndex: number, colIndex: number): boolean {
 
 function canRowExpand(rowIndex: number) {
   return truncated.has(rowIndex)
+}
+
+function toggleRow(rowIndex: number) {
+  if (!expandedRows.has(rowIndex)) {
+    const ids = cloneDeep(truncated.get(rowIndex))
+
+    if (!ids) {
+      expandedRows.set(rowIndex, new Set<number>())
+      return
+    }
+
+    expandedRows.set(rowIndex, new Set<number>(ids))
+    return
+  }
+
+  expandedRows.delete(rowIndex)
 }
 
 function getButtonTitle(rowIndex: number): string {

@@ -1,5 +1,4 @@
 import { ComponentPublicInstance } from "vue"
-import { cloneDeep } from "lodash-es"
 import { reactive, readonly, onBeforeUnmount } from "vue"
 
 function isTruncated(el: Element): boolean {
@@ -14,31 +13,11 @@ export function useTruncationTracking(): {
   track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
   cellUpdated: (el: Element) => void
   truncated: ReadonlyMap<number, ReadonlySet<number>>
-  toggleRow: (rowIndex: number) => void
-  expandedRows: ReadonlyMap<number, ReadonlySet<number>>
 } {
   const idToElement = new Map<string, Element>()
   const elementToCell = new Map<Element, [number, number]>()
   const _truncated = reactive(new Map<number, Set<number>>())
   const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
-  const _expandedRows = reactive(new Map<number, Set<number>>())
-  const expandedRows = import.meta.env.DEV ? readonly(_expandedRows) : _expandedRows
-
-  function toggleRow(rowIndex: number) {
-    if (!_expandedRows.has(rowIndex)) {
-      const ids = cloneDeep(_truncated.get(rowIndex))
-
-      if (!ids) {
-        _expandedRows.set(rowIndex, new Set<number>())
-        return
-      }
-
-      _expandedRows.set(rowIndex, ids)
-      return
-    }
-
-    _expandedRows.delete(rowIndex)
-  }
 
   function addTruncated(rowIndex: number, columnIndex: number) {
     if (!_truncated.has(rowIndex)) {
@@ -113,8 +92,6 @@ export function useTruncationTracking(): {
       }
     },
     cellUpdated,
-    toggleRow,
     truncated,
-    expandedRows,
   }
 }
