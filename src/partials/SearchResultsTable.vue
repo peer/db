@@ -258,9 +258,9 @@ function getButtonTitle(resultId: string): string {
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="inline-flex w-full items-center justify-between gap-1 p-2 text-start align-top">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
-                      {{ index + 1 }}
-                    </RouterLink>
+                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
+                      index + 1
+                    }}</RouterLink>
 
                     <div
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
