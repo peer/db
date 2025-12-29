@@ -5,12 +5,13 @@ import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange
 import type { PeerDBDocument } from "@/document.ts"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
-import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue"
+import { Dialog, DialogPanel, DialogTitle, TransitionRoot } from "@headlessui/vue"
 import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import WithDocument from "@/components/WithDocument.vue"
+import ButtonIcon from "@/components/ButtonIcon.vue"
 import Button from "@/components/Button.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
@@ -22,7 +23,6 @@ import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } fr
 import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
-import ButtonIcon from "@/components/ButtonIcon.vue"
 
 const props = defineProps<{
   // Search props.
@@ -232,33 +232,18 @@ function getButtonTitle(resultId: string): string {
 // Popover workaround, had to implement teleporting to the body, because table has its own container
 // and popover content was not visible
 
-const anchorEl = ref<HTMLElement | null>(null)
+const isFilterModalOpen = ref(false)
+const activeFilter = ref<FilterResult | null>(null)
 
-function onPopoverClick(event: MouseEvent) {
-  anchorEl.value = event.currentTarget as HTMLElement
+function openFilterModal(filter: FilterResult) {
+  activeFilter.value = filter
+  isFilterModalOpen.value = true
 }
 
-const POPOVER_WIDTH = 18 * 16 // 18rem in px
-const POPOVER_DEFAULT_OFFSET = 24
-const POPOVER_DEFAULT_OFFSET_BOTTOM = 6
-
-const popoverStyle = computed(() => {
-  if (!anchorEl.value) return {}
-
-  const rect = anchorEl.value.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-
-  let left = rect.right - POPOVER_DEFAULT_OFFSET
-
-  if (left + POPOVER_WIDTH > viewportWidth) {
-    left = rect.left - POPOVER_WIDTH + POPOVER_DEFAULT_OFFSET
-  }
-
-  return {
-    top: `${rect.bottom + POPOVER_DEFAULT_OFFSET_BOTTOM}px`,
-    left: `${left}px`,
-  }
-})
+function closeFilterModal() {
+  isFilterModalOpen.value = false
+  activeFilter.value = null
+}
 </script>
 
 <template>
@@ -301,31 +286,14 @@ const popoverStyle = computed(() => {
                 <div class="flex flex-row justify-between items-center">
                   <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
 
-                  <Popover>
-                    <PopoverButton class="ml-2 flex justify-center items-center" @click="onPopoverClick">
-                      <ButtonIcon class="shadow-none">
-                        <AdjustmentsHorizontalIcon
-                          class="h-5 w-5"
-                          :class="{
-                            '!text-primary-500 rounded !hover:text-primary-700': isFilterActive(filter),
-                          }"
-                        />
-                      </ButtonIcon>
-                    </PopoverButton>
-
-                    <teleport to="body">
-                      <PopoverPanel class="fixed max-h-96 w-72 overflow-auto rounded bg-white shadow border" :style="popoverStyle">
-                        <FiltersResult
-                          :filter="filter"
-                          :search-session="searchSession"
-                          :search-total="searchTotal"
-                          :update-search-session-progress="updateSearchSessionProgress"
-                          :filters-state="filtersState"
-                          @filter-change="$emit('filterChange', $event)"
-                        />
-                      </PopoverPanel>
-                    </teleport>
-                  </Popover>
+                  <ButtonIcon class="ml-2" @click="openFilterModal(filter)">
+                    <AdjustmentsHorizontalIcon
+                      class="h-5 w-5"
+                      :class="{
+                        '!text-primary-500 rounded !hover:text-primary-700': isFilterActive(filter),
+                      }"
+                    />
+                  </ButtonIcon>
                 </div>
               </th>
             </template>
@@ -475,4 +443,33 @@ const popoverStyle = computed(() => {
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
+
+  <TransitionRoot appear :show="isFilterModalOpen" as="template">
+    <Dialog as="div" class="relative z-50" @close="closeFilterModal">
+      <div class="fixed inset-0 bg-black/30" />
+
+      <div class="fixed inset-0 flex items-center justify-center">
+        <DialogPanel
+          class="fixed inset-0 sm:relative sm:inset-auto w-full h-full sm:h-auto sm:max-w-xl bg-white p-4 sm:p-6 shadow-none sm:shadow-xl rounded-none sm:rounded-2xl"
+        >
+          <DialogTitle class="text-lg font-medium text-gray-900"> Filters </DialogTitle>
+
+          <div v-if="activeFilter && searchTotal" class="mt-4">
+            <FiltersResult
+              :filter="activeFilter"
+              :search-session="searchSession"
+              :search-total="searchTotal"
+              :update-search-session-progress="updateSearchSessionProgress"
+              :filters-state="filtersState"
+              @filter-change="$emit('filterChange', $event)"
+            />
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <Button @click="closeFilterModal">Close</Button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+  </TransitionRoot>
 </template>
