@@ -178,38 +178,38 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
 const { track: trackTruncation, truncated } = useTruncationTracking()
 
-const expandedRows = reactive(new Map<number, Set<number>>())
+const expandedRows = reactive(new Map<string, Set<string>>())
 
 function isCellTruncated(rowIndex: number, colIndex: number): boolean {
-  return truncated.get(rowIndex)?.has(colIndex) ?? false
+  return truncated.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
 }
 
 function isRowExpanded(rowIndex: number): boolean {
-  return expandedRows.has(rowIndex)
+  return expandedRows.has(rowIndex.toString())
 }
 
 function isTogglable(rowIndex: number, colIndex: number): boolean {
-  return expandedRows.get(rowIndex)?.has(colIndex) ?? false
+  return expandedRows.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
 }
 
 function canRowExpand(rowIndex: number) {
-  return truncated.has(rowIndex)
+  return truncated.has(rowIndex.toString())
 }
 
 function toggleRow(rowIndex: number) {
-  if (!expandedRows.has(rowIndex)) {
-    const ids = cloneDeep(truncated.get(rowIndex))
+  if (!expandedRows.has(rowIndex.toString())) {
+    const ids = cloneDeep(truncated.get(rowIndex.toString()))
 
     if (!ids) {
-      expandedRows.set(rowIndex, new Set<number>())
+      expandedRows.set(rowIndex.toString(), new Set<string>())
       return
     }
 
-    expandedRows.set(rowIndex, new Set<number>(ids))
+    expandedRows.set(rowIndex.toString(), new Set<string>(ids))
     return
   }
 
-  expandedRows.delete(rowIndex)
+  expandedRows.delete(rowIndex.toString())
 }
 
 function getButtonTitle(rowIndex: number): string {
@@ -290,7 +290,7 @@ function getButtonTitle(rowIndex: number): string {
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
-                        :ref="trackTruncation(rowIndex, columnIndex)"
+                        :ref="trackTruncation(rowIndex.toString(), columnIndex.toString())"
                         :class="[isRowExpanded(rowIndex) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">

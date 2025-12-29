@@ -5,93 +5,93 @@ function isTruncated(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
 }
 
-function cellId(rowIndex: number, colIndex: number): string {
-  return `${rowIndex}:${colIndex}`
+function itemKey(groupId: string, itemId: string): string {
+  return `${groupId}:${itemId}`
 }
 
 export function useTruncationTracking(): {
-  track: (rowIndex: number, columnIndex: number) => (el: Element | ComponentPublicInstance | null) => void
+  track: (groupId: string, itemId: string) => (el: Element | ComponentPublicInstance | null) => void
   cellUpdated: (el: Element) => void
-  truncated: ReadonlyMap<number, ReadonlySet<number>>
+  truncated: ReadonlyMap<string, ReadonlySet<string>>
 } {
-  const idToElement = new Map<string, Element>()
-  const elementToCell = new Map<Element, [number, number]>()
-  const _truncated = reactive(new Map<number, Set<number>>())
+  const keyToElement = new Map<string, Element>()
+  const elementToItem = new Map<Element, [string, string]>()
+  const _truncated = reactive(new Map<string, Set<string>>())
   const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
 
-  function addTruncated(rowIndex: number, columnIndex: number) {
-    if (!_truncated.has(rowIndex)) {
-      _truncated.set(rowIndex, new Set<number>())
+  function addTruncated(groupId: string, itemId: string) {
+    if (!_truncated.has(groupId)) {
+      _truncated.set(groupId, new Set<string>())
     }
-    _truncated.get(rowIndex)!.add(columnIndex)
+    _truncated.get(groupId)!.add(itemId)
   }
 
-  function deleteTruncated(rowIndex: number, columnIndex: number) {
-    const row = _truncated.get(rowIndex)
-    if (row) {
-      row.delete(columnIndex)
-      if (row.size === 0) {
-        _truncated.delete(rowIndex)
+  function deleteTruncated(groupId: string, itemId: string) {
+    const group = _truncated.get(groupId)
+    if (group) {
+      group.delete(itemId)
+      if (group.size === 0) {
+        _truncated.delete(groupId)
       }
     }
   }
 
-  function cellUpdated(el: Element) {
-    const cell = elementToCell.get(el)
-    if (cell) {
-      const [rowIndex, columnIndex] = cell
+  function updated(el: Element) {
+    const item = elementToItem.get(el)
+    if (item) {
+      const [groupId, itemId] = item
       if (isTruncated(el)) {
-        addTruncated(rowIndex, columnIndex)
+        addTruncated(groupId, itemId)
       } else {
-        deleteTruncated(rowIndex, columnIndex)
+        deleteTruncated(groupId, itemId)
       }
     }
   }
 
   const observer = new ResizeObserver((entries) => {
     for (const entry of entries) {
-      cellUpdated(entry.target)
+      updated(entry.target)
     }
   })
 
   onBeforeUnmount(() => observer.disconnect())
 
-  function trackElement(rowIndex: number, columnIndex: number, el: Element) {
-    const id = cellId(rowIndex, columnIndex)
-    const old = idToElement.get(id)
+  function trackElement(groupId: string, itemId: string, el: Element) {
+    const key = itemKey(groupId, itemId)
+    const old = keyToElement.get(key)
     if (old) {
-      elementToCell.delete(old)
+      elementToItem.delete(old)
       observer.unobserve(old)
     }
-    idToElement.set(id, el)
-    elementToCell.set(el, [rowIndex, columnIndex])
+    keyToElement.set(key, el)
+    elementToItem.set(el, [groupId, itemId])
     observer.observe(el)
   }
 
-  function untrackElement(rowIndex: number, columnIndex: number) {
-    const id = cellId(rowIndex, columnIndex)
-    const old = idToElement.get(id)
+  function untrackElement(groupId: string, itemId: string) {
+    const key = itemKey(groupId, itemId)
+    const old = keyToElement.get(key)
     if (!old) return
-    idToElement.delete(id)
-    elementToCell.delete(old)
+    keyToElement.delete(key)
+    elementToItem.delete(old)
     observer.unobserve(old)
-    deleteTruncated(rowIndex, columnIndex)
+    deleteTruncated(groupId, itemId)
   }
 
   return {
-    track: (rowIndex, columnIndex) => {
+    track: (groupId, itemId) => {
       return (el) => {
         if (el) {
           if (!(el instanceof Element)) {
             el = el.$el as Element
           }
-          trackElement(rowIndex, columnIndex, el)
+          trackElement(groupId, itemId, el)
         } else {
-          untrackElement(rowIndex, columnIndex)
+          untrackElement(groupId, itemId)
         }
       }
     },
-    cellUpdated,
+    cellUpdated: updated,
     truncated,
   }
 }
