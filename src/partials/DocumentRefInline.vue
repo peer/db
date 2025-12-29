@@ -2,17 +2,11 @@
 import type { PeerDBDocument } from "@/document"
 
 import WithDocument from "@/components/WithDocument.vue"
-import { getName, loadingWidth as loadingWidthClass } from "@/utils"
+import { getName, loadingWidth } from "@/utils"
 
-withDefaults(
-  defineProps<{
-    id: string | null
-    loadingWidth: "auto" | "fixed"
-  }>(),
-  {
-    loadingWidth: "fixed",
-  },
-)
+defineProps<{
+  id: string | null
+}>()
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
@@ -28,14 +22,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <RouterLink :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link" v-html="getName(doc.claims) || '<i>no name</i>'" />
     </template>
     <template #loading="{ url }">
-      <div
-        class="inline-block h-2 animate-pulse rounded bg-slate-200"
-        :data-url="url"
-        :class="{
-          'w-full': loadingWidth === 'auto',
-          [loadingWidthClass(id)]: loadingWidth === 'fixed',
-        }"
-      />
+      <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
     </template>
   </WithPeerDBDocument>
 </template>

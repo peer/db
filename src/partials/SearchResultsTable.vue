@@ -5,7 +5,7 @@ import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
-import { ChevronDownUpIcon } from  "@sidekickicons/vue/20/solid";
+import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { cloneDeep } from "lodash-es"
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, useTemplateRef } from "vue"
 
@@ -266,7 +266,6 @@ function getButtonTitle(rowIndex: number): string {
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <!-- Index column -->
                   <td class="inline-flex w-full items-center justify-between gap-1 p-2 text-start align-top">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
                       {{ rowIndex + 1 }}
@@ -295,7 +294,7 @@ function getButtonTitle(rowIndex: number): string {
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>
-                          <ClaimValue :type="filter.type" :claim="claim" loading-width="auto" />
+                          <ClaimValue :type="filter.type" :claim="claim" />
                         </template>
 
                         <div

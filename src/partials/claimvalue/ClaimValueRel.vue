@@ -5,17 +5,11 @@ import type { RelationClaim } from "@/document"
 
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
-withDefaults(
-  defineProps<{
-    claim: RelationClaim | DeepReadonly<RelationClaim> | null
-    loadingWidth: "auto" | "fixed"
-  }>(),
-  {
-    loadingWidth: "fixed",
-  },
-)
+defineProps<{
+  claim: RelationClaim | DeepReadonly<RelationClaim> | null
+}>()
 </script>
 
 <template>
-  <DocumentRefInline :id="claim?.to.id || null" :loading-width="loadingWidth" />
+  <DocumentRefInline :id="claim?.to.id || null" />
 </template>
