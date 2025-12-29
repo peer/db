@@ -180,40 +180,40 @@ const { track: trackTruncation, truncated } = useTruncationTracking()
 
 const expandedRows = reactive(new Map<string, Set<string>>())
 
-function isCellTruncated(rowIndex: number, colIndex: number): boolean {
-  return truncated.value.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
+function isCellTruncated(resultId: string, propertyId: string): boolean {
+  return truncated.value.get(resultId)?.has(propertyId) ?? false
 }
 
-function isRowExpanded(rowIndex: number): boolean {
-  return expandedRows.has(rowIndex.toString())
+function isRowExpanded(resultId: string): boolean {
+  return expandedRows.has(resultId)
 }
 
-function isTogglable(rowIndex: number, colIndex: number): boolean {
-  return expandedRows.get(rowIndex.toString())?.has(colIndex.toString()) ?? false
+function isTogglable(resultId: string, propertyId: string): boolean {
+  return expandedRows.get(resultId)?.has(propertyId) ?? false
 }
 
-function canRowExpand(rowIndex: number) {
-  return truncated.value.has(rowIndex.toString())
+function canRowExpand(resultId: string) {
+  return truncated.value.has(resultId)
 }
 
-function toggleRow(rowIndex: number) {
-  if (!expandedRows.has(rowIndex.toString())) {
-    const ids = cloneDeep(truncated.value.get(rowIndex.toString()))
+function toggleRow(resultId: string) {
+  if (!expandedRows.has(resultId)) {
+    const ids = cloneDeep(truncated.value.get(resultId))
 
     if (!ids) {
-      expandedRows.set(rowIndex.toString(), new Set<string>())
+      expandedRows.set(resultId, new Set<string>())
       return
     }
 
-    expandedRows.set(rowIndex.toString(), new Set<string>(ids))
+    expandedRows.set(resultId, new Set<string>(ids))
     return
   }
 
-  expandedRows.delete(rowIndex.toString())
+  expandedRows.delete(resultId)
 }
 
-function getButtonTitle(rowIndex: number): string {
-  return isRowExpanded(rowIndex) ? "Collapse row" : "Expand row"
+function getButtonTitle(resultId: string): string {
+  return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
 }
 </script>
 
@@ -262,35 +262,35 @@ function getButtonTitle(rowIndex: number): string {
 
         <!-- Results -->
         <tbody class="divide-y divide-gray-200">
-          <template v-for="(result, rowIndex) in limitedSearchResults" :key="result.id">
+          <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="inline-flex w-full items-center justify-between gap-1 p-2 text-start align-top">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">
-                      {{ rowIndex + 1 }}
+                      {{ index + 1 }}
                     </RouterLink>
 
                     <div
-                      v-if="canRowExpand(rowIndex) || isRowExpanded(rowIndex)"
-                      :title="getButtonTitle(rowIndex)"
+                      v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
+                      :title="getButtonTitle(result.id)"
                       class="h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
-                      @click.stop="toggleRow(rowIndex)"
+                      @click.stop="toggleRow(result.id)"
                     >
-                      <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
                       <ChevronUpDownIcon v-else />
                     </div>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
-                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${rowIndex + 1}`)]" />
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
-                  <template v-for="(filter, columnIndex) in limitedFiltersResults" v-else :key="filter.id">
+                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
                     <td class="relative max-w-[400px] truncate p-2 text-start align-top">
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                       <div
                         v-if="supportedFilter(filter)"
-                        :ref="trackTruncation(rowIndex.toString(), columnIndex.toString())"
-                        :class="[isRowExpanded(rowIndex) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
+                        :ref="trackTruncation(result.id, filter.id)"
+                        :class="[isRowExpanded(result.id) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
                       >
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>
@@ -298,17 +298,17 @@ function getButtonTitle(rowIndex: number): string {
                         </template>
 
                         <div
-                          v-if="isTogglable(rowIndex, columnIndex) || isCellTruncated(rowIndex, columnIndex)"
-                          :title="getButtonTitle(rowIndex)"
+                          v-if="isTogglable(result.id, filter.id) || isCellTruncated(result.id, filter.id)"
+                          :title="getButtonTitle(result.id)"
                           class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
-                          @click.stop="toggleRow(rowIndex)"
+                          @click.stop="toggleRow(result.id)"
                         >
-                          <ChevronDownUpIcon v-if="isRowExpanded(rowIndex)" />
+                          <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
                           <ChevronUpDownIcon v-else />
                         </div>
 
                         <RouterLink
-                          v-if="isCellTruncated(rowIndex, columnIndex) && isRowExpanded(rowIndex)"
+                          v-if="isCellTruncated(result.id, filter.id) && isRowExpanded(result.id)"
                           :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                           class="link absolute right-0 bottom-2.5"
                         >
@@ -330,7 +330,7 @@ function getButtonTitle(rowIndex: number): string {
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      rowIndex + 1
+                      index + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
@@ -343,7 +343,7 @@ function getButtonTitle(rowIndex: number): string {
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      rowIndex + 1
+                      index + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2 text-start">
