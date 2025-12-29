@@ -6,7 +6,6 @@ import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/type
 
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
-import { cloneDeep } from "lodash-es"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
@@ -197,19 +196,11 @@ function canRowExpand(resultId: string) {
 }
 
 function toggleRow(resultId: string) {
-  if (!expandedRows.value.has(resultId)) {
-    const ids = cloneDeep(truncated.value.get(resultId))
-
-    if (!ids) {
-      expandedRows.value.set(resultId, new Set<string>())
-      return
-    }
-
-    expandedRows.value.set(resultId, new Set<string>(ids))
-    return
+  if (expandedRows.value.has(resultId)) {
+    expandedRows.value.delete(resultId)
+  } else {
+    expandedRows.value.set(resultId, new Set<string>(truncated.value.get(resultId)))
   }
-
-  expandedRows.value.delete(resultId)
 }
 
 function getButtonTitle(resultId: string): string {
