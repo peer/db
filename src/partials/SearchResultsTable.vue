@@ -213,7 +213,7 @@ function toggleRow(rowIndex: number) {
 }
 
 function getButtonTitle(rowIndex: number): string {
-  return isRowExpanded(rowIndex) ? "Collapse row" : "Expend row"
+  return isRowExpanded(rowIndex) ? "Collapse row" : "Expand row"
 }
 </script>
 
