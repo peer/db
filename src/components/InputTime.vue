@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
-import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
-import { ref, computed, readonly as vueReadonly, watch, onBeforeMount, onMounted, useAttrs, nextTick } from "vue"
-import { debounce } from "lodash-es"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { debounce } from "lodash-es"
+import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, readonly as vueReadonly, watch } from "vue"
 
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
@@ -327,6 +327,8 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
     return timeStruct
   }
 
+  console.log(1, timeStruct)
+
   return timeStruct
 }
 
@@ -419,6 +421,12 @@ function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: str
   return ""
 }
 
+function formatYear(year: number): string {
+  const sign = year < 0 ? "-" : ""
+  const abs = Math.abs(year)
+  return sign + String(abs).padStart(4, "0")
+}
+
 function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
   const year = parseInt(timeStruct.y || "0000", 10)
 
@@ -428,25 +436,25 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
 
   switch (precision) {
     case "G":
-      return String(roundDown(year, 1_000_000_000))
+      return formatYear(roundDown(year, 1_000_000_000))
     case "100M":
-      return String(roundDown(year, 100_000_000))
+      return formatYear(roundDown(year, 100_000_000))
     case "10M":
-      return String(roundDown(year, 10_000_000))
+      return formatYear(roundDown(year, 10_000_000))
     case "M":
-      return String(roundDown(year, 1_000_000))
+      return formatYear(roundDown(year, 1_000_000))
     case "100k":
-      return String(roundDown(year, 100_000))
+      return formatYear(roundDown(year, 100_000))
     case "10k":
-      return String(roundDown(year, 10_000))
+      return formatYear(roundDown(year, 10_000))
     case "k":
-      return String(roundDown(year, 1_000))
+      return formatYear(roundDown(year, 1_000))
     case "100y":
-      return String(roundDown(year, 100))
+      return formatYear(roundDown(year, 100))
     case "10y":
-      return String(roundDown(year, 10))
+      return formatYear(roundDown(year, 10))
     case "y":
-      return timeStruct.y || "0"
+      return timeStruct.y || "0000"
     case "m":
     case "d":
     case "h":
@@ -551,9 +559,9 @@ watch(
 </script>
 
 <template>
-  <div class="w-full flex flex-col gap-1">
-    <div class="flex gap-2 w-full">
-      <div class="flex flex-col gap-1 w-full">
+  <div class="flex w-full flex-col gap-1">
+    <div class="flex w-full gap-2">
+      <div class="flex w-full flex-col gap-1">
         <slot name="timestamp-label" :for="inputId">
           <label :for="inputId" class="mt-4 mb-1"> Timestamp </label>
         </slot>
@@ -582,7 +590,7 @@ watch(
         <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
           <div class="relative">
             <ListboxButton
-              class="relative w-full rounded p-2 text-left shadow hover:cursor-pointer ring-2 ring-neutral-300 hover:ring-neutral-400"
+              class="relative w-full rounded p-2 text-left shadow ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
               :class="{
                 '!cursor-not-allowed bg-gray-100 text-gray-800 hover:!ring-neutral-300 focus:!border-primary-300 focus:!ring-primary-300': progress > 0,
               }"
@@ -598,7 +606,7 @@ watch(
 
             <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded bg-white shadow ring-2 ring-neutral-300 focus:outline-none">
               <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
-                <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default select-none py-2 pl-10 pr-4']">
+                <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
                   <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
                     {{ precisionLabel(tp) }}
                   </span>
