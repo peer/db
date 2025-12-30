@@ -24,12 +24,11 @@ withDefaults(
 <template>
   <button
     :disabled="progress > 0 || disabled"
-    class="relative p-0.5 rounded select-none outline-none focus-visible:ring-2 focus-visible:ring-offset-1 text-center"
+    class="relative rounded p-0.5 text-center outline-none select-none focus-visible:ring-2 focus-visible:ring-offset-1"
     :class="{
       'cursor-not-allowed bg-primary-300 text-gray-100': progress > 0 || disabled,
-      'text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': progress === 0 && !disabled && active,
-      'bg-none text-primary-600 hover:text-primary-700 active:text-primary-500 hover:bg-neutral-200 active:bg-neutral-300 shadow-sm':
-        progress === 0 && !disabled && !active,
+      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': progress === 0 && !disabled && active,
+      'bg-none text-primary-600 hover:bg-neutral-200 hover:text-primary-700 active:bg-neutral-300 active:text-primary-500': progress === 0 && !disabled && !active,
     }"
   >
     <slot />

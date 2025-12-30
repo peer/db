@@ -1,22 +1,16 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type {
-  ClientSearchSession,
-  FiltersState,
-  FilterStateChange,
-  Result,
-  ViewType,
-} from "@/types"
+import type { ClientSearchSession, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
+import FiltersResult from "@/partials/FiltersResult.vue"
+import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import Footer from "@/partials/Footer.vue"
-import FiltersResult from "@/partials/FiltersResult.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
@@ -199,7 +193,7 @@ function onFilters() {
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
-          <div class="rounded border shadow overflow-hidden p-4 bg-white">
+          <div class="overflow-hidden rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
             <FiltersResult
               :filter="filter"
               :search-session="searchSession"

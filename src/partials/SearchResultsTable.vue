@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
+import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
 import { Dialog, DialogPanel, TransitionRoot } from "@headlessui/vue"
@@ -10,15 +10,15 @@ import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroi
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
-import WithDocument from "@/components/WithDocument.vue"
-import ButtonIcon from "@/components/ButtonIcon.vue"
 import Button from "@/components/Button.vue"
-import Footer from "@/partials/Footer.vue"
-import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { injectProgress } from "@/progress.ts"
+import ButtonIcon from "@/components/ButtonIcon.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
+import Footer from "@/partials/Footer.vue"
+import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
@@ -283,7 +283,7 @@ function closeFilterModal() {
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                <div class="flex flex-row justify-between items-center">
+                <div class="flex flex-row items-center justify-between">
                   <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
 
                   <ButtonIcon :active="isFilterActive(filter)" class="ml-2" @click="openFilterModal(filter)">
@@ -445,7 +445,7 @@ function closeFilterModal() {
 
       <div class="fixed inset-0 flex items-center justify-center">
         <DialogPanel
-          class="fixed inset-0 sm:relative sm:inset-auto w-full h-full sm:h-auto sm:max-h-[600px] sm:max-w-xl bg-white rounded-none sm:rounded shadow-none sm:shadow flex flex-col"
+          class="fixed inset-0 flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded sm:shadow-xs"
         >
           <div class="flex-1 overflow-y-auto p-2 sm:p-4">
             <div v-if="activeFilter && searchTotal">
@@ -460,7 +460,7 @@ function closeFilterModal() {
             </div>
           </div>
 
-          <div class="shrink-0 border-t p-2 sm:p-4 flex justify-end">
+          <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
             <Button @click="closeFilterModal">Close</Button>
           </div>
         </DialogPanel>
