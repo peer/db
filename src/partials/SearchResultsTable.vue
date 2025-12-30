@@ -276,8 +276,11 @@ function getButtonTitle(resultId: string): string {
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
-                      <!-- Div is used on purpose, so truncation on 5 rows works normally -->
                     <td class="relative max-w-[400px] truncate p-2 align-top">
+                      <!--
+                        Content is wrapped into a div because line-clamp CSS property requires the -webkit-box
+                        display value and cannot be used with the table-cell display value on td.
+                      -->
                       <div
                         v-if="supportedFilter(filter)"
                         :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
