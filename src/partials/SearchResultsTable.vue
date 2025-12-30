@@ -266,7 +266,7 @@ function getButtonTitle(resultId: string): string {
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
                       :title="getButtonTitle(result.id)"
                       class="h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
-                      @click.stop="toggleRow(result.id)"
+                      @click="toggleRow(result.id)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
                       <ChevronUpDownIcon v-else />
@@ -292,7 +292,7 @@ function getButtonTitle(resultId: string): string {
                           v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
                           :title="getButtonTitle(result.id)"
                           class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
-                          @click.stop="toggleRow(result.id)"
+                          @click="toggleRow(result.id)"
                         >
                           <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
                           <ChevronUpDownIcon v-else />
