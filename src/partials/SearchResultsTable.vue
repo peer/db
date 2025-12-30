@@ -257,7 +257,7 @@ function getButtonTitle(resultId: string): string {
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="flex items-center justify-between gap-1 p-2 text-start">
+                  <td class="flex items-center justify-between gap-1 p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
@@ -272,12 +272,12 @@ function getButtonTitle(resultId: string): string {
                       <ChevronUpDownIcon v-else class="h-5 w-5" />
                     </Button>
                   </td>
-                  <td v-if="filtersTotal === null" class="p-2 text-start">
+                  <td v-if="filtersTotal === null" class="p-2">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
-                    <td class="relative max-w-[400px] truncate p-2 text-start align-top">
                       <!-- Div is used on purpose, so truncation on 5 rows works normally -->
+                    <td class="relative max-w-[400px] truncate p-2 align-top">
                       <div
                         v-if="supportedFilter(filter)"
                         :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
@@ -319,12 +319,12 @@ function getButtonTitle(resultId: string): string {
                   of "at" URL query parameter we do not track loading and error <tr>s.
                 -->
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
+                  <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
-                  <td :colspan="rowColspan" class="p-2 text-start">
+                  <td :colspan="rowColspan" class="p-2">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
@@ -332,12 +332,12 @@ function getButtonTitle(resultId: string): string {
               <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ url }">
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
+                  <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
-                  <td :colspan="rowColspan" class="p-2 text-start">
+                  <td :colspan="rowColspan" class="p-2">
                     <i class="text-error-600">loading data failed</i>
                   </td>
                 </tr>
