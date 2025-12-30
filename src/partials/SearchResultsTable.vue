@@ -6,7 +6,7 @@ import type { PeerDBDocument } from "@/document.ts"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
 import { Dialog, DialogPanel, TransitionRoot } from "@headlessui/vue"
-import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
@@ -286,13 +286,8 @@ function closeFilterModal() {
                 <div class="flex flex-row justify-between items-center">
                   <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
 
-                  <ButtonIcon class="ml-2" @click="openFilterModal(filter)">
-                    <AdjustmentsHorizontalIcon
-                      class="h-5 w-5"
-                      :class="{
-                        '!text-primary-500 rounded !hover:text-primary-700': isFilterActive(filter),
-                      }"
-                    />
+                  <ButtonIcon :active="isFilterActive(filter)" class="ml-2" @click="openFilterModal(filter)">
+                    <FunnelIcon class="h-5 w-5" />
                   </ButtonIcon>
                 </div>
               </th>

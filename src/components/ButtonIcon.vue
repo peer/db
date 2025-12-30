@@ -11,10 +11,12 @@ withDefaults(
   defineProps<{
     progress?: number
     disabled?: boolean
+    active?: boolean
   }>(),
   {
     progress: 0,
     disabled: false,
+    active: false,
   },
 )
 </script>
@@ -22,11 +24,12 @@ withDefaults(
 <template>
   <button
     :disabled="progress > 0 || disabled"
-    class="relative p-0.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+    class="relative p-0.5 rounded select-none outline-none focus-visible:ring-2 focus-visible:ring-offset-1 text-center"
     :class="{
-      'cursor-not-allowed': progress > 0 || disabled,
-      'bg-neutral-300 text-neutral-400': progress > 0 || disabled,
-      'bg-neutral-300 text-gray-800 hover:bg-neutral-200 focus:ring-primary-500 active:bg-neutral-400': progress === 0 && !disabled,
+      'cursor-not-allowed bg-primary-300 text-gray-100': progress > 0 || disabled,
+      'text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': progress === 0 && !disabled && active,
+      'bg-none text-primary-600 hover:text-primary-700 active:text-primary-500 hover:bg-neutral-200 active:bg-neutral-300 shadow-sm':
+        progress === 0 && !disabled && !active,
     }"
   >
     <slot />
