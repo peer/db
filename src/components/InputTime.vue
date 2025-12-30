@@ -590,9 +590,9 @@ watch(
         <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
           <div class="relative">
             <ListboxButton
-              class="relative w-full rounded p-2 text-left shadow ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
+              class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
               :class="{
-                '!cursor-not-allowed bg-gray-100 text-gray-800 hover:!ring-neutral-300 focus:!border-primary-300 focus:!ring-primary-300': progress > 0,
+                'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0,
               }"
             >
               <span class="block truncate">
@@ -604,7 +604,7 @@ watch(
               </span>
             </ListboxButton>
 
-            <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded bg-white shadow ring-2 ring-neutral-300 focus:outline-none">
+            <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
               <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
                 <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
                   <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
