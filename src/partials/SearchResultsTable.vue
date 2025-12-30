@@ -262,15 +262,15 @@ function getButtonTitle(resultId: string): string {
                       index + 1
                     }}</RouterLink>
 
-                    <div
+                    <Button
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
                       :title="getButtonTitle(result.id)"
-                      class="h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
+                      class="p-0! border-none! shadow-none!"
                       @click.prevent="toggleRow(result.id)"
                     >
-                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
-                      <ChevronUpDownIcon v-else />
-                    </div>
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
+                      <ChevronUpDownIcon v-else class="h-5 w-5" />
+                    </Button>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2 text-start">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
@@ -288,15 +288,15 @@ function getButtonTitle(resultId: string): string {
                           <ClaimValue :type="filter.type" :claim="claim" />
                         </template>
 
-                        <div
+                        <Button
                           v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
                           :title="getButtonTitle(result.id)"
-                          class="absolute top-2.5 right-0 h-5 w-5 rounded hover:cursor-pointer hover:bg-slate-100 active:bg-slate-200"
+                          class="absolute! top-2.5 right-0 p-0! border-none! shadow-none!"
                           @click.prevent="toggleRow(result.id)"
                         >
-                          <ChevronDownUpIcon v-if="isRowExpanded(result.id)" />
-                          <ChevronUpDownIcon v-else />
-                        </div>
+                          <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
+                          <ChevronUpDownIcon v-else class="h-5 w-5" />
+                        </Button>
 
                         <RouterLink
                           v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
