@@ -257,7 +257,7 @@ function getButtonTitle(resultId: string): string {
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="flex w-full items-center justify-between gap-1 p-2 text-start align-top">
+                  <td class="flex items-center justify-between gap-1 p-2 text-start">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
