@@ -4,6 +4,7 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
+import { LocalScope } from "@allindevelopers/vue-local-scope"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
@@ -277,40 +278,47 @@ function getButtonTitle(resultId: string): string {
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
                     <td v-if="supportedFilter(filter)" class="align-top">
-                      <!--
-                        We have div wrapper so that we can control the height of the row. td elements cannot have height set.
-                        We set min-height to line height + padding.
-                      -->
-                      <div
-                        :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
-                        class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
-                        :class="[isRowExpanded(result.id) ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                      <LocalScope
+                        v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
+                        :row-expanded="isRowExpanded(result.id)"
+                        :cell-truncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                        :cell-expanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
                       >
-                        <div class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
-                          <RouterLink
-                            v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
-                            :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
-                            class="link"
-                          >
-                            <ArrowTopRightOnSquareIcon class="h-5 w-5" />
-                          </RouterLink>
+                        <!--
+                          We have div wrapper so that we can control the height of the row. td elements cannot have height set.
+                          We set min-height to line height + padding.
+                        -->
+                        <div
+                          :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
+                          class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
+                          :class="[rowExpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                        >
+                          <div class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
+                            <RouterLink
+                              v-if="cellTruncated && rowExpanded"
+                              :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                              class="link"
+                            >
+                              <ArrowTopRightOnSquareIcon class="h-5 w-5" />
+                            </RouterLink>
 
-                          <Button
-                            v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
-                            :title="getButtonTitle(result.id)"
-                            class="border-none! p-0! shadow-none!"
-                            @click.prevent="toggleRow(result.id)"
-                          >
-                            <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
-                            <ChevronUpDownIcon v-else class="h-5 w-5" />
-                          </Button>
+                            <Button
+                              v-if="cellExpanded || cellTruncated"
+                              :title="getButtonTitle(result.id)"
+                              class="border-none! p-0! shadow-none!"
+                              @click.prevent="toggleRow(result.id)"
+                            >
+                              <ChevronDownUpIcon v-if="rowExpanded" class="h-5 w-5" />
+                              <ChevronUpDownIcon v-else class="h-5 w-5" />
+                            </Button>
+                          </div>
+
+                          <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
+                            <template v-if="cIndex !== 0">, </template>
+                            <ClaimValue :type="filter.type" :claim="claim" />
+                          </template>
                         </div>
-
-                        <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
-                          <template v-if="cIndex !== 0">, </template>
-                          <ClaimValue :type="filter.type" :claim="claim" />
-                        </template>
-                      </div>
+                      </LocalScope>
                     </td>
                   </template>
                 </tr>

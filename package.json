@@ -31,6 +31,7 @@
     "upgrade": "ncu -u"
   },
   "dependencies": {
+    "@allindevelopers/vue-local-scope": "^0.2.2",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
     "@sidekickicons/vue": "^0.14.0",
