@@ -276,38 +276,41 @@ function getButtonTitle(resultId: string): string {
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
-                    <td class="relative max-w-[400px] truncate p-2 align-top">
+                    <td v-if="supportedFilter(filter)" class="align-top">
                       <!--
-                        Content is wrapped into a div because line-clamp CSS property requires the -webkit-box
-                        display value and cannot be used with the table-cell display value on td.
+                        We have div wrapper so that we can control the height of the row. td elements cannot have height set.
+                        We set min-height to line height + padding.
                       -->
                       <div
-                        v-if="supportedFilter(filter)"
                         :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
-                        :class="[isRowExpanded(result.id) ? 'line-clamp-5 whitespace-normal' : 'truncate whitespace-nowrap', 'pr-4']"
+                        class="max-w-[400px] p-2 min-h-[calc(1lh+var(--spacing)*2)] overscroll-contain"
+                        :class="[isRowExpanded(result.id) ? 'max-h-[300px] overflow-auto' : 'truncate max-h-[calc(1lh+var(--spacing)*2)] overflow-clip']"
                       >
+
+                        <div class="flex gap-1 float-right mt-[calc((1lh-var(--spacing)*5)/2)]">
+                          <RouterLink
+                            v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
+                            :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                            class="link"
+                          >
+                            <ArrowTopRightOnSquareIcon class="h-5 w-5" />
+                          </RouterLink>
+
+                          <Button
+                            v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                            :title="getButtonTitle(result.id)"
+                            class="border-none! p-0! shadow-none!"
+                            @click.prevent="toggleRow(result.id)"
+                          >
+                            <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
+                            <ChevronUpDownIcon v-else class="h-5 w-5" />
+                          </Button>
+                        </div>
+
                         <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
                           <template v-if="cIndex !== 0">, </template>
                           <ClaimValue :type="filter.type" :claim="claim" />
                         </template>
-
-                        <Button
-                          v-if="isCellExpanded(result.id, `${filter.type}/${filter.id}`) || isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
-                          :title="getButtonTitle(result.id)"
-                          class="absolute! top-2.5 right-0 border-none! p-0! shadow-none!"
-                          @click.prevent="toggleRow(result.id)"
-                        >
-                          <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
-                          <ChevronUpDownIcon v-else class="h-5 w-5" />
-                        </Button>
-
-                        <RouterLink
-                          v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
-                          :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
-                          class="link absolute right-0 bottom-2.5"
-                        >
-                          <ArrowTopRightOnSquareIcon class="h-5 w-5 hover:cursor-pointer" />
-                        </RouterLink>
                       </div>
                     </td>
                   </template>
