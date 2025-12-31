@@ -283,11 +283,10 @@ function getButtonTitle(resultId: string): string {
                       -->
                       <div
                         :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
-                        class="max-w-[400px] p-2 min-h-[calc(1lh+var(--spacing)*2)] overscroll-contain"
-                        :class="[isRowExpanded(result.id) ? 'max-h-[300px] overflow-auto' : 'truncate max-h-[calc(1lh+var(--spacing)*2)] overflow-clip']"
+                        class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
+                        :class="[isRowExpanded(result.id) ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                       >
-
-                        <div class="flex gap-1 float-right mt-[calc((1lh-var(--spacing)*5)/2)]">
+                        <div class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
                           <RouterLink
                             v-if="isCellTruncated(result.id, `${filter.type}/${filter.id}`) && isRowExpanded(result.id)"
                             :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
