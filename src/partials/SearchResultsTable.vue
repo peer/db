@@ -278,11 +278,16 @@ function getButtonTitle(resultId: string): string {
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
                     <td v-if="supportedFilter(filter)" class="align-top">
+                      <!--
+                        TODO: Use kebab-case and camelCase as appropriate for rowexpanded, celltruncated, cellexpanded.
+                              Currently we use all-lowercase names because of a limitation in LocalScope.
+                              See: https://github.com/all1ndev/vue-local-scope/issues/3
+                      -->
                       <LocalScope
-                        v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
-                        :row-expanded="isRowExpanded(result.id)"
-                        :cell-truncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
-                        :cell-expanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
+                        v-slot="{ rowexpanded, celltruncated, cellexpanded }"
+                        :rowexpanded="isRowExpanded(result.id)"
+                        :celltruncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                        :cellexpanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
                       >
                         <!--
                           We have div wrapper so that we can control the height of the row. td elements cannot have height set.
@@ -291,11 +296,11 @@ function getButtonTitle(resultId: string): string {
                         <div
                           :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
                           class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
-                          :class="[rowExpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                          :class="[rowexpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
                           <div class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
                             <RouterLink
-                              v-if="cellTruncated && rowExpanded"
+                              v-if="celltruncated && rowexpanded"
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                               class="link"
                             >
@@ -303,12 +308,12 @@ function getButtonTitle(resultId: string): string {
                             </RouterLink>
 
                             <Button
-                              v-if="cellExpanded || cellTruncated"
+                              v-if="cellexpanded || celltruncated"
                               :title="getButtonTitle(result.id)"
                               class="border-none! p-0! shadow-none!"
                               @click.prevent="toggleRow(result.id)"
                             >
-                              <ChevronDownUpIcon v-if="rowExpanded" class="h-5 w-5" />
+                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" />
                               <ChevronUpDownIcon v-else class="h-5 w-5" />
                             </Button>
                           </div>
