@@ -4,6 +4,9 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
 
+import { LocalScope } from "@allindevelopers/vue-local-scope"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
@@ -14,6 +17,7 @@ import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
+import { useTruncationTracking } from "@/truncation.ts"
 import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 
@@ -171,6 +175,38 @@ onBeforeUnmount(() => {
 })
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
+
+const { track: trackTruncation, truncated } = useTruncationTracking()
+
+const expandedRows = ref(new Map<string, Set<string>>())
+
+function isCellTruncated(resultId: string, propertyId: string): boolean {
+  return truncated.value.get(resultId)?.has(propertyId) ?? false
+}
+
+function isRowExpanded(resultId: string): boolean {
+  return expandedRows.value.has(resultId)
+}
+
+function isCellExpanded(resultId: string, propertyId: string): boolean {
+  return expandedRows.value.get(resultId)?.has(propertyId) ?? false
+}
+
+function canRowExpand(resultId: string) {
+  return truncated.value.has(resultId)
+}
+
+function toggleRow(resultId: string) {
+  if (expandedRows.value.has(resultId)) {
+    expandedRows.value.delete(resultId)
+  } else {
+    expandedRows.value.set(resultId, new Set<string>(truncated.value.get(resultId)))
+  }
+}
+
+function getButtonTitle(resultId: string): string {
+  return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
+}
 </script>
 
 <template>
@@ -208,7 +244,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <th v-if="filtersTotal === null" class="p-2 text-start">
               <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
-            <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
+            <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
                 <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
               </th>
@@ -221,21 +257,73 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
+                <tr :id="`result-${result.id}`" :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                  <td class="flex items-center justify-between gap-1 p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
+
+                    <Button
+                      v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
+                      :title="getButtonTitle(result.id)"
+                      class="border-none! p-0! shadow-none!"
+                      @click.prevent="toggleRow(result.id)"
+                    >
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                      <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                    </Button>
                   </td>
-                  <td v-if="filtersTotal === null" class="p-2 text-start">
+                  <td v-if="filtersTotal === null" class="p-2">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]" />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.id">
-                    <td v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                      <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
-                        <template v-if="cIndex !== 0">, </template>
-                        <ClaimValue :type="filter.type" :claim="claim" />
-                      </template>
+                  <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
+                    <td v-if="supportedFilter(filter)" class="align-top">
+                      <!--
+                        TODO: Use kebab-case and camelCase as appropriate for rowexpanded, celltruncated, cellexpanded.
+                              Currently we use all-lowercase names because of a limitation in LocalScope.
+                              See: https://github.com/all1ndev/vue-local-scope/issues/3
+                      -->
+                      <LocalScope
+                        v-slot="{ rowexpanded, celltruncated, cellexpanded }"
+                        :rowexpanded="isRowExpanded(result.id)"
+                        :celltruncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                        :cellexpanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
+                      >
+                        <!--
+                          We have div wrapper so that we can control the height of the row. td elements cannot have height set.
+                          We set min-height to line height + padding.
+                        -->
+                        <div
+                          :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
+                          class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
+                          :class="[rowexpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                        >
+                          <div v-if="(celltruncated && rowexpanded) || cellexpanded || celltruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
+                            <RouterLink
+                              v-if="celltruncated && rowexpanded"
+                              :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                              class="link"
+                            >
+                              <ArrowTopRightOnSquareIcon class="h-5 w-5" />
+                            </RouterLink>
+
+                            <Button
+                              v-if="cellexpanded || celltruncated"
+                              :title="getButtonTitle(result.id)"
+                              class="border-none! p-0! shadow-none!"
+                              @click.prevent="toggleRow(result.id)"
+                            >
+                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                              <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                            </Button>
+                          </div>
+
+                          <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.id)" :key="claim.id">
+                            <template v-if="cIndex !== 0">, </template>
+                            <ClaimValue :type="filter.type" :claim="claim" />
+                          </template>
+                        </div>
+                      </LocalScope>
                     </td>
                   </template>
                 </tr>
@@ -249,12 +337,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   of "at" URL query parameter we do not track loading and error <tr>s.
                 -->
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
+                  <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
-                  <td :colspan="rowColspan" class="p-2 text-start">
+                  <td :colspan="rowColspan" class="p-2">
                     <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
@@ -262,12 +350,12 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ url }">
                 <tr class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
-                  <td class="p-2 text-start">
+                  <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
-                  <td :colspan="rowColspan" class="p-2 text-start">
+                  <td :colspan="rowColspan" class="p-2">
                     <i class="text-error-600">loading data failed</i>
                   </td>
                 </tr>
@@ -278,7 +366,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click="filtersLoadMore"
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore"
           >More columns</Button
         >
       </div>
@@ -291,7 +379,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     -->
     <div class="sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click="searchLoadMore">Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">Load more</Button>
 
         <div v-else class="my-1 sm:my-4">
           <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>

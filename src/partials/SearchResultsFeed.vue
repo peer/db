@@ -177,7 +177,7 @@ function onFilters() {
 
 <template>
   <Teleport to="#navbarsearch-teleport-end">
-    <Button primary class="px-3.5! sm:hidden" type="button" @click="onFilters">
+    <Button primary class="px-3.5! sm:hidden" type="button" @click.prevent="onFilters">
       <FunnelIcon class="h-5 w-5" alt="Filters" />
     </Button>
   </Teleport>
@@ -204,7 +204,7 @@ function onFilters() {
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click="searchLoadMore"
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore"
           >Load more</Button
         >
 
@@ -280,7 +280,7 @@ function onFilters() {
           />
         </template>
 
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click="filtersLoadMore"
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore"
           >More filters</Button
         >
 
