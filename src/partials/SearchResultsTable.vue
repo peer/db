@@ -257,7 +257,7 @@ function getButtonTitle(resultId: string): string {
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <tr :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr :id="`result-${result.id}`" :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url"></tr>
                   <td class="flex items-center justify-between gap-1 p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
@@ -269,8 +269,8 @@ function getButtonTitle(resultId: string): string {
                       class="border-none! p-0! shadow-none!"
                       @click.prevent="toggleRow(result.id)"
                     >
-                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" />
-                      <ChevronUpDownIcon v-else class="h-5 w-5" />
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                      <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                     </Button>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2">
@@ -313,8 +313,8 @@ function getButtonTitle(resultId: string): string {
                               class="border-none! p-0! shadow-none!"
                               @click.prevent="toggleRow(result.id)"
                             >
-                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" />
-                              <ChevronUpDownIcon v-else class="h-5 w-5" />
+                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                              <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                             </Button>
                           </div>
 
