@@ -298,7 +298,7 @@ function getButtonTitle(resultId: string): string {
                           class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
                           :class="[rowexpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
-                          <div class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
+                          <div v-if="(celltruncated && rowexpanded) || cellexpanded || celltruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
                             <RouterLink
                               v-if="celltruncated && rowexpanded"
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
