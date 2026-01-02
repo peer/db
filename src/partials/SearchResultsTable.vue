@@ -154,6 +154,10 @@ const headerAttrs = ref<{ style: { top: string } }>({ style: { top: "-1px" } })
 
 // TODO: Find a better way to get the header to stick to the bottom of the navbar.
 function onScroll() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   const el = document.getElementById("navbar")
   if (!el) {
     return
@@ -196,7 +200,11 @@ function canRowExpand(resultId: string) {
   return truncated.value.has(resultId)
 }
 
-function toggleRow(resultId: string) {
+function onToggleRow(resultId: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   if (expandedRows.value.has(resultId)) {
     expandedRows.value.delete(resultId)
   } else {
@@ -267,7 +275,7 @@ function getButtonTitle(resultId: string): string {
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
                       :title="getButtonTitle(result.id)"
                       class="border-none! p-0! shadow-none!"
-                      @click.prevent="toggleRow(result.id)"
+                      @click.prevent="onToggleRow(result.id)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
                       <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
@@ -311,7 +319,7 @@ function getButtonTitle(resultId: string): string {
                               v-if="cellexpanded || celltruncated"
                               :title="getButtonTitle(result.id)"
                               class="border-none! p-0! shadow-none!"
-                              @click.prevent="toggleRow(result.id)"
+                              @click.prevent="onToggleRow(result.id)"
                             >
                               <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
                               <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
