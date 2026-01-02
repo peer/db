@@ -232,12 +232,20 @@ function getButtonTitle(resultId: string): string {
 const isFilterModalOpen = ref(false)
 const activeFilter = ref<FilterResult | null>(null)
 
-function openFilterModal(filter: FilterResult) {
+function onOpenFilterModal(filter: FilterResult) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   activeFilter.value = filter
   isFilterModalOpen.value = true
 }
 
-function closeFilterModal() {
+function onCloseFilterModal() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   isFilterModalOpen.value = false
   activeFilter.value = null
 }
@@ -283,7 +291,7 @@ function closeFilterModal() {
                 <div class="flex flex-row items-center justify-between">
                   <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
 
-                  <ButtonIcon :active="isFilterActive(filter)" class="ml-2" @click="openFilterModal(filter)">
+                  <ButtonIcon :active="isFilterActive(filter)" class="ml-2" @click="onOpenFilterModal(filter)">
                     <FunnelIcon class="h-5 w-5" />
                   </ButtonIcon>
                 </div>
@@ -437,7 +445,7 @@ function closeFilterModal() {
   </Teleport>
 
   <TransitionRoot appear :show="isFilterModalOpen" as="template">
-    <Dialog as="div" class="relative z-50" @close="closeFilterModal">
+    <Dialog as="div" class="relative z-50" @close="onCloseFilterModal">
       <div class="fixed inset-0 bg-black/30" />
 
       <div class="fixed inset-0 flex items-center justify-center">
@@ -458,7 +466,7 @@ function closeFilterModal() {
           </div>
 
           <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
-            <Button @click="closeFilterModal">Close</Button>
+            <Button @click="onCloseFilterModal">Close</Button>
           </div>
         </DialogPanel>
       </div>
