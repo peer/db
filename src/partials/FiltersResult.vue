@@ -30,6 +30,11 @@ const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
 }>()
 
+// We have to explicitly pass attributes because we use multiple root nodes.
+defineOptions({
+  inheritAttrs: false,
+})
+
 const abortController = new AbortController()
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
@@ -73,6 +78,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :result="filter"
     :state="filtersState.rel[filter.id] ?? []"
     :update-progress="updateSearchSessionProgress"
+    v-bind="$attrs"
     @update:state="onRelFiltersStateUpdate(filter.id, $event)"
   />
 
@@ -83,6 +89,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :result="filter"
     :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
     :update-progress="updateSearchSessionProgress"
+    v-bind="$attrs"
     @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
   />
 
@@ -93,6 +100,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :result="filter"
     :state="filtersState.time[filter.id] ?? null"
     :update-progress="updateSearchSessionProgress"
+    v-bind="$attrs"
     @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
   />
 
@@ -103,6 +111,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :result="filter"
     :state="filtersState.str[filter.id] ?? []"
     :update-progress="updateSearchSessionProgress"
+    v-bind="$attrs"
     @update:state="onStringFiltersStateUpdate(filter.id, $event)"
   />
 </template>
