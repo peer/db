@@ -445,7 +445,7 @@ function onCloseFilterModal() {
   </Teleport>
 
   <!--
-    We make dialog relative with z-50 to make it higher than the navbar and other floating elements.
+    We make the dialog z-50 (and to be able to do so, we have to make it relative) to make it higher than the navbar and other floating elements.
   -->
   <Dialog as="div" class="relative z-50" :open="isFilterModalOpen" @close="onCloseFilterModal">
     <!-- Backdrop. -->
