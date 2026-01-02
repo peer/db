@@ -14,6 +14,8 @@ import type {
   TimeFilterState,
 } from "@/types"
 
+import { onBeforeUnmount } from "vue"
+
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import RelFiltersResult from "@/partials/RelFiltersResult.vue"
 import StringFiltersResult from "@/partials/StringFiltersResult.vue"
@@ -37,6 +39,10 @@ defineOptions({
 })
 
 const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
   if (abortController.signal.aborted) {
