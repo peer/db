@@ -448,7 +448,8 @@ function onCloseFilterModal() {
     We make dialog relative with z-50 to make it higher than the navbar and other floating elements.
   -->
   <Dialog as="div" class="relative z-50" :open="isFilterModalOpen" @close="onCloseFilterModal">
-    <div class="fixed inset-0 bg-black/30" />
+    <!-- Backdrop. -->
+    <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
