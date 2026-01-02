@@ -19,7 +19,7 @@ import StringFiltersResult from "@/partials/StringFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 
 defineProps<{
-  filter: FilterResult
+  result: FilterResult
   searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
   updateSearchSessionProgress: number
@@ -72,46 +72,46 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
 
 <template>
   <RelFiltersResult
-    v-if="filter.type === 'rel'"
+    v-if="result.type === 'rel'"
     :search-session="searchSession"
     :search-total="searchTotal"
-    :result="filter"
-    :state="filtersState.rel[filter.id] ?? []"
+    :result="result"
+    :state="filtersState.rel[result.id] ?? []"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onRelFiltersStateUpdate(filter.id, $event)"
+    @update:state="onRelFiltersStateUpdate(result.id, $event)"
   />
 
   <AmountFiltersResult
-    v-if="filter.type === 'amount'"
+    v-if="result.type === 'amount'"
     :search-session="searchSession"
     :search-total="searchTotal"
-    :result="filter"
-    :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
+    :result="result"
+    :state="filtersState.amount[`${result.id}/${result.unit}`] ?? null"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
+    @update:state="onAmountFiltersStateUpdate(result.id, result.unit, $event)"
   />
 
   <TimeFiltersResult
-    v-if="filter.type === 'time'"
+    v-if="result.type === 'time'"
     :search-session="searchSession"
     :search-total="searchTotal"
-    :result="filter"
-    :state="filtersState.time[filter.id] ?? null"
+    :result="result"
+    :state="filtersState.time[result.id] ?? null"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
+    @update:state="onTimeFiltersStateUpdate(result.id, $event)"
   />
 
   <StringFiltersResult
-    v-if="filter.type === 'string'"
+    v-if="result.type === 'string'"
     :search-session="searchSession"
     :search-total="searchTotal"
-    :result="filter"
-    :state="filtersState.str[filter.id] ?? []"
+    :result="result"
+    :state="filtersState.str[result.id] ?? []"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onStringFiltersStateUpdate(filter.id, $event)"
+    @update:state="onStringFiltersStateUpdate(result.id, $event)"
   />
 </template>

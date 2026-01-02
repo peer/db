@@ -194,7 +194,7 @@ function onFilters() {
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <FiltersResult
-            :filter="filter"
+            :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
             :update-search-session-progress="updateSearchSessionProgress"

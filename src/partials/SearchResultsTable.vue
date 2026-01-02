@@ -450,7 +450,7 @@ function closeFilterModal() {
           <div class="flex-1 overflow-y-auto p-2 sm:p-4">
             <div v-if="activeFilter && searchTotal">
               <FiltersResult
-                :filter="activeFilter"
+                :result="activeFilter"
                 :search-session="searchSession"
                 :search-total="searchTotal"
                 :update-search-session-progress="updateSearchSessionProgress"
