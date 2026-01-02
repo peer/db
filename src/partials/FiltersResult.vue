@@ -3,6 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type {
   AmountFilterState,
+  AmountSearchResult,
   AmountUnit,
   ClientSearchSession,
   FilterResult,
@@ -79,7 +80,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :state="filtersState.rel[result.id] ?? []"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onRelFiltersStateUpdate(result.id, $event)"
+    @update:state="(v) => onRelFiltersStateUpdate(result.id, v)"
   />
 
   <AmountFiltersResult
@@ -90,7 +91,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :state="filtersState.amount[`${result.id}/${result.unit}`] ?? null"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onAmountFiltersStateUpdate(result.id, result.unit, $event)"
+    @update:state="(v) => onAmountFiltersStateUpdate(result.id, (result as AmountSearchResult).unit, v)"
   />
 
   <TimeFiltersResult
@@ -101,7 +102,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :state="filtersState.time[result.id] ?? null"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onTimeFiltersStateUpdate(result.id, $event)"
+    @update:state="(v) => onTimeFiltersStateUpdate(result.id, v)"
   />
 
   <StringFiltersResult
@@ -112,6 +113,6 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :state="filtersState.str[result.id] ?? []"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="onStringFiltersStateUpdate(result.id, $event)"
+    @update:state="(v) => onStringFiltersStateUpdate(result.id, v)"
   />
 </template>
