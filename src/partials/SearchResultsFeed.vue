@@ -200,7 +200,7 @@ function onFilters() {
             :update-search-session-progress="updateSearchSessionProgress"
             :filters-state="filtersState"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-            @filter-change="$emit('filterChange', $event)"
+            @filter-change="(c) => $emit('filterChange', c)"
           />
         </template>
 
