@@ -81,11 +81,6 @@ function supportedFilter(filter: FilterResult) {
   return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
 }
 
-const isFilterActive = computed(() => (filter: FilterResult) => {
-  const filterType = filter.type === "string" ? "str" : filter.type
-  return !!props.filtersState?.[filterType]?.[filter.id]
-})
-
 const rowColspan = computed(() => {
   if (filtersTotal.value === null) {
     return 1
@@ -227,6 +222,11 @@ function onToggleRow(resultId: string) {
 
 function getButtonTitle(resultId: string): string {
   return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
+}
+
+const isFilterActive = (filter: FilterResult) => {
+  const filterType = filter.type === "string" ? "str" : filter.type
+  return !!props.filtersState?.[filterType]?.[filter.id]
 }
 
 const isFilterModalOpen = ref(false)
