@@ -5,7 +5,7 @@ import type { PeerDBDocument } from "@/document.ts"
 import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
-import { Dialog, DialogPanel, TransitionRoot } from "@headlessui/vue"
+import { Dialog, DialogPanel } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
@@ -444,32 +444,30 @@ function onCloseFilterModal() {
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 
-  <TransitionRoot appear :show="isFilterModalOpen" as="template">
-    <Dialog as="div" class="relative z-50" @close="onCloseFilterModal">
-      <div class="fixed inset-0 bg-black/30" />
+  <Dialog as="div" class="relative z-50" :open="isFilterModalOpen" @close="onCloseFilterModal">
+    <div class="fixed inset-0 bg-black/30" />
 
-      <div class="fixed inset-0 flex items-center justify-center">
-        <DialogPanel
-          class="fixed inset-0 flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded sm:shadow-xs"
-        >
-          <div class="flex-1 overflow-y-auto p-2 sm:p-4">
-            <div v-if="activeFilter && searchTotal">
-              <FiltersResult
-                :result="activeFilter"
-                :search-session="searchSession"
-                :search-total="searchTotal"
-                :update-search-session-progress="updateSearchSessionProgress"
-                :filters-state="filtersState"
-                @filter-change="$emit('filterChange', $event)"
-              />
-            </div>
+    <div class="fixed inset-0 flex items-center justify-center">
+      <DialogPanel
+        class="fixed inset-0 flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded sm:shadow-xs"
+      >
+        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+          <div v-if="activeFilter && searchTotal">
+            <FiltersResult
+              :result="activeFilter"
+              :search-session="searchSession"
+              :search-total="searchTotal"
+              :update-search-session-progress="updateSearchSessionProgress"
+              :filters-state="filtersState"
+              @filter-change="$emit('filterChange', $event)"
+            />
           </div>
+        </div>
 
-          <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
-            <Button @click="onCloseFilterModal">Close</Button>
-          </div>
-        </DialogPanel>
-      </div>
-    </Dialog>
-  </TransitionRoot>
+        <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
+          <Button @click="onCloseFilterModal">Close</Button>
+        </div>
+      </DialogPanel>
+    </div>
+  </Dialog>
 </template>
