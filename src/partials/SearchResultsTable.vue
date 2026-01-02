@@ -229,9 +229,6 @@ function getButtonTitle(resultId: string): string {
   return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
 }
 
-// Popover workaround, had to implement teleporting to the body, because table has its own container
-// and popover content was not visible
-
 const isFilterModalOpen = ref(false)
 const activeFilter = ref<FilterResult | null>(null)
 
