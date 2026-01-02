@@ -199,7 +199,7 @@ function onFilters() {
             :search-total="searchTotal"
             :update-search-session-progress="updateSearchSessionProgress"
             :filters-state="filtersState"
-            class="overflow-hidden rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+            class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
             @filter-change="$emit('filterChange', $event)"
           />
         </template>
