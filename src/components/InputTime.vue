@@ -4,7 +4,7 @@ import type { TimePrecision } from "@/types"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, useId, readonly as vueReadonly, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, useId, watch } from "vue"
 
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
@@ -34,7 +34,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const timePrecisionOptions = vueReadonly(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const)
+const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 const precisionLabels: Record<TimePrecision, string> = {
   G: "giga years",
   "100M": "hundred megayears",
