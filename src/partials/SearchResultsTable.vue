@@ -2,23 +2,24 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { PeerDBDocument } from "@/document.ts"
-import type { ClientSearchSession, FilterResult, Result, ViewType } from "@/types"
+import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
-import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { Dialog, DialogPanel } from "@headlessui/vue"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useTruncationTracking } from "@/truncation.ts"
-import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
+import { encodeQuery, getClaimsOfTypeWithConfidence, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 
 const props = defineProps<{
@@ -28,9 +29,14 @@ const props = defineProps<{
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
+  updateSearchSessionProgress: number
+
+  // Filter props.
+  filtersState: FiltersState
 }>()
 
 const $emit = defineEmits<{
+  filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
 }>()
 
@@ -215,6 +221,29 @@ function onToggleRow(resultId: string) {
 function getButtonTitle(resultId: string): string {
   return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
 }
+
+const isFilterActive = (filter: FilterResult) => {
+  const filterType = filter.type === "string" ? "str" : filter.type
+  return !!props.filtersState?.[filterType]?.[filter.id]
+}
+
+const activeFilter = ref<FilterResult | null>(null)
+
+function onOpenFilterModal(filter: FilterResult) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  activeFilter.value = filter
+}
+
+function onCloseFilterModal() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  activeFilter.value = null
+}
 </script>
 
 <template>
@@ -253,8 +282,24 @@ function getButtonTitle(resultId: string): string {
               <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
-              <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
+              <th v-if="supportedFilter(filter)" class="text-start">
+                <!-- <div class="flex flex-row items-center justify-between"> -->
+                <WithPeerDBDocument :id="filter.id" name="DocumentGet">
+                  <template #default="{ doc, url }">
+                    <Button
+                      :data-url="url"
+                      class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none! p-2! leading-none! shadow-none!"
+                      @click.prevent="onOpenFilterModal(filter)"
+                    >
+                      <!-- We need a span to be able to use v-html. -->
+                      <span class="truncate" v-html="getName(doc.claims) || '<i>no name</i>'" />
+                      <FunnelIcon class="h-5 w-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
+                    </Button>
+                  </template>
+                  <template #loading="{ url }">
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
+                  </template>
+                </WithPeerDBDocument>
               </th>
             </template>
           </tr>
@@ -403,4 +448,32 @@ function getButtonTitle(resultId: string): string {
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
+
+  <!--
+    We make the dialog z-50 (and to be able to do so, we have to make it relative) to make it higher than the navbar and other floating elements.
+  -->
+  <Dialog as="div" class="relative z-50" :open="activeFilter !== null && searchTotal !== null" @close="onCloseFilterModal">
+    <!-- Backdrop. -->
+    <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+    <!-- Full-screen container to center the panel. -->
+    <div class="fixed inset-0 flex items-center justify-center">
+      <DialogPanel
+        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
+      >
+        <FiltersResult
+          :result="activeFilter!"
+          :search-session="searchSession"
+          :search-total="searchTotal!"
+          :update-search-session-progress="updateSearchSessionProgress"
+          :filters-state="filtersState"
+          @filter-change="(c) => $emit('filterChange', c)"
+        />
+
+        <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
+          <XMarkIcon class="h-5 w-5" />
+        </Button>
+      </DialogPanel>
+    </div>
+  </Dialog>
 </template>

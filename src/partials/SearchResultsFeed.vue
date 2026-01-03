@@ -1,30 +1,16 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type {
-  AmountFilterState,
-  AmountUnit,
-  ClientSearchSession,
-  FiltersState,
-  FilterStateChange,
-  RelFilterState,
-  Result,
-  StringFilterState,
-  TimeFilterState,
-  ViewType,
-} from "@/types"
+import type { ClientSearchSession, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
-import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
+import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
-import RelFiltersResult from "@/partials/RelFiltersResult.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import StringFiltersResult from "@/partials/StringFiltersResult.vue"
-import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
@@ -134,38 +120,6 @@ function onScrollOrResize() {
   }
 }
 
-function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "rel", id, value })
-}
-
-function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "amount", id, unit, value })
-}
-
-function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "time", id, value })
-}
-
-function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "string", id, value })
-}
-
 function onFilters() {
   if (abortController.signal.aborted) {
     return
@@ -239,44 +193,14 @@ function onFilters() {
         <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
-          <RelFiltersResult
-            v-if="filter.type === 'rel'"
+          <FiltersResult
+            :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.rel[filter.id] ?? []"
-            :update-progress="updateSearchSessionProgress"
-            @update:state="onRelFiltersStateUpdate(filter.id, $event)"
-          />
-
-          <AmountFiltersResult
-            v-if="filter.type === 'amount'"
-            :search-session="searchSession"
-            :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.amount[`${filter.id}/${filter.unit}`] ?? null"
-            :update-progress="updateSearchSessionProgress"
-            @update:state="onAmountFiltersStateUpdate(filter.id, filter.unit, $event)"
-          />
-
-          <TimeFiltersResult
-            v-if="filter.type === 'time'"
-            :search-session="searchSession"
-            :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.time[filter.id] ?? null"
-            :update-progress="updateSearchSessionProgress"
-            @update:state="onTimeFiltersStateUpdate(filter.id, $event)"
-          />
-
-          <StringFiltersResult
-            v-if="filter.type === 'string'"
-            :search-session="searchSession"
-            :search-total="searchTotal"
-            :result="filter"
-            :state="filtersState.str[filter.id] ?? []"
-            :update-progress="updateSearchSessionProgress"
-            @update:state="onStringFiltersStateUpdate(filter.id, $event)"
+            :update-search-session-progress="updateSearchSessionProgress"
+            :filters-state="filtersState"
+            class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+            @filter-change="(c) => $emit('filterChange', c)"
           />
         </template>
 

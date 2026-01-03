@@ -452,6 +452,9 @@ async function onViewChange(view: ViewType) {
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
       :search-progress="searchProgress"
+      :filters-state="filtersState"
+      :update-search-session-progress="updateSearchSessionProgress"
+      @filter-change="onFilterChange"
       @view-change="onViewChange"
     />
   </div>
