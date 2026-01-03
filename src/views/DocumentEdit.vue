@@ -372,78 +372,78 @@ function onChangeTab(index: number) {
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="identifier-property" class="mt-4 mb-1">Property</label>
               <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Value</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="identifier-value" class="mt-4 mb-1">Value</label>
+              <InputText id="identifier-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">IRI</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="reference-property" class="mt-4 mb-1">Property</label>
+              <InputText id="reference-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="reference-value" class="mt-4 mb-1">IRI</label>
+              <InputText id="reference-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Text</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="text-property" class="mt-4 mb-1">Property</label>
+              <InputText id="text-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="text-value" class="mt-4 mb-1">Text</label>
+              <InputText id="text-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">String</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="string-property" class="mt-4 mb-1">Property</label>
+              <InputText id="string-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="string-value" class="mt-4 mb-1">String</label>
+              <InputText id="string-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Amount</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="amount-property" class="mt-4 mb-1">Property</label>
+              <InputText id="amount-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="amount-value" class="mt-4 mb-1">Amount</label>
+              <InputText id="amount-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Lower</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Upper</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="amountRange-property" class="mt-4 mb-1">Property</label>
+              <InputText id="amountRange-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="amountRange-lower" class="mt-4 mb-1">Lower</label>
+              <InputText id="amountRange-lower" class="min-w-0 flex-auto flex-grow" />
+              <label for="amountRange-upper" class="mt-4 mb-1">Upper</label>
+              <InputText id="amountRange-upper" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">To</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="relation-property" class="mt-4 mb-1">Property</label>
+              <InputText id="relation-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="relation-value" class="mt-4 mb-1">To</label>
+              <InputText id="relation-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Media type</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">URL</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Preview URL</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="file-property" class="mt-4 mb-1">Property</label>
+              <InputText id="file-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="file-mediaType" class="mt-4 mb-1">Media type</label>
+              <InputText id="file-mediaType" class="min-w-0 flex-auto flex-grow" />
+              <label for="file-url" class="mt-4 mb-1">URL</label>
+              <InputText id="file-url" class="min-w-0 flex-auto flex-grow" />
+              <label for="file-preview" class="mt-4 mb-1">Preview URL</label>
+              <InputText id="file-preview" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="none-property" class="mt-4 mb-1">Property</label>
+              <InputText id="none-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="unknown-property" class="mt-4 mb-1">Property</label>
+              <InputText id="unknown-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Timestamp</label>
-              <InputText id="identifier-property" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
+              <label for="time-property" class="mt-4 mb-1">Property</label>
+              <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto flex-grow" />
+              <label for="time-value" class="mt-4 mb-1">Timestamp</label>
+              <InputText id="time-value" v-model="claimValue" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Lower</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
-              <label for="identifier-property" class="mt-4 mb-1">Upper</label>
-              <InputText id="identifier-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="timeRange-property" class="mt-4 mb-1">Property</label>
+              <InputText id="timeRange-property" class="min-w-0 flex-auto flex-grow" />
+              <label for="timeRange-lower" class="mt-4 mb-1">Lower</label>
+              <InputText id="timeRange-lower" class="min-w-0 flex-auto flex-grow" />
+              <label for="timeRange-upper" class="mt-4 mb-1">Upper</label>
+              <InputText id="timeRange-upper" class="min-w-0 flex-auto flex-grow" />
             </TabPanel>
           </TabPanels>
         </TabGroup>
