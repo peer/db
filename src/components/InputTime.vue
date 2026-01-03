@@ -4,7 +4,7 @@ import type { TimePrecision } from "@/types"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, readonly as vueReadonly, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, useId, readonly as vueReadonly, watch } from "vue"
 
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
@@ -33,8 +33,6 @@ const precision = defineModel<TimePrecision>("precision", { default: "y" })
 defineOptions({
   inheritAttrs: false,
 })
-
-const attrs = useAttrs()
 
 const timePrecisionOptions = vueReadonly(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const)
 const precisionLabels: Record<TimePrecision, string> = {
@@ -76,11 +74,13 @@ const errorMessage = ref("")
 
 const isInvalid = computed(() => props.invalid || isTimeInvalid.value)
 
+const attrs = useAttrs()
+
 const inputId = computed(() => {
-  return typeof attrs.id === "string" ? attrs.id : "timestamp-input"
+  return typeof attrs.id === "string" ? attrs.id : useId()
 })
 
-const precisionId = computed(() => `${inputId.value}-precision`)
+const precisionId = useId()
 
 const timePrecisionWithMax = computed(() => {
   const reversed = timePrecisionOptions.toReversed()
