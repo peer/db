@@ -13,16 +13,12 @@ const DEBOUNCE_MS = 2000
 
 const props = withDefaults(
   defineProps<{
-    modelValue?: string
-    precision?: TimePrecision
     progress?: number
     readonly?: boolean
     invalid?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
-    modelValue: "",
-    precision: "y",
     progress: 0,
     readonly: false,
     invalid: false,
@@ -30,10 +26,8 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits<{
-  "update:modelValue": [value: string]
-  "update:precision": [value: TimePrecision]
-}>()
+const model = defineModel<string>({ default: "" })
+const precision = defineModel<TimePrecision>("precision", { default: "y" })
 
 // We want all fallthrough attributes to be passed to the main input element.
 defineOptions({
@@ -97,7 +91,7 @@ const timePrecisionWithMax = computed(() => {
   return reversed.slice(0, maxPrecision + 1)
 })
 
-const displayValue = ref(props.modelValue ?? "")
+const displayValue = ref(model.value)
 
 const value = computed({
   get() {
@@ -109,8 +103,8 @@ const value = computed({
 })
 
 onBeforeMount(() => {
-  timePrecision.value = props.precision
-  displayValue.value = props.modelValue ?? ""
+  timePrecision.value = precision.value
+  displayValue.value = model.value
 })
 
 onMounted(async () => {
@@ -135,7 +129,7 @@ onMounted(async () => {
 })
 
 watch(
-  () => props.modelValue,
+  () => model.value,
   (v) => {
     // If parent updates modelValue externally, reflect it unless user is actively editing.
     if (!isEditing.value) displayValue.value = v ?? ""
@@ -468,7 +462,7 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
 
 function emitCanonicalFromDisplay(): void {
   if (!displayValue.value) {
-    emit("update:modelValue", "")
+    model.value = ""
     return
   }
 
@@ -485,8 +479,8 @@ function emitCanonicalFromDisplay(): void {
   const inferredPrecision = inferPrecisionFromNormalized(cleaned)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
-  if (canonical && canonical !== (props.modelValue ?? "")) {
-    emit("update:modelValue", canonical)
+  if (canonical && canonical !== model.value) {
+    model.value = canonical
   }
 }
 
@@ -501,7 +495,7 @@ function autoAdaptPrecisionFromDisplay(): void {
   const inferred = inferPrecisionFromNormalized(cleaned)
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
-    emit("update:precision", inferred)
+    precision.value = inferred
   }
 }
 
@@ -539,7 +533,7 @@ function onPrecisionSelected(p: TimePrecision) {
   isTimeInvalid.value = validationErrorMessage !== ""
   errorMessage.value = validationErrorMessage
 
-  emit("update:precision", p)
+  precision.value = p
 
   if (validationErrorMessage) return
 
@@ -547,11 +541,11 @@ function onPrecisionSelected(p: TimePrecision) {
   const next = applyPrecision(struct, p)
 
   displayValue.value = next
-  emit("update:modelValue", next)
+  model.value = next
 }
 
 watch(
-  () => props.precision,
+  () => precision.value,
   (p) => {
     if (p && p !== timePrecision.value) timePrecision.value = p
   },
