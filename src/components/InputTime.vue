@@ -134,7 +134,7 @@ function normalizeForParsing(raw: string): string {
 
   // Normalize any date-whitespace-time boundary to 'T' before stripping whitespace.
   // Example: "2023-1-1    2:3" => "2023-1-1T2:3"
-  r = r.replace(/(-?\d+)-(\d{1,2})-(\d{1,2})\s+([0-9])/g, "$1-$2-$3T$4")
+  r = r.replace(/(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g, "$1-$2-$3T$4")
 
   // Normalize lowercase 't' to 'T'
   r = r.replace(/t/g, "T")
