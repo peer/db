@@ -58,10 +58,9 @@ const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((
 const timePrecision = ref<TimePrecision>("y")
 
 const isEditing = ref(false)
-const isTimeInvalid = ref(false)
 const errorMessage = ref("")
 
-const isInvalid = computed(() => props.invalid || isTimeInvalid.value)
+const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
 
 const attrs = useAttrs()
 
@@ -459,7 +458,6 @@ function emitCanonicalFromDisplay(): void {
   const cleaned = cleanInputNormalized(normalized)
 
   const validationErrorMessage = progressiveValidate(cleaned)
-  isTimeInvalid.value = validationErrorMessage !== ""
   errorMessage.value = validationErrorMessage
 
   if (validationErrorMessage) return
@@ -519,7 +517,6 @@ function onPrecisionSelected(p: TimePrecision) {
   const cleaned = cleanInputNormalized(normalized)
 
   const validationErrorMessage = progressiveValidate(cleaned)
-  isTimeInvalid.value = validationErrorMessage !== ""
   errorMessage.value = validationErrorMessage
 
   precision.value = p
