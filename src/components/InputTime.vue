@@ -562,9 +562,7 @@ watch(
   <div class="flex w-full flex-col gap-1">
     <div class="flex w-full gap-2">
       <div class="flex w-full flex-col gap-1">
-        <slot name="timestamp-label" :for="inputId">
-          <label :for="inputId" class="mt-4 mb-1"> Timestamp </label>
-        </slot>
+        <label :for="inputId" class="mt-4 mb-1"><slot name="timestamp-label">Timestamp</slot></label>
 
         <InputText
           :id="inputId"
@@ -583,9 +581,7 @@ watch(
       </div>
 
       <div v-if="!readonly" class="flex flex-col gap-1">
-        <slot name="precision-label" :for="precisionId">
-          <label :for="precisionId" class="mt-4 mb-1"> Precision </label>
-        </slot>
+        <label :for="precisionId" class="mt-4 mb-1"><slot name="precision-label">Precision</slot></label>
 
         <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
           <div class="relative">
