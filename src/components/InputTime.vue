@@ -569,66 +569,64 @@ watch(
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-1">
-    <div class="flex w-full gap-2">
-      <div class="flex w-full flex-col gap-1">
-        <label :for="inputId" class="mt-4 mb-1"><slot name="timestamp-label">Timestamp</slot></label>
+  <div class="flex w-full gap-2">
+    <div class="flex w-full flex-col gap-1">
+      <label :for="inputId" class="mt-4 mb-1"><slot name="timestamp-label">Timestamp</slot></label>
 
-        <InputText
-          :id="inputId"
-          v-model="value"
-          v-bind="$attrs"
-          :spellcheck="false"
-          :readonly="readonly"
-          :invalid="isInvalid"
-          :progress="progress"
-          class="w-full"
-          @focus="onFocus"
-          @blur="onBlur"
-          @keydown="onKeydown"
-          @input="onInput"
-        />
-      </div>
-
-      <div v-if="!readonly" class="flex flex-col gap-1">
-        <label :for="precisionId" class="mt-4 mb-1"><slot name="precision-label">Precision</slot></label>
-
-        <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
-          <div class="relative">
-            <ListboxButton
-              class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
-              :class="{
-                'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0,
-              }"
-            >
-              <span class="block truncate">
-                {{ precisionLabel(timePrecision) }}
-              </span>
-
-              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
-              </span>
-            </ListboxButton>
-
-            <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
-              <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
-                <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
-                  <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
-                    {{ precisionLabel(tp) }}
-                  </span>
-
-                  <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
-                    <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                  </span>
-                </li>
-              </ListboxOption>
-            </ListboxOptions>
-          </div>
-        </Listbox>
-      </div>
+      <InputText
+        :id="inputId"
+        v-model="value"
+        v-bind="$attrs"
+        :spellcheck="false"
+        :readonly="readonly"
+        :invalid="isInvalid"
+        :progress="progress"
+        class="w-full"
+        @focus="onFocus"
+        @blur="onBlur"
+        @keydown="onKeydown"
+        @input="onInput"
+      />
     </div>
 
-    <p v-if="errorMessage" class="text-sm text-error-600">{{ errorMessage }}</p>
-    <p v-else class="text-sm text-slate-500">Format: YYYY-MM-DD HH:MM:SS</p>
+    <div v-if="!readonly" class="flex flex-col gap-1">
+      <label :for="precisionId" class="mt-4 mb-1"><slot name="precision-label">Precision</slot></label>
+
+      <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
+        <div class="relative">
+          <ListboxButton
+            class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
+            :class="{
+              'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0,
+            }"
+          >
+            <span class="block truncate">
+              {{ precisionLabel(timePrecision) }}
+            </span>
+
+            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+              <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
+            </span>
+          </ListboxButton>
+
+          <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
+            <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
+              <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
+                <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
+                  {{ precisionLabel(tp) }}
+                </span>
+
+                <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
+                  <CheckIcon class="h-5 w-5" aria-hidden="true" />
+                </span>
+              </li>
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
+    </div>
   </div>
+
+  <div v-if="errorMessage" class="text-sm text-error-600 mt-1">{{ errorMessage }}</div>
+  <div v-else class="text-sm text-slate-500 mt-1">Format: YYYY-MM-DD HH:MM:SS</div>
 </template>
