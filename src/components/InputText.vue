@@ -37,7 +37,7 @@ const model = defineModel<string>({ default: "" })
       'bg-white': !invalid && progress === 0 && !readonly,
       'bg-error-50': invalid,
       'text-gray-800': progress > 0 || readonly,
-      'hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': progress > 0 || readonly,
+      'hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
       'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
     }"
   />

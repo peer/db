@@ -38,8 +38,11 @@ border with "border-none".
       'text-left outline-none': true, // Override default @tailwindcss/forms style.
       'rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2': true, // InputText.vue style.
       'cursor-not-allowed': disabled, // InputText.vue readonly style.
-      'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': disabled, // InputText.vue readonly style.
-      'bg-white hover:ring-neutral-400 focus:ring-primary-500': !disabled, // InputText.vue non-readonly style.
+      'bg-gray-100': disabled, // InputText.vue readonly style.
+      'bg-white': !disabled, // InputText.vue non-readonly style.
+      'text-gray-800': disabled, // InputText.vue readonly style.
+      'hover:ring-neutral-300 focus:ring-primary-300': disabled, // InputText.vue readonly style.
+      'hover:ring-neutral-400 focus:ring-primary-500': !disabled, // InputText.vue non-readonly style.
     }"
   >
     <slot />
