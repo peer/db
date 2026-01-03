@@ -229,7 +229,6 @@ const isFilterActive = (filter: FilterResult) => {
   return !!props.filtersState?.[filterType]?.[filter.id]
 }
 
-const isFilterModalOpen = ref(false)
 const activeFilter = ref<FilterResult | null>(null)
 
 function onOpenFilterModal(filter: FilterResult) {
@@ -238,7 +237,6 @@ function onOpenFilterModal(filter: FilterResult) {
   }
 
   activeFilter.value = filter
-  isFilterModalOpen.value = true
 }
 
 function onCloseFilterModal() {
@@ -246,7 +244,6 @@ function onCloseFilterModal() {
     return
   }
 
-  isFilterModalOpen.value = false
   activeFilter.value = null
 }
 </script>
@@ -447,7 +444,7 @@ function onCloseFilterModal() {
   <!--
     We make the dialog z-50 (and to be able to do so, we have to make it relative) to make it higher than the navbar and other floating elements.
   -->
-  <Dialog as="div" class="relative z-50" :open="isFilterModalOpen" @close="onCloseFilterModal">
+  <Dialog as="div" class="relative z-50" :open="activeFilter !== null && searchTotal !== null" @close="onCloseFilterModal">
     <!-- Backdrop. -->
     <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
@@ -457,16 +454,14 @@ function onCloseFilterModal() {
         class="flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:shadow-sm"
       >
         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
-          <div v-if="activeFilter && searchTotal">
-            <FiltersResult
-              :result="activeFilter"
-              :search-session="searchSession"
-              :search-total="searchTotal"
-              :update-search-session-progress="updateSearchSessionProgress"
-              :filters-state="filtersState"
-              @filter-change="$emit('filterChange', $event)"
-            />
-          </div>
+          <FiltersResult
+            :result="activeFilter!"
+            :search-session="searchSession"
+            :search-total="searchTotal!"
+            :update-search-session-progress="updateSearchSessionProgress"
+            :filters-state="filtersState"
+            @filter-change="$emit('filterChange', $event)"
+          />
         </div>
 
         <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
