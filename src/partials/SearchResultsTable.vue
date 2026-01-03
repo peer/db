@@ -11,17 +11,15 @@ import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
 import Button from "@/components/Button.vue"
-import ButtonIcon from "@/components/ButtonIcon.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress.ts"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
 import { useTruncationTracking } from "@/truncation.ts"
-import { encodeQuery, getClaimsOfTypeWithConfidence, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
+import { encodeQuery, getClaimsOfTypeWithConfidence, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
 import { useVisibilityTracking } from "@/visibility.ts"
 
 const props = defineProps<{
@@ -284,14 +282,20 @@ function onCloseFilterModal() {
               <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
-              <th v-if="supportedFilter(filter)" class="max-w-[400px] truncate p-2 text-start">
-                <div class="flex flex-row items-center justify-between">
-                  <DocumentRefInline :id="filter.id" class="text-lg leading-none" />
-
-                  <ButtonIcon :active="isFilterActive(filter)" class="ml-2" @click="onOpenFilterModal(filter)">
-                    <FunnelIcon class="h-5 w-5" />
-                  </ButtonIcon>
-                </div>
+              <th v-if="supportedFilter(filter)" class="text-start">
+                <!-- <div class="flex flex-row items-center justify-between"> -->
+                <WithPeerDBDocument :id="filter.id" name="DocumentGet">
+                  <template #default="{ doc, url }">
+                    <Button :data-url="url" class="flex flex-row items-center justify-between gap-x-1 border-none! p-2! shadow-none! max-w-[400px] truncate w-full leading-none!" @click.prevent="onOpenFilterModal(filter)">
+                      <!-- We need a span to be able to use v-html. -->
+                      <span v-html="getName(doc.claims) || '<i>no name</i>'" />
+                      <FunnelIcon class="h-5 w-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
+                    </Button>
+                  </template>
+                  <template #loading="{ url }">
+                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
+                  </template>
+                </WithPeerDBDocument>
               </th>
             </template>
           </tr>
@@ -462,7 +466,7 @@ function onCloseFilterModal() {
           @filter-change="(c) => $emit('filterChange', c)"
         />
 
-        <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" @click="onCloseFilterModal" title="Close">
+        <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
           <XMarkIcon class="h-5 w-5" />
         </Button>
       </DialogPanel>
