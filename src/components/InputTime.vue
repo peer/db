@@ -35,7 +35,7 @@ const emit = defineEmits<{
   "update:precision": [value: TimePrecision]
 }>()
 
-// We want all fallthrough attributes to be passed to the link element.
+// We want all fallthrough attributes to be passed to the main input element.
 defineOptions({
   inheritAttrs: false,
 })
