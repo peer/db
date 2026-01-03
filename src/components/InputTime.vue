@@ -362,8 +362,8 @@ function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
   const pr = PRECISION_RANK.get(p)
   const mr = PRECISION_RANK.get(max)
 
-  if (pr == null) throw new Error(`[TimeInput] Unknown precision: ${String(p)}`)
-  if (mr == null) throw new Error(`[TimeInput] Unknown maxPrecision: ${String(max)}`)
+  if (pr == null) throw new Error(`unknown precision: ${p}`)
+  if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
 
   return pr < mr ? max : p
 }
