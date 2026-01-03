@@ -4,7 +4,7 @@ import type { TimePrecision } from "@/types"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useAttrs, useId, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
 
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
@@ -68,12 +68,7 @@ const errorMessage = ref("")
 
 const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
 
-const attrs = useAttrs()
-
-const inputId = computed(() => {
-  return typeof attrs.id === "string" ? attrs.id : useId()
-})
-
+const inputId = useId()
 const precisionId = useId()
 
 const timePrecisionWithMax = computed(() => {
@@ -569,21 +564,19 @@ watch(
 </script>
 
 <template>
-  <div class="flex w-full gap-2">
-    <div class="flex w-full flex-col gap-1">
-      <label :for="inputId" class="mt-4 mb-1"><slot name="timestamp-label">Timestamp</slot></label>
+  <div class="mt-4 flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
+    <div class="flex grow flex-col">
+      <label :for="inputId" class="mb-1"><slot name="timestamp-label">Timestamp</slot></label>
 
       <InputText
         :id="inputId"
         v-model="value"
-        v-bind="$attrs"
         spellcheck="false"
         autocorrect="off"
         autocapitalize="none"
         :readonly="readonly"
         :invalid="isInvalid"
         :progress="progress"
-        class="w-full"
         @focus="onFocus"
         @blur="onBlur"
         @keydown="onKeydown"
@@ -591,8 +584,8 @@ watch(
       />
     </div>
 
-    <div v-if="!readonly" class="flex flex-col gap-1">
-      <label :for="precisionId" class="mt-4 mb-1"><slot name="precision-label">Precision</slot></label>
+    <div v-if="!readonly" class="flex flex-col">
+      <label :for="precisionId" class="mb-1"><slot name="precision-label">Precision</slot></label>
 
       <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
         <div class="relative">
