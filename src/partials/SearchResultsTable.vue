@@ -6,7 +6,7 @@ import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
 import { Dialog, DialogPanel } from "@headlessui/vue"
-import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
 
@@ -451,22 +451,20 @@ function onCloseFilterModal() {
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
-        class="flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:shadow-sm"
+        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
       >
-        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
-          <FiltersResult
-            :result="activeFilter!"
-            :search-session="searchSession"
-            :search-total="searchTotal!"
-            :update-search-session-progress="updateSearchSessionProgress"
-            :filters-state="filtersState"
-            @filter-change="(c) => $emit('filterChange', c)"
-          />
-        </div>
+        <FiltersResult
+          :result="activeFilter!"
+          :search-session="searchSession"
+          :search-total="searchTotal!"
+          :update-search-session-progress="updateSearchSessionProgress"
+          :filters-state="filtersState"
+          @filter-change="(c) => $emit('filterChange', c)"
+        />
 
-        <div class="flex shrink-0 justify-end border-t border-gray-200 p-2 sm:p-4">
-          <Button @click="onCloseFilterModal">Close</Button>
-        </div>
+        <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" @click="onCloseFilterModal" title="Close">
+          <XMarkIcon class="h-5 w-5" />
+        </Button>
       </DialogPanel>
     </div>
   </Dialog>
