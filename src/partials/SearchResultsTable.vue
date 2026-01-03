@@ -460,7 +460,7 @@ function onCloseFilterModal() {
             :search-total="searchTotal!"
             :update-search-session-progress="updateSearchSessionProgress"
             :filters-state="filtersState"
-            @filter-change="$emit('filterChange', $event)"
+            @filter-change="(c) => $emit('filterChange', c)"
           />
         </div>
 
