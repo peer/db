@@ -101,26 +101,26 @@ onMounted(async () => {
 
   // We want to validate and emit the canonical value on mount.
   // However, we must not overwrite the text shown in the input.
-  // The props->display watcher only syncs when isEditing is false, so we temporarily
+  // The model->display watcher only syncs when isEditing is false, so we temporarily
   // mark the component as "editing" to block that sync during this initial emit.
   isEditing.value = true
 
   // Update the precision based on the initial text
-  // and emit the canonical modelValue.
+  // and emit the canonical model value.
   autoAdaptPrecisionFromDisplay()
   emitCanonicalFromDisplay()
 
-  // Wait one tick so the parent can process the emitted update and push the new prop back.
+  // Wait one tick so the parent can process the emitted update and push the new model back.
   await nextTick()
 
-  // Re-enable normal props->display syncing for future external updates.
+  // Re-enable normal model->display syncing for future external updates.
   isEditing.value = false
 })
 
 watch(
   () => model.value,
   (v) => {
-    // If parent updates modelValue externally, reflect it unless user is actively editing.
+    // If parent updates model value externally, reflect it unless user is actively editing.
     if (!isEditing.value) displayValue.value = v ?? ""
   },
 )
