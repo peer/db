@@ -410,12 +410,12 @@ function formatYear(year: number): string {
   return sign + String(abs).padStart(4, "0")
 }
 
+function roundDown(value: number, factor: number) {
+  return Math.floor(value / factor) * factor
+}
+
 function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
   const year = parseInt(timeStruct.y || "0000", 10)
-
-  function roundDown(value: number, factor: number) {
-    return Math.floor(value / factor) * factor
-  }
 
   switch (precision) {
     case "G":
