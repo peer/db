@@ -165,8 +165,8 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchSession !== null" class="flex flex-grow gap-x-1 sm:gap-x-4">
-        <InputTextLink class="max-w-xl flex-grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
+      <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
+        <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
           {{ searchSession.query }}
         </InputTextLink>
         <div class="grid grid-cols-2 gap-x-1">

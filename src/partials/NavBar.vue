@@ -22,7 +22,7 @@ const mainProgress = injectMainProgress()
     <div
       id="navbar"
       ref="navbar"
-      class="w-container left-0 flex min-h-12 flex-grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
+      class="w-container left-0 flex min-h-12 grow gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4 sm:pl-0"
       v-bind="navbarAttrs"
     >
       <RouterLink
