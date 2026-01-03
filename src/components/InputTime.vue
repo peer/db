@@ -9,10 +9,7 @@ import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, readonly a
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
 
-// We want all fallthrough attributes to be passed to the link element.
-defineOptions({
-  inheritAttrs: false,
-})
+const DEBOUNCE_MS = 2000
 
 const props = withDefaults(
   defineProps<{
@@ -38,9 +35,12 @@ const emit = defineEmits<{
   "update:precision": [value: TimePrecision]
 }>()
 
-const attrs = useAttrs()
+// We want all fallthrough attributes to be passed to the link element.
+defineOptions({
+  inheritAttrs: false,
+})
 
-const DEBOUNCE_MS = 2000
+const attrs = useAttrs()
 
 const timePrecisionOptions = vueReadonly(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const)
 const precisionLabels: Record<TimePrecision, string> = {
