@@ -14,18 +14,18 @@ const DEBOUNCE_MS = 2000
 const props = withDefaults(
   defineProps<{
     modelValue?: string
-    readonly?: boolean
-    invalid?: boolean
     precision?: TimePrecision
     progress?: number
+    readonly?: boolean
+    invalid?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
     modelValue: "",
-    readonly: false,
-    invalid: false,
     precision: "y",
     progress: 0,
+    readonly: false,
+    invalid: false,
     maxPrecision: "G",
   },
 )
