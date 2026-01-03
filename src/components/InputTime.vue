@@ -629,6 +629,6 @@ watch(
     </div>
 
     <p v-if="errorMessage" class="text-sm text-error-600">{{ errorMessage }}</p>
-    <p v-else class="text-sm text-slate-500">Hint: (-)YYYY...-MM-DD HH:MM:SS</p>
+    <p v-else class="text-sm text-slate-500">Format: YYYY-MM-DD HH:MM:SS</p>
   </div>
 </template>
