@@ -53,18 +53,7 @@ const precisionLabels: Record<TimePrecision, string> = {
   s: "seconds",
 }
 
-const ALLOWED_TYPES = new Set(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y"])
 const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
-
-watch(
-  () => props.maxPrecision,
-  (v) => {
-    if (!ALLOWED_TYPES.has(v)) {
-      throw new Error(`[InputText] Invalid prop "type": "${v}". Allowed: ${[...ALLOWED_TYPES].join(", ")}.`)
-    }
-  },
-  { immediate: true },
-)
 
 const timePrecision = ref<TimePrecision>("y")
 
