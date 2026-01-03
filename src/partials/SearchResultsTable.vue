@@ -286,9 +286,13 @@ function onCloseFilterModal() {
                 <!-- <div class="flex flex-row items-center justify-between"> -->
                 <WithPeerDBDocument :id="filter.id" name="DocumentGet">
                   <template #default="{ doc, url }">
-                    <Button :data-url="url" class="flex flex-row items-center justify-between gap-x-1 border-none! p-2! shadow-none! max-w-[400px] truncate w-full leading-none!" @click.prevent="onOpenFilterModal(filter)">
+                    <Button
+                      :data-url="url"
+                      class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none! p-2! leading-none! shadow-none!"
+                      @click.prevent="onOpenFilterModal(filter)"
+                    >
                       <!-- We need a span to be able to use v-html. -->
-                      <span v-html="getName(doc.claims) || '<i>no name</i>'" />
+                      <span class="truncate" v-html="getName(doc.claims) || '<i>no name</i>'" />
                       <FunnelIcon class="h-5 w-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>
