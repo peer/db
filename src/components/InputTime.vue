@@ -4,7 +4,7 @@ import type { TimePrecision } from "@/types"
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onMounted, ref, useAttrs, useId, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useAttrs, useId, watch } from "vue"
 
 import InputText from "@/components/InputText.vue"
 import { daysIn } from "@/time.ts"
@@ -32,6 +32,12 @@ const precision = defineModel<TimePrecision>("precision", { default: "y" })
 // We want all fallthrough attributes to be passed to the main input element.
 defineOptions({
   inheritAttrs: false,
+})
+
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
 })
 
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
@@ -487,31 +493,55 @@ function autoAdaptPrecisionFromDisplay(): void {
 }
 
 const emitCanonicalDebounce = debounce(() => {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   emitCanonicalFromDisplay()
 }, DEBOUNCE_MS)
 
 function onKeydown() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   errorMessage.value = ""
   emitCanonicalDebounce.cancel()
 }
 
 function onInput() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   // While user types: precision adapts, but text in the input never changes.
   autoAdaptPrecisionFromDisplay()
   emitCanonicalDebounce()
 }
 
 function onFocus() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   isEditing.value = true
 }
 
 function onBlur() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   isEditing.value = false
   emitCanonicalDebounce.cancel()
   emitCanonicalFromDisplay()
 }
 
 function onPrecisionSelected(p: TimePrecision) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
   // v-model will already update timePrecision, but we treat this as a manual intent.
   const normalized = normalizeForParsing(displayValue.value)
   const cleaned = cleanInputNormalized(normalized)
