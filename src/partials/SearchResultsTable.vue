@@ -454,7 +454,7 @@ function onCloseFilterModal() {
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
-        class="flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded sm:shadow-xs"
+        class="flex h-full w-full flex-col rounded-none bg-white shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:shadow-sm"
       >
         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
           <div v-if="activeFilter && searchTotal">
