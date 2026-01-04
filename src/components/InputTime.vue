@@ -362,21 +362,22 @@ function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision 
 }
 
 function inferPrecisionFromNormalized(normalized: string): TimePrecision {
-  const inferred = matchToSecond(normalized)
-    ? "s"
-    : matchToMinute(normalized)
-      ? "min"
-      : matchToHour(normalized)
-        ? "h"
-        : matchToDay(normalized)
-          ? "d"
-          : matchToMonth(normalized)
-            ? "m"
-            : (() => {
-                const y = matchToYear(normalized)
-                if (y) return inferYearPrecision(y[1], props.maxPrecision)
-                return timePrecision.value
-              })()
+  let inferred: TimePrecision
+
+  if (matchToSecond(normalized)) {
+    inferred = "s"
+  } else if (matchToMinute(normalized)) {
+    inferred = "min"
+  } else if (matchToHour(normalized)) {
+    inferred = "h"
+  } else if (matchToDay(normalized)) {
+    inferred = "d"
+  } else if (matchToMonth(normalized)) {
+    inferred = "m"
+  } else {
+    const y = matchToYear(normalized)
+    inferred = y ? inferYearPrecision(y[1], props.maxPrecision) : timePrecision.value
+  }
 
   return clampToMax(inferred, props.maxPrecision as TimePrecision)
 }
