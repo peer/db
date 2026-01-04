@@ -608,13 +608,11 @@ watch(
         <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
           <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="cursor-pointer">
             <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
-              <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
-                {{ precisionLabel(tp) }}
-              </span>
+              <div :class="[selected ? 'font-medium' : 'font-normal', 'truncate']">{{ precisionLabel(tp) }}</div>
 
-              <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
+              <div v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
                 <CheckIcon class="h-5 w-5" aria-hidden="true" />
-              </span>
+              </div>
             </li>
           </ListboxOption>
         </ListboxOptions>
