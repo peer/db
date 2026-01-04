@@ -605,8 +605,8 @@ watch(
           </div>
         </ListboxButton>
 
-        <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
-          <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
+        <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
+          <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="cursor-pointer">
             <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
               <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
                 {{ precisionLabel(tp) }}
