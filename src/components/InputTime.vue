@@ -309,8 +309,6 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
     return timeStruct
   }
 
-  console.log(1, timeStruct)
-
   return timeStruct
 }
 
@@ -319,19 +317,21 @@ function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision 
   const abs = Math.abs(year)
 
   const candidates: Array<[TimePrecision, number]> = [
-    ["G", 1_000_000_000],
-    ["100M", 100_000_000],
-    ["10M", 10_000_000],
-    ["M", 1_000_000],
-    ["100k", 100_000],
-    ["10k", 10_000],
-    ["k", 1_000],
-    ["100y", 100],
-    ["10y", 10],
+    ["G", 1_000_000_000 * 1000],
+    ["100M", 100_000_000 * 1000],
+    ["10M", 10_000_000 * 1000],
+    ["M", 1_000_000 * 1000],
+    ["100k", 100_000 * 1000],
+    ["10k", 10_000 * 1000],
+    ["k", 1_000 * 1000],
+    ["100y", 100 * 1000],
+    ["10y", 10 * 1000],
   ]
 
   for (const [p, factor] of candidates) {
-    if (abs >= factor && year % factor === 0) return clampToMax(p, max)
+    if (abs >= factor && year % factor === 0) {
+      return clampToMax(p, max)
+    }
   }
 
   return clampToMax("y", max)
@@ -480,6 +480,7 @@ function autoAdaptPrecisionFromDisplay(): void {
   if (validationErrorMessage && validationErrorMessage !== "") return
 
   const inferred = inferPrecisionFromNormalized(cleaned)
+
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
     precision.value = inferred
