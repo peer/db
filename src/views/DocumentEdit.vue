@@ -435,15 +435,15 @@ function onChangeTab(index: number) {
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="time-property" class="mt-4 mb-1">Property</label>
               <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <InputTime v-model="claimValue" class="min-w-0 flex-auto grow" />
+              <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="timeRange-property" class="mt-4 mb-1">Property</label>
               <InputText id="timeRange-property" class="min-w-0 flex-auto grow" />
-              <InputTime class="min-w-0 flex-auto grow">
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
                 <template #timestamp-label>Lower</template>
               </InputTime>
-              <InputTime class="min-w-0 flex-auto grow">
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
                 <template #timestamp-label>Upper</template>
               </InputTime>
             </TabPanel>

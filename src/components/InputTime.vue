@@ -564,7 +564,7 @@ watch(
 </script>
 
 <template>
-  <div class="mt-4 flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
+  <div class="flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
       <label :for="inputId" class="mb-1"><slot name="timestamp-label">Timestamp</slot></label>
 
