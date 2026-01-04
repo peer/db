@@ -588,9 +588,14 @@ watch(
 
       <div class="relative">
         <ListboxButton
-          class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
+          class="relative w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
           :class="{
-            'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0 || readonly,
+            'cursor-not-allowed': progress > 0 || readonly,
+            'bg-gray-100': progress > 0 || readonly,
+            'bg-white': progress === 0 && !readonly,
+            'text-gray-800': progress > 0 || readonly,
+            'hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
+            'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
           }"
         >
           <div class="truncate">{{ precisionLabel(timePrecision) }}</div>
