@@ -368,7 +368,7 @@ function inferPrecisionFromNormalized(normalized: string): TimePrecision {
     inferred = y ? inferYearPrecision(y[1], props.maxPrecision) : timePrecision.value
   }
 
-  return clampToMax(inferred, props.maxPrecision as TimePrecision)
+  return clampToMax(inferred, props.maxPrecision)
 }
 
 function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
