@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
-import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
+import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
@@ -69,7 +69,6 @@ const errorMessage = ref("")
 const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
 
 const inputId = useId()
-const precisionId = useId()
 
 const timePrecisionWithMax = computed(() => {
   const reversed = timePrecisionOptions.toReversed()
@@ -584,43 +583,41 @@ watch(
       />
     </div>
 
-    <div class="flex flex-col">
-      <label :for="precisionId" class="mb-1"><slot name="precision-label">Precision</slot></label>
+    <!-- Listbox does not support read-only mode, so we use disabled instead. See: https://github.com/tailwindlabs/headlessui/discussions/3832 -->
+    <Listbox :v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
+      <ListboxLabel class="mb-1"><slot name="precision-label">Precision</slot></ListboxLabel>
 
-      <!-- Listbox does not support read-only mode, so we use disabled instead. See: https://github.com/tailwindlabs/headlessui/discussions/3832 -->
-      <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0 || readonly" class="w-48" @update:model-value="onPrecisionSelected">
-        <div class="relative">
-          <ListboxButton
-            class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
-            :class="{
-              'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0 || readonly,
-            }"
-          >
-            <span class="block truncate">
-              {{ precisionLabel(timePrecision) }}
-            </span>
+      <div class="relative">
+        <ListboxButton
+          class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
+          :class="{
+            'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0 || readonly,
+          }"
+        >
+          <span class="block truncate">
+            {{ precisionLabel(timePrecision) }}
+          </span>
 
-            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-              <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
-            </span>
-          </ListboxButton>
+          <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
+          </span>
+        </ListboxButton>
 
-          <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
-            <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
-              <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
-                <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
-                  {{ precisionLabel(tp) }}
-                </span>
+        <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
+          <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template" class="hover:cursor-pointer">
+            <li :class="[active ? 'bg-neutral-100' : '', 'relative cursor-default py-2 pr-4 pl-10 select-none']">
+              <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">
+                {{ precisionLabel(tp) }}
+              </span>
 
-                <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
-                  <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                </span>
-              </li>
-            </ListboxOption>
-          </ListboxOptions>
-        </div>
-      </Listbox>
-    </div>
+              <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-500">
+                <CheckIcon class="h-5 w-5" aria-hidden="true" />
+              </span>
+            </li>
+          </ListboxOption>
+        </ListboxOptions>
+      </div>
+    </Listbox>
   </div>
 
   <div v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</div>
