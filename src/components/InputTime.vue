@@ -187,8 +187,6 @@ function precisionLabel(p: TimePrecision): string {
 function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
 
-  console.log(normalized)
-
   // Year in progress: "202", "2023", "2023-"
   if (YEAR_IN_PROGRESS_REGEX.test(normalized)) return ""
 
