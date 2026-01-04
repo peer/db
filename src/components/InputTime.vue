@@ -583,7 +583,6 @@ watch(
       />
     </div>
 
-    <!-- Listbox does not support read-only mode, so we use disabled instead. See: https://github.com/tailwindlabs/headlessui/discussions/3832 -->
     <Listbox :v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
       <ListboxLabel class="mb-1"><slot name="precision-label">Precision</slot></ListboxLabel>
 
