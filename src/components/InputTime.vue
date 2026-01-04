@@ -593,13 +593,11 @@ watch(
             'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0 || readonly,
           }"
         >
-          <span class="block truncate">
-            {{ precisionLabel(timePrecision) }}
-          </span>
+          <div class="truncate">{{ precisionLabel(timePrecision) }}</div>
 
-          <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <ChevronUpDownIcon class="h-5 w-5 text-neutral-300" aria-hidden="true" />
-          </span>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
+          </div>
         </ListboxButton>
 
         <ListboxOptions class="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 focus:outline-none">
