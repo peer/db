@@ -611,13 +611,13 @@ watch(
 
         <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
           <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
-            <li class="cursor-pointer select-none p-1 outline-none">
+            <li class="cursor-pointer p-1 outline-none select-none">
               <!--
                 We have an additional div so that the ring has the space to be shown.
                 li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
                 for option content of py-2 and px-3, same what InputText and ListboxButton have.
               -->
-              <div class="flex flex-row justify-between gap-x-1 rounded-sm py-1 px-2" :class="active ? 'ring-2 ring-primary-500' : ''">
+              <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
                 <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
 
                 <CheckIcon v-if="selected" class="h-5 w-5 text-primary-600" aria-hidden="true" />
