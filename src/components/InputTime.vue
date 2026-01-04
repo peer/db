@@ -583,7 +583,7 @@ watch(
       />
     </div>
 
-    <Listbox :v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
+    <Listbox v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
       <ListboxLabel class="mb-1"><slot name="precision-label">Precision</slot></ListboxLabel>
 
       <div class="relative">
