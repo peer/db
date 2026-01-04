@@ -40,6 +40,26 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+const YEAR_RE = /^(-?\d+)$/
+const MONTH_RE = /^(-?\d+)-(\d{1,2})$/
+const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
+const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2})$/
+const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})$/
+const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2}):(\d{1,2})$/
+
+const YEAR_IN_PROGRESS_REGEX = /^-?\d*-?$/
+const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}-?$/
+const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}T?$/
+const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:?$/
+const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}:?$/
+
+const DATE_TIME_WHITESPACE_TO_T_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
+const LOWERCASE_T_REGEX = /t/g
+const ALL_WHITESPACE_REGEX = /\s+/g
+const TRAILING_SEPARATORS_REGEX = /[-:T]+$/
+const TRAILING_DASH_REGEX = /-$/
+const TRAILING_T_REGEX = /T$/
+
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 const precisionLabels: Record<TimePrecision, string> = {
   G: "giga years",
@@ -131,15 +151,15 @@ function normalizeForParsing(raw: string): string {
 
   let r = raw
 
-  // Normalize any date-whitespace-time boundary to 'T' before stripping whitespace.
-  // Example: "2023-1-1    2:3" => "2023-1-1T2:3"
-  r = r.replace(/(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g, "$1-$2-$3T$4")
+  // Normalize date + time boundary to 'T'
+  // Example: "2023-1-1    2:3" → "2023-1-1T2:3"
+  r = r.replace(DATE_TIME_WHITESPACE_TO_T_REGEX, "$1-$2-$3T$4")
 
-  // Normalize lowercase 't' to 'T'
-  r = r.replace(/t/g, "T")
+  // Normalize lowercase 't' to uppercase 'T'
+  r = r.replace(LOWERCASE_T_REGEX, "T")
 
-  // Remove all remaining whitespace everywhere
-  r = r.replace(/\s+/g, "")
+  // Remove all remaining whitespace
+  r = r.replace(ALL_WHITESPACE_REGEX, "")
 
   return r
 }
@@ -147,18 +167,18 @@ function normalizeForParsing(raw: string): string {
 function cleanInputNormalized(raw: string): string {
   let r = raw
 
-  // Remove trailing separators for validation.
-  r = r.replace(/[-:T]+$/, "")
+  // Remove trailing separators for validation
+  r = r.replace(TRAILING_SEPARATORS_REGEX, "")
 
   return r
 }
 
-const matchToYear = (s: string) => s.match(/^(-?\d+)$/)
-const matchToMonth = (s: string) => s.match(/^(-?\d+)-(\d{1,2})$/)
-const matchToDay = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})$/)
-const matchToHour = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2})$/)
-const matchToMinute = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})$/)
-const matchToSecond = (s: string) => s.match(/^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2}):(\d{1,2})$/)
+const matchToYear = (s: string) => s.match(YEAR_RE)
+const matchToMonth = (s: string) => s.match(MONTH_RE)
+const matchToDay = (s: string) => s.match(DAY_RE)
+const matchToHour = (s: string) => s.match(HOUR_RE)
+const matchToMinute = (s: string) => s.match(MINUTE_RE)
+const matchToSecond = (s: string) => s.match(SECOND_RE)
 
 function precisionLabel(p: TimePrecision): string {
   return precisionLabels[p]
@@ -168,11 +188,11 @@ function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
 
   // Year in progress: "202", "2023", "2023-"
-  if (/^-?\d*-?$/.test(normalized)) return ""
+  if (YEAR_IN_PROGRESS_REGEX.test(normalized)) return ""
 
   // Month in progress: "2023-1", "2023-12", "2023-12-"
-  if (/^-?\d+-\d{0,2}-?$/.test(normalized)) {
-    const m = matchToMonth(normalized.replace(/-$/, ""))
+  if (MONTH_IN_PROGRESS_REGEX.test(normalized)) {
+    const m = matchToMonth(normalized.replace(TRAILING_DASH_REGEX, ""))
     if (!m) return ""
     const month = Number(m[2])
     if (month === 0) return ""
@@ -180,8 +200,8 @@ function progressiveValidate(normalized: string): string {
   }
 
   // Day in progress: "2023-1-1", "2023-1-1T", "2023-1-1T1"
-  if (/^-?\d+-\d{1,2}-\d{0,2}T?$/.test(normalized)) {
-    const asDay = matchToDay(normalized.replace(/T$/, ""))
+  if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
+    const asDay = matchToDay(normalized.replace(TRAILING_T_REGEX, ""))
     if (!asDay) return ""
     const year = Number(asDay[1])
     const month = Number(asDay[2])
@@ -212,7 +232,7 @@ function progressiveValidate(normalized: string): string {
   }
 
   // Minutes in progress: allow trailing ":" while typing
-  if (/^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:?$/.test(normalized)) return ""
+  if (MINUTES_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toMinute = matchToMinute(normalized)
   if (toMinute) {
     const year = Number(toMinute[1])
@@ -231,7 +251,7 @@ function progressiveValidate(normalized: string): string {
   }
 
   // Seconds in progress: allow trailing ":" while typing
-  if (/^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}:?$/.test(normalized)) return ""
+  if (SECONDS_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toSecond = matchToSecond(normalized)
   if (toSecond) {
     const year = Number(toSecond[1])
