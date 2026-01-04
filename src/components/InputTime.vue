@@ -584,15 +584,16 @@ watch(
       />
     </div>
 
-    <div v-if="!readonly" class="flex flex-col">
+    <div class="flex flex-col">
       <label :for="precisionId" class="mb-1"><slot name="precision-label">Precision</slot></label>
 
-      <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0" class="w-48" @update:model-value="onPrecisionSelected">
+      <!-- Listbox does not support read-only mode, so we use disabled instead. See: https://github.com/tailwindlabs/headlessui/discussions/3832 -->
+      <Listbox :id="precisionId" v-model="timePrecision" :disabled="progress > 0 || readonly" class="w-48" @update:model-value="onPrecisionSelected">
         <div class="relative">
           <ListboxButton
             class="relative w-full rounded-sm p-2 text-left shadow-sm ring-2 ring-neutral-300 hover:cursor-pointer hover:ring-neutral-400"
             :class="{
-              'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0,
+              'cursor-not-allowed! bg-gray-100 text-gray-800 hover:ring-neutral-300! focus:border-primary-300! focus:ring-primary-300!': progress > 0 || readonly,
             }"
           >
             <span class="block truncate">
