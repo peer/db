@@ -333,23 +333,25 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
 }
 
 function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
-  const year = parseInt(yearStr || "0000", 10)
-  const abs = Math.abs(year)
+  if (!yearStr) return clampToMax("y", max)
 
-  const candidates: Array<[TimePrecision, number]> = [
-    ["G", 1_000_000_000 * 1000],
-    ["100M", 100_000_000 * 1000],
-    ["10M", 10_000_000 * 1000],
-    ["M", 1_000_000 * 1000],
-    ["100k", 100_000 * 1000],
-    ["10k", 10_000 * 1000],
-    ["k", 1_000 * 1000],
-    ["100y", 100 * 1000],
-    ["10y", 10 * 1000],
+  const year = BigInt(yearStr)
+  const abs = year < 0n ? -year : year
+
+  const candidates: Array<[TimePrecision, bigint]> = [
+    ["G", 1_000_000_000n],
+    ["100M", 100_000_000n],
+    ["10M", 10_000_000n],
+    ["M", 1_000_000n],
+    ["100k", 100_000n],
+    ["10k", 10_000n],
+    ["k", 1_000n],
+    ["100y", 100n],
+    ["10y", 10n],
   ]
 
   for (const [p, factor] of candidates) {
-    if (abs >= factor && year % factor === 0) {
+    if (abs >= factor && year % factor === 0n && abs > 9999n) {
       return clampToMax(p, max)
     }
   }
