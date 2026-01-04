@@ -47,11 +47,11 @@ const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2})$/
 const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})$/
 const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2}):(\d{1,2})$/
 
-const YEAR_IN_PROGRESS_REGEX = /^-?\d*-?$/
-const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}-?$/
-const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}T?$/
-const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:?$/
-const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}:?$/
+const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
+const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
+const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
+const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}$/
+const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}$/
 
 const DATE_TIME_WHITESPACE_TO_T_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
 const LOWERCASE_T_REGEX = /t/g
@@ -186,6 +186,8 @@ function precisionLabel(p: TimePrecision): string {
 
 function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
+
+  console.log(normalized)
 
   // Year in progress: "202", "2023", "2023-"
   if (YEAR_IN_PROGRESS_REGEX.test(normalized)) return ""
