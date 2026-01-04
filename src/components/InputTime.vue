@@ -598,7 +598,7 @@ watch(
             'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
           }"
         >
-          <div class="truncate">{{ precisionLabel(timePrecision) }}</div>
+          <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
@@ -608,7 +608,7 @@ watch(
         <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
           <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
             <li class="flex flex-row justify-between gap-x-1 cursor-pointer select-none py-2 px-3" :class="active ? 'bg-neutral-100' : ''">
-              <div class="truncate" :class="selected ? 'font-medium' : ''">{{ precisionLabel(tp) }}</div>
+              <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
 
               <CheckIcon v-if="selected" class="h-5 w-5 text-primary-600" aria-hidden="true" />
             </li>
