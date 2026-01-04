@@ -101,15 +101,6 @@ const timePrecisionWithMax = computed(() => {
 
 const displayValue = ref(model.value)
 
-const value = computed({
-  get() {
-    return displayValue.value
-  },
-  set(v: string) {
-    displayValue.value = v
-  },
-})
-
 onBeforeMount(() => {
   timePrecision.value = precision.value
   displayValue.value = model.value
@@ -593,7 +584,7 @@ watch(
 
       <InputText
         :id="inputId"
-        v-model="value"
+        v-model="displayValue"
         spellcheck="false"
         autocorrect="off"
         autocapitalize="none"
