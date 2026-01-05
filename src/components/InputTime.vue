@@ -152,12 +152,6 @@ function normalizeForParsing(raw: string): string {
   // Remove all remaining whitespace
   r = r.replace(ALL_WHITESPACE_REGEX, "")
 
-  return r
-}
-
-function cleanInputNormalized(raw: string): string {
-  let r = raw
-
   // Remove trailing separators for validation
   r = r.replace(TRAILING_SEPARATORS_REGEX, "")
 
@@ -468,8 +462,7 @@ function emitCanonicalFromDisplay(): void {
     return
   }
 
-  const normalized = normalizeForParsing(displayValue.value)
-  const cleaned = cleanInputNormalized(normalized)
+  const cleaned = normalizeForParsing(displayValue.value)
 
   const validationErrorMessage = progressiveValidate(cleaned)
   errorMessage.value = validationErrorMessage
@@ -486,8 +479,7 @@ function emitCanonicalFromDisplay(): void {
 }
 
 function autoAdaptPrecisionFromDisplay(): void {
-  const normalized = normalizeForParsing(displayValue.value)
-  const cleaned = cleanInputNormalized(normalized)
+  const cleaned = normalizeForParsing(displayValue.value)
 
   const validationErrorMessage = progressiveValidate(cleaned)
   // Only adapt when the structure isn't clearly broken.
@@ -552,8 +544,7 @@ function onPrecisionSelected(p: TimePrecision) {
   }
 
   // v-model will already update timePrecision, but we treat this as a manual intent.
-  const normalized = normalizeForParsing(displayValue.value)
-  const cleaned = cleanInputNormalized(normalized)
+  const cleaned = normalizeForParsing(displayValue.value)
 
   const validationErrorMessage = progressiveValidate(cleaned)
   errorMessage.value = validationErrorMessage
