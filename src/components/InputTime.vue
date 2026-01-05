@@ -142,17 +142,17 @@ function normalizeForParsing(raw: string): string {
 
   let r = raw
 
-  // Normalize date + time boundary to 'T'
-  // Example: "2023-1-1    2:3" → "2023-1-1T2:3"
+  // Normalize date + time boundary to 'T'.
+  // Example: "2023-1-1    2:3" → "2023-1-1T2:3".
   r = r.replace(DATE_TIME_WHITESPACE_TO_T_REGEX, "$1-$2-$3T$4")
 
-  // Normalize lowercase 't' to uppercase 'T'
+  // Normalize lowercase 't' to uppercase 'T'.
   r = r.replace(LOWERCASE_T_REGEX, "T")
 
-  // Remove all remaining whitespace
+  // Remove all remaining whitespace.
   r = r.replace(ALL_WHITESPACE_REGEX, "")
 
-  // Remove trailing separators for validation
+  // Remove trailing separators for validation.
   r = r.replace(TRAILING_SEPARATORS_REGEX, "")
 
   return r
@@ -172,10 +172,10 @@ function precisionLabel(p: TimePrecision): string {
 function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
 
-  // Year in progress: "202", "2023", "2023-"
+  // Year in progress: "202", "2023".
   if (YEAR_IN_PROGRESS_REGEX.test(normalized)) return ""
 
-  // Month in progress: "2023-1", "2023-12", "2023-12-"
+  // Month in progress: "2023-1", "2023-12".
   if (MONTH_IN_PROGRESS_REGEX.test(normalized)) {
     const m = matchToMonth(normalized.replace(TRAILING_DASH_REGEX, ""))
     if (!m) return ""
@@ -184,7 +184,7 @@ function progressiveValidate(normalized: string): string {
     return month >= 1 && month <= 12 ? "" : "Months need to be between 1-12."
   }
 
-  // Day in progress: "2023-1-1", "2023-1-1T", "2023-1-1T1"
+  // Day in progress: "2023-1-1", "2023-1-1T1".
   if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
     const asDay = matchToDay(normalized.replace(TRAILING_T_REGEX, ""))
     if (!asDay) return ""
@@ -216,7 +216,7 @@ function progressiveValidate(normalized: string): string {
     return ""
   }
 
-  // Minutes in progress: allow trailing ":" while typing
+  // Minutes in progress: allow trailing ":" while typing.
   if (MINUTES_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toMinute = matchToMinute(normalized)
   if (toMinute) {
@@ -235,7 +235,7 @@ function progressiveValidate(normalized: string): string {
     return ""
   }
 
-  // Seconds in progress: allow trailing ":" while typing
+  // Seconds in progress: allow trailing ":" while typing.
   if (SECONDS_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toSecond = matchToSecond(normalized)
   if (toSecond) {
