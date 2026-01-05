@@ -186,7 +186,7 @@ function progressiveValidate(normalized: string): string {
 
   // Day in progress: "2023-1-1", "2023-1-1T1".
   if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
-    const asDay = matchToDay(normalized.replace(TRAILING_T_REGEX, ""))
+    const asDay = matchToDay(normalized)
     if (!asDay) return ""
     const year = Number(asDay[1])
     const month = Number(asDay[2])
@@ -462,15 +462,15 @@ function emitCanonicalFromDisplay(): void {
     return
   }
 
-  const cleaned = normalizeForParsing(displayValue.value)
+  const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(cleaned)
+  const validationErrorMessage = progressiveValidate(normalized)
   errorMessage.value = validationErrorMessage
 
   if (validationErrorMessage) return
 
-  const struct = getStructuredTimestamp(cleaned)
-  const inferredPrecision = inferPrecisionFromNormalized(cleaned)
+  const struct = getStructuredTimestamp(normalized)
+  const inferredPrecision = inferPrecisionFromNormalized(normalized)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
   if (canonical && canonical !== model.value) {
@@ -479,13 +479,13 @@ function emitCanonicalFromDisplay(): void {
 }
 
 function autoAdaptPrecisionFromDisplay(): void {
-  const cleaned = normalizeForParsing(displayValue.value)
+  const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(cleaned)
+  const validationErrorMessage = progressiveValidate(normalized)
   // Only adapt when the structure isn't clearly broken.
   if (validationErrorMessage && validationErrorMessage !== "") return
 
-  const inferred = inferPrecisionFromNormalized(cleaned)
+  const inferred = inferPrecisionFromNormalized(normalized)
 
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
@@ -544,16 +544,16 @@ function onPrecisionSelected(p: TimePrecision) {
   }
 
   // v-model will already update timePrecision, but we treat this as a manual intent.
-  const cleaned = normalizeForParsing(displayValue.value)
+  const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(cleaned)
+  const validationErrorMessage = progressiveValidate(normalized)
   errorMessage.value = validationErrorMessage
 
   precision.value = p
 
   if (validationErrorMessage) return
 
-  const struct = getStructuredTimestamp(cleaned)
+  const struct = getStructuredTimestamp(normalized)
   const next = applyPrecision(struct, p)
 
   displayValue.value = next
