@@ -43,22 +43,24 @@ onBeforeUnmount(() => {
 const YEAR_RE = /^(-?\d+)$/
 const MONTH_RE = /^(-?\d+)-(\d{1,2})$/
 const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
-const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2})$/
-const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})$/
-const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2}):(\d{1,2})$/
+const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/
+const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/
+const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
 
 const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
 const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
 const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
-const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}$/
-const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}$/
+const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
+const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
 
-const DATE_TIME_WHITESPACE_TO_T_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
-const LOWERCASE_T_REGEX = /t/g
+const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
+const FIRST_LOWERCASE_T_REGEX = /t/
 const ALL_WHITESPACE_REGEX = /\s+/g
-const TRAILING_SEPARATORS_REGEX = /[-:T]+$/
+const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
+const TRAILING_DASH_YEAR_MONTH = /^(?:\d{4}|\d{4}-\d{1,2})-\s*$/
+const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
+const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
 const TRAILING_DASH_REGEX = /-$/
-const TRAILING_T_REGEX = /T$/
 
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 const precisionLabels: Record<TimePrecision, string> = {
@@ -142,18 +144,26 @@ function normalizeForParsing(raw: string): string {
 
   let r = raw
 
-  // Normalize date + time boundary to 'T'.
-  // Example: "2023-1-1    2:3" → "2023-1-1T2:3".
-  r = r.replace(DATE_TIME_WHITESPACE_TO_T_REGEX, "$1-$2-$3T$4")
+  // Normalize date + time boundary whitespace.
+  r = r.replace(DATE_TIME_WHITESPACE_TRIM_REGEX, "$1-$2-$3 $4")
 
-  // Normalize lowercase 't' to uppercase 'T'.
-  r = r.replace(LOWERCASE_T_REGEX, "T")
+  // Normalize lowercase 't' to 'T'.
+  r = r.replace(FIRST_LOWERCASE_T_REGEX, "T")
 
-  // Remove all remaining whitespace.
-  r = r.replace(ALL_WHITESPACE_REGEX, "")
+  // Convert only valid date–time boundary T to space.
+  r = r.replace(T_TO_SPACE, "$1 ")
 
-  // Remove trailing separators for validation.
-  r = r.replace(TRAILING_SEPARATORS_REGEX, "")
+  // Cosmetic whitespace cleanup.
+  r = r.replace(ALL_WHITESPACE_REGEX, " ").trim()
+
+  // Accepts 'YYYY-' or 'YYYY-MM-'.
+  r = r.replace(TRAILING_DASH_YEAR_MONTH, "")
+
+  // Converts 'YYYY-MM-DDT' to 'YYYY-MM-DD'.
+  r = r.replace(TRAILING_T, "$1")
+
+  // Accepts 'HH:' or 'HH:MM:'.
+  r = r.replace(TRAILING_SEMICOLON, "")
 
   return r
 }
@@ -184,7 +194,7 @@ function progressiveValidate(normalized: string): string {
     return month >= 1 && month <= 12 ? "" : "Months need to be between 1-12."
   }
 
-  // Day in progress: "2023-1-1", "2023-1-1T1".
+  // Day in progress: "2023-1-1", "2023-1-1 1".
   if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
     const asDay = matchToDay(normalized)
     if (!asDay) return ""
