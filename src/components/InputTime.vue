@@ -1,3 +1,42 @@
+<script lang="ts">
+const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
+const FIRST_LOWERCASE_T_REGEX = /t/
+const ALL_WHITESPACE_REGEX = /\s+/g
+const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
+const TRAILING_DASH_YEAR_MONTH = /^(?:\d{4}|\d{4}-\d{1,2})-\s*$/
+const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
+const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
+
+export function normalizeForParsing(raw: string): string {
+  if (!raw) return ""
+
+  let r = raw
+
+  // Normalize date + time boundary whitespace.
+  r = r.replace(DATE_TIME_WHITESPACE_TRIM_REGEX, "$1-$2-$3 $4")
+
+  // Normalize lowercase 't' to 'T'.
+  r = r.replace(FIRST_LOWERCASE_T_REGEX, "T")
+
+  // Convert only valid date–time boundary T to space.
+  r = r.replace(T_TO_SPACE, "$1 ")
+
+  // Cosmetic whitespace cleanup.
+  r = r.replace(ALL_WHITESPACE_REGEX, " ").trim()
+
+  // Accepts 'YYYY-' or 'YYYY-MM-'.
+  r = r.replace(TRAILING_DASH_YEAR_MONTH, "")
+
+  // Converts 'YYYY-MM-DDT' to 'YYYY-MM-DD'.
+  r = r.replace(TRAILING_T, "$1")
+
+  // Accepts 'HH:' or 'HH:MM:'.
+  r = r.replace(TRAILING_SEMICOLON, "")
+
+  return r
+}
+</script>
+
 <script setup lang="ts">
 import type { TimePrecision } from "@/types"
 
@@ -53,13 +92,6 @@ const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
 const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
 const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
 
-const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
-const FIRST_LOWERCASE_T_REGEX = /t/
-const ALL_WHITESPACE_REGEX = /\s+/g
-const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
-const TRAILING_DASH_YEAR_MONTH = /^(?:\d{4}|\d{4}-\d{1,2})-\s*$/
-const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
-const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
 const TRAILING_DASH_REGEX = /-$/
 
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
@@ -138,35 +170,6 @@ watch(
 )
 
 const pad2 = (n: string) => n.padStart(2, "0")
-
-function normalizeForParsing(raw: string): string {
-  if (!raw) return ""
-
-  let r = raw
-
-  // Normalize date + time boundary whitespace.
-  r = r.replace(DATE_TIME_WHITESPACE_TRIM_REGEX, "$1-$2-$3 $4")
-
-  // Normalize lowercase 't' to 'T'.
-  r = r.replace(FIRST_LOWERCASE_T_REGEX, "T")
-
-  // Convert only valid date–time boundary T to space.
-  r = r.replace(T_TO_SPACE, "$1 ")
-
-  // Cosmetic whitespace cleanup.
-  r = r.replace(ALL_WHITESPACE_REGEX, " ").trim()
-
-  // Accepts 'YYYY-' or 'YYYY-MM-'.
-  r = r.replace(TRAILING_DASH_YEAR_MONTH, "")
-
-  // Converts 'YYYY-MM-DDT' to 'YYYY-MM-DD'.
-  r = r.replace(TRAILING_T, "$1")
-
-  // Accepts 'HH:' or 'HH:MM:'.
-  r = r.replace(TRAILING_SEMICOLON, "")
-
-  return r
-}
 
 const matchToYear = (s: string) => s.match(YEAR_RE)
 const matchToMonth = (s: string) => s.match(MONTH_RE)
