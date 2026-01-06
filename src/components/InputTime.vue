@@ -191,7 +191,7 @@ function progressiveValidate(normalized: string): string {
     if (!m) return ""
     const month = Number(m[2])
     if (month === 0) return ""
-    return month >= 1 && month <= 12 ? "" : "Months need to be between 1-12."
+    return month >= 0 && month <= 12 ? "" : "Months need to be between 0-12."
   }
 
   // Day in progress: "2023-1-1", "2023-1-1 1".
@@ -202,11 +202,12 @@ function progressiveValidate(normalized: string): string {
     const month = Number(asDay[2])
     const day = Number(asDay[3])
 
-    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    if (month == 0 && day != 0) return "Months need to be between 0-12."
+    if (month < 0 || month > 12) return "Months need to be between 0-12."
 
     if (day === 0) return ""
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
+    if (day < 0 || day > maxDay) return `Day must be between 0-${maxDay}.`
 
     return ""
   }
@@ -354,7 +355,7 @@ function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision 
   return clampToMax("y", max)
 }
 
-function inferPrecisionFromNormalized(normalized: string): TimePrecision {
+function inferPrecisionFromNormalized(normalized: string, timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }): TimePrecision {
   let inferred: TimePrecision
 
   if (matchToSecond(normalized)) {
@@ -364,9 +365,13 @@ function inferPrecisionFromNormalized(normalized: string): TimePrecision {
   } else if (matchToHour(normalized)) {
     inferred = "h"
   } else if (matchToDay(normalized)) {
-    inferred = "d"
+    // Days can be "00" or "0" for year precision.
+    if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
+    else inferred = "d"
   } else if (matchToMonth(normalized)) {
-    inferred = "m"
+    // Months can be "00" or "0" for year precision.
+    if (timeStruct.m == "00" || timeStruct.m == "0") inferred = "y"
+    else inferred = "m"
   } else {
     const y = matchToYear(normalized)
     inferred = y ? inferYearPrecision(y[1], props.maxPrecision) : timePrecision.value
@@ -480,7 +485,7 @@ function emitCanonicalFromDisplay(): void {
   if (validationErrorMessage) return
 
   const struct = getStructuredTimestamp(normalized)
-  const inferredPrecision = inferPrecisionFromNormalized(normalized)
+  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
   if (canonical && canonical !== model.value) {
@@ -495,7 +500,8 @@ function autoAdaptPrecisionFromDisplay(): void {
   // Only adapt when the structure isn't clearly broken.
   if (validationErrorMessage && validationErrorMessage !== "") return
 
-  const inferred = inferPrecisionFromNormalized(normalized)
+  const struct = getStructuredTimestamp(normalized)
+  const inferred = inferPrecisionFromNormalized(normalized, struct)
 
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
