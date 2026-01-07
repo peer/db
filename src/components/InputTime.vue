@@ -3,7 +3,7 @@ const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})
 const FIRST_LOWERCASE_T_REGEX = /t/
 const ALL_WHITESPACE_REGEX = /\s+/g
 const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
-const TRAILING_DASH_YEAR_MONTH = /^(?:\d{4}|\d{4}-\d{1,2})-\s*$/
+const TRAILING_DASH_YEAR_MONTH = /^(\d{4}|\d{4}-\d{1,2})-\s*$/
 const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
 const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
 
@@ -25,13 +25,13 @@ export function normalizeForParsing(raw: string): string {
   r = r.replace(ALL_WHITESPACE_REGEX, " ").trim()
 
   // Accepts 'YYYY-' or 'YYYY-MM-'.
-  r = r.replace(TRAILING_DASH_YEAR_MONTH, "")
+  r = r.replace(TRAILING_DASH_YEAR_MONTH, "$1")
 
   // Converts 'YYYY-MM-DDT' to 'YYYY-MM-DD'.
   r = r.replace(TRAILING_T, "$1")
 
   // Accepts 'HH:' or 'HH:MM:'.
-  r = r.replace(TRAILING_SEMICOLON, "")
+  r = r.replace(TRAILING_SEMICOLON, " $1")
 
   return r
 }
