@@ -368,8 +368,10 @@ function inferPrecisionFromNormalized(normalized: string, timeStruct: { y: strin
   } else if (matchToHour(normalized)) {
     inferred = "h"
   } else if (matchToDay(normalized)) {
+    // Months are defined, but days are not.
+    if (Number(timeStruct.m) > 0 && (!timeStruct.d || timeStruct.d == "0" || timeStruct.d == "00")) return "m"
     // Days can be "00" or "0" for year precision.
-    if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
+    else if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
     else inferred = "d"
   } else if (matchToMonth(normalized)) {
     // Months can be "00" or "0" for year precision.
