@@ -1,4 +1,6 @@
 <script lang="ts">
+import { daysIn } from "@/time.ts"
+
 const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
 const FIRST_LOWERCASE_T_REGEX = /t/
 const ALL_WHITESPACE_REGEX = /\s+/g
@@ -6,6 +8,28 @@ const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
 const TRAILING_DASH_YEAR_MONTH = /^(\d{4}|\d{4}-\d{1,2})-\s*$/
 const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
 const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
+
+const YEAR_RE = /^(-?\d+)$/
+const MONTH_RE = /^(-?\d+)-(\d{1,2})$/
+const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
+const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/
+const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/
+const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
+
+const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
+const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
+const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
+const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
+const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
+
+const TRAILING_DASH_REGEX = /-$/
+
+const matchToYear = (s: string) => s.match(YEAR_RE)
+const matchToMonth = (s: string) => s.match(MONTH_RE)
+const matchToDay = (s: string) => s.match(DAY_RE)
+const matchToHour = (s: string) => s.match(HOUR_RE)
+const matchToMinute = (s: string) => s.match(MINUTE_RE)
+const matchToSecond = (s: string) => s.match(SECOND_RE)
 
 export function normalizeForParsing(raw: string): string {
   if (!raw) return ""
@@ -35,154 +59,8 @@ export function normalizeForParsing(raw: string): string {
 
   return r
 }
-</script>
 
-<script setup lang="ts">
-import type { TimePrecision } from "@/types"
-
-import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
-import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
-import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
-
-import InputText from "@/components/InputText.vue"
-import { daysIn } from "@/time.ts"
-
-const DEBOUNCE_MS = 2000
-
-const props = withDefaults(
-  defineProps<{
-    progress?: number
-    readonly?: boolean
-    invalid?: boolean
-    maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
-  }>(),
-  {
-    progress: 0,
-    readonly: false,
-    invalid: false,
-    maxPrecision: "G",
-  },
-)
-
-const model = defineModel<string>({ default: "" })
-const precision = defineModel<TimePrecision>("precision", { default: "y" })
-
-// We want all fallthrough attributes to be passed to the main input element.
-defineOptions({
-  inheritAttrs: false,
-})
-
-const abortController = new AbortController()
-
-onBeforeUnmount(() => {
-  abortController.abort()
-})
-
-const YEAR_RE = /^(-?\d+)$/
-const MONTH_RE = /^(-?\d+)-(\d{1,2})$/
-const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
-const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/
-const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/
-const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
-
-const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
-const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
-const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
-const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
-const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
-
-const TRAILING_DASH_REGEX = /-$/
-
-const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
-const precisionLabels: Record<TimePrecision, string> = {
-  G: "giga years",
-  "100M": "hundred megayears",
-  "10M": "ten megayears",
-  M: "megayears",
-  "100k": "hundred kiloyears",
-  "10k": "ten kiloyears",
-  k: "kiloyears",
-  "100y": "hundred years",
-  "10y": "ten years",
-  y: "years",
-  m: "months",
-  d: "days",
-  h: "hours",
-  min: "minutes",
-  s: "seconds",
-}
-
-const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
-
-const timePrecision = ref<TimePrecision>("y")
-
-const isEditing = ref(false)
-const errorMessage = ref("")
-
-const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
-
-const inputId = useId()
-
-const timePrecisionWithMax = computed(() => {
-  const reversed = timePrecisionOptions.toReversed()
-  const maxPrecision = reversed.indexOf(props.maxPrecision)
-
-  if (maxPrecision < 0) return reversed
-
-  return reversed.slice(0, maxPrecision + 1)
-})
-
-const displayValue = ref(model.value)
-
-onBeforeMount(() => {
-  timePrecision.value = precision.value
-  displayValue.value = model.value
-})
-
-onMounted(async () => {
-  if (!displayValue.value) return
-
-  // We want to validate and emit the canonical value on mount.
-  // However, we must not overwrite the text shown in the input.
-  // The model->display watcher only syncs when isEditing is false, so we temporarily
-  // mark the component as "editing" to block that sync during this initial emit.
-  isEditing.value = true
-
-  // Update the precision based on the initial text
-  // and emit the canonical model value.
-  autoAdaptPrecisionFromDisplay()
-  emitCanonicalFromDisplay()
-
-  // Wait one tick so the parent can process the emitted update and push the new model back.
-  await nextTick()
-
-  // Re-enable normal model->display syncing for future external updates.
-  isEditing.value = false
-})
-
-watch(
-  () => model.value,
-  (v) => {
-    // If parent updates model value externally, reflect it unless user is actively editing.
-    if (!isEditing.value) displayValue.value = v ?? ""
-  },
-)
-
-const pad2 = (n: string) => n.padStart(2, "0")
-
-const matchToYear = (s: string) => s.match(YEAR_RE)
-const matchToMonth = (s: string) => s.match(MONTH_RE)
-const matchToDay = (s: string) => s.match(DAY_RE)
-const matchToHour = (s: string) => s.match(HOUR_RE)
-const matchToMinute = (s: string) => s.match(MINUTE_RE)
-const matchToSecond = (s: string) => s.match(SECOND_RE)
-
-function precisionLabel(p: TimePrecision): string {
-  return precisionLabels[p]
-}
-
-function progressiveValidate(normalized: string): string {
+export function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
 
   // Year in progress: "202", "2023".
@@ -271,6 +149,129 @@ function progressiveValidate(normalized: string): string {
   }
 
   return "Invalid timestamp structure."
+}
+</script>
+
+<script setup lang="ts">
+import type { TimePrecision } from "@/types"
+
+import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { debounce } from "lodash-es"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
+
+import InputText from "@/components/InputText.vue"
+
+const DEBOUNCE_MS = 2000
+
+const props = withDefaults(
+  defineProps<{
+    progress?: number
+    readonly?: boolean
+    invalid?: boolean
+    maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
+  }>(),
+  {
+    progress: 0,
+    readonly: false,
+    invalid: false,
+    maxPrecision: "G",
+  },
+)
+
+const model = defineModel<string>({ default: "" })
+const precision = defineModel<TimePrecision>("precision", { default: "y" })
+
+// We want all fallthrough attributes to be passed to the main input element.
+defineOptions({
+  inheritAttrs: false,
+})
+
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
+const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
+const precisionLabels: Record<TimePrecision, string> = {
+  G: "giga years",
+  "100M": "hundred megayears",
+  "10M": "ten megayears",
+  M: "megayears",
+  "100k": "hundred kiloyears",
+  "10k": "ten kiloyears",
+  k: "kiloyears",
+  "100y": "hundred years",
+  "10y": "ten years",
+  y: "years",
+  m: "months",
+  d: "days",
+  h: "hours",
+  min: "minutes",
+  s: "seconds",
+}
+
+const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
+
+const timePrecision = ref<TimePrecision>("y")
+
+const isEditing = ref(false)
+const errorMessage = ref("")
+
+const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
+
+const inputId = useId()
+
+const timePrecisionWithMax = computed(() => {
+  const reversed = timePrecisionOptions.toReversed()
+  const maxPrecision = reversed.indexOf(props.maxPrecision)
+
+  if (maxPrecision < 0) return reversed
+
+  return reversed.slice(0, maxPrecision + 1)
+})
+
+const displayValue = ref(model.value)
+
+onBeforeMount(() => {
+  timePrecision.value = precision.value
+  displayValue.value = model.value
+})
+
+onMounted(async () => {
+  if (!displayValue.value) return
+
+  // We want to validate and emit the canonical value on mount.
+  // However, we must not overwrite the text shown in the input.
+  // The model->display watcher only syncs when isEditing is false, so we temporarily
+  // mark the component as "editing" to block that sync during this initial emit.
+  isEditing.value = true
+
+  // Update the precision based on the initial text
+  // and emit the canonical model value.
+  autoAdaptPrecisionFromDisplay()
+  emitCanonicalFromDisplay()
+
+  // Wait one tick so the parent can process the emitted update and push the new model back.
+  await nextTick()
+
+  // Re-enable normal model->display syncing for future external updates.
+  isEditing.value = false
+})
+
+watch(
+  () => model.value,
+  (v) => {
+    // If parent updates model value externally, reflect it unless user is actively editing.
+    if (!isEditing.value) displayValue.value = v ?? ""
+  },
+)
+
+const pad2 = (n: string) => n.padStart(2, "0")
+
+function precisionLabel(p: TimePrecision): string {
+  return precisionLabels[p]
 }
 
 function getStructuredTimestamp(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string } {
