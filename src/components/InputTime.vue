@@ -205,7 +205,7 @@ function progressiveValidate(normalized: string): string {
     const month = Number(asDay[2])
     const day = Number(asDay[3])
 
-    if (month == 0 && day != 0) return "Months need to be between 0-12."
+    if (month == 0 && day != 0) return "Months cannot be 0 when days are not 0."
     if (month < 0 || month > 12) return "Months need to be between 0-12."
 
     if (day === 0) return ""
