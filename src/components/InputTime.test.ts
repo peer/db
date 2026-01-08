@@ -1,6 +1,8 @@
 import { assert, describe, test } from "vitest"
 
-import { normalizeForParsing, progressiveValidate } from "./InputTime.vue"
+import type { TimePrecision } from "@/types"
+
+import { clampToMax, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "./InputTime.vue"
 
 // TODO: Enable once eslint parser for extra files is used.
 //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
@@ -177,5 +179,59 @@ describe("progressiveValidate", () => {
 
     assert.notEqual(progressiveValidateExposed("foo"), "")
     assert.notEqual(progressiveValidateExposed("2023--12"), "")
+  })
+})
+
+// TODO: Enable once eslint parser for extra files is used.
+//       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const clampToMaxExposed = (p: TimePrecision, max: TimePrecision, rank: Map<TimePrecision, number>) => clampToMax(p, max, rank)
+
+describe("clampToMax", () => {
+  test("returns precision when it is equal to max", () => {
+    assert.equal(clampToMaxExposed("y", "y", PRECISION_RANK), "y")
+    assert.notEqual(clampToMaxExposed("y", "y", PRECISION_RANK), "m")
+  })
+
+  test("returns precision when it is more precise than max", () => {
+    assert.equal(clampToMaxExposed("d", "m", PRECISION_RANK), "d")
+    assert.equal(clampToMaxExposed("s", "h", PRECISION_RANK), "s")
+
+    assert.notEqual(clampToMaxExposed("d", "m", PRECISION_RANK), "m")
+    assert.notEqual(clampToMaxExposed("s", "h", PRECISION_RANK), "h")
+  })
+
+  test("clamps to max when precision is less precise than max", () => {
+    assert.equal(clampToMaxExposed("y", "m", PRECISION_RANK), "m")
+    assert.equal(clampToMaxExposed("G", "y", PRECISION_RANK), "y")
+    assert.equal(clampToMaxExposed("100M", "k", PRECISION_RANK), "k")
+
+    assert.notEqual(clampToMaxExposed("y", "m", PRECISION_RANK), "y")
+    assert.notEqual(clampToMaxExposed("G", "y", PRECISION_RANK), "G")
+    assert.notEqual(clampToMaxExposed("100M", "k", PRECISION_RANK), "100M")
+  })
+
+  test("handles boundary neighbors correctly", () => {
+    assert.equal(clampToMaxExposed("10y", "y", PRECISION_RANK), "y")
+    assert.equal(clampToMaxExposed("y", "10y", PRECISION_RANK), "y")
+
+    assert.notEqual(clampToMaxExposed("10y", "y", PRECISION_RANK), "10y")
+    assert.notEqual(clampToMaxExposed("y", "10y", PRECISION_RANK), "10y")
+  })
+
+  test("handles extreme precision differences", () => {
+    assert.equal(clampToMaxExposed("G", "s", PRECISION_RANK), "s")
+    assert.equal(clampToMaxExposed("s", "G", PRECISION_RANK), "s")
+
+    assert.notEqual(clampToMaxExposed("G", "s", PRECISION_RANK), "G")
+    assert.notEqual(clampToMaxExposed("s", "G", PRECISION_RANK), "G")
+  })
+
+  test("throws for unknown precision", () => {
+    assert.throws(() => clampToMaxExposed("unknown" as TimePrecision, "y", PRECISION_RANK), /unknown precision/)
+  })
+
+  test("throws for unknown max precision", () => {
+    assert.throws(() => clampToMaxExposed("y", "unknown" as TimePrecision, PRECISION_RANK), /unknown maxPrecision/)
   })
 })
