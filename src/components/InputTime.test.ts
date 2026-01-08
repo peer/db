@@ -1,6 +1,6 @@
-import { assert, describe, test } from "vitest"
-
 import type { TimePrecision } from "@/types"
+
+import { assert, describe, test } from "vitest"
 
 import { clampToMax, inferPrecisionFromNormalized, inferYearPrecision, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "@/components/InputTime.vue"
 
