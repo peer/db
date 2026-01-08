@@ -2,7 +2,7 @@ import { assert, describe, test } from "vitest"
 
 import type { TimePrecision } from "@/types"
 
-import { clampToMax, inferYearPrecision, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "@/components/InputTime.vue"
+import { clampToMax, inferPrecisionFromNormalized, inferYearPrecision, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "@/components/InputTime.vue"
 
 // TODO: Enable once eslint parser for extra files is used.
 //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
@@ -326,5 +326,82 @@ describe("inferYearPrecision", () => {
     assert.equal(inferYearPrecisionExposed("1000000000", "s", PRECISION_RANK), "s")
 
     assert.notEqual(inferYearPrecisionExposed("1000000000", "s", PRECISION_RANK), "G")
+  })
+})
+
+// TODO: Enable once eslint parser for extra files is used.
+//       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
+const inferPrecisionFromNormalizedExposed = (
+  normalized: string,
+  timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string },
+  rank: Map<TimePrecision, number>,
+  max: TimePrecision,
+  precision: TimePrecision,
+) =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  inferPrecisionFromNormalized(normalized, timeStruct, rank, max, precision)
+
+describe("inferPrecisionFromNormalized", () => {
+  test("infers seconds precision", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-31 12:34:56", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56" }, PRECISION_RANK, "G", "y"), "s")
+
+    assert.notEqual(
+      inferPrecisionFromNormalizedExposed("2023-12-31 12:34:56", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56" }, PRECISION_RANK, "G", "y"),
+      "min",
+    )
+  })
+
+  test("infers minutes precision", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-31 12:34", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "" }, PRECISION_RANK, "G", "y"), "min")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-12-31 12:34", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "" }, PRECISION_RANK, "G", "y"), "h")
+  })
+
+  test("infers hour precision", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-31 12", { y: "2023", m: "12", d: "31", h: "12", min: "", s: "" }, PRECISION_RANK, "G", "y"), "h")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-12-31 12", { y: "2023", m: "12", d: "31", h: "12", min: "", s: "" }, PRECISION_RANK, "G", "y"), "d")
+  })
+
+  test("infers day precision", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-31", { y: "2023", m: "12", d: "31", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "d")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-12-31", { y: "2023", m: "12", d: "31", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "m")
+  })
+
+  test("returns month precision when days are zero", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-00", { y: "2023", m: "12", d: "00", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "m")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-12-00", { y: "2023", m: "12", d: "00", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "d")
+  })
+
+  test("returns years precision when days and months are zero", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-00-00", { y: "2023", m: "00", d: "00", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "y")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-00-00", { y: "2023", m: "00", d: "00", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "d")
+  })
+
+  test("infers month precision", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12", { y: "2023", m: "12", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "m")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-12", { y: "2023", m: "12", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "y")
+  })
+
+  test("infers year precision when month is zero", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-00", { y: "2023", m: "00", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "m"), "y")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("2023-00", { y: "2023", m: "00", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "m"), "m")
+  })
+
+  test("falls back to inferred year precision when only year is present", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("1000000", { y: "1000000", m: "", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "M")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("1000000", { y: "1000000", m: "", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "y"), "y")
+  })
+
+  test("falls back to provided precision when no match is possible", () => {
+    assert.equal(inferPrecisionFromNormalizedExposed("foo", { y: "", m: "", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "m"), "m")
+
+    assert.notEqual(inferPrecisionFromNormalizedExposed("foo", { y: "", m: "", d: "", h: "", min: "", s: "" }, PRECISION_RANK, "G", "m"), "y")
   })
 })
