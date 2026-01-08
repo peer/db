@@ -2,7 +2,7 @@ import { assert, describe, test } from "vitest"
 
 import type { TimePrecision } from "@/types"
 
-import { clampToMax, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "./InputTime.vue"
+import { clampToMax, inferYearPrecision, normalizeForParsing, PRECISION_RANK, progressiveValidate } from "@/components/InputTime.vue"
 
 // TODO: Enable once eslint parser for extra files is used.
 //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
@@ -233,5 +233,98 @@ describe("clampToMax", () => {
 
   test("throws for unknown max precision", () => {
     assert.throws(() => clampToMaxExposed("y", "unknown" as TimePrecision, PRECISION_RANK), /unknown maxPrecision/)
+  })
+})
+
+// TODO: Enable once eslint parser for extra files is used.
+//       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const inferYearPrecisionExposed = (year: string, max: TimePrecision, rank: Map<TimePrecision, number>) => inferYearPrecision(year, max, rank)
+
+describe("inferYearPrecision", () => {
+  test("defaults to year when input is empty", () => {
+    assert.equal(inferYearPrecisionExposed("", "s", PRECISION_RANK), "s")
+    assert.equal(inferYearPrecisionExposed("", "y", PRECISION_RANK), "y")
+
+    assert.notEqual(inferYearPrecisionExposed("", "s", PRECISION_RANK), "y")
+  })
+
+  test("infers giga-years precision", () => {
+    assert.equal(inferYearPrecisionExposed("1000000000", "G", PRECISION_RANK), "G")
+
+    assert.notEqual(inferYearPrecisionExposed("1000000000", "G", PRECISION_RANK), "100M")
+  })
+
+  test("infers 10 year precision", () => {
+    assert.equal(inferYearPrecisionExposed("10", "G", PRECISION_RANK), "y")
+
+    assert.notEqual(inferYearPrecisionExposed("10", "G", PRECISION_RANK), "10y")
+  })
+
+  test("infers 10 kiloyears precision", () => {
+    assert.equal(inferYearPrecisionExposed("10000", "G", PRECISION_RANK), "10k")
+
+    assert.notEqual(inferYearPrecisionExposed("10000", "G", PRECISION_RANK), "y")
+  })
+
+  test("infers ten-million precision", () => {
+    assert.equal(inferYearPrecisionExposed("30000000", "G", PRECISION_RANK), "10M")
+
+    assert.notEqual(inferYearPrecisionExposed("30000000", "G", PRECISION_RANK), "M")
+  })
+
+  test("infers million precision", () => {
+    assert.equal(inferYearPrecisionExposed("4000000", "G", PRECISION_RANK), "M")
+
+    assert.notEqual(inferYearPrecisionExposed("4000000", "G", PRECISION_RANK), "100k")
+  })
+
+  test("infers thousand-scale precisions", () => {
+    assert.equal(inferYearPrecisionExposed("500000", "G", PRECISION_RANK), "100k")
+    assert.equal(inferYearPrecisionExposed("60000", "G", PRECISION_RANK), "10k")
+    assert.equal(inferYearPrecisionExposed("7000", "G", PRECISION_RANK), "y")
+
+    assert.notEqual(inferYearPrecisionExposed("7000", "G", PRECISION_RANK), "k")
+    assert.notEqual(inferYearPrecisionExposed("7000", "G", PRECISION_RANK), "100y")
+  })
+
+  test("infers century and decade precision", () => {
+    assert.equal(inferYearPrecisionExposed("10100", "G", PRECISION_RANK), "100y")
+    assert.equal(inferYearPrecisionExposed("10110", "G", PRECISION_RANK), "10y")
+
+    assert.notEqual(inferYearPrecisionExposed("12000", "G", PRECISION_RANK), "100y")
+    assert.notEqual(inferYearPrecisionExposed("10110", "G", PRECISION_RANK), "y")
+  })
+
+  test("does not infer higher precision for years <= 9999", () => {
+    assert.equal(inferYearPrecisionExposed("9999", "G", PRECISION_RANK), "y")
+    assert.equal(inferYearPrecisionExposed("-9999", "G", PRECISION_RANK), "y")
+
+    assert.notEqual(inferYearPrecisionExposed("9999", "G", PRECISION_RANK), "10y")
+  })
+
+  test("handles negative years symmetrically", () => {
+    assert.equal(inferYearPrecisionExposed("-1000000", "G", PRECISION_RANK), "M")
+
+    assert.notEqual(inferYearPrecisionExposed("-1000000", "G", PRECISION_RANK), "100k")
+  })
+
+  test("respects max precision clamp", () => {
+    assert.equal(inferYearPrecisionExposed("1000000", "10k", PRECISION_RANK), "10k")
+
+    assert.notEqual(inferYearPrecisionExposed("1000000", "10k", PRECISION_RANK), "M")
+  })
+
+  test("defaults to year when no candidate matches", () => {
+    assert.equal(inferYearPrecisionExposed("12345", "G", PRECISION_RANK), "y")
+
+    assert.notEqual(inferYearPrecisionExposed("12345", "G", PRECISION_RANK), "10y")
+  })
+
+  test("clamps inferred precision to max", () => {
+    assert.equal(inferYearPrecisionExposed("1000000000", "y", PRECISION_RANK), "y")
+    assert.equal(inferYearPrecisionExposed("1000000000", "s", PRECISION_RANK), "s")
+
+    assert.notEqual(inferYearPrecisionExposed("1000000000", "s", PRECISION_RANK), "G")
   })
 })
