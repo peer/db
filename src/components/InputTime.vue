@@ -1,5 +1,6 @@
 <script lang="ts">
 import { daysIn } from "@/time.ts"
+import type { TimePrecision } from "@/types"
 
 const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
 const FIRST_LOWERCASE_T_REGEX = /t/
@@ -150,11 +151,79 @@ export function progressiveValidate(normalized: string): string {
 
   return "Invalid timestamp structure."
 }
+
+export function clampToMax(p: TimePrecision, max: TimePrecision, precisionRank: Map<TimePrecision, number>): TimePrecision {
+  const pr = precisionRank.get(p)
+  const mr = precisionRank.get(max)
+
+  if (pr == null) throw new Error(`unknown precision: ${p}`)
+  if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
+
+  return pr < mr ? max : p
+}
+
+export function inferYearPrecision(yearStr: string, max: TimePrecision, precisionRank: Map<TimePrecision, number>): TimePrecision {
+  if (!yearStr) return clampToMax("y", max, precisionRank)
+
+  const year = BigInt(yearStr)
+  const abs = year < 0n ? -year : year
+
+  const candidates: Array<[TimePrecision, bigint]> = [
+    ["G", 1_000_000_000n],
+    ["100M", 100_000_000n],
+    ["10M", 10_000_000n],
+    ["M", 1_000_000n],
+    ["100k", 100_000n],
+    ["10k", 10_000n],
+    ["k", 1_000n],
+    ["100y", 100n],
+    ["10y", 10n],
+  ]
+
+  for (const [p, factor] of candidates) {
+    if (abs >= factor && year % factor === 0n && abs > 9999n) {
+      return clampToMax(p, max, precisionRank)
+    }
+  }
+
+  return clampToMax("y", max, precisionRank)
+}
+
+export function inferPrecisionFromNormalized(
+  normalized: string,
+  timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string },
+  precisionRank: Map<TimePrecision, number>,
+  maxPrecision: TimePrecision,
+  precision: TimePrecision,
+): TimePrecision {
+  let inferred: TimePrecision
+
+  if (matchToSecond(normalized)) {
+    inferred = "s"
+  } else if (matchToMinute(normalized)) {
+    inferred = "min"
+  } else if (matchToHour(normalized)) {
+    inferred = "h"
+  } else if (matchToDay(normalized)) {
+    // Months are defined, but days are not.
+    if (Number(timeStruct.m) > 0 && (!timeStruct.d || timeStruct.d == "0" || timeStruct.d == "00")) return "m"
+    // Days can be "00" or "0" for year precision.
+    else if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
+    else inferred = "d"
+  } else if (matchToMonth(normalized)) {
+    // Months can be "00" or "0" for year precision.
+    if (timeStruct.m == "00" || timeStruct.m == "0") inferred = "y"
+    else inferred = "m"
+  } else {
+    const y = matchToYear(normalized)
+    inferred = y ? inferYearPrecision(y[1], maxPrecision, precisionRank) : precision
+  }
+
+  return clampToMax(inferred, maxPrecision, precisionRank)
+}
 </script>
 
 <script setup lang="ts">
-import type { TimePrecision } from "@/types"
-
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
@@ -332,70 +401,6 @@ function getStructuredTimestamp(normalized: string): { y: string; m: string; d: 
   return timeStruct
 }
 
-function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
-  if (!yearStr) return clampToMax("y", max)
-
-  const year = BigInt(yearStr)
-  const abs = year < 0n ? -year : year
-
-  const candidates: Array<[TimePrecision, bigint]> = [
-    ["G", 1_000_000_000n],
-    ["100M", 100_000_000n],
-    ["10M", 10_000_000n],
-    ["M", 1_000_000n],
-    ["100k", 100_000n],
-    ["10k", 10_000n],
-    ["k", 1_000n],
-    ["100y", 100n],
-    ["10y", 10n],
-  ]
-
-  for (const [p, factor] of candidates) {
-    if (abs >= factor && year % factor === 0n && abs > 9999n) {
-      return clampToMax(p, max)
-    }
-  }
-
-  return clampToMax("y", max)
-}
-
-function inferPrecisionFromNormalized(normalized: string, timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }): TimePrecision {
-  let inferred: TimePrecision
-
-  if (matchToSecond(normalized)) {
-    inferred = "s"
-  } else if (matchToMinute(normalized)) {
-    inferred = "min"
-  } else if (matchToHour(normalized)) {
-    inferred = "h"
-  } else if (matchToDay(normalized)) {
-    // Months are defined, but days are not.
-    if (Number(timeStruct.m) > 0 && (!timeStruct.d || timeStruct.d == "0" || timeStruct.d == "00")) return "m"
-    // Days can be "00" or "0" for year precision.
-    else if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
-    else inferred = "d"
-  } else if (matchToMonth(normalized)) {
-    // Months can be "00" or "0" for year precision.
-    if (timeStruct.m == "00" || timeStruct.m == "0") inferred = "y"
-    else inferred = "m"
-  } else {
-    const y = matchToYear(normalized)
-    inferred = y ? inferYearPrecision(y[1], props.maxPrecision) : timePrecision.value
-  }
-
-  return clampToMax(inferred, props.maxPrecision)
-}
-
-function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
-  const pr = PRECISION_RANK.get(p)
-  const mr = PRECISION_RANK.get(max)
-
-  if (pr == null) throw new Error(`unknown precision: ${p}`)
-  if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
-
-  return pr < mr ? max : p
-}
-
 function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
   const y = timeStruct.y || "0000"
 
@@ -491,7 +496,7 @@ function emitCanonicalFromDisplay(): void {
   if (validationErrorMessage) return
 
   const struct = getStructuredTimestamp(normalized)
-  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct)
+  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, PRECISION_RANK, props.maxPrecision, timePrecision.value)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
   if (canonical && canonical !== model.value) {
@@ -507,7 +512,7 @@ function autoAdaptPrecisionFromDisplay(): void {
   if (validationErrorMessage && validationErrorMessage !== "") return
 
   const struct = getStructuredTimestamp(normalized)
-  const inferred = inferPrecisionFromNormalized(normalized, struct)
+  const inferred = inferPrecisionFromNormalized(normalized, struct, PRECISION_RANK, props.maxPrecision, timePrecision.value)
 
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
