@@ -32,6 +32,9 @@ const matchToHour = (s: string) => s.match(HOUR_RE)
 const matchToMinute = (s: string) => s.match(MINUTE_RE)
 const matchToSecond = (s: string) => s.match(SECOND_RE)
 
+const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
+export const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
+
 export function normalizeForParsing(raw: string): string {
   if (!raw) return ""
 
@@ -262,7 +265,6 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 const precisionLabels: Record<TimePrecision, string> = {
   G: "giga years",
   "100M": "hundred megayears",
@@ -280,8 +282,6 @@ const precisionLabels: Record<TimePrecision, string> = {
   min: "minutes",
   s: "seconds",
 }
-
-const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
 
 const timePrecision = ref<TimePrecision>("y")
 
