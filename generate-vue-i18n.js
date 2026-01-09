@@ -38,6 +38,9 @@ function jsonToTypeScript(obj, indent = 0) {
   if (typeof obj === "object" && obj !== null) {
     const entries = Object.entries(obj)
     const properties = entries.map(([key, value]) => {
+      if (/^\d/.test(key)) {
+        key = '"' + key + '"'
+      }
       if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         // Nested object.
         const nestedContent = jsonToTypeScript(value, indent + 1)
