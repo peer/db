@@ -35,6 +35,48 @@ const matchToSecond = (s: string) => s.match(SECOND_RE)
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 export const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
 
+/**
+ * Normalizes raw user input into a canonical, progressively-parseable
+ * datetime string.
+ *
+ * This function is intentionally permissive. It accepts loosely formatted
+ * date/time input and converts it into a stable canonical form suitable
+ * for parsing.
+ *
+ * Canonical output format:
+ *  - Format is `YYYY-MM-DD HH:MM:SS`.
+ * - Date and time components may be partial.
+ * - Date and time are separated by a single space.
+ * - Output contains no `T`, repeated whitespace, or trailing separators.
+ *
+ * Guarantees:
+ * - Collapses whitespace.
+ * - Normalizes `T` / `t` to a space.
+ * - Removes trailing `-`, `T`, and `:`.
+ *
+ * Non-goals:
+ * - Does not validate semantic correctness.
+ * - Does not pad numeric components.
+ *
+ * @param raw - Raw user input string.
+ *
+ * @returns A normalized datetime string in canonical format, or an empty
+ *          string if the input is empty or whitespace.
+ *
+ * @example
+ * normalizeForParsing("2022")                  // "2022"
+ * normalizeForParsing("2022-")                 // "2022"
+ * normalizeForParsing("2022-01-")              // "2022-01"
+ *
+ * @example
+ * normalizeForParsing("2022-01-01T")            // "2022-01-01"
+ * normalizeForParsing("2022-01-01T12:34:")      // "2022-01-01 12:34"
+ * normalizeForParsing("2022-1-1t9:5")           // "2022-1-1 9:5"
+ *
+ * @example
+ * normalizeForParsing("  2022   ")              // "2022"
+ * normalizeForParsing("2022-01-01    12:00")    // "2022-01-01 12:00"
+ */
 export function normalizeForParsing(raw: string): string {
   if (!raw) return ""
 
@@ -64,6 +106,40 @@ export function normalizeForParsing(raw: string): string {
   return r
 }
 
+/**
+ * Performs progressive validation of a partially entered
+ * datetime string.
+ *
+ * This validator is designed for live input scenarios. It
+ * allows **incomplete but structurally valid** timestamps and
+ * only reports errors once a component’s intent is clear.
+ *
+ * IMPORTANT:
+ * - The input must already be normalized using `normalizeForParsing`.
+ * - This function assumes canonical formatting and does not attempt to
+ *   sanitize input.
+ *
+ * @Example - Valid output.
+ * progressiveValidate("")                    // ""
+ * progressiveValidate("202")                 // ""
+ * progressiveValidate("2023-1")              // ""
+ * progressiveValidate("2023-12-31 12")       // ""
+ * progressiveValidate("2023-12-31 12:34")    // ""
+ *
+ * @Example - Error messages.
+ * progressiveValidate("2023-13")              // "Months need to be between 0-12."
+ * progressiveValidate("2023-0-1")             // "Months cannot be 0 when days are not 0."
+ * progressiveValidate("2023-2-30")            // "Day must be between 0-28."
+ * progressiveValidate("2023-12-31 24")        // "Hours needs to be between 0-23."
+ * progressiveValidate("foo")                  // "Invalid timestamp structure."
+ *
+ *
+ * @param normalized - Canonical datetime string produced by `normalizeForParsing`
+ *
+ * @returns
+ * - `""` if the input is valid or still incomplete.
+ * - A descriptive error message if the input is invalid.
+ */
 export function progressiveValidate(normalized: string): string {
   if (!normalized) return ""
 
