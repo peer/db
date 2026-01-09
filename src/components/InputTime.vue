@@ -155,7 +155,7 @@ export function progressiveValidate(normalized: string): string {
     return month >= 0 && month <= 12 ? "" : "Months need to be between 0-12."
   }
 
-  // Day in progress: "2023-1-1", "2023-1-1 1".
+  // Day in progress: "2023-1-1".
   if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
     const asDay = matchToDay(normalized)
     if (!asDay) return ""
