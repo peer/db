@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { PeerDBDocument } from "@/document.ts"
+import type { PeerDBDocument } from "@/document"
 import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@allindevelopers/vue-local-scope"
@@ -16,11 +16,11 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { injectProgress } from "@/progress.ts"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
-import { useTruncationTracking } from "@/truncation.ts"
-import { encodeQuery, getClaimsOfTypeWithConfidence, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils.ts"
-import { useVisibilityTracking } from "@/visibility.ts"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
+import { useTruncationTracking } from "@/truncation"
+import { encodeQuery, getClaimsOfTypeWithConfidence, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
   // Search props.

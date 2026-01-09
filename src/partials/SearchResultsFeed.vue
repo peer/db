@@ -11,9 +11,9 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { injectProgress } from "@/progress.ts"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search.ts"
-import { useLimitResults, useOnScrollOrResize } from "@/utils.ts"
+import { injectProgress } from "@/progress"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
+import { useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
