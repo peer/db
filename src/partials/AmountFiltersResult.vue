@@ -6,6 +6,7 @@ import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from 
 
 import noUiSlider from "nouislider"
 import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
+import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -24,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:state": [state: AmountFilterState]
 }>()
+
+const { t } = useI18n()
 
 const el = useTemplateRef<HTMLElement>("el")
 
@@ -176,7 +179,7 @@ onBeforeUnmount(() => {
     </div>
     <ul ref="el">
       <li v-if="error">
-        <i class="text-error-600">loading data failed</i>
+        <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <li v-else-if="min === null || max === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
@@ -222,7 +225,7 @@ onBeforeUnmount(() => {
           :for="'amount/' + result.id + '/' + result.unit + '/none'"
           class="my-1 leading-none"
           :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          ><i>none</i></label
+          ><i>{{ t("common.values.none") }}</i></label
         >
         <label
           :for="'amount/' + result.id + '/' + result.unit + '/none'"
