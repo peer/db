@@ -680,7 +680,9 @@ watch(
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
-      <label :for="inputId" class="mb-1"><slot name="timestamp-label">{{ t("common.labels.timestamp") }}</slot></label>
+      <label :for="inputId" class="mb-1"
+        ><slot name="timestamp-label">{{ t("common.labels.timestamp") }}</slot></label
+      >
 
       <InputText
         :id="inputId"
@@ -699,7 +701,9 @@ watch(
     </div>
 
     <Listbox v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
-      <ListboxLabel class="mb-1"><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel>
+      <ListboxLabel class="mb-1"
+        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel
+      >
 
       <div class="relative">
         <!--

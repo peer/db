@@ -13,5 +13,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <template v-if="claim"><i>{{ t("common.values.unknown") }}</i></template>
+  <template v-if="claim"
+    ><i>{{ t("common.values.unknown") }}</i></template
+  >
 </template>

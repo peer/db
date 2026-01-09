@@ -2,8 +2,8 @@
 import type { Metadata } from "@/types"
 
 import { DeepReadonly, getCurrentInstance, onMounted, onUnmounted, onUpdated, readonly, ref, Ref, watch } from "vue"
-import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
 import { injectMainProgress } from "@/progress"

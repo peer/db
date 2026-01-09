@@ -5,8 +5,8 @@ import type { ClientSearchSession } from "@/types"
 
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, watchEffect } from "vue"
-import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PeerDBDocument } from "@/document"
 
-import { useI18n } from "vue-i18n";
+import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { getName, loadingWidth } from "@/utils"
@@ -23,7 +23,13 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 <template>
   <WithPeerDBDocument v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <RouterLink :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link" v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`" />
+      <RouterLink
+        :to="{ name: 'DocumentGet', params: { id } }"
+        :data-url="url"
+        v-bind="$attrs"
+        class="link"
+        v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`"
+      />
     </template>
     <template #loading="{ url }">
       <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />

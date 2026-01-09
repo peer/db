@@ -31,7 +31,7 @@ for (const slot in useSlots()) {
       v-for="option in options"
       :key="option.name"
       :disabled="(option.progress || 0) > 0 || option.disabled"
-      class="rounded-sm px-2 py-0.5 h-full"
+      class="h-full rounded-sm px-2 py-0.5"
       :class="{
         'bg-white shadow-xs disabled:bg-slate-100': model === option.value,
         'disabled: enabled:hover:bg-slate-100': model !== option.value,

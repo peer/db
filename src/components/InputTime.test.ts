@@ -83,16 +83,17 @@ describe("normalizeForParsing", () => {
   })
 })
 
-// TODO: Enable once eslint parser for extra files is used.
-//       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-const progressiveValidateExposed = (value: string) => progressiveValidate(value, (key: string, named?: NamedValue) => {
-  if (named) {
-    return `${key} ${JSON.stringify(named)}`
-  } else {
-    return key
-  }
-})
+const progressiveValidateExposed = (value: string) =>
+  // TODO: Enable once eslint parser for extra files is used.
+  //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  progressiveValidate(value, (key: string, named?: NamedValue) => {
+    if (named) {
+      return `${key} ${JSON.stringify(named)}`
+    } else {
+      return key
+    }
+  })
 
 describe("progressiveValidate", () => {
   test("returns empty string for empty input", () => {
