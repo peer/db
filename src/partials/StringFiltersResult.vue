@@ -4,6 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchSession, StringFilterState, StringSearchResult } from "@/types"
 
 import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
+import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
@@ -23,6 +24,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:state": [state: StringFilterState]
 }>()
+
+const { t } = useI18n()
 
 const el = useTemplateRef<HTMLElement>("el")
 
@@ -90,7 +93,7 @@ const checkboxState = computed({
     </div>
     <ul ref="el">
       <li v-if="error">
-        <i class="text-error-600">loading data failed</i>
+        <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
@@ -126,7 +129,7 @@ const checkboxState = computed({
             <!-- TODO: /none in element ID here might conflict with "none" value as res.str above and create duplicate element IDs. -->
             <CheckBox :id="'string/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
             <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              ><i>none</i></label
+              ><i>{{ t("common.values.none") }}</i></label
             >
             <label :for="'string/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
@@ -135,7 +138,11 @@ const checkboxState = computed({
         </li>
       </template>
     </ul>
-    <Button v-if="total !== null && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{ total - limitedResults.length }} more</Button>
-    <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">{{ total - limitedResults.length }} values not shown.</div>
+    <Button v-if="total !== null && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
+      t("common.buttons.loadMore", { count: total - limitedResults.length })
+    }}</Button>
+    <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">
+      {{ t("partials.status.valuesNotShown", { count: total - limitedResults.length }) }}
+    </div>
   </div>
 </template>
