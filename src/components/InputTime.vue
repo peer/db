@@ -231,9 +231,9 @@ export function progressiveValidate(normalized: string): string {
   return "Invalid timestamp structure."
 }
 
-export function clampToMax(p: TimePrecision, max: TimePrecision, precisionRank: Map<TimePrecision, number>): TimePrecision {
-  const pr = precisionRank.get(p)
-  const mr = precisionRank.get(max)
+export function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
+  const pr = PRECISION_RANK.get(p)
+  const mr = PRECISION_RANK.get(max)
 
   if (pr == null) throw new Error(`unknown precision: ${p}`)
   if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
@@ -241,8 +241,8 @@ export function clampToMax(p: TimePrecision, max: TimePrecision, precisionRank: 
   return pr < mr ? max : p
 }
 
-export function inferYearPrecision(yearStr: string, max: TimePrecision, precisionRank: Map<TimePrecision, number>): TimePrecision {
-  if (!yearStr) return clampToMax("y", max, precisionRank)
+export function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
+  if (!yearStr) return clampToMax("y", max)
 
   const year = BigInt(yearStr)
   const abs = year < 0n ? -year : year
@@ -261,17 +261,16 @@ export function inferYearPrecision(yearStr: string, max: TimePrecision, precisio
 
   for (const [p, factor] of candidates) {
     if (abs >= factor && year % factor === 0n && abs > 9999n) {
-      return clampToMax(p, max, precisionRank)
+      return clampToMax(p, max)
     }
   }
 
-  return clampToMax("y", max, precisionRank)
+  return clampToMax("y", max)
 }
 
 export function inferPrecisionFromNormalized(
   normalized: string,
   timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string },
-  precisionRank: Map<TimePrecision, number>,
   maxPrecision: TimePrecision,
   precision: TimePrecision,
 ): TimePrecision {
@@ -295,10 +294,10 @@ export function inferPrecisionFromNormalized(
     else inferred = "m"
   } else {
     const y = matchToYear(normalized)
-    inferred = y ? inferYearPrecision(y[1], maxPrecision, precisionRank) : precision
+    inferred = y ? inferYearPrecision(y[1], maxPrecision) : precision
   }
 
-  return clampToMax(inferred, maxPrecision, precisionRank)
+  return clampToMax(inferred, maxPrecision)
 }
 </script>
 
@@ -572,7 +571,7 @@ function emitCanonicalFromDisplay(): void {
   if (validationErrorMessage) return
 
   const struct = getStructuredTimestamp(normalized)
-  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, PRECISION_RANK, props.maxPrecision, timePrecision.value)
+  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
   if (canonical && canonical !== model.value) {
@@ -588,7 +587,7 @@ function autoAdaptPrecisionFromDisplay(): void {
   if (validationErrorMessage && validationErrorMessage !== "") return
 
   const struct = getStructuredTimestamp(normalized)
-  const inferred = inferPrecisionFromNormalized(normalized, struct, PRECISION_RANK, props.maxPrecision, timePrecision.value)
+  const inferred = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
 
   if (inferred !== timePrecision.value) {
     timePrecision.value = inferred
