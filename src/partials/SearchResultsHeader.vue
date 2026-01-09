@@ -3,7 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
+import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
 
 import SelectButton from "@/components/SelectButton.vue"
 
