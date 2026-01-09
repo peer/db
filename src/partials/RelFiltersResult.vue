@@ -126,7 +126,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               >({{ res.count }})</label
             >
             <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
+              ><ArrowTopRightOnSquareIcon alt="Link" class="inline size-5 align-text-top"
             /></RouterLink>
           </template>
           <template v-else-if="'id' in res && res.count == searchTotal">
@@ -141,7 +141,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             </WithPeerDBDocument>
             <div class="my-1 inline-block leading-none">({{ res.count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon alt="Link" class="inline h-5 w-5 align-text-top"
+              ><ArrowTopRightOnSquareIcon alt="Link" class="inline size-5 align-text-top"
             /></RouterLink>
           </template>
           <template v-else-if="!('id' in res)">

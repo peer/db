@@ -713,7 +713,7 @@ watch(
           <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
+            <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
           </div>
         </ListboxButton>
 
@@ -728,7 +728,7 @@ watch(
               <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
                 <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
 
-                <CheckIcon v-if="selected" class="h-5 w-5 text-primary-600" aria-hidden="true" />
+                <CheckIcon v-if="selected" class="size-5 text-primary-600" aria-hidden="true" />
               </div>
             </li>
           </ListboxOption>

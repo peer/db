@@ -176,7 +176,7 @@ async function onEdit() {
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronLeftIcon class="h-5 w-5 sm:hidden" alt="Prev" />
+            <ChevronLeftIcon class="size-5 sm:hidden" alt="Prev" />
             <span class="hidden sm:inline">Prev</span>
           </ButtonLink>
           <ButtonLink
@@ -185,14 +185,14 @@ async function onEdit() {
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronRightIcon class="h-5 w-5 sm:hidden" alt="Next" />
+            <ChevronRightIcon class="size-5 sm:hidden" alt="Next" />
             <span class="hidden sm:inline">Next</span>
           </ButtonLink>
         </div>
       </div>
       <NavBarSearch v-else />
       <Button :progress="editProgress" type="button" primary class="px-3.5!" @click.prevent="onEdit">
-        <PencilIcon class="h-5 w-5 sm:hidden" alt="Edit" />
+        <PencilIcon class="size-5 sm:hidden" alt="Edit" />
         <span class="hidden sm:inline">Edit</span>
       </Button>
     </NavBar>

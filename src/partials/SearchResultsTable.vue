@@ -293,7 +293,7 @@ function onCloseFilterModal() {
                     >
                       <!-- We need a span to be able to use v-html. -->
                       <span class="truncate" v-html="getName(doc.claims) || '<i>no name</i>'" />
-                      <FunnelIcon class="h-5 w-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
+                      <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>
                   <template #loading="{ url }">
@@ -322,8 +322,8 @@ function onCloseFilterModal() {
                       class="border-none! p-0! shadow-none!"
                       @click.prevent="onToggleRow(result.id)"
                     >
-                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
-                      <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                      <ChevronUpDownIcon v-else class="size-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                     </Button>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2">
@@ -357,7 +357,7 @@ function onCloseFilterModal() {
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                               class="link"
                             >
-                              <ArrowTopRightOnSquareIcon class="h-5 w-5" />
+                              <ArrowTopRightOnSquareIcon class="size-5" />
                             </RouterLink>
 
                             <Button
@@ -366,8 +366,8 @@ function onCloseFilterModal() {
                               class="border-none! p-0! shadow-none!"
                               @click.prevent="onToggleRow(result.id)"
                             >
-                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
-                              <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                              <ChevronDownUpIcon v-if="rowexpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                              <ChevronUpDownIcon v-else class="size-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                             </Button>
                           </div>
 
@@ -471,7 +471,7 @@ function onCloseFilterModal() {
         />
 
         <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
-          <XMarkIcon class="h-5 w-5" />
+          <XMarkIcon class="size-5" />
         </Button>
       </DialogPanel>
     </div>

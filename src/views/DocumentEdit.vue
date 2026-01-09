@@ -295,7 +295,7 @@ function onChangeTab(index: number) {
     <NavBar>
       <NavBarSearch />
       <Button :progress="saveProgress" type="button" primary class="px-3.5!" @click.prevent="onSave">
-        <CheckIcon class="h-5 w-5 sm:hidden" alt="Save" />
+        <CheckIcon class="size-5 sm:hidden" alt="Save" />
         <span class="hidden sm:inline">Save</span>
       </Button>
     </NavBar>
