@@ -2,6 +2,7 @@
 import type { DeepReadonly } from "vue"
 
 import { onBeforeUnmount } from "vue"
+import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import { ClaimTypes } from "@/document"
@@ -37,6 +38,8 @@ const $emit = defineEmits<{
   removeClaim: [value: string]
 }>()
 
+const { t } = useI18n()
+
 const abortController = new AbortController()
 
 onBeforeUnmount(() => {
@@ -71,8 +74,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueId :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -87,8 +90,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -103,8 +106,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueText :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -119,8 +122,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -135,8 +138,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmount :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -151,8 +154,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmountRange :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -167,8 +170,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRel :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -183,8 +186,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueFile :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -199,8 +202,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueNone :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -215,8 +218,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -231,8 +234,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
@@ -247,8 +250,8 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeRange :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">Edit</Button>
-        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">Remove</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5! py-1!" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
