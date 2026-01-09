@@ -28,6 +28,7 @@
     "test": "vitest",
     "coverage": "vitest --coverage",
     "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage",
+    "generate-i18n-types": "node generate-vue-i18n.js",
     "upgrade": "ncu -u"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "structured-field-values": "^2.0.4",
     "uuid": "^13.0.0",
     "vue": "^3.5.24",
+    "vue-i18n": "^11.1.12",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
@@ -49,6 +51,7 @@
     "@eslint/compat": "^2.0.0",
     "@eslint/js": "^9.39.1",
     "@headlessui/tailwindcss": "^0.2.2",
+    "@intlify/unplugin-vue-i18n": "^11.0.1",
     "@studiometa/stylelint-formatter-gitlab": "^1.0.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.19",

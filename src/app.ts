@@ -6,6 +6,7 @@ import "@/app.css"
 import App from "@/App.vue"
 import RouterLink from "@/components/RouterLink.vue"
 import siteContext from "@/context"
+import i18n from "@/i18n"
 import { progressKey } from "@/progress"
 
 // During development when requests are proxied to Vite, placeholders
@@ -57,4 +58,4 @@ const app = createApp(App).use(router)
 delete app._context.components["RouterLink"]
 app.component("RouterLink", RouterLink)
 
-app.provide(progressKey, ref(0)).mount("main")
+app.use(i18n).provide(progressKey, ref(0)).mount("main")
