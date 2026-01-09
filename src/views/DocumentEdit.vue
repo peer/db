@@ -9,6 +9,7 @@ import { useRouter } from "vue-router"
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
+import InputTime from "@/components/InputTime.vue"
 import { AddClaimChange, changeFrom, idAtChange, PeerDBDocument, RemoveClaimChange } from "@/document"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -434,16 +435,17 @@ function onChangeTab(index: number) {
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="time-property" class="mt-4 mb-1">Property</label>
               <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="time-value" class="mt-4 mb-1">Timestamp</label>
-              <InputText id="time-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+              <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="timeRange-property" class="mt-4 mb-1">Property</label>
               <InputText id="timeRange-property" class="min-w-0 flex-auto grow" />
-              <label for="timeRange-lower" class="mt-4 mb-1">Lower</label>
-              <InputText id="timeRange-lower" class="min-w-0 flex-auto grow" />
-              <label for="timeRange-upper" class="mt-4 mb-1">Upper</label>
-              <InputText id="timeRange-upper" class="min-w-0 flex-auto grow" />
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
+                <template #timestamp-label>Lower</template>
+              </InputTime>
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
+                <template #timestamp-label>Upper</template>
+              </InputTime>
             </TabPanel>
           </TabPanels>
         </TabGroup>

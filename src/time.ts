@@ -1,4 +1,4 @@
-// Time functions based on Go's time.Time.
+// Time functions based on Go's time.Time from version 1.23.
 
 const secondsPerMinute = 60n
 const secondsPerHour = 60n * secondsPerMinute
@@ -68,8 +68,16 @@ function daysSinceEpoch(year: number): bigint {
   return d
 }
 
-function isLeap(year: number): boolean {
+export function isLeap(year: number): boolean {
   return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+export function daysIn(month: number, year: number): number {
+  // February.
+  if (month == 2 && isLeap(year)) {
+    return 29
+  }
+  return Number(daysBefore[month] - daysBefore[month - 1])
 }
 
 function toAbs(unixSeconds: bigint): bigint {
