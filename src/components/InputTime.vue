@@ -1,6 +1,9 @@
 <script lang="ts">
-import { daysIn } from "@/time"
+import type { NamedValue } from "vue-i18n"
+
 import type { TimePrecision } from "@/types"
+
+import { daysIn } from "@/time"
 
 const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
 const FIRST_LOWERCASE_T_REGEX = /t/
@@ -134,13 +137,14 @@ export function normalizeForParsing(raw: string): string {
  * progressiveValidate("foo")                  // "Invalid timestamp structure."
  *
  *
- * @param normalized - Canonical datetime string produced by `normalizeForParsing`
+ * @param normalized - Canonical datetime string produced by `normalizeForParsing`.
+ * @param t - Translation function.
  *
  * @returns
  * - `""` if the input is valid or still incomplete.
  * - A descriptive error message if the input is invalid.
  */
-export function progressiveValidate(normalized: string): string {
+export function progressiveValidate(normalized: string, t: (key: string, named?: NamedValue) => string): string {
   if (!normalized) return ""
 
   // Year in progress: "202", "2023".
@@ -152,7 +156,7 @@ export function progressiveValidate(normalized: string): string {
     if (!m) return ""
     const month = Number(m[2])
     if (month === 0) return ""
-    return month >= 0 && month <= 12 ? "" : "Months need to be between 0-12."
+    return month >= 0 && month <= 12 ? "" : t("components.InputTime.errors.months0")
   }
 
   // Day in progress: "2023-1-1".
@@ -163,12 +167,12 @@ export function progressiveValidate(normalized: string): string {
     const month = Number(asDay[2])
     const day = Number(asDay[3])
 
-    if (month == 0 && day != 0) return "Months cannot be 0 when days are not 0."
-    if (month < 0 || month > 12) return "Months need to be between 0-12."
+    if (month == 0 && day != 0) return t("components.InputTime.errors.daysNotZero")
+    if (month < 0 || month > 12) return t("components.InputTime.errors.months0")
 
     if (day === 0) return ""
     const maxDay = daysIn(month, year)
-    if (day < 0 || day > maxDay) return `Day must be between 0-${maxDay}.`
+    if (day < 0 || day > maxDay) return t("components.InputTime.errors.days0", { maxDay })
 
     return ""
   }
@@ -180,10 +184,10 @@ export function progressiveValidate(normalized: string): string {
     const day = Number(toHour[3])
     const hour = Number(toHour[4])
 
-    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
-    if (hour < 0 || hour > 23) return "Hours needs to be between 0-23."
+    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
 
     return ""
   }
@@ -198,11 +202,11 @@ export function progressiveValidate(normalized: string): string {
     const hour = Number(toMinute[4])
     const minute = Number(toMinute[5])
 
-    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
-    if (hour < 0 || hour > 23) return "Hours needs to be between 0-23."
-    if (minute < 0 || minute > 59) return "Minutes need to be between 0-59."
+    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
+    if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
 
     return ""
   }
@@ -218,17 +222,17 @@ export function progressiveValidate(normalized: string): string {
     const minute = Number(toSecond[5])
     const second = Number(toSecond[6])
 
-    if (month < 1 || month > 12) return "Months need to be between 1-12."
+    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return `Day must be between 1-${maxDay}.`
-    if (hour < 0 || hour > 23) return "Hours need to be between 0-23."
-    if (minute < 0 || minute > 59) return "Minutes need to be between 0-59."
-    if (second < 0 || second > 59) return "Seconds need to be between 0-59."
+    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
+    if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
+    if (second < 0 || second > 59) return t("components.InputTime.errors.seconds")
 
     return ""
   }
 
-  return "Invalid timestamp structure."
+  return t("components.InputTime.errors.invalid")
 }
 
 export function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
@@ -306,6 +310,7 @@ import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } f
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
+import { useI18n } from "vue-i18n"
 
 import InputText from "@/components/InputText.vue"
 
@@ -334,6 +339,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const { t } = useI18n()
 const abortController = new AbortController()
 
 onBeforeUnmount(() => {
@@ -341,21 +347,21 @@ onBeforeUnmount(() => {
 })
 
 const precisionLabels: Record<TimePrecision, string> = {
-  G: "giga years",
-  "100M": "hundred megayears",
-  "10M": "ten megayears",
-  M: "megayears",
-  "100k": "hundred kiloyears",
-  "10k": "ten kiloyears",
-  k: "kiloyears",
-  "100y": "hundred years",
-  "10y": "ten years",
-  y: "years",
-  m: "months",
-  d: "days",
-  h: "hours",
-  min: "minutes",
-  s: "seconds",
+  G: t("components.InputTime.precision.G"),
+  "100M": t("components.InputTime.precision.100M"),
+  "10M": t("components.InputTime.precision.10M"),
+  M: t("components.InputTime.precision.M"),
+  "100k": t("components.InputTime.precision.100k"),
+  "10k": t("components.InputTime.precision.10k"),
+  k: t("components.InputTime.precision.k"),
+  "100y": t("components.InputTime.precision.100y"),
+  "10y": t("components.InputTime.precision.10y"),
+  y: t("components.InputTime.precision.y"),
+  m: t("components.InputTime.precision.m"),
+  d: t("components.InputTime.precision.d"),
+  h: t("components.InputTime.precision.h"),
+  min: t("components.InputTime.precision.min"),
+  s: t("components.InputTime.precision.s"),
 }
 
 const timePrecision = ref<TimePrecision>("y")
@@ -565,7 +571,7 @@ function emitCanonicalFromDisplay(): void {
 
   const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(normalized)
+  const validationErrorMessage = progressiveValidate(normalized, t)
   errorMessage.value = validationErrorMessage
 
   if (validationErrorMessage) return
@@ -582,7 +588,7 @@ function emitCanonicalFromDisplay(): void {
 function autoAdaptPrecisionFromDisplay(): void {
   const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(normalized)
+  const validationErrorMessage = progressiveValidate(normalized, t)
   // Only adapt when the structure isn't clearly broken.
   if (validationErrorMessage && validationErrorMessage !== "") return
 
@@ -648,7 +654,7 @@ function onPrecisionSelected(p: TimePrecision) {
   // v-model will already update timePrecision, but we treat this as a manual intent.
   const normalized = normalizeForParsing(displayValue.value)
 
-  const validationErrorMessage = progressiveValidate(normalized)
+  const validationErrorMessage = progressiveValidate(normalized, t)
   errorMessage.value = validationErrorMessage
 
   precision.value = p
@@ -673,7 +679,7 @@ watch(
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
-      <label :for="inputId" class="mb-1"><slot name="timestamp-label">Timestamp</slot></label>
+      <label :for="inputId" class="mb-1"><slot name="timestamp-label">{{ t("common.labels.timestamp") }}</slot></label>
 
       <InputText
         :id="inputId"
@@ -692,7 +698,7 @@ watch(
     </div>
 
     <Listbox v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
-      <ListboxLabel class="mb-1"><slot name="precision-label">Precision</slot></ListboxLabel>
+      <ListboxLabel class="mb-1"><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel>
 
       <div class="relative">
         <!--
@@ -738,5 +744,5 @@ watch(
   </div>
 
   <div v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</div>
-  <div v-else class="mt-1 text-sm text-neutral-500 italic">Format: YYYY-MM-DD HH:MM:SS</div>
+  <div v-else class="mt-1 text-sm text-neutral-500 italic">{{ t("components.InputTime.format") }}</div>
 </template>
