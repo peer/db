@@ -1,5 +1,5 @@
 <script lang="ts">
-import { daysIn } from "@/time.ts"
+import { daysIn } from "@/time"
 import type { TimePrecision } from "@/types"
 
 const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
