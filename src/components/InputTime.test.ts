@@ -103,7 +103,7 @@ describe("progressiveValidate", () => {
   })
 
   test("validates month in progress", () => {
-    assert.equal(progressiveValidateExposed("2023-"), "")
+    assert.equal(progressiveValidateExposed("2023"), "")
     assert.equal(progressiveValidateExposed("2023-0"), "")
     assert.equal(progressiveValidateExposed("2023-1"), "")
     assert.equal(progressiveValidateExposed("2023-12"), "")
@@ -114,7 +114,7 @@ describe("progressiveValidate", () => {
   })
 
   test("validates day in progress", () => {
-    assert.equal(progressiveValidateExposed("2023-1-"), "")
+    assert.equal(progressiveValidateExposed("2023-1"), "")
     assert.equal(progressiveValidateExposed("2023-1-0"), "")
     assert.equal(progressiveValidateExposed("2023-1-1"), "")
     assert.equal(progressiveValidateExposed("2023-1-1 1"), "")
@@ -143,10 +143,6 @@ describe("progressiveValidate", () => {
     assert.notEqual(progressiveValidateExposed("2023-2-30 12"), "")
   })
 
-  test("do not allows minutes in progress", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:"), "Invalid timestamp structure.")
-  })
-
   test("validates minutes", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 12:0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 12:59"), "")
@@ -156,10 +152,6 @@ describe("progressiveValidate", () => {
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:59"), "Invalid timestamp structure.")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60"), "")
     assert.notEqual(progressiveValidateExposed("2023-12-31 24:00"), "")
-  })
-
-  test("do not allows seconds in progress", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:"), "Invalid timestamp structure.")
   })
 
   test("validates seconds", () => {

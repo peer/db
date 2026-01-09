@@ -112,7 +112,7 @@ export function progressiveValidate(normalized: string): string {
     return ""
   }
 
-  // Minutes in progress: allow trailing ":" while typing.
+  // Minutes in progress.
   if (MINUTES_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toMinute = matchToMinute(normalized)
   if (toMinute) {
@@ -131,7 +131,7 @@ export function progressiveValidate(normalized: string): string {
     return ""
   }
 
-  // Seconds in progress: allow trailing ":" while typing.
+  // Seconds in progress.
   if (SECONDS_IN_PROGRESS_REGEX.test(normalized)) return ""
   const toSecond = matchToSecond(normalized)
   if (toSecond) {
