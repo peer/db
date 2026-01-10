@@ -178,8 +178,8 @@ async function onEdit() {
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.icons.prev')" />
-            <span class="hidden sm:inline">{{ t("common.nav.prev") }}</span>
+            <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
           </ButtonLink>
           <ButtonLink
             primary
@@ -187,14 +187,14 @@ async function onEdit() {
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.icons.next')" />
-            <span class="hidden sm:inline">{{ t("common.nav.next") }}</span>
+            <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
           </ButtonLink>
         </div>
       </div>
       <NavBarSearch v-else />
       <Button :progress="editProgress" type="button" primary class="px-3.5!" @click.prevent="onEdit">
-        <PencilIcon class="size-5 sm:hidden" :alt="t('common.icons.edit')" />
+        <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
         <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
       </Button>
     </NavBar>

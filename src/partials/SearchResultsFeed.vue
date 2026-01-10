@@ -135,7 +135,7 @@ function onFilters() {
 <template>
   <Teleport to="#navbarsearch-teleport-end">
     <Button primary class="px-3.5! sm:hidden" type="button" @click.prevent="onFilters">
-      <FunnelIcon class="size-5" :alt="t('common.icons.filters')" />
+      <FunnelIcon class="size-5" :alt="t('common.buttons.filters')" />
     </Button>
   </Teleport>
 

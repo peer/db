@@ -14,7 +14,7 @@ const { t } = useI18n()
 
 <template>
   <template v-if="claim"
-    ><a v-if="claim.preview?.[0]" :href="claim.url"><img :src="claim.preview[0]" :alt="t('common.icons.filePreview')" /></a
+    ><a v-if="claim.preview?.[0]" :href="claim.url"><img :src="claim.preview[0]" :alt="t('partials.claimvalue.ClaimValueFile.filePreview')" /></a
     ><a v-else :href="claim.url" class="link">{{ claim.mediaType }}</a></template
   >
 </template>

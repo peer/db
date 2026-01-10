@@ -92,7 +92,7 @@ async function onSubmit() {
   <form class="flex grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
     <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateSearchSessionProgress" class="max-w-xl grow" />
     <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="px-3.5!">
-      <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.icons.search')" />
+      <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
     </Button>
 
