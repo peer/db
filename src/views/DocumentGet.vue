@@ -7,6 +7,7 @@ import type { DocumentBeginEditResponse } from "@/types"
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
@@ -27,6 +28,7 @@ const props = defineProps<{
   id: string
 }>()
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -176,8 +178,8 @@ async function onEdit() {
             :disabled="!prevNext.previous"
             :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronLeftIcon class="size-5 sm:hidden" alt="Prev" />
-            <span class="hidden sm:inline">Prev</span>
+            <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.icons.prev')" />
+            <span class="hidden sm:inline">{{ t("common.nav.prev") }}</span>
           </ButtonLink>
           <ButtonLink
             primary
@@ -185,15 +187,15 @@ async function onEdit() {
             :disabled="!prevNext.next"
             :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
           >
-            <ChevronRightIcon class="size-5 sm:hidden" alt="Next" />
-            <span class="hidden sm:inline">Next</span>
+            <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.icons.next')" />
+            <span class="hidden sm:inline">{{ t("common.nav.next") }}</span>
           </ButtonLink>
         </div>
       </div>
       <NavBarSearch v-else />
       <Button :progress="editProgress" type="button" primary class="px-3.5!" @click.prevent="onEdit">
-        <PencilIcon class="size-5 sm:hidden" alt="Edit" />
-        <span class="hidden sm:inline">Edit</span>
+        <PencilIcon class="size-5 sm:hidden" :alt="t('common.icons.edit')" />
+        <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
       </Button>
     </NavBar>
   </Teleport>
@@ -210,19 +212,19 @@ async function onEdit() {
               <Tab
                 v-if="article"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                >Article</Tab
+                >{{ t("views.DocumentGet.tabs.article") }}</Tab
               >
               <Tab
                 v-if="file"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                >File</Tab
+                >{{ t("views.DocumentGet.tabs.file") }}</Tab
               >
               <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                >All properties</Tab
+                >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanel v-if="article" tabindex="-1">
@@ -238,8 +240,8 @@ async function onEdit() {
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>
-                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
-                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
+                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -264,7 +266,7 @@ async function onEdit() {
           </div>
         </template>
         <template #error>
-          <i class="text-error-600">loading data failed</i>
+          <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
         </template>
       </WithPeerDBDocument>
     </div>

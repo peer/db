@@ -4,6 +4,7 @@ import type { DocumentBeginMetadata, DocumentEndEditResponse } from "@/types"
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, readonly, ref } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
@@ -41,6 +42,7 @@ const claimType = ref<"id" | "ref" | "text" | "string" | "amount" | "amountRange
 const claimProp = ref("")
 const claimValue = ref("")
 
+const { t } = useI18n()
 const router = useRouter()
 
 const saveProgress = injectProgress()
@@ -295,20 +297,20 @@ function onChangeTab(index: number) {
     <NavBar>
       <NavBarSearch />
       <Button :progress="saveProgress" type="button" primary class="px-3.5!" @click.prevent="onSave">
-        <CheckIcon class="size-5 sm:hidden" alt="Save" />
-        <span class="hidden sm:inline">Save</span>
+        <CheckIcon class="size-5 sm:hidden" :alt="t('common.icons.save')" />
+        <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
       </Button>
     </NavBar>
   </Teleport>
   <div class="mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || '<i>no name</i>'"></h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
-              <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">Property</th>
-              <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">Value</th>
+              <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+              <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
               <th class="flex max-w-fit flex-row gap-1"></th>
             </tr>
           </thead>
@@ -316,140 +318,140 @@ function onChangeTab(index: number) {
             <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
           </tbody>
         </table>
-        <h2 class="mt-4 text-xl font-bold drop-shadow-xs">Add claim</h2>
+        <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
         <TabGroup @change="onChangeTab">
           <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Identifier</Tab
+              >{{ t("views.DocumentEdit.claimTypes.identifier") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Reference</Tab
+              >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Text</Tab
+              >{{ t("views.DocumentEdit.claimTypes.text") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >String</Tab
+              >{{ t("views.DocumentEdit.claimTypes.string") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Amount</Tab
+              >{{ t("views.DocumentEdit.claimTypes.amount") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Amount range</Tab
+              >{{ t("views.DocumentEdit.claimTypes.amountRange") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Relation</Tab
+              >{{ t("views.DocumentEdit.claimTypes.relation") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >File</Tab
+              >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >No value</Tab
+              >{{ t("views.DocumentEdit.claimTypes.noValue") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Unknown value</Tab
+              >{{ t("views.DocumentEdit.claimTypes.unknownValue") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Time</Tab
+              >{{ t("views.DocumentEdit.claimTypes.time") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >Time range</Tab
+              >{{ t("views.DocumentEdit.claimTypes.timeRange") }}</Tab
             >
           </TabList>
           <TabPanels>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="identifier-property" class="mt-4 mb-1">Property</label>
+              <label for="identifier-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="identifier-value" class="mt-4 mb-1">Value</label>
+              <label for="identifier-value" class="mt-4 mb-1">{{ t("common.labels.value") }}</label>
               <InputText id="identifier-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="reference-property" class="mt-4 mb-1">Property</label>
+              <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="reference-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="reference-value" class="mt-4 mb-1">IRI</label>
+              <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
               <InputText id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="text-property" class="mt-4 mb-1">Property</label>
+              <label for="text-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="text-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="text-value" class="mt-4 mb-1">Text</label>
+              <label for="text-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.text") }}</label>
               <InputText id="text-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="string-property" class="mt-4 mb-1">Property</label>
+              <label for="string-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="string-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="string-value" class="mt-4 mb-1">String</label>
+              <label for="string-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.string") }}</label>
               <InputText id="string-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="amount-property" class="mt-4 mb-1">Property</label>
+              <label for="amount-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="amount-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="amount-value" class="mt-4 mb-1">Amount</label>
+              <label for="amount-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.amount") }}</label>
               <InputText id="amount-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="amountRange-property" class="mt-4 mb-1">Property</label>
+              <label for="amountRange-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="amountRange-property" class="min-w-0 flex-auto grow" />
-              <label for="amountRange-lower" class="mt-4 mb-1">Lower</label>
+              <label for="amountRange-lower" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.lower") }}</label>
               <InputText id="amountRange-lower" class="min-w-0 flex-auto grow" />
-              <label for="amountRange-upper" class="mt-4 mb-1">Upper</label>
+              <label for="amountRange-upper" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.upper") }}</label>
               <InputText id="amountRange-upper" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="relation-property" class="mt-4 mb-1">Property</label>
+              <label for="relation-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="relation-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="relation-value" class="mt-4 mb-1">To</label>
+              <label for="relation-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
               <InputText id="relation-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="file-property" class="mt-4 mb-1">Property</label>
+              <label for="file-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="file-property" class="min-w-0 flex-auto grow" />
-              <label for="file-mediaType" class="mt-4 mb-1">Media type</label>
+              <label for="file-mediaType" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.mediaType") }}</label>
               <InputText id="file-mediaType" class="min-w-0 flex-auto grow" />
-              <label for="file-url" class="mt-4 mb-1">URL</label>
+              <label for="file-url" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.url") }}</label>
               <InputText id="file-url" class="min-w-0 flex-auto grow" />
-              <label for="file-preview" class="mt-4 mb-1">Preview URL</label>
+              <label for="file-preview" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.previewUrl") }}</label>
               <InputText id="file-preview" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="none-property" class="mt-4 mb-1">Property</label>
+              <label for="none-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="none-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="unknown-property" class="mt-4 mb-1">Property</label>
+              <label for="unknown-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="unknown-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="time-property" class="mt-4 mb-1">Property</label>
+              <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="timeRange-property" class="mt-4 mb-1">Property</label>
+              <label for="timeRange-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="timeRange-property" class="min-w-0 flex-auto grow" />
               <InputTime class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>Lower</template>
+                <template #timestamp-label>{{ t("views.DocumentEdit.labels.lower") }}</template>
               </InputTime>
               <InputTime class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>Upper</template>
+                <template #timestamp-label>{{ t("views.DocumentEdit.labels.upper") }}</template>
               </InputTime>
             </TabPanel>
           </TabPanels>
         </TabGroup>
-        <Button type="button" class="mt-6" @click.prevent="onAddClaim">Add</Button>
+        <Button type="button" class="mt-6" @click.prevent="onAddClaim">{{ t("common.buttons.add") }}</Button>
       </template>
     </div>
   </div>
