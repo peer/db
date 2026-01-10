@@ -16,6 +16,7 @@ import type {
 
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
@@ -35,6 +36,7 @@ const props = defineProps<{
   id: string
 }>()
 
+const { t } = useI18n()
 const router = useRouter()
 
 const mainProgress = injectMainProgress()
@@ -417,20 +419,22 @@ async function onViewChange(view: ViewType) {
     <NavBar>
       <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
       <Button :progress="createProgress" type="button" primary class="px-3.5!" @click.prevent="onCreate">
-        <PlusIcon class="size-5 sm:hidden" alt="Create" />
-        <span class="hidden sm:inline">Create</span>
+        <PlusIcon class="size-5 sm:hidden" :alt="t('common.icons.create')" />
+        <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
       </Button>
       <input ref="upload" type="file" class="hidden" @change="onChange" />
       <Button :progress="uploadProgress" type="button" primary class="px-3.5!" @click.prevent="onUpload">
-        <ArrowUpTrayIcon class="size-5 sm:hidden" alt="Upload" />
-        <span class="hidden sm:inline">Upload</span>
+        <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.icons.upload')" />
+        <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
       </Button>
     </NavBar>
   </Teleport>
   <div ref="searchEl" class="mt-12 w-full border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">
-    <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"><i class="text-error-600">loading data failed</i></div>
+    <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"
+      ><i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
+    >
 
-    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">Loading...</div>
+    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"
