@@ -96,7 +96,7 @@
     },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",
-      "collapseRow": "Zloži vrstico",
+      "collapseRow": "Skrči vrstico",
       "moreColumns": "Več stolpcev"
     },
     "claimvalue": {
