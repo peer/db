@@ -163,7 +163,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       t("common.buttons.loadMore", { count: total - limitedResults.length })
     }}</Button>
     <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">
-      {{ t("partials.status.valuesNotShown", { count: total - limitedResults.length }) }}
+      {{ t("common.status.valuesNotShown", { count: total - limitedResults.length }) }}
     </div>
   </div>
 </template>
