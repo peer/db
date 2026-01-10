@@ -167,9 +167,9 @@ function onFilters() {
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResultsMoreThan", { first: searchResults.length, count: searchTotal }) }}</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResultsOnly", { first: searchResults.length, count: searchTotal }) }}</div>
-          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResults", { count: searchResults.length }) }}</div>
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{ t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
           <div class="relative h-2 w-full bg-slate-200">
             <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
           </div>
@@ -186,15 +186,15 @@ function onFilters() {
       </div>
 
       <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
-        <div class="text-center text-sm">{{ t("common.status.determiningFilters") }}</div>
+        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.determiningFilters") }}</div>
       </div>
 
       <div v-else-if="filtersTotal === 0" class="my-1 sm:my-4">
-        <div class="text-center text-sm">{{ t("common.status.noFilters") }}</div>
+        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
       </div>
 
       <template v-else-if="filtersTotal > 0">
-        <div class="text-center text-sm">{{ t("common.status.filtersAvailable", { count: filtersTotal }) }}</div>
+        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <FiltersResult
@@ -209,11 +209,11 @@ function onFilters() {
         </template>
 
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore"
-          >{{ t('common.buttons.moreFilters') }}</Button
+          >{{ t('partials.SearchResultsFeed.moreFilters') }}</Button
         >
 
         <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
-          t("common.status.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
+          t("partials.SearchResultsFeed.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
         }}</div>
       </template>
     </div>
