@@ -5,6 +5,7 @@ import type { PeerDBDocument } from "@/document"
 import type { Result } from "@/types"
 
 import { computed, ref } from "vue"
+import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import {
@@ -34,6 +35,8 @@ defineProps<{
   searchSessionId: string
   result: Result
 }>()
+
+const { t } = useI18n()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
@@ -123,7 +126,7 @@ const rowSpan = computed(() => {
             <RouterLink
               :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
               class="link"
-              v-html="docName || '<i>no name</i>'"
+              v-html="docName || `<i>${t('common.values.noName')}</i>`"
             ></RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
@@ -134,7 +137,7 @@ const rowSpan = computed(() => {
                   <li
                     class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
                     :data-url="url"
-                    v-html="getName(doc.claims) || '<i>no name</i>'"
+                    v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`"
                   ></li>
                 </template>
                 <template #loading="{ url }">
@@ -166,7 +169,7 @@ const rowSpan = computed(() => {
         </div>
       </template>
       <template #error>
-        <i class="text-error-600">loading data failed</i>
+        <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </template>
     </WithPeerDBDocument>
   </div>

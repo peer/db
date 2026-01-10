@@ -5,6 +5,7 @@ import type { ClientSearchSession } from "@/types"
 
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, watchEffect } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
@@ -27,6 +28,7 @@ const $emit = defineEmits<{
   queryChange: [change: string]
 }>()
 
+const { t } = useI18n()
 const router = useRouter()
 
 const progress = injectProgress()
@@ -90,8 +92,8 @@ async function onSubmit() {
   <form class="flex grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
     <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateSearchSessionProgress" class="max-w-xl grow" />
     <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="px-3.5!">
-      <MagnifyingGlassIcon class="h-5 w-5 sm:hidden" alt="Search" />
-      <span class="hidden sm:inline">Search</span>
+      <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
+      <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
     </Button>
 
     <div id="navbarsearch-teleport-end" class="flex gap-x-1 sm:gap-x-4" />

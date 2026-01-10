@@ -1,0 +1,146 @@
+{
+  "common": {
+    "buttons": {
+      "search": "Search",
+      "create": "Create",
+      "upload": "Upload",
+      "edit": "Edit",
+      "save": "Save",
+      "add": "Add",
+      "remove": "Remove",
+      "loadCountMore": "{count} more",
+      "loadMore": "Load more",
+      "filters": "Filters",
+      "prev": "Prev",
+      "next": "Next"
+    },
+    "status": {
+      "loading": "Loading...",
+      "loadingDataFailed": "loading data failed",
+      "valuesNotShown": "1 value not shown. | {count} values not shown.",
+      "allResults": "All of 1 result shown. | All of {count} results shown.",
+      "allResultsOnly": "All of first {first} shown of 1 result found. | All of first {first} shown of {count} results found.",
+      "allResultsMoreThan": "All of first {first} shown of more than 1 result found. | All of first {first} shown of more than {count} results found."
+    },
+    "labels": {
+      "property": "Property",
+      "value": "Value",
+      "timestamp": "Timestamp",
+      "precision": "Precision"
+    },
+    "icons": {
+      "link": "Link",
+      "feed": "Feed",
+      "table": "Table"
+    },
+    "values": {
+      "noName": "no name",
+      "none": "none",
+      "unknown": "unknown"
+    }
+  },
+  "components": {
+    "InputTime": {
+      "format": "Format: YYYY-MM-DD HH:MM:SS",
+      "precision": {
+        "G": "giga years",
+        "100M": "hundred megayears",
+        "10M": "ten megayears",
+        "M": "megayears",
+        "100k": "hundred kiloyears",
+        "10k": "ten kiloyears",
+        "k": "kiloyears",
+        "100y": "hundred years",
+        "10y": "ten years",
+        "y": "years",
+        "m": "months",
+        "d": "days",
+        "h": "hours",
+        "min": "minutes",
+        "s": "seconds"
+      },
+      "errors": {
+        "invalid": "Invalid format.",
+        "daysNotZero": "Months cannot be 0 when days are not 0.",
+        "months": "Months need to be between 1-12.",
+        "months0": "Months need to be between 0-12.",
+        "days": "Day must be between 1-{maxDay}.",
+        "days0": "Day must be between 0-{maxDay}.",
+        "hours": "Hours needs to be between 0-23.",
+        "minutes": "Minutes need to be between 0-59.",
+        "seconds": "Seconds need to be between 0-59."
+      }
+    }
+  },
+  "partials": {
+    "Footer": {
+      "poweredBy": "Powered by {linkName}"
+    },
+    "SearchResultsHeader": {
+      "searchingQueryFilters": "Searching query {query} and 1 active filter. | Searching query {query} and {count} active filters.",
+      "searchingNoQueryFilters": "Searching without query and with 1 active filter. | Searching without query and with {count} active filters.",
+      "searchingQueryFiltersInProgress": "Searching query {query} and 1 active filter... | Searching query {query} and {count} active filters...",
+      "searchingNoQueryFiltersInProgress": "Searching without query and with 1 active filter... | Searching without query and with {count} active filters...",
+      "resultsFound": "1 result found. | {count} results found.",
+      "resultsFoundMoreThan": "More than 1 result found. | More than {count} results found.",
+      "noResults": "No results found."
+    },
+    "SearchResultsFeed": {
+      "moreFilters": "More filters",
+      "shownResults": "{i} of 1 result. | {i} of {count} results.",
+      "shownResultsOnly": "{i} of 1 shown result. | {i} of {count} shown results.",
+      "filtersNotShown": "1 filter not shown. | {count} filters not shown.",
+      "noFilters": "No filters available.",
+      "filtersAvailable": "1 filters available. | {count} filters available.",
+      "determiningFilters": "Determining filters..."
+    },
+    "SearchResultsTable": {
+      "expandRow": "Expand row",
+      "collapseRow": "Collapse row",
+      "moreColumns": "More columns"
+    },
+    "claimvalue": {
+      "ClaimValueFile": {
+        "filePreview": "File preview"
+      }
+    }
+  },
+  "views": {
+    "DocumentGet": {
+      "tabs": {
+        "article": "Article",
+        "file": "File",
+        "allProperties": "All properties"
+      }
+    },
+    "DocumentEdit": {
+      "addClaim": "Add claim",
+      "claimTypes": {
+        "identifier": "Identifier",
+        "reference": "Reference",
+        "text": "Text",
+        "string": "String",
+        "amount": "Amount",
+        "amountRange": "Amount range",
+        "relation": "Relation",
+        "file": "File",
+        "noValue": "No value",
+        "unknownValue": "Unknown value",
+        "time": "Timestamp",
+        "timeRange": "Time range"
+      },
+      "labels": {
+        "iri": "IRI",
+        "text": "Text",
+        "string": "String",
+        "amount": "Amount",
+        "lower": "Lower",
+        "upper": "Upper",
+        "to": "To",
+        "mediaType": "Media type",
+        "url": "URL",
+        "previewUrl": "Preview URL"
+      }
+    }
+  }
+}

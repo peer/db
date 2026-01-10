@@ -3,7 +3,8 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/20/solid"
+import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
+import { useI18n } from "vue-i18n"
 
 import SelectButton from "@/components/SelectButton.vue"
 
@@ -17,12 +18,14 @@ const $emit = defineEmits<{
   viewChange: [value: ViewType]
 }>()
 
+const { t } = useI18n()
+
 const selectButtonOptions: SelectButtonOption<ViewType>[] = [
   {
     name: "feed",
     icon: {
       component: Bars4Icon,
-      alt: "Feed",
+      alt: t("common.icons.feed"),
     },
     value: "feed",
   },
@@ -30,7 +33,7 @@ const selectButtonOptions: SelectButtonOption<ViewType>[] = [
     name: "table",
     icon: {
       component: TableCellsIcon,
-      alt: "Table",
+      alt: t("common.icons.table"),
     },
     value: "table",
   },
@@ -67,23 +70,30 @@ function countFilters(): number {
 <template>
   <div class="flex flex-row gap-x-1 sm:gap-x-4">
     <div class="flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2">
-      <div v-if="searchSession.query && countFilters() === 1">
-        Searching query <i>{{ searchSession.query }}</i> and 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
+      <div v-if="searchTotal === null && searchSession.query">
+        <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFiltersInProgress" :plural="countFilters()" scope="global">
+          <template #query>
+            <i>{{ searchSession.query }}</i>
+          </template>
+        </i18n-t>
       </div>
-      <div v-else-if="searchSession.query">
-        Searching query <i>{{ searchSession.query }}</i> and {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template
-        ><template v-else>.</template>
+      <div v-else-if="searchTotal !== null && searchSession.query">
+        <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFilters" :plural="countFilters()" scope="global">
+          <template #query>
+            <i>{{ searchSession.query }}</i>
+          </template>
+        </i18n-t>
       </div>
-      <div v-else-if="countFilters() === 1">
-        Searching without query and with 1 active filter<template v-if="searchTotal === null">...</template><template v-else>.</template>
+      <div v-if="searchTotal === null && !searchSession.query">
+        {{ t("partials.SearchResultsHeader.searchingNoQueryFiltersInProgress", { count: countFilters() }) }}
       </div>
-      <div v-else>
-        Searching without query and with {{ countFilters() }} active filters<template v-if="searchTotal === null">...</template><template v-else>.</template>
+      <div v-else-if="searchTotal !== null && !searchSession.query">
+        {{ t("partials.SearchResultsHeader.searchingNoQueryFilters", { count: countFilters() }) }}
       </div>
       <template v-if="searchTotal !== null">
-        <div v-if="searchTotal === 0">No results found.</div>
-        <div v-else-if="searchMoreThanTotal">More than {{ searchTotal }} results found.</div>
-        <div v-else>{{ searchTotal }} results found.</div>
+        <div v-if="searchTotal === 0">{{ t("partials.SearchResultsHeader.noResults") }}</div>
+        <div v-else-if="searchMoreThanTotal">{{ t("partials.SearchResultsHeader.resultsFoundMoreThan", { count: searchTotal }) }}</div>
+        <div v-else>{{ t("partials.SearchResultsHeader.resultsFound", { count: searchTotal }) }}</div>
       </template>
     </div>
 

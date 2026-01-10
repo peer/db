@@ -1,3 +1,5 @@
+import type { NamedValue } from "vue-i18n"
+
 import type { TimePrecision } from "@/types"
 
 import { assert, describe, test } from "vitest"
@@ -81,16 +83,23 @@ describe("normalizeForParsing", () => {
   })
 })
 
-// TODO: Enable once eslint parser for extra files is used.
-//       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-const progressiveValidateExposed = (value: string) => progressiveValidate(value)
+const progressiveValidateExposed = (value: string) =>
+  // TODO: Enable once eslint parser for extra files is used.
+  //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  progressiveValidate(value, (key: string, named?: NamedValue) => {
+    if (named) {
+      return `${key} ${JSON.stringify(named)}`
+    } else {
+      return key
+    }
+  })
 
 describe("progressiveValidate", () => {
   test("returns empty string for empty input", () => {
     assert.equal(progressiveValidateExposed(""), "")
 
-    assert.notEqual(progressiveValidateExposed(""), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed(""), "components.InputTime.errors.invalid")
   })
 
   test("allows year in progress", () => {
@@ -99,7 +108,7 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("202"), "")
     assert.equal(progressiveValidateExposed("2023"), "")
 
-    assert.notEqual(progressiveValidateExposed("2023"), "Months need to be between 0-12.")
+    assert.notEqual(progressiveValidateExposed("2023"), "components.InputTime.errors.months0")
   })
 
   test("validates month in progress", () => {
@@ -107,9 +116,9 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("2023-0"), "")
     assert.equal(progressiveValidateExposed("2023-1"), "")
     assert.equal(progressiveValidateExposed("2023-12"), "")
-    assert.equal(progressiveValidateExposed("2023-13"), "Months need to be between 0-12.")
+    assert.equal(progressiveValidateExposed("2023-13"), "components.InputTime.errors.months0")
 
-    assert.notEqual(progressiveValidateExposed("2023-12"), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed("2023-12"), "components.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-13"), "")
   })
 
@@ -118,13 +127,13 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("2023-1-0"), "")
     assert.equal(progressiveValidateExposed("2023-1-1"), "")
     assert.equal(progressiveValidateExposed("2023-1-1 1"), "")
-    assert.equal(progressiveValidateExposed("2023-0-1"), "Months cannot be 0 when days are not 0.")
-    assert.equal(progressiveValidateExposed("2023-00-01"), "Months cannot be 0 when days are not 0.")
-    assert.equal(progressiveValidateExposed("2023-13-1"), "Months need to be between 0-12.")
-    assert.equal(progressiveValidateExposed("2023-2-30"), "Day must be between 0-28.")
-    assert.equal(progressiveValidateExposed("2015-2-30"), "Day must be between 0-28.")
+    assert.equal(progressiveValidateExposed("2023-0-1"), "components.InputTime.errors.daysNotZero")
+    assert.equal(progressiveValidateExposed("2023-00-01"), "components.InputTime.errors.daysNotZero")
+    assert.equal(progressiveValidateExposed("2023-13-1"), "components.InputTime.errors.months0")
+    assert.equal(progressiveValidateExposed("2023-2-30"), `components.InputTime.errors.days0 {"maxDay":28}`)
+    assert.equal(progressiveValidateExposed("2015-2-30"), `components.InputTime.errors.days0 {"maxDay":28}`)
 
-    assert.notEqual(progressiveValidateExposed("2023-1-1"), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed("2023-1-1"), "components.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-0-1"), "")
     assert.notEqual(progressiveValidateExposed("2023-13-1"), "")
     assert.notEqual(progressiveValidateExposed("2023-2-30"), "")
@@ -133,11 +142,11 @@ describe("progressiveValidate", () => {
   test("validates hours", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 23"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 24"), "Hours needs to be between 0-23.")
-    assert.equal(progressiveValidateExposed("2023-13-31 12"), "Months need to be between 1-12.")
-    assert.equal(progressiveValidateExposed("2023-2-30 12"), "Day must be between 1-28.")
+    assert.equal(progressiveValidateExposed("2023-12-31 24"), "components.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-13-31 12"), "components.InputTime.errors.months")
+    assert.equal(progressiveValidateExposed("2023-2-30 12"), `components.InputTime.errors.days {"maxDay":28}`)
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 23"), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 23"), "components.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 24"), "")
     assert.notEqual(progressiveValidateExposed("2023-13-31 12"), "")
     assert.notEqual(progressiveValidateExposed("2023-2-30 12"), "")
@@ -146,10 +155,10 @@ describe("progressiveValidate", () => {
   test("validates minutes", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 12:0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 12:59"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:60"), "Minutes need to be between 0-59.")
-    assert.equal(progressiveValidateExposed("2023-12-31 24:00"), "Hours needs to be between 0-23.")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60"), "components.InputTime.errors.minutes")
+    assert.equal(progressiveValidateExposed("2023-12-31 24:00"), "components.InputTime.errors.hours")
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 12:59"), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 12:59"), "components.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60"), "")
     assert.notEqual(progressiveValidateExposed("2023-12-31 24:00"), "")
   })
@@ -157,17 +166,17 @@ describe("progressiveValidate", () => {
   test("validates seconds", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 12:34:0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 12:34:59"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60"), "Seconds need to be between 0-59.")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:60:00"), "Minutes need to be between 0-59.")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60"), "components.InputTime.errors.seconds")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60:00"), "components.InputTime.errors.minutes")
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:59"), "Invalid timestamp structure.")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:59"), "components.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:60"), "")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60:00"), "")
   })
 
   test("rejects invalid timestamp structure", () => {
-    assert.equal(progressiveValidateExposed("foo"), "Invalid timestamp structure.")
-    assert.equal(progressiveValidateExposed("2023--12"), "Invalid timestamp structure.")
+    assert.equal(progressiveValidateExposed("foo"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023--12"), "components.InputTime.errors.invalid")
 
     assert.notEqual(progressiveValidateExposed("foo"), "")
     assert.notEqual(progressiveValidateExposed("2023--12"), "")

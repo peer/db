@@ -21,7 +21,13 @@ defineOptions({
         <li><RouterLink :to="{ name: 'Home' }" class="link">API</RouterLink></li> -->
       </ul>
       <ul class="flex gap-x-2 sm:gap-x-4">
-        <li class="text-neutral-500">Powered by <a href="https://gitlab.com/peerdb/peerdb" class="link">PeerDB</a></li>
+        <li class="text-neutral-500">
+          <i18n-t keypath="partials.Footer.poweredBy" scope="global">
+            <template #linkName>
+              <a href="https://gitlab.com/peerdb/peerdb" class="link">PeerDB</a>
+            </template>
+          </i18n-t>
+        </li>
       </ul>
     </div>
   </div>

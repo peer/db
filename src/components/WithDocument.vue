@@ -2,6 +2,7 @@
 import type { Metadata } from "@/types"
 
 import { DeepReadonly, getCurrentInstance, onMounted, onUnmounted, onUpdated, readonly, ref, Ref, watch } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
@@ -12,6 +13,7 @@ const props = defineProps<{
   name: string
 }>()
 
+const { t } = useI18n()
 const router = useRouter()
 
 const mainProgress = injectMainProgress()
@@ -107,7 +109,7 @@ defineSlots<{
 <template>
   <slot v-if="doc" :doc="doc" :metadata="metadata" :url="url!"></slot>
   <slot v-else-if="error" name="error" :error="error" :url="url">
-    <i class="text-error-600" :data-url="url">loading data failed</i>
+    <i class="text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
   </slot>
   <slot v-else name="loading" :url="url"></slot>
 </template>

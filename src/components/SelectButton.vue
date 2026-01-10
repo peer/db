@@ -31,7 +31,7 @@ for (const slot in useSlots()) {
       v-for="option in options"
       :key="option.name"
       :disabled="(option.progress || 0) > 0 || option.disabled"
-      class="rounded-sm px-2 py-0.5"
+      class="h-full rounded-sm px-2 py-0.5"
       :class="{
         'bg-white shadow-xs disabled:bg-slate-100': model === option.value,
         'disabled: enabled:hover:bg-slate-100': model !== option.value,
@@ -43,7 +43,7 @@ for (const slot in useSlots()) {
       <slot :option="option" :selected="model === option.value" :name="option.name">
         <!-- Or you can use a default slot to control contents of all option buttons (which do not have a named slot set). -->
         <slot :option="option" :selected="model === option.value">
-          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="h-7 w-7" />
+          <component :is="option.icon.component" v-if="option.icon" :alt="option.icon.alt" class="size-6" />
         </slot>
       </slot>
     </button>

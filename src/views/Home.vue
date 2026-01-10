@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
@@ -9,6 +10,7 @@ import Footer from "@/partials/Footer.vue"
 import { injectProgress } from "@/progress"
 import { createSearchSession } from "@/search"
 
+const { t } = useI18n()
 const router = useRouter()
 
 const progress = injectProgress()
@@ -59,7 +61,7 @@ async function onSubmit() {
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <InputText id="home-input-search" v-model="searchQuery" class="w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
-      <Button type="submit" primary :progress="progress">Search</Button>
+      <Button type="submit" primary :progress="progress">{{ t("common.buttons.search") }}</Button>
     </div>
     <div class="flex grow basis-0"></div>
   </form>

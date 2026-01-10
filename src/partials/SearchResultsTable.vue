@@ -9,6 +9,7 @@ import { Dialog, DialogPanel } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef } from "vue"
+import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -39,6 +40,8 @@ const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
 }>()
+
+const { t } = useI18n()
 
 const SEARCH_INITIAL_LIMIT = 100
 const SEARCH_INCREASE = 100
@@ -219,7 +222,7 @@ function onToggleRow(resultId: string) {
 }
 
 function getButtonTitle(resultId: string): string {
-  return isRowExpanded(resultId) ? "Collapse row" : "Expand row"
+  return isRowExpanded(resultId) ? t("partials.SearchResultsTable.collapseRow") : t("partials.SearchResultsTable.expandRow")
 }
 
 const isFilterActive = (filter: FilterResult) => {
@@ -263,7 +266,7 @@ function onCloseFilterModal() {
   </div>
 
   <div v-if="filtersError" class="mb-1 px-1 text-center sm:mb-4 sm:px-4">
-    <i class="text-error-600">loading data failed</i>
+    <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
   </div>
 
   <template v-else-if="searchTotal !== null && searchTotal > 0">
@@ -292,8 +295,8 @@ function onCloseFilterModal() {
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <!-- We need a span to be able to use v-html. -->
-                      <span class="truncate" v-html="getName(doc.claims) || '<i>no name</i>'" />
-                      <FunnelIcon class="h-5 w-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
+                      <span class="truncate" v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`" />
+                      <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>
                   <template #loading="{ url }">
@@ -322,8 +325,8 @@ function onCloseFilterModal() {
                       class="border-none! p-0! shadow-none!"
                       @click.prevent="onToggleRow(result.id)"
                     >
-                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
-                      <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                      <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                      <ChevronUpDownIcon v-else class="size-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                     </Button>
                   </td>
                   <td v-if="filtersTotal === null" class="p-2">
@@ -357,7 +360,7 @@ function onCloseFilterModal() {
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                               class="link"
                             >
-                              <ArrowTopRightOnSquareIcon class="h-5 w-5" />
+                              <ArrowTopRightOnSquareIcon class="size-5" />
                             </RouterLink>
 
                             <Button
@@ -366,8 +369,8 @@ function onCloseFilterModal() {
                               class="border-none! p-0! shadow-none!"
                               @click.prevent="onToggleRow(result.id)"
                             >
-                              <ChevronDownUpIcon v-if="rowexpanded" class="h-5 w-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
-                              <ChevronUpDownIcon v-else class="h-5 w-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
+                              <ChevronDownUpIcon v-if="rowexpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                              <ChevronUpDownIcon v-else class="size-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                             </Button>
                           </div>
 
@@ -409,7 +412,7 @@ function onCloseFilterModal() {
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <i class="text-error-600">loading data failed</i>
+                    <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
                   </td>
                 </tr>
               </template>
@@ -419,9 +422,9 @@ function onCloseFilterModal() {
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore"
-          >More columns</Button
-        >
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore">{{
+          t("partials.SearchResultsTable.moreColumns")
+        }}</Button>
       </div>
     </div>
 
@@ -432,14 +435,19 @@ function onCloseFilterModal() {
     -->
     <div class="sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">Load more</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{
+          t("common.buttons.loadMore")
+        }}</Button>
 
         <div v-else class="my-1 sm:my-4">
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">
-            All of first {{ searchResults.length }} shown of {{ searchTotal }} results found.
-          </div>
-          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
+          <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
+            t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
+          }}</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+            t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
+          }}</div>
+          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
         </div>
       </div>
     </div>
@@ -471,7 +479,7 @@ function onCloseFilterModal() {
         />
 
         <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
-          <XMarkIcon class="h-5 w-5" />
+          <XMarkIcon class="size-5" />
         </Button>
       </DialogPanel>
     </div>
