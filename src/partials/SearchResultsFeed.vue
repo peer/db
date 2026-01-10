@@ -5,6 +5,7 @@ import type { ClientSearchSession, FiltersState, FilterStateChange, Result, View
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
+import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
@@ -33,6 +34,8 @@ const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
 }>()
+
+const { t } = useI18n()
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
@@ -132,7 +135,7 @@ function onFilters() {
 <template>
   <Teleport to="#navbarsearch-teleport-end">
     <Button primary class="px-3.5! sm:hidden" type="button" @click.prevent="onFilters">
-      <FunnelIcon class="size-5" alt="Filters" />
+      <FunnelIcon class="size-5" :alt="t('common.icons.filters')" />
     </Button>
   </Teleport>
 
@@ -149,8 +152,8 @@ function onFilters() {
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} shown results.</div>
-            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{ i }} of {{ searchResults.length }} results.</div>
+            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length }) }}</div>
+            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length }) }}</div>
             <div class="relative h-2 w-full bg-slate-200">
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
@@ -159,15 +162,14 @@ function onFilters() {
         </template>
 
         <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore"
-          >Load more</Button
+          >{{ t('common.buttons.loadMore') }}</Button
         >
 
         <div v-else class="my-1 sm:my-4">
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">All of first {{ searchResults.length }} shown of more than {{ searchTotal }} results found.</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">
-            All of first {{ searchResults.length }} shown of {{ searchTotal }} results found.
-          </div>
-          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">All of {{ searchResults.length }} results shown.</div>
+          <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResultsMoreThan", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResultsOnly", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.allResults", { count: searchResults.length }) }}</div>
           <div class="relative h-2 w-full bg-slate-200">
             <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
           </div>
@@ -178,19 +180,21 @@ function onFilters() {
     <!-- Filters column -->
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
       <div v-if="filtersError" class="my-1 sm:my-4">
-        <div class="text-center text-sm"><i class="text-error-600">loading data failed</i></div>
+        <div class="text-center text-sm"
+          ><i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
+        >
       </div>
 
       <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
-        <div class="text-center text-sm">Determining filters...</div>
+        <div class="text-center text-sm">{{ t("common.status.determiningFilters") }}</div>
       </div>
 
       <div v-else-if="filtersTotal === 0" class="my-1 sm:my-4">
-        <div class="text-center text-sm">No filters available.</div>
+        <div class="text-center text-sm">{{ t("common.status.noFilters") }}</div>
       </div>
 
       <template v-else-if="filtersTotal > 0">
-        <div class="text-center text-sm">{{ filtersTotal }} filters available.</div>
+        <div class="text-center text-sm">{{ t("common.status.filtersAvailable", { count: filtersTotal }) }}</div>
 
         <template v-for="filter in limitedFiltersResults" :key="filter.id">
           <FiltersResult
@@ -205,12 +209,12 @@ function onFilters() {
         </template>
 
         <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore"
-          >More filters</Button
+          >{{ t('common.buttons.moreFilters') }}</Button
         >
 
-        <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">
-          {{ filtersTotal - limitedFiltersResults.length }} filters not shown.
-        </div>
+        <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
+          t("common.status.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
+        }}</div>
       </template>
     </div>
   </div>
