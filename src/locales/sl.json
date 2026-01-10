@@ -1,0 +1,146 @@
+{
+  "common": {
+    "buttons": {
+      "search": "Išči",
+      "create": "Ustvari",
+      "upload": "Naloži",
+      "edit": "Uredi",
+      "save": "Shrani",
+      "add": "Dodaj",
+      "remove": "Odstrani",
+      "loadCountMore": "{count} več",
+      "loadMore": "Naloži več",
+      "filters": "Filtri",
+      "prev": "Prejšnji",
+      "next": "Naslednji"
+    },
+    "status": {
+      "loading": "Nalaganje...",
+      "loadingDataFailed": "nalaganje podatkov ni uspelo",
+      "valuesNotShown": "1 vrednost ni prikazana. | {count} vrednosti nista prikazani. | {count} vrednosti niso prikazane. | {count} vrednosti ni prikazanih.",
+      "allResults": "Vsi od 1 prikazanega rezultata. | Vsi od {count} prikazanih rezultatov.",
+      "allResultsOnly": "Vseh prvih {first} prikazanih od 1 najdenega rezultata. | Vseh prvih {first} prikazanih od {count} najdenih rezultatov.",
+      "allResultsMoreThan": "Vseh prvih {first} prikazanih od več kot 1 najdenega rezultata. | Vseh prvih {first} prikazanih od več kot {count} najdenih rezultatov."
+    },
+    "labels": {
+      "property": "Lastnost",
+      "value": "Vrednost",
+      "timestamp": "Datum-čas",
+      "precision": "Natančnost"
+    },
+    "icons": {
+      "link": "Povezava",
+      "feed": "Vir",
+      "table": "Tabela"
+    },
+    "values": {
+      "noName": "brez imena",
+      "none": "brez",
+      "unknown": "neznana"
+    }
+  },
+  "components": {
+    "InputTime": {
+      "format": "Oblika: LLLL-MM-DD UU:MM:SS",
+      "precision": {
+        "G": "gigaleto",
+        "100M": "sto megalet",
+        "10M": "deset megalet",
+        "M": "megaleto",
+        "100k": "sto kilolet",
+        "10k": "deset kilolet",
+        "k": "kiloleto",
+        "100y": "sto let",
+        "10y": "deset let",
+        "y": "leto",
+        "m": "mesec",
+        "d": "dan",
+        "h": "ura",
+        "min": "minuta",
+        "s": "sekunda"
+      },
+      "errors": {
+        "invalid": "Neveljavna oblika.",
+        "daysNotZero": "Meseci ne morejo biti 0, ko dnevi niso 0.",
+        "months": "Meseci morajo biti med 1-12.",
+        "months0": "Meseci morajo biti med 0-12.",
+        "days": "Dan mora biti med 1-{maxDay}.",
+        "days0": "Dan mora biti med 0-{maxDay}.",
+        "hours": "Ure morajo biti med 0-23.",
+        "minutes": "Minute morajo biti med 0-59.",
+        "seconds": "Sekunde morajo biti med 0-59."
+      }
+    }
+  },
+  "partials": {
+    "Footer": {
+      "poweredBy": "Zagotavlja {linkName}"
+    },
+    "SearchResultsHeader": {
+      "searchingQueryFilters": "Iskanje poizvedbe {query} in 1 aktiven filter. | Iskanje poizvedbe {query} in {count} aktivna filtra. | Iskanje poizvedbe {query} in {count} aktivni filtri. | Iskanje poizvedbe {query} in {count} aktivnih filtrov.",
+      "searchingNoQueryFilters": "Iskanje brez poizvedbe in 1 aktivni filtrer. | Iskanje brez poizvedbe in {count} aktivna filtra. | Iskanje brez poizvedbe in {count} aktivni filtri. | Iskanje brez poizvedbe in {count} aktivnih filtrov.",
+      "searchingQueryFiltersInProgress": "Iskanje poizvedbe {query} in 1 aktiven filter... | Iskanje poizvedbe {query} in {count} aktivnih filtrov...",
+      "searchingNoQueryFiltersInProgress": "Iskanje brez poizvedbe in z 1 aktivnim filtrom... | Iskanje brez poizvedbe in z {count} aktivnima filtroma... | Iskanje brez poizvedbe in z {count} aktivnimi filtri... | Iskanje brez poizvedbe in z {count} aktivnimi filtri...",
+      "resultsFound": "1 najden rezultat. | {count} najdena rezultata. | {count} najdeni rezultati. | {count} najdenih rezultatov.",
+      "resultsFoundMoreThan": "Več kot 1 najden rezultat. | Več kot {count} najdena rezultata. | Več kot {count} najdeni rezultati. | Več kot {count} najdenih rezultatov.",
+      "noResults": "Ni najdenih rezultatov."
+    },
+    "SearchResultsFeed": {
+      "moreFilters": "Več filtrov",
+      "shownResults": "{i} od 1 rezultata. | {i} od {count} rezultatov.",
+      "shownResultsOnly": "{i} od 1 prikazanega rezultata. | {i} od {count} prikazanih rezultatov.",
+      "filtersNotShown": "1 filter ni prikazan. | {count} filtra nista prikazana. | {count} filtri niso prikazani. | {count} filtrov ni prikazanih.",
+      "noFilters": "Ni filtrov na voljo.",
+      "filtersAvailable": "1 filter na voljo. | {count} filtra na voljo. | {count} filtri na voljo. | {count} filtrov na voljo.",
+      "determiningFilters": "Ugotavljanje filtrov..."
+    },
+    "SearchResultsTable": {
+      "expandRow": "Razširi vrstico",
+      "collapseRow": "Zloži vrstico",
+      "moreColumns": "Več stolpcev"
+    },
+    "claimvalue": {
+      "ClaimValueFile": {
+        "filePreview": "Predogled datoteke"
+      }
+    }
+  },
+  "views": {
+    "DocumentGet": {
+      "tabs": {
+        "article": "Članek",
+        "file": "Datoteka",
+        "allProperties": "Vse lastnosti"
+      }
+    },
+    "DocumentEdit": {
+      "addClaim": "Dodaj trditev",
+      "claimTypes": {
+        "identifier": "Identifikator",
+        "reference": "Referenca",
+        "text": "Besedilo",
+        "string": "Enostavno besedilo",
+        "amount": "Količina",
+        "amountRange": "Obseg količine",
+        "relation": "Relacija",
+        "file": "Datoteka",
+        "noValue": "Brez vrednosti",
+        "unknownValue": "Neznana vrednost",
+        "time": "Datum-čas",
+        "timeRange": "Obdobje"
+      },
+      "labels": {
+        "iri": "IRI",
+        "text": "Besedilo",
+        "string": "Enostavno besedilo",
+        "amount": "Količina",
+        "lower": "Spodnja",
+        "upper": "Zgornja",
+        "to": "Do",
+        "mediaType": "Vrsta medija",
+        "url": "URL",
+        "previewUrl": "URL predogleda"
+      }
+    }
+  }
+}
