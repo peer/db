@@ -422,9 +422,9 @@ function onCloseFilterModal() {
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore"
-          >{{ t('partials.SearchResultsTable.moreColumns') }}</Button
-        >
+        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore">{{
+          t("partials.SearchResultsTable.moreColumns")
+        }}</Button>
       </div>
     </div>
 
@@ -435,12 +435,18 @@ function onCloseFilterModal() {
     -->
     <div class="sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{ t('common.buttons.loadMore') }}</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{
+          t("common.buttons.loadMore")
+        }}</Button>
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{ t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal }) }}</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
+            t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
+          }}</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+            t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
+          }}</div>
           <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
         </div>
       </div>

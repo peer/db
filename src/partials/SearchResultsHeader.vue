@@ -85,10 +85,10 @@ function countFilters(): number {
         </i18n-t>
       </div>
       <div v-if="searchTotal === null && !searchSession.query">
-        {{ t("partials.SearchResultsHeader.searchingNoQueryFiltersInProgress", {count: countFilters()}) }}
+        {{ t("partials.SearchResultsHeader.searchingNoQueryFiltersInProgress", { count: countFilters() }) }}
       </div>
       <div v-else-if="searchTotal !== null && !searchSession.query">
-        {{ t("partials.SearchResultsHeader.searchingNoQueryFilters", {count: countFilters()}) }}
+        {{ t("partials.SearchResultsHeader.searchingNoQueryFilters", { count: countFilters() }) }}
       </div>
       <template v-if="searchTotal !== null">
         <div v-if="searchTotal === 0">{{ t("partials.SearchResultsHeader.noResults") }}</div>

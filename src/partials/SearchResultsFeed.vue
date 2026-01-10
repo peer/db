@@ -152,8 +152,12 @@ function onFilters() {
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
           <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length }) }}</div>
-            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{ t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length }) }}</div>
+            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+              t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length })
+            }}</div>
+            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{
+              t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
+            }}</div>
             <div class="relative h-2 w-full bg-slate-200">
               <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
@@ -161,14 +165,18 @@ function onFilters() {
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore"
-          >{{ t('common.buttons.loadMore') }}</Button
-        >
+        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore">{{
+          t("common.buttons.loadMore")
+        }}</Button>
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{ t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal }) }}</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{ t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal }) }}</div>
+          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
+            t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
+          }}</div>
+          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+            t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
+          }}</div>
           <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
           <div class="relative h-2 w-full bg-slate-200">
             <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
@@ -208,9 +216,9 @@ function onFilters() {
           />
         </template>
 
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore"
-          >{{ t('partials.SearchResultsFeed.moreFilters') }}</Button
-        >
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
+          t("partials.SearchResultsFeed.moreFilters")
+        }}</Button>
 
         <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
           t("partials.SearchResultsFeed.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
