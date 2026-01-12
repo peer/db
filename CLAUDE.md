@@ -17,7 +17,7 @@ Key features:
 - **Adaptive search UI** that automatically adjusts to data and provides relevant filters
 - **Multi-site support** with separate schemas and indices per site
 
-## Development Commands
+## Development
 
 ### Backend (Go)
 
@@ -57,6 +57,69 @@ To update internationalization TypeScript definitions:
 - `npm run lint-style` - Run Stylelint on CSS/Vue files
 - `npm run lint-vue` - Run Vue TypeScript compiler check
 - `npm run fmt` - Format frontend code with Prettier
+
+### Backend Code Style
+
+- **Comments**: All comments must end with dots for consistency.
+- **Error Handling**: When error is `errors.E`, use `errE` as variable name and assertion should be of
+  form `require.NoError(t, errE, "% -+#.1v", errE)`.
+- **CI Commands**: For backend-only changes, run these commands to match CI validation:
+  - `make lint` - Go linter (golangci-lint) with auto-fix
+  - `make fmt` - Go code formatting with gofumpt and goimports
+  - `make test` - Go tests with coverage
+  - `make lint-docs` - Documentation linting (affects whole repo)
+  - `make audit` - Go security audit with nancy
+
+### Frontend Code Style
+
+- **Comments**: All comments must end with dots for consistency
+- **Import Convention**: Always use `@/` alias for internal imports, never relative paths (`./`, `../`)
+- **Import Organization**: Type imports for external packages must be at the top with `import type`, followed by
+  empty line, then type imports for local packages, followed by empty line, then regular imports for external packages,
+  followed by empty line, then regular imports for local packages; each group sorted in alphabetical order
+- **Internationalization**: All user-facing text must use vue-i18n with global scope
+  - **useI18n**: Always use `useI18n({ useScope: 'global' })` instead of `useI18n()`
+  - **i18n-t components**: Always include `scope="global"` attribute: `<i18n-t keypath="..." scope="global">`
+  - Technical terms like "passkey" should be extracted into translatable strings but not translated across languages
+  - **Never put HTML in translated strings** - HTML formatting must always be in Vue templates, not translation files
+    - ❌ Wrong: `"message": "<strong>Success!</strong> Operation completed"`
+    - ✅ Correct: `"message": "{strong} Operation completed"` with `<i18n-t>` template interpolation
+- **TypeScript**: Strict typing enabled with vue-i18n message schema validation
+- **Formatting**: Always run `npm run fmt` after making changes to maintain consistent code formatting
+  - Use double quotes (`"`) for strings, not single quotes (`'`)
+  - Multi-line Vue template attributes should break after `>` and before `<` on closing tags
+  - Files should end with newlines
+  - Consistent spacing and indentation per Prettier configuration
+- **CI Commands**: For frontend-only changes, run these commands to match CI validation:
+  - `npm run lint` - ESLint with auto-fix
+  - `npm run lint-vue` - Vue TypeScript compilation check
+  - `npm run lint-style` - Stylelint with auto-fix
+  - `npm run fmt` - Prettier formatting
+  - `npm run test-ci` - Frontend tests with coverage
+  - `make lint-docs` - Documentation linting (affects whole repo)
+  - `npm audit` - Security audit
+
+### Development Architecture
+
+- Backend serves as proxy to Vite dev server in development mode (`-D` flag)
+- Production builds embed frontend files into Go binary via `embed.FS`
+- Hot module replacement works through backend proxy during development
+- TypeScript strict mode enabled
+- Uses Vue 3 Composition API (Options API disabled via `__VUE_OPTIONS_API__: false`)
+
+### Testing Requirements
+
+- Go tests require `dist/index.html` (dummy file acceptable)
+- Both PostgreSQL and Elasticsearch must be running for integration tests
+- Use `make test-ci` for coverage reports
+- Frontend tests use Vitest with v8 coverage provider
+
+### Development Setup Requirements
+
+- Go 1.25+ required
+- Node.js 24+ required
+- TLS certificates needed (recommend mkcert for local development)
+- CompileDaemon for backend auto-reload during development
 
 ## Architecture
 
@@ -207,9 +270,16 @@ Single PeerDB instance can serve multiple sites:
 - Routing by domain via WAF framework
 - Let's Encrypt automatic TLS certificates per domain
 
-### Frontend Architecture
+### Frontend (Vue 3 + TypeScript)
 
-**Key files**:
+- **Framework**: Vue 3 with Composition API and TypeScript
+- **Build Tool**: Vite for development and production builds
+- **Styling**: Tailwind CSS with custom components
+- **Router**: Vue Router for SPA navigation
+- **API Layer**: Custom fetch wrappers in `src/api.ts`
+- **Internationalization**: Vue-i18n v11 with precompiled messages (English and Slovenian support)
+
+### Frontend Structure
 
 - `src/api.ts` - Backend API client
 - `src/document.ts` - Document model (26KB, complex)
@@ -217,13 +287,6 @@ Single PeerDB instance can serve multiple sites:
 - `src/time.ts` - Timestamp handling with extended year support
 - `src/components/` - Reusable Vue components
 - `src/views/` - Page components (Home, DocumentGet, DocumentEdit, SearchGet)
-
-**Development notes**:
-
-- Vite dev server runs on default port, proxied by backend on 8080
-- HMR (hot module replacement) enabled for fast iteration
-- TypeScript strict mode enabled
-- Uses Vue 3 Composition API (Options API disabled via `__VUE_OPTIONS_API__: false`)
 
 ### Database Schema Management
 
@@ -237,73 +300,3 @@ Single PeerDB instance can serve multiple sites:
 - Index configuration embedded in `search/index.json`
 - Auto-created on first run if missing
 - Run `./peerdb populate` to initialize with core PeerDB properties
-
-### Testing Requirements
-
-- Go tests require `dist/index.html` (dummy file acceptable)
-- Both PostgreSQL and Elasticsearch must be running for integration tests
-- Use `make test-ci` for coverage reports
-- Frontend tests use Vitest with v8 coverage provider
-
-### Backend Code Style
-
-- **Comments**: All comments must end with dots for consistency.
-- **Error Handling**: When error is `errors.E`, use `errE` as variable name and assertion should be of
-  form `require.NoError(t, errE, "% -+#.1v", errE)`.
-- **CI Commands**: For backend-only changes, run these commands to match CI validation:
-  - `make lint` - Go linter (golangci-lint) with auto-fix
-  - `make fmt` - Go code formatting with gofumpt and goimports
-  - `make test` - Go tests with coverage
-  - `make lint-docs` - Documentation linting (affects whole repo)
-  - `make audit` - Go security audit with nancy
-
-### Frontend (Vue 3 + TypeScript)
-
-- **Framework**: Vue 3 with Composition API and TypeScript
-- **Build Tool**: Vite for development and production builds
-- **Styling**: Tailwind CSS with custom components
-- **Router**: Vue Router for SPA navigation
-- **API Layer**: Custom fetch wrappers in `src/api.ts`
-- **Internationalization**: Vue-i18n v11 with precompiled messages (English and Slovenian support)
-
-### Frontend Code Style
-
-- **Comments**: All comments must end with dots for consistency
-- **Import Convention**: Always use `@/` alias for internal imports, never relative paths (`./`, `../`)
-- **Import Organization**: Type imports for external packages must be at the top with `import type`, followed by
-  empty line, then type imports for local packages, followed by empty line, then regular imports for external packages,
-  followed by empty line, then regular imports for local packages; each group sorted in alphabetical order
-- **Internationalization**: All user-facing text must use vue-i18n with global scope
-  - **useI18n**: Always use `useI18n({ useScope: 'global' })` instead of `useI18n()`
-  - **i18n-t components**: Always include `scope="global"` attribute: `<i18n-t keypath="..." scope="global">`
-  - Technical terms like "passkey" should be extracted into translatable strings but not translated across languages
-  - **Never put HTML in translated strings** - HTML formatting must always be in Vue templates, not translation files
-    - ❌ Wrong: `"message": "<strong>Success!</strong> Operation completed"`
-    - ✅ Correct: `"message": "{strong} Operation completed"` with `<i18n-t>` template interpolation
-- **TypeScript**: Strict typing enabled with vue-i18n message schema validation
-- **Formatting**: Always run `npm run fmt` after making changes to maintain consistent code formatting
-  - Use double quotes (`"`) for strings, not single quotes (`'`)
-  - Multi-line Vue template attributes should break after `>` and before `<` on closing tags
-  - Files should end with newlines
-  - Consistent spacing and indentation per Prettier configuration
-- **CI Commands**: For frontend-only changes, run these commands to match CI validation:
-  - `npm run lint` - ESLint with auto-fix
-  - `npm run lint-vue` - Vue TypeScript compilation check
-  - `npm run lint-style` - Stylelint with auto-fix
-  - `npm run fmt` - Prettier formatting
-  - `npm run test-ci` - Frontend tests with coverage
-  - `make lint-docs` - Documentation linting (affects whole repo)
-  - `npm audit` - Security audit
-
-### Development Architecture
-
-- Backend serves as proxy to Vite dev server in development mode (`-D` flag)
-- Production builds embed frontend files into Go binary via `embed.FS`
-- Hot module replacement works through backend proxy during development
-
-## Development Setup Requirements
-
-- Go 1.25+ required
-- Node.js 24+ required
-- TLS certificates needed (recommend mkcert for local development)
-- CompileDaemon for backend auto-reload during development
