@@ -5,7 +5,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "noUnusedLocals": true,
     "jsx": "preserve",
     "resolveJsonModule": true,

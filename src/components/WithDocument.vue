@@ -22,10 +22,8 @@ const _doc = ref<T | null>(null)
 const _metadata = ref<Metadata>({})
 const _error = ref<string | null>(null)
 const _url = ref<string | null>(null)
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-const doc = (import.meta.env.DEV ? readonly(_doc) : (_doc as DeepReadonly<Ref<T | null>>)) as DeepReadonly<Ref<T | null>>
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-const metadata = (import.meta.env.DEV ? readonly(_metadata) : (_metadata as DeepReadonly<Ref<Metadata>>)) as DeepReadonly<Ref<Metadata>>
+const doc = import.meta.env.DEV ? readonly(_doc) : (_doc as DeepReadonly<Ref<T | null>>)
+const metadata = import.meta.env.DEV ? readonly(_metadata) : (_metadata as DeepReadonly<Ref<Metadata>>)
 const error = import.meta.env.DEV ? readonly(_error) : _error
 const url = import.meta.env.DEV ? readonly(_url) : _url
 
@@ -107,7 +105,7 @@ defineSlots<{
 </script>
 
 <template>
-  <slot v-if="doc" :doc="doc" :metadata="metadata" :url="url!"></slot>
+  <slot v-if="doc" :doc="doc as DeepReadonly<T>" :metadata="metadata" :url="url!"></slot>
   <slot v-else-if="error" name="error" :error="error" :url="url">
     <i class="text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
   </slot>
