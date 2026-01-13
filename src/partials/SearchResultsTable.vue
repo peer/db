@@ -4,7 +4,7 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { PeerDBDocument } from "@/document"
 import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
-import { LocalScope } from "@allindevelopers/vue-local-scope"
+import { LocalScope } from "@all1ndev/vue-local-scope"
 import { Dialog, DialogPanel } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
@@ -334,16 +334,11 @@ function onCloseFilterModal() {
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
                     <td v-if="supportedFilter(filter)" class="align-top">
-                      <!--
-                        TODO: Use kebab-case and camelCase as appropriate for rowexpanded, celltruncated, cellexpanded.
-                              Currently we use all-lowercase names because of a limitation in LocalScope.
-                              See: https://github.com/all1ndev/vue-local-scope/issues/3
-                      -->
                       <LocalScope
-                        v-slot="{ rowexpanded, celltruncated, cellexpanded }"
-                        :rowexpanded="isRowExpanded(result.id)"
-                        :celltruncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
-                        :cellexpanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
+                        v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
+                        :row-expanded="isRowExpanded(result.id)"
+                        :cell-truncated="isCellTruncated(result.id, `${filter.type}/${filter.id}`)"
+                        :cell-expanded="isCellExpanded(result.id, `${filter.type}/${filter.id}`)"
                       >
                         <!--
                           We have div wrapper so that we can control the height of the row. td elements cannot have height set.
@@ -352,11 +347,11 @@ function onCloseFilterModal() {
                         <div
                           :ref="trackTruncation(result.id, `${filter.type}/${filter.id}`)"
                           class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
-                          :class="[rowexpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                          :class="[rowExpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
-                          <div v-if="(celltruncated && rowexpanded) || cellexpanded || celltruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
+                          <div v-if="(cellTruncated && rowExpanded) || cellExpanded || cellTruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
                             <RouterLink
-                              v-if="celltruncated && rowexpanded"
+                              v-if="cellTruncated && rowExpanded"
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                               class="link"
                             >
@@ -364,12 +359,12 @@ function onCloseFilterModal() {
                             </RouterLink>
 
                             <Button
-                              v-if="cellexpanded || celltruncated"
+                              v-if="cellExpanded || cellTruncated"
                               :title="getButtonTitle(result.id)"
                               class="border-none! p-0! shadow-none!"
                               @click.prevent="onToggleRow(result.id)"
                             >
-                              <ChevronDownUpIcon v-if="rowexpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
+                              <ChevronDownUpIcon v-if="rowExpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
                               <ChevronUpDownIcon v-else class="size-5" aria-expanded="false" :aria-controls="`result-${result.id}`" />
                             </Button>
                           </div>
