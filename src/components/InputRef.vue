@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import type { Filters, SearchResult, SearchStateCreateResponse } from "@/types"
 import type { PeerDBDocument } from "@/document.ts"
+import type { Filters, Result } from "@/types"
 
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
-import { shallowRef, computed, onBeforeUnmount, ref, toRef, watch } from "vue"
-import { useRouter } from "vue-router"
 import { debounce } from "lodash-es"
+import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
+import { useRouter } from "vue-router"
 
+import { getURL, postJSON } from "@/api.ts"
 import WithDocument from "@/components/WithDocument.vue"
-import { getURL, postURL } from "@/api.ts"
-import { getName, loadingWidth } from "@/utils.ts"
-import { activeSearchState, NONE, useSearch, useSearchState } from "@/search.ts"
 import { injectMainProgress, localProgress } from "@/progress.ts"
 import { TYPE } from "@/props.ts"
+import { useSearch, useSearchSession } from "@/search"
+import { NONE } from "@/search.ts"
+import { getName, loadingWidth } from "@/utils.ts"
 
 defineOptions({ inheritAttrs: false })
 
@@ -29,15 +30,16 @@ const emit = defineEmits<{
 const router = useRouter()
 const DEBOUNCE_MS = 500
 
-const searchAbort = new AbortController()
+const abortController = new AbortController()
 const nameAbort = new AbortController()
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
-const s = ref()
-const searchEl = ref(null)
+const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
-const selectedDocument = shallowRef<(SearchResult & { name: string }) | null>(null)
+type ResultWithName = Result & { name: string }
+
+const selectedDocument = shallowRef<ResultWithName | null>(null)
 const nameCache = ref<Record<string, string>>({})
 
 watch(
@@ -66,31 +68,27 @@ const searchProgress = localProgress(mainProgress)
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 
 const query = ref("")
+const searchSessionId = ref<string | null>(null)
+const searchSessionVersion = ref(0)
+
+const {
+  searchSession,
+  error: searchSessionError,
+  url: searchURL,
+} = useSearchSession(
+  toRef(() => (searchSessionId.value ? { id: searchSessionId.value, version: searchSessionVersion.value } : null)),
+  searchProgress,
+)
+
+const { results: searchResults, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
 watch(query, async (value) => {
   runSearchDebounce.cancel()
   await runSearchDebounce(value)
 })
 
-const {
-  searchState,
-  error: searchStateError,
-  url: searchURL,
-} = useSearchState(
-  toRef(() => s.value),
-  searchProgress,
-)
-const { results: searchResults, error: searchResultsError } = useSearch(
-  activeSearchState(
-    searchState,
-    toRef(() => s.value),
-  ),
-  searchEl,
-  searchProgress,
-)
-
 onBeforeUnmount(() => {
-  searchAbort.abort()
+  abortController.abort()
   nameAbort.abort()
 })
 
@@ -99,22 +97,47 @@ const runSearchDebounce = debounce(async (q: string) => {
 }, DEBOUNCE_MS)
 
 async function search(q: string) {
-  const form = new FormData()
-  form.set("q", q)
-
-  if (props.type) {
-    const filters: Filters = { and: [] }
-    if (props.type === NONE.toString()) {
-      filters.and.push({ rel: { prop: TYPE.toString(), none: true } })
-    } else {
-      filters.and.push({ rel: { prop: TYPE.toString(), value: props.type } })
-    }
-    form.set("filters", JSON.stringify(filters))
+  if (abortController.signal.aborted) {
+    return
   }
 
-  const searchState = await postURL<SearchStateCreateResponse>(router.apiResolve({ name: "SearchCreate" }).href, form, searchAbort.signal, searchProgress)
+  // Build rel filters.
+  let filters: Filters | null = null
+  if (props.type) {
+    if (props.type === NONE.toString()) {
+      filters = { rel: { prop: TYPE.toString(), none: true } }
+    } else {
+      filters = { rel: { prop: TYPE.toString(), value: props.type } }
+    }
+  }
 
-  s.value = searchState.s
+  searchProgress.value += 1
+  try {
+    // Create a new search session.
+    const createResponse = await postJSON<{ id: string }>(
+      router.apiResolve({ name: "SearchCreate" }).href,
+      {
+        query: q,
+        filters: filters ?? undefined,
+      },
+      abortController.signal,
+      searchProgress,
+    )
+
+    if (abortController.signal.aborted) {
+      return
+    }
+
+    searchSessionId.value = createResponse.id
+    searchSessionVersion.value = 0
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    console.error("InputRef.search", err)
+  } finally {
+    searchProgress.value -= 1
+  }
 }
 
 async function resolveDocumentName(id: string): Promise<string> {
@@ -130,19 +153,25 @@ async function resolveDocumentName(id: string): Promise<string> {
       <div class="relative">
         <ComboboxInput
           :readonly="isInProgress"
-          class="w-full p-2 text-left rounded border-0 shadow ring-2 ring-neutral-300 focus:ring-2"
+          class="w-full rounded border-0 p-2 text-left shadow ring-2 ring-neutral-300 focus:ring-2"
           :class="{
-            'bg-white': !isInProgress && !(searchStateError || searchResultsError),
+            'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
             'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
-            'bg-error-50': searchStateError || searchResultsError,
+            'bg-error-50': searchSessionError || searchResultsError,
           }"
-          :display-value="(doc) => doc?.name ?? nameCache[doc?.id] ?? ''"
+          :display-value="
+            (item: unknown) => {
+              // We have to type it, because parameter expects unknown.
+              const doc = item as ResultWithName | null | undefined
+              return doc?.name ?? (doc?.id ? nameCache[doc.id] : '') ?? ''
+            }
+          "
           @input="query = $event.target.value"
         />
 
         <ComboboxOptions
           v-if="searchResults.length > 0 && !isInProgress"
-          class="absolute max-h-40 overflow-scroll mt-2 w-full bg-white rounded border-0 shadow ring-2 ring-neutral-300 z-10"
+          class="absolute z-10 mt-2 max-h-40 w-full overflow-scroll rounded border-0 bg-white shadow ring-2 ring-neutral-300"
         >
           <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
             <li :class="['cursor-pointer p-2', active ? 'bg-neutral-100' : '']">
@@ -160,8 +189,8 @@ async function resolveDocumentName(id: string): Promise<string> {
       </div>
     </Combobox>
 
-    <template v-if="searchStateError || searchResultsError">
-      <div class="text-sm my-1"><i class="text-error-600">loading data failed</i></div>
+    <template v-if="searchSessionError || searchResultsError">
+      <div class="my-1 text-sm"><i class="text-error-600">loading data failed</i></div>
     </template>
   </div>
 </template>
