@@ -153,11 +153,12 @@ async function resolveDocumentName(id: string): Promise<string> {
       <div class="relative">
         <ComboboxInput
           :readonly="isInProgress"
-          class="w-full rounded border-0 p-2 text-left shadow ring-2 ring-neutral-300 focus:ring-2"
+          class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
           :class="{
             'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
-            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:border-primary-300 focus:ring-primary-300': isInProgress,
+            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
             'bg-error-50': searchSessionError || searchResultsError,
+            'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
           }"
           :display-value="
             (item: unknown) => {
@@ -166,23 +167,25 @@ async function resolveDocumentName(id: string): Promise<string> {
               return doc?.name ?? (doc?.id ? nameCache[doc.id] : '') ?? ''
             }
           "
-          @input="query = $event.target.value"
+          @input="query = ($event.target as HTMLInputElement).value"
         />
 
         <ComboboxOptions
           v-if="searchResults.length > 0 && !isInProgress"
-          class="absolute z-10 mt-2 max-h-40 w-full overflow-scroll rounded border-0 bg-white shadow ring-2 ring-neutral-300"
+          class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
-            <li :class="['cursor-pointer p-2', active ? 'bg-neutral-100' : '']">
-              <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                <template #default="{ doc }">
-                  {{ getName(doc?.claims) || "no name" }}
-                </template>
-                <template #loading="{ url }">
-                  <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-                </template>
-              </WithPeerDBDocument>
+            <li class="cursor-pointer p-1 outline-none select-none">
+              <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                  <template #default="{ doc }">
+                    <div class="truncate">{{ getName(doc?.claims) || "no name" }}</div>
+                  </template>
+                  <template #loading="{ url }">
+                    <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+                  </template>
+                </WithPeerDBDocument>
+              </div>
             </li>
           </ComboboxOption>
         </ComboboxOptions>
