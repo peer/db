@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PeerDBDocument } from "@/document.ts"
+import type { PeerDBDocument } from "@/document"
 import type { Filters, Result } from "@/types"
 
 import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
@@ -7,13 +7,13 @@ import { debounce } from "lodash-es"
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
-import { getURL, postJSON } from "@/api.ts"
+import { getURL, postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
-import { injectMainProgress, localProgress } from "@/progress.ts"
-import { TYPE } from "@/props.ts"
+import { injectMainProgress, localProgress } from "@/progress"
+import { TYPE } from "@/props"
 import { useSearch, useSearchSession } from "@/search"
-import { NONE } from "@/search.ts"
-import { getName, loadingWidth } from "@/utils.ts"
+import { NONE } from "@/search"
+import { getName, loadingWidth } from "@/utils"
 
 defineOptions({ inheritAttrs: false })
 
