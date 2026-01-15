@@ -11,8 +11,7 @@ import { getURL, postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { TYPE } from "@/props"
-import { useSearch, useSearchSession } from "@/search"
-import { NONE } from "@/search"
+import { NONE, useSearch, useSearchSession } from "@/search"
 import { getName, loadingWidth } from "@/utils"
 
 defineOptions({ inheritAttrs: false })
