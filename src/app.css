@@ -88,7 +88,7 @@
   }
 }
 
-@layer components {
+@layer utilities {
   a:has(img) {
     @apply outline-none;
   }
@@ -268,9 +268,7 @@
   .prose table {
     @apply my-5;
   }
-}
 
-@layer utilities {
   .data-reloading {
     filter: grayscale(0.8) contrast(0.9) brightness(1.06);
   }
