@@ -17,11 +17,18 @@ import { getName, loadingWidth } from "@/utils.ts"
 
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{ modelValue?: string; progress?: number; type?: string }>(), {
-  modelValue: "",
-  progress: 0,
-  type: "",
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string
+    progress?: number
+    type?: string
+  }>(),
+  {
+    modelValue: "",
+    progress: 0,
+    type: "",
+  },
+)
 
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
