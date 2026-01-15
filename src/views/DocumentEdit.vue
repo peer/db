@@ -11,7 +11,7 @@ import { useRouter } from "vue-router"
 
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
-import InputRef from "@/components/InputRef.vue"
+import InputRel from "@/components/InputRel.vue"
 import InputText from "@/components/InputText.vue"
 import siteContext from "@/context"
 import { D, HighConfidence } from "@/document"
@@ -654,7 +654,7 @@ function canSave(): boolean {
                     <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputText id="reference-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
-                    <InputRef id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                    <InputRel id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
                   <TabPanel tabindex="-1" class="flex flex-col">
                     <label for="has-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>

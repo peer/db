@@ -134,7 +134,7 @@ async function search(q: string) {
     if (abortController.signal.aborted) {
       return
     }
-    console.error("InputRef.search", err)
+    console.error("InputRel.search", err)
   } finally {
     searchProgress.value -= 1
   }
