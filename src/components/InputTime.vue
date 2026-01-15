@@ -320,13 +320,11 @@ const props = withDefaults(
   defineProps<{
     progress?: number
     readonly?: boolean
-    invalid?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
     progress: 0,
     readonly: false,
-    invalid: false,
     maxPrecision: "G",
   },
 )
@@ -370,7 +368,7 @@ const timePrecision = ref<TimePrecision>("y")
 const isEditing = ref(false)
 const errorMessage = ref("")
 
-const isInvalid = computed(() => props.invalid || errorMessage.value !== "")
+const isInvalid = computed(() => errorMessage.value !== "")
 
 const inputId = useId()
 
