@@ -18,16 +18,16 @@ defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<{
-    modelValue?: string
     progress?: number
     type?: string
   }>(),
   {
-    modelValue: "",
     progress: 0,
     type: "",
   },
 )
+
+const model = defineModel<string>({ default: "" })
 
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
@@ -49,7 +49,7 @@ const selectedDocument = shallowRef<ResultWithName | null>(null)
 const nameCache = ref<Record<string, string>>({})
 
 watch(
-  () => props.modelValue,
+  () => model.value,
   async (id) => {
     if (!id) return (selectedDocument.value = null)
     if (!nameCache.value[id]) {
