@@ -187,6 +187,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <template #default="{ doc }">
               <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
                 <li class="p-1 outline-none select-none">
+                  <!--
+                    We have an additional div so that the ring has the space to be shown.
+                    li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                    for option content of py-2 and px-3, same what InputText and ListboxButton have.
+                  -->
                   <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
                     <div v-if="getName(doc?.claims)" class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
                     <i v-else>no name</i>
