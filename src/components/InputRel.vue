@@ -3,7 +3,7 @@ import type { PeerDBDocument } from "@/document"
 import type { Filters, Result } from "@/types"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
-import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
@@ -13,7 +13,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { TYPE } from "@/props"
 import { NONE, useSearch, useSearchSession } from "@/search"
-import { getName, loadingWidth } from "@/utils"
+import { encodeQuery, getName, loadingWidth } from "@/utils"
 
 type ResultWithName = Result & { name: string }
 
@@ -175,7 +175,15 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             @input="query = ($event.target as HTMLInputElement).value"
           />
 
-          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
+          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+            <RouterLink
+              v-if="selectedDocument?.id && searchSession?.id"
+              :to="{ name: 'DocumentGet', params: { id: selectedDocument.id }, query: encodeQuery({ s: searchSession.id }) }"
+              class="link"
+            >
+              <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
+            </RouterLink>
+
             <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
           </ComboboxButton>
         </div>
@@ -193,8 +201,19 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
                     for option content of py-2 and px-3, same what InputText and ListboxButton have.
                   -->
-                  <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                    <div v-if="getName(doc?.claims)" class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
+                  <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                    <template v-if="getName(doc?.claims)">
+                      <div class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
+
+                      <RouterLink
+                        v-if="result?.id && searchSession?.id"
+                        :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                        class="link"
+                      >
+                        <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
+                      </RouterLink>
+                    </template>
+
                     <i v-else>no name</i>
                   </div>
                 </li>
