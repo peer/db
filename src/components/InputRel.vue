@@ -2,7 +2,8 @@
 import type { PeerDBDocument } from "@/document"
 import type { Filters, Result } from "@/types"
 
-import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
+import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
+import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
@@ -157,24 +158,30 @@ async function resolveDocumentName(id: string): Promise<string> {
   <div class="flex flex-col gap-1">
     <Combobox ref="searchEl" v-model="selectedDocument" :data-url="searchURL" as="div">
       <div class="relative">
-        <ComboboxInput
-          :readonly="isInProgress"
-          class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
-          :class="{
-            'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
-            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
-            'bg-error-50': searchSessionError || searchResultsError,
-            'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
-          }"
-          :display-value="
-            (item: unknown) => {
-              // We have to type it, because parameter expects unknown.
-              const doc = item as ResultWithName | null | undefined
-              return doc?.name ?? (doc?.id ? nameCache[doc.id] : '') ?? ''
-            }
-          "
-          @input="query = ($event.target as HTMLInputElement).value"
-        />
+        <div class="relative w-full">
+          <ComboboxInput
+            :readonly="isInProgress"
+            class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
+            :class="{
+              'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
+              'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
+              'bg-error-50': searchSessionError || searchResultsError,
+              'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
+            }"
+            :display-value="
+              (item: unknown) => {
+                // We have to type it, because parameter expects unknown.
+                const doc = item as ResultWithName | null | undefined
+                return doc?.name ?? (doc?.id ? nameCache[doc.id] : '') ?? ''
+              }
+            "
+            @input="query = ($event.target as HTMLInputElement).value"
+          />
+
+          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
+            <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
+          </ComboboxButton>
+        </div>
 
         <ComboboxOptions
           v-if="searchResults.length > 0 && !isInProgress"
