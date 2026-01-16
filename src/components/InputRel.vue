@@ -19,7 +19,7 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(
   defineProps<{
     readonly progress?: number
-    type?: string
+    type?: string | typeof NONE
   }>(),
   {
     progress: 0,
@@ -70,10 +70,10 @@ async function search(q: string) {
   // Build rel filters.
   let filters: Filters | null = null
   if (props.type) {
-    if (props.type === NONE.toString()) {
-      filters = { rel: { prop: TYPE.toString(), none: true } }
+    if (props.type == NONE) {
+      filters = { rel: { prop: TYPE, none: true } }
     } else {
-      filters = { rel: { prop: TYPE.toString(), value: props.type } }
+      filters = { rel: { prop: TYPE, value: props.type } }
     }
   }
 
