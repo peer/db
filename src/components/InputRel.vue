@@ -15,6 +15,10 @@ import { TYPE } from "@/props"
 import { NONE, useSearch, useSearchSession } from "@/search"
 import { getName, loadingWidth } from "@/utils"
 
+type ResultWithName = Result & { name: string }
+
+const DEBOUNCE_MS = 500
+
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -28,47 +32,19 @@ const props = withDefaults(
   },
 )
 
-const model = defineModel<string>({ default: "" })
-
 const emit = defineEmits<{
   (e: "update:modelValue", id: string): void
 }>()
 
-const router = useRouter()
-const DEBOUNCE_MS = 500
-
-const abortController = new AbortController()
-const nameAbort = new AbortController()
-
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
-
-const searchEl = useTemplateRef<HTMLElement>("searchEl")
-
-type ResultWithName = Result & { name: string }
-
-const selectedDocument = shallowRef<ResultWithName | null>(null)
-
-watch(
-  () => model.value,
-  async (id) => {
-    if (!id) return (selectedDocument.value = null)
-    selectedDocument.value = { id, name: (await resolveDocumentName(id)) || "" }
-  },
-  { immediate: true },
-)
-
-watch(
-  () => selectedDocument.value?.id,
-  (id) => {
-    if (!id) return
-    emit("update:modelValue", id)
-  },
-)
+const model = defineModel<string>({ default: "" })
 
 const mainProgress = injectMainProgress()
 const searchProgress = localProgress(mainProgress)
 
-const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
+const router = useRouter()
+const searchEl = useTemplateRef<HTMLElement>("searchEl")
+
+const selectedDocument = shallowRef<ResultWithName | null>(null)
 
 const query = ref("")
 const searchSessionId = ref<string | null>(null)
@@ -85,15 +61,10 @@ const {
 
 const { results: searchResults, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
-watch(query, async (value) => {
-  runSearchDebounce.cancel()
-  await runSearchDebounce(value)
-})
+const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 
-onBeforeUnmount(() => {
-  abortController.abort()
-  nameAbort.abort()
-})
+const abortController = new AbortController()
+const nameAbort = new AbortController()
 
 const runSearchDebounce = debounce(async (q: string) => {
   await search(q)
@@ -148,6 +119,35 @@ async function resolveDocumentName(id: string): Promise<string> {
   const response = await getURL<PeerDBDocument>(newURL, null, nameAbort.signal, searchProgress)
   return getName(response.doc?.claims) || "no name"
 }
+
+watch(
+  () => model.value,
+  async (id) => {
+    if (!id) return (selectedDocument.value = null)
+    selectedDocument.value = { id, name: (await resolveDocumentName(id)) || "" }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => selectedDocument.value?.id,
+  (id) => {
+    if (!id) return
+    emit("update:modelValue", id)
+  },
+)
+
+watch(query, async (value) => {
+  runSearchDebounce.cancel()
+  await runSearchDebounce(value)
+})
+
+onBeforeUnmount(() => {
+  abortController.abort()
+  nameAbort.abort()
+})
+
+const WithPeerDBDocument = WithDocument<PeerDBDocument>
 </script>
 
 <template>
