@@ -7,7 +7,7 @@ import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
-import { postJSON } from "@/api"
+import { getURL, postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { TYPE } from "@/props"
@@ -46,6 +46,7 @@ const selectedDocument = shallowRef<Result | null>(null)
 const query = ref("")
 const searchSessionId = ref<string | null>(null)
 const searchSessionVersion = ref(0)
+const isDocumentTypeValid = ref(true)
 
 const {
   searchSession,
@@ -113,10 +114,24 @@ async function search(q: string) {
   }
 }
 
+async function validateSelectedDocument(id: string): Promise<void> {
+  const newURL = router.apiResolve({ name: "DocumentGet", params: { id } }).href
+  const response = await getURL<PeerDBDocument>(newURL, null, nameAbort.signal, searchProgress)
+
+  const relClaims = response.doc.claims?.rel
+  if (!relClaims) {
+    isDocumentTypeValid.value = false
+    return
+  }
+
+  isDocumentTypeValid.value = !!relClaims.find((claim) => claim.to.id == props.type)
+}
+
 watch(
   () => model.value,
-  (id) => {
+  async (id) => {
     if (!id) return (selectedDocument.value = null)
+    await validateSelectedDocument(id)
     selectedDocument.value = { id }
   },
   { immediate: true },
@@ -157,7 +172,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             :class="{
               'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
               'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
-              'bg-error-50': searchSessionError || searchResultsError,
+              'bg-error-50!': searchSessionError || searchResultsError || !isDocumentTypeValid,
               'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
             }"
             @input="query = ($event.target as HTMLInputElement).value"
@@ -172,7 +187,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                 :class="{
                   'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
                   'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
-                  'bg-error-50': searchSessionError || searchResultsError,
+                  'bg-error-50!': searchSessionError || searchResultsError || !isDocumentTypeValid,
                   'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
                 }"
                 :display-value="() => getName(doc?.claims) || ''"
