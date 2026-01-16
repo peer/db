@@ -7,14 +7,12 @@ import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
-import { getURL, postJSON } from "@/api"
+import { postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { TYPE } from "@/props"
 import { NONE, useSearch, useSearchSession } from "@/search"
 import { encodeQuery, getName, loadingWidth } from "@/utils"
-
-type ResultWithName = Result & { name: string }
 
 defineOptions({ inheritAttrs: false })
 
@@ -41,7 +39,7 @@ const searchProgress = localProgress(mainProgress)
 const router = useRouter()
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
-const selectedDocument = shallowRef<ResultWithName | null>(null)
+const selectedDocument = shallowRef<Result | null>(null)
 
 const query = ref("")
 const searchSessionId = ref<string | null>(null)
@@ -108,17 +106,11 @@ async function search(q: string) {
   }
 }
 
-async function resolveDocumentName(id: string): Promise<string> {
-  const newURL = router.apiResolve({ name: "DocumentGet", params: { id } }).href
-  const response = await getURL<PeerDBDocument>(newURL, null, nameAbort.signal, searchProgress)
-  return getName(response.doc?.claims) || "no name"
-}
-
 watch(
   () => model.value,
-  async (id) => {
+  (id) => {
     if (!id) return (selectedDocument.value = null)
-    selectedDocument.value = { id, name: (await resolveDocumentName(id)) || "" }
+    selectedDocument.value = { id }
   },
   { immediate: true },
 )
@@ -150,7 +142,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     <Combobox ref="searchEl" v-model="selectedDocument" :data-url="searchURL" as="div">
       <div class="relative">
         <div class="relative w-full">
+          <!-- We only show input field when document is not yet selected. -->
           <ComboboxInput
+            v-if="!selectedDocument?.id"
             :readonly="isInProgress"
             class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
             :class="{
@@ -159,15 +153,26 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               'bg-error-50': searchSessionError || searchResultsError,
               'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
             }"
-            :display-value="
-              (item: unknown) => {
-                // We have to type it, because parameter expects unknown.
-                const doc = item as ResultWithName | null | undefined
-                return doc?.name || ''
-              }
-            "
             @input="query = ($event.target as HTMLInputElement).value"
           />
+
+          <!-- Once document is selected we resolve it with WithPeerDBDocument component
+               and display its value through getName of the document. -->
+          <WithPeerDBDocument v-else :id="selectedDocument.id" name="DocumentGet">
+            <template #default="{ doc }">
+              <ComboboxInput
+                class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
+                :class="{
+                  'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
+                  'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
+                  'bg-error-50': searchSessionError || searchResultsError,
+                  'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
+                }"
+                :display-value="() => getName(doc?.claims) || ''"
+                @input="query = ($event.target as HTMLInputElement).value"
+              />
+            </template>
+          </WithPeerDBDocument>
 
           <ComboboxButton class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
             <RouterLink
