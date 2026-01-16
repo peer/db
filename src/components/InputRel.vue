@@ -62,6 +62,7 @@ const {
 const { results: searchResults, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
+const first100SearchResults = computed(() => searchResults.value.slice(0, 100))
 
 const abortController = new AbortController()
 const nameAbort = new AbortController()
@@ -183,7 +184,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           v-if="searchResults.length > 0 && !isInProgress"
           class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
-          <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
+          <WithPeerDBDocument v-for="result in first100SearchResults" :id="result.id" :key="result.id" name="DocumentGet">
             <template #default="{ doc }">
               <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
                 <li class="p-1 outline-none select-none">
