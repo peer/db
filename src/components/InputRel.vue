@@ -89,7 +89,7 @@ async function search(q: string) {
   searchProgress.value += 1
   try {
     // Create a new search session.
-    const createResponse = await postJSON<{ id: string }>(
+    const createResponse = await postJSON<Result>(
       router.apiResolve({ name: "SearchCreate" }).href,
       {
         query: q,
