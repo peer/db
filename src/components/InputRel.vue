@@ -47,16 +47,12 @@ const searchEl = useTemplateRef<HTMLElement>("searchEl")
 type ResultWithName = Result & { name: string }
 
 const selectedDocument = shallowRef<ResultWithName | null>(null)
-const nameCache = ref<Record<string, string>>({})
 
 watch(
   () => model.value,
   async (id) => {
     if (!id) return (selectedDocument.value = null)
-    if (!nameCache.value[id]) {
-      nameCache.value[id] = await resolveDocumentName(id)
-    }
-    selectedDocument.value = { id, name: nameCache.value[id] }
+    selectedDocument.value = { id, name: (await resolveDocumentName(id)) || "" }
   },
   { immediate: true },
 )
@@ -172,7 +168,7 @@ async function resolveDocumentName(id: string): Promise<string> {
               (item: unknown) => {
                 // We have to type it, because parameter expects unknown.
                 const doc = item as ResultWithName | null | undefined
-                return doc?.name ?? (doc?.id ? nameCache[doc.id] : '') ?? ''
+                return doc?.name || ''
               }
             "
             @input="query = ($event.target as HTMLInputElement).value"
