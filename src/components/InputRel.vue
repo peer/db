@@ -226,7 +226,9 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               </ComboboxOption>
             </template>
             <template #loading="{ url }">
-              <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+              <li class="p-1 outline-none select-none">
+                <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+              </li>
             </template>
           </WithPeerDBDocument>
         </ComboboxOptions>
