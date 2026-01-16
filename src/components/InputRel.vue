@@ -188,7 +188,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
                 <WithPeerDBDocument :id="result.id" name="DocumentGet">
                   <template #default="{ doc }">
-                    <div class="truncate">{{ getName(doc?.claims) || "no name" }}</div>
+                    <div v-if="getName(doc?.claims)" class="truncate" v-html="getName(doc?.claims)" />
+                    <i v-else>no name</i>
                   </template>
                   <template #loading="{ url }">
                     <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
