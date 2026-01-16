@@ -183,21 +183,21 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           v-if="searchResults.length > 0 && !isInProgress"
           class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
-          <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
-            <li class="cursor-pointer p-1 outline-none select-none">
-              <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                <WithPeerDBDocument :id="result.id" name="DocumentGet">
-                  <template #default="{ doc }">
-                    <div v-if="getName(doc?.claims)" class="truncate" v-html="getName(doc?.claims)" />
+          <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
+            <template #default="{ doc }">
+              <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
+                <li class="p-1 outline-none select-none">
+                  <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                    <div v-if="getName(doc?.claims)" class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
                     <i v-else>no name</i>
-                  </template>
-                  <template #loading="{ url }">
-                    <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-                  </template>
-                </WithPeerDBDocument>
-              </div>
-            </li>
-          </ComboboxOption>
+                  </div>
+                </li>
+              </ComboboxOption>
+            </template>
+            <template #loading="{ url }">
+              <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+            </template>
+          </WithPeerDBDocument>
         </ComboboxOptions>
       </div>
     </Combobox>
