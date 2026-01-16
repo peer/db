@@ -18,7 +18,7 @@ defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<{
-    progress?: number
+    readonly progress?: number
     type?: string
   }>(),
   {
