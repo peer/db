@@ -14,6 +14,8 @@ import { TYPE } from "@/props"
 import { NONE, useSearch, useSearchSession } from "@/search"
 import { encodeQuery, getName, loadingWidth } from "@/utils"
 
+const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
+
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -65,6 +67,11 @@ const nameAbort = new AbortController()
 async function search(q: string) {
   if (abortController.signal.aborted) {
     return
+  }
+
+  // Add wildcard for prefix search if query ends with a letter or number.
+  if (WILDCARD_SEARCH_REGEX.test(q)) {
+    q = q + "*"
   }
 
   // Build rel filters.
