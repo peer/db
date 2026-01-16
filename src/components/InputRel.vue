@@ -4,7 +4,6 @@ import type { Filters, Result } from "@/types"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
-import { debounce } from "lodash-es"
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, useTemplateRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
@@ -16,8 +15,6 @@ import { NONE, useSearch, useSearchSession } from "@/search"
 import { encodeQuery, getName, loadingWidth } from "@/utils"
 
 type ResultWithName = Result & { name: string }
-
-const DEBOUNCE_MS = 500
 
 defineOptions({ inheritAttrs: false })
 
@@ -64,12 +61,8 @@ const { results: searchResults, error: searchResultsError } = useSearch(searchSe
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 const first100SearchResults = computed(() => searchResults.value.slice(0, 100))
 
-const abortController = new AbortController()
+let abortController = new AbortController()
 const nameAbort = new AbortController()
-
-const runSearchDebounce = debounce(async (q: string) => {
-  await search(q)
-}, DEBOUNCE_MS)
 
 async function search(q: string) {
   if (abortController.signal.aborted) {
@@ -139,8 +132,9 @@ watch(
 )
 
 watch(query, async (value) => {
-  runSearchDebounce.cancel()
-  await runSearchDebounce(value)
+  abortController.abort("new search call")
+  abortController = new AbortController()
+  await search(value)
 })
 
 onBeforeUnmount(() => {
