@@ -30,7 +30,7 @@ const props = withDefaults(
 
 const model = defineModel<string>({ default: "" })
 
-// We want all fallthrough attributes to be passed to the combbox input element.
+// We want all fallthrough attributes to be passed to the combobox input element.
 defineOptions({
   inheritAttrs: false,
 })
