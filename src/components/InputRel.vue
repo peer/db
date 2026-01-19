@@ -128,8 +128,7 @@ watch(
 watch(
   () => selectedDocument.value?.id,
   (id) => {
-    if (!id) return
-    model.value = id
+    model.value = id || ""
   },
 )
 
