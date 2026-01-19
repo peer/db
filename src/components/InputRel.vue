@@ -19,7 +19,7 @@ const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 
 const props = withDefaults(
   defineProps<{
-    readonly progress?: number
+    progress?: number
     type?: string | typeof NONE
   }>(),
   {
