@@ -14,9 +14,8 @@ import { TYPE } from "@/props"
 import { NONE, useSearch, useSearchSession } from "@/search"
 import { encodeQuery, getName, loadingWidth } from "@/utils"
 
+// Wildcard to see if a string ends with unicode letter or number.
 const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
-
-defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<{
@@ -29,11 +28,12 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits<{
-  (e: "update:modelValue", id: string): void
-}>()
-
 const model = defineModel<string>({ default: "" })
+
+// We want all fallthrough attributes to be passed to the combbox input element.
+defineOptions({
+  inheritAttrs: false,
+})
 
 const mainProgress = injectMainProgress()
 const searchProgress = localProgress(mainProgress)
@@ -141,7 +141,7 @@ watch(
   () => selectedDocument.value?.id,
   (id) => {
     if (!id) return
-    emit("update:modelValue", id)
+    model.value = id
   },
 )
 
@@ -168,6 +168,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <ComboboxInput
             v-if="!selectedDocument?.id"
             :readonly="isInProgress"
+            v-bind="$attrs"
             class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
             :class="{
               'bg-white': !isInProgress && !(searchSessionError || searchResultsError),
@@ -190,6 +191,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   'bg-error-50!': searchSessionError || searchResultsError || !isDocumentTypeValid,
                   'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !(searchSessionError || searchResultsError),
                 }"
+                v-bind="$attrs"
                 :display-value="() => getName(doc?.claims) || ''"
                 @input="query = ($event.target as HTMLInputElement).value"
               />
