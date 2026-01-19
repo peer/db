@@ -177,6 +177,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <WithPeerDBDocument v-else :id="selectedDocument.id" name="DocumentGet">
             <template #default="{ doc }">
               <ComboboxInput
+                :readonly="isInProgress"
+                v-bind="$attrs"
                 class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
                 :class="{
                   'bg-white': !isInProgress,
@@ -184,7 +186,6 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   'bg-error-50!': !isDocumentTypeValid,
                   'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
                 }"
-                v-bind="$attrs"
                 :display-value="() => getName(doc?.claims) || ''"
                 @input="query = ($event.target as HTMLInputElement).value"
               />
