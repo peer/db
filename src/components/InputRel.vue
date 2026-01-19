@@ -134,7 +134,7 @@ watch(
 )
 
 watch(query, async (value) => {
-  searchAbortController.abort("new search call")
+  searchAbortController.abort()
   searchAbortController = new AbortController()
   await search(value)
 })
