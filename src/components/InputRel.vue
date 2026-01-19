@@ -133,11 +133,15 @@ watch(
   },
 )
 
-watch(query, async (value) => {
-  searchAbortController.abort()
-  searchAbortController = new AbortController()
-  await search(value)
-})
+watch(
+  query,
+  async (value) => {
+    searchAbortController.abort()
+    searchAbortController = new AbortController()
+    await search(value)
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
   searchAbortController.abort()
