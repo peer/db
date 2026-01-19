@@ -170,8 +170,10 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             @input="query = ($event.target as HTMLInputElement).value"
           />
 
-          <!-- Once document is selected we resolve it with WithPeerDBDocument component
-               and display its value through getName of the document. -->
+          <!--
+            Once document is selected we resolve it with WithPeerDBDocument component
+            and display its value through getName of the document.
+          -->
           <WithPeerDBDocument v-else :id="selectedDocument.id" name="DocumentGet">
             <template #default="{ doc }">
               <ComboboxInput
