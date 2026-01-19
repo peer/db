@@ -41,13 +41,11 @@ const searchProgress = localProgress(mainProgress)
 const router = useRouter()
 
 const selectedDocument = shallowRef<Result | null>(null)
-
 const query = ref("")
 const isDocumentTypeValid = ref(true)
-
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
-const searchResultsError = ref<string | null>(null)
 const searchResults = ref<Result[]>([])
+const searchResultsError = ref<string | null>(null)
 
 let abortController = new AbortController()
 const nameAbort = new AbortController()
