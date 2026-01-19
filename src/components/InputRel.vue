@@ -12,7 +12,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { TYPE } from "@/props"
 import { NONE } from "@/search"
-import { getName, loadingWidth } from "@/utils"
+import { anySignal, getName, loadingWidth } from "@/utils"
 
 // Wildcard to see if a string ends with unicode letter or number.
 const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
@@ -45,13 +45,14 @@ const query = ref("")
 const isDocumentTypeValid = ref(true)
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 const searchResults = ref<Result[]>([])
-const searchResultsError = ref<string | null>(null)
 
-let abortController = new AbortController()
-const nameAbort = new AbortController()
+const mainAbortController = new AbortController()
+let searchAbortController = new AbortController()
 
 async function search(q: string) {
-  if (abortController.signal.aborted) {
+  const signal = anySignal(mainAbortController.signal, searchAbortController.signal)
+
+  if (signal.aborted) {
     return
   }
 
@@ -79,20 +80,20 @@ async function search(q: string) {
         query: q,
         filters: filters ?? undefined,
       },
-      abortController.signal,
+      signal,
       searchProgress,
     )
-    if (abortController.signal.aborted) {
+    if (signal.aborted) {
       return
     }
 
     // We use only the first 100 results.
     searchResults.value = response.slice(0, 100)
   } catch (err) {
-    if (abortController.signal.aborted) {
+    if (signal.aborted) {
       return
     }
-    // TODO: Show notification with error.
+    // TODO: Show error.
     console.error("InputRel.search", err)
   } finally {
     searchProgress.value -= 1
@@ -101,7 +102,7 @@ async function search(q: string) {
 
 async function validateSelectedDocument(id: string): Promise<void> {
   const newURL = router.apiResolve({ name: "DocumentGet", params: { id } }).href
-  const response = await getURL<PeerDBDocument>(newURL, null, nameAbort.signal, searchProgress)
+  const response = await getURL<PeerDBDocument>(newURL, null, mainAbortController.signal, searchProgress)
 
   const relClaims = response.doc.claims?.rel
   if (!relClaims) {
@@ -117,6 +118,9 @@ watch(
   async (id) => {
     if (!id) return (selectedDocument.value = null)
     await validateSelectedDocument(id)
+    if (mainAbortController.signal.aborted) {
+      return
+    }
     selectedDocument.value = { id }
   },
   { immediate: true },
@@ -131,14 +135,14 @@ watch(
 )
 
 watch(query, async (value) => {
-  abortController.abort("new search call")
-  abortController = new AbortController()
+  searchAbortController.abort("new search call")
+  searchAbortController = new AbortController()
   await search(value)
 })
 
 onBeforeUnmount(() => {
-  abortController.abort()
-  nameAbort.abort()
+  searchAbortController.abort()
+  mainAbortController.abort()
 })
 
 const WithPeerDBDocument = WithDocument<PeerDBDocument>
@@ -156,10 +160,10 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             v-bind="$attrs"
             class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
             :class="{
-              'bg-white': !isInProgress && !searchResultsError,
+              'bg-white': !isInProgress,
               'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
-              'bg-error-50!': searchResultsError || !isDocumentTypeValid,
-              'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !searchResultsError,
+              'bg-error-50!': !isDocumentTypeValid,
+              'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
             }"
             @input="query = ($event.target as HTMLInputElement).value"
           />
@@ -171,10 +175,10 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <ComboboxInput
                 class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
                 :class="{
-                  'bg-white': !isInProgress && !searchResultsError,
+                  'bg-white': !isInProgress,
                   'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
-                  'bg-error-50!': searchResultsError || !isDocumentTypeValid,
-                  'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress && !searchResultsError,
+                  'bg-error-50!': !isDocumentTypeValid,
+                  'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
                 }"
                 v-bind="$attrs"
                 :display-value="() => getName(doc?.claims) || ''"
@@ -228,9 +232,5 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </ComboboxOptions>
       </div>
     </Combobox>
-
-    <template v-if="searchResultsError">
-      <div class="my-1 text-sm"><i class="text-error-600">loading data failed</i></div>
-    </template>
   </div>
 </template>
