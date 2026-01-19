@@ -70,7 +70,7 @@ async function search(q: string) {
     return
   }
 
-  // Add wildcard for prefix search.
+  // Add wildcard for prefix search if query ends with unicode letter or number.
   if (WILDCARD_SEARCH_REGEX.test(q)) {
     q = q + "*"
   }
