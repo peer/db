@@ -61,7 +61,7 @@ async function search(q: string) {
   }
 
   // Build rel filters.
-  let filters: Filters | null = null
+  let filters: Filters | undefined = undefined
   if (props.type) {
     if (props.type === NONE) {
       filters = { rel: { prop: TYPE, none: true } }
@@ -77,7 +77,7 @@ async function search(q: string) {
       router.apiResolve({ name: "SearchJustResults" }).href,
       {
         query: q,
-        filters: filters ?? undefined,
+        filters: filters,
       },
       signal,
       searchProgress,
