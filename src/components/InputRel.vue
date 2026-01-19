@@ -9,7 +9,7 @@ import { useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
-import { injectMainProgress, localProgress } from "@/progress"
+import { injectProgress } from "@/progress"
 import { TYPE } from "@/props"
 import { NONE } from "@/search"
 import { anySignal, getName, loadingWidth } from "@/utils"
@@ -35,8 +35,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const mainProgress = injectMainProgress()
-const searchProgress = localProgress(mainProgress)
+const searchProgress = injectProgress()
 
 const router = useRouter()
 
