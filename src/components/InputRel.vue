@@ -139,6 +139,9 @@ watch(
 watch(
   query,
   async (value) => {
+    // Open options on search.
+    if (value) optionsVisible.value = true
+
     searchAbortController.abort()
     searchAbortController = new AbortController()
     await search(value)
@@ -206,7 +209,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
           <ComboboxButton class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2" @click.prevent="optionsVisible = !optionsVisible">
             <RouterLink v-if="selectedDocument?.id" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
-              <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
+              <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
 
             <ChevronUpDownIcon
@@ -237,9 +240,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                     <template v-if="getName(doc?.claims)">
                       <div class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
 
-                      <RouterLink v-if="result?.id" :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link">
-                        <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
-                      </RouterLink>
+                      <!-- We explicitly call router.push with mousedown.stop, to prevent headlesui
+                          closing the options without redirect -->
+                      <a v-if="result?.id" class="link hover:cursor-pointer" @mousedown.stop="() => router.push({ name: 'DocumentGet', params: { id: result.id } })">
+                        <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
+                      </a>
                     </template>
 
                     <i v-else>no name</i>
