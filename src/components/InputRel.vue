@@ -223,11 +223,15 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </div>
 
         <ComboboxOptions
-          v-if="optionsVisible && searchResults.length > 0 && !isInProgress && !readonly"
+          v-if="optionsVisible && !isInProgress && !readonly"
           static
           class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
-          <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
+          <ComboboxOption v-if="searchResults.length === 0">
+            <li class="p-2"><i>No results found.</i></li>
+          </ComboboxOption>
+
+          <WithPeerDBDocument v-for="result in searchResults" v-if="searchResults.length > 0" :id="result.id" :key="result.id" name="DocumentGet">
             <template #default="{ doc }">
               <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
                 <li class="p-1 outline-none select-none">
