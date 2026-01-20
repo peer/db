@@ -3,7 +3,7 @@ import type { PeerDBDocument } from "@/document"
 import type { Filters, Result } from "@/types"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
-import { ArrowTopRightOnSquareIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ArrowTopRightOnSquareIcon, CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
 import { useRouter } from "vue-router"
 
@@ -231,37 +231,47 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             <li class="p-2"><i>No results found.</i></li>
           </ComboboxOption>
 
-          <WithPeerDBDocument v-for="result in searchResults" v-if="searchResults.length > 0" :id="result.id" :key="result.id" name="DocumentGet">
-            <template #default="{ doc }">
-              <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
+          <template v-if="searchResults.length > 0">
+            <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
+              <template #default="{ doc }">
+                <ComboboxOption v-slot="{ active }" :value="result" as="template" :disabled="!getName(doc?.claims)">
+                  <li class="p-1 outline-none select-none">
+                    <!--
+                      We have an additional div so that the ring has the space to be shown.
+                      li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                      for option content of py-2 and px-3, same what InputText and ListboxButton have.
+                    -->
+                    <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                      <template v-if="getName(doc?.claims)">
+                        <div
+                          class="w-full cursor-pointer truncate"
+                          :class="{
+                            'font-medium': result.id === selectedDocument?.id,
+                          }"
+                          v-html="getName(doc?.claims)"
+                        />
+
+                        <CheckIcon v-if="result.id === selectedDocument?.id" class="mr-2 size-5 text-primary-600" aria-hidden="true" />
+
+                        <!-- We explicitly call router.push with mousedown.stop, to prevent headlesui
+                            closing the options without redirect -->
+                        <a v-if="result?.id" class="link hover:cursor-pointer" @mousedown.stop="() => router.push({ name: 'DocumentGet', params: { id: result.id } })">
+                          <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
+                        </a>
+                      </template>
+
+                      <i v-else>no name</i>
+                    </div>
+                  </li>
+                </ComboboxOption>
+              </template>
+              <template #loading="{ url }">
                 <li class="p-1 outline-none select-none">
-                  <!--
-                    We have an additional div so that the ring has the space to be shown.
-                    li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
-                    for option content of py-2 and px-3, same what InputText and ListboxButton have.
-                  -->
-                  <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                    <template v-if="getName(doc?.claims)">
-                      <div class="w-full cursor-pointer truncate" v-html="getName(doc?.claims)" />
-
-                      <!-- We explicitly call router.push with mousedown.stop, to prevent headlesui
-                          closing the options without redirect -->
-                      <a v-if="result?.id" class="link hover:cursor-pointer" @mousedown.stop="() => router.push({ name: 'DocumentGet', params: { id: result.id } })">
-                        <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
-                      </a>
-                    </template>
-
-                    <i v-else>no name</i>
-                  </div>
+                  <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
                 </li>
-              </ComboboxOption>
-            </template>
-            <template #loading="{ url }">
-              <li class="p-1 outline-none select-none">
-                <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-              </li>
-            </template>
-          </WithPeerDBDocument>
+              </template>
+            </WithPeerDBDocument>
+          </template>
         </ComboboxOptions>
       </div>
     </Combobox>
