@@ -47,6 +47,8 @@ const isDocumentTypeValid = ref(true)
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 const searchResults = ref<Result[]>([])
 
+const optionsVisible = ref(false)
+
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()
 
@@ -154,7 +156,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
 
 <template>
   <div class="flex flex-col gap-1">
-    <Combobox v-model="selectedDocument" as="div">
+    <Combobox v-model="selectedDocument" as="div" @update:model-value="optionsVisible = false">
       <div class="relative">
         <div class="relative w-full">
           <!-- We only show input field when document is not yet selected. -->
@@ -173,6 +175,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
             }"
             @input="query = ($event.target as HTMLInputElement).value"
+            @focusin="optionsVisible = true"
+            @focusout="optionsVisible = false"
           />
 
           <!--
@@ -200,7 +204,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
             </template>
           </WithPeerDBDocument>
 
-          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2" @click.prevent="optionsVisible = !optionsVisible">
             <RouterLink v-if="selectedDocument?.id" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
               <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
             </RouterLink>
@@ -216,7 +220,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
         </div>
 
         <ComboboxOptions
-          v-if="searchResults.length > 0 && !isInProgress && !readonly"
+          v-if="optionsVisible && searchResults.length > 0 && !isInProgress && !readonly"
+          static
           class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
