@@ -21,10 +21,12 @@ const props = withDefaults(
   defineProps<{
     progress?: number
     type?: string | typeof NONE
+    readonly?: boolean
   }>(),
   {
     progress: 0,
     type: "",
+    readonly: false,
   },
 )
 
@@ -158,13 +160,16 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <!-- We only show input field when document is not yet selected. -->
           <ComboboxInput
             v-if="!selectedDocument?.id"
-            :readonly="isInProgress"
+            :readonly="readonly"
             v-bind="$attrs"
             class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
             :class="{
               'bg-white': !isInProgress,
-              'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
+              'bg-gray-100!': isInProgress || readonly,
+              'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress || readonly,
               'bg-error-50!': !isDocumentTypeValid,
+              'text-gray-800': isInProgress || readonly,
+              'hover:ring-neutral-300! focus:ring-primary-300!': isInProgress || readonly,
               'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
             }"
             @input="query = ($event.target as HTMLInputElement).value"
@@ -177,13 +182,16 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           <WithPeerDBDocument v-else :id="selectedDocument.id" name="DocumentGet">
             <template #default="{ doc }">
               <ComboboxInput
-                :readonly="isInProgress"
+                :readonly="readonly"
                 v-bind="$attrs"
                 class="w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
                 :class="{
                   'bg-white': !isInProgress,
-                  'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress,
+                  'bg-gray-100!': isInProgress || readonly,
+                  'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress || readonly,
                   'bg-error-50!': !isDocumentTypeValid,
+                  'text-gray-800': isInProgress || readonly,
+                  'hover:ring-neutral-300! focus:ring-primary-300!': isInProgress || readonly,
                   'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
                 }"
                 :display-value="() => getName(doc?.claims) || ''"
@@ -197,12 +205,18 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <ArrowTopRightOnSquareIcon class="size-5 text-gray-400" aria-hidden="true" />
             </RouterLink>
 
-            <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
+            <ChevronUpDownIcon
+              class="size-5 text-gray-400"
+              :class="{
+                'cursor-not-allowed': progress > 0 || readonly,
+              }"
+              aria-hidden="true"
+            />
           </ComboboxButton>
         </div>
 
         <ComboboxOptions
-          v-if="searchResults.length > 0 && !isInProgress"
+          v-if="searchResults.length > 0 && !isInProgress && !readonly"
           class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
