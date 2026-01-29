@@ -2,7 +2,16 @@ import type { TimePrecision } from "@/document"
 
 import { assert, describe, test } from "vitest"
 
-import { calculateTimeUnits, formatAbsoluteParts, formatYearParts, getPrecisionIndex, getRelativeTimeInfo, isPrecise, parseTimestamp } from "@/components/TimeDisplay.vue"
+import {
+  calculateTimeUnits,
+  detectPrecision,
+  formatAbsoluteParts,
+  formatYearParts,
+  getPrecisionIndex,
+  getRelativeTimeInfo,
+  isPrecise,
+  parseTimestamp,
+} from "@/components/TimeDisplay.vue"
 
 // Expose functions to avoid eslint errors
 // TODO: Enable once eslint parser for extra files is used.
@@ -33,6 +42,17 @@ const formatAbsolutePartsExposed = (
 ) =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   formatAbsoluteParts(parsed, precision)
+
+const detectPrecisionExposed = (parsed: {
+  year: string
+  month: string
+  day: string
+  hour: string
+  minute: string
+  second: string
+}) =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  detectPrecision(parsed)
 
 describe("parseTimestamp", () => {
   test("parses valid timestamp", () => {
@@ -323,5 +343,163 @@ describe("getRelativeTimeInfo", () => {
     const result = getRelativeTimeInfoExposed(1000 * 365 * 24 * 60 * 60 * 1000)
     assert.equal(result.unit, "kiloYears")
     assert.equal(result.count, 1)
+  })
+})
+
+describe("detectPrecision", () => {
+  test("detects second precision when seconds > 0", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "02",
+      hour: "10",
+      minute: "30",
+      second: "45",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "s")
+  })
+
+  test("detects minute precision when minutes > 0 and seconds = 0", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "02",
+      hour: "10",
+      minute: "30",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "min")
+  })
+
+  test("detects hour precision when hours > 0 and minutes/seconds = 0", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "02",
+      hour: "10",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "h")
+  })
+
+  test("detects day precision when day > 0 and time components = 0", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "15",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "d")
+  })
+
+  test("detects day precision when month > 0 and day = 1, time = 0", () => {
+    const parsed = {
+      year: "2025",
+      month: "06",
+      day: "01",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "d")
+  })
+
+  test("detects day precision when all components are at their minimum", () => {
+    const parsed = {
+      year: "2025",
+      month: "01",
+      day: "01",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "d")
+  })
+
+  test("prioritizes seconds over minutes", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "02",
+      hour: "10",
+      minute: "30",
+      second: "01",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "s")
+  })
+
+  test("prioritizes minutes over hours", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "02",
+      hour: "10",
+      minute: "01",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "min")
+  })
+
+  test("prioritizes hours over days", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "15",
+      hour: "01",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "h")
+  })
+
+  test("prioritizes days over months", () => {
+    const parsed = {
+      year: "2025",
+      month: "06",
+      day: "15",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "d")
+  })
+
+  test("handles edge case: day = 1 should trigger day precision", () => {
+    const parsed = {
+      year: "2025",
+      month: "03",
+      day: "01",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "d")
+  })
+
+  test("handles edge case: month = 0 should not trigger month precision", () => {
+    const parsed = {
+      year: "2025",
+      month: "00",
+      day: "00",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "y")
+  })
+
+  test("handles edge case: all fields are 0, fallback to year precision", () => {
+    const parsed = {
+      year: "0",
+      month: "00",
+      day: "00",
+      hour: "00",
+      minute: "00",
+      second: "00",
+    }
+    assert.equal(detectPrecisionExposed(parsed), "y")
   })
 })
