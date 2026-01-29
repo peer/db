@@ -20,7 +20,7 @@ const props = withDefaults(
   },
 )
 
-const { t, n } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 
 // Current display format, can be toggled by the user.
 const currentFormat = ref(props.format)
