@@ -142,6 +142,30 @@ declare module "vue-i18n" {
         label: string
       }
     }
+    components: {
+      TimeDisplay: {
+        relative: {
+          secondsAgo: string
+          minutesAgo: string
+          hoursAgo: string
+          daysAgo: string
+          monthsAgo: string
+          yearsAgo: string
+          kiloYearsAgo: string
+          megaYearsAgo: string
+          gigaYearsAgo: string
+          inSeconds: string
+          inMinutes: string
+          inHours: string
+          inDays: string
+          inMonths: string
+          inYears: string
+          inKiloYears: string
+          inMegaYears: string
+          inGigaYears: string
+        }
+      }
+    }
     views: {
       DocumentGet: {
         tabs: {
