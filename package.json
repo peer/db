@@ -38,7 +38,7 @@
     "@sidekickicons/vue": "^0.14.0",
     "@tozd/identifier": "^0.7.0",
     "esm-seedrandom": "^3.0.5-esm.2",
-    "lodash-es": "^4.17.22",
+    "lodash-es": "^4.17.23",
     "nouislider": "^15.8.1",
     "structured-field-values": "^2.0.4",
     "uuid": "^13.0.0",
@@ -86,5 +86,8 @@
     "vitest": "^4.0.16",
     "vue-component-type-helpers": "^3.2.2",
     "vue-tsc": "^3.2.2"
+  },
+  "overrides": {
+    "lodash": "^4.17.23"
   }
 }
