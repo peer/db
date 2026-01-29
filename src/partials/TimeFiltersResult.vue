@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "v
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
+import TimeDisplay from "@/components/TimeDisplay.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
@@ -205,18 +206,14 @@ onBeforeUnmount(() => {
           ></rect>
         </svg>
         <div class="flex flex-row justify-between gap-x-1">
-          <div>
-            {{ formatTime(from) }}
-          </div>
-          <div>
-            {{ formatTime(to) }}
-          </div>
+          <TimeDisplay :timestamp="formatTime(from)" />
+          <TimeDisplay :timestamp="formatTime(to)" />
         </div>
         <div ref="sliderEl"></div>
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ formatTime(results[0].from) }}</div>
+        <TimeDisplay :timestamp="formatTime(results[0].from)" class="my-1 leading-none" />
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">

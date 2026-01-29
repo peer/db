@@ -37,6 +37,32 @@ export function parseTimestamp(timestamp: string): { year: string; month: string
 }
 
 /**
+ * Auto-detect precision based on timestamp components.
+ * Logic:
+ * - If seconds > 0, precision is 's'
+ * - If minutes > 0, precision is 'min'
+ * - If hours > 0, precision is 'h'
+ * - If day > 0, precision is 'd'
+ * - If month > 0, precision is 'm'
+ * - Otherwise, precision is 'y'
+ */
+export function detectPrecision(parsed: { year: string; month: string; day: string; hour: string; minute: string; second: string }): TimePrecision {
+  const second = parseInt(parsed.second, 10)
+  const minute = parseInt(parsed.minute, 10)
+  const hour = parseInt(parsed.hour, 10)
+  const day = parseInt(parsed.day, 10)
+  const month = parseInt(parsed.month, 10)
+
+  if (second > 0) return "s"
+  if (minute > 0) return "min"
+  if (hour > 0) return "h"
+  if (day > 0) return "d"
+  if (month > 0) return "m"
+
+  return "y"
+}
+
+/**
  * Returns the index of a precision level in the hierarchy.
  * Lower index means less precise (e.g., G=0, s=14).
  */
@@ -271,18 +297,20 @@ export function getRelativeTimeInfo(diffMs: number): {
 
 <script setup lang="ts">
 import { timestampToSeconds } from "@/utils"
-import { computed,onBeforeUnmount,ref,watchEffect } from "vue"
+import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
+
 const props = withDefaults(
   defineProps<{
     // ISO timestamp string like "2025-03-02T00:00:00Z".
     timestamp: string
-    // Precision of the timestamp.
-    precision: TimePrecision
+    // Precision of the timestamp. If not provided, will be auto-detected.
+    precision?: TimePrecision | undefined
     // Initial display format: "absolute" or "relative".
     format?: "absolute" | "relative"
   }>(),
   {
+    precision: undefined,
     format: "absolute",
   },
 )
@@ -315,12 +343,23 @@ const parsed = computed(() => {
   return parseTimestamp(props.timestamp)
 })
 
+// Determine the actual precision to use (provided or auto-detected).
+const actualPrecision = computed((): TimePrecision => {
+  if (props.precision) {
+    return props.precision
+  }
+  if (parsed.value) {
+    return detectPrecision(parsed.value)
+  }
+  return "y" // fallback
+})
+
 // Format absolute time with grayed out imprecise parts.
 const absoluteDisplay = computed(() => {
   if (!parsed.value) {
     return { parts: [] as DisplayTimePart[] }
   }
-  return { parts: formatAbsoluteParts(parsed.value, props.precision) }
+  return { parts: formatAbsoluteParts(parsed.value, actualPrecision.value) }
 })
 
 // Calculate relative time difference.
@@ -459,7 +498,7 @@ const tooltip = computed(() => {
       return props.timestamp
     }
     const p = parsed.value
-    const precisionIndex = getPrecisionIndex(props.precision)
+    const precisionIndex = getPrecisionIndex(actualPrecision.value)
     let result = p.year
     if (precisionIndex >= getPrecisionIndex("m")) {
       result += `-${p.month}`
