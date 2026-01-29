@@ -1,4 +1,4 @@
-import type { TimePrecision } from "@/types"
+import type { TimePrecision } from "@/document"
 
 import { assert, describe, test } from "vitest"
 

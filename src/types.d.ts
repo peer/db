@@ -6,6 +6,8 @@ import type { Router } from "vue-router"
 import type { ClaimTypes } from "@/document/claims"
 import type { NONE } from "@/symbols"
 
+export type DisplayTimePart = { text: string; precise: boolean }
+
 export type RefSearchResult = {
   id: string
   count: number

@@ -1,5 +1,6 @@
 <script lang="ts">
-import type { TimePrecision } from "@/types"
+import type { TimePrecision } from "@/document"
+import type { DisplayTimePart } from "@/types"
 
 // Precision hierarchy for determining what parts are precise.
 export const PRECISION_LEVELS = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
@@ -16,8 +17,6 @@ const TRAILING_ZEROS: Record<string, number> = {
   "100y": 2,
   "10y": 1,
 }
-
-export type DisplayPart = { text: string; precise: boolean }
 
 /**
  * Parses a timestamp string into its components.
@@ -57,8 +56,8 @@ export function isPrecise(level: TimePrecision, precision: TimePrecision): boole
 /**
  * Formats the year with grayed out imprecise trailing zeros.
  */
-export function formatYearParts(yearStr: string, precision: TimePrecision): DisplayPart[] {
-  const parts: DisplayPart[] = []
+export function formatYearParts(yearStr: string, precision: TimePrecision): DisplayTimePart[] {
+  const parts: DisplayTimePart[] = []
   const yearPrecise = isPrecise("y", precision)
 
   if (yearPrecise) {
@@ -88,8 +87,8 @@ export function formatYearParts(yearStr: string, precision: TimePrecision): Disp
 export function formatAbsoluteParts(
   parsed: { year: string; month: string; day: string; hour: string; minute: string; second: string },
   precision: TimePrecision,
-): DisplayPart[] {
-  const parts: DisplayPart[] = []
+): DisplayTimePart[] {
+  const parts: DisplayTimePart[] = []
   const precisionIndex = getPrecisionIndex(precision)
 
   // Year parts with grayed out imprecise trailing zeros.
@@ -118,7 +117,7 @@ export function formatAbsoluteParts(
     parts.push({ text: "00", precise: false })
   }
 
-  // Time components (only if precision includes time).
+  // Time components.
   if (precisionIndex >= getPrecisionIndex("h")) {
     const hourPrecise = isPrecise("h", precision)
     parts.push({ text: " ", precise: true })
@@ -137,7 +136,7 @@ export function formatAbsoluteParts(
       parts.push({ text: "00", precise: false })
     }
 
-    // Seconds (only if precision is "s").
+    // Seconds.
     if (precisionIndex >= getPrecisionIndex("s")) {
       const secPrecise = isPrecise("s", precision)
       parts.push({ text: ":", precise: secPrecise })
@@ -271,11 +270,9 @@ export function getRelativeTimeInfo(diffMs: number): {
 </script>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
-import { useI18n } from "vue-i18n"
-
 import { timestampToSeconds } from "@/utils"
-
+import { computed,onBeforeUnmount,ref,watchEffect } from "vue"
+import { useI18n } from "vue-i18n"
 const props = withDefaults(
   defineProps<{
     // ISO timestamp string like "2025-03-02T00:00:00Z".
@@ -321,7 +318,7 @@ const parsed = computed(() => {
 // Format absolute time with grayed out imprecise parts.
 const absoluteDisplay = computed(() => {
   if (!parsed.value) {
-    return { parts: [] as DisplayPart[] }
+    return { parts: [] as DisplayTimePart[] }
   }
   return { parts: formatAbsoluteParts(parsed.value, props.precision) }
 })
