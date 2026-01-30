@@ -362,6 +362,18 @@ to use less.
     display: block !important;
   }
 
+  .feed-filters {
+    display: none !important;
+  }
+
+  .searchresult-feed-filters {
+    page-break-inside: avoid;
+  }
+
+  .searchresult-header {
+    display: none !important;
+  }
+
   /* Remove container constraints. */
   .min-h-container {
     min-height: unset !important;
@@ -387,12 +399,6 @@ to use less.
   /* Optimize images for print. */
   img {
     max-width: 100% !important;
-    page-break-inside: avoid;
-  }
-
-  /* Prevent page breaks inside content blocks. */
-  .prose,
-  table {
     page-break-inside: avoid;
   }
 
