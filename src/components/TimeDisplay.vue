@@ -296,9 +296,11 @@ export function getRelativeTimeInfo(diffMs: number): {
 </script>
 
 <script setup lang="ts">
-iimport { timestampToSeconds } from "@/utils"
-import { computed,onBeforeUnmount,ref,watchEffect } from "vue"
+import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
+
+import { timestampToSeconds } from "@/utils"
+
 const props = withDefaults(
   defineProps<{
     // ISO timestamp string like "2025-03-02T00:00:00Z".
