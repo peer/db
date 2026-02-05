@@ -43,14 +43,7 @@ const formatAbsolutePartsExposed = (
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   formatAbsoluteParts(parsed, precision)
 
-const detectPrecisionExposed = (parsed: {
-  year: string
-  month: string
-  day: string
-  hour: string
-  minute: string
-  second: string
-}) =>
+const detectPrecisionExposed = (parsed: { year: string; month: string; day: string; hour: string; minute: string; second: string }) =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   detectPrecision(parsed)
 
