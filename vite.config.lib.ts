@@ -6,6 +6,10 @@ import { defineConfig } from "vite"
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
+// Read peer dependencies from package.json to use as externals.
+const packageJson = await import("./package.json", { with: { type: "json" } })
+const peerDependencies = Object.keys(packageJson.default.peerDependencies || {})
+
 const entries = await Promise.all([glob("src/**/*.vue", { cwd: __dirname }), glob("src/**/*.ts", { cwd: __dirname })]).then(([vueFiles, tsFiles]) =>
   [...vueFiles, ...tsFiles]
     .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts") && !file.endsWith(".css"))
@@ -44,26 +48,12 @@ export default defineConfig({
         warn(warning)
       },
       external: (id) => {
-        // Externalize CSS files - consumers have to use their own Tailwind.
+        // Externalize CSS files - consumers have to use their own TailwindCSS setup.
         if (id.endsWith(".css")) {
           return true
         }
-        const externals = [
-          "@all1ndev/vue-local-scope",
-          "@headlessui/vue",
-          "@heroicons/vue",
-          "@sidekickicons/vue",
-          "@tozd/identifier",
-          "esm-seedrandom",
-          "lodash-es",
-          "nouislider",
-          "structured-field-values",
-          "uuid",
-          "vue",
-          "vue-router",
-          "vue-i18n",
-        ]
-        return externals.some((ext) => id === ext || id.startsWith(ext + "/"))
+        // Externalize all peer dependencies.
+        return peerDependencies.some((peer) => id === peer || id.startsWith(peer + "/"))
       },
       output: {
         preserveModules: true,
