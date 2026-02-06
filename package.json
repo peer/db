@@ -35,7 +35,7 @@
   "scripts": {
     "serve": "vite serve",
     "build": "vite build",
-    "build-lib": "vite build --config vite.config.lib.ts",
+    "build-lib": "vite build --config vite.config.lib.ts && npx vue-tsc -p tsconfig.lib.json",
     "lint": "eslint --fix src",
     "lint-ci": "eslint --fix --format gitlab src",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
