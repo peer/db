@@ -342,3 +342,62 @@ to use less.
 }
 
 /* stylelint-enable selector-class-pattern */
+
+/* Print styles. */
+@media print {
+  /* Hide navigation and footer. */
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Hide tab list. */
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Remove screen-specific layout constraints. */
+  body,
+  main {
+    display: block !important;
+  }
+
+  /* Remove container constraints. */
+  .min-h-container {
+    min-height: unset !important;
+  }
+
+  /* Remove top margin that accommodates the navbar. */
+  .mt-12,
+  .sm\:mt-\[4\.5rem\] {
+    margin-top: 0 !important;
+  }
+
+  /* Remove shadows and borders for cleaner print. */
+  .shadow-sm,
+  .shadow-md {
+    box-shadow: none !important;
+  }
+
+  /* Ensure content takes full width. */
+  .rounded-sm {
+    border-radius: 0 !important;
+  }
+
+  /* Optimize images for print. */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure links are visible in print. */
+  .prose a::after {
+    content: " (" attr(href) ")";
+  }
+
+  /* Don't show URL for internal links or anchors. */
+  .prose a[href^="#"]::after,
+  .prose a[href^="/"]::after {
+    content: "";
+  }
+}
