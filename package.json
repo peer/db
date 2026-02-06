@@ -49,7 +49,7 @@
     "generate-i18n-types": "node generate-vue-i18n.js",
     "upgrade": "ncu -u"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@all1ndev/vue-local-scope": "^0.3.2",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
