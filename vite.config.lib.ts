@@ -8,7 +8,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 const entries = await Promise.all([glob("src/**/*.vue", { cwd: __dirname }), glob("src/**/*.ts", { cwd: __dirname })]).then(([vueFiles, tsFiles]) =>
   [...vueFiles, ...tsFiles]
-    .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts"))
+    .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts") && !file.endsWith(".css"))
     .reduce(
       (acc, file) => {
         // Keep .vue extension in name, only strip .ts.
@@ -44,6 +44,10 @@ export default defineConfig({
         warn(warning)
       },
       external: (id) => {
+        // Externalize CSS files - consumers have to use their own Tailwind.
+        if (id.endsWith(".css")) {
+          return true
+        }
         const externals = [
           "@all1ndev/vue-local-scope",
           "@headlessui/vue",
