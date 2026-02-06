@@ -3,6 +3,7 @@ import { glob } from "glob"
 import path from "path"
 import url from "url"
 import { defineConfig } from "vite"
+import { viteStaticCopy } from "vite-plugin-static-copy"
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
@@ -28,7 +29,17 @@ export default defineConfig({
   define: {
     __VUE_OPTIONS_API__: false,
   },
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: "src/theme.css",
+          dest: ".",
+        },
+      ],
+    }),
+  ],
   resolve: {
     alias: {
       "@": "/src",
