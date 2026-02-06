@@ -39,6 +39,8 @@ export default defineConfig({
       entry: entries,
       formats: ["es"],
     },
+    // The library does not need LICENSE.txt and robots.txt bundled.
+    copyPublicDir: false,
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress "empty chunk" warning for intentionally empty index file.

@@ -30,8 +30,7 @@
     "./*": "./lib/*"
   },
   "files": [
-    "lib",
-    "LICENSE"
+    "lib"
   ],
   "scripts": {
     "serve": "vite serve",
