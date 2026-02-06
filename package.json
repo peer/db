@@ -1,7 +1,6 @@
 {
-  "name": "peerdb",
-  "private": true,
-  "version": "0.3.0",
+  "name": "@peerdb/peerdb",
+  "version": "0.4.0-rc.0",
   "type": "module",
   "description": "A collaborative database.",
   "license": "Apache-2.0",
@@ -16,9 +15,28 @@
     "type": "git",
     "url": "https://gitlab.com/peerdb/peerdb.git"
   },
+  "module": "./lib/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./components/*": "./lib/components/*",
+    "./partials/*": "./lib/partials/*",
+    "./views/*": "./lib/views/*",
+    "./locales/*": "./lib/locales/*",
+    "./*": "./lib/*"
+  },
+  "files": [
+    "lib",
+    "LICENSE"
+  ],
   "scripts": {
     "serve": "vite serve",
     "build": "vite build",
+    "build-lib": "vite build --config vite.config.lib.ts",
     "lint": "eslint --fix src",
     "lint-ci": "eslint --fix --format gitlab src",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
@@ -69,6 +87,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-formatter-gitlab": "^7.0.1",
     "eslint-plugin-vue": "^10.6.2",
+    "glob": "^13.0.1",
     "globals": "^17.0.0",
     "npm-check-updates": "^19.3.1",
     "prettier": "^3.7.4",
@@ -89,5 +108,8 @@
   },
   "overrides": {
     "lodash": "^4.17.23"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

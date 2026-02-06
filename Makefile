@@ -12,7 +12,7 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping moma products build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
+.PHONY: build peerdb wikipedia mapping moma products build-static lib test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
 
 build: peerdb wikipedia mapping moma products
 
@@ -33,6 +33,9 @@ build-static: dist
 
 dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
 	npm run build
+
+lib: node_modules src vite.config.lib.ts tsconfig.json LICENSE
+	npm run build-lib
 
 node_modules: package-lock.json
 
@@ -70,7 +73,7 @@ upgrade:
 	go mod tidy
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml coverage dist peerdb wikipedia mapping moma products
+	rm -rf coverage.* codeclimate.json tests.xml coverage dist lib peerdb wikipedia mapping moma products
 
 release:
 	npx --yes --package 'release-it@19.0.5' --package '@release-it/keep-a-changelog@7.0.0' -- release-it
