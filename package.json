@@ -35,7 +35,7 @@
   "scripts": {
     "serve": "vite serve",
     "build": "vite build",
-    "build-lib": "vite build --config vite.config.lib.ts && npx vue-tsc -p tsconfig.lib.json",
+    "build-lib": "vite build --config vite.config.lib.ts && vue-tsc -p tsconfig.lib.json && resolve-tspaths -p tsconfig.lib.json",
     "lint": "eslint --fix src",
     "lint-ci": "eslint --fix --format gitlab src",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
@@ -92,6 +92,7 @@
     "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "resolve-tspaths": "^0.8.23",
     "rollup-plugin-license": "^3.6.0",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1",
