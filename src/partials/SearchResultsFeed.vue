@@ -186,7 +186,7 @@ function onFilters() {
     </div>
 
     <!-- Filters column -->
-    <div ref="filtersEl" class="searchresult-feed-filters flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
+    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
       <div v-if="filtersError" class="my-1 sm:my-4">
         <div class="text-center text-sm"
           ><i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
