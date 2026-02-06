@@ -1,0 +1,399 @@
+@import url("nouislider/dist/nouislider.css");
+
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+@plugin "@headlessui/tailwindcss";
+
+@theme inline {
+  /* Primary color */
+  --color-primary-50: var(--color-indigo-50);
+  --color-primary-100: var(--color-indigo-100);
+  --color-primary-200: var(--color-indigo-200);
+  --color-primary-300: var(--color-indigo-300);
+  --color-primary-400: var(--color-indigo-400);
+  --color-primary-500: var(--color-indigo-500);
+  --color-primary-600: var(--color-indigo-600);
+  --color-primary-700: var(--color-indigo-700);
+  --color-primary-800: var(--color-indigo-800);
+  --color-primary-900: var(--color-indigo-900);
+  --color-primary-950: var(--color-indigo-950);
+
+  /* Secondary color */
+  --color-secondary-50: var(--color-yellow-50);
+  --color-secondary-100: var(--color-yellow-100);
+  --color-secondary-200: var(--color-yellow-200);
+  --color-secondary-300: var(--color-yellow-300);
+  --color-secondary-400: var(--color-yellow-400);
+  --color-secondary-500: var(--color-yellow-500);
+  --color-secondary-600: var(--color-yellow-600);
+  --color-secondary-700: var(--color-yellow-700);
+  --color-secondary-800: var(--color-yellow-800);
+  --color-secondary-900: var(--color-yellow-900);
+  --color-secondary-950: var(--color-yellow-950);
+
+  /* Error color */
+  --color-error-50: var(--color-red-50);
+  --color-error-100: var(--color-red-100);
+  --color-error-200: var(--color-red-200);
+  --color-error-300: var(--color-red-300);
+  --color-error-400: var(--color-red-400);
+  --color-error-500: var(--color-red-500);
+  --color-error-600: var(--color-red-600);
+  --color-error-700: var(--color-red-700);
+  --color-error-800: var(--color-red-800);
+  --color-error-900: var(--color-red-900);
+  --color-error-950: var(--color-red-950);
+
+  /* Warning color */
+  --color-warning-50: var(--color-yellow-50);
+  --color-warning-100: var(--color-yellow-100);
+  --color-warning-200: var(--color-yellow-200);
+  --color-warning-300: var(--color-yellow-300);
+  --color-warning-400: var(--color-yellow-400);
+  --color-warning-500: var(--color-yellow-500);
+  --color-warning-600: var(--color-yellow-600);
+  --color-warning-700: var(--color-yellow-700);
+  --color-warning-800: var(--color-yellow-800);
+  --color-warning-900: var(--color-yellow-900);
+  --color-warning-950: var(--color-yellow-950);
+
+  /* Success color */
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-300: var(--color-green-300);
+  --color-success-400: var(--color-green-400);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
+  --color-success-800: var(--color-green-800);
+  --color-success-900: var(--color-green-900);
+  --color-success-950: var(--color-green-950);
+}
+
+@layer base {
+  body {
+    container-type: inline-size;
+  }
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  a:has(img) {
+    @apply outline-none;
+  }
+
+  .link,
+  .prose a {
+    @apply rounded-xs font-medium text-primary-600 drop-shadow-xs outline-none;
+
+    text-decoration: unset;
+  }
+
+  .link.disabled {
+    @apply cursor-not-allowed text-primary-300;
+  }
+
+  a > img {
+    @apply rounded-xs drop-shadow-xs;
+  }
+
+  .prose img {
+    display: unset;
+    margin: unset;
+  }
+
+  .link:focus,
+  .prose a:focus,
+  a:focus > img {
+    @apply ring-2 ring-primary-500 ring-offset-1;
+  }
+
+  .link.disabled:focus {
+    @apply ring-primary-300;
+  }
+
+  .link:visited,
+  .prose a:visited {
+    @apply text-primary-500;
+  }
+
+  .link.disabled:visited {
+    @apply text-primary-300;
+  }
+
+  .link:hover,
+  .prose a:hover {
+    @apply text-primary-700 underline underline-offset-2;
+  }
+
+  .link.disabled:hover {
+    @apply text-primary-300 no-underline;
+  }
+
+  .link:active,
+  .prose a:active {
+    @apply text-primary-500;
+  }
+
+  .link.disabled:active {
+    @apply text-primary-300;
+  }
+
+  .progress-bar-short,
+  .progress-bar-long {
+    animation-duration: 2.2s;
+    animation-iteration-count: infinite;
+    animation-delay: 200ms;
+    will-change: left, right;
+  }
+
+  .progress-bar-short {
+    animation-name: indeterminate-short-ltr;
+  }
+
+  .progress-bar-long {
+    animation-name: indeterminate-ltr;
+  }
+
+  @keyframes indeterminate-ltr {
+    0% {
+      left: -90%;
+      right: 100%;
+    }
+
+    60% {
+      left: -90%;
+      right: 100%;
+    }
+
+    100% {
+      left: 100%;
+      right: -35%;
+    }
+  }
+
+  @keyframes indeterminate-short-ltr {
+    0% {
+      left: -200%;
+      right: 100%;
+    }
+
+    60% {
+      left: 107%;
+      right: -8%;
+    }
+
+    100% {
+      left: 107%;
+      right: -8%;
+    }
+  }
+
+  .animate-navbar {
+    animation-duration: 100ms;
+    animation-iteration-count: 1;
+    animation-timing-function: linear;
+    animation-name: animate-navbar;
+  }
+
+  @keyframes animate-navbar {
+    0% {
+      transform: translate3d(0, -100%, 0);
+    }
+
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)),
+  .prose * > p:first-child {
+    @apply mt-0;
+  }
+
+  .prose :where(.prose > section:last-child > :last-child):not(:where([class~="not-prose"] *)),
+  .prose * > p:last-child {
+    @apply mb-0;
+  }
+
+  .prose figure {
+    @apply float-right clear-right m-2 table w-auto;
+  }
+
+  .prose .thumb,
+  .prose .sidebar,
+  .prose .barbox {
+    @apply float-right clear-right m-2 w-auto;
+  }
+
+  .prose figure figcaption {
+    @apply mt-1 table-caption;
+
+    caption-side: bottom;
+  }
+
+  .prose figure:has(blockquote) {
+    @apply float-none clear-none mx-0 my-5;
+  }
+
+  .prose ul ol,
+  .prose ol ol,
+  .prose ol ul,
+  .prose ul ul,
+  .prose li {
+    @apply my-0;
+  }
+
+  .prose td > ol,
+  .prose td > ul {
+    @apply my-0;
+  }
+
+  .prose ul + ul,
+  .prose ol + ol {
+    @apply mt-5;
+  }
+
+  .prose table {
+    @apply my-5;
+  }
+
+  .data-reloading {
+    filter: grayscale(0.8) contrast(0.9) brightness(1.06);
+  }
+
+  .min-h-container {
+    min-height: 100cqh;
+  }
+
+  .min-w-container {
+    min-width: 100cqw;
+  }
+
+  .h-container {
+    height: 100cqh;
+  }
+
+  .w-container {
+    width: 100cqw;
+  }
+}
+
+/* stylelint-disable selector-class-pattern */
+
+/*
+Fixing the style would need https://github.com/vitejs/vite/pull/4679 so that we could run
+https://github.com/gridonic/postcss-replace to replace variable in
+https://github.com/leongersen/noUiSlider/blob/master/src/nouislider.core.less without having
+to use less.
+*/
+
+.noUi-connect {
+  @apply h-2 cursor-pointer bg-secondary-400;
+}
+
+[disabled] .noUi-connect {
+  @apply bg-secondary-100;
+}
+
+.noUi-connects {
+  @apply cursor-pointer rounded-none;
+}
+
+[disabled] .noUi-connects,
+[disabled] .noUi-connect {
+  @apply cursor-not-allowed;
+}
+
+.noUi-horizontal {
+  @apply my-2 h-2 rounded-none border-none bg-slate-200 shadow-none;
+}
+
+[disabled].noUi-horizontal {
+  @apply bg-gray-100;
+}
+
+.noUi-horizontal .noUi-handle {
+  @apply -top-2 -right-3 h-6 w-6 cursor-pointer rounded-full border-none bg-primary-600 shadow-sm outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500;
+}
+
+.noUi-state-drag .noUi-handle {
+  @apply !cursor-grabbing;
+}
+
+.noUi-handle::before,
+.noUi-handle::after {
+  @apply hidden;
+}
+
+[disabled] .noUi-handle {
+  @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300;
+}
+
+/* stylelint-enable selector-class-pattern */
+
+/* Print styles. */
+@media print {
+  /* Hide navigation and footer. */
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Hide tab list. */
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Remove screen-specific layout constraints. */
+  body,
+  main {
+    display: block !important;
+  }
+
+  /* Remove container constraints. */
+  .min-h-container {
+    min-height: unset !important;
+  }
+
+  /* Remove top margin that accommodates the navbar. */
+  .mt-12,
+  .sm\:mt-\[4\.5rem\] {
+    margin-top: 0 !important;
+  }
+
+  /* Remove shadows and borders for cleaner print. */
+  .shadow-sm,
+  .shadow-md {
+    box-shadow: none !important;
+  }
+
+  /* Ensure content takes full width. */
+  .rounded-sm {
+    border-radius: 0 !important;
+  }
+
+  /* Optimize images for print. */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure links are visible in print. */
+  .prose a::after {
+    content: " (" attr(href) ")";
+  }
+
+  /* Don't show URL for internal links or anchors. */
+  .prose a[href^="#"]::after,
+  .prose a[href^="/"]::after {
+    content: "";
+  }
+}
