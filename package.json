@@ -63,7 +63,8 @@
     "coverage": "vitest --coverage",
     "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage",
     "generate-i18n-types": "node generate-vue-i18n.js",
-    "upgrade": "ncu -u"
+    "upgrade": "ncu -u",
+    "prepare": "npm run build-lib"
   },
   "peerDependencies": {
     "@all1ndev/vue-local-scope": "^0.3.2",
