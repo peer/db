@@ -80,7 +80,7 @@ func (c *PopulateCommand) runIndex(
 	return SaveCoreProperties(ctx, logger, store, esClient, esProcessor, index, nil, nil)
 }
 
-// Run executes the populate command to populate the database and index with core properties.
+// Run executes the populate command to populate database with core documents.
 func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
