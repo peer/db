@@ -90,29 +90,29 @@ function main() {
   try {
     console.log("🔍 Reading en.json file...")
 
-    // Check if en.json exists
+    // Check if en.json exists.
     if (!fs.existsSync(EN_JSON_PATH)) {
       console.error(`❌ Error: ${EN_JSON_PATH} not found!`)
       process.exit(1)
     }
 
-    // Read and parse en.json
+    // Read and parse en.json.
     const rawData = fs.readFileSync(EN_JSON_PATH, "utf8")
     const localeData = JSON.parse(rawData)
 
     console.log("✅ Successfully parsed en.json")
     console.log("🛠️  Generating TypeScript definitions...")
 
-    // Generate TypeScript definitions
+    // Generate TypeScript definitions.
     const typeScriptContent = generateTypeScriptDefinitions(localeData)
 
-    // Write to vue-i18n.d.ts
+    // Write to vue-i18n.d.ts.
     fs.writeFileSync(VUE_I18N_DEFS_PATH, typeScriptContent, "utf8")
 
     console.log("✅ Successfully generated vue-i18n.d.ts")
     console.log(`📁 Written to: ${VUE_I18N_DEFS_PATH}`)
 
-    // Validate the generated file
+    // Validate the generated file.
     if (fs.existsSync(VUE_I18N_DEFS_PATH)) {
       const generatedSize = fs.statSync(VUE_I18N_DEFS_PATH).size
       console.log(`📊 Generated file size: ${generatedSize} bytes`)
