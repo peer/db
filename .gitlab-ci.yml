@@ -298,23 +298,23 @@ docker:
     - export VERSION="$(git describe --tags --always --dirty=+)"
     - echo VERSION "$VERSION"
     - docker build
-        --target production
-        --tag "$DOCKER_PIPELINE_IMAGE_NAME"
-        --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
-        --build-arg BUILD_TIMESTAMP
-        --label "org.opencontainers.image.version=$VERSION"
-        --label "org.opencontainers.image.created=$BUILD_TIMESTAMP"
-        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
-        --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
+      --target production
+      --tag "$DOCKER_PIPELINE_IMAGE_NAME"
+      --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
+      --build-arg BUILD_TIMESTAMP
+      --label "org.opencontainers.image.version=$VERSION"
+      --label "org.opencontainers.image.created=$BUILD_TIMESTAMP"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
     - docker build
-        --target debug
-        --tag "$DOCKER_PIPELINE_IMAGE_NAME-debug"
-        --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
-        --build-arg BUILD_TIMESTAMP
-        --label "org.opencontainers.image.version=$VERSION"
-        --label "org.opencontainers.image.created=$BUILD_TIMESTAMP"
-        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
-        --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
+      --target debug
+      --tag "$DOCKER_PIPELINE_IMAGE_NAME-debug"
+      --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
+      --build-arg BUILD_TIMESTAMP
+      --label "org.opencontainers.image.version=$VERSION"
+      --label "org.opencontainers.image.created=$BUILD_TIMESTAMP"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
     - docker push "$DOCKER_PIPELINE_IMAGE_NAME"
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
     - docker push "$DOCKER_PIPELINE_IMAGE_NAME-debug"
@@ -373,7 +373,7 @@ push_tag:
 
   rules:
     # Only on protected tags. Protected tags start with "v".
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/'
+    - if: "$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/"
 
   # We do not need build artifacts in this job.
   dependencies: []
@@ -388,7 +388,7 @@ upload_binaries:
 
   rules:
     # Only on protected tags. Protected tags start with "v".
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/'
+    - if: "$CI_COMMIT_TAG && $CI_COMMIT_REF_NAME =~ /^v/"
 
   dependencies:
     - docker
