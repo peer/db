@@ -1,3 +1,4 @@
+import VueI18n from "@intlify/unplugin-vue-i18n/vite"
 import vue from "@vitejs/plugin-vue"
 import { glob } from "glob"
 import path from "path"
@@ -31,6 +32,14 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    VueI18n({
+      include: [path.resolve(__dirname, "src/locales/**")],
+      runtimeOnly: true,
+      compositionOnly: true,
+      dropMessageCompiler: true,
+      fullInstall: true,
+      forceStringify: true,
+    }),
     viteStaticCopy({
       targets: [
         {
