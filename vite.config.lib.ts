@@ -17,8 +17,8 @@ const entries = await Promise.all([glob("src/**/*.vue", { cwd: __dirname }), glo
     .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts") && !file.endsWith(".css"))
     .reduce(
       (acc, file) => {
-        // Keep .vue extension in name, only strip .ts.
-        const name = file.replace(/^src\//, "").replace(/\.ts$/, "")
+        // Strip .ts and .vue extensions from the filename.
+        const name = file.replace(/^src\//, "").replace(/\.(vue|ts)$/, "")
         acc[name] = path.resolve(__dirname, file)
         return acc
       },
