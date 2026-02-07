@@ -23,11 +23,28 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
-    "./components/*": "./lib/components/*",
-    "./partials/*": "./lib/partials/*",
-    "./views/*": "./lib/views/*",
-    "./locales/*": "./lib/locales/*",
-    "./*": "./lib/*"
+    "./components/*": {
+      "types": "./lib/components/*.d.ts",
+      "import": "./lib/components/*.js"
+    },
+    "./partials/*": {
+      "types": "./lib/partials/*.d.ts",
+      "import": "./lib/partials/*.js"
+    },
+    "./views/*": {
+      "types": "./lib/views/*.d.ts",
+      "import": "./lib/views/*.js"
+    },
+    "./locales/*": {
+      "import": "./lib/locales/*.js"
+    },
+    "./*.css": {
+      "style": "./lib/*.css"
+    },
+    "./*": {
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
   },
   "files": [
     "lib"
