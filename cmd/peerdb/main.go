@@ -1,4 +1,4 @@
-// Package peerdb provides the command-line interface for PeerDB.
+// Command peerdb is the command-line interface for PeerDB.
 package main
 
 import (
