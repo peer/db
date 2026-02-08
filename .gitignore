@@ -10,10 +10,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-!dist/dist.go
-dist-ssr
-lib
+/dist/**
+!/dist/dist.go
+/dist-ssr
+/lib
 *.local
 
 # Editor directories and files
