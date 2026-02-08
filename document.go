@@ -75,9 +75,9 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	if reqVersion != nil {
-		_, _, errE = site.store.Get(ctx, id, *reqVersion)
+		_, _, errE = site.Store.Get(ctx, id, *reqVersion)
 	} else {
-		_, _, _, errE = site.store.GetLatest(ctx, id)
+		_, _, _, errE = site.Store.GetLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -125,9 +125,9 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	if reqVersion != nil {
 		version = *reqVersion
-		dataJSON, _, errE = site.store.Get(ctx, id, *reqVersion)
+		dataJSON, _, errE = site.Store.Get(ctx, id, *reqVersion)
 	} else {
-		dataJSON, _, version, errE = site.store.GetLatest(ctx, id)
+		dataJSON, _, version, errE = site.Store.GetLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -180,7 +180,7 @@ func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	_, errE = site.store.Insert(ctx, id, dataJSON, &types.DocumentMetadata{
+	_, errE = site.Store.Insert(ctx, id, dataJSON, &types.DocumentMetadata{
 		At: types.Time(time.Now().UTC()),
 	}, &types.NoMetadata{})
 	if errE != nil {
@@ -218,7 +218,7 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	_, _, version, errE := site.store.GetLatest(ctx, id)
+	_, _, version, errE := site.Store.GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -233,7 +233,7 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 		Version: version,
 	}
 
-	session, errE := site.coordinator.Begin(ctx, metadata)
+	session, errE := site.Coordinator.Begin(ctx, metadata)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -296,7 +296,7 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 		At: types.Time(time.Now().UTC()),
 	}
 
-	_, errE = site.coordinator.Append(ctx, session, buffer, metadata, &change)
+	_, errE = site.Coordinator.Append(ctx, session, buffer, metadata, &change)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -327,7 +327,7 @@ func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Reques
 	site := waf.MustGetSite[*Site](ctx)
 
 	// TODO: Support more than 5000 changes.
-	changes, errE := site.coordinator.List(ctx, session, nil)
+	changes, errE := site.Coordinator.List(ctx, session, nil)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -360,7 +360,7 @@ func (s *Service) DocumentGetChangeGet(w http.ResponseWriter, req *http.Request,
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	dataJSON, _, errE := site.coordinator.GetData(ctx, session, chunk)
+	dataJSON, _, errE := site.Coordinator.GetData(ctx, session, chunk)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -420,7 +420,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		Time:      0,
 	}
 
-	metadata, errE = site.coordinator.End(ctx, session, metadata)
+	metadata, errE = site.Coordinator.End(ctx, session, metadata)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -460,7 +460,7 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -501,7 +501,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
