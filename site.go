@@ -36,11 +36,11 @@ type Site struct {
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]  `json:"-"`
-	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata] `json:"-"`
-	Storage     *storage.Storage                                                                                                                   `json:"-"`
-	ESProcessor *elastic.BulkProcessor                                                                                                             `json:"-"`
-	ESClient    *elastic.Client                                                                                                                    `json:"-"`
+	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]  `json:"-" yaml:"-"`
+	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata] `json:"-" yaml:"-"`
+	Storage     *storage.Storage                                                                                                                   `json:"-" yaml:"-"`
+	ESProcessor *elastic.BulkProcessor                                                                                                             `json:"-" yaml:"-"`
+	ESClient    *elastic.Client                                                                                                                    `json:"-" yaml:"-"`
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

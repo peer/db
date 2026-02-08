@@ -91,6 +91,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Coordinator:     nil,
 			Storage:         nil,
 			ESProcessor:     nil,
+			ESClient:        nil,
 			propertiesTotal: 0,
 		}}
 	}
