@@ -64,8 +64,7 @@ func SaveCoreProperties(
 
 func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = context.WithValue(ctx, requestIDContextKey, "populate")
-	ctx = context.WithValue(ctx, schemaContextKey, site.Schema)
+	ctx = WithFallbackDBContext(ctx, "populate", site.Schema)
 
 	return SaveCoreProperties(ctx, logger, site.Store, site.ESClient, site.ESProcessor, site.Index, nil, nil)
 }

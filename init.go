@@ -12,6 +12,15 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// WithFallbackDBContext returns context with fallback context values which are used
+// to set application name and schema on PostgreSQL connections when it is not part
+// of the request.
+func WithFallbackDBContext(ctx context.Context, name, schema string) context.Context {
+	ctx = context.WithValue(ctx, requestIDContextKey, name)
+	ctx = context.WithValue(ctx, schemaContextKey, schema)
+	return ctx
+}
+
 // Init initializes PeerDB for all sites defined in globals.
 //
 // It establishes connections to PostgreSQL database and ElasticSearch.
@@ -59,9 +68,7 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := context.WithValue(ctx, requestIDContextKey, "init")
-		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
+		siteCtx := WithFallbackDBContext(ctx, "init", site.Schema)
 
 		if site.Store == nil || site.Coordinator == nil || site.Storage == nil || site.ESProcessor == nil {
 			store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
