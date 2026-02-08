@@ -3,7 +3,7 @@
 # for the Dockerfile frontend image to be pulled.
 FROM node:24.10-alpine3.22 AS node-build
 
-RUN apk --update add make bash
+RUN apk --update add make bash git
 COPY . /src/peerdb
 WORKDIR /src/peerdb
 RUN \
