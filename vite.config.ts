@@ -56,6 +56,9 @@ export default defineConfig({
   build: {
     sourcemap: true,
     target: ["esnext"],
+    // We have dist.go file in dist directory.
+    // We empty it ourselves in Makefile.
+    emptyOutDir: false,
   },
   test: {
     coverage: {

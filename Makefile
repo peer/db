@@ -16,14 +16,12 @@ endif
 
 build: peerdb wikipedia mapping moma products
 
-# dist is built only if it is missing. Use "make clean" to remove it to build it again.
 peerdb: dist
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
 wikipedia mapping moma products:
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
-# dist is built only if it is missing. Use "make clean" to remove it to build it again.
 build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
@@ -32,6 +30,7 @@ build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o products gitlab.com/peerdb/peerdb/cmd/products
 
 dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
 
 lib: node_modules src vite.config.lib.ts tsconfig.json tsconfig.node.json LICENSE
@@ -69,7 +68,8 @@ upgrade:
 	go mod tidy
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml coverage dist lib peerdb wikipedia mapping moma products
+	find dist -mindepth 1 ! -path "dist/dist.go" -delete
+	rm -rf coverage.* codeclimate.json tests.xml coverage lib peerdb wikipedia mapping moma products
 
 release:
 	npx --yes --package 'release-it@19.0.5' --package '@release-it/keep-a-changelog@7.0.0' -- release-it
