@@ -29,7 +29,9 @@ build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/peerdb/cmd/moma
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o products gitlab.com/peerdb/peerdb/cmd/products
 
-dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt
+
+dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
 	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
 
