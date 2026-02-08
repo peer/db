@@ -109,7 +109,6 @@ To update internationalization TypeScript definitions:
 
 ### Testing Requirements
 
-- Go tests require `dist/index.html` (dummy file acceptable)
 - Both PostgreSQL and Elasticsearch must be running for integration tests
 - Use `make test-ci` for coverage reports
 - Frontend tests use Vitest with v8 coverage provider

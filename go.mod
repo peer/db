@@ -20,7 +20,7 @@ require (
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.6.0
 	gitlab.com/tozd/go/mediawiki v0.18.0
-	gitlab.com/tozd/go/x v0.0.0-20251211215820-bb80c3d0b6e7
+	gitlab.com/tozd/go/x v0.0.0-20260208001937-9b1141359aee
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.7.0
 	gitlab.com/tozd/waf v0.21.0

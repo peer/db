@@ -3,7 +3,7 @@ package peerdb
 
 import (
 	"context"
-	"embed"
+	_ "embed"
 	"io/fs"
 	"net/http"
 	"os"
@@ -25,9 +25,6 @@ import (
 //go:embed routes.json
 var routesConfiguration []byte
 
-//go:embed dist
-var files embed.FS
-
 // Service is the main HTTP service for PeerDB.
 type Service struct {
 	waf.Service[*Site]
@@ -36,7 +33,7 @@ type Service struct {
 }
 
 // Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
-func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.ReadFileFS) (http.Handler, *Service, errors.E) {
+func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (http.Handler, *Service, errors.E) {
 	// Routes come from a single source of truth, e.g., a file.
 	var routesConfig struct {
 		Routes []waf.Route `json:"routes"`
@@ -99,12 +96,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 		}
 	}
 
-	// We remove "dist" prefix.
-	f, err := fs.Sub(files, "dist")
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-
 	dbpool, errE := internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 	if errE != nil {
 		return nil, nil, errE
@@ -143,7 +134,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 			Logger:          globals.Logger,
 			CanonicalLogger: globals.Logger,
 			WithContext:     globals.WithContext,
-			StaticFiles:     f.(fs.ReadFileFS), //nolint:errcheck
+			StaticFiles:     files.(fs.ReadFileFS), //nolint:errcheck
 			Routes:          routesConfig.Routes,
 			Sites:           sites,
 			Middleware:      middleware,
@@ -187,7 +178,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.Read
 }
 
 // Run starts the HTTP server and serves the PeerDB application.
-func (c *ServeCommand) Run(globals *Globals) errors.E {
+func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

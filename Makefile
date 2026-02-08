@@ -42,22 +42,18 @@ node_modules: package-lock.json
 package-lock.json: package.json
 	npm install
 
-dist/index.html:
-	mkdir -p dist
-	if [ ! -e dist/index.html ]; then echo "<html><body>dummy content</body></html>" > dist/index.html; fi
-
-test: dist/index.html
+test:
 	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
 
-test-ci: dist/index.html
+test-ci:
 	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
 	gocover-cobertura < coverage.txt > coverage.xml
 	go tool cover -html=coverage.txt -o coverage.html
 
-lint: dist/index.html
+lint:
 	golangci-lint run --output.text.colors --allow-parallel-runners --fix
 
-lint-ci: dist/index.html
+lint-ci:
 	golangci-lint run --output.text.path=stdout --output.code-climate.path=codeclimate.json
 
 fmt:
@@ -84,7 +80,7 @@ lint-docs:
 lint-docs-ci: lint-docs
 	git diff --exit-code --color=always
 
-audit: dist/index.html
+audit:
 	go list -json -deps ./... | nancy sleuth --skip-update-check
 
 encrypt:
