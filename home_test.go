@@ -34,14 +34,14 @@ var publicFiles embed.FS
 
 //nolint:exhaustruct
 var testFiles = fstest.MapFS{ //nolint:gochecknoglobals
-	"dist/index.html": &fstest.MapFile{
+	"index.html": &fstest.MapFile{
 		Data: []byte("<html><body>dummy test content</body></html>"),
 	},
 	// Symlinks are not included in publicFiles.
-	"dist/LICENSE.txt": &fstest.MapFile{
+	"LICENSE.txt": &fstest.MapFile{
 		Data: []byte("test license file"),
 	},
-	"dist/NOTICE.txt": &fstest.MapFile{
+	"NOTICE.txt": &fstest.MapFile{
 		Data: []byte("test notice file"),
 	},
 }
@@ -111,7 +111,7 @@ func TestRouteHome(t *testing.T) {
 	t.Parallel()
 
 	// Regular GET should just return the SPA index page.
-	testStaticFile(t, "Home", "dist/index.html", "text/html; charset=utf-8")
+	testStaticFile(t, "Home", "index.html", "text/html; charset=utf-8")
 }
 
 func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve *peerdb.ServeCommand)) (*httptest.Server, *peerdb.Service) {

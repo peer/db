@@ -39,8 +39,6 @@ type ElasticConfig struct {
 }
 
 // Globals describes top-level (global) flags.
-//
-//nolint:lll
 type Globals struct {
 	zerolog.LoggingConfig `yaml:",inline"`
 
@@ -50,7 +48,7 @@ type Globals struct {
 	Postgres PostgresConfig `embed:"" envprefix:"POSTGRES_" prefix:"postgres." yaml:"postgres"`
 	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
 
-	Sites []Site `help:"Site configuration as JSON or YAML with fields \"domain\", \"index\", \"schema\", \"title\", \"cert\", and \"key\". Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
+	Sites []Site `help:"Site configuration as JSON or YAML. Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 // Validate validates the global configuration.
@@ -92,8 +90,8 @@ func (g *Globals) Validate() error {
 type Config struct {
 	Globals `yaml:"globals"`
 
-	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run PeerDB server. Default command."                    yaml:"serve"`
-	Populate PopulateCommand `cmd:""                    help:"Populate search index or indices with core properties." yaml:"populate"`
+	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command."      yaml:"serve"`
+	Populate PopulateCommand `cmd:""                    help:"Populate database with core documents." yaml:"populate"`
 }
 
 // ServeCommand contains configuration for the serve command.

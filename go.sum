@@ -276,8 +276,8 @@ gitlab.com/tozd/go/errors v0.10.0 h1:A98kL+gaDvWnY6ZB/u8zP+sYaWsWUGBHeFMtamvW/74
 gitlab.com/tozd/go/errors v0.10.0/go.mod h1:q3Ugr0C8dCzMEkrzjjlV2qNsm9e0KvqBjwcbcjCpBe4=
 gitlab.com/tozd/go/mediawiki v0.18.0 h1:kWOcQaKVay2/1F4j3ec9j/hrVmHscR152uk6fEwTIC0=
 gitlab.com/tozd/go/mediawiki v0.18.0/go.mod h1:MOx5HOWeVBewOmGhQ1U1HGB80O6k9K6VJ3Crmsn7BoA=
-gitlab.com/tozd/go/x v0.0.0-20251211215820-bb80c3d0b6e7 h1:2GntsxP1ag27BJK/0gNftSS+uBuFqKmc03mhtmEA3tg=
-gitlab.com/tozd/go/x v0.0.0-20251211215820-bb80c3d0b6e7/go.mod h1:4kkuc9n4K+V6QK+ijApmBYd1fRxAHKIJYDdI+7moH0I=
+gitlab.com/tozd/go/x v0.0.0-20260208001937-9b1141359aee h1:8JgQsN2kGZqLNR0Se7nV9PTLtS1Cz4UkM74FuWbIbeI=
+gitlab.com/tozd/go/x v0.0.0-20260208001937-9b1141359aee/go.mod h1:OBfN5+xkUxYKr0U2tqnHRg3WykHa/9uAghuS4afkNVI=
 gitlab.com/tozd/go/zerolog v0.11.2 h1:DkLdoryCBDwTDnfq8JrHwAsKqWXMixnNiWe6XCx9xu8=
 gitlab.com/tozd/go/zerolog v0.11.2/go.mod h1:Dw5ScQB0E4Hou7JSWYj89XGhoW2Gl+3ntnncDZFRRCo=
 gitlab.com/tozd/identifier v0.7.0 h1:ZDd8TNThlRrKpdGzMQZzpN0bggm9q/mXbKtvBy4Brek=

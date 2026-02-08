@@ -12,18 +12,16 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping moma products build-static test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
+.PHONY: build peerdb wikipedia mapping moma products build-static lib test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
 
 build: peerdb wikipedia mapping moma products
 
-# dist is build only if it is missing. Use "make clean" to remove it to build it again.
 peerdb: dist
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
 wikipedia mapping moma products:
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
-# dist is build only if it is missing. Use "make clean" to remove it to build it again.
 build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
@@ -31,30 +29,32 @@ build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o moma gitlab.com/peerdb/peerdb/cmd/moma
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o products gitlab.com/peerdb/peerdb/cmd/products
 
-dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt
+
+dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
+
+lib: node_modules src vite.config.lib.ts tsconfig.json tsconfig.node.json LICENSE
+	npm run build-lib
 
 node_modules: package-lock.json
 
 package-lock.json: package.json
 	npm install
 
-dist/index.html:
-	mkdir -p dist
-	if [ ! -e dist/index.html ]; then echo "<html><body>dummy content</body></html>" > dist/index.html; fi
-
-test: dist/index.html
+test:
 	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
 
-test-ci: dist/index.html
+test-ci:
 	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
 	gocover-cobertura < coverage.txt > coverage.xml
 	go tool cover -html=coverage.txt -o coverage.html
 
-lint: dist/index.html
+lint:
 	golangci-lint run --output.text.colors --allow-parallel-runners --fix
 
-lint-ci: dist/index.html
+lint-ci:
 	golangci-lint run --output.text.path=stdout --output.code-climate.path=codeclimate.json
 
 fmt:
@@ -70,7 +70,8 @@ upgrade:
 	go mod tidy
 
 clean:
-	rm -rf coverage.* codeclimate.json tests.xml coverage dist peerdb wikipedia mapping moma products
+	find dist -mindepth 1 ! -path "dist/dist.go" -delete
+	rm -rf coverage.* codeclimate.json tests.xml coverage lib peerdb wikipedia mapping moma products
 
 release:
 	npx --yes --package 'release-it@19.0.5' --package '@release-it/keep-a-changelog@7.0.0' -- release-it
@@ -81,7 +82,7 @@ lint-docs:
 lint-docs-ci: lint-docs
 	git diff --exit-code --color=always
 
-audit: dist/index.html
+audit:
 	go list -json -deps ./... | nancy sleuth --skip-update-check
 
 encrypt:

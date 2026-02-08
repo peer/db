@@ -1,7 +1,6 @@
 {
-  "name": "peerdb",
-  "private": true,
-  "version": "0.3.0",
+  "name": "@peerdb/peerdb",
+  "version": "0.4.0-rc.0",
   "type": "module",
   "description": "A collaborative database.",
   "license": "Apache-2.0",
@@ -16,9 +15,44 @@
     "type": "git",
     "url": "https://gitlab.com/peerdb/peerdb.git"
   },
+  "module": "./lib/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./components/*": {
+      "types": "./lib/components/*.d.ts",
+      "import": "./lib/components/*.js"
+    },
+    "./partials/*": {
+      "types": "./lib/partials/*.d.ts",
+      "import": "./lib/partials/*.js"
+    },
+    "./views/*": {
+      "types": "./lib/views/*.d.ts",
+      "import": "./lib/views/*.js"
+    },
+    "./locales/*": {
+      "import": "./lib/locales/*.js"
+    },
+    "./*.css": {
+      "style": "./lib/*.css"
+    },
+    "./*": {
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "serve": "vite serve",
     "build": "vite build",
+    "build-lib": "vite build --config vite.config.lib.ts && vue-tsc -p tsconfig.lib.json && resolve-tspaths -p tsconfig.lib.json && node generate-vue-dts-proxies.js",
     "lint": "eslint --fix src",
     "lint-ci": "eslint --fix --format gitlab src",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
@@ -29,9 +63,10 @@
     "coverage": "vitest --coverage",
     "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage",
     "generate-i18n-types": "node generate-vue-i18n.js",
-    "upgrade": "ncu -u"
+    "upgrade": "ncu -u",
+    "prepare": "npm run build-lib"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@all1ndev/vue-local-scope": "^0.3.2",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
@@ -69,11 +104,13 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-formatter-gitlab": "^7.0.1",
     "eslint-plugin-vue": "^10.6.2",
+    "glob": "^13.0.1",
     "globals": "^17.0.0",
     "npm-check-updates": "^19.3.1",
     "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "resolve-tspaths": "^0.8.23",
     "rollup-plugin-license": "^3.6.0",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1",
@@ -83,11 +120,15 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0",
     "vite": "^7.3.0",
+    "vite-plugin-static-copy": "^3.2.0",
     "vitest": "^4.0.16",
     "vue-component-type-helpers": "^3.2.2",
     "vue-tsc": "^3.2.2"
   },
   "overrides": {
     "lodash": "^4.17.23"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

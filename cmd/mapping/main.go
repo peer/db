@@ -1,4 +1,4 @@
-// Package mapping provides the tool to generate ElasticSearch mapping.
+// Command mapping is the tool to generate ElasticSearch mapping.
 package main
 
 import (

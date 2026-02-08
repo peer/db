@@ -1,4 +1,4 @@
-// Package products provides the products data import tool.
+// Command products is the products data import tool.
 package main
 
 import (
