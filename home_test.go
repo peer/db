@@ -176,11 +176,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	err = serve.Validate()
 	require.NoError(t, err)
 
-	populate := peerdb.PopulateCommand{}
-
-	errE := populate.Run(globals)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	domains := []string{"localhost"}
 	if len(globals.Sites) > 0 {
 		domains = []string{}
@@ -188,7 +183,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			domains = append(domains, site.Domain)
 		}
 	}
-	errE = x.CreateTempCertificateFiles(certPath, keyPath, domains)
+	errE := x.CreateTempCertificateFiles(certPath, keyPath, domains)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for i := range globals.Sites {
@@ -200,6 +195,11 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	handler, service, errE := serve.Init(ctx, globals, testFiles)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	populate := peerdb.PopulateCommand{}
+
+	errE = populate.Run(globals)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ts := httptest.NewUnstartedServer(nil)

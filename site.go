@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -41,6 +42,7 @@ type Site struct {
 	Storage     *storage.Storage                                                                                                                   `json:"-" yaml:"-"`
 	ESProcessor *elastic.BulkProcessor                                                                                                             `json:"-" yaml:"-"`
 	ESClient    *elastic.Client                                                                                                                    `json:"-" yaml:"-"`
+	DBPool      *pgxpool.Pool                                                                                                                      `json:"-" yaml:"-"`
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

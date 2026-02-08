@@ -127,6 +127,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						Storage:     nil,
 						ESProcessor: nil,
 						ESClient:    nil,
+						DBPool:      nil,
 					},
 				}
 				serve.Username = testUsername

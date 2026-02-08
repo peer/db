@@ -62,7 +62,7 @@ func SaveCoreProperties(
 	return nil
 }
 
-func (c *PopulateCommand) runIndex(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = context.WithValue(ctx, requestIDContextKey, "populate")
 	ctx = context.WithValue(ctx, schemaContextKey, site.Schema)
@@ -92,6 +92,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Storage:         nil,
 			ESProcessor:     nil,
 			ESClient:        nil,
+			DBPool:          nil,
 			propertiesTotal: 0,
 		}}
 	}
@@ -114,13 +115,13 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	}
 
 	for _, site := range globals.Sites {
-		errE := c.runIndex(ctx, globals.Logger, site)
+		errE := c.populateSite(ctx, globals.Logger, site)
 		if errE != nil {
 			return errE
 		}
 	}
 
-	globals.Logger.Info().Msg("Done.")
+	globals.Logger.Info().Msg("populate done")
 
 	return nil
 }

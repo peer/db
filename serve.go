@@ -63,6 +63,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Storage:         nil,
 			ESProcessor:     nil,
 			ESClient:        nil,
+			DBPool:          nil,
 			propertiesTotal: 0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
