@@ -202,6 +202,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	errE = populate.Run(globals)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	errE = service.PopulatePropertiesTotal(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
 	ts := httptest.NewUnstartedServer(nil)
 	ts.EnableHTTP2 = true
 	t.Cleanup(ts.Close)

@@ -145,11 +145,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		},
 	}
 
-	errE = service.populatePropertiesTotal(ctx)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
 	// Construct the main handler for the service using the router.
 	router := new(waf.Router)
 	handler, errE := service.RouteWith(service, router)
@@ -166,7 +161,12 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	handler, _, errE := c.Init(ctx, globals, files)
+	handler, service, errE := c.Init(ctx, globals, files)
+	if errE != nil {
+		return errE
+	}
+
+	errE = service.PopulatePropertiesTotal(ctx)
 	if errE != nil {
 		return errE
 	}
