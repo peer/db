@@ -34,7 +34,7 @@ build-static: dist
 dist: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
 	npm run build
 
-lib: node_modules src vite.config.lib.ts tsconfig.json LICENSE
+lib: node_modules src vite.config.lib.ts tsconfig.json tsconfig.node.json LICENSE
 	npm run build-lib
 
 node_modules: package-lock.json
