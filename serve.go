@@ -166,7 +166,7 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 		return errE
 	}
 
-	errE = service.PopulatePropertiesTotal(ctx)
+	errE = service.UpdatePropertiesTotal(ctx)
 	if errE != nil {
 		return errE
 	}
