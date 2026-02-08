@@ -8,21 +8,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
+	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-// SaveCoreProperties saves the core property documents to the store and indexes them in ElasticSearch.
+// SaveCoreProperties saves the core property documents to the store and indices them in ElasticSearch.
 func SaveCoreProperties(
 	ctx context.Context, logger zerolog.Logger,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
@@ -64,20 +62,12 @@ func SaveCoreProperties(
 	return nil
 }
 
-func (c *PopulateCommand) runIndex(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client,
-	schema, index string,
-) errors.E {
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = context.WithValue(ctx, requestIDContextKey, "populate")
-	ctx = context.WithValue(ctx, schemaContextKey, schema)
+	ctx = context.WithValue(ctx, schemaContextKey, site.Schema)
 
-	store, _, _, esProcessor, errE := es.InitForSite(ctx, logger, dbpool, esClient, schema, index)
-	if errE != nil {
-		return errE
-	}
-
-	return SaveCoreProperties(ctx, logger, store, esClient, esProcessor, index, nil, nil)
+	return SaveCoreProperties(ctx, logger, site.Store, site.ESClient, site.ESProcessor, site.Index, nil, nil)
 }
 
 // Run executes the populate command to populate database with core documents.
@@ -86,31 +76,52 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	dbpool, errE := internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
-	if errE != nil {
-		return errE
+	if len(globals.Sites) == 0 {
+		globals.Sites = []Site{{
+			Site: waf.Site{
+				Domain:   "",
+				CertFile: "",
+				KeyFile:  "",
+			},
+			Build:           nil,
+			Index:           globals.Elastic.Index,
+			Schema:          globals.Postgres.Schema,
+			Title:           "",
+			Store:           nil,
+			Coordinator:     nil,
+			Storage:         nil,
+			ESProcessor:     nil,
+			ESClient:        nil,
+			DBPool:          nil,
+			propertiesTotal: 0,
+		}}
 	}
 
-	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
-	if errE != nil {
-		return errE
-	}
-
-	if len(globals.Sites) > 0 {
-		for _, site := range globals.Sites {
-			err := c.runIndex(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
-			if err != nil {
-				return err
+	// We set build information on sites.
+	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
+		for i := range globals.Sites {
+			site := &globals.Sites[i]
+			site.Build = &Build{
+				Version:        cli.Version,
+				BuildTimestamp: cli.BuildTimestamp,
+				Revision:       cli.Revision,
 			}
 		}
-	} else {
-		err := c.runIndex(ctx, globals.Logger, dbpool, esClient, globals.Postgres.Schema, globals.Elastic.Index)
-		if err != nil {
-			return err
+	}
+
+	errE := Init(ctx, globals)
+	if errE != nil {
+		return errE
+	}
+
+	for _, site := range globals.Sites {
+		errE := c.populateSite(ctx, globals.Logger, site)
+		if errE != nil {
+			return errE
 		}
 	}
 
-	globals.Logger.Info().Msg("Done.")
+	globals.Logger.Info().Msg("populate done")
 
 	return nil
 }

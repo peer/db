@@ -17,7 +17,8 @@ import (
 
 // TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
 
-func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
+// UpdatePropertiesTotal updates internal count of number of all properties for each site.
+func (s *Service) UpdatePropertiesTotal(ctx context.Context) errors.E {
 	boolQuery := elastic.NewBoolQuery().Must(
 		elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
 		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),   // PROPERTY.
@@ -25,7 +26,7 @@ func (s *Service) populatePropertiesTotal(ctx context.Context) errors.E {
 	query := elastic.NewNestedQuery("claims.rel", boolQuery)
 
 	for _, site := range s.Sites {
-		total, err := s.esClient.Count(site.Index).Query(query).Do(ctx)
+		total, err := site.ESClient.Count(site.Index).Query(query).Do(ctx)
 		if err != nil {
 			return errors.Errorf(`site "%s": %w`, site.Index, err)
 		}
@@ -42,7 +43,7 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-	return s.esClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
+	return site.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal
 }
 

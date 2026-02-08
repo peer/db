@@ -144,11 +144,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		},
 	}
 
-	populate := peerdb.PopulateCommand{}
-
-	errE := populate.Run(globals)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	serve := &peerdb.ServeCommand{ //nolint:exhaustruct
 		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
 			TLS: waf.TLS{ //nolint:exhaustruct
@@ -167,12 +162,12 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		setupFunc(globals, serve)
 	}
 
-	for i, site := range globals.Sites {
+	for i := range globals.Sites {
+		site := &globals.Sites[i]
 		require.Empty(t, site.Schema)
 		site.Schema = identifier.New().String()
 		require.Empty(t, site.Index)
 		site.Index = strings.ToLower(identifier.New().String())
-		globals.Sites[i] = site
 	}
 
 	err := globals.Validate()
@@ -188,17 +183,26 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			domains = append(domains, site.Domain)
 		}
 	}
-	errE = x.CreateTempCertificateFiles(certPath, keyPath, domains)
+	errE := x.CreateTempCertificateFiles(certPath, keyPath, domains)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for i := range globals.Sites {
-		globals.Sites[i].CertFile = certPath
-		globals.Sites[i].KeyFile = keyPath
+		site := &globals.Sites[i]
+		site.CertFile = certPath
+		site.KeyFile = keyPath
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	handler, service, errE := serve.Init(ctx, globals, testFiles)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	populate := peerdb.PopulateCommand{}
+
+	errE = populate.Run(globals)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = service.UpdatePropertiesTotal(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ts := httptest.NewUnstartedServer(nil)

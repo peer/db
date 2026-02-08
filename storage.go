@@ -52,7 +52,7 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	session, errE := site.storage.BeginUpload(ctx, payload.Size, payload.MediaType, payload.Filename)
+	session, errE := site.Storage.BeginUpload(ctx, payload.Size, payload.MediaType, payload.Filename)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -104,7 +104,7 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	errE = site.storage.UploadChunk(ctx, session, buffer, start)
+	errE = site.Storage.UploadChunk(ctx, session, buffer, start)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -134,7 +134,7 @@ func (s *Service) StorageListChunksGet(w http.ResponseWriter, req *http.Request,
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	chunks, errE := site.storage.ListChunks(ctx, session)
+	chunks, errE := site.Storage.ListChunks(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -172,7 +172,7 @@ func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, p
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	start, length, errE := site.storage.GetChunk(ctx, session, chunk)
+	start, length, errE := site.Storage.GetChunk(ctx, session, chunk)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -214,7 +214,7 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	errE = site.storage.EndUpload(ctx, session)
+	errE = site.Storage.EndUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -254,7 +254,7 @@ func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	errE = site.storage.DiscardUpload(ctx, session)
+	errE = site.Storage.DiscardUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -281,7 +281,7 @@ func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params wa
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	data, metadata, _, errE := site.storage.Store().GetLatest(ctx, id)
+	data, metadata, _, errE := site.Storage.Store().GetLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

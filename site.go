@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -36,10 +37,12 @@ type Site struct {
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
-	coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
-	storage     *storage.Storage
-	esProcessor *elastic.BulkProcessor
+	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]  `json:"-" yaml:"-"`
+	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata] `json:"-" yaml:"-"`
+	Storage     *storage.Storage                                                                                                                   `json:"-" yaml:"-"`
+	ESProcessor *elastic.BulkProcessor                                                                                                             `json:"-" yaml:"-"`
+	ESClient    *elastic.Client                                                                                                                    `json:"-" yaml:"-"`
+	DBPool      *pgxpool.Pool                                                                                                                      `json:"-" yaml:"-"`
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

@@ -11,15 +11,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
-
-	"gitlab.com/peerdb/peerdb/internal/es"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //go:embed routes.json
@@ -28,8 +23,6 @@ var routesConfiguration []byte
 // Service is the main HTTP service for PeerDB.
 type Service struct {
 	waf.Service[*Site]
-
-	esClient *elastic.Client
 }
 
 // Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
@@ -46,12 +39,16 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	c.Server.Logger = globals.Logger
 
 	sites := map[string]*Site{}
-	for _, site := range globals.Sites {
-		sites[site.Domain] = &site
+	for i := range globals.Sites {
+		site := &globals.Sites[i]
+
+		sites[site.Domain] = site
 	}
 
 	if len(sites) == 0 && c.Domain != "" {
-		sites[c.Domain] = &Site{
+		// If sites are not provided, but default domain is,
+		// we create a site based on the default domain.
+		globals.Sites = []Site{{
 			Site: waf.Site{
 				Domain:   c.Domain,
 				CertFile: "",
@@ -61,15 +58,19 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Index:           globals.Elastic.Index,
 			Schema:          globals.Postgres.Schema,
 			Title:           c.Title,
-			store:           nil,
-			coordinator:     nil,
-			storage:         nil,
-			esProcessor:     nil,
+			Store:           nil,
+			Coordinator:     nil,
+			Storage:         nil,
+			ESProcessor:     nil,
+			ESClient:        nil,
+			DBPool:          nil,
 			propertiesTotal: 0,
-		}
+		}}
+		sites[c.Domain] = &globals.Sites[0]
 	}
 
-	// If sites are not provided, sites are automatically constructed based on the certificate.
+	// If sites are not provided (and no default domain), sites
+	// are automatically constructed based on the certificate.
 	sitesProvided := len(sites) > 0
 	sites, errE = c.Server.Init(sites)
 	if errE != nil {
@@ -78,10 +79,14 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 	if !sitesProvided {
 		// We set fields not set when sites are automatically constructed.
-		for _, site := range sites {
+		for domain, site := range sites {
 			site.Index = globals.Elastic.Index
 			site.Schema = globals.Postgres.Schema
 			site.Title = c.Title
+			// We copy the site to globals.Sites.
+			globals.Sites = append(globals.Sites, *site)
+			// And then we update the reference to this copy.
+			sites[domain] = &globals.Sites[len(globals.Sites)-1]
 		}
 	}
 
@@ -96,30 +101,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 	}
 
-	dbpool, errE := internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
+	errE = Init(ctx, globals)
 	if errE != nil {
 		return nil, nil, errE
-	}
-
-	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	for _, site := range sites {
-		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := context.WithValue(ctx, requestIDContextKey, "serve")
-		siteCtx = context.WithValue(siteCtx, schemaContextKey, site.Schema)
-
-		store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
-		if errE != nil {
-			return nil, nil, errE
-		}
-
-		site.store = store
-		site.coordinator = coordinator
-		site.storage = storage
-		site.esProcessor = esProcessor
 	}
 
 	var middleware []func(http.Handler) http.Handler
@@ -159,12 +143,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				}
 			},
 		},
-		esClient: esClient,
-	}
-
-	errE = service.populatePropertiesTotal(ctx)
-	if errE != nil {
-		return nil, nil, errE
 	}
 
 	// Construct the main handler for the service using the router.
@@ -183,7 +161,12 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	handler, _, errE := c.Init(ctx, globals, files)
+	handler, service, errE := c.Init(ctx, globals, files)
+	if errE != nil {
+		return errE
+	}
+
+	errE = service.UpdatePropertiesTotal(ctx)
 	if errE != nil {
 		return errE
 	}
