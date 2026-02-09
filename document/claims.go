@@ -211,6 +211,19 @@ func (c *ClaimTypes) Size() int {
 	return s
 }
 
+// AllClaims returns all claims as a flat slice.
+func (c *ClaimTypes) AllClaims() []Claim {
+	if c == nil {
+		return nil
+	}
+
+	v := AllClaimsVisitor{
+		Result: []Claim{},
+	}
+	_ = c.Visit(&v)
+	return v.Result
+}
+
 type (
 	// IdentifierClaims is a slice of IdentifierClaim.
 	IdentifierClaims = []IdentifierClaim
@@ -334,11 +347,7 @@ func (cc *CoreClaim) Size() int {
 
 // AllClaims returns all metadata claims as a flat slice.
 func (cc *CoreClaim) AllClaims() []Claim {
-	v := AllClaimsVisitor{
-		Result: []Claim{},
-	}
-	_ = cc.Visit(&v)
-	return v.Result
+	return cc.Meta.AllClaims()
 }
 
 // Confidence is an alias for Score representing the confidence level of a claim.
