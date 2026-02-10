@@ -43,3 +43,14 @@ export const GENDER = getCorePropertyID("GENDER")
 export const NAME = getCorePropertyID("NAME")
 export const CATEGORY = getCorePropertyID("CATEGORY")
 export const INGREDIENTS = getCorePropertyID("INGREDIENTS")
+
+const coreNamespace = "core.peerdb.org"
+
+export const CORE_NAME = (await Identifier.from(coreNamespace, "NAME")).toString()
+export const CORE_TITLE = (await Identifier.from(coreNamespace, "TITLE")).toString()
+export const CORE_INSTANCE_OF = (await Identifier.from(coreNamespace, "INSTANCE_OF")).toString()
+export const CORE_SUBCLASS_OF = (await Identifier.from(coreNamespace, "SUBCLASS_OF")).toString()
+
+const razumeNamespace = "razume.mg-lj.si"
+
+export const RAZUME_LAST_NAME = (await Identifier.from(razumeNamespace, "LAST_NAME")).toString()

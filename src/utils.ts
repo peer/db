@@ -7,7 +7,7 @@ import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
 
-import { DESCRIPTION, LIST, NAME, ORDER } from "@/props"
+import { CORE_NAME, CORE_TITLE, DESCRIPTION, LIST, NAME, ORDER, RAZUME_LAST_NAME } from "@/props"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
@@ -192,6 +192,21 @@ export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null)
   let claim = getBestClaimOfType(claimTypes, "text", NAME)
   if (claim) {
     return claim.html.en
+  }
+
+  const name = getBestClaimOfType(claimTypes, "string", CORE_NAME)
+  const lastName = getBestClaimOfType(claimTypes, "string", RAZUME_LAST_NAME)
+  if (name && lastName) {
+    return `${name.string} ${lastName.string}`
+  }
+
+  if (name) {
+    return name.string
+  }
+
+  const title = getBestClaimOfType(claimTypes, "string", CORE_TITLE)
+  if (title) {
+    return title.string
   }
 
   claim = getBestClaimOfType(claimTypes, "text", DESCRIPTION)
