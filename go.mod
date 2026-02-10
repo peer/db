@@ -22,9 +22,9 @@ require (
 	gitlab.com/tozd/go/mediawiki v0.18.0
 	gitlab.com/tozd/go/x v0.0.0-20260208001937-9b1141359aee
 	gitlab.com/tozd/go/zerolog v0.11.2
-	gitlab.com/tozd/identifier v0.7.0
+	gitlab.com/tozd/identifier v0.8.1
 	gitlab.com/tozd/waf v0.21.0
-	golang.org/x/text v0.32.0
+	golang.org/x/text v0.33.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
