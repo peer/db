@@ -16,6 +16,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 			Path: "/",
 		},
+		"DemoTableOfContents": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.HomeGet,
+				},
+			},
+			Path: "/demo/toc",
+		},
 		"License": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
