@@ -1,0 +1,9 @@
+
+
+Test 384.  Test for simple regexp to eliminate javasc_ript from
+the output document.
+
+<img src="http://www.cnn.com/nosuch.jpg"> onerror=&#34;javasjavascript:cript:alert(384)&#34;&gt;
+
+
+

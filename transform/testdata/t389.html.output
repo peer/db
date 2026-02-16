@@ -1,0 +1,14 @@
+
+
+Test 389.  Test for another common error: the sanitizer tries to check
+that the URL starts with http:, but forgot to include an anchor in the
+regexp (the buggy regexp was &#34;(http:|https:)&#34;; it should have been
+&#34;^(http:|https:)&#34;).
+
+
+
+
+clicky
+clicky
+
+

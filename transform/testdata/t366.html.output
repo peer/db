@@ -1,0 +1,13 @@
+
+
+
+  
+    
+  
+  
+<p>Test 366.  Check for shenanigans with XML.
+Credits: Eduardo Vela, David Lindsay.
+
+alert(366);
+
+

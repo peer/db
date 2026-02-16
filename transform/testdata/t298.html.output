@@ -1,0 +1,9 @@
+
+
+
+Test #298.
+
+<img alt="xyz">buried</img><img alt="abc onmouseover=alert(298) onload=alert(298) onerror=alert(298) s=">exploited</img>
+
+
+

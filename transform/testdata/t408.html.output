@@ -1,0 +1,8 @@
+
+
+Test 408.  Thanks to Sunil Pedapudi for this attack.
+Crashes some HTML filters with a really lousy HTML parser.
+
+script&gt;alert(408);
+
+

@@ -1,0 +1,12 @@
+
+
+Test 326.
+
+<b>&lt;SCRIPT&gt; alert(326); &lt;/SCRIPT&gt;</b>
+
+<p> &lt; SCRIPT SRC=evil.js&gt; &lt; /SCRIPT&gt;
+
+<p>
+<i> &lt; SCRIPT SRC=evil.js/ </i>
+
+

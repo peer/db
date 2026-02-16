@@ -1,0 +1,9 @@
+
+
+This is test 44.  It catches a common error where one uses
+a regexp to remove SCRIPT tags (without looping until a fixpoint
+is reached).
+
+ript&gt;alert(44)ript&gt;
+
+

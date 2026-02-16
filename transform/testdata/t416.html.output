@@ -1,0 +1,14 @@
+
+
+
+Test #416.  Some validators don&#39;t escape &#34; in attribute values
+and re-generate the HTML themselves; try an exploit it.
+
+<img src="http://nosuch.com/nosuch" alt="foo&#34; ONERROR=alert(416) baz=&#34;qux"></img>
+<img src="http://nosuch.com/nosuch" alt="foo&#34; &gt; &lt;SCRIPT&gt;alert(416)&lt;/SCRIPT&gt; &lt;IMG baz=&#34;qux"></img>
+
+clicky
+clicky2
+
+
+

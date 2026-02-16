@@ -1,0 +1,8 @@
+
+
+Test 329.  Trying to break out of an attribute.
+
+<img alt="foo &amp;foo">
+</img>
+
+

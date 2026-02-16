@@ -1,0 +1,13 @@
+
+
+Test 415.  A common error in use of regexps in Ruby:
+^$ don&#39;t anchor at the start/end of the line, but rather at newlines.
+http://homakov.blogspot.com/2012/05/saferweb-injects-in-various-ruby.html
+
+
+
+
+clicky
+clicky
+
+

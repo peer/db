@@ -1,0 +1,18 @@
+
+
+Test 343.  See if self-closing tags are handled differently.
+
+
+
+&lt;A HREF=&#34;javascript:alert(343)&#34; /&gt;
+&lt;BLOCKQUOTE CITE=&#34;javascript:alert(343)&#34; /&gt;
+&lt;IMG SRC=&#34;http://json.org/img/json160.gif&#34; LONGDESC=&#34;javascript:alert(343)&#34; /&gt;
+
+&lt;P&gt;
+&lt;IMG SRC=&#34;javascript:alert(343)&#34;&gt;&lt;/IMG&gt;
+&lt;IFRAME SRC=&#34;javascript:alert(343)&#34;&gt;
+
+<blockquote>blah</blockquote>
+<img src="http://json.org/img/json160.gif"></img>
+
+

@@ -1,14 +1,64 @@
 package transform_test
 
 import (
+	"embed"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
+//go:embed testdata/*.input testdata/*.output
+var testdataFS embed.FS
+
 func TestSanitizeHTML(t *testing.T) {
+	t.Parallel()
+
+	entries, err := testdataFS.ReadDir("testdata")
+	require.NoError(t, err)
+
+	testCases := make(map[string]struct {
+		inputFile  string
+		outputFile string
+	})
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasSuffix(name, ".input") {
+			testName := strings.TrimSuffix(name, ".input")
+			tc := testCases[testName]
+			tc.inputFile = name
+			testCases[testName] = tc
+		} else if strings.HasSuffix(name, ".output") {
+			testName := strings.TrimSuffix(name, ".output")
+			tc := testCases[testName]
+			tc.outputFile = name
+			testCases[testName] = tc
+		}
+	}
+
+	for testName, tc := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+
+			inputBytes, err := testdataFS.ReadFile(filepath.Join("testdata", tc.inputFile))
+			require.NoError(t, err)
+
+			expectedBytes, err := testdataFS.ReadFile(filepath.Join("testdata", tc.outputFile))
+			require.NoError(t, err)
+
+			result := transform.TestingSanitizeHTML(string(inputBytes))
+
+			assert.Equal(t, string(expectedBytes), result)
+		})
+	}
+}
+
+func TestSanitizeHTMLBasic(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

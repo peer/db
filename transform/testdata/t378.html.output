@@ -1,0 +1,31 @@
+
+
+Test 378.  Test for malicious HTML inside an image SRC.
+(This broke one sanitizer, which rewrote links into the text of the page
+a la lynx.  For unrelated reasons, it was a probabilistical break,
+so I had to repeat it several times to give myself the maximum chance
+to succeed.)
+
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+<img src="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.jpg">
+
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+<a href="http://www.cnn.com/ev%3CSCRIPT%3Ealert%28377%29;%3C/SCRIPT%3Eil.html" rel="noreferrer"></a>
+
+
