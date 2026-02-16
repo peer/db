@@ -1,0 +1,8 @@
+
+
+Test 348.  Check for shenanigans for breaking out of quotes.
+
+
+<img alt="foo \"></img>
+
+

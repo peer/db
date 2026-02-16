@@ -1,0 +1,8 @@
+
+
+Test 362.  Check for shenanigans with XML.
+Credits: Eduardo Vela, David Lindsay.
+
+alert(362);
+
+

@@ -1,0 +1,14 @@
+
+
+Test 398.  Spaces in tags.
+
+&lt; SCRIPT&gt;alert(398)
+&lt; SCRIPT&gt;alert(398)&lt; /SCRIPT&gt;
+&lt; SCRIPT&gt;alert(398)
+
+
+
+&lt; SCRIPT &gt;alert(398)&lt; /SCRIPT &gt;
+&lt; SCRIPT &gt;alert(398)&lt; / SCRIPT &gt;
+
+

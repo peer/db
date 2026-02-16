@@ -1,0 +1,11 @@
+
+
+Test 403.  Exploit IE conditional comments.
+Should only succeed against IE7 or greater.
+Thanks to Thurston Dang for this attack.
+
+
+
+
+
+

@@ -1,0 +1,8 @@
+
+
+Test 66.  This tests use of a regexp to remove attributes,
+but without repeating until fixpoint.
+
+
+
+

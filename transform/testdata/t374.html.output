@@ -1,0 +1,20 @@
+
+
+Test 374.  Check for shenanigans for breaking out of quotes.
+A refinement of test 353.
+
+<img alt="foo&#34;onerror=alert(374);//"></img>
+<img alt="foo&#34;onerror=alert(374);//"/>
+
+<img alt="foo&#34;onerror=&#39;alert(374);//&#39;"></img>
+<img alt="foo&#34;onerror=&#39;alert(374);//&#39;"/>
+
+
+
+<b>foo</b>
+<b/>
+
+<b>foo</b>
+<b/>
+
+

@@ -1,0 +1,7 @@
+
+
+ = alert(&#34;XSS&#34;)&gt;
+
+Test 411.  Thanks to Kurt Thomas for this attack.
+
+

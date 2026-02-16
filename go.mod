@@ -13,6 +13,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/krolaw/zipstream v0.0.0-20241109034754-4a67be70fe31
+	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/oxffaa/gopher-parse-sitemap v0.0.0-20191021113419-005d2eb1def4
 	github.com/rs/zerolog v1.34.1-0.20250418111443-9dacc014f38d
@@ -27,6 +28,11 @@ require (
 	golang.org/x/text v0.33.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
 )
 
 require (

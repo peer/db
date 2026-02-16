@@ -1,0 +1,9 @@
+
+
+Test 354.  Check for shenanigans for breaking out of quotes.
+
+<img alt="`foo"></img>
+<img alt="`foo"/>
+
+
+

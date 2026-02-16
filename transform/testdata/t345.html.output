@@ -1,0 +1,18 @@
+
+
+Test 345.
+Try to break out of quotes with backslash.
+
+<img alt=" onerror=alert(345); x=\\"></img>
+<img alt=" onerror=alert(345); x=\\"/>
+
+<img alt=" onerror=alert(345); x=\\"></img>
+<img alt=" onerror=alert(345); x=\\"/>
+
+<b>whazzzzup</b>
+<b/>
+
+<b>dude</b>
+<b/>
+
+
