@@ -314,13 +314,11 @@ export type DownloadWorkerFile = {
 export type DownloadZipWorkerInput = {
   type: "start"
   files: DownloadWorkerFile[]
-  writable: WritableStream<Uint8Array>
 }
 
 export type DownloadZipWorkerOutput =
   | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "zipping"; completed: number; total: number }
-  | { type: "done" }
+  | { type: "blob"; data: Uint8Array }
   | { type: "error"; message: string }
 
 export type DownloadFilesWorkerInput = {

@@ -33,21 +33,18 @@ function isCompressedType(contentType: string | null): boolean {
 }
 
 self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
-  const { files, writable } = e.data
-  const writer = writable.getWriter()
+  const { files } = e.data
+  const chunks: Uint8Array[] = []
 
   try {
     const zip = new Zip()
-    zip.ondata = (err, chunk, final) => {
+    zip.ondata = (err, chunk, _final) => {
       if (err) {
-        writer.abort(err.message).catch(() => {})
         self.postMessage({ type: "error", message: err.message } satisfies DownloadZipWorkerOutput)
         return
       }
-      writer.write(chunk).catch(() => {})
-      if (final) {
-        writer.close().catch(() => {})
-      }
+      // Collect chunks in memory.
+      chunks.push(chunk)
     }
 
     for (let i = 0; i < files.length; i++) {
@@ -75,14 +72,26 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadZipWorkerOutput)
     zip.end()
-    self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)
+
+    // Concatenate all chunks into a single Uint8Array.
+    let totalLength = 0
+    for (const chunk of chunks) {
+      totalLength += chunk.length
+    }
+    const result = new Uint8Array(totalLength)
+    let offset = 0
+    for (const chunk of chunks) {
+      result.set(chunk, offset)
+      offset += chunk.length
+    }
+
+    // Transfer the buffer for zero-copy.
+    // Worker postMessage supports a transfer list as the second argument,
+    // but TypeScript sees self as Window here, so we cast accordingly.
+    const msg: DownloadZipWorkerOutput = { type: "blob", data: result }
+    ;(self.postMessage as (message: unknown, transfer: Transferable[]) => void)(msg, [result.buffer])
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    try {
-      writer.abort(message).catch(() => {})
-    } catch {
-      // Writer may already be closed.
-    }
     self.postMessage({ type: "error", message } satisfies DownloadZipWorkerOutput)
   }
 }
