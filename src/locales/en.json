@@ -89,7 +89,14 @@
       "searchingNoQueryFiltersInProgress": "Searching without query and with 1 active filter... | Searching without query and with {count} active filters...",
       "resultsFound": "1 result found. | {count} results found.",
       "resultsFoundMoreThan": "More than 1 result found. | More than {count} results found.",
-      "noResults": "No results found."
+      "noResults": "No results found.",
+      "downloadZip": "Download as zip",
+      "downloadFiles": "Download files to folder"
+    },
+    "DownloadOverlay": {
+      "downloadingFile": "Downloading file {completed} of {total}.",
+      "creatingZip": "Creating zip archive...",
+      "cancel": "Cancel"
     },
     "SearchResultsFeed": {
       "moreFilters": "More filters",

@@ -89,7 +89,14 @@
       "searchingNoQueryFiltersInProgress": "Iskanje brez poizvedbe in z 1 aktivnim filtrom... | Iskanje brez poizvedbe in z {count} aktivnima filtroma... | Iskanje brez poizvedbe in z {count} aktivnimi filtri... | Iskanje brez poizvedbe in z {count} aktivnimi filtri...",
       "resultsFound": "1 najden rezultat. | {count} najdena rezultata. | {count} najdeni rezultati. | {count} najdenih rezultatov.",
       "resultsFoundMoreThan": "Več kot 1 najden rezultat. | Več kot {count} najdena rezultata. | Več kot {count} najdeni rezultati. | Več kot {count} najdenih rezultatov.",
-      "noResults": "Ni najdenih rezultatov."
+      "noResults": "Ni najdenih rezultatov.",
+      "downloadZip": "Prenesi kot zip",
+      "downloadFiles": "Prenesi datoteke v mapo"
+    },
+    "DownloadOverlay": {
+      "downloadingFile": "Prenašanje datoteke {completed} od {total}.",
+      "creatingZip": "Ustvarjanje zip arhiva...",
+      "cancel": "Prekliči"
     },
     "SearchResultsFeed": {
       "moreFilters": "Več filtrov",

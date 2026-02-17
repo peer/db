@@ -101,6 +101,13 @@ declare module "vue-i18n" {
         resultsFound: string
         resultsFoundMoreThan: string
         noResults: string
+        downloadZip: string
+        downloadFiles: string
+      }
+      DownloadOverlay: {
+        downloadingFile: string
+        creatingZip: string
+        cancel: string
       }
       SearchResultsFeed: {
         moreFilters: string

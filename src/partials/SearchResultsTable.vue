@@ -2,7 +2,7 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
+import type { ClientSearchSession, DownloadFile, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@all1ndev/vue-local-scope"
 import { Dialog, DialogPanel } from "@headlessui/vue"
@@ -14,8 +14,10 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getClaimsOfTypeWithConfidence } from "@/document"
+import { useDownload } from "@/download"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
@@ -59,6 +61,14 @@ const {
 )
 
 const content = useTemplateRef<HTMLElement>("content")
+
+const { isDownloading, downloadMode, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload()
+
+// TODO: Replace with real file list from search results.
+const testFiles: DownloadFile[] = [
+  { name: "License", url: "/LICENSE.txt" },
+  { name: "Notice", url: "/NOTICE.txt" },
+]
 
 const filtersProgress = useProgress()
 const {
@@ -263,6 +273,8 @@ function onCloseFilterModal() {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       @view-change="(v) => $emit('viewChange', v)"
+      @download-zip="startZipDownload(testFiles)"
+      @download-files="startBulkDownload(testFiles)"
     />
   </div>
 
@@ -489,4 +501,14 @@ function onCloseFilterModal() {
       </DialogPanel>
     </div>
   </Dialog>
+
+  <DownloadOverlay
+    :open="isDownloading || downloadError !== null"
+    :mode="downloadMode"
+    :completed="completed"
+    :total="total"
+    :current-file="currentFile"
+    :error="downloadError"
+    @cancel="cancelDownload"
+  />
 </template>
