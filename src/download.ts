@@ -147,7 +147,7 @@ export function useDownload() {
       isDownloading.value = false
       activeWorker = null
     }
-    worker.postMessage({ type: "start", files, directoryHandle }, [directoryHandle as unknown as Transferable])
+    worker.postMessage({ type: "start", files, directoryHandle })
   }
 
   function cancelDownload() {
