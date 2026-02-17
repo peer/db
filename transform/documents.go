@@ -224,6 +224,7 @@
 package transform
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"reflect"
@@ -275,10 +276,14 @@ const (
 // It takes a map between property mnemonics and identifiers, and a slice of documents
 // which can be various struct types. It uses reflection to inspect structs and their
 // struct tags to determine how to map struct fields to document claims.
-func Documents(mnemonics map[string]identifier.Identifier, documents []any) ([]document.D, errors.E) {
+func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, documents []any) ([]document.D, errors.E) {
 	result := []document.D{}
 
 	for _, doc := range documents {
+		if ctx.Err() != nil {
+			return nil, errors.WithStack(ctx.Err())
+		}
+
 		d, errE := transformDocument(mnemonics, doc)
 		if errE != nil {
 			errors.Details(errE)["doc"] = doc

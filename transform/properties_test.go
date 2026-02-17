@@ -1,5 +1,4 @@
-//nolint:testpackage
-package transform
+package transform_test
 
 import (
 	"testing"
@@ -9,6 +8,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/core"
+	"gitlab.com/peerdb/peerdb/transform"
 )
 
 //nolint:exhaustruct
@@ -240,7 +240,7 @@ func TestMnemonics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, errE := Mnemonics(tt.documents)
+			result, errE := transform.Mnemonics(t.Context(), tt.documents)
 
 			if tt.wantError {
 				assert.EqualError(t, errE, tt.errorMsg)

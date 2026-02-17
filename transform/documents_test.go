@@ -209,7 +209,7 @@ func TestDocuments_SimpleString(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -241,7 +241,7 @@ func TestDocuments_IdentifierClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -273,7 +273,7 @@ func TestDocuments_TextClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -302,7 +302,7 @@ func TestDocuments_RawHTMLTextClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -336,7 +336,7 @@ func TestDocuments_ReferenceClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -366,7 +366,7 @@ func TestDocuments_RelationClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -404,7 +404,7 @@ func TestDocuments_TimeClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -438,7 +438,7 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -467,7 +467,7 @@ func TestDocuments_IntervalUnknown(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -489,7 +489,7 @@ func TestDocuments_AmountClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -523,7 +523,7 @@ func TestDocuments_BoolNoValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -548,7 +548,7 @@ func TestDocuments_RequiredEmpty(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -575,7 +575,7 @@ func TestDocuments_RequiredEmptySlice(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -598,7 +598,7 @@ func TestDocuments_UnknownValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -636,7 +636,7 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -681,7 +681,7 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -715,7 +715,7 @@ func TestDocuments_SkippedFields(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -737,7 +737,7 @@ func TestDocuments_NilPointer(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -758,7 +758,7 @@ func TestDocuments_NonNilPointer(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -780,7 +780,7 @@ func TestDocuments_EmptyRef(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -802,7 +802,7 @@ func TestDocuments_ZeroValues(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -831,7 +831,7 @@ func TestDocuments_EmptyStrings(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -855,7 +855,7 @@ func TestDocuments_MultipleDocuments(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 2)
@@ -887,7 +887,7 @@ func TestDocuments_MissingDocumentID(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	// Just check that we got an error about document ID.
 	assert.EqualError(t, errE, "document ID not found")
@@ -909,7 +909,7 @@ func TestDocuments_MissingPropertyMnemonic(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "mnemonic not found")
 }
 
@@ -926,7 +926,7 @@ func TestDocuments_MissingUnitTag(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
 }
 
@@ -946,7 +946,7 @@ func TestDocuments_InvalidUnitTag(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "unknown amount unit: invalid")
 }
 
@@ -958,7 +958,7 @@ func TestDocuments_NotAStruct(t *testing.T) {
 		"not a struct",
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "expected struct")
 }
 
@@ -1026,7 +1026,7 @@ func TestDocuments_VariousAmountUnits(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1079,7 +1079,7 @@ func TestDocuments_EmbeddedDocID(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -1109,7 +1109,7 @@ func TestDocuments_NestedEmbeddedDocID(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -1142,7 +1142,7 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1196,7 +1196,7 @@ func TestDocuments_EmbeddedLikeCore(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -1251,7 +1251,7 @@ func TestDocuments_MultipleEmbeddedSameLevel(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1293,7 +1293,7 @@ func TestDocuments_NilRefValueUnknown(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1333,7 +1333,7 @@ func TestDocuments_EmptyRefValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1373,7 +1373,7 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1407,7 +1407,7 @@ func TestDocuments_CoreHTMLWithoutTag(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1437,7 +1437,7 @@ func TestDocuments_CoreRawHTMLWithoutTag(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1478,7 +1478,7 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1519,7 +1519,7 @@ func TestDocuments_CoreURLWithoutTag(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1556,7 +1556,7 @@ func TestDocuments_ZeroTimeSkipped(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1600,7 +1600,7 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1633,7 +1633,7 @@ func TestDocuments_UniqueClaimIDsWithFieldName(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1679,7 +1679,7 @@ func TestDocuments_PointerToRefInValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1716,7 +1716,7 @@ func TestDocuments_HTMLEscaping(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1756,7 +1756,7 @@ func TestDocuments_ValueFieldWithPointerString(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1799,7 +1799,7 @@ func TestDocuments_ValueFieldWithPointerStringNil(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1840,7 +1840,7 @@ func TestDocuments_ValueFieldWithPointerStringRequired(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1883,7 +1883,7 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1931,7 +1931,7 @@ func TestDocuments_ValueFieldWithTime(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -1968,7 +1968,7 @@ func TestDocuments_ValueFieldWithIdentifier(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2007,7 +2007,7 @@ func TestDocuments_ValueFieldWithHTMLTag(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2047,7 +2047,7 @@ func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2087,7 +2087,7 @@ func TestDocuments_ValueFieldWithURLTag(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2127,7 +2127,7 @@ func TestDocuments_ValueFieldUnsupportedSlice(t *testing.T) {
 	}
 
 	// Slices are not supported in value:"" fields.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "field has unsupported or unexpected value type")
 }
@@ -2165,7 +2165,7 @@ func TestDocuments_ValueFieldUnsupportedStruct(t *testing.T) {
 	}
 
 	// Non-core structs are not supported in value:"" fields.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "field has unsupported or unexpected value type")
 }
@@ -2197,7 +2197,7 @@ func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2243,7 +2243,7 @@ func TestDocuments_ValueFieldWithBool(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2286,7 +2286,7 @@ func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2323,7 +2323,7 @@ func TestDocuments_StructWithoutValueField(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2361,7 +2361,7 @@ func TestDocuments_RequiredPointerNilSlice(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2389,7 +2389,7 @@ func TestDocuments_RequiredPointerFieldNil(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2426,7 +2426,7 @@ func TestDocuments_NestedStructInSlice(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2475,7 +2475,7 @@ func TestDocuments_MultipleValueFieldsError(t *testing.T) {
 	}
 
 	// Multiple value fields should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "multiple value claims found")
 }
@@ -2509,7 +2509,7 @@ func TestDocuments_ValueAndPropertyTagError(t *testing.T) {
 	}
 
 	// value and property together should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "property tag cannot be used with value tag")
 }
@@ -2533,7 +2533,7 @@ func TestDocuments_EmptyDocumentIDError(t *testing.T) {
 	}
 
 	// Empty document ID should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "empty ID")
 }
@@ -2559,7 +2559,7 @@ func TestDocuments_MultipleDocumentIDsError(t *testing.T) {
 	}
 
 	// Multiple document IDs should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "multiple document IDs found")
 }
@@ -2584,7 +2584,7 @@ func TestDocuments_InfinityFloatError(t *testing.T) {
 	}
 
 	// Infinity should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "value is infinity or not a number")
 }
@@ -2609,7 +2609,7 @@ func TestDocuments_NaNFloatError(t *testing.T) {
 	}
 
 	// NaN should error.
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
 	assert.EqualError(t, errE, "value is infinity or not a number")
 }
@@ -2648,7 +2648,7 @@ func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2726,7 +2726,7 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
@@ -2809,7 +2809,7 @@ func TestDocuments_ErrorCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		// Unknown tag on non-bool field without cardinality (defaults to min=0) causes error.
 		assert.EqualError(t, errE, "field cannot have default tag with min cardinality 0")
 		assert.Nil(t, result)
@@ -2825,7 +2825,7 @@ func TestDocuments_ErrorCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "field has unsupported or unexpected value type")
 		assert.Nil(t, result)
 	})
@@ -2901,7 +2901,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -2931,7 +2931,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "field has unsupported or unexpected value type")
 		assert.Nil(t, result)
 	})
@@ -2948,7 +2948,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -2969,7 +2969,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -3006,7 +3006,7 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "identifier field used with conflicting tag")
 		assert.Nil(t, result)
 	})
@@ -3021,7 +3021,7 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "URL field used with conflicting tag")
 		assert.Nil(t, result)
 	})
@@ -3036,7 +3036,7 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "HTML field used with conflicting tag")
 		assert.Nil(t, result)
 	})
@@ -3074,7 +3074,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
 		assert.Nil(t, result)
 	})
@@ -3089,7 +3089,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "document ID field is not a string slice")
 		assert.Nil(t, result)
 	})
@@ -3104,7 +3104,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "value is infinity or not a number")
 		assert.Nil(t, result)
 	})
@@ -3119,7 +3119,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "value is infinity or not a number")
 		assert.Nil(t, result)
 	})
@@ -3154,7 +3154,7 @@ func TestDocuments_ValueTagConflicts(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "property tag cannot be used with value tag")
 		assert.Nil(t, result)
 	})
@@ -3187,7 +3187,7 @@ func TestDocuments_RawHTMLConflict(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		assert.EqualError(t, errE, "raw HTML field used with conflicting tag")
 		assert.Nil(t, result)
 	})
@@ -3222,7 +3222,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -3254,7 +3254,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -3289,7 +3289,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(mnemonics, docs)
+		result, errE := transform.Documents(t.Context(), mnemonics, docs)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
@@ -3351,11 +3351,11 @@ func TestDocuments_EmbeddedStructEquivalence(t *testing.T) {
 		},
 	}
 
-	flatResult, errE := transform.Documents(mnemonics, []any{flatDoc})
+	flatResult, errE := transform.Documents(t.Context(), mnemonics, []any{flatDoc})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, flatResult, 1)
 
-	embeddedResult, errE := transform.Documents(mnemonics, []any{embeddedDoc})
+	embeddedResult, errE := transform.Documents(t.Context(), mnemonics, []any{embeddedDoc})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, embeddedResult, 1)
 
@@ -3417,11 +3417,11 @@ func TestDocuments_MultiLevelEmbeddedEquivalence(t *testing.T) {
 		Field3: "value3",
 	}
 
-	nestedResult, errE := transform.Documents(mnemonics, []any{nestedDoc})
+	nestedResult, errE := transform.Documents(t.Context(), mnemonics, []any{nestedDoc})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, nestedResult, 1)
 
-	flatResult, errE := transform.Documents(mnemonics, []any{flatDoc})
+	flatResult, errE := transform.Documents(t.Context(), mnemonics, []any{flatDoc})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, flatResult, 1)
 
@@ -3447,7 +3447,7 @@ func TestDocuments_CardinalityZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3464,7 +3464,7 @@ func TestDocuments_CardinalityZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3492,7 +3492,7 @@ func TestDocuments_CardinalityOneOrMore(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3508,7 +3508,7 @@ func TestDocuments_CardinalityOneOrMore(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3523,7 +3523,7 @@ func TestDocuments_CardinalityOneOrMore(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3550,7 +3550,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3567,7 +3567,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3583,7 +3583,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3599,7 +3599,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 		},
 	}
 
-	_, errE = transform.Documents(mnemonics, docs)
+	_, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value exceeds maximum cardinality")
 }
@@ -3623,7 +3623,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3638,7 +3638,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3654,7 +3654,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3670,7 +3670,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3685,7 +3685,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 		},
 	}
 
-	_, errE = transform.Documents(mnemonics, docs)
+	_, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value exceeds maximum cardinality")
 }
@@ -3709,7 +3709,7 @@ func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3726,7 +3726,7 @@ func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3755,7 +3755,7 @@ func TestDocuments_NoneTag_WithoutNone(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
 
@@ -3767,7 +3767,7 @@ func TestDocuments_NoneTag_WithoutNone(t *testing.T) {
 		},
 	}
 
-	_, errE = transform.Documents(mnemonics, docs)
+	_, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
 
@@ -3779,7 +3779,7 @@ func TestDocuments_NoneTag_WithoutNone(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3807,7 +3807,7 @@ func TestDocuments_NoneTag_Pointer(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3834,7 +3834,7 @@ func TestDocuments_CardinalityValidation_MaxCannotBeZero(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality max value cannot be negative or zero")
 }
@@ -3858,7 +3858,7 @@ func TestDocuments_CardinalityValidation_PointerMaxOne(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "pointer field cannot have max cardinality greater than 1")
 }
@@ -3881,7 +3881,7 @@ func TestDocuments_CardinalityValidation_SingleValueMaxOne(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "single value field cannot have max cardinality greater than 1")
 }
@@ -3904,7 +3904,7 @@ func TestDocuments_CardinalityValidation_NoneWithMinZero(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field cannot have default tag with min cardinality 0")
 }
@@ -3929,7 +3929,7 @@ func TestDocuments_CardinalityValidation_PointerCanBeZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3941,7 +3941,7 @@ func TestDocuments_CardinalityValidation_PointerCanBeZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3969,7 +3969,7 @@ func TestDocuments_CardinalityValidation_PointerWithNone(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -3995,7 +3995,7 @@ func TestDocuments_CardinalityValidation_InvalidFormat(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "invalid cardinality format")
 }
@@ -4018,7 +4018,7 @@ func TestDocuments_CardinalityValidation_EmptyMin(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality min value is empty")
 }
@@ -4041,7 +4041,7 @@ func TestDocuments_CardinalityValidation_InvalidMinInteger(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality min value is not a valid integer")
 }
@@ -4064,7 +4064,7 @@ func TestDocuments_CardinalityValidation_NegativeMin(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality min value cannot be negative")
 }
@@ -4087,7 +4087,7 @@ func TestDocuments_CardinalityValidation_InvalidMaxInteger(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality max value is not a valid integer")
 }
@@ -4110,7 +4110,7 @@ func TestDocuments_CardinalityValidation_NegativeMax(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality max value cannot be negative or zero")
 }
@@ -4133,7 +4133,7 @@ func TestDocuments_CardinalityValidation_MaxLessThanMin(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality max value cannot be less than min")
 }
@@ -4156,7 +4156,7 @@ func TestDocuments_CardinalityValidation_InvalidSingleValue(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality value is not a valid integer")
 }
@@ -4179,7 +4179,7 @@ func TestDocuments_CardinalityValidation_NegativeSingleValue(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality value cannot be negative or zero")
 }
@@ -4202,7 +4202,7 @@ func TestDocuments_CardinalityValidation_SliceExceedsMax(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value exceeds maximum cardinality")
 }
@@ -4225,7 +4225,7 @@ func TestDocuments_CardinalityValidation_SingleValueWithCardinality(t *testing.T
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4253,7 +4253,7 @@ func TestDocuments_CardinalityValidation_SingleValueZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4268,7 +4268,7 @@ func TestDocuments_CardinalityValidation_SingleValueZeroOrOne(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4300,7 +4300,7 @@ func TestDocuments_ValueTag_WithPropertyTag(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "property tag cannot be used with value tag")
 }
@@ -4329,7 +4329,7 @@ func TestDocuments_MultipleValueClaims(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "multiple value claims found")
 }
@@ -4354,7 +4354,7 @@ func TestDocuments_PointerWithCardinality(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4386,7 +4386,7 @@ func TestDocuments_EmptyStructAsValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4431,7 +4431,7 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4479,7 +4479,7 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4517,7 +4517,7 @@ func TestDocuments_SliceWithMinCardinality(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
 }
@@ -4542,7 +4542,7 @@ func TestDocuments_PointerDoesNotMeetMin(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
 }
@@ -4566,7 +4566,7 @@ func TestDocuments_SingleValueDoesNotMeetMin(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
 }
@@ -4590,7 +4590,7 @@ func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4607,7 +4607,7 @@ func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4636,7 +4636,7 @@ func TestDocuments_UnknownTag_OneOrMore(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4665,7 +4665,7 @@ func TestDocuments_UnknownTag_Pointer(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4692,7 +4692,7 @@ func TestDocuments_UnknownTag_WithMinZero(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "field cannot have default tag with min cardinality 0")
 }
@@ -4716,7 +4716,7 @@ func TestDocuments_UnknownTag_SingleValue(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4746,7 +4746,7 @@ func TestDocuments_UnknownTag_BooleanBehavior(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4778,7 +4778,7 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4796,7 +4796,7 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4825,7 +4825,7 @@ func TestDocuments_NoneTag_BooleanVsCardinalityMode(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4858,7 +4858,7 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4875,7 +4875,7 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4905,7 +4905,7 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4922,7 +4922,7 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 		},
 	}
 
-	results, errE = transform.Documents(mnemonics, docs)
+	results, errE = transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4952,7 +4952,7 @@ func TestDocuments_BoolWithTypeNone(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -4983,7 +4983,7 @@ func TestDocuments_BoolWithTypeUnknown(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -5011,7 +5011,7 @@ func TestDocuments_CoreNoneWithConflictingTag(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "none field used with conflicting tag")
 }
@@ -5035,7 +5035,7 @@ func TestDocuments_CoreUnknownWithConflictingTag(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "unknown field used with conflicting tag")
 }
@@ -5058,7 +5058,7 @@ func TestDocuments_DefaultTagValidation_BothDefaults(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	// Should fail minimum cardinality since invalid default tag is ignored.
 	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
@@ -5083,7 +5083,7 @@ func TestDocuments_SliceWithDefaultNone(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -5111,7 +5111,7 @@ func TestDocuments_SliceWithDefaultUnknown(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -5140,7 +5140,7 @@ func TestDocuments_PointerWithDefaultNone(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -5167,7 +5167,7 @@ func TestDocuments_SingleValueWithDefaultUnknown(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(mnemonics, docs)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
@@ -5194,7 +5194,7 @@ func TestDocuments_BooleanWithMaxCardinality(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	// Boolean fields are also single value fields, so we get the single value error.
 	assert.EqualError(t, errE, "single value field cannot have max cardinality greater than 1")
@@ -5223,7 +5223,7 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "cardinality tag cannot be used with value tag")
 }
@@ -5251,7 +5251,7 @@ func TestDocuments_ValueFieldCannotHaveDefault(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(mnemonics, docs)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "default tag cannot be used with value tag")
 }
