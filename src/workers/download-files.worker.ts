@@ -2,16 +2,7 @@
 // Receives a list of files and a FileSystemDirectoryHandle,
 // downloads each file and saves it to the directory.
 
-export type DownloadFilesWorkerInput = {
-  type: "start"
-  files: { name: string; url: string }[]
-  directoryHandle: FileSystemDirectoryHandle
-}
-
-export type DownloadFilesWorkerOutput =
-  | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "done" }
-  | { type: "error"; message: string }
+import type { DownloadFilesWorkerInput, DownloadFilesWorkerOutput } from "@/types"
 
 self.onmessage = async (e: MessageEvent<DownloadFilesWorkerInput>) => {
   const { files, directoryHandle } = e.data

@@ -305,3 +305,31 @@ declare global {
     showDirectoryPicker?: (options?: DirectoryPickerOptions) => Promise<FileSystemDirectoryHandle>
   }
 }
+
+export type DownloadWorkerFile = {
+  name: string
+  url: string
+}
+
+export type DownloadZipWorkerInput = {
+  type: "start"
+  files: DownloadWorkerFile[]
+  writable: WritableStream<Uint8Array>
+}
+
+export type DownloadZipWorkerOutput =
+  | { type: "progress"; completed: number; total: number; currentFile: string }
+  | { type: "zipping"; completed: number; total: number }
+  | { type: "done" }
+  | { type: "error"; message: string }
+
+export type DownloadFilesWorkerInput = {
+  type: "start"
+  files: DownloadWorkerFile[]
+  directoryHandle: FileSystemDirectoryHandle
+}
+
+export type DownloadFilesWorkerOutput =
+  | { type: "progress"; completed: number; total: number; currentFile: string }
+  | { type: "done" }
+  | { type: "error"; message: string }

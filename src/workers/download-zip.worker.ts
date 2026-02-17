@@ -2,19 +2,9 @@
 // Receives a list of files and a WritableStream, downloads each file,
 // compresses them into a zip archive using fflate, and writes to the stream.
 
+import type { DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
+
 import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
-
-export type DownloadZipWorkerInput = {
-  type: "start"
-  files: { name: string; url: string }[]
-  writable: WritableStream<Uint8Array>
-}
-
-export type DownloadZipWorkerOutput =
-  | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "zipping"; completed: number; total: number }
-  | { type: "done" }
-  | { type: "error"; message: string }
 
 // Media types that are already compressed and should not be deflated.
 const compressedMediaTypes = new Set([

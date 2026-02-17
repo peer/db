@@ -1,11 +1,6 @@
-import type { DownloadFile } from "@/types"
-import type { DownloadFilesWorkerOutput } from "@/workers/download-files.worker"
-import type { DownloadZipWorkerOutput } from "@/workers/download-zip.worker"
+import type { DownloadFile, DownloadFilesWorkerOutput, DownloadZipWorkerOutput } from "@/types"
 
 import { ref } from "vue"
-
-import DownloadFilesWorkerFactory from "@/workers/download-files.worker?worker"
-import DownloadZipWorkerFactory from "@/workers/download-zip.worker?worker"
 
 export type DownloadMode = "zip" | "files"
 
@@ -76,7 +71,7 @@ export function useDownload() {
 
     const writable = await fileHandle.createWritable()
 
-    const worker = new DownloadZipWorkerFactory()
+    const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
     activeWorker = worker
     worker.onmessage = handleWorkerMessage
     worker.onerror = (e) => {
@@ -110,7 +105,7 @@ export function useDownload() {
     currentFile.value = ""
     error.value = null
 
-    const worker = new DownloadFilesWorkerFactory()
+    const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
     activeWorker = worker
     worker.onmessage = handleWorkerMessage
     worker.onerror = (e) => {
