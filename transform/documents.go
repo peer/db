@@ -67,7 +67,7 @@
 // Specifies how to interpret fields. Supported types for string fields:
 //
 //   - "id": create an identifier claim,
-//   - "url": create a reference claim,
+//   - "iri": create a reference claim,
 //   - "html": create a text claim with HTML (content will be escaped),
 //   - "rawhtml": create a text claim with raw HTML (content will be sanitized but not escaped).
 //
@@ -79,7 +79,7 @@
 // Example:
 //
 //	Code      string `property:"CODE" type:"id"`
-//	Homepage  string `property:"HOMEPAGE" type:"url"`
+//	Homepage  string `property:"HOMEPAGE" type:"iri"`
 //	Bio       string `property:"BIO" type:"html"`
 //	IsAbsent  bool   `property:"NAME" type:"none"`
 //	IsUnknown bool   `property:"AGE" type:"unknown"`
@@ -146,7 +146,7 @@
 //   - core.Time: time claim,
 //   - core.Interval: time range claim,
 //   - core.Identifier: identifier claim,
-//   - core.URL: reference claim,
+//   - core.IRI: reference claim,
 //   - core.HTML: text claim (with escaping),
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
@@ -246,7 +246,7 @@ var (
 	coreTime       = reflect.TypeOf(core.Time{})
 	coreInterval   = reflect.TypeOf(core.Interval{})
 	coreIdentifier = reflect.TypeOf(core.Identifier(""))
-	coreURL        = reflect.TypeOf(core.URL(""))
+	coreIRI        = reflect.TypeOf(core.IRI(""))
 	coreHTML       = reflect.TypeOf(core.HTML(""))
 	coreRawHTML    = reflect.TypeOf(core.RawHTML(""))
 	coreNone       = reflect.TypeOf(core.None(false))
@@ -264,7 +264,7 @@ const (
 	defaultUnknown = "unknown"
 
 	typeID      = "id"
-	typeURL     = "url"
+	typeIRI     = "iri"
 	typeHTML    = "html"
 	typeRawHTML = "rawhtml"
 	typeNone    = "none"
@@ -909,15 +909,15 @@ func makeClaim(
 		}, nil
 	}
 
-	// Handle core.URL.
-	if t == coreURL {
-		url := fieldValue.Interface().(core.URL) //nolint:errcheck,forcetypeassert
-		if url == "" {
+	// Handle core.IRI.
+	if t == coreIRI {
+		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
+		if iri == "" {
 			return nil, errors.WithStack(errClaimNotMade)
 		}
 
-		if typeTag != "" && typeTag != typeURL {
-			return nil, errors.New("URL field used with conflicting tag")
+		if typeTag != "" && typeTag != typeIRI {
+			return nil, errors.New("IRI field used with conflicting tag")
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -927,7 +927,7 @@ func makeClaim(
 				Confidence: document.HighConfidence,
 			},
 			Prop: document.Reference{ID: &propertyID},
-			IRI:  string(url),
+			IRI:  string(iri),
 		}, nil
 	}
 
@@ -1071,7 +1071,7 @@ func makeClaim(
 			}, nil
 		}
 
-		if typeTag == typeURL {
+		if typeTag == typeIRI {
 			return &document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,

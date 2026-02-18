@@ -14,8 +14,8 @@ type Ref struct {
 // Identifier is a string identifier.
 type Identifier string
 
-// URL is a string URL.
-type URL string
+// IRI is a string URL, URI or IRI.
+type IRI string
 
 // HTML is a string with HTML.
 type HTML string

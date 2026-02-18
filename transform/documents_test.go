@@ -40,11 +40,11 @@ type DocWithRawHTMLComplex struct {
 	RawHTMLText    core.RawHTML `              property:"RAW_HTML"`
 }
 
-type DocWithURL struct {
+type DocWithIRI struct {
 	ID       []string `documentid:""`
-	Homepage string   `              property:"HOMEPAGE"  type:"url"`
-	Links    []string `              property:"LINKS"     type:"url"`
-	PlainURL core.URL `              property:"PLAIN_URL"`
+	Homepage string   `              property:"HOMEPAGE"  type:"iri"`
+	Links    []string `              property:"LINKS"     type:"iri"`
+	PlainIRI core.IRI `              property:"PLAIN_IRI"`
 }
 
 type DocWithRef struct {
@@ -177,7 +177,7 @@ func createMnemonics() map[string]identifier.Identifier {
 		"RAW_HTML":        identifier.From("test", "RAW_HTML"),
 		"HOMEPAGE":        identifier.From("test", "HOMEPAGE"),
 		"LINKS":           identifier.From("test", "LINKS"),
-		"PLAIN_URL":       identifier.From("test", "PLAIN_URL"),
+		"PLAIN_IRI":       identifier.From("test", "PLAIN_IRI"),
 		"PARENT":          identifier.From("test", "PARENT"),
 		"CHILDREN":        identifier.From("test", "CHILDREN"),
 		"CREATED":         identifier.From("test", "CREATED"),
@@ -328,11 +328,11 @@ func TestDocuments_ReferenceClaim(t *testing.T) {
 
 	mnemonics := createMnemonics()
 	docs := []any{
-		&DocWithURL{
+		&DocWithIRI{
 			ID:       []string{"test", "doc1"},
 			Homepage: "https://example.com",
 			Links:    []string{"https://link1.com", "https://link2.com"},
-			PlainURL: "https://plain.com",
+			PlainIRI: "https://plain.com",
 		},
 	}
 
@@ -341,14 +341,14 @@ func TestDocuments_ReferenceClaim(t *testing.T) {
 
 	doc := results[0]
 
-	// Homepage + 2 Links + PlainURL.
+	// Homepage + 2 Links + PlainIRI.
 	require.Len(t, doc.Claims.Reference, 4)
 
 	assert.Equal(t, "https://example.com", doc.Claims.Reference[0].IRI)
 	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Reference[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "0"), doc.Claims.Reference[1].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "1"), doc.Claims.Reference[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_URL", "0"), doc.Claims.Reference[3].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Reference[3].ID)
 }
 
 func TestDocuments_RelationClaim(t *testing.T) {
@@ -1501,21 +1501,21 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "CORE_RAW", "0"), doc.Claims.Text[3].ID)
 }
 
-func TestDocuments_CoreURLWithoutTag(t *testing.T) {
+func TestDocuments_CoreIRIWithoutTag(t *testing.T) {
 	t.Parallel()
 
-	// Test that core.URL without url tag is treated as URL.
-	type DocWithPlainURL struct {
+	// Test that core.IRI without iri tag is treated as IRI.
+	type DocWithPlainIRI struct {
 		ID       []string `documentid:""`
-		PlainURL core.URL `              property:"PLAIN_URL"` // No url tag.
+		PlainIRI core.IRI `              property:"PLAIN_IRI"` // No iri tag.
 	}
 
 	mnemonics := createMnemonics()
 
 	docs := []any{
-		&DocWithPlainURL{
+		&DocWithPlainIRI{
 			ID:       []string{"test", "doc1"},
-			PlainURL: "https://example.com",
+			PlainIRI: "https://example.com",
 		},
 	}
 
@@ -1524,11 +1524,11 @@ func TestDocuments_CoreURLWithoutTag(t *testing.T) {
 
 	doc := results[0]
 
-	// Without url tag, should still be ReferenceClaim.
+	// Without iri tag, should still be ReferenceClaim.
 	require.Len(t, doc.Claims.Reference, 1)
 
 	assert.Equal(t, "https://example.com", doc.Claims.Reference[0].IRI)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_URL", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Reference[0].ID)
 }
 
 func TestDocuments_ZeroTimeSkipped(t *testing.T) {
@@ -2060,27 +2060,27 @@ func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
 	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.Text[0].ID)
 }
 
-func TestDocuments_ValueFieldWithURLTag(t *testing.T) { //nolint:dupl
+func TestDocuments_ValueFieldWithIRITag(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test value:"" with type:"url" tag.
-	type URLValue struct {
-		Value string `                type:"url" value:""`
+	// Test value:"" with type:"iri" tag.
+	type IRIValue struct {
+		Value string `                type:"iri" value:""`
 		Note  string `property:"NOTE"`
 	}
 
-	type DocWithURLValue struct {
+	type DocWithIRIValue struct {
 		ID   []string `documentid:""`
-		Link URLValue `              property:"LINK"`
+		Link IRIValue `              property:"LINK"`
 	}
 
 	mnemonics := createMnemonics()
 	mnemonics["LINK"] = identifier.From("test", "LINK")
 
 	docs := []any{
-		&DocWithURLValue{
+		&DocWithIRIValue{
 			ID: []string{"test", "doc1"},
-			Link: URLValue{
+			Link: IRIValue{
 				Value: "https://example.com",
 				Note:  "Homepage",
 			},
@@ -2983,7 +2983,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 type DocWithConflictingTags struct {
 	ID            []string        `documentid:""`
 	IdentifierStr core.Identifier `              property:"ID_STR"   type:"html"` // Conflicting type tag.
-	URLStr        core.URL        `              property:"URL_STR"  type:"id"`   // Conflicting type tag.
+	IRIStr        core.IRI        `              property:"IRI_STR"  type:"id"`   // Conflicting type tag.
 	HTMLStr       core.HTML       `              property:"HTML_STR" type:"id"`   // Conflicting type tag.
 }
 
@@ -2992,7 +2992,7 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 
 	mnemonics := map[string]identifier.Identifier{
 		"ID_STR":   identifier.New(),
-		"URL_STR":  identifier.New(),
+		"IRI_STR":  identifier.New(),
 		"HTML_STR": identifier.New(),
 	}
 
@@ -3011,18 +3011,18 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("URLWithConflictingTag", func(t *testing.T) {
+	t.Run("IRIWithConflictingTag", func(t *testing.T) {
 		t.Parallel()
 
 		docs := []any{
 			&DocWithConflictingTags{ //nolint:exhaustruct
 				ID:     []string{"doc1"},
-				URLStr: "https://example.com",
+				IRIStr: "https://example.com",
 			},
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "URL field used with conflicting tag")
+		assert.EqualError(t, errE, "IRI field used with conflicting tag")
 		assert.Nil(t, result)
 	})
 
