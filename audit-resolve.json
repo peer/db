@@ -1,0 +1,42 @@
+{
+  "decisions": {
+    "1113214|@eslint/compat>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932100
+    },
+    "1113214|@intlify/unplugin-vue-i18n>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|@vue/eslint-config-typescript>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|eslint-config-prettier>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|eslint-formatter-gitlab>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|eslint-plugin-vue>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    },
+    "1113214|typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771432932101
+    }
+  },
+  "rules": {},
+  "version": 1
+}

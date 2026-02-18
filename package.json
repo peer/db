@@ -64,6 +64,8 @@
     "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage",
     "generate-i18n-types": "node generate-vue-i18n.js",
     "upgrade": "ncu -u",
+    "check-audit": "check-audit",
+    "resolve-audit": "resolve-audit",
     "prepare": "npm run build-lib"
   },
   "peerDependencies": {
@@ -106,6 +108,7 @@
     "eslint-plugin-vue": "^10.6.2",
     "glob": "^13.0.1",
     "globals": "^17.0.0",
+    "npm-audit-resolver": "^3.0.0-RC.0",
     "npm-check-updates": "^19.3.1",
     "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
