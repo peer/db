@@ -49,7 +49,7 @@ test_go:
         xpack.security.enabled: false
         ingest.geoip.downloader.enabled: false
     - name: registry.gitlab.com/tozd/docker/postgresql:18
-      alias: potgres
+      alias: postgres
       variables:
         LOG_TO_STDOUT: 1
         PGSQL_ROLE_1_USERNAME: test
@@ -58,7 +58,7 @@ test_go:
         PGSQL_DB_1_OWNER: test
   variables:
     ELASTIC: http://elasticsearch:9200
-    POSTGRES: postgres://test:test@potgres:5432/test
+    POSTGRES: postgres://test:test@postgres:5432/test
 
   before_script:
     - apk --update add make bash gcc musl-dev mailcap git git-lfs
