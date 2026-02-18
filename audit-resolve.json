@@ -35,6 +35,74 @@
     "1113214|typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@eslint-community/eslint-utils>@eslint/eslintrc>ajv": {
       "decision": "ignore",
       "madeAt": 1771432932101
+    },
+    "1113296|@eslint/compat>eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|@intlify/unplugin-vue-i18n>@typescript-eslint/typescript-estree>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|@vue/eslint-config-typescript>eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|eslint-formatter-codeclimate>eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|eslint-plugin-vue>eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113296|vue-eslint-parser>eslint>@eslint/config-array>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771458423025
+    },
+    "1113214|@eslint/compat>eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>@typescript-eslint/utils>eslint>@eslint/config-array>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|@vue/eslint-config-typescript>eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|eslint-formatter-codeclimate>eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|eslint-plugin-vue>eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>@typescript-eslint/utils>eslint>@eslint/config-array>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
+    },
+    "1113214|vue-eslint-parser>eslint>@eslint/config-array>minimatch>@eslint/eslintrc>ajv": {
+      "decision": "ignore",
+      "madeAt": 1771458434259
     }
   },
   "rules": {},
