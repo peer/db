@@ -78,17 +78,15 @@ func extractFieldValue(doc any, fieldName string) (reflect.Value, errors.E) {
 	}
 
 	if v.Kind() != reflect.Struct {
-		errE := errors.New("expected struct")
-		errors.Details(errE)["got"] = v.Kind().String()
-		return reflect.Value{}, errE
+		return reflect.Value{}, nil
 	}
 
-	t := v.Type()
-
-	return extractFieldValueFromStruct(v, t, fieldName)
+	return extractFieldValueFromStruct(v, fieldName)
 }
 
-func extractFieldValueFromStruct(structValue reflect.Value, structType reflect.Type, fieldName string) (reflect.Value, errors.E) {
+func extractFieldValueFromStruct(structValue reflect.Value, fieldName string) (reflect.Value, errors.E) {
+	structType := structValue.Type()
+
 	for i := range structType.NumField() {
 		field := structType.Field(i)
 		fieldValue := structValue.Field(i)
@@ -98,7 +96,7 @@ func extractFieldValueFromStruct(structValue reflect.Value, structType reflect.T
 		}
 
 		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
-			v, errE := extractFieldValueFromStruct(fieldValue, fieldValue.Type(), fieldName)
+			v, errE := extractFieldValueFromStruct(fieldValue, fieldName)
 			if errE != nil {
 				return reflect.Value{}, errE
 			} else if v.IsValid() {
