@@ -242,15 +242,15 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	coreRef        = reflect.TypeOf(core.Ref{})
-	coreTime       = reflect.TypeOf(core.Time{})
-	coreInterval   = reflect.TypeOf(core.Interval{})
-	coreIdentifier = reflect.TypeOf(core.Identifier(""))
-	coreIRI        = reflect.TypeOf(core.IRI(""))
-	coreHTML       = reflect.TypeOf(core.HTML(""))
-	coreRawHTML    = reflect.TypeOf(core.RawHTML(""))
-	coreNone       = reflect.TypeOf(core.None(false))
-	coreUnknown    = reflect.TypeOf(core.Unknown(false))
+	coreRef        = reflect.TypeFor[core.Ref]()
+	coreTime       = reflect.TypeFor[core.Time]()
+	coreInterval   = reflect.TypeFor[core.Interval]()
+	coreIdentifier = reflect.TypeFor[core.Identifier]()
+	coreIRI        = reflect.TypeFor[core.IRI]()
+	coreHTML       = reflect.TypeFor[core.HTML]()
+	coreRawHTML    = reflect.TypeFor[core.RawHTML]()
+	coreNone       = reflect.TypeFor[core.None]()
+	coreUnknown    = reflect.TypeFor[core.Unknown]()
 )
 
 var (
