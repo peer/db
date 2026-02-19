@@ -36,6 +36,10 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 		}
 		mnemonic := mnemonicValue.String()
 
+		if mnemonic == "" {
+			continue
+		}
+
 		idValue, errE := extractFieldValue(doc, "ID")
 		if errE != nil {
 			return nil, errE
@@ -48,6 +52,10 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 			errE := errors.Errorf("expected []string for ID")
 			errors.Details(errE)["type"] = idValue.Type().String()
 			return nil, errE
+		}
+
+		if len(id) == 0 {
+			continue
 		}
 
 		if _, ok := result[mnemonic]; ok {
