@@ -2,17 +2,16 @@ package transform
 
 import (
 	"context"
+	"reflect"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-
-	"gitlab.com/peerdb/peerdb/core"
 )
 
 // Mnemonics returns a map between property mnemonic and identifier.
 //
-// It takes a slice of any structs, including core.Property ones, and extracts
-// the mnemonic to identifier mapping from Property documents.
+// It takes a slice of any structs and extracts the mnemonic (from a field named `Mnemonic`)
+// to identifier (from a field named `ID`) mapping from them.
 //
 // Returns an error if mnemonics are not unique.
 func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Identifier, errors.E) {
@@ -23,17 +22,82 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 			return nil, errors.WithStack(ctx.Err())
 		}
 
-		if prop, ok := doc.(*core.Property); ok {
-			if prop.Mnemonic != "" && len(prop.ID) > 0 {
-				if _, ok := result[prop.Mnemonic]; ok {
-					errE := errors.Errorf("duplicate mnemonic")
-					errors.Details(errE)["mnemonic"] = prop.Mnemonic
-					return nil, errE
-				}
-				result[prop.Mnemonic] = identifier.From(prop.ID...)
+		mnemonicValue, errE := extractFieldValue(doc, "Mnemonic")
+		if errE != nil {
+			return nil, errE
+		} else if !mnemonicValue.IsValid() {
+			continue
+		}
+
+		if mnemonicValue.Kind() != reflect.String {
+			errE := errors.Errorf("expected string for mnemonic")
+			errors.Details(errE)["type"] = mnemonicValue.Type().String()
+			return nil, errE
+		}
+		mnemonic := mnemonicValue.String()
+
+		idValue, errE := extractFieldValue(doc, "ID")
+		if errE != nil {
+			return nil, errE
+		} else if !idValue.IsValid() {
+			continue
+		}
+
+		id, ok := idValue.Interface().([]string)
+		if !ok {
+			errE := errors.Errorf("expected []string for ID")
+			errors.Details(errE)["type"] = idValue.Type().String()
+			return nil, errE
+		}
+
+		if _, ok := result[mnemonic]; ok {
+			errE := errors.Errorf("duplicate mnemonic")
+			errors.Details(errE)["mnemonic"] = mnemonic
+			return nil, errE
+		}
+
+		result[mnemonic] = identifier.From(id...)
+	}
+
+	return result, nil
+}
+
+func extractFieldValue(doc any, fieldName string) (reflect.Value, errors.E) {
+	v := reflect.ValueOf(doc)
+	// Handle pointer to struct.
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		errE := errors.New("expected struct")
+		errors.Details(errE)["got"] = v.Kind().String()
+		return reflect.Value{}, errE
+	}
+
+	t := v.Type()
+
+	return extractFieldValueFromStruct(v, t, fieldName)
+}
+
+func extractFieldValueFromStruct(structValue reflect.Value, structType reflect.Type, fieldName string) (reflect.Value, errors.E) {
+	for i := range structType.NumField() {
+		field := structType.Field(i)
+		fieldValue := structValue.Field(i)
+
+		if field.Name == fieldName {
+			return fieldValue, nil
+		}
+
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
+			v, errE := extractFieldValueFromStruct(fieldValue, fieldValue.Type(), fieldName)
+			if errE != nil {
+				return reflect.Value{}, errE
+			} else if v.IsValid() {
+				return v, nil
 			}
 		}
 	}
 
-	return result, nil
+	return reflect.Value{}, nil
 }
