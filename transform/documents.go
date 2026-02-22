@@ -319,7 +319,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 	t := v.Type()
 
 	// Extract document ID.
-	docID, errE := ExtractDocumentID(v, t, []string{})
+	docID, errE := extractDocumentID(v, t, []string{})
 	if errE != nil {
 		return document.D{}, errE
 	}
@@ -1368,7 +1368,27 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 //
 // It finds a field with tag "documentid" and returns its value as a slice of strings.
 // If no such field is found, it returns an ErrDocumentIDNotFound error.
-func ExtractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]string, errors.E) {
+func ExtractDocumentID(doc any) ([]string, errors.E) {
+	v := reflect.ValueOf(doc)
+	// Handle pointer to struct.
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		errE := errors.New("expected struct")
+		errors.Details(errE)["got"] = v.Kind().String()
+		return nil, errE
+	}
+
+	return extractDocumentID(v, v.Type(), []string{})
+}
+
+// extractDocumentID extracts the document ID from a struct.
+//
+// It finds a field with tag "documentid" and returns its value as a slice of strings.
+// If no such field is found, it returns an ErrDocumentIDNotFound error.
+func extractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]string, errors.E) {
 	ids := [][]string{}
 
 	for i := range t.NumField() {
@@ -1401,7 +1421,7 @@ func ExtractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]s
 
 		// If this is an embedded struct, recursively check its fields.
 		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
-			id, errE := ExtractDocumentID(fieldValue, fieldType, newFieldPath)
+			id, errE := extractDocumentID(fieldValue, fieldType, newFieldPath)
 			if errors.Is(errE, ErrDocumentIDNotFound) {
 				continue
 			} else if errE != nil {
