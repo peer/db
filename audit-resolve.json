@@ -106,7 +106,7 @@
     },
     "1113371|@eslint/compat>eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180199
     },
     "1113371|@typescript-eslint/parser>@typescript-eslint/typescript-estree>minimatch": {
       "decision": "ignore",
@@ -114,27 +114,27 @@
     },
     "1113371|@vue/eslint-config-typescript>eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113371|eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113371|eslint-formatter-codeclimate>eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113371|eslint-plugin-vue>eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113371|typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113371|vue-eslint-parser>eslint>@eslint/config-array>minimatch": {
       "decision": "ignore",
-      "madeAt": 1771755482461
+      "madeAt": 1771758180200
     },
     "1113398|ajv": {
       "decision": "ignore",
@@ -143,6 +143,10 @@
     "1113399|ajv": {
       "decision": "ignore",
       "madeAt": 1771755494869
+    },
+    "1113371|@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch": {
+      "decision": "ignore",
+      "madeAt": 1771758180199
     }
   },
   "rules": {},
