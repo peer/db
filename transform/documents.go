@@ -253,9 +253,10 @@ var (
 	coreUnknown    = reflect.TypeFor[core.Unknown]()
 )
 
+var ErrDocumentIDNotFound = errors.Base("document ID not found")
+
 var (
 	errClaimNotMade       = errors.Base("claim not made")
-	errDocumentIDNotFound = errors.Base("document ID not found")
 	errValueClaimNotFound = errors.Base("value claim not found")
 )
 
@@ -318,7 +319,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 	t := v.Type()
 
 	// Extract document ID.
-	docID, errE := extractDocumentID(v, t, []string{})
+	docID, errE := ExtractDocumentID(v, t, []string{})
 	if errE != nil {
 		return document.D{}, errE
 	}
@@ -1363,11 +1364,11 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 	return minCardinality, maxCardinality, nil
 }
 
-// extractDocumentID extracts the document ID from a struct.
+// ExtractDocumentID extracts the document ID from a struct.
 //
 // It finds a field with tag "documentid" and returns its value as a slice of strings.
-// If no such field is found, it returns an errDocumentIDNotFound error.
-func extractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]string, errors.E) {
+// If no such field is found, it returns an ErrDocumentIDNotFound error.
+func ExtractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]string, errors.E) {
 	ids := [][]string{}
 
 	for i := range t.NumField() {
@@ -1400,8 +1401,8 @@ func extractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]s
 
 		// If this is an embedded struct, recursively check its fields.
 		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
-			id, errE := extractDocumentID(fieldValue, fieldType, newFieldPath)
-			if errors.Is(errE, errDocumentIDNotFound) {
+			id, errE := ExtractDocumentID(fieldValue, fieldType, newFieldPath)
+			if errors.Is(errE, ErrDocumentIDNotFound) {
 				continue
 			} else if errE != nil {
 				return nil, errE
@@ -1418,5 +1419,5 @@ func extractDocumentID(v reflect.Value, t reflect.Type, fieldPath []string) ([]s
 		return ids[0], nil
 	}
 
-	return nil, errors.WithStack(errDocumentIDNotFound)
+	return nil, errors.WithStack(ErrDocumentIDNotFound)
 }
