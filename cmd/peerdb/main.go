@@ -21,7 +21,7 @@ func main() {
 		"defaultSchema":       peerdb.DefaultSchema,
 		"defaultIndex":        peerdb.DefaultIndex,
 		"defaultTitle":        peerdb.DefaultTitle,
-		"developmentModeHelp": " Proxy unknown requests.",
+		"developmentModeHelp": peerdb.DevelopmentModeHelp,
 	}, func(ctx *kong.Context) errors.E {
 		return errors.WithStack(ctx.Run(&config.Globals))
 		// We have to use BindTo instead of passing it directly to Run because we are using an interface.
