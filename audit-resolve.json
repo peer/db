@@ -147,6 +147,14 @@
     "1113371|@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch": {
       "decision": "ignore",
       "madeAt": 1771758180199
+    },
+    "1113428|ajv": {
+      "decision": "ignore",
+      "madeAt": 1771889927157
+    },
+    "1113429|ajv": {
+      "decision": "ignore",
+      "madeAt": 1771889930129
     }
   },
   "rules": {},
