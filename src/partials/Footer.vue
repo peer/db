@@ -11,7 +11,7 @@ defineOptions({
           One would assume that w-full is needed to make the container div as wide as the
           body inside which then the footer horizontally shifts.
   -->
-  <div class="sticky left-0 z-30 w-0">
+  <div class="footer sticky left-0 z-30 w-0">
     <div v-bind="$attrs" class="w-container flex justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
       <ul class="flex gap-x-2 sm:gap-x-4">
         <!-- <li><RouterLink :to="{ name: 'Home' }" class="link">About</RouterLink></li>

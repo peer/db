@@ -32,7 +32,7 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       />
     </template>
     <template #loading="{ url }">
-      <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
+      <div class="documentrefinline-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
     </template>
   </WithPeerDBDocument>
 </template>

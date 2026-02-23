@@ -107,7 +107,7 @@ defineSlots<{
 <template>
   <slot v-if="doc" :doc="doc as DeepReadonly<T>" :metadata="metadata" :url="url!"></slot>
   <slot v-else-if="error" name="error" :error="error" :url="url">
-    <i class="text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+    <i class="withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
   </slot>
   <slot v-else name="loading" :url="url"></slot>
 </template>
