@@ -55,7 +55,6 @@ func Load[T any](ctx context.Context, path string) ([]any, errors.E) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
