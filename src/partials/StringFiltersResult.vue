@@ -86,14 +86,14 @@ const checkboxState = computed({
 </script>
 
 <template>
-  <div class="flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="stringfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
-        <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+        <i class="stringfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">

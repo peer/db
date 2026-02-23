@@ -172,14 +172,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="amountfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
-        <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+        <i class="amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <li v-else-if="min === null || max === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">

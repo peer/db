@@ -139,7 +139,7 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div ref="content" class="flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+  <div ref="content" class="searchresultsfeed flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader
@@ -189,7 +189,7 @@ function onFilters() {
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
       <div v-if="filtersError" class="my-1 sm:my-4">
         <div class="text-center text-sm"
-          ><i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
+          ><i class="searchresultsfeed-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
         >
       </div>
 

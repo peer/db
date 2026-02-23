@@ -55,7 +55,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <form class="flex grow flex-col" novalidate @submit.prevent="onSubmit()">
+  <form class="home flex grow flex-col" novalidate @submit.prevent="onSubmit()">
     <div class="flex grow basis-0 flex-col justify-end">
       <h1 class="mb-10 p-4 text-center text-5xl font-bold">{{ siteContext.title }}</h1>
     </div>
