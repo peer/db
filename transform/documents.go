@@ -607,9 +607,10 @@ func (tr *transformer) processSingleValue(
 			}
 
 			// There is a value claim defined, but in this particular instance it has empty value,
-			// but there are meta claims for it, so we use NoValueClaim.
+			// but there are meta claims for it, so we make it a nested claim.
 			// TODO: What is all meta claims are "no value" claims?
 			claimID := newClaimID(idPath, propertyID, claims)
+			// TODO: Make this better. We currently map nested claims to NoValueClaim, but we should to HasClaim.
 			claim = &document.NoValueClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
