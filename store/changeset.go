@@ -79,8 +79,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
@@ -130,8 +129,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
@@ -194,8 +192,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
@@ -249,8 +246,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
@@ -301,8 +297,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
@@ -353,8 +348,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		err := tx.QueryRow(ctx, `SELECT "`+c.store.Prefix+`ChangesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeViewNotFound:
 					return errors.WrapWith(errE, ErrViewNotFound)
@@ -422,8 +416,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetDiscard"($1)`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)

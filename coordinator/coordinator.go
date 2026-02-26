@@ -146,8 +146,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 		return nil
 	}, nil)
 	if errE != nil {
-		var pgError *pgconn.PgError
-		if errors.As(errE, &pgError) {
+		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 			switch pgError.Code {
 			case internal.ErrorCodeUniqueViolation:
 				// Nothing.
@@ -212,8 +211,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeSessionNotFound:
 					return errors.WrapWith(errE, ErrSessionNotFound)
@@ -256,8 +254,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Appen
 		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`AppendOperation"($1, $2, $3, $4)`, arguments...).Scan(&operation)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeSessionNotFound:
 					return errors.WrapWith(errE, ErrSessionNotFound)

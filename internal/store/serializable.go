@@ -116,12 +116,14 @@ func RetryTransaction(
 			if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
 				return errE
 			}
-			var safeToRetry interface{ SafeToRetry() bool }
-			if errors.As(errE, &safeToRetry) && safeToRetry.SafeToRetry() {
+			safeToRetry, ok := errors.AsType[interface {
+				SafeToRetry() bool
+				Error() string
+			}](errE)
+			if ok && safeToRetry.SafeToRetry() {
 				continue
 			}
-			var pgError *pgconn.PgError
-			if errors.As(errE, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				// See: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html
 				switch pgError.Code {
 				case ErrorCodeSerializationFailure:

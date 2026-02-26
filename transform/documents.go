@@ -630,8 +630,7 @@ func (tr *transformer) processSingleValue(
 		// Here we use idPath because this claim really belongs at the level above this struct.
 		// It is only inside the struct so that we can list also its meta claims next to it.
 		claim, errE = extractValueClaim(fieldValue, fieldType, propertyID, idPath, fieldPath, claims)
-		var e *claimNotMadeError
-		if errors.As(errE, &e) {
+		if e, ok := errors.AsType[*claimNotMadeError](errE); ok {
 			if metaTr.Claims.Size() == 0 {
 				// There are no meta claims nor a value claim, so we just return errClaimNotMade here.
 				return errE

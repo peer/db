@@ -442,8 +442,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		return nil
 	}, nil)
 	if errE != nil {
-		var pgError *pgconn.PgError
-		if errors.As(errE, &pgError) {
+		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 			switch pgError.Code {
 			case internal.ErrorCodeUniqueViolation:
 				// Nothing.

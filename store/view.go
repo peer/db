@@ -690,8 +690,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		`, arguments...)
 		if err != nil {
 			errE := internal.WithPgxError(err)
-			var pgError *pgconn.PgError
-			if errors.As(err, &pgError) {
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code { //nolint:gocritic
 				case internal.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)

@@ -191,8 +191,7 @@ func EnsureSchema(ctx context.Context, tx pgx.Tx, schema string) errors.E {
 	//       See: https://stackoverflow.com/questions/29900845/create-schema-if-not-exists-raises-duplicate-key-error
 	_, err := tx.Exec(ctx, fmt.Sprintf(`CREATE SCHEMA "%s"`, schema))
 	if err != nil {
-		var pgError *pgconn.PgError
-		if errors.As(err, &pgError) {
+		if pgError, ok := errors.AsType[*pgconn.PgError](err); ok {
 			switch pgError.Code {
 			case ErrorCodeUniqueViolation:
 				return nil

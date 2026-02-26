@@ -73,8 +73,7 @@ func WithPgxError(err error) errors.E {
 	}
 
 	errE := errors.WithStack(err)
-	var e *pgconn.PgError
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		details := errors.Details(errE)
 		for key, value := range ErrorDetails(e) {
 			details[key] = value
