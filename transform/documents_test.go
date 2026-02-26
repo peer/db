@@ -5228,30 +5228,182 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 	assert.EqualError(t, errE, "cardinality tag cannot be used with value tag")
 }
 
-func TestDocuments_ValueFieldCannotHaveDefault(t *testing.T) {
+func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
 	t.Parallel()
 
-	// Test that value field cannot have default tag.
-	type StructWithDefaultValue struct {
+	// Test that value:"" default:"none" does not create a NoValueClaim when the value is empty and there are no meta claims.
+	type NameValue struct {
 		Value string `default:"none" value:""`
 	}
 
-	type DocWithDefaultValue struct {
-		ID    []string               `documentid:""`
-		Field StructWithDefaultValue `              property:"FIELD"`
+	type DocWithDefaultNoneValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
 
 	docs := []any{
-		&DocWithDefaultValue{
-			ID:    []string{"test", "doc1"},
-			Field: StructWithDefaultValue{Value: "test"},
+		&DocWithDefaultNoneValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: ""},
 		},
 	}
 
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "default tag cannot be used with value tag")
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"none" but no meta claims should not create any claim.
+	assert.Empty(t, doc.Claims.NoValue)
+}
+
+func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"unknown" does not create an UnknownValueClaim when the value is empty and there are no meta claims.
+	type NameValue struct {
+		Value string `default:"unknown" value:""`
+	}
+
+	type DocWithDefaultUnknownValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultUnknownValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: ""},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"unknown" but no meta claims should not create any claim.
+	assert.Empty(t, doc.Claims.UnknownValue)
+}
+
+func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"none" creates a normal claim when the value is non-empty.
+	type NameValue struct {
+		Value string `default:"none" value:""`
+	}
+
+	type DocWithDefaultNoneValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultNoneValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: "Alice"},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Non-empty value should create a normal StringClaim, not a NoValueClaim.
+	require.Len(t, doc.Claims.String, 1)
+	assert.Empty(t, doc.Claims.NoValue)
+	assert.Equal(t, "Alice", doc.Claims.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.String[0].ID)
+}
+
+//nolint:dupl
+func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"none" creates a NoValueClaim with meta claims when value is empty.
+	type NameValue struct {
+		Value string `default:"none"                 value:""`
+		Note  string `               property:"NOTE"`
+	}
+
+	type DocWithDefaultNoneMetaValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultNoneMetaValue{
+			ID: []string{"test", "doc1"},
+			Name: NameValue{
+				Value: "",
+				Note:  "Annotation",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"none" and meta claims should create a NoValueClaim with meta claims.
+	require.Len(t, doc.Claims.NoValue, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.NoValue[0].ID)
+
+	require.NotNil(t, doc.Claims.NoValue[0].Meta)
+	require.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
+	assert.Equal(t, "Annotation", doc.Claims.NoValue[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+}
+
+//nolint:dupl
+func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"unknown" creates an UnknownValueClaim with meta claims when value is empty.
+	type NameValue struct {
+		Value string `default:"unknown"                 value:""`
+		Note  string `                  property:"NOTE"`
+	}
+
+	type DocWithDefaultUnknownMetaValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultUnknownMetaValue{
+			ID: []string{"test", "doc1"},
+			Name: NameValue{
+				Value: "",
+				Note:  "Source unclear",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"unknown" and meta claims should create an UnknownValueClaim with meta claims.
+	require.Len(t, doc.Claims.UnknownValue, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.UnknownValue[0].ID)
+
+	require.NotNil(t, doc.Claims.UnknownValue[0].Meta)
+	require.Len(t, doc.Claims.UnknownValue[0].Meta.String, 1)
+	assert.Equal(t, "Source unclear", doc.Claims.UnknownValue[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.UnknownValue[0].Meta.String[0].ID)
 }
