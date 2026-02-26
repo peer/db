@@ -59,8 +59,7 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	decoder.KnownFields(true)
 	err = decoder.Decode(s)
 	if err != nil {
-		var yamlErr *yaml.TypeError
-		if errors.As(err, &yamlErr) {
+		if yamlErr, ok := errors.AsType[*yaml.TypeError](err); ok {
 			e := "error"
 			if len(yamlErr.Errors) > 1 {
 				e = "errors"

@@ -1,6 +1,7 @@
 package transform_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -251,4 +252,82 @@ func TestMnemonics(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:exhaustruct
+func TestMnemonics_ContextCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	docs := []any{
+		&core.Property{
+			PropertyFields: core.PropertyFields{Mnemonic: "NAME"},
+			DocumentFields: core.DocumentFields{ID: []string{"p1"}},
+		},
+	}
+
+	_, errE := transform.Mnemonics(ctx, docs)
+	require.Error(t, errE)
+	assert.ErrorIs(t, errE, context.Canceled)
+}
+
+func TestMnemonics_NonStringMnemonic(t *testing.T) {
+	t.Parallel()
+
+	// A struct with a non-string Mnemonic field causes an error.
+	type PropertyWithIntMnemonic struct {
+		Mnemonic int
+		ID       []string
+	}
+
+	docs := []any{
+		&PropertyWithIntMnemonic{
+			Mnemonic: 42,
+			ID:       []string{"prop1"},
+		},
+	}
+
+	_, errE := transform.Mnemonics(t.Context(), docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "expected string for mnemonic")
+}
+
+func TestMnemonics_IDNotStringSlice(t *testing.T) {
+	t.Parallel()
+
+	// A struct with a non-[]string ID field causes an error.
+	type PropertyWithIntID struct {
+		Mnemonic string
+		ID       int
+	}
+
+	docs := []any{
+		&PropertyWithIntID{
+			Mnemonic: "NAME",
+			ID:       42,
+		},
+	}
+
+	_, errE := transform.Mnemonics(t.Context(), docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "expected []string for ID")
+}
+
+func TestMnemonics_NoIDField(t *testing.T) {
+	t.Parallel()
+
+	// A struct with a Mnemonic field but no ID field is skipped without error.
+	type PropertyNoID struct {
+		Mnemonic string
+	}
+
+	docs := []any{
+		&PropertyNoID{Mnemonic: "NAME"},
+	}
+
+	result, errE := transform.Mnemonics(t.Context(), docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, result)
 }

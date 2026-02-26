@@ -1,6 +1,7 @@
 package transform_test
 
 import (
+	"context"
 	"math"
 	"testing"
 	"time"
@@ -5228,30 +5229,675 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 	assert.EqualError(t, errE, "cardinality tag cannot be used with value tag")
 }
 
-func TestDocuments_ValueFieldCannotHaveDefault(t *testing.T) {
+func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
 	t.Parallel()
 
-	// Test that value field cannot have default tag.
-	type StructWithDefaultValue struct {
+	// Test that value:"" default:"none" does not create a NoValueClaim when the value is empty and there are no meta claims.
+	type NameValue struct {
 		Value string `default:"none" value:""`
 	}
 
-	type DocWithDefaultValue struct {
-		ID    []string               `documentid:""`
-		Field StructWithDefaultValue `              property:"FIELD"`
+	type DocWithDefaultNoneValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
 
 	docs := []any{
-		&DocWithDefaultValue{
+		&DocWithDefaultNoneValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: ""},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"none" but no meta claims should not create any claim.
+	assert.Empty(t, doc.Claims.NoValue)
+}
+
+func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"unknown" does not create an UnknownValueClaim when the value is empty and there are no meta claims.
+	type NameValue struct {
+		Value string `default:"unknown" value:""`
+	}
+
+	type DocWithDefaultUnknownValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultUnknownValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: ""},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"unknown" but no meta claims should not create any claim.
+	assert.Empty(t, doc.Claims.UnknownValue)
+}
+
+func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"none" creates a normal claim when the value is non-empty.
+	type NameValue struct {
+		Value string `default:"none" value:""`
+	}
+
+	type DocWithDefaultNoneValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultNoneValue{
+			ID:   []string{"test", "doc1"},
+			Name: NameValue{Value: "Alice"},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Non-empty value should create a normal StringClaim, not a NoValueClaim.
+	require.Len(t, doc.Claims.String, 1)
+	assert.Empty(t, doc.Claims.NoValue)
+	assert.Equal(t, "Alice", doc.Claims.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.String[0].ID)
+}
+
+//nolint:dupl
+func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"none" creates a NoValueClaim with meta claims when value is empty.
+	type NameValue struct {
+		Value string `default:"none"                 value:""`
+		Note  string `               property:"NOTE"`
+	}
+
+	type DocWithDefaultNoneMetaValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultNoneMetaValue{
+			ID: []string{"test", "doc1"},
+			Name: NameValue{
+				Value: "",
+				Note:  "Annotation",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"none" and meta claims should create a NoValueClaim with meta claims.
+	require.Len(t, doc.Claims.NoValue, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.NoValue[0].ID)
+
+	require.NotNil(t, doc.Claims.NoValue[0].Meta)
+	require.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
+	assert.Equal(t, "Annotation", doc.Claims.NoValue[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+}
+
+//nolint:dupl
+func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
+	t.Parallel()
+
+	// Test that value:"" default:"unknown" creates an UnknownValueClaim with meta claims when value is empty.
+	type NameValue struct {
+		Value string `default:"unknown"                 value:""`
+		Note  string `                  property:"NOTE"`
+	}
+
+	type DocWithDefaultUnknownMetaValue struct {
+		ID   []string  `documentid:""`
+		Name NameValue `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithDefaultUnknownMetaValue{
+			ID: []string{"test", "doc1"},
+			Name: NameValue{
+				Value: "",
+				Note:  "Source unclear",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Empty value with default:"unknown" and meta claims should create an UnknownValueClaim with meta claims.
+	require.Len(t, doc.Claims.UnknownValue, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.UnknownValue[0].ID)
+
+	require.NotNil(t, doc.Claims.UnknownValue[0].Meta)
+	require.Len(t, doc.Claims.UnknownValue[0].Meta.String, 1)
+	assert.Equal(t, "Source unclear", doc.Claims.UnknownValue[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.UnknownValue[0].Meta.String[0].ID)
+}
+
+func TestClaimNotMadeError(t *testing.T) {
+	t.Parallel()
+
+	// Test that claimNotMadeError.Error() returns the expected message.
+	assert.Equal(t, "claim not made", transform.TestingErrClaimNotMade.Error())
+}
+
+func TestDocuments_ContextCancelled(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, errE := transform.Documents(ctx, mnemonics, []any{
+		&SimpleDoc{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	})
+
+	require.Error(t, errE)
+	assert.ErrorIs(t, errE, context.Canceled)
+}
+
+func TestDocuments_SliceIdentifierConflict(t *testing.T) {
+	t.Parallel()
+
+	// A slice of core.Identifier fields with conflicting type tag causes error propagation through processField.
+	type DocWithIdentifierSlice struct {
+		ID    []string          `documentid:""`
+		Codes []core.Identifier `              property:"CODE" type:"iri"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithIdentifierSlice{
 			ID:    []string{"test", "doc1"},
-			Field: StructWithDefaultValue{Value: "test"},
+			Codes: []core.Identifier{"ABC"},
 		},
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
-	assert.EqualError(t, errE, "default tag cannot be used with value tag")
+	assert.EqualError(t, errE, "identifier field used with conflicting tag")
+}
+
+func TestDocuments_PointerIdentifierConflict(t *testing.T) {
+	t.Parallel()
+
+	// A pointer to core.Identifier with conflicting type tag causes error propagation through processField.
+	type DocWithIdentifierPointer struct {
+		ID   []string         `documentid:""`
+		Code *core.Identifier `              property:"CODE" type:"iri"`
+	}
+
+	mnemonics := createMnemonics()
+
+	val := core.Identifier("ABC123")
+	docs := []any{
+		&DocWithIdentifierPointer{
+			ID:   []string{"test", "doc1"},
+			Code: &val,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "identifier field used with conflicting tag")
+}
+
+func TestDocuments_MetaClaimsProcessingError(t *testing.T) {
+	t.Parallel()
+
+	// A nested struct where a meta field fails (missing unit tag) causes processStructFields to error.
+	type NestedWithBadMeta struct {
+		Value string `                 value:""`
+		Count int    `property:"COUNT"`
+	}
+
+	type DocWithNestedBadMeta struct {
+		ID   []string          `documentid:""`
+		Data NestedWithBadMeta `              property:"DATA"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["DATA"] = identifier.From("test", "DATA")
+
+	docs := []any{
+		&DocWithNestedBadMeta{
+			ID: []string{"test", "doc1"},
+			Data: NestedWithBadMeta{
+				Value: "test",
+				Count: 5,
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
+}
+
+func TestDocuments_EmbeddedNoValueInValueSearch(t *testing.T) {
+	t.Parallel()
+
+	// When extractValueClaim encounters an anonymous embedded struct with no value field, it continues.
+	type EmbeddedNoValue struct {
+		Meta string `property:"META"`
+	}
+
+	type OuterWithValueAndEmbedded struct {
+		EmbeddedNoValue
+
+		Value string `value:""`
+	}
+
+	type DocWithOuterEmbedded struct {
+		ID    []string                  `documentid:""`
+		Field OuterWithValueAndEmbedded `              property:"FIELD"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["META"] = identifier.From("test", "META")
+
+	docs := []any{
+		&DocWithOuterEmbedded{
+			ID: []string{"test", "doc1"},
+			Field: OuterWithValueAndEmbedded{
+				EmbeddedNoValue: EmbeddedNoValue{Meta: "meta-value"},
+				Value:           "main-value",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, "main-value", doc.Claims.String[0].String)
+}
+
+func TestDocuments_EmbeddedValueClaimError(t *testing.T) {
+	t.Parallel()
+
+	// When an embedded struct's value field has a conflicting type tag, the error propagates.
+	type EmbeddedWithConflict struct {
+		Value core.Identifier `type:"iri" value:""`
+	}
+
+	type OuterWithConflict struct {
+		EmbeddedWithConflict
+	}
+
+	type DocWithConflictEmbedded struct {
+		ID   []string          `documentid:""`
+		Item OuterWithConflict `              property:"ITEM"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["ITEM"] = identifier.From("test", "ITEM")
+
+	docs := []any{
+		&DocWithConflictEmbedded{
+			ID: []string{"test", "doc1"},
+			Item: OuterWithConflict{
+				EmbeddedWithConflict: EmbeddedWithConflict{
+					Value: "test-id",
+				},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "identifier field used with conflicting tag")
+}
+
+func TestDocuments_CoreIdentifierType(t *testing.T) {
+	t.Parallel()
+
+	// A core.Identifier field (non-empty, no conflicting type) creates an IdentifierClaim.
+	type DocWithCoreIdentifier struct {
+		ID   []string        `documentid:""`
+		Code core.Identifier `              property:"CODE"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreIdentifier{
+			ID:   []string{"test", "doc1"},
+			Code: "Q12345",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Identifier, 1)
+	assert.Equal(t, "Q12345", doc.Claims.Identifier[0].Value)
+	assert.Equal(t, identifier.From("test", "doc1", "CODE", "0"), doc.Claims.Identifier[0].ID)
+}
+
+func TestDocuments_EmptyCoreHTMLField(t *testing.T) {
+	t.Parallel()
+
+	// An empty core.HTML field produces no claim (claimNotMadeError).
+	type DocWithCoreHTML struct {
+		ID      []string  `documentid:""`
+		Content core.HTML `              property:"HTML"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreHTML{
+			ID:      []string{"test", "doc1"},
+			Content: "",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
+
+	doc := results[0]
+	assert.Equal(t, 0, doc.Claims.Size())
+}
+
+func TestDocuments_EmptyCoreRawHTMLField(t *testing.T) {
+	t.Parallel()
+
+	// An empty core.RawHTML field produces no claim (claimNotMadeError).
+	type DocWithCoreRawHTML struct {
+		ID      []string     `documentid:""`
+		Content core.RawHTML `              property:"RAW_HTML"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreRawHTML{
+			ID:      []string{"test", "doc1"},
+			Content: "",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
+
+	doc := results[0]
+	assert.Equal(t, 0, doc.Claims.Size())
+}
+
+func TestDocuments_IntInvalidUnit(t *testing.T) {
+	t.Parallel()
+
+	// An int field with an invalid unit tag returns a parse error.
+	type DocWithIntInvalidUnit struct {
+		ID    []string `documentid:""`
+		Count int      `              property:"COUNT" unit:"invalid"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithIntInvalidUnit{
+			ID:    []string{"test", "doc1"},
+			Count: 5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "unknown amount unit: invalid")
+}
+
+func TestDocuments_UintMissingUnit(t *testing.T) {
+	t.Parallel()
+
+	// A uint field without a unit tag returns an error.
+	type DocWithUintNoUnit struct {
+		ID    []string `documentid:""`
+		Count uint     `              property:"COUNT"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithUintNoUnit{
+			ID:    []string{"test", "doc1"},
+			Count: 5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
+}
+
+func TestDocuments_UintInvalidUnit(t *testing.T) {
+	t.Parallel()
+
+	// A uint field with an invalid unit tag returns a parse error.
+	type DocWithUintInvalidUnit struct {
+		ID    []string `documentid:""`
+		Count uint     `              property:"COUNT" unit:"invalid"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithUintInvalidUnit{
+			ID:    []string{"test", "doc1"},
+			Count: 5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "unknown amount unit: invalid")
+}
+
+func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
+	t.Parallel()
+
+	// When interval.To.Precision > interval.From.Precision, the result uses To's precision.
+	type DocWithIntervalPrecision struct {
+		ID       []string      `documentid:""`
+		Duration core.Interval `              property:"PERIOD"`
+	}
+
+	mnemonics := createMnemonics()
+
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 12, 0, 0, 0, time.UTC)
+
+	docs := []any{
+		&DocWithIntervalPrecision{
+			ID: []string{"test", "doc1"},
+			Duration: core.Interval{ //nolint:exhaustruct
+				From: &core.Time{
+					Timestamp: start,
+					Precision: document.TimePrecisionDay,
+				},
+				To: &core.Time{
+					Timestamp: end,
+					Precision: document.TimePrecisionSecond,
+				},
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
+
+	periodProperty := mnemonics["PERIOD"]
+	periodClaims := results[0].Get(periodProperty)
+	require.Len(t, periodClaims, 1)
+
+	timeRangeClaim, ok := periodClaims[0].(*document.TimeRangeClaim)
+	require.True(t, ok)
+	// To.Precision (TimePrecisionSecond) > From.Precision (TimePrecisionDay), so result uses To's precision.
+	assert.Equal(t, document.TimePrecisionSecond, timeRangeClaim.Precision)
+}
+
+func TestDocuments_BooleanWithHighCardinality(t *testing.T) {
+	t.Parallel()
+
+	// A boolean field with cardinality allowing more than 1 value is invalid.
+	// The single value check fires before the boolean check since bool is also a single value.
+	type DocWithBoolHighCard struct {
+		ID   []string `                  documentid:""`
+		Flag bool     `cardinality:"1.."               property:"HIDDEN"`
+	}
+
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithBoolHighCard{
+			ID:   []string{"test", "doc1"},
+			Flag: true,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "single value field cannot have max cardinality greater than 1")
+}
+
+func TestExtractDocumentID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("BasicStruct", func(t *testing.T) {
+		t.Parallel()
+
+		type DocWithID struct {
+			ID   []string `documentid:""`
+			Name string
+		}
+
+		id, errE := transform.ExtractDocumentID(&DocWithID{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, []string{"test", "doc1"}, id)
+	})
+
+	t.Run("PointerToStruct", func(t *testing.T) {
+		t.Parallel()
+
+		type DocWithID struct {
+			ID []string `documentid:""`
+		}
+
+		doc := &DocWithID{ID: []string{"a", "b"}}
+		id, errE := transform.ExtractDocumentID(doc)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, []string{"a", "b"}, id)
+	})
+
+	t.Run("NonStruct", func(t *testing.T) {
+		t.Parallel()
+
+		_, errE := transform.ExtractDocumentID("not a struct")
+		require.Error(t, errE)
+		assert.EqualError(t, errE, "expected struct")
+	})
+
+	t.Run("MissingDocumentID", func(t *testing.T) {
+		t.Parallel()
+
+		type DocNoID struct {
+			Name string
+		}
+
+		_, errE := transform.ExtractDocumentID(&DocNoID{Name: "Test"})
+		require.Error(t, errE)
+		assert.ErrorIs(t, errE, transform.ErrDocumentIDNotFound)
+	})
+
+	t.Run("StructValue", func(t *testing.T) {
+		t.Parallel()
+
+		type DocWithID struct {
+			ID []string `documentid:""`
+		}
+
+		// Pass a struct value (not pointer).
+		id, errE := transform.ExtractDocumentID(DocWithID{ID: []string{"x"}})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, []string{"x"}, id)
+	})
+}
+
+func TestDocuments_EmbeddedDocIDError(t *testing.T) {
+	t.Parallel()
+
+	// An embedded struct with an invalid documentid field type causes an error to propagate.
+	type EmbeddedBadID struct {
+		ID int `documentid:""`
+	}
+
+	type OuterWithBadEmbeddedID struct {
+		EmbeddedBadID
+	}
+
+	type DocWrapper struct {
+		OuterWithBadEmbeddedID
+	}
+
+	_, errE := transform.Documents(t.Context(), map[string]identifier.Identifier{}, []any{
+		&DocWrapper{
+			OuterWithBadEmbeddedID: OuterWithBadEmbeddedID{
+				EmbeddedBadID: EmbeddedBadID{ID: 42},
+			},
+		},
+	})
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "document ID field is not a string slice")
 }

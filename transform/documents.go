@@ -59,7 +59,7 @@
 //		Period core.Interval `property:"PERIOD"`
 //	}
 //
-// Cannot be combined with property, cardinality, and default tags.
+// Cannot be combined with property and cardinality tags.
 // Those tags belong to the field which uses the nested struct the value field is in.
 //
 // ## type
@@ -110,25 +110,36 @@
 //
 // Default: Fields without cardinality are optional (min=0, max=unbounded).
 //
-//	Required   []string  `property:"NAME" cardinality:"1.."` // At least one required.
-//	Optional   *string   `property:"NOTE" cardinality:"0..1"` // Zero or one.
-//	Exactly2   []string  `property:"IDS" cardinality:"2"`     // Exactly two.
+//	Required []string `property:"NAME" cardinality:"1.."` // At least one required.
+//	Optional *int     `property:"AGE" cardinality:"0..1"` // Zero or one.
+//	Exactly2 []string `property:"IDS" cardinality:"2"`    // Exactly two.
 //
 // ## default
 //
-// Specifies default claim to create when field doesn't satisfy minimum cardinality,
-// instead of returning an error.
+// On regular fields, specifies the default claim to create when the field doesn't
+// satisfy minimum cardinality, instead of returning an error.
 // Can only be used with cardinality tag when min > 0.
 // The number of claims added equals (min - actual count).
+//
+// On value fields (fields with value:""), specifies what claim to create when the
+// value field is empty.
+// Does not require a cardinality tag when used on value fields.
 //
 // Supported values:
 //
 //   - "none": add none-value claim(s),
-//   - "unknown": add unknown-value claim(s)..
+//   - "unknown": add unknown-value claim(s).
 //
-// Example:
+// Example (regular field):
 //
 //	Name []string `property:"NAME" cardinality:"1.." default:"none"`
+//
+// Example (value field):
+//
+//	type PersonWeight struct {
+//		Value     *int      `value:"" default:"unknown"`
+//		Timestamp core.Time `property:"TIMESTAMP"`
+//	}
 //
 // Semantic difference between values:
 //   - none: it is known that the value does not exist,
@@ -159,9 +170,12 @@
 //
 // Empty values (zero values) do not produce claims unless:
 //   - field has cardinality with min > 0 and default:"none" tag: creates none-value claim(s),
-//   - Field has cardinality with min > 0 and default:"unknown" tag: creates unknown-value claim(s),
-//   - Field has cardinality with min > 0 without default tag: returns error,
-//   - Nested struct with no value but has meta claims: creates none-value claim with meta claims (TODO: Change to has claim).
+//   - field has cardinality with min > 0 and default:"unknown" tag: creates unknown-value claim(s),
+//   - field has cardinality with min > 0 without default tag: returns error,
+//   - value field with default:"none" tag: creates a none-value claim,
+//   - value field with default:"unknown" tag: creates an unknown-value claim,
+//   - value field without a default tag: creates none-value claim with meta claims (TODO: Change to has claim),
+//   - nested struct with empty value but has meta claims: creates none-value claim with meta claims (TODO: Change to has claim).
 //
 // # Examples
 //
@@ -255,8 +269,24 @@ var (
 
 var ErrDocumentIDNotFound = errors.Base("document ID not found")
 
+type claimNotMadeError struct {
+	// For value claims we want to be able to pass its default value to consumer of the error
+	// so that it can decide how to handle the error (value claim has default struct tag on itself).
+	Default string
+}
+
+func (e *claimNotMadeError) Error() string {
+	return "claim not made"
+}
+
+func (e *claimNotMadeError) Is(target error) bool {
+	// We want to be able to use errors.Is(err, errClaimNotMade) for all claimNotMadeError errors.
+	_, ok := target.(*claimNotMadeError)
+	return ok
+}
+
 var (
-	errClaimNotMade       = errors.Base("claim not made")
+	errClaimNotMade       = &claimNotMadeError{}
 	errValueClaimNotFound = errors.Base("value claim not found")
 )
 
@@ -405,9 +435,9 @@ func (tr *transformer) processStructFields(
 
 		// Get tags.
 		typeTag := field.Tag.Get("type")
+		defaultTag := field.Tag.Get("default")
 		unit := field.Tag.Get("unit")
 		cardinality := field.Tag.Get("cardinality")
-		defaultTag := field.Tag.Get("default")
 
 		hasDefaultTag := defaultTag != ""
 
@@ -466,7 +496,7 @@ func (tr *transformer) processField(
 		// Handle pointers.
 	} else if fieldValue.Kind() == reflect.Ptr {
 		// We do not use errors.E here because we do not really need a stack trace.
-		err := errClaimNotMade
+		var err error = errClaimNotMade
 		count = 0
 
 		if !fieldValue.IsNil() {
@@ -569,7 +599,7 @@ func (tr *transformer) processSingleValue(
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
 ) errors.E {
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, unit, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, "", unit, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return errE
 	} else if errE != nil {
@@ -600,23 +630,43 @@ func (tr *transformer) processSingleValue(
 		// Here we use idPath because this claim really belongs at the level above this struct.
 		// It is only inside the struct so that we can list also its meta claims next to it.
 		claim, errE = extractValueClaim(fieldValue, fieldType, propertyID, idPath, fieldPath, claims)
-		if errors.Is(errE, errClaimNotMade) {
+		if e, ok := errors.AsType[*claimNotMadeError](errE); ok {
 			if metaTr.Claims.Size() == 0 {
 				// There are no meta claims nor a value claim, so we just return errClaimNotMade here.
 				return errE
 			}
 
 			// There is a value claim defined, but in this particular instance it has empty value,
-			// but there are meta claims for it, so we make it a nested claim.
+			// but there are meta claims for it, so we make a claim for it.
 			// TODO: What is all meta claims are "no value" claims?
 			claimID := newClaimID(idPath, propertyID, claims)
-			// TODO: Make this better. We currently map nested claims to NoValueClaim, but we should to HasClaim.
-			claim = &document.NoValueClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         claimID,
-					Confidence: document.HighConfidence,
-				},
-				Prop: document.Reference{ID: &propertyID},
+			switch e.Default {
+			case defaultNone:
+				claim = &document.NoValueClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         claimID,
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.Reference{ID: &propertyID},
+				}
+			case defaultUnknown:
+				claim = &document.UnknownValueClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         claimID,
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.Reference{ID: &propertyID},
+				}
+			default:
+				// By default, we make nested claims.
+				// TODO: Make this better. We currently map nested claims to NoValueClaim, but we should to HasClaim.
+				claim = &document.NoValueClaim{
+					CoreClaim: document.CoreClaim{
+						ID:         claimID,
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.Reference{ID: &propertyID},
+				}
 			}
 		} else if errors.Is(errE, errValueClaimNotFound) {
 			if metaTr.Claims.Size() == 0 {
@@ -667,7 +717,8 @@ func (tr *transformer) processSingleValue(
 // extractValueClaim returns a claim for the field with tag "value".
 //
 // If no such field is found, it returns an errValueClaimNotFound error.
-// If such field is found, but it has no value, it returns an errClaimNotMade error.
+// If such field is found, but it has an empty value, it returns a claimNotMadeError
+// error (with default value set, if provided through a struct tag).
 //
 //nolint:ireturn
 func extractValueClaim(
@@ -701,17 +752,12 @@ func extractValueClaim(
 				return nil, errE
 			}
 
-			if _, hasProperty := field.Tag.Lookup("default"); hasProperty {
-				errE := errors.New("default tag cannot be used with value tag")
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return nil, errE
-			}
-
 			// Get tags.
 			typeTag := field.Tag.Get("type")
+			defaultTag := field.Tag.Get("default")
 			unit := field.Tag.Get("unit")
 
-			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, unit, idPath, newFieldPath, claims)
+			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, unit, idPath, newFieldPath, claims)
 			if errE != nil {
 				return nil, errE
 			}
@@ -757,7 +803,8 @@ func extractValueClaim(
 
 // processValueClaimField returns a value claim for the field.
 //
-// If the field has no value, it returns an errClaimNotMade error.
+// If the field has an empty value, it returns a claimNotMadeError
+// error (with default value set, if provided through a struct tag).
 //
 //nolint:ireturn
 func processValueClaimField(
@@ -765,6 +812,7 @@ func processValueClaimField(
 	fieldType reflect.Type,
 	propertyID identifier.Identifier,
 	typeTag string,
+	defaultTag string,
 	unit string,
 	idPath []string,
 	fieldPath []string,
@@ -773,14 +821,16 @@ func processValueClaimField(
 	// Handle pointers.
 	if fieldValue.Kind() == reflect.Ptr {
 		if fieldValue.IsNil() {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		fieldValue = fieldValue.Elem()
 		fieldType = fieldValue.Type()
 	}
 
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, unit, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, defaultTag, unit, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return nil, errE
 	} else if errE != nil {
@@ -798,7 +848,8 @@ func processValueClaimField(
 
 // makeClaim creates a claim for the field for simple types of values (not slices, pointers, nor non-core structs).
 //
-// If the field is supported but has no value, it returns an errClaimNotMade error.
+// If the field is supported but has an empty value, it returns a claimNotMadeError
+// error (with default value set, if provided through a struct tag).
 // If the field is not supported, it returns nil.
 //
 //nolint:ireturn,maintidx
@@ -807,6 +858,7 @@ func makeClaim(
 	t reflect.Type,
 	propertyID identifier.Identifier,
 	typeTag string,
+	defaultTag string,
 	unit string,
 	idPath []string,
 	claims map[identifier.Identifier]int,
@@ -815,7 +867,9 @@ func makeClaim(
 	if t == coreRef {
 		ref := fieldValue.Interface().(core.Ref) //nolint:errcheck,forcetypeassert
 		if len(ref.ID) == 0 {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 		refID := identifier.From(ref.ID...)
 
@@ -834,7 +888,9 @@ func makeClaim(
 	if t == coreTime {
 		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
 		if coreTime.Timestamp.IsZero() {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -854,7 +910,9 @@ func makeClaim(
 		interval := fieldValue.Interface().(core.Interval) //nolint:errcheck,forcetypeassert
 
 		if interval.From == nil && interval.To == nil && interval.FromIsUnknown && interval.ToIsUnknown {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		// TODO: This is just temporary. Support unknown interval bounds.
@@ -892,7 +950,9 @@ func makeClaim(
 	if t == coreIdentifier {
 		identifier := fieldValue.Interface().(core.Identifier) //nolint:errcheck,forcetypeassert
 		if identifier == "" {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeID {
@@ -915,7 +975,9 @@ func makeClaim(
 	if t == coreIRI {
 		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
 		if iri == "" {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeIRI {
@@ -937,7 +999,9 @@ func makeClaim(
 	if t == coreHTML {
 		h := fieldValue.Interface().(core.HTML) //nolint:errcheck,forcetypeassert
 		if h == "" {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeHTML {
@@ -962,7 +1026,9 @@ func makeClaim(
 	if t == coreRawHTML {
 		rawHTML := fieldValue.Interface().(core.RawHTML) //nolint:errcheck,forcetypeassert
 		if rawHTML == "" {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeRawHTML {
@@ -987,7 +1053,9 @@ func makeClaim(
 	if t == coreNone {
 		none := fieldValue.Interface().(core.None) //nolint:errcheck,forcetypeassert
 		if !bool(none) {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeNone {
@@ -1008,7 +1076,9 @@ func makeClaim(
 	if t == coreUnknown {
 		unknown := fieldValue.Interface().(core.Unknown) //nolint:errcheck,forcetypeassert
 		if !bool(unknown) {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		if typeTag != "" && typeTag != typeUnknown {
@@ -1029,7 +1099,9 @@ func makeClaim(
 	if fieldValue.Kind() == reflect.String {
 		str := fieldValue.String()
 		if str == "" {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -1097,7 +1169,9 @@ func makeClaim(
 	// Handle bool.
 	if fieldValue.Kind() == reflect.Bool {
 		if !fieldValue.Bool() {
-			return nil, errors.WithStack(errClaimNotMade)
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)

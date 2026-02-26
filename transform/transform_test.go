@@ -1,7 +1,8 @@
 package transform //nolint:testpackage
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals,errname
 var (
-	TestingSanitizeHTML = sanitizeHTML
-	TestingEscapeHTML   = escapeHTML
+	TestingSanitizeHTML          = sanitizeHTML
+	TestingEscapeHTML            = escapeHTML
+	TestingErrClaimNotMade error = errClaimNotMade
 )
