@@ -43,7 +43,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.6 // indirect
 	github.com/chainguard-dev/git-urls v1.0.2 // indirect
-	github.com/cloudflare/circl v1.6.2 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cosnicolaou/pbzip2 v1.0.6 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
