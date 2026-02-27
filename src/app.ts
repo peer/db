@@ -8,6 +8,7 @@ import RouterLink from "@/components/RouterLink.vue"
 import siteContext from "@/context"
 import i18n from "@/i18n"
 import { progressKey } from "@/progress"
+import twMerge from "@/tw-merge"
 
 // During development when requests are proxied to Vite, placeholders
 // in HTML files are not rendered. So we set them here as well.
@@ -52,7 +53,7 @@ const apiRouter = createRouter({
 
 router.apiResolve = apiRouter.resolve.bind(apiRouter)
 
-const app = createApp(App).use(router)
+const app = createApp(App).use(router).use(twMerge)
 
 // We replace Vue Router's RouterLink with ours.
 delete app._context.components["RouterLink"]

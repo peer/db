@@ -291,7 +291,7 @@ function onCloseFilterModal() {
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
-                      class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none! p-2! leading-none! shadow-none!"
+                      class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none p-2 leading-none shadow-none"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <!-- We need a span to be able to use v-html. -->
@@ -322,7 +322,7 @@ function onCloseFilterModal() {
                     <Button
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
                       :title="getButtonTitle(result.id)"
-                      class="border-none! p-0! shadow-none!"
+                      class="border-none p-0 shadow-none"
                       @click.prevent="onToggleRow(result.id)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
@@ -364,7 +364,7 @@ function onCloseFilterModal() {
                             <Button
                               v-if="cellExpanded || cellTruncated"
                               :title="getButtonTitle(result.id)"
-                              class="border-none! p-0! shadow-none!"
+                              class="border-none p-0 shadow-none"
                               @click.prevent="onToggleRow(result.id)"
                             >
                               <ChevronDownUpIcon v-if="rowExpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
@@ -476,7 +476,7 @@ function onCloseFilterModal() {
           @filter-change="(c) => $emit('filterChange', c)"
         />
 
-        <Button class="absolute! top-1 right-1 border-none! p-0! shadow-none! sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
+        <Button class="absolute! top-1 right-1 border-none p-0 shadow-none sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
           <XMarkIcon class="size-5" />
         </Button>
       </DialogPanel>

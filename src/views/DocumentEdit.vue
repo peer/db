@@ -296,7 +296,7 @@ function onChangeTab(index: number) {
   <Teleport to="header">
     <NavBar>
       <NavBarSearch />
-      <Button :progress="saveProgress" type="button" primary class="px-3.5!" @click.prevent="onSave">
+      <Button :progress="saveProgress" type="button" primary class="px-3.5" @click.prevent="onSave">
         <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
         <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
       </Button>

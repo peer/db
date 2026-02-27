@@ -25,6 +25,7 @@ withDefaults(
 
 <template>
   <button
+    v-tw-merge
     :disabled="progress > 0 || disabled"
     class="button relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
     :class="{
