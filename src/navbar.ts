@@ -2,12 +2,22 @@ import type { Ref, StyleValue, TemplateRef } from "vue"
 
 import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
 
+import { getConfig } from "@/config"
+
 export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
+  const config = getConfig()
+
   const navbar = useTemplateRef<HTMLElement>("navbar")
   const attrs = ref({
     style: { position: "absolute" as "absolute" | "fixed", top: "0px" },
     class: { "animate-navbar": false },
   })
+
+  if (config.value.fixedNavbar) {
+    attrs.value.style.position = "fixed"
+    return { navbar, attrs }
+  }
+
   let lastScrollPosition = 0
   const supportScrollY = window.scrollY !== undefined
 
