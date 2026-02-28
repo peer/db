@@ -230,8 +230,8 @@ export function useLimitResults<T>(
 
   const _limitedResults = ref<T[]>([]) as Ref<T[]>
   const _hasMore = ref(false)
-  const limitedResults = import.meta.env.DEV ? readonly(_limitedResults) : (_limitedResults as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
-  const hasMore = import.meta.env.DEV ? readonly(_hasMore) : _hasMore
+  const limitedResults = process.env.NODE_ENV !== "production" ? readonly(_limitedResults) : (_limitedResults as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
+  const hasMore = process.env.NODE_ENV !== "production" ? readonly(_hasMore) : _hasMore
 
   watchEffect(() => {
     limit = Math.min(initialLimit, results.value.length)
@@ -300,8 +300,8 @@ export function loadingShortHeights(seed: string, count: number): string[] {
 export function useInitialLoad(progress: Ref<number>): { initialLoad: Ref<boolean>; laterLoad: Ref<boolean> } {
   const _initialLoad = ref<boolean>(false)
   const _laterLoad = ref<boolean>(false)
-  const initialLoad = import.meta.env.DEV ? readonly(_initialLoad) : _initialLoad
-  const laterLoad = import.meta.env.DEV ? readonly(_laterLoad) : _laterLoad
+  const initialLoad = process.env.NODE_ENV !== "production" ? readonly(_initialLoad) : _initialLoad
+  const laterLoad = process.env.NODE_ENV !== "production" ? readonly(_laterLoad) : _laterLoad
 
   let initialLoadDone = false
   watch(

@@ -395,11 +395,11 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const moreThanTotal = import.meta.env.DEV ? readonly(_moreThanTotal) : _moreThanTotal
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
+  const results = process.env.NODE_ENV !== "production" ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
+  const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const moreThanTotal = process.env.NODE_ENV !== "production" ? readonly(_moreThanTotal) : _moreThanTotal
+  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
+  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -534,13 +534,13 @@ export function useAmountHistogramValues(
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const min = import.meta.env.DEV ? readonly(_min) : _min
-  const max = import.meta.env.DEV ? readonly(_max) : _max
-  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
+  const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
+  const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const min = process.env.NODE_ENV !== "production" ? readonly(_min) : _min
+  const max = process.env.NODE_ENV !== "production" ? readonly(_max) : _max
+  const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
+  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
+  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -660,13 +660,13 @@ export function useTimeHistogramValues(
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const min = import.meta.env.DEV ? readonly(_min) : _min
-  const max = import.meta.env.DEV ? readonly(_max) : _max
-  const interval = import.meta.env.DEV ? readonly(_interval) : _interval
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
+  const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
+  const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const min = process.env.NODE_ENV !== "production" ? readonly(_min) : _min
+  const max = process.env.NODE_ENV !== "production" ? readonly(_max) : _max
+  const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
+  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
+  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -776,10 +776,10 @@ export function useStringFilterValues(
   const _total = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const results = import.meta.env.DEV ? readonly(_results) : _results
-  const total = import.meta.env.DEV ? readonly(_total) : _total
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
+  const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
+  const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
+  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -958,9 +958,9 @@ export function useSearchSession(
   const _searchSession = ref<ClientSearchSession | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
-  const searchSession = import.meta.env.DEV ? readonly(_searchSession) : _searchSession
-  const error = import.meta.env.DEV ? readonly(_error) : _error
-  const url = import.meta.env.DEV ? readonly(_url) : _url
+  const searchSession = process.env.NODE_ENV !== "production" ? readonly(_searchSession) : _searchSession
+  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
+  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())

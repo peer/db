@@ -18,7 +18,7 @@ export function useTruncationTracking(): {
   const keyToElement = new Map<string, Element>()
   const elementToItem = new Map<Element, [string, string]>()
   const _truncated = ref(new Map<string, Set<string>>())
-  const truncated = import.meta.env.DEV ? readonly(_truncated) : _truncated
+  const truncated = process.env.NODE_ENV !== "production" ? readonly(_truncated) : _truncated
 
   function addTruncated(groupId: string, itemId: string) {
     if (!_truncated.value.has(groupId)) {

@@ -9,7 +9,7 @@ export function useVisibilityTracking(): {
   const idToElement = new Map<string, Element>()
   const elementToId = new Map<Element, string>()
   const _visibles = ref(new Set<string>())
-  const visibles = import.meta.env.DEV ? readonly(_visibles) : _visibles
+  const visibles = process.env.NODE_ENV !== "production" ? readonly(_visibles) : _visibles
 
   const observer = new IntersectionObserver(
     (entries) => {

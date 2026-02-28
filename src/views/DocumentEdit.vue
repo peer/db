@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
 })
 
 const _doc = ref<PeerDBDocument | null>(null)
-const doc = import.meta.env.DEV ? readonly(_doc) : _doc
+const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
 
 let latestChange = 0
 

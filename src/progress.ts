@@ -4,7 +4,7 @@ import { computed, inject, ref } from "vue"
 
 // During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
 // So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
-export const progressKey: InjectionKey<Ref<number>> = import.meta.env.DEV ? Symbol.for("peerdb-progress") : Symbol()
+export const progressKey: InjectionKey<Ref<number>> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-progress") : Symbol()
 
 // injectProgress returns a reactive and mutable local view of the
 // main progress (as injected with progressKey). It starts at 0
