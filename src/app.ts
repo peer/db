@@ -54,10 +54,20 @@ const apiRouter = createRouter({
 
 router.apiResolve = apiRouter.resolve.bind(apiRouter)
 
-const app = createApp(App).use(router).use(twMerge)
+const app = createApp(App).use(router)
 
 // We replace Vue Router's RouterLink with ours.
 delete app._context.components["RouterLink"]
 app.component("RouterLink", RouterLink)
 
-app.use(i18n).provide(progressKey, ref(0)).provide(configKey, ref({})).mount("main")
+app
+  .use(i18n)
+  .use(twMerge)
+  .provide(progressKey, ref(0))
+  .provide(
+    configKey,
+    ref({
+      fixedNavbar: false,
+    }),
+  )
+  .mount("main")

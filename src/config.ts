@@ -6,7 +6,9 @@ type Config = {
   fixedNavbar?: boolean
 }
 
-export const configKey: InjectionKey<Ref<Config>> = Symbol()
+// During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
+// So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
+export const configKey: InjectionKey<Ref<Config>> = import.meta.env.DEV ? Symbol.for("peerdb-config") : Symbol()
 
 // getConfig returns the config (as provided with configKey).
 export function getConfig(): Ref<Config> {
