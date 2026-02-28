@@ -255,7 +255,7 @@ function onCloseFilterModal() {
           One would assume that w-full is needed to make the container div as wide as the
           body inside which then the footer horizontally shifts.
   -->
-  <div class="searchresultstable-header sticky left-0 z-20 w-0">
+  <div class="pd-searchresultstable-header sticky left-0 z-20 w-0">
     <SearchResultsHeader
       class="w-container p-1 sm:p-4"
       :search-session="searchSession"
@@ -265,12 +265,12 @@ function onCloseFilterModal() {
     />
   </div>
 
-  <div v-if="filtersError" class="searchresultstable-error mb-1 px-1 text-center sm:mb-4 sm:px-4">
-    <i class="searchresultstable-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+  <div v-if="filtersError" class="pd-searchresultstable-filters-error-wrapper mb-1 px-1 text-center sm:mb-4 sm:px-4">
+    <i class="pd-searchresultstable-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
   </div>
 
   <template v-else-if="searchTotal !== null && searchTotal > 0">
-    <div ref="content" class="searchresultstable flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
+    <div ref="content" class="pd-searchresultstable flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
       <table class="border border-gray-200 shadow-sm">
         <!-- Headers -->
@@ -282,7 +282,7 @@ function onCloseFilterModal() {
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
-              <div class="searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
+              <div class="pd-searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="text-start">
@@ -300,7 +300,7 @@ function onCloseFilterModal() {
                     </Button>
                   </template>
                   <template #loading="{ url }">
-                    <div class="withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
+                    <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
                   </template>
                 </WithPeerDBDocument>
               </th>
@@ -331,7 +331,7 @@ function onCloseFilterModal() {
                   </td>
                   <td v-if="filtersTotal === null" class="p-2">
                     <div
-                      class="searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200"
+                      class="pd-searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200"
                       :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]"
                     />
                   </td>
@@ -390,27 +390,27 @@ function onCloseFilterModal() {
                   URL query parameter is set to the first ID for final <tr>s, the same one which was the first ID for loading <tr>s. To prevent this "flicker"
                   of "at" URL query parameter we do not track loading and error <tr>s.
                 -->
-                <tr class="withdocument-loading odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="pd-withdocument-loading-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <div class="inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
+                    <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
               </template>
               <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ url }">
-                <tr class="withdocument-error odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="pd-withdocument-error-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
                       index + 1
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <i class="text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+                    <i class="pd-withdocument-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
                   </td>
                 </tr>
               </template>
@@ -458,7 +458,7 @@ function onCloseFilterModal() {
   <!--
     We make the dialog z-50 (and to be able to do so, we have to make it relative) to make it higher than the navbar and other floating elements.
   -->
-  <Dialog as="div" class="searchresultstable-dialog relative z-50" :open="activeFilter !== null && searchTotal !== null" @close="onCloseFilterModal">
+  <Dialog as="div" class="pd-searchresultstable-dialog relative z-50" :open="activeFilter !== null && searchTotal !== null" @close="onCloseFilterModal">
     <!-- Backdrop. -->
     <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
@@ -476,7 +476,7 @@ function onCloseFilterModal() {
           @filter-change="(c) => $emit('filterChange', c)"
         />
 
-        <Button class="absolute! top-1 right-1 border-none p-0 shadow-none sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
+        <Button class="absolute top-1 right-1 border-none p-0 shadow-none sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
           <XMarkIcon class="size-5" />
         </Button>
       </DialogPanel>

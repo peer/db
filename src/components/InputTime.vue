@@ -676,7 +676,7 @@ watch(
 </script>
 
 <template>
-  <div class="inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
+  <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
       <label :for="inputId" class="mb-1"
         ><slot name="timestamp-label">{{ t("common.labels.timestamp") }}</slot></label
@@ -746,6 +746,6 @@ watch(
     </Listbox>
   </div>
 
-  <div v-if="errorMessage" class="inputtime-error mt-1 text-sm text-error-600">{{ errorMessage }}</div>
-  <div v-else class="inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("components.InputTime.format") }}</div>
+  <div v-if="errorMessage" class="pd-inputtime-error mt-1 text-sm text-error-600">{{ errorMessage }}</div>
+  <div v-else class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("components.InputTime.format") }}</div>
 </template>

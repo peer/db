@@ -27,7 +27,7 @@ withDefaults(
   <button
     v-tw-merge
     :disabled="progress > 0 || disabled"
-    class="button relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
+    class="pd-button relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
     :class="{
       'cursor-not-allowed': progress > 0 || disabled,
       'px-6 py-2.5': primary,

@@ -146,19 +146,19 @@
     @apply text-primary-300;
   }
 
-  .progress-bar-short,
-  .progress-bar-long {
+  .pd-progressbar-short,
+  .pd-progressbar-long {
     animation-duration: 2.2s;
     animation-iteration-count: infinite;
     animation-delay: 200ms;
     will-change: left, right;
   }
 
-  .progress-bar-short {
+  .pd-progressbar-short {
     animation-name: indeterminate-short-ltr;
   }
 
-  .progress-bar-long {
+  .pd-progressbar-long {
     animation-name: indeterminate-ltr;
   }
 

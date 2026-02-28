@@ -33,7 +33,7 @@ border with "border-none".
     :replace="replace"
     :disabled="disabled"
     :after-click="afterClick"
-    class="inputtextlink appearance-none px-3 py-2 text-base"
+    class="pd-inputtextlink appearance-none px-3 py-2 text-base"
     :class="{
       'text-left outline-none': true, // Override default @tailwindcss/forms style.
       'rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2': true, // InputText.vue style.

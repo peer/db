@@ -199,7 +199,7 @@ async function onEdit() {
       </Button>
     </NavBar>
   </Teleport>
-  <div ref="el" class="documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
+  <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
@@ -253,7 +253,7 @@ async function onEdit() {
           </TabGroup>
         </template>
         <template #loading>
-          <div class="documentget-loading flex animate-pulse flex-col gap-y-2">
+          <div class="pd-documentget-loading flex animate-pulse flex-col gap-y-2">
             <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
             <div class="flex gap-x-4">
               <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
@@ -266,7 +266,7 @@ async function onEdit() {
           </div>
         </template>
         <template #error>
-          <i class="documentget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+          <i class="pd-documentget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
         </template>
       </WithPeerDBDocument>
     </div>

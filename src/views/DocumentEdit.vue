@@ -302,7 +302,7 @@ function onChangeTab(index: number) {
       </Button>
     </NavBar>
   </Teleport>
-  <div class="documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
+  <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc">
         <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>

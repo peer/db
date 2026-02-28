@@ -80,7 +80,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
 <template>
   <RelFiltersResult
     v-if="result.type === 'rel'"
-    class="filterresult"
+    class="pd-filterresult"
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
@@ -92,7 +92,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
 
   <AmountFiltersResult
     v-if="result.type === 'amount'"
-    class="filterresult"
+    class="pd-filterresult"
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
@@ -104,7 +104,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
 
   <TimeFiltersResult
     v-if="result.type === 'time'"
-    class="filterresult"
+    class="pd-filterresult"
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
@@ -116,7 +116,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
 
   <StringFiltersResult
     v-if="result.type === 'string'"
-    class="filterresult"
+    class="pd-filterresult"
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"

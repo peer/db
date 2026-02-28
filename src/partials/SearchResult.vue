@@ -122,7 +122,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div :id="`result-${result.id}`" class="searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
+  <div :id="`result-${result.id}`" class="pd-searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
@@ -145,7 +145,7 @@ const rowSpan = computed(() => {
                   ></li>
                 </template>
                 <template #loading="{ url }">
-                  <li class="withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
               </WithPeerDBDocument>
             </template>
@@ -160,7 +160,7 @@ const rowSpan = computed(() => {
         </div>
       </template>
       <template #loading>
-        <div class="flex animate-pulse flex-col gap-y-2">
+        <div class="pd-withdocument-loading flex animate-pulse flex-col gap-y-2">
           <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
             <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>
@@ -173,7 +173,7 @@ const rowSpan = computed(() => {
         </div>
       </template>
       <template #error>
-        <i class="withdocument-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+        <i class="pd-withdocument-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </template>
     </WithPeerDBDocument>
   </div>

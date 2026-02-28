@@ -139,7 +139,7 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div ref="content" class="searchresultsfeed flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+  <div ref="content" class="pd-searchresultsfeed flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
     <!-- Search results column -->
     <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
       <SearchResultsHeader
@@ -151,15 +151,15 @@ function onFilters() {
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-for="(result, i) in limitedSearchResults" :key="result.id">
-          <div v-if="i > 0 && i % 10 === 0" class="my-1 sm:my-4">
-            <div v-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+          <div v-if="i > 0 && i % 10 === 0" class="pd-pager my-1 sm:my-4">
+            <div v-if="searchResults.length < searchTotal" class="pd-count text-center text-sm">{{
               t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length })
             }}</div>
-            <div v-else-if="searchResults.length == searchTotal" class="text-center text-sm">{{
+            <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
               t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
             }}</div>
-            <div class="relative h-2 w-full bg-slate-200">
-              <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
+            <div class="pd-track relative h-2 w-full bg-slate-200">
+              <div class="pd-thumb absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
@@ -187,9 +187,9 @@ function onFilters() {
 
     <!-- Filters column -->
     <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
-      <div v-if="filtersError" class="my-1 sm:my-4">
+      <div v-if="filtersError" class="pd-searchresultsfeed-filters-error-wrapper my-1 sm:my-4">
         <div class="text-center text-sm"
-          ><i class="searchresultsfeed-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
+          ><i class="pd-searchresultsfeed-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
         >
       </div>
 
