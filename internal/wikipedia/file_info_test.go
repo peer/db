@@ -1,10 +1,8 @@
 package wikipedia
 
 import (
-	"context"
 	"testing"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,8 +15,8 @@ func TestGetImageInfoForFilename(t *testing.T) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	ctx := context.Background()
-	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+	ctx := t.Context()
+	httpClient := es.NewHTTPClient(logger, nil)
 
 	ii, errE := getImageInfoForFilename(ctx, httpClient, "commons.wikimedia.org", "", 50, "Logo_Google_2013_Official.svg")
 	require.NoError(t, errE, "% -+#.1v", errE)

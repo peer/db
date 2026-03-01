@@ -14,8 +14,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -76,7 +76,7 @@ func (c *PrepareCommand) updateEmbeddedDocuments(
 	g, ctx := errgroup.WithContext(ctx)
 
 	count := x.Counter(0)
-	progress := es.Progress(globals.Logger, nil, cache, nil, "")
+	progress := newProgress(globals.Logger, nil, cache, nil)
 	ticker := x.NewTicker(ctx, &count, x.NewCounter(total), indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {

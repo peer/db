@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"html"
 	"io"
+	"net/http"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -17,8 +17,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -116,7 +115,7 @@ func processPRSFile(reader io.ReadCloser) ([]PRSEntry, errors.E) {
 	return records, nil
 }
 
-func getPRS(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]PRSEntry, errors.E) {
+func getPRS(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) ([]PRSEntry, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE
@@ -333,7 +332,7 @@ func makePRSDoc(prs PRSEntry) (document.D, errors.E) {
 func (p PRS) Run(
 	ctx context.Context,
 	config *Config,
-	httpClient *retryablehttp.Client,
+	httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -349,7 +348,7 @@ func (p PRS) Run(
 	config.Logger.Info().Int("total", len(records)).Msg("retrieved PRS data")
 
 	description := "PRS processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(len(records)))
 
 	count := x.Counter(0)

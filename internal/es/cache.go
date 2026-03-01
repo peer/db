@@ -16,8 +16,8 @@ type Cache struct {
 	missCount uint64
 }
 
-// NewCache creates a new LRU cache for document storage with the specified size.
-func NewCache(size int) (*Cache, errors.E) {
+// MakeCache creates a new LRU cache for document storage with the specified size.
+func MakeCache(size int) (*Cache, errors.E) {
 	cache, err := lru.New[any, *document.D](size)
 	if err != nil {
 		return nil, errors.WithStack(err)

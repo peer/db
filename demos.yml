@@ -3,6 +3,3 @@ globals:
     - domain: "wikipedia.peerdb.org"
       title: "Wikipedia Search"
       index: "wikipedia"
-    - domain: "moma.peerdb.org"
-      title: "The Museum of Modern Art Search"
-      index: "moma"

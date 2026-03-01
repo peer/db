@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"html"
 	"io"
+	"net/http"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/krolaw/zipstream"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -17,8 +17,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -135,7 +134,7 @@ func makeFursDoc(furs FursEntry) (document.D, errors.E) {
 func (d FURSDEJ) Run(
 	ctx context.Context,
 	config *Config,
-	httpClient *retryablehttp.Client,
+	httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -151,7 +150,7 @@ func (d FURSDEJ) Run(
 	config.Logger.Info().Int("total", len(records)).Msg("retrieved FURS DEJ data")
 
 	description := "FURS DEJ processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(len(records)))
 
 	count := x.Counter(0)
@@ -199,7 +198,7 @@ func (d FURSDEJ) Run(
 	return nil
 }
 
-func downloadFurs(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]FursEntry, errors.E) {
+func downloadFurs(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) ([]FursEntry, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE

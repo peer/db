@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
@@ -17,8 +17,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -58,13 +58,15 @@ func (c *CommonsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = mediawiki.LatestCommonsEntitiesRun
+		urlFunc = func(ctx context.Context, httpClient *http.Client) (string, errors.E) {
+			return mediawiki.LatestCommonsEntitiesRun(ctx, x.RetryableClient(httpClient))
+		}
 	}
 
 	ctx, stop, _, store, esClient, esProcessor, cache, config, errE := initializeRun(globals, urlFunc, nil)
@@ -171,13 +173,15 @@ type CommonsFilesCommand struct {
 }
 
 func (c *CommonsFilesCommand) Run(globals *Globals) errors.E {
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = mediawiki.LatestCommonsImageMetadataRun
+		urlFunc = func(ctx context.Context, httpClient *http.Client) (string, errors.E) {
+			return mediawiki.LatestCommonsImageMetadataRun(ctx, x.RetryableClient(httpClient))
+		}
 	}
 
 	return filesCommandRun(

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/field-eng-powertools/notify"
@@ -90,25 +91,68 @@ func (r *downloadingReader) Close() error {
 	return nil
 }
 
-func (r *downloadingReader) Start(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger) (int64, errors.E) {
+func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, logger zerolog.Logger) (int64, errors.E) {
 	ctx, r.cancel = context.WithCancel(ctx)
 	r.g, r.ctx = errgroup.WithContext(ctx)
 
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
-	if err != nil {
-		r.WriteFile.Close() //nolint:errcheck,gosec
-		r.ReadFile.Close()  //nolint:errcheck,gosec
-		_ = os.Remove(r.Path)
-		return 0, errors.WithStack(err)
+	var httpResponseReader io.ReadCloser
+
+	retryableClient := x.RetryableClient(httpClient)
+	if retryableClient != nil {
+		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
+		if err != nil {
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
+			return 0, errors.WithStack(err)
+		}
+
+		httpResponseReader, errE := x.NewRetryableResponse(retryableClient, req)
+		if errE != nil {
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
+			return 0, errE
+		}
+
+		r.size = httpResponseReader.Size()
+	} else {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
+		if err != nil {
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
+			return 0, errors.WithStack(err)
+		}
+
+		resp, err := httpClient.Do(req) //nolint:bodyclose
+		if err != nil {
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
+			return 0, errors.WithStack(err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return 0, errors.WithDetails(
+				x.ErrResponseBadStatus,
+				"status", resp.Status,
+				"body", strings.TrimSpace(string(body)),
+			)
+		}
+
+		var errE errors.E
+		r.size, errE = x.ResponseSize(resp)
+		if errE != nil {
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
+			return 0, errE
+		}
+
+		httpResponseReader = resp.Body
 	}
-	httpResponseReader, errE := x.NewRetryableResponse(httpClient, req)
-	if errE != nil {
-		r.WriteFile.Close() //nolint:errcheck,gosec
-		r.ReadFile.Close()  //nolint:errcheck,gosec
-		_ = os.Remove(r.Path)
-		return 0, errE
-	}
-	r.size = httpResponseReader.Size()
 
 	countingReader := &x.CountingReader{Reader: httpResponseReader}
 	r.ticker = x.NewTicker(ctx, countingReader, x.NewCounter(r.size), ProgressPrintRate)
@@ -209,7 +253,7 @@ func getPathAndURL(cacheDir, url string) (string, string) {
 // The returned reader can be read from while download is in progress and the file is being written.
 //
 // It should be used only once at a time for a given URL, otherwise the file might be incomplete.
-func CachedDownload(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
+func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
 	// If url points to a local file, cachedPath is set to url.
 	cachedPath, url := getPathAndURL(cacheDir, url)
 

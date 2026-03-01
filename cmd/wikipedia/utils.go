@@ -16,7 +16,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -28,8 +27,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/internal/wikipedia"
 	"gitlab.com/peerdb/peerdb/store"
@@ -102,8 +101,23 @@ func saveSkippedMap(path string, skippedMap *sync.Map, count *int64) errors.E {
 	return nil
 }
 
+func newProgress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *es.Cache, skipped *int64) func(ctx context.Context, p x.Progress) {
+	return indexer.Progress(logger, "", func(e *zerolog.Event) {
+		if esProcessor != nil {
+			stats := esProcessor.Stats()
+			e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
+		}
+		if cache != nil {
+			e.Uint64("cacheMiss", cache.MissCount())
+		}
+		if skipped != nil {
+			e.Int64("skipped", atomic.LoadInt64(skipped))
+		}
+	})
+}
+
 func initializeElasticSearch(globals *Globals) (
-	context.Context, context.CancelFunc, *retryablehttp.Client,
+	context.Context, context.CancelFunc, *http.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*elastic.Client, *elastic.BulkProcessor, *es.Cache, errors.E,
 ) {
@@ -114,7 +128,7 @@ func initializeElasticSearch(globals *Globals) (
 		return nil, nil, nil, nil, nil, nil, nil, errE
 	}
 
-	cache, errE := es.NewCache(lruCacheSize)
+	cache, errE := es.MakeCache(lruCacheSize)
 	if errE != nil {
 		return nil, nil, nil, nil, nil, nil, nil, errE
 	}
@@ -124,10 +138,10 @@ func initializeElasticSearch(globals *Globals) (
 
 func initializeRun(
 	globals *Globals,
-	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
+	urlFunc func(context.Context, *http.Client) (string, errors.E),
 	count *int64,
 ) (
-	context.Context, context.CancelFunc, *retryablehttp.Client,
+	context.Context, context.CancelFunc, *http.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes], *elastic.Client,
 	*elastic.BulkProcessor, *es.Cache, *mediawiki.ProcessDumpConfig, errors.E,
 ) {
@@ -155,11 +169,11 @@ func initializeRun(
 		return ctx, stop, httpClient, store, esClient, esProcessor, cache, &mediawiki.ProcessDumpConfig{
 			URL:                    url,
 			Path:                   dumpPath,
-			Client:                 httpClient,
+			Client:                 x.RetryableClient(httpClient),
 			DecompressionThreads:   globals.DecodingThreads,
 			DecodingThreads:        globals.DecodingThreads,
 			ItemsProcessingThreads: globals.ItemsProcessingThreads,
-			Progress:               es.Progress(globals.Logger, esProcessor, cache, count, ""),
+			Progress:               newProgress(globals.Logger, esProcessor, cache, count),
 		}, nil
 	}
 
@@ -349,9 +363,9 @@ func templatesCommandProcessPage(
 
 func filesCommandRun(
 	globals *Globals,
-	urlFunc func(context.Context, *retryablehttp.Client) (string, errors.E),
+	urlFunc func(context.Context, *http.Client) (string, errors.E),
 	token string, apiLimit int, saveSkipped string, skippedMap *sync.Map, skippedCount *int64,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *http.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {
 	ctx, stop, httpClient, store, _, esProcessor, _, config, errE := initializeRun(globals, urlFunc, skippedCount)
 	if errE != nil {
@@ -389,10 +403,10 @@ func filesCommandRun(
 }
 
 func filesCommandProcessImage(
-	ctx context.Context, globals *Globals, httpClient *retryablehttp.Client,
+	ctx context.Context, globals *Globals, httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	token string, apiLimit int, skippedMap *sync.Map, skippedCount *int64, image wikipedia.Image,
-	convertImage func(context.Context, zerolog.Logger, *retryablehttp.Client, string, int, wikipedia.Image) (*document.D, errors.E),
+	convertImage func(context.Context, zerolog.Logger, *http.Client, string, int, wikipedia.Image) (*document.D, errors.E),
 ) errors.E {
 	document, errE := convertImage(ctx, globals.Logger, httpClient, token, apiLimit, image)
 	if errE != nil {

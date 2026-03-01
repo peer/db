@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Upgrade to Go 1.25 and Node 24.
+- MoMA demo site moved to [its own repository](https://gitlab.com/peerdb/moma).
 
 ### Removed
 

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -27,7 +26,7 @@ type App struct {
 
 // mapAllWasherDrierFields prints all fields and sample values of all washer driers.
 func mapAllWasherDrierFields(ctx context.Context, logger zerolog.Logger, apiKey string) errors.E {
-	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+	httpClient := es.NewHTTPClient(logger, nil)
 
 	washerDriers, errE := eprel.GetWasherDriers[map[string]any](ctx, httpClient, apiKey)
 	if errE != nil {

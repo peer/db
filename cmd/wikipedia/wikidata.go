@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"sync"
 	"sync/atomic"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
@@ -45,13 +46,15 @@ type WikidataCommand struct {
 }
 
 func (c *WikidataCommand) Run(globals *Globals) errors.E {
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = mediawiki.LatestWikidataEntitiesRun
+		urlFunc = func(ctx context.Context, httpClient *http.Client) (string, errors.E) {
+			return mediawiki.LatestWikidataEntitiesRun(ctx, x.RetryableClient(httpClient))
+		}
 	}
 
 	ctx, stop, _, store, _, esProcessor, cache, config, errE := initializeRun(globals, urlFunc, &skippedWikidataEntitiesCount)

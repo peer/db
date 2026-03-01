@@ -14,7 +14,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/time/rate"
 )
@@ -79,7 +78,7 @@ type apiTask struct {
 //nolint:gochecknoglobals
 var apiWorkersPerSite sync.Map
 
-func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, token string, tasks []apiTask) errors.E { //nolint:maintidx
+func doAPIRequest(ctx context.Context, httpClient *http.Client, site, token string, tasks []apiTask) errors.E { //nolint:maintidx
 	titles := strings.Builder{}
 	tasksMap := map[string][]apiTask{}
 	for _, task := range tasks {
@@ -106,7 +105,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	encodedData := data.Encode()
 	apiURL := fmt.Sprintf("https://%s/w/api.php", site)
 	debugURL := fmt.Sprintf("%s?%s", apiURL, encodedData)
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(encodedData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(encodedData))
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = debugURL
@@ -279,7 +278,7 @@ func doAPIRequest(ctx context.Context, httpClient *retryablehttp.Client, site, t
 
 // Returned apiTaskChan is never explicitly closed but it is left
 // to the garbage collector to clean it up when it is suitable.
-func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int) chan<- apiTask {
+func getAPIWorker(ctx context.Context, httpClient *http.Client, site, token string, apiLimit int) chan<- apiTask {
 	// Sanity check so that we do not do unnecessary work of setup
 	// just to be cleaned up soon aftwards.
 	if ctx.Err() != nil {
@@ -353,7 +352,7 @@ func getAPIWorker(ctx context.Context, httpClient *retryablehttp.Client, site, t
 	return apiTaskChan
 }
 
-func getImageInfoChan(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, title string) (<-chan ImageInfo, <-chan errors.E) {
+func getImageInfoChan(ctx context.Context, httpClient *http.Client, site, token string, apiLimit int, title string) (<-chan ImageInfo, <-chan errors.E) {
 	apiTaskChan := getAPIWorker(ctx, httpClient, site, token, apiLimit)
 
 	imageInfoChan := make(chan ImageInfo)
@@ -393,7 +392,7 @@ func FirstUpperCase(str string) string {
 	return string(runes)
 }
 
-func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, filename string) (ImageInfo, errors.E) {
+func getImageInfoForFilename(ctx context.Context, httpClient *http.Client, site, token string, apiLimit int, filename string) (ImageInfo, errors.E) {
 	// First we make sure we do not have underscores.
 	title := strings.ReplaceAll(filename, "_", " ")
 	// The first letter has to be upper case.
@@ -408,7 +407,7 @@ func getImageInfoForFilename(ctx context.Context, httpClient *retryablehttp.Clie
 }
 
 // GetImageInfo retrieves image information from the Mediawiki API.
-func GetImageInfo(ctx context.Context, httpClient *retryablehttp.Client, site, token string, apiLimit int, title string) (ImageInfo, errors.E) {
+func GetImageInfo(ctx context.Context, httpClient *http.Client, site, token string, apiLimit int, title string) (ImageInfo, errors.E) {
 	imageInfoChan, errChan := getImageInfoChan(ctx, httpClient, site, token, apiLimit, title)
 
 	for {

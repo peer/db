@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
@@ -80,14 +81,14 @@ type WikipediaFilesCommand struct {
 }
 
 func (c *WikipediaFilesCommand) Run(globals *Globals) errors.E {
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaImageMetadataRun(ctx, client, "enwiki")
+		urlFunc = func(ctx context.Context, client *http.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaImageMetadataRun(ctx, x.RetryableClient(client), "enwiki")
 		}
 	}
 
@@ -123,14 +124,14 @@ func (c *WikipediaFileDescriptionsCommand) Run(globals *Globals) errors.E {
 		return errE
 	}
 
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if c.URL != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return c.URL, nil
 		}
 	} else {
-		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", filesWikipediaNamespace)
+		urlFunc = func(ctx context.Context, client *http.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, x.RetryableClient(client), "enwiki", filesWikipediaNamespace)
 		}
 	}
 
@@ -258,14 +259,14 @@ func wikipediaArticlesRun(
 		return errE
 	}
 
-	var urlFunc func(_ context.Context, _ *retryablehttp.Client) (string, errors.E)
+	var urlFunc func(_ context.Context, _ *http.Client) (string, errors.E)
 	if url != "" {
-		urlFunc = func(_ context.Context, _ *retryablehttp.Client) (string, errors.E) {
+		urlFunc = func(_ context.Context, _ *http.Client) (string, errors.E) {
 			return url, nil
 		}
 	} else {
-		urlFunc = func(ctx context.Context, client *retryablehttp.Client) (string, errors.E) {
-			return mediawiki.LatestWikipediaRun(ctx, client, "enwiki", namespace)
+		urlFunc = func(ctx context.Context, client *http.Client) (string, errors.E) {
+			return mediawiki.LatestWikipediaRun(ctx, x.RetryableClient(client), "enwiki", namespace)
 		}
 	}
 

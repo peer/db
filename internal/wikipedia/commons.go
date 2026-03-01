@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"html"
 	"math"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -23,7 +23,7 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -334,7 +334,7 @@ func getXMLPageCount(metadata map[string]interface{}, path []string) int {
 	}
 }
 
-func getPageCount(ctx context.Context, httpClient *retryablehttp.Client, token string, apiLimit int, image Image) (int, errors.E) {
+func getPageCount(ctx context.Context, httpClient *http.Client, token string, apiLimit int, image Image) (int, errors.E) {
 	count := getPathInt(image.Metadata, []string{"data", "Pages"})
 	if count != 0 {
 		return count, nil
@@ -400,7 +400,7 @@ func getDuration(image Image) float64 {
 
 // Implementation matches includes/media/MediaHandler.php's fitBoxWidth of Mediawiki.
 func fitBoxWidth(width, height float64) int {
-	previewSizeFloat := float64(es.PreviewSize)
+	previewSizeFloat := float64(indexer.PreviewSize)
 	idealWidth := width * previewSizeFloat / height
 	roundedUp := math.Ceil(idealWidth)
 	if math.Round(roundedUp*height/width) > previewSizeFloat {
@@ -411,13 +411,13 @@ func fitBoxWidth(width, height float64) int {
 
 // ConvertWikimediaCommonsImage converts a Wikimedia Commons image to a document.
 func ConvertWikimediaCommonsImage(
-	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+	ctx context.Context, logger zerolog.Logger, httpClient *http.Client, token string, apiLimit int, image Image,
 ) (*document.D, errors.E) {
 	return convertImage(ctx, logger, httpClient, NameSpaceWikimediaCommonsFile, "commons", "commons.wikimedia.org", "WIKIMEDIA_COMMONS", token, apiLimit, image)
 }
 
 func convertImage( //nolint:maintidx
-	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
+	ctx context.Context, logger zerolog.Logger, httpClient *http.Client, namespace uuid.UUID, fileSite, fileDomain, mnemonicPrefix,
 	token string, apiLimit int, image Image,
 ) (*document.D, errors.E) {
 	id := document.GetID(namespace, image.Name)
@@ -612,13 +612,13 @@ func convertImage( //nolint:maintidx
 	if !noPreview[mediaType] { //nolint:nestif
 		if image.Width == 0 || image.Height == 0 {
 			logger.Warn().Str("file", image.Name).Msgf("expected width/height (%dx%d)", image.Width, image.Height)
-		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(es.PreviewSize) && image.Height <= int64(es.PreviewSize) {
+		} else if browsersSupport[mediaType] && !hasPages[mediaType] && image.Width <= int64(indexer.PreviewSize) && image.Height <= int64(indexer.PreviewSize) {
 			// If the image is small, we link directly to the image.
 			previews = append(previews,
 				fmt.Sprintf("https://upload.wikimedia.org/wikipedia/%s/%s/%s", fileSite, prefix, image.Name),
 			)
 		} else {
-			width := es.PreviewSize
+			width := indexer.PreviewSize
 			if image.Height > image.Width {
 				// Height is at least 1 here, because it is strictly larger than width, which can be at least 0.
 				width = fitBoxWidth(float64(image.Width), float64(image.Height))

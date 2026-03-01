@@ -8,13 +8,13 @@ import (
 	"html"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/krolaw/zipstream"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -22,8 +22,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -168,7 +167,7 @@ type Ingredients struct {
 	Meta        []string     `json:"meta,omitempty"`
 }
 
-func getFoods(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]FoodDataCentralBrandedFood, errors.E) {
+func getFoods(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) ([]FoodDataCentralBrandedFood, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE
@@ -586,7 +585,7 @@ func makeFoodDataCentralDoc(food FoodDataCentralBrandedFood, ingredients Ingredi
 }
 
 func (f FoodDataCentral) Run(
-	ctx context.Context, config *Config, httpClient *retryablehttp.Client,
+	ctx context.Context, config *Config, httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -602,7 +601,7 @@ func (f FoodDataCentral) Run(
 	config.Logger.Info().Int("total", len(foods)).Msg("retrieved FoodDataCentral data")
 
 	description := "FoodDataCentral processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(len(foods)))
 
 	count := x.Counter(0)

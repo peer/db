@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +29,7 @@ func TestGetProductGroups(t *testing.T) {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
 
-	urlCodes, errE := getProductGroups(ctx, httpClient)
+	urlCodes, errE := getProductGroups(ctx, httpClient.StandardClient())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Assert that we got results.
@@ -67,9 +66,9 @@ func TestGetWasherDriers(t *testing.T) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
+	httpClient := es.NewHTTPClient(logger, nil)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	washerDriers, errE := eprel.GetWasherDriers[WasherDrierProduct](ctx, httpClient, apiKey)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -83,8 +82,8 @@ func TestMakeWasherDrierDoc(t *testing.T) { //nolint:tparallel
 	require.NoError(t, err)
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	httpClient := es.NewHTTPClient(cleanhttp.DefaultPooledClient(), logger)
-	ctx := context.Background()
+	httpClient := es.NewHTTPClient(logger, nil)
+	ctx := t.Context()
 
 	for _, entry := range entries { //nolint:paralleltest
 		if entry.IsDir() {
@@ -109,7 +108,7 @@ func TestMakeWasherDrierDoc(t *testing.T) { //nolint:tparallel
 			require.NoError(t, errE, "% -+#.1v", errE)
 
 			for i := range result.Hits {
-				outputDoc, errE := makeWasherDrierDoc(ctx, logger, httpClient.StandardClient(), result.Hits[i])
+				outputDoc, errE := makeWasherDrierDoc(ctx, logger, httpClient, result.Hits[i])
 				require.NoError(t, errE, "% -+#.1v", errE)
 				outputJSON, errE := x.MarshalWithoutEscapeHTML(outputDoc)
 				require.NoError(t, errE, "% -+#.1v", errE)

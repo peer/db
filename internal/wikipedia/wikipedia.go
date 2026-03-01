@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -32,7 +32,7 @@ var (
 
 // ConvertWikipediaImage converts a Wikipedia image to a document.
 func ConvertWikipediaImage(
-	ctx context.Context, logger zerolog.Logger, httpClient *retryablehttp.Client, token string, apiLimit int, image Image,
+	ctx context.Context, logger zerolog.Logger, httpClient *http.Client, token string, apiLimit int, image Image,
 ) (*document.D, errors.E) {
 	return convertImage(ctx, logger, httpClient, NameSpaceWikipediaFile, "en", "en.wikipedia.org", "ENGLISH_WIKIPEDIA", token, apiLimit, image)
 }

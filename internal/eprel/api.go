@@ -8,13 +8,12 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 )
 
 // GetWasherDriers retrieves washer-drier product data from the EPREL API.
-func GetWasherDriers[T any](ctx context.Context, httpClient *retryablehttp.Client, apiKey string) ([]T, errors.E) {
+func GetWasherDriers[T any](ctx context.Context, httpClient *http.Client, apiKey string) ([]T, errors.E) {
 	type washerDrierResponse struct {
 		Offset int `json:"offset"`
 		Size   int `json:"size"`
@@ -35,7 +34,7 @@ func GetWasherDriers[T any](ctx context.Context, httpClient *retryablehttp.Clien
 
 		url := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 
-		req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			errE := errors.WithStack(err)
 			errors.Details(errE)["url"] = url

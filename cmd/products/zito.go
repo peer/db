@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"html"
 	"io"
+	"net/http"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/hashicorp/go-retryablehttp"
 	sitemap "github.com/oxffaa/gopher-parse-sitemap"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -165,7 +164,7 @@ func makeZitoDoc(product ZitoProduct, _ ZitoProductDetails) (document.D, errors.
 }
 
 func (n Zito) Run(
-	ctx context.Context, config *Config, httpClient *retryablehttp.Client,
+	ctx context.Context, config *Config, httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -203,7 +202,7 @@ func (n Zito) Run(
 	config.Logger.Info().Int("total", products.Cardinality()).Msg("retrieved Zito data")
 
 	description := "Zito processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(products.Cardinality()))
 
 	count := x.Counter(0)

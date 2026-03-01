@@ -6,17 +6,16 @@ import (
 	"encoding/json"
 	"html"
 	"io"
+	"net/http"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -38,7 +37,7 @@ type DatakickEntry struct {
 	Ingredients   string
 }
 
-func getDatakick(ctx context.Context, httpClient *retryablehttp.Client, logger zerolog.Logger, cacheDir, url string) ([]DatakickEntry, errors.E) {
+func getDatakick(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) ([]DatakickEntry, errors.E) {
 	reader, _, errE := indexer.CachedDownload(ctx, httpClient, logger, cacheDir, url)
 	if errE != nil {
 		return nil, errE
@@ -179,7 +178,7 @@ func makeDatakickDoc(datakick DatakickEntry) (document.D, errors.E) {
 func (g Datakick) Run(
 	ctx context.Context,
 	config *Config,
-	httpClient *retryablehttp.Client,
+	httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -195,7 +194,7 @@ func (g Datakick) Run(
 	config.Logger.Info().Int("total", len(records)).Msg("retrieved Datakick data")
 
 	description := "Datakick processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(len(records)))
 
 	count := x.Counter(0)

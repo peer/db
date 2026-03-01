@@ -9,7 +9,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/foolin/pagser"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/temoto/robotstxt"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -82,8 +81,8 @@ func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 // TODO: Make sure we are making only one request per domain at once.
 
 // GetWebData fetches data from a URL and extracts structured data using the provided extraction function.
-func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) { //nolint:ireturn
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func GetWebData[T any](ctx context.Context, httpClient *http.Client, url string, f func(in io.Reader) (T, errors.E)) (T, errors.E) { //nolint:ireturn
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
@@ -113,7 +112,7 @@ func GetWebData[T any](ctx context.Context, httpClient *retryablehttp.Client, ur
 // TODO: Cache robots.txt per domain.
 
 // GetRobotsTxt fetches and parses the robots.txt file from a URL's domain.
-func GetRobotsTxt(ctx context.Context, httpClient *retryablehttp.Client, u string) (*robotstxt.RobotsData, errors.E) {
+func GetRobotsTxt(ctx context.Context, httpClient *http.Client, u string) (*robotstxt.RobotsData, errors.E) {
 	url, err := url.Parse(u)
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -128,7 +127,7 @@ func GetRobotsTxt(ctx context.Context, httpClient *retryablehttp.Client, u strin
 	url.RawFragment = ""
 	u = url.String()
 
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = u

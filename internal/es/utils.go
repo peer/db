@@ -6,17 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"slices"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
@@ -28,6 +25,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
@@ -43,47 +41,9 @@ const (
 	bulkProcessorWorkers = 2
 	bulkActions          = 1000
 	flushInterval        = time.Second
-	clientRetryWaitMax   = 10 * 60 * time.Second
-	clientRetryMax       = 9
 	// TODO: Determine reasonable size for the buffer.
 	bridgeBufferSize = 100
 )
-
-func prepareFields(keysAndValues []interface{}) {
-	for i, keyOrValue := range keysAndValues {
-		// We want URLs logged as strings.
-		u, ok := keyOrValue.(*url.URL)
-		if ok {
-			keysAndValues[i] = u.String()
-		}
-	}
-}
-
-type retryableHTTPLoggerAdapter struct {
-	logger zerolog.Logger
-}
-
-func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.logger.Error().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.logger.Info().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.logger.Debug().Fields(keysAndValues).Msg(msg)
-}
-
-func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{}) {
-	prepareFields(keysAndValues)
-	a.logger.Warn().Fields(keysAndValues).Msg(msg)
-}
-
-var _ retryablehttp.LeveledLogger = (*retryableHTTPLoggerAdapter)(nil)
 
 type loggerAdapter struct {
 	log   zerolog.Logger
@@ -252,25 +212,14 @@ func endDocumentSession(
 }
 
 // NewHTTPClient creates a retryable HTTP client with the specified base HTTP client and logger.
-func NewHTTPClient(simpleHTTPClient *http.Client, logger zerolog.Logger) *retryablehttp.Client {
-	httpClient := retryablehttp.NewClient()
-	httpClient.HTTPClient = simpleHTTPClient
-	httpClient.RetryWaitMax = clientRetryWaitMax
-	httpClient.RetryMax = clientRetryMax
-	httpClient.Logger = retryableHTTPLoggerAdapter{logger}
-
-	// Set User-Agent header.
-	httpClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, _ int) {
-		// TODO: Make contact e-mail into a CLI argument.
-		req.Header.Set("User-Agent", fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision))
-	}
-
-	return httpClient
+func NewHTTPClient(logger zerolog.Logger, httpClient *http.Client) *http.Client {
+	// TODO: Make contact e-mail into a CLI argument.
+	return indexer.NewHTTPClient(logger, httpClient, fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision)) //nolint:lll
 }
 
 // Standalone initializes and returns all components needed for standalone operation including store, Elasticsearch client, and bulk processor.
 func Standalone(logger zerolog.Logger, database, elastic, schema, index string) (
-	context.Context, context.CancelFunc, *retryablehttp.Client,
+	context.Context, context.CancelFunc, *http.Client,
 	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	*elastic.Client, *elastic.BulkProcessor, errors.E,
 ) {
@@ -296,35 +245,9 @@ func Standalone(logger zerolog.Logger, database, elastic, schema, index string) 
 		return nil, nil, nil, nil, nil, nil, errE
 	}
 
-	httpClient := NewHTTPClient(simpleHTTPClient, logger)
+	httpClient := NewHTTPClient(logger, simpleHTTPClient)
 
 	return ctx, stop, httpClient, store, esClient, esProcessor, nil
-}
-
-// Progress creates a progress callback function for logging indexing progress including Elasticsearch processor stats and cache metrics.
-func Progress(logger zerolog.Logger, esProcessor *elastic.BulkProcessor, cache *Cache, skipped *int64, description string) func(ctx context.Context, p x.Progress) {
-	if description == "" {
-		description = "progress"
-	}
-	return func(_ context.Context, p x.Progress) {
-		e := logger.Info().
-			Int64("count", p.Count).
-			Int64("total", p.Size).
-			// We format it ourselves. See: https://github.com/rs/zerolog/issues/709
-			Str("eta", p.Remaining().Truncate(time.Second).String()).
-			Float64("%", p.Percent())
-		if esProcessor != nil {
-			stats := esProcessor.Stats()
-			e = e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
-		}
-		if cache != nil {
-			e = e.Uint64("cacheMiss", cache.MissCount())
-		}
-		if skipped != nil {
-			e = e.Int64("skipped", atomic.LoadInt64(skipped))
-		}
-		e.Msg(description)
-	}
 }
 
 // InitForSite initializes the store and Elasticsearch bulk processor for a specific site, creating necessary database tables.

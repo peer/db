@@ -14,7 +14,7 @@ Demos:
 - [wikipedia.peerdb.org](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
   Wikimedia Commons files, and Wikidata data.
 - [moma.peerdb.org](https://moma.peerdb.org/): a search service for The
-  Museum of Modern Art (MoMA) artists and artworks.
+  Museum of Modern Art (MoMA) artists and artworks (its [repository](https://gitlab.com/peerdb/moma)).
 
 ## Components
 
@@ -577,26 +577,6 @@ post into the following two PeerDB documents:
 ```
 
 </details>
-
-### MoMA search
-
-To populate search with [The Museum of Modern Art](https://www.moma.org/) (MoMA)
-artists and artworks (from [this dataset](https://github.com/MuseumofModernArt/collection)),
-clone the repository and run:
-
-```sh
-make moma
-./moma
-```
-
-Runtime is few minutes. If you also want to add articles (to have more full-text data)
-and (more) images from MoMA's website, run instead:
-
-```sh
-./moma --website-data
-```
-
-Fetching data from the website takes time, so runtime is around 12 hours.
 
 ### Wikipedia search
 

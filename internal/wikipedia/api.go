@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/time/rate"
 )
@@ -62,7 +61,7 @@ func shallowCopy(in url.Values) url.Values {
 
 // ListAllPages retrieves all pages from Wikipedia in the specified namespaces.
 func ListAllPages(
-	ctx context.Context, httpClient *retryablehttp.Client, namespaces []int, site string, limiter *rate.Limiter, output chan<- AllPagesPage,
+	ctx context.Context, httpClient *http.Client, namespaces []int, site string, limiter *rate.Limiter, output chan<- AllPagesPage,
 ) errors.E {
 	// We still want to make sure we are contacting query API only once every second.
 	localLimiter := rate.NewLimiter(rate.Every(time.Second), 1)
@@ -104,7 +103,7 @@ func ListAllPages(
 
 			encodedData := data.Encode()
 			apiURL := fmt.Sprintf("https://%s/w/api.php?%s", site, encodedData)
-			req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 			if err != nil {
 				errE := errors.WithStack(err)
 				errors.Details(errE)["url"] = apiURL
@@ -223,11 +222,11 @@ func ListAllPages(
 }
 
 // GetPageHTML retrieves the HTML content for a page from the Mediawiki REST API.
-func GetPageHTML(ctx context.Context, httpClient *retryablehttp.Client, site, title string) (string, errors.E) {
+func GetPageHTML(ctx context.Context, httpClient *http.Client, site, title string) (string, errors.E) {
 	title = strings.ReplaceAll(title, " ", "_")
 	htmlURL := fmt.Sprintf("https://%s/api/rest_v1/page/html/%s", site, url.PathEscape(title))
 
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, htmlURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, htmlURL, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = htmlURL

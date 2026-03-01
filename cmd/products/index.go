@@ -4,13 +4,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
 )
 
 //nolint:gochecknoglobals
@@ -29,7 +30,10 @@ func index(config *Config) errors.E {
 
 	indexingCount := x.NewCounter(0)
 	indexingSize := x.NewCounter(0)
-	progress := es.Progress(config.Logger, esProcessor, nil, nil, "indexing")
+	progress := indexer.Progress(config.Logger, "indexing", func(e *zerolog.Event) {
+		stats := esProcessor.Stats()
+		e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
+	})
 	ticker := x.NewTicker(ctx, indexingCount, indexingSize, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {

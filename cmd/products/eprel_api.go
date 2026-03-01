@@ -13,16 +13,14 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/eprel"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	"gitlab.com/peerdb/peerdb/internal/indexer"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -287,10 +285,10 @@ type OtherIdentifiers struct {
 	Type            string `json:"type"`
 }
 
-func getProductGroups(ctx context.Context, httpClient *retryablehttp.Client) ([]string, errors.E) {
+func getProductGroups(ctx context.Context, httpClient *http.Client) ([]string, errors.E) {
 	url := "https://eprel.ec.europa.eu/api/product-groups"
 
-	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = url
@@ -682,7 +680,7 @@ func makeWasherDrierDoc(ctx context.Context, logger zerolog.Logger, httpClient *
 }
 
 func (e EPREL) Run(
-	ctx context.Context, config *Config, httpClient *retryablehttp.Client,
+	ctx context.Context, config *Config, httpClient *http.Client,
 	store *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	indexingCount, indexingSize *x.Counter,
 ) errors.E {
@@ -703,7 +701,7 @@ func (e EPREL) Run(
 	config.Logger.Info().Int("count", len(washerDriers)).Msg("retrieved EPREL washer-driers data")
 
 	description := "EPREL washer-driers processing"
-	progress := es.Progress(config.Logger, nil, nil, nil, description)
+	progress := indexer.Progress(config.Logger, description, nil)
 	indexingSize.Add(int64(len(washerDriers)))
 
 	count := x.Counter(0)
@@ -724,7 +722,7 @@ func (e EPREL) Run(
 			Str("id", washerDrier.EPRELRegistrationNumber).
 			Msg("processing EPREL washer-driers record")
 
-		doc, errE := makeWasherDrierDoc(ctx, config.Logger, httpClient.StandardClient(), washerDrier)
+		doc, errE := makeWasherDrierDoc(ctx, config.Logger, httpClient, washerDrier)
 		if errE != nil {
 			errors.Details(errE)["id"] = washerDrier.EPRELRegistrationNumber
 			return errE
