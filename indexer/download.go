@@ -107,7 +107,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 			return 0, errors.WithStack(err)
 		}
 
-		httpResponseReader, errE := x.NewRetryableResponse(retryableClient, req)
+		resp, errE := x.NewRetryableResponse(retryableClient, req)
 		if errE != nil {
 			r.WriteFile.Close() //nolint:errcheck,gosec
 			r.ReadFile.Close()  //nolint:errcheck,gosec
@@ -115,7 +115,9 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 			return 0, errE
 		}
 
-		r.size = httpResponseReader.Size()
+		r.size = resp.Size()
+
+		httpResponseReader = resp
 	} else {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
 		if err != nil {
