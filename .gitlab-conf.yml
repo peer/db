@@ -303,16 +303,7 @@ protected_tags:
 # and file. Type: string
 variables:
   - description: null
-    environment_scope: '*'
-    key: EPREL_API_KEY_PATH
-    masked: true
-    protected: true
-    raw: true
-    # sops:enc
-    value: ENC[AES256_GCM,data:Jh5jHmbotAwoSY8vQeSJQzv8IW1g3sUGoL1TNSeJ0BjAyH8xKL6y5A==,iv:Ptywnf7rqLCYDqQLr5FNq/noLlHVgB9FADONGGNPkS8=,tag:fmiDKmWBF+Wd0f9461CUlg==,type:str]
-    variable_type: file
-  - description: null
-    environment_scope: '*'
+    environment_scope: "*"
     key: GITLAB_API_TOKEN
     masked: true
     protected: true
@@ -321,7 +312,7 @@ variables:
     value: ENC[AES256_GCM,data:9zyuf3uqcIdudrr+MhgcUKpsY6KKpGJ0s4o=,iv:ABQF2QZ3NtYdVWVUoIaKIgvcDL0c/58eikuyAppvMt4=,tag:x77rxOBR6LWb0zZ/xBojxQ==,type:str]
     variable_type: env_var
   - description: null
-    environment_scope: '*'
+    environment_scope: "*"
     key: SOPS_AGE_KEY_FILE
     masked: false
     protected: true

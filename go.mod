@@ -8,14 +8,11 @@ require (
 	github.com/cockroachdb/field-eng-powertools v0.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/foolin/pagser v0.1.6
-	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/krolaw/zipstream v0.0.0-20241109034754-4a67be70fe31
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/olivere/elastic/v7 v7.0.32
-	github.com/oxffaa/gopher-parse-sitemap v0.0.0-20191021113419-005d2eb1def4
 	github.com/rs/zerolog v1.34.1-0.20250418111443-9dacc014f38d
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
@@ -25,7 +22,6 @@ require (
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.8.1
 	gitlab.com/tozd/waf v0.21.0
-	golang.org/x/text v0.33.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -33,6 +29,7 @@ require (
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 )
 
 require (
