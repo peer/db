@@ -19,7 +19,6 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/internal/eprel"
-	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 func TestGetProductGroups(t *testing.T) {
@@ -66,7 +65,7 @@ func TestGetWasherDriers(t *testing.T) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	httpClient := es.NewHTTPClient(logger, nil)
+	httpClient := eprel.NewHTTPClient(logger)
 
 	ctx := t.Context()
 	washerDriers, errE := eprel.GetWasherDriers[WasherDrierProduct](ctx, httpClient, apiKey)
@@ -82,7 +81,7 @@ func TestMakeWasherDrierDoc(t *testing.T) { //nolint:tparallel
 	require.NoError(t, err)
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	httpClient := es.NewHTTPClient(logger, nil)
+	httpClient := eprel.NewHTTPClient(logger)
 	ctx := t.Context()
 
 	for _, entry := range entries { //nolint:paralleltest

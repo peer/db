@@ -13,7 +13,6 @@ import (
 	z "gitlab.com/tozd/go/zerolog"
 
 	"gitlab.com/peerdb/peerdb/internal/eprel"
-	"gitlab.com/peerdb/peerdb/internal/es"
 )
 
 type App struct {
@@ -26,7 +25,7 @@ type App struct {
 
 // mapAllWasherDrierFields prints all fields and sample values of all washer driers.
 func mapAllWasherDrierFields(ctx context.Context, logger zerolog.Logger, apiKey string) errors.E {
-	httpClient := es.NewHTTPClient(logger, nil)
+	httpClient := eprel.NewHTTPClient(logger)
 
 	washerDriers, errE := eprel.GetWasherDriers[map[string]any](ctx, httpClient, apiKey)
 	if errE != nil {
