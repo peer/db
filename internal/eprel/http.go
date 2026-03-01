@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog"
-	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/tozd/go/cli"
+
+	"gitlab.com/peerdb/peerdb/indexer"
 )
 
 // NewHTTPClient creates a retryable HTTP client with the specified base HTTP client and logger.
