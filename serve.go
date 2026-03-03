@@ -171,6 +171,10 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 		return errE
 	}
 
+	for _, site := range service.Sites {
+		globals.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
+	}
+
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
 	return c.Server.Run(ctx, handler)
 }
