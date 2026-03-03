@@ -17,9 +17,9 @@ const (
 	// DefaultElastic is the default Elasticsearch URL.
 	DefaultElastic = "http://127.0.0.1:9200"
 	// DefaultIndex is the default Elasticsearch index name.
-	DefaultIndex = "docs"
+	DefaultIndex = "peerdb"
 	// DefaultSchema is the default database schema name.
-	DefaultSchema = "docs"
+	DefaultSchema = "peerdb"
 	// DefaultTitle is the default application title.
 	DefaultTitle = "PeerDB"
 )

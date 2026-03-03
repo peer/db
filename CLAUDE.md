@@ -290,7 +290,7 @@ Single PeerDB instance can serve multiple sites:
 ### Database Schema Management
 
 - Schemas auto-created on first run (tables, views, stored procedures)
-- Multi-site support via schema prefixes (e.g., "docs" for documents)
+- Multi-site support via schema prefixes
 - Connection pool uses serializable isolation level
 - Custom error handling with request ID and schema tracking
 
