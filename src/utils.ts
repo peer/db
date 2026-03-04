@@ -18,7 +18,7 @@ const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
 export function formatValue(amount: number, unit: AmountUnit): string {
-  let res = parseFloat(amount.toPrecision(5)).toString()
+  let res = parseFloat(amount.toFixed(5)).toString()
   if (unit !== "1") {
     res += " " + unit
   }
@@ -28,8 +28,8 @@ export function formatValue(amount: number, unit: AmountUnit): string {
 // TODO: Improve by using size prefixes for some units (e.g., KB).
 //       Both for large and small numbers (e.g., micro gram).
 export function formatRange(lower: number, upper: number, unit: AmountUnit): string {
-  const l = parseFloat(lower.toPrecision(5)).toString()
-  const u = parseFloat(lower.toPrecision(5)).toString()
+  const l = parseFloat(lower.toFixed(5)).toString()
+  const u = parseFloat(lower.toFixed(5)).toString()
   let res = l + "–" + u
   if (unit !== "1") {
     res += " " + unit
