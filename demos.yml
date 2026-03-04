@@ -1,5 +1,0 @@
-globals:
-  sites:
-    - domain: "wikipedia.peerdb.org"
-      title: "Wikipedia Search"
-      index: "wikipedia"

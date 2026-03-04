@@ -61,8 +61,7 @@ test_go:
     POSTGRES: postgres://test:test@postgres:5432/test
 
   before_script:
-    - apk --update add make bash gcc musl-dev mailcap git git-lfs
-    - git lfs fetch
+    - apk --update add make bash gcc musl-dev mailcap git
     - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.4.0)
     - go version
@@ -91,8 +90,7 @@ test_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   script:
     - npm ci --audit=false
@@ -119,8 +117,7 @@ lint_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash gcc musl-dev git git-lfs
-    - git lfs fetch
+    - apk --update add make bash gcc musl-dev git
     - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0
 
   script:
@@ -138,8 +135,7 @@ lint_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   script:
     - npm ci --audit=false
@@ -158,8 +154,7 @@ lint_vue:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   script:
     - npm ci --audit=false
@@ -171,8 +166,7 @@ lint_style:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   script:
     - npm ci --audit=false
@@ -191,8 +185,7 @@ fmt_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash git gcc musl-dev grep git-lfs
-    - git lfs fetch
+    - apk --update add make bash git gcc musl-dev grep
     - go install mvdan.cc/gofumpt@v0.9.1
     - go install golang.org/x/tools/cmd/goimports@v0.37.0
 
@@ -205,8 +198,7 @@ fmt_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   script:
     - npm ci --audit=false
@@ -219,8 +211,7 @@ lint_docs:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add make bash git git-lfs
-    - git lfs fetch
+    - apk --update add make bash git
 
   script:
     - make lint-docs-ci
@@ -231,8 +222,7 @@ audit_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash git gcc musl-dev git-lfs
-    - git lfs fetch
+    - apk --update add make bash git gcc musl-dev
     - go install github.com/sonatype-nexus-community/nancy@v1.0.52
 
   script:
@@ -244,8 +234,7 @@ audit_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git git-lfs
-    - git lfs fetch
+    - apk --update add git
 
   # Signatures audit is done during install in Dockerfile.
   script:
@@ -290,8 +279,6 @@ docker:
   before_script:
     - docker info
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - apk --update add git-lfs
-    - git lfs fetch
 
   script:
     - export BUILD_TIMESTAMP="$(date -u +%FT%TZ)"

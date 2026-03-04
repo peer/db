@@ -244,18 +244,17 @@ Defined in `routes.json` using the WAF framework (`gitlab.com/tozd/waf`).
 
 ### Configuration
 
-**Config file** (YAML format, see `demos.yml` for example):
+**Config file** (YAML format):
 
 ```yaml
-sites:
-  - domain: example.com
-    index: example_index
-    schema: example_schema
-    title: "Example Site"
-postgres:
-  url: postgres://user:pass@host:5432/db
-elastic:
-  url: http://localhost:9200
+globals:
+  sites:
+    - domain: example.com
+      index: example_index
+      schema: example_schema
+      title: "Example Site"
+  elastic:
+    url: http://localhost:9200
 ```
 
 **CLI flags** override config file. Run `./peerdb --help` for all options.

@@ -12,19 +12,18 @@ ifeq ($(REVISION),)
  REVISION = `git rev-parse HEAD`
 endif
 
-.PHONY: build peerdb wikipedia mapping build-static lib test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
+.PHONY: build peerdb mapping build-static lib test test-ci lint lint-ci fmt fmt-ci upgrade clean release lint-docs lint-docs-ci audit encrypt decrypt sops watch
 
-build: peerdb wikipedia mapping
+build: peerdb mapping
 
 peerdb: dist
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
-wikipedia mapping:
+mapping:
 	go build -trimpath -ldflags "-s -w -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o $@ gitlab.com/peerdb/peerdb/cmd/$@
 
 build-static: dist
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o peerdb gitlab.com/peerdb/peerdb/cmd/peerdb
-	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o wikipedia gitlab.com/peerdb/peerdb/cmd/wikipedia
 	go build $(PEERDB_BUILD_FLAGS) -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X gitlab.com/tozd/go/cli.Version=${VERSION} -X gitlab.com/tozd/go/cli.BuildTimestamp=${BUILD_TIMESTAMP} -X gitlab.com/tozd/go/cli.Revision=${REVISION}" -o mapping gitlab.com/peerdb/peerdb/cmd/mapping
 
 dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt
@@ -69,7 +68,7 @@ upgrade:
 
 clean:
 	find dist -mindepth 1 ! -path "dist/dist.go" -delete
-	rm -rf coverage.* codeclimate.json tests.xml coverage lib peerdb wikipedia mapping
+	rm -rf coverage.* codeclimate.json tests.xml coverage lib peerdb mapping
 
 release:
 	npx --yes --package 'release-it@19.0.5' --package '@release-it/keep-a-changelog@7.0.0' -- release-it
