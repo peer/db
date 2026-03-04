@@ -19,6 +19,9 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// DocumentStore is the type of the PeerDB document store.
+type DocumentStore = store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
+
 // Build contains version and build metadata.
 type Build struct {
 	Version        string `json:"version,omitempty"`

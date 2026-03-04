@@ -54,9 +54,6 @@ linters:
       - linters:
           - revive
         text: "exported: exported var Err"
-      - linters:
-        - testpackage
-        path: internal/wikipedia/.*_test\.go
 formatters:
   enable:
     - gofmt

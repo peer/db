@@ -12,7 +12,7 @@ Common user interface components are included.
 Demos:
 
 - [wikipedia.peerdb.org](https://wikipedia.peerdb.org/): a search service for English Wikipedia articles,
-  Wikimedia Commons files, and Wikidata data.
+  Wikimedia Commons files, and Wikidata data (its [repository](https://gitlab.com/peerdb/wikipedia)).
 - [moma.peerdb.org](https://moma.peerdb.org/): a search service for The
   Museum of Modern Art (MoMA) artists and artworks (its [repository](https://gitlab.com/peerdb/moma)).
 
@@ -578,79 +578,21 @@ post into the following two PeerDB documents:
 
 </details>
 
-### Wikipedia search
-
-To populate search with [English Wikipedia](https://en.wikipedia.org/wiki/Main_Page)
-articles, [Wikimedia Commons](https://commons.wikimedia.org/wiki/Main_Page) files,
-and [Wikidata](https://www.wikidata.org/wiki/Wikidata:Main_Page) data,
-clone the repository and run:
-
-```sh
-make wikipedia
-./wikipedia
-```
-
-This will do multiple passes:
-
-- `wikidata` downloads Wikidata dump and imports data into search (70 GB download, runtime 2 days).
-- `commons-files` populates search with Wikimedia Commons files from images table SQL dump (10 GB download, runtime 1 day).
-- `wikipedia-files` populates search with Wikipedia files from table SQL dump (100 MB download, runtime 10 minutes).
-- `commons` (20 GB download, runtime 3 days)
-- `wikipedia-articles` downloads Wikipedia articles HTML dump and imports articles (100 GB download, runtime 0.5 days)
-- `wikipedia-file-descriptions` downloads Wikipedia files HTML dump and imports file descriptions
-  (2 GB download, runtime 1 hour)
-- `wikipedia-categories` downloads Wikipedia categories HTML dump and imports their articles as descriptions
-  (2 GB download, runtime 1 hour)
-- `wikipedia-templates` uses API to fetch data about templates Wikipedia (runtime 0.5 days)
-- `commons-file-descriptions` uses API to fetch descriptions of Wikimedia Commons files (runtime 35 days)
-- `commons-categories` uses API to fetch data about categories Wikimedia Commons (runtime 4 days)
-- `commons-templates` uses API to fetch data about templates Wikimedia Commons (runtime 2.5 hours)
-- `prepare` goes over imported documents and process them for PeerDB Search (runtime 6 days).
-- `optimize` forces merging of ElasticSearch segments (runtime few hours).
-
-The whole process requires substantial amount of disk space (at least 1.5 TB), bandwidth, and time (weeks).
-Because of this you might want to run only a subset of passes.
-
-To populate only with Wikidata (all references to Wikimedia Commons files will not be available):
-
-```sh
-./wikipedia wikidata
-./wikipedia prepare
-```
-
-To populate with Wikidata and with basic metadata of Wikimedia Commons files:
-
-```sh
-./wikipedia wikidata
-./wikipedia commons-files
-./wikipedia prepare
-```
-
-Or maybe you also want English Wikipedia articles:
-
-```sh
-./wikipedia wikidata
-./wikipedia commons-files
-./wikipedia wikipedia-articles
-./wikipedia prepare
-```
-
 ## Configuration
 
 PeerDB can be configured through CLI arguments and a config file. CLI arguments have precedence
 over the config file. Config file is a YAML file with the structure corresponding to the structure of
-CLI flags and commands. Run `./peerdb --help` for list of available flags and commands. If no command is
-specified, `serve` command is the default.
+CLI flags and commands and is defined by the [`Config`](https://pkg.go.dev/gitlab.com/peerdb/peerdb#Config)
+struct. Run `./peerdb --help` for list of available flags and commands. If no command is
+specified, `serve` command is the default. Each PeerDB instance can serve multiple sites and Let's
+Encrypt can be used to obtain HTTPS TLS certificates for them automatically.
 
-Each PeerDB instance can serve multiple sites and Let's Encrypt can be used to obtain
-HTTPS TLS certificates for them automatically. Example config file for all demos is available
-in [`demos.yml`](./demos.yml). It configures sites, their titles, and ElasticSearch indices
-for each site. To use the config file with Docker, you could do:
+To use the config file with Docker, you could do:
 
 ```sh
 docker run -d --network peerdb --name peerdb -p 443:8080 -v "$(pwd):/data" \
  registry.gitlab.com/peerdb/peerdb/branch/main:latest -e http://elasticsearch:9200 \
- -E name@example.com -C /data/letsencrypt -c /data/demos.yml
+ -E name@example.com -C /data/letsencrypt -c /data/config.yml
 ```
 
 ## Development
