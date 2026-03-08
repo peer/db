@@ -28,7 +28,7 @@ func (s *Service) UpdatePropertiesTotal(ctx context.Context) errors.E {
 	for _, site := range s.Sites {
 		total, err := site.ESClient.Count(site.Index).Query(query).Do(ctx)
 		if err != nil {
-			return errors.Errorf(`site "%s": %w`, site.Index, err)
+			return errors.WithDetails(err, "index", site.Index)
 		}
 		site.propertiesTotal = total
 	}

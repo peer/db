@@ -30,7 +30,9 @@ func (v *Version) String() string {
 func VersionFromString(text string) (Version, errors.E) {
 	changesetStr, revisionStr, ok := strings.Cut(text, "-")
 	if !ok {
-		return Version{}, errors.Errorf("invalid version string: %s", text)
+		errE := errors.New("invalid version string")
+		errors.Details(errE)["value"] = text
+		return Version{}, errE
 	}
 	changeset, errE := identifier.MaybeString(changesetStr)
 	if errE != nil {

@@ -99,7 +99,9 @@ func (d *D) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 // Add adds a claim to the document, ensuring no duplicate claim IDs exist.
 func (d *D) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); d.GetByID(claimID) != nil {
-		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
+		errE := errors.New("claim with ID already exists")
+		errors.Details(errE)["id"] = claimID
+		return errE
 	}
 	if d.Claims == nil {
 		d.Claims = &ClaimTypes{}

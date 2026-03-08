@@ -210,7 +210,9 @@ var (
 func GetCorePropertyReference(mnemonic string) Reference {
 	property, ok := CoreProperties[GetCorePropertyID(mnemonic)]
 	if !ok {
-		panic(errors.Errorf(`core property for mnemonic "%s" cannot be found`, mnemonic))
+		errE := errors.New("core property not found")
+		errors.Details(errE)["mnemonic"] = mnemonic
+		panic(errE)
 	}
 	return property.Reference()
 }
