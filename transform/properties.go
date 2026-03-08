@@ -30,7 +30,7 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 		}
 
 		if mnemonicValue.Kind() != reflect.String {
-			errE := errors.Errorf("expected string for mnemonic")
+			errE := errors.New("expected string for mnemonic")
 			errors.Details(errE)["type"] = mnemonicValue.Type().String()
 			return nil, errE
 		}
@@ -49,7 +49,7 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 
 		id, ok := idValue.Interface().([]string)
 		if !ok {
-			errE := errors.Errorf("expected []string for ID")
+			errE := errors.New("expected []string for ID")
 			errors.Details(errE)["type"] = idValue.Type().String()
 			return nil, errE
 		}
@@ -59,7 +59,7 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 		}
 
 		if _, ok := result[mnemonic]; ok {
-			errE := errors.Errorf("duplicate mnemonic")
+			errE := errors.New("duplicate mnemonic")
 			errors.Details(errE)["mnemonic"] = mnemonic
 			return nil, errE
 		}

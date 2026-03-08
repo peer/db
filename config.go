@@ -57,7 +57,9 @@ func (g *Globals) Validate() error {
 	for i, site := range g.Sites {
 		// This is not validated when Site is not populated by Kong.
 		if site.Domain == "" {
-			return errors.Errorf(`domain is required for site at index %d`, i)
+			errE := errors.New("domain is required for site")
+			errors.Details(errE)["index"] = i
+			return errE
 		}
 
 		// To make sure validation is called.
@@ -75,7 +77,9 @@ func (g *Globals) Validate() error {
 		}
 
 		if !domains.Add(site.Domain) {
-			return errors.Errorf(`duplicate site for domain "%s"`, site.Domain)
+			errE := errors.New("duplicate site for domain")
+			errors.Details(errE)["domain"] = site.Domain
+			return errE
 		}
 
 		// Site might have been changed, so we assign it back.

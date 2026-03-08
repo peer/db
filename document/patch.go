@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -35,7 +36,9 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 	case "remove":
 		return changeUnmarshalJSON[RemoveClaimChange](data)
 	default:
-		return nil, errors.Errorf(`change of type "%s" is not supported`, t.Type)
+		errE := errors.New("change type not supported")
+		errors.Details(errE)["type"] = t.Type
+		return nil, errE
 	}
 }
 
@@ -44,7 +47,9 @@ func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
 	case AddClaimChange, SetClaimChange, RemoveClaimChange:
 	default:
-		return nil, errors.Errorf(`change of type %T is not supported`, change)
+		errE := errors.New("change type not supported")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", change)
+		return nil, errE
 	}
 	return x.MarshalWithoutEscapeHTML(change)
 }
@@ -168,7 +173,9 @@ func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //no
 	case "timeRange":
 		return claimPatchUnmarshalJSON[TimeRangeClaimPatch](data)
 	default:
-		return nil, errors.Errorf(`patch of type "%s" is not supported`, t.Type)
+		errE := errors.New("patch type not supported")
+		errors.Details(errE)["type"] = t.Type
+		return nil, errE
 	}
 }
 
@@ -178,7 +185,9 @@ func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	case IdentifierClaimPatch, ReferenceClaimPatch, TextClaimPatch, StringClaimPatch, AmountClaimPatch, AmountRangeClaimPatch,
 		RelationClaimPatch, FileClaimPatch, NoValueClaimPatch, UnknownValueClaimPatch, TimeClaimPatch, TimeRangeClaimPatch:
 	default:
-		return nil, errors.Errorf(`patch of type %T is not supported`, patch)
+		errE := errors.New("patch type not supported")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", patch)
+		return nil, errE
 	}
 	return x.MarshalWithoutEscapeHTML(patch)
 }
@@ -238,7 +247,9 @@ func (c AddClaimChange) Apply(doc *D) errors.E {
 
 	claim := doc.GetByID(*c.Under)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, *c.Under)
+		errE := errors.New("claim not found")
+		errors.Details(errE)["id"] = *c.Under
+		return errE
 	}
 	return claim.Add(newClaim)
 }
@@ -270,7 +281,9 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "add" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	patch, errE := ClaimPatchUnmarshalJSON(t.Patch)
 	if errE != nil {
@@ -310,7 +323,9 @@ type SetClaimChange struct {
 func (c SetClaimChange) Apply(doc *D) errors.E {
 	claim := doc.GetByID(c.ID)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
+		errE := errors.New("claim not found")
+		errors.Details(errE)["id"] = c.ID
+		return errE
 	}
 	return c.Patch.Apply(claim)
 }
@@ -335,7 +350,9 @@ func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "set" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	patch, errE := ClaimPatchUnmarshalJSON(t.Patch)
 	if errE != nil {
@@ -373,7 +390,9 @@ type RemoveClaimChange struct {
 func (c RemoveClaimChange) Apply(doc *D) errors.E {
 	claim := doc.RemoveByID(c.ID)
 	if claim == nil {
-		return errors.Errorf(`claim with ID "%s" not found`, c.ID)
+		errE := errors.New("claim not found")
+		errors.Details(errE)["id"] = c.ID
+		return errE
 	}
 	return nil
 }
@@ -397,7 +416,9 @@ func (c *RemoveClaimChange) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "remove" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	c.ID = t.ID
 	return nil
@@ -484,7 +505,9 @@ func (p *IdentifierClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "id" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = IdentifierClaimPatch(t.P)
 	return nil
@@ -571,7 +594,9 @@ func (p *ReferenceClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "ref" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = ReferenceClaimPatch(t.P)
 	return nil
@@ -665,7 +690,9 @@ func (p *TextClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "text" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = TextClaimPatch(t.P)
 	return nil
@@ -752,7 +779,9 @@ func (p *StringClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "string" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = StringClaimPatch(t.P)
 	return nil
@@ -844,7 +873,9 @@ func (p *AmountClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "amount" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = AmountClaimPatch(t.P)
 	return nil
@@ -941,7 +972,9 @@ func (p *AmountRangeClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "amountRange" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = AmountRangeClaimPatch(t.P)
 	return nil
@@ -1030,7 +1063,9 @@ func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "rel" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = RelationClaimPatch(t.P)
 	return nil
@@ -1127,7 +1162,9 @@ func (p *FileClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "file" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = FileClaimPatch(t.P)
 	return nil
@@ -1209,7 +1246,9 @@ func (p *NoValueClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "none" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = NoValueClaimPatch(t.P)
 	return nil
@@ -1291,7 +1330,9 @@ func (p *UnknownValueClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "unknown" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = UnknownValueClaimPatch(t.P)
 	return nil
@@ -1383,7 +1424,9 @@ func (p *TimeClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "time" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = TimeClaimPatch(t.P)
 	return nil
@@ -1480,7 +1523,9 @@ func (p *TimeRangeClaimPatch) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	if t.Type != "timeRange" {
-		return errors.Errorf(`invalid type "%s"`, t.Type)
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
 	}
 	*p = TimeRangeClaimPatch(t.P)
 	return nil

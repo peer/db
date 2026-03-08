@@ -91,31 +91,45 @@ func (t *Timestamp) UnmarshalText(text []byte) error {
 	s := string(text)
 	match := timeRegex.FindStringSubmatch(s)
 	if match == nil {
-		return errors.Errorf(`unable to parse time "%s"`, s)
+		errE := errors.New("unable to parse time")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	year, err := strconv.ParseInt(match[1], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse year "%s"`, s)
+		errE := errors.New("unable to parse year")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	month, err := strconv.ParseInt(match[2], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse month "%s"`, s)
+		errE := errors.New("unable to parse month")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	day, err := strconv.ParseInt(match[3], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse day "%s"`, s)
+		errE := errors.New("unable to parse day")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	hour, err := strconv.ParseInt(match[4], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse hour "%s"`, s)
+		errE := errors.New("unable to parse hour")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	minute, err := strconv.ParseInt(match[5], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse minute "%s"`, s)
+		errE := errors.New("unable to parse minute")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	second, err := strconv.ParseInt(match[6], 10, 0)
 	if err != nil {
-		return errors.WithMessagef(err, `unable to parse second "%s"`, s)
+		errE := errors.New("unable to parse second")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	*t = Timestamp(time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC))
 	return nil
@@ -184,7 +198,9 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 	case *TimeRangeClaim:
 		c.TimeRange = append(c.TimeRange, *cl)
 	default:
-		return errors.Errorf(`claim of type %T is not supported`, claim)
+		errE := errors.New("claim type not supported")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", claim)
+		return errE
 	}
 	return nil
 }
@@ -332,7 +348,9 @@ func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:iretu
 // Add adds a metadata claim to the claim.
 func (cc *CoreClaim) Add(claim Claim) errors.E {
 	if claimID := claim.GetID(); cc.GetByID(claimID) != nil {
-		return errors.Errorf(`claim with ID "%s" already exists`, claimID)
+		errE := errors.New("claim with ID already exists")
+		errors.Details(errE)["id"] = claimID
+		return errE
 	}
 	if cc.Meta == nil {
 		cc.Meta = new(ClaimTypes)
@@ -509,7 +527,9 @@ func (u AmountUnit) MarshalJSON() ([]byte, error) {
 	case AmountUnitsTotal:
 		fallthrough
 	default:
-		panic(errors.Errorf("invalid AmountUnit value: %d", u))
+		errE := errors.New("invalid AmountUnit value")
+		errors.Details(errE)["value"] = u
+		panic(errE)
 	}
 	buffer.WriteString(`"`)
 	return buffer.Bytes(), nil
@@ -570,7 +590,9 @@ func (u *AmountUnit) UnmarshalJSON(b []byte) error {
 	case "dB":
 		*u = AmountUnitDecibel
 	default:
-		return errors.Errorf("unknown amount unit: %s", s)
+		errE := errors.New("unknown amount unit")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	return nil
 }
@@ -752,7 +774,9 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 	case "s":
 		*p = TimePrecisionSecond
 	default:
-		return errors.Errorf("unknown time precision: %s", s)
+		errE := errors.New("unknown time precision")
+		errors.Details(errE)["value"] = s
+		return errE
 	}
 	return nil
 }
