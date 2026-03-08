@@ -5,14 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
 	"slices"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
@@ -214,39 +210,6 @@ func endDocumentSession(
 func NewHTTPClient(logger zerolog.Logger, httpClient *http.Client) *http.Client {
 	// TODO: Make contact e-mail into a CLI argument.
 	return indexer.NewHTTPClient(logger, httpClient, fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision)) //nolint:lll
-}
-
-// Standalone initializes and returns all components needed for standalone operation including store, Elasticsearch client, and bulk processor.
-func Standalone(logger zerolog.Logger, database, elastic, schema, index string) (
-	context.Context, context.CancelFunc, *http.Client,
-	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	*elastic.Client, *elastic.BulkProcessor, errors.E,
-) {
-	// We stop the server gracefully on ctrl-c and TERM signal.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
-	dbpool, errE := internal.InitPostgres(ctx, database, logger, func(_ context.Context) (string, string) {
-		return schema, "standalone"
-	})
-	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, errE
-	}
-
-	simpleHTTPClient := cleanhttp.DefaultPooledClient()
-
-	esClient, errE := GetClient(simpleHTTPClient, logger, elastic)
-	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, errE
-	}
-
-	store, _, _, esProcessor, errE := InitForSite(ctx, logger, dbpool, esClient, schema, index)
-	if errE != nil {
-		return nil, nil, nil, nil, nil, nil, errE
-	}
-
-	httpClient := NewHTTPClient(logger, simpleHTTPClient)
-
-	return ctx, stop, httpClient, store, esClient, esProcessor, nil
 }
 
 // InitForSite initializes the store and Elasticsearch bulk processor for a specific site, creating necessary database tables.
