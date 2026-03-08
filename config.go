@@ -132,8 +132,6 @@ func (c *ServeCommand) Validate() error {
 }
 
 // PopulateCommand contains configuration for the populate command.
-//
-
 type PopulateCommand struct {
 	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
 	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
