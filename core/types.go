@@ -36,6 +36,8 @@ type Time struct {
 }
 
 // Interval represents a time interval.
+//
+// If From or To is nil, it is none value, unless FromIsUnknown or ToIsUnknown is true.
 type Interval struct {
 	From          *Time `json:"from,omitempty"`
 	FromIsUnknown bool  `json:"fromIsUnknown,omitempty"`
