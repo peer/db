@@ -1,5 +1,6 @@
 # PeerDB
 
+[![pkg.go.dev](https://pkg.go.dev/badge/gitlab.com/peerdb/peerdb)](https://pkg.go.dev/gitlab.com/peerdb/peerdb)
 [![Go Report Card](https://goreportcard.com/badge/gitlab.com/peerdb/peerdb)](https://goreportcard.com/report/gitlab.com/peerdb/peerdb)
 [![pipeline status](https://gitlab.com/peerdb/peerdb/badges/main/pipeline.svg?ignore_skipped=true)](https://gitlab.com/peerdb/peerdb/-/pipelines)
 [![coverage report](https://gitlab.com/peerdb/peerdb/badges/main/coverage.svg)](https://gitlab.com/peerdb/peerdb/-/graphs/main/charts)
