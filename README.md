@@ -206,7 +206,7 @@ properties. You can do that by running:
 ```
 
 This also creates an ElasticSearch index if it does not yet exist and configures it
-with [PeerDB Search mapping](./search/index.json). Otherwise you have to create such index
+with PeerDB ElasticSearch mapping. Otherwise you have to create such index
 yourself.
 
 Then you populate the index with documents for properties for you data. For example, if you

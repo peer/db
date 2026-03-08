@@ -2,7 +2,6 @@ package es
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,16 +25,12 @@ import (
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
+	"gitlab.com/peerdb/peerdb/internal/mapping"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
-
-// TODO: Generate index configuration automatically from document structs?
-
-//go:embed index.json
-var indexConfiguration []byte
 
 const (
 	bulkProcessorWorkers = 2
@@ -88,8 +83,12 @@ func ensureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	}
 
 	if !exists {
+		indexConfiguration, errE := mapping.Generate()
+		if errE != nil {
+			return errE
+		}
 		var config indexConfigurationStruct
-		errE := x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
+		errE = x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
 		if errE != nil {
 			return errE
 		}
