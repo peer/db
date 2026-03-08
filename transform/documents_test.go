@@ -948,7 +948,7 @@ func TestDocuments_InvalidUnitTag(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "unknown amount unit: invalid")
+	assert.EqualError(t, errE, "unknown amount unit")
 }
 
 func TestDocuments_NotAStruct(t *testing.T) {
@@ -5692,7 +5692,7 @@ func TestDocuments_IntInvalidUnit(t *testing.T) {
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
-	assert.EqualError(t, errE, "unknown amount unit: invalid")
+	assert.EqualError(t, errE, "unknown amount unit")
 }
 
 func TestDocuments_UintMissingUnit(t *testing.T) {
@@ -5738,7 +5738,7 @@ func TestDocuments_UintInvalidUnit(t *testing.T) {
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
-	assert.EqualError(t, errE, "unknown amount unit: invalid")
+	assert.EqualError(t, errE, "unknown amount unit")
 }
 
 func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
