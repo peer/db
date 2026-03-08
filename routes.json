@@ -173,6 +173,12 @@
       "path": "/f/:id",
       "api": null,
       "get": {}
+    },
+    {
+      "name": "DebugMapping",
+      "path": "/debug/mapping",
+      "api": {},
+      "get": null
     }
   ]
 }

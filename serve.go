@@ -23,6 +23,9 @@ var routesConfiguration []byte
 // Service is the main HTTP service for PeerDB.
 type Service struct {
 	waf.Service[*Site]
+
+	// Is service running in development mode.
+	Development bool
 }
 
 // Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
@@ -143,6 +146,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				}
 			},
 		},
+		Development: c.Server.Development,
 	}
 
 	// Construct the main handler for the service using the router.
