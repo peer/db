@@ -51,16 +51,9 @@ type DocumentFields struct {
 	InstanceOf []Ref    `cardinality:"0.."               json:"instanceOf,omitempty" property:"INSTANCE_OF"`
 }
 
-// PropertyName represents a property name with language information.
+// PropertyName represents a property name (main, short or alternative) with language information.
 type PropertyName struct {
 	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
-// PropertyShortName represents a property short name with language information.
-type PropertyShortName struct {
-	ShortName string `json:"shortName" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
@@ -81,12 +74,13 @@ type PropertyInstruction struct {
 
 // PropertyFields contains fields specific to properties.
 type PropertyFields struct {
-	Name          []PropertyName        `cardinality:"1.."  json:"name"                    property:"NAME"`
-	ShortName     []PropertyShortName   `cardinality:"0.."  json:"shortName,omitempty"     property:"SHORT_NAME"`
-	Mnemonic      string                `cardinality:"0..1" json:"mnemonic,omitempty"      property:"MNEMONIC"`
-	Description   []PropertyDescription `cardinality:"0.."  json:"description,omitempty"   property:"DESCRIPTION"`
-	Instruction   []PropertyInstruction `cardinality:"0.."  json:"instruction,omitempty"   property:"INSTRUCTION"`
-	SubpropertyOf []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty" property:"SUBPROPERTY_OF"`
+	Name            []PropertyName        `cardinality:"1.."  json:"name"                      property:"NAME"`
+	ShortName       []PropertyName        `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
+	AlternativeName []PropertyName        `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
+	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
+	Description     []PropertyDescription `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
+	Instruction     []PropertyInstruction `cardinality:"0.."  json:"instruction,omitempty"     property:"INSTRUCTION"`
+	SubpropertyOf   []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"   property:"SUBPROPERTY_OF"`
 }
 
 // Property represents a property document.
@@ -95,16 +89,9 @@ type Property struct {
 	DocumentFields
 }
 
-// ClassName represents a class name with language information.
+// ClassName represents a class name (main, short or alternative) with language information.
 type ClassName struct {
 	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
-// ClassShortName represents a class short name with language information.
-type ClassShortName struct {
-	ShortName string `json:"shortName" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
@@ -118,11 +105,12 @@ type ClassDescription struct {
 
 // ClassFields contains fields specific to classes.
 type ClassFields struct {
-	Name        []ClassName        `cardinality:"1.."  json:"name"                  property:"NAME"`
-	ShortName   []ClassShortName   `cardinality:"0.."  json:"shortName,omitempty"   property:"SHORT_NAME"`
-	Mnemonic    string             `cardinality:"0..1" json:"mnemonic,omitempty"    property:"MNEMONIC"`
-	Description []ClassDescription `cardinality:"0.."  json:"description,omitempty" property:"DESCRIPTION"`
-	SubclassOf  []Ref              `cardinality:"0.."  json:"subclassOf,omitempty"  property:"SUBCLASS_OF"`
+	Name            []ClassName        `cardinality:"1.."  json:"name"                      property:"NAME"`
+	ShortName       []ClassName        `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
+	AlternativeName []ClassName        `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
+	Mnemonic        string             `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
+	Description     []ClassDescription `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
+	SubclassOf      []Ref              `cardinality:"0.."  json:"subclassOf,omitempty"      property:"SUBCLASS_OF"`
 }
 
 // Class represents a class document.
