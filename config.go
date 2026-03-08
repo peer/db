@@ -94,8 +94,8 @@ func (g *Globals) Validate() error {
 type Config struct {
 	Globals `yaml:"globals"`
 
-	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command."      yaml:"serve"`
-	Populate PopulateCommand `cmd:""                    help:"Populate database with core documents." yaml:"populate"`
+	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command." yaml:"serve"`
+	Populate PopulateCommand `cmd:""                    help:"Populate database with documents." yaml:"populate"`
 }
 
 // ServeCommand contains configuration for the serve command.
@@ -132,4 +132,10 @@ func (c *ServeCommand) Validate() error {
 }
 
 // PopulateCommand contains configuration for the populate command.
-type PopulateCommand struct{}
+//
+
+type PopulateCommand struct {
+	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
+	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
+	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
+}

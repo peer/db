@@ -24,11 +24,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "SUBENTITY_OF",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SUBENTITY_OF",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SUBENTITY_OF"},
@@ -51,7 +52,48 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:   nil,
+			ShortName: nil,
+			AlternativeName: []PropertyName{{
+				Name: "is",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "je",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "kind",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "vrsta",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "form",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "oblika",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "category",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "kategorija",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
 			Mnemonic:    "INSTANCE_OF",
 			Description: nil,
 			Instruction: nil,
@@ -80,10 +122,11 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:   nil,
-			Mnemonic:    "SUBCLASS_OF",
-			Description: nil,
-			Instruction: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SUBCLASS_OF",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
@@ -109,10 +152,11 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:   nil,
-			Mnemonic:    "SUBPROPERTY_OF",
-			Description: nil,
-			Instruction: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SUBPROPERTY_OF",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
@@ -138,11 +182,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "DISTINCT_FROM",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "DISTINCT_FROM",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DISTINCT_FROM"},
@@ -165,11 +210,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "NAMING",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "NAMING",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "NAMING"},
@@ -192,10 +238,11 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:   nil,
-			Mnemonic:    "NAME",
-			Description: nil,
-			Instruction: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "NAME",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -221,10 +268,11 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:   nil,
-			Mnemonic:    "SHORT_NAME",
-			Description: nil,
-			Instruction: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SHORT_NAME",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -239,24 +287,52 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{
-				{
-					Name: "title",
-					InLanguage: []Ref{{
-						ID: []string{Namespace, "LANGUAGE", "en-GB"},
-					}},
-				},
-				{
-					Name: "naslov",
-					InLanguage: []Ref{{
-						ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-					}},
-				},
-			},
-			ShortName:   nil,
-			Mnemonic:    "TITLE",
-			Description: nil,
-			Instruction: nil,
+			Name: []PropertyName{{
+				Name: "alternative name",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "alternativno ime",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "ALTERNATIVE_NAME",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "NAMING"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "ALTERNATIVE_NAME"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "title",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "naslov",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "TITLE",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -282,11 +358,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "DESCRIPTION",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "DESCRIPTION",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DESCRIPTION"},
@@ -309,11 +386,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "INSTRUCTION",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "INSTRUCTION",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "INSTRUCTION"},
@@ -336,11 +414,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "MNEMONIC",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "MNEMONIC",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "MNEMONIC"},
@@ -363,11 +442,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "IN_LANGUAGE",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "IN_LANGUAGE",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "IN_LANGUAGE"},
@@ -390,9 +470,20 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "VARIANT",
-			Description:   nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "VARIANT",
+			Description: []PropertyDescription{{
+				Description: "A variant has an unique ID. All values of a variant share this ID.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
 			Instruction:   nil,
 			SubpropertyOf: nil,
 		},
@@ -417,11 +508,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "DEFAULT_VARIANT",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "DEFAULT_VARIANT",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DEFAULT_VARIANT"},
@@ -444,11 +536,12 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:     nil,
-			Mnemonic:      "SELECTED_VARIANT",
-			Description:   nil,
-			Instruction:   nil,
-			SubpropertyOf: nil,
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SELECTED_VARIANT",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SELECTED_VARIANT"},
@@ -460,30 +553,268 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{
-				{
-					Name: "code",
-					InLanguage: []Ref{{
-						ID: []string{Namespace, "LANGUAGE", "en-GB"},
-					}},
-				},
-				{
-					Name: "koda",
-					InLanguage: []Ref{{
-						ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-					}},
-				},
-			},
-			ShortName:   nil,
-			Mnemonic:    "CODE",
-			Description: nil,
-			Instruction: nil,
+			Name: []PropertyName{{
+				Name: "list",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "seznam",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "LIST",
+			Description: []PropertyDescription{{
+				Description: "A list has an unique ID, even a list with just one element. All elements of a list share this ID.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "LIST"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "order in list",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "vrstni red v seznamu",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "ORDER_IN_LIST",
+			Description: []PropertyDescription{{
+				Description: "Order of an element inside its list. Smaller number is earlier in the list.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "ORDER_IN_LIST"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "sub-list",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "podseznam",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SUB_LIST",
+			Description: []PropertyDescription{{
+				Description: "List elements might have other lists as sub-lists. This is an ID of the sub-list.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Elementi seznama imajo lahko podsezname. To je ID podseznama.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "SUB_LIST"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "code",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "koda",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "CODE",
+			Description:     nil,
+			Instruction:     nil,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CODE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "enota",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName: nil,
+			AlternativeName: []PropertyName{{
+				Name: "unit of measurement",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "enota mere",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "measurement unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "unit of measure",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "merska enota",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Mnemonic: "UNIT",
+			Description: []PropertyDescription{{
+				Description: "Unit associated with an amount.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Enota številčne vrednosti.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "UNIT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "media type",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "tip medija",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName: nil,
+			AlternativeName: []PropertyName{{
+				Name: "MIME type",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "tip MIME",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "IMT",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "Internet media type",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "internetni tip medija",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "content type",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "tip vsebine",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Mnemonic:      "MEDIA_TYPE",
+			Description:   nil,
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "MEDIA_TYPE"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},

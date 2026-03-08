@@ -385,6 +385,14 @@ type Reference struct {
 	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"` //nolint:tagliatelle
 }
 
+// GetReference returns a reference with the given values converted to an ID.
+func GetReference(values ...string) Reference {
+	id := identifier.From(values...)
+	return Reference{
+		ID: &id,
+	}
+}
+
 // IdentifierClaim represents a claim with a string identifier value.
 type IdentifierClaim struct {
 	CoreClaim

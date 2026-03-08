@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 )
 
@@ -59,7 +60,7 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, document.D{ //nolint:exhaustruct
@@ -70,7 +71,7 @@ func TestDocument(t *testing.T) {
 						ID:         id,
 						Confidence: 1.0,
 					},
-					Prop: document.GetCorePropertyReference("ARTICLE"),
+					Prop: document.GetReference(core.Namespace, "NAME"),
 				},
 			},
 		},
@@ -81,16 +82,16 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
-	claims := doc.Get(document.GetCorePropertyID("ARTICLE"))
+	claims := doc.Get(identifier.From(core.Namespace, "NAME"))
 	assert.Equal(t, []document.Claim{
 		&document.NoValueClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         id,
 				Confidence: 1.0,
 			},
-			Prop: document.GetCorePropertyReference("ARTICLE"),
+			Prop: document.GetReference(core.Namespace, "NAME"),
 		},
 	}, claims)
 	claim = doc.RemoveByID(id)
@@ -99,7 +100,7 @@ func TestDocument(t *testing.T) {
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
 	assert.Equal(t, document.D{}, doc)
 
@@ -110,7 +111,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, &document.NoValueClaim{
@@ -124,12 +125,12 @@ func TestDocument(t *testing.T) {
 							ID:         id2,
 							Confidence: 1.0,
 						},
-						Prop: document.GetCorePropertyReference("ARTICLE"),
+						Prop: document.GetReference(core.Namespace, "NAME"),
 					},
 				},
 			},
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
 	metaClaim := claim.GetByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
@@ -137,7 +138,7 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, metaClaim)
 	metaClaim = claim.RemoveByID(id2)
 	assert.Equal(t, &document.UnknownValueClaim{
@@ -145,13 +146,13 @@ func TestDocument(t *testing.T) {
 			ID:         id2,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, metaClaim)
 	assert.Equal(t, &document.NoValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
-		Prop: document.GetCorePropertyReference("ARTICLE"),
+		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
 }
