@@ -295,6 +295,6 @@ Single PeerDB instance can serve multiple sites:
 
 ### ElasticSearch Index
 
-- Index configuration embedded in `search/index.json`
+- Index configuration generated in internal/mapping package
 - Auto-created on first run if missing
 - Run `./peerdb populate` to initialize with core PeerDB properties

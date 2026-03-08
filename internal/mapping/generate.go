@@ -1,11 +1,10 @@
-package main
+// Package mapping provides logic to generate PeerDB ElasticSearch mapping.
+package mapping
 
 import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"io"
-	"os"
 	"text/template"
 
 	"gitlab.com/tozd/go/errors"
@@ -349,37 +348,27 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 	},
 }
 
-func generate(config *Config) errors.E {
+// TODO: Generate index configuration automatically from document structs?
+
+// Generate generates PeerDB ElasticSearch mapping.
+func Generate() ([]byte, errors.E) {
 	t, err := template.New("indexTemplate").Parse(indexTemplate)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	var b bytes.Buffer
 	err = t.Execute(&b, claimTypes)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	var res bytes.Buffer
 	err = json.Indent(&res, b.Bytes(), "", "  ")
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 	res.WriteString("\n")
 
-	f, err := os.Create(config.Output)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	defer f.Close() //nolint:errcheck
-
-	_, err = io.Copy(f, &res)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	config.Logger.Info().Msg("mapping generated successfully")
-
-	return nil
+	return res.Bytes(), nil
 }
