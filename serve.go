@@ -112,6 +112,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Sites:           sites,
 			Middleware:      middleware,
 			SiteContextPath: "/context.json",
+			RoutesPath:      "/routes.json",
 			ProxyStaticTo:   c.Server.ProxyToInDevelopment(),
 			SkipServingFile: func(path string) bool {
 				switch path {
