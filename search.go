@@ -53,8 +53,8 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.Se
 	}
 }
 
-// SearchAmountFilterGet handles GET requests for amount filter search endpoints.
-func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// SearchAmountFilterGetAPI handles GET requests for amount filter search endpoints.
+func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -82,10 +82,10 @@ func (s *Service) SearchAmountFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchRelFilterGet handles GET requests for relation filter search endpoints.
+// SearchRelFilterGetAPI handles GET requests for relation filter search endpoints.
 //
 //nolint:dupl
-func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchRelFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -113,10 +113,10 @@ func (s *Service) SearchRelFilterGet(w http.ResponseWriter, req *http.Request, p
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchStringFilterGet handles GET requests for string filter search endpoints.
+// SearchStringFilterGetAPI handles GET requests for string filter search endpoints.
 //
 //nolint:dupl
-func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchStringFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -144,10 +144,10 @@ func (s *Service) SearchStringFilterGet(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchTimeFilterGet handles GET requests for time filter search endpoints.
+// SearchTimeFilterGetAPI handles GET requests for time filter search endpoints.
 //
 //nolint:dupl
-func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -175,8 +175,8 @@ func (s *Service) SearchTimeFilterGet(w http.ResponseWriter, req *http.Request, 
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchGet is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
-func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// SearchGetGet is a GET/HEAD HTTP request handler which returns HTML frontend for searching documents.
+func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -193,11 +193,11 @@ func (s *Service) SearchGet(w http.ResponseWriter, req *http.Request, params waf
 		return
 	}
 
-	s.Home(w, req, nil)
+	s.HomeGet(w, req, nil)
 }
 
-// SearchGetGet is a GET/HEAD HTTP request API handler which returns a search session.
-func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// SearchGetGetAPI is a GET/HEAD HTTP request API handler which returns a search session.
+func (s *Service) SearchGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -215,8 +215,8 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 	s.WriteJSON(w, req, searchSession, nil)
 }
 
-// SearchFiltersGet is a GET/HEAD HTTP request API handler which returns filters available for the search session.
-func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
+// SearchFiltersGetAPI is a GET/HEAD HTTP request API handler which returns filters available for the search session.
+func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -243,10 +243,10 @@ func (s *Service) SearchFiltersGet(w http.ResponseWriter, req *http.Request, par
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchResultsGet is a GET/HEAD HTTP request API handler and it searches ElasticSearch index for the provided
+// SearchResultsGetAPI is a GET/HEAD HTTP request API handler and it searches ElasticSearch index for the provided
 // search session and returns to the client a JSON with an array of IDs of found documents.
 // It returns search metadata (e.g., total results) as waf HTTP response header.
-func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
+func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) { //nolint:dupl
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -273,10 +273,10 @@ func (s *Service) SearchResultsGet(w http.ResponseWriter, req *http.Request, par
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchJustResultsPost is a POST HTTP request API handler and it searches ElasticSearch index without
+// SearchJustResultsPostAPI is a POST HTTP request API handler and it searches ElasticSearch index without
 // creating a search session and returns to the client a JSON with an array of IDs of found documents.
 // It returns search metadata (e.g., total results) as waf HTTP response header.
-func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -313,8 +313,8 @@ func (s *Service) SearchJustResultsPost(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchCreatePost is a POST HTTP API request handler which creates a new search session.
-func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+// SearchCreatePostAPI is a POST HTTP API request handler which creates a new search session.
+func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -347,8 +347,8 @@ func (s *Service) SearchCreatePost(w http.ResponseWriter, req *http.Request, _ w
 	s.WriteJSON(w, req, searchSession.Ref(), nil)
 }
 
-// SearchUpdatePost is a POST HTTP API request handler which updates the search session.
-func (s *Service) SearchUpdatePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// SearchUpdatePostAPI is a POST HTTP API request handler which updates the search session.
+func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 

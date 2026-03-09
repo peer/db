@@ -9,8 +9,8 @@ import (
 	"gitlab.com/peerdb/peerdb/internal/mapping"
 )
 
-// DebugMappingGet handles GET requests to serve generated ElasticSearch mapping for debugging.
-func (s *Service) DebugMappingGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+// DebugMappingGetAPI handles GET requests to serve generated ElasticSearch mapping for debugging.
+func (s *Service) DebugMappingGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	if !s.Development {
 		s.NotFoundWithError(w, req, errors.New("not in development mode"))
 		return

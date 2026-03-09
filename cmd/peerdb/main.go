@@ -15,6 +15,7 @@ import (
 func main() {
 	var config peerdb.Config
 	cli.Run(&config, kong.Vars{
+		"defaultListen":       peerdb.DefaultListen,
 		"defaultProxyTo":      peerdb.DefaultProxyTo,
 		"defaultTLSCache":     peerdb.DefaultTLSCache,
 		"defaultElastic":      peerdb.DefaultElastic,

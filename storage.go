@@ -36,8 +36,8 @@ type storageBeginUploadResponse struct {
 	Session identifier.Identifier `json:"session"`
 }
 
-// StorageBeginUploadPost handles POST requests to begin a chunked file upload session.
-func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+// StorageBeginUploadPostAPI handles POST requests to begin a chunked file upload session.
+func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -61,8 +61,8 @@ func (s *Service) StorageBeginUploadPost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, storageBeginUploadResponse{Session: session}, nil)
 }
 
-// StorageUploadChunkPost handles POST requests to upload a chunk of data during a file upload session.
-func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageUploadChunkPostAPI handles POST requests to upload a chunk of data during a file upload session.
+func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -122,8 +122,8 @@ func (s *Service) StorageUploadChunkPost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// StorageListChunksGet handles GET requests to list all uploaded chunks for a file upload session.
-func (s *Service) StorageListChunksGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageListChunksGetAPI handles GET requests to list all uploaded chunks for a file upload session.
+func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	session, errE := identifier.MaybeString(params["session"])
@@ -154,8 +154,8 @@ type storageGetChunkResponse struct {
 	Length int64 `json:"length"`
 }
 
-// StorageGetChunkGet handles GET requests to retrieve start position and length of a specific chunk in a file upload session.
-func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageGetChunkGetAPI handles GET requests to retrieve start position and length of a specific chunk in a file upload session.
+func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	session, errE := identifier.MaybeString(params["session"])
@@ -192,8 +192,8 @@ func (s *Service) StorageGetChunkGet(w http.ResponseWriter, req *http.Request, p
 
 type emptyRequest struct{}
 
-// StorageEndUploadPost handles POST requests to finalize a file upload session.
-func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageEndUploadPostAPI handles POST requests to finalize a file upload session.
+func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -232,8 +232,8 @@ func (s *Service) StorageEndUploadPost(w http.ResponseWriter, req *http.Request,
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// StorageDiscardUploadPost handles POST requests to discard a file upload session.
-func (s *Service) StorageDiscardUploadPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageDiscardUploadPostAPI handles POST requests to discard a file upload session.
+func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
