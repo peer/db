@@ -146,14 +146,14 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	serve := &peerdb.ServeCommand{ //nolint:exhaustruct
 		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
-			TLS: waf.TLS{ //nolint:exhaustruct
+			HTTPS: waf.HTTPS{ //nolint:exhaustruct
 				CertFile: certPath,
 				KeyFile:  keyPath,
+				// httptest.Server allocates a random port for its listener (but does not use serve.Server.Addr to do so).
+				// Having 0 for port here makes the rest of the codebase expect a random port and wait for its assignment.
+				Listen: "localhost:0",
 			},
 			Development: true,
-			// httptest.Server allocates a random port for its listener (but does not use serve.Server.Addr to do so).
-			// Having 0 for port here makes the rest of the codebase expect a random port and wait for its assignment.
-			Addr: "localhost:0",
 		},
 		Title: peerdb.DefaultTitle,
 	}

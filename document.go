@@ -23,9 +23,9 @@ import (
 
 // TODO: Support slug per document.
 
-// DocumentGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
+// DocumentGetGet is a GET/HEAD HTTP request handler which returns HTML frontend for a
 // document given its ID as a parameter.
-func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -89,12 +89,12 @@ func (s *Service) DocumentGet(w http.ResponseWriter, req *http.Request, params w
 		return
 	}
 
-	s.Home(w, req, nil)
+	s.HomeGet(w, req, nil)
 }
 
-// DocumentGetGet is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// DocumentGetGetAPI is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
 // It supports compression based on accepted content encoding and range requests.
-func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -151,8 +151,8 @@ type documentCreateResponse struct {
 	ID identifier.Identifier `json:"id"`
 }
 
-// DocumentCreatePost handles POST requests to create a new document.
-func (s *Service) DocumentCreatePost(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+// DocumentCreatePostAPI handles POST requests to create a new document.
+func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -196,8 +196,8 @@ type documentBeginEditResponse struct {
 	Version store.Version         `json:"version"`
 }
 
-// DocumentBeginEditPost handles POST requests to begin an edit session for a document.
-func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentBeginEditPostAPI handles POST requests to begin an edit session for a document.
+func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -242,8 +242,8 @@ func (s *Service) DocumentBeginEditPost(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, documentBeginEditResponse{Session: session, Version: version}, nil)
 }
 
-// DocumentSaveChangePost handles POST requests to save a change within an edit session.
-func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentSaveChangePostAPI handles POST requests to save a change within an edit session.
+func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
@@ -314,8 +314,8 @@ func (s *Service) DocumentSaveChangePost(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// DocumentListChangesGet handles GET requests to list all changes in an edit session.
-func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentListChangesGetAPI handles GET requests to list all changes in an edit session.
+func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	session, errE := identifier.MaybeString(params["session"])
@@ -342,8 +342,8 @@ func (s *Service) DocumentListChangesGet(w http.ResponseWriter, req *http.Reques
 	s.WriteJSON(w, req, changes, nil)
 }
 
-// DocumentGetChangeGet handles GET requests to retrieve a specific change from an edit session.
-func (s *Service) DocumentGetChangeGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentGetChangeGetAPI handles GET requests to retrieve a specific change from an edit session.
+func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	session, errE := identifier.MaybeString(params["session"])
@@ -382,13 +382,13 @@ type documentEndEditResponse struct {
 	Changeset identifier.Identifier `json:"changeset"`
 }
 
-// DocumentEndEditPost handles POST requests to finalize an edit session and commit changes.
-func (s *Service) DocumentEndEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentEndEditPostAPI handles POST requests to finalize an edit session and commit changes.
+func (s *Service) DocumentEndEditPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	s.documentEndEdit(w, req, params, false)
 }
 
-// DocumentDiscardEditPost handles POST requests to discard an edit session without committing changes.
-func (s *Service) DocumentDiscardEditPost(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentDiscardEditPostAPI handles POST requests to discard an edit session without committing changes.
+func (s *Service) DocumentDiscardEditPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	s.documentEndEdit(w, req, params, true)
 }
 
@@ -442,8 +442,8 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	}, nil)
 }
 
-// DocumentEdit is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
-func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentEditGet is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
+func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	id, errE := identifier.MaybeString(params["id"])
@@ -480,11 +480,11 @@ func (s *Service) DocumentEdit(w http.ResponseWriter, req *http.Request, params 
 		return
 	}
 
-	s.Home(w, req, nil)
+	s.HomeGet(w, req, nil)
 }
 
-// DocumentEditGet handles GET requests to retrieve metadata about a document edit session.
-func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// DocumentEditGetAPI handles GET requests to retrieve metadata about a document edit session.
+func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	id, errE := identifier.MaybeString(params["id"])

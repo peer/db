@@ -3,7 +3,6 @@ package peerdb
 
 import (
 	"context"
-	_ "embed"
 	"io/fs"
 	"net/http"
 	"os"
@@ -13,12 +12,8 @@ import (
 
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 )
-
-//go:embed routes.json
-var routesConfiguration []byte
 
 // Service is the main HTTP service for PeerDB.
 type Service struct {
@@ -30,15 +25,6 @@ type Service struct {
 
 // Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (http.Handler, *Service, errors.E) {
-	// Routes come from a single source of truth, e.g., a file.
-	var routesConfig struct {
-		Routes []waf.Route `json:"routes"`
-	}
-	errE := x.UnmarshalWithoutUnknownFields(routesConfiguration, &routesConfig)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
 	c.Server.Logger = globals.Logger
 
 	sites := map[string]*Site{}
@@ -75,7 +61,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	// If sites are not provided (and no default domain), sites
 	// are automatically constructed based on the certificate.
 	sitesProvided := len(sites) > 0
-	sites, errE = c.Server.Init(sites)
+	sites, errE := c.Server.Init(sites)
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -122,7 +108,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			CanonicalLogger: globals.Logger,
 			WithContext:     globals.WithContext,
 			StaticFiles:     files.(fs.ReadFileFS), //nolint:errcheck
-			Routes:          routesConfig.Routes,
+			Routes:          nil,
 			Sites:           sites,
 			Middleware:      middleware,
 			SiteContextPath: "/context.json",
@@ -149,9 +135,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		Development: c.Server.Development,
 	}
 
+	service.setRoutes()
+
 	// Construct the main handler for the service using the router.
 	router := new(waf.Router)
-	handler, errE := service.RouteWith(service, router)
+	handler, errE := service.RouteWith(router)
 	if errE != nil {
 		return nil, nil, errE
 	}
