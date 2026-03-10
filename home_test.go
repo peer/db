@@ -213,9 +213,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.EnableHTTP2 = true
 	t.Cleanup(ts.Close)
 
-	ts.Config = serve.Server.HTTPServer
+	ts.Config = serve.Server.HTTPSServer
 	ts.Config.Handler = handler
-	ts.TLS = serve.Server.HTTPServer.TLSConfig.Clone()
+	ts.TLS = serve.Server.HTTPSServer.TLSConfig.Clone()
 
 	certDomain := "localhost"
 	if len(globals.Sites) > 0 {
