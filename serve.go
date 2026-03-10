@@ -3,7 +3,6 @@ package peerdb
 
 import (
 	"context"
-	_ "embed"
 	"io/fs"
 	"net/http"
 	"os"
@@ -13,12 +12,8 @@ import (
 
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 )
-
-//go:embed routes.json
-var routesConfiguration []byte
 
 // Service is the main HTTP service for PeerDB.
 type Service struct {
@@ -28,17 +23,8 @@ type Service struct {
 	Development bool
 }
 
-// Init initializes the HTTP service and is used primarily in tests. Use Run otherwise.
-func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (http.Handler, *Service, errors.E) {
-	// Routes come from a single source of truth, e.g., a file.
-	var routesConfig struct {
-		Routes []waf.Route `json:"routes"`
-	}
-	errE := x.UnmarshalWithoutUnknownFields(routesConfiguration, &routesConfig)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
+// Init initializes the HTTP service and is used together with Start to implement Run.
+func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, errors.E) {
 	c.Server.Logger = globals.Logger
 
 	sites := map[string]*Site{}
@@ -75,9 +61,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	// If sites are not provided (and no default domain), sites
 	// are automatically constructed based on the certificate.
 	sitesProvided := len(sites) > 0
-	sites, errE = c.Server.Init(sites)
+	sites, errE := c.Server.Init(sites)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, errE
 	}
 
 	if !sitesProvided {
@@ -106,7 +92,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 	errE = Init(ctx, globals)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, errE
 	}
 
 	var middleware []func(http.Handler) http.Handler
@@ -122,10 +108,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			CanonicalLogger: globals.Logger,
 			WithContext:     globals.WithContext,
 			StaticFiles:     files.(fs.ReadFileFS), //nolint:errcheck
-			Routes:          routesConfig.Routes,
+			Routes:          nil,
 			Sites:           sites,
 			Middleware:      middleware,
 			SiteContextPath: "/context.json",
+			RoutesPath:      "/routes.json",
 			ProxyStaticTo:   c.Server.ProxyToInDevelopment(),
 			SkipServingFile: func(path string) bool {
 				switch path {
@@ -149,23 +136,16 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		Development: c.Server.Development,
 	}
 
-	// Construct the main handler for the service using the router.
-	router := new(waf.Router)
-	handler, errE := service.RouteWith(service, router)
-	if errE != nil {
-		return nil, nil, errE
-	}
+	service.setRoutes()
 
-	return handler, service, nil
+	return service, nil
 }
 
-// Run starts the HTTP server and serves the PeerDB application.
-func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
-	// We stop the server gracefully on ctrl-c and TERM signal.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	handler, service, errE := c.Init(ctx, globals, files)
+// Start starts the server and blocks until the server is shut down.
+func (c *ServeCommand) Start(ctx context.Context, service *Service) errors.E {
+	// Construct the main handler for the service using the router.
+	router := new(waf.Router)
+	handler, errE := service.RouteWith(router)
 	if errE != nil {
 		return errE
 	}
@@ -176,9 +156,23 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	}
 
 	for _, site := range service.Sites {
-		globals.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
+		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
+	}
+
+	return c.Server.Run(ctx, handler)
+}
+
+// Run starts the HTTP server and serves the PeerDB application.
+func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
+	// We stop the server gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	service, errE := c.Init(ctx, globals, files)
+	if errE != nil {
+		return errE
 	}
 
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
-	return c.Server.Run(ctx, handler)
+	return c.Start(ctx, service)
 }

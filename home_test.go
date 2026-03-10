@@ -146,14 +146,14 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	serve := &peerdb.ServeCommand{ //nolint:exhaustruct
 		Server: waf.Server[*peerdb.Site]{ //nolint:exhaustruct
-			TLS: waf.TLS{ //nolint:exhaustruct
+			HTTPS: waf.HTTPS{ //nolint:exhaustruct
 				CertFile: certPath,
 				KeyFile:  keyPath,
+				// httptest.Server allocates a random port for its listener (but does not use serve.Server.Addr to do so).
+				// Having 0 for port here makes the rest of the codebase expect a random port and wait for its assignment.
+				Listen: "localhost:0",
 			},
 			Development: true,
-			// httptest.Server allocates a random port for its listener (but does not use serve.Server.Addr to do so).
-			// Having 0 for port here makes the rest of the codebase expect a random port and wait for its assignment.
-			Addr: "localhost:0",
 		},
 		Title: peerdb.DefaultTitle,
 	}
@@ -194,7 +194,11 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	handler, service, errE := serve.Init(ctx, globals, testFiles)
+	service, errE := serve.Init(ctx, globals, testFiles)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	router := new(waf.Router)
+	handler, errE := service.RouteWith(router)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	populate := peerdb.PopulateCommand{}
@@ -209,9 +213,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	ts.EnableHTTP2 = true
 	t.Cleanup(ts.Close)
 
-	ts.Config = serve.Server.HTTPServer
+	ts.Config = serve.Server.HTTPSServer
 	ts.Config.Handler = handler
-	ts.TLS = serve.Server.HTTPServer.TLSConfig.Clone()
+	ts.TLS = serve.Server.HTTPSServer.TLSConfig.Clone()
 
 	certDomain := "localhost"
 	if len(globals.Sites) > 0 {

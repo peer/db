@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	// DefaultListen is the default TCP listen address.
+	DefaultListen = ":8080"
 	// DefaultProxyTo is the default URL to proxy to during development.
 	DefaultProxyTo = "http://localhost:5173"
 	// DefaultTLSCache is the default TLS cache directory name for Let's Encrypt certificates.
@@ -115,13 +117,13 @@ type ServeCommand struct {
 func (c *ServeCommand) Validate() error {
 	// We have to call Validate on kong-embedded structs ourselves.
 	// See: https://github.com/alecthomas/kong/issues/90
-	err := c.Server.TLS.Validate()
+	err := c.Server.HTTPS.Validate()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	if c.Domain != "" && c.Server.TLS.Email == "" {
-		return errors.New("contact e-mail is required for Let's Encrypt's certificate")
+	if c.Domain != "" && c.Server.HTTPS.LetsEncryptCache == "" {
+		return errors.New("Let's Encrypt's cache directory is required for Let's Encrypt's certificate")
 	}
 
 	if (c.Username != "" && c.Password == nil) || (c.Username == "" && c.Password != nil) {
