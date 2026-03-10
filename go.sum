@@ -259,8 +259,8 @@ gitlab.com/tozd/go/zerolog v0.11.2 h1:DkLdoryCBDwTDnfq8JrHwAsKqWXMixnNiWe6XCx9xu
 gitlab.com/tozd/go/zerolog v0.11.2/go.mod h1:Dw5ScQB0E4Hou7JSWYj89XGhoW2Gl+3ntnncDZFRRCo=
 gitlab.com/tozd/identifier v0.8.1 h1:GZw2FCrjCmCaUA+VKmBYFQQTSQ1XYz5VjM4njicKNo8=
 gitlab.com/tozd/identifier v0.8.1/go.mod h1:Rdf6KMUKO3OxjKoNYvlPxEqxNKyNfuXc67uc/2d4VeY=
-gitlab.com/tozd/waf v0.21.0 h1:jzQOkHrGDAEcPY6EyUeSu6kHcb1BRGeLmDrfRmUZRCc=
-gitlab.com/tozd/waf v0.21.0/go.mod h1:PSvh2o22PZGtwJ3jBqwK8lBK5zFakTM0j677G52MLbc=
+gitlab.com/tozd/waf v0.22.0 h1:QyEJJHqhhLWAZMiPrOvCNwSyOB5/NRmCq4VZD0U4y3E=
+gitlab.com/tozd/waf v0.22.0/go.mod h1:fCh6lZ4oN/iN0VG9GsGPd0qpRkmoShsTpiV7arbAzS4=
 golang.org/x/crypto v0.0.0-20170930174604-9419663f5a44/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
