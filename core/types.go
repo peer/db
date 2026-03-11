@@ -60,14 +60,14 @@ type PropertyName struct {
 
 // PropertyDescription represents a property description with language information.
 type PropertyDescription struct {
-	Description HTML `json:"description" value:""`
+	Description RawHTML `json:"description" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
 
 // PropertyInstruction represents a property instruction with language information.
 type PropertyInstruction struct {
-	Instruction HTML `json:"instruction" value:""`
+	Instruction RawHTML `json:"instruction" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
@@ -98,7 +98,7 @@ type ClassName struct {
 
 // ClassDescription represents a class description with language information.
 type ClassDescription struct {
-	Description HTML `json:"description" value:""`
+	Description RawHTML `json:"description" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
