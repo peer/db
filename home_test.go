@@ -192,9 +192,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		site.KeyFile = keyPath
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	service, errE := serve.Init(ctx, globals, testFiles)
+	service, errE := serve.Init(t.Context(), globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	populate := peerdb.PopulateCommand{}
