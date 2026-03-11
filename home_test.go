@@ -197,16 +197,12 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	service, errE := serve.Init(ctx, globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	router := new(waf.Router)
-	handler, errE := service.RouteWith(router)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	populate := peerdb.PopulateCommand{}
 
 	errE = populate.Run(globals)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = service.UpdatePropertiesTotal(ctx)
+	handler, errE := serve.Prepare(ctx, service)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ts := httptest.NewUnstartedServer(nil)

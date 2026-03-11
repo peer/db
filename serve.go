@@ -23,7 +23,7 @@ type Service struct {
 	Development bool
 }
 
-// Init initializes the HTTP service and is used together with Start to implement Run.
+// Init initializes the HTTP service and is used together with Prepare to implement Run.
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, errors.E) {
 	c.Server.Logger = globals.Logger
 
@@ -141,25 +141,25 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	return service, nil
 }
 
-// Start starts the server and blocks until the server is shut down.
-func (c *ServeCommand) Start(ctx context.Context, service *Service) errors.E {
+// Prepare prepares the HTTP service for serving.
+func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, errors.E) {
 	// Construct the main handler for the service using the router.
 	router := new(waf.Router)
 	handler, errE := service.RouteWith(router)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = service.UpdatePropertiesTotal(ctx)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	for _, site := range service.Sites {
 		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
 	}
 
-	return c.Server.Run(ctx, handler)
+	return handler, nil
 }
 
 // Run starts the HTTP server and serves the PeerDB application.
@@ -173,6 +173,11 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 		return errE
 	}
 
+	handler, errE := c.Prepare(ctx, service)
+	if errE != nil {
+		return errE
+	}
+
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
-	return c.Start(ctx, service)
+	return c.Server.Run(ctx, handler)
 }
