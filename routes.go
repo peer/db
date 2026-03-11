@@ -255,13 +255,17 @@ func (s *Service) setRoutes() {
 			},
 			Path: "/f/:id",
 		},
-		"DebugMapping": {
+	}
+
+	// We add debugging routes only in development mode.
+	if s.Development {
+		s.Routes["DebugMapping"] = waf.Route{
 			Path: "/debug/mapping",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.DebugMappingGetAPI,
 				},
 			},
-		},
+		}
 	}
 }
