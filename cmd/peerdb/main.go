@@ -17,7 +17,6 @@ func main() {
 	cli.Run(&config, kong.Vars{
 		"defaultListen":       peerdb.DefaultListen,
 		"defaultProxyTo":      peerdb.DefaultProxyTo,
-		"defaultTLSCache":     peerdb.DefaultTLSCache,
 		"defaultElastic":      peerdb.DefaultElastic,
 		"defaultSchema":       peerdb.DefaultSchema,
 		"defaultIndex":        peerdb.DefaultIndex,

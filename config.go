@@ -14,8 +14,6 @@ const (
 	DefaultListen = ":8080"
 	// DefaultProxyTo is the default URL to proxy to during development.
 	DefaultProxyTo = "http://localhost:5173"
-	// DefaultTLSCache is the default TLS cache directory name for Let's Encrypt certificates.
-	DefaultTLSCache = "letsencrypt"
 	// DefaultElastic is the default Elasticsearch URL.
 	DefaultElastic = "http://127.0.0.1:9200"
 	// DefaultIndex is the default Elasticsearch index name.
