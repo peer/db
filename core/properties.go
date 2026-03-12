@@ -630,44 +630,6 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []PropertyName{{
-				Name: "sub-list",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Name: "podseznam",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			ShortName:       nil,
-			AlternativeName: nil,
-			Mnemonic:        "SUB_LIST",
-			Description: []PropertyDescription{{
-				Description: "List elements might have other lists as sub-lists. This is an ID of the sub-list.",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Description: "Elementi seznama imajo lahko podsezname. To je ID podseznama.",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			Instruction:   nil,
-			SubpropertyOf: nil,
-		},
-		DocumentFields: DocumentFields{
-			ID: []string{Namespace, "SUB_LIST"},
-			InstanceOf: []Ref{{
-				ID: []string{Namespace, "PROPERTY"},
-			}},
-		},
-	})
-
-	documents = append(documents, &Property{
-		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
 				Name: "code",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
