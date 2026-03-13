@@ -6,7 +6,6 @@ import (
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
-
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/store"

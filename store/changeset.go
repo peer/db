@@ -449,7 +449,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	return errE
 }
 
-// TODO: Should we provide also "archive" for archiving user-facing changesets (instead of discard).
+// TODO: Should we provide also "archive" for archiving user-facing changesets (instead of rollback/discard).
 //       When they will not be used anymore, but we should keep them around (and we want to
 //       prevent accidentally changing them.)
 
