@@ -35,14 +35,21 @@ type Time struct {
 	Precision document.TimePrecision `json:"precision"`
 }
 
-// Interval represents a time interval.
+// Amount represents a numeric amount with precision.
+type Amount[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64] struct {
+	Amount    T `json:"amount"`
+	Precision T `json:"precision"`
+}
+
+// Interval represents an interval between two values.
 //
-// If From or To is nil, it is none value, unless FromIsUnknown or ToIsUnknown is true.
-type Interval struct {
-	From          *Time `json:"from,omitempty"`
-	FromIsUnknown bool  `json:"fromIsUnknown,omitempty"`
-	To            *Time `json:"to,omitempty"`
-	ToIsUnknown   bool  `json:"toIsUnknown,omitempty"`
+// If From or To is nil, it is none value, unless FromIsUnknown or ToIsUnknown is true, respectively.
+// TODO: Add open/closed flags.
+type Interval[T Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] | Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] | Amount[float32] | Amount[float64]] struct {
+	From          *T   `json:"from,omitempty"`
+	FromIsUnknown bool `json:"fromIsUnknown,omitempty"`
+	To            *T   `json:"to,omitempty"`
+	ToIsUnknown   bool `json:"toIsUnknown,omitempty"`
 }
 
 // DocumentFields contains common fields for all documents.
@@ -136,4 +143,39 @@ type VocabularyFields struct {
 type Language struct {
 	VocabularyFields
 	DocumentFields
+}
+
+// SectionName represents a name of a section.
+type SectionName struct {
+	Name string `json:"name" value:""`
+
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+}
+
+// Section represents a section of fields of an entity.
+type Section struct {
+	Name        []SectionName `cardinality:"1.." json:"name" property:"NAME"`
+	OrderInList int           `cardinality:"1" json:"orderInList" property:"ORDER_IN_LIST"`
+	Field       []Field       `cardinality:"0.." json:"field,omitempty"   property:"FIELD"`
+}
+
+// FieldName represents a name of a field.
+type FieldName struct {
+	Name string `json:"name" value:""`
+
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+}
+
+// Field represents a field of an entity.
+type Field struct {
+	Name        []FieldName           `cardinality:"1.." json:"name" property:"NAME"`
+	OrderInList int                   `cardinality:"1" json:"orderInList" property:"ORDER_IN_LIST"`
+	Cardinality Interval[Amount[int]] `cardinality:"1" json:"cardinality" property:"CARDINALITY"`
+	Values      []Identifier          `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
+}
+
+// Fields represents a list of fields of an entity.
+type Fields struct {
+	Section []Section `cardinality:"0.." json:"section,omitempty" property:"SECTION"`
+	Field   []Field   `cardinality:"0.." json:"field,omitempty"   property:"FIELD"`
 }
