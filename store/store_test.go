@@ -1590,3 +1590,168 @@ func TestCommittedSeqSameForCommit(t *testing.T) {
 	assert.Equal(t, store.MainView, c[0].View.Name())
 	assert.Len(t, c[0].Changesets, 2)
 }
+
+func TestCommitLog(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Empty log initially.
+	entries, errE := s.CommitLog(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, entries)
+
+	// Make two separate commits.
+	id1 := identifier.New()
+	v1, errE := s.Insert(ctx, id1, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	id2 := identifier.New()
+	v2, errE := s.Insert(ctx, id2, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Get all entries.
+	entries, errE = s.CommitLog(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, entries, 2) {
+		// Entries are in increasing seq order.
+		assert.Positive(t, entries[0].Seq)
+		assert.Greater(t, entries[1].Seq, entries[0].Seq)
+
+		// Both committed to the main view.
+		assert.Equal(t, store.MainView, entries[0].View.Name())
+		assert.Equal(t, store.MainView, entries[1].View.Name())
+
+		// Each commit contains exactly one changeset.
+		if assert.Len(t, entries[0].Changesets, 1) {
+			assert.Equal(t, v1.Changeset, entries[0].Changesets[0].ID())
+		}
+		if assert.Len(t, entries[1].Changesets, 1) {
+			assert.Equal(t, v2.Changeset, entries[1].Changesets[0].ID())
+		}
+	}
+
+	// Pagination: entries after first seq returns only second.
+	page2, errE := s.CommitLog(ctx, &entries[0].Seq, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, page2, 1) {
+		assert.Equal(t, entries[1].Seq, page2[0].Seq)
+		assert.Equal(t, v2.Changeset, page2[0].Changesets[0].ID())
+	}
+
+	// After last seq returns empty.
+	page3, errE := s.CommitLog(ctx, &entries[1].Seq, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, page3)
+
+	// After a non-existent seq also returns empty (no error).
+	unknown := entries[1].Seq + 1000
+	page4, errE := s.CommitLog(ctx, &unknown, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, page4)
+
+	// Commit multiple changesets and verify they share one entry.
+	cs, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	id3 := identifier.New()
+	_, errE = cs.Insert(ctx, id3, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	id4 := identifier.New()
+	_, errE = cs.Insert(ctx, id4, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Commit(ctx, cs, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	all, errE := s.CommitLog(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, all, 3) {
+		assert.Equal(t, entries[0].Seq, all[0].Seq)
+		assert.Equal(t, entries[1].Seq, all[1].Seq)
+		// Third entry has one changeset containing two values.
+		if assert.Len(t, all[2].Changesets, 1) {
+			assert.Equal(t, cs.ID(), all[2].Changesets[0].ID())
+		}
+	}
+}
+
+func TestCommitLogViewFilter(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Commit to main view.
+	idMain := identifier.New()
+	vMain, errE := s.Insert(ctx, idMain, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Create a child view and commit to it.
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	childView, errE := mainView.Create(ctx, "child", internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	idChild := identifier.New()
+	vChild, errE := childView.Insert(ctx, idChild, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// All commits visible without filter.
+	all, errE := s.CommitLog(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, all, 2)
+	assert.Equal(t, store.MainView, all[0].View.Name())
+	assert.Equal(t, "child", all[1].View.Name())
+
+	// Filter by "main" returns only the main commit.
+	mainName := store.MainView
+	mainEntries, errE := s.CommitLog(ctx, nil, &mainName)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, mainEntries, 1) {
+		assert.Equal(t, store.MainView, mainEntries[0].View.Name())
+		assert.Equal(t, vMain.Changeset, mainEntries[0].Changesets[0].ID())
+	}
+
+	// Filter by "child" returns only the child commit.
+	childName := "child"
+	childEntries, errE := s.CommitLog(ctx, nil, &childName)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, childEntries, 1) {
+		assert.Equal(t, "child", childEntries[0].View.Name())
+		assert.Equal(t, vChild.Changeset, childEntries[0].Changesets[0].ID())
+	}
+
+	// Release the "child" name — the view is now unnamed.
+	errE = childView.Release(ctx, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// After release, filtering by "child" returns nothing (no view currently has that name).
+	afterRelease, errE := s.CommitLog(ctx, nil, &childName)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, afterRelease)
+
+	// Unfiltered result still has both entries, but the child commit now has an empty view name
+	// because the current view name is NULL (the view was released).
+	all2, errE := s.CommitLog(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, all2, 2) {
+		assert.Equal(t, store.MainView, all2[0].View.Name())
+		// The view was released so its current name is empty.
+		assert.Empty(t, all2[1].View.Name())
+	}
+
+	// Re-register the "child" name on a brand-new view (simulates a rename to a new view).
+	newChildView, errE := mainView.Create(ctx, "child", internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Commit to the new "child" view.
+	idChild2 := identifier.New()
+	vChild2, errE := newChildView.Insert(ctx, idChild2, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Filtering by "child" now returns only the new commit — old commits are still unnamed.
+	renamed, errE := s.CommitLog(ctx, nil, &childName)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	if assert.Len(t, renamed, 1) {
+		assert.Equal(t, "child", renamed[0].View.Name())
+		assert.Equal(t, vChild2.Changeset, renamed[0].Changesets[0].ID())
+	}
+}
