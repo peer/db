@@ -671,7 +671,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 
 // TODO: Allow adding a name to an existing view.
 
-// TODO: Allow views to start remove a value so that the value from the parent view is again automatically available.
+// TODO: Allow views to remove a value so that the value from the parent view is again automatically available.
 //       For example, parent view might have resolved issues in its version of the value and the author of the current view
 //       might not want to have an explicit locked version anymore as they are satisfied with the parent version now.
 
