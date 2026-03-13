@@ -127,25 +127,35 @@ func initDatabase[Data, Metadata any](
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	appendedChannel := make(chan coordinator.AppendedOperation)
-	t.Cleanup(func() { close(appendedChannel) })
 	endedChannel := make(chan identifier.Identifier)
-	t.Cleanup(func() { close(endedChannel) })
 
 	appendedChannelContents := new(internal.LockableSlice[coordinator.AppendedOperation])
 
 	go func() {
-		for o := range appendedChannel {
-			appendedChannelContents.Append(o)
+		for {
+			select {
+			case o := <-appendedChannel:
+				appendedChannelContents.Append(o)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
 	endedChannelContents := new(internal.LockableSlice[identifier.Identifier])
 
 	go func() {
-		for s := range endedChannel {
-			endedChannelContents.Append(s)
+		for {
+			select {
+			case s := <-endedChannel:
+				endedChannelContents.Append(s)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
+
+	listener := internal.NewListener(dbpool)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
 		Prefix:       prefix,
@@ -156,8 +166,13 @@ func initDatabase[Data, Metadata any](
 		EndCallback:  endCallback,
 	}
 
-	errE = c.Init(ctx, dbpool)
+	errE = c.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
+	time.Sleep(100 * time.Millisecond)
 
 	return ctx, c, appendedChannelContents, endedChannelContents
 }

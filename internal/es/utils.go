@@ -246,6 +246,8 @@ func InitForSite(
 		return nil, nil, nil, nil, errE
 	}
 
+	listener := internal.NewListener(dbpool)
+
 	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
 		Prefix:       "docs",
 		Committed:    channel,
@@ -253,7 +255,7 @@ func InitForSite(
 		MetadataType: "jsonb",
 		PatchType:    "jsonb",
 	}
-	errE = s.Init(ctx, dbpool)
+	errE = s.Init(ctx, dbpool, listener)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
@@ -269,7 +271,7 @@ func InitForSite(
 		Appended: nil,
 		Ended:    nil,
 	}
-	errE = c.Init(ctx, dbpool)
+	errE = c.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
@@ -278,10 +280,12 @@ func InitForSite(
 		Prefix:    "storage",
 		Committed: nil,
 	}
-	errE = storage.Init(ctx, dbpool)
+	errE = storage.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
+
+	internal.StartListener(ctx, listener)
 
 	go Bridge(
 		ctx,
