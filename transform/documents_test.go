@@ -62,8 +62,8 @@ type DocWithTime struct {
 }
 
 type DocWithInterval struct {
-	ID     []string      `documentid:""`
-	Period core.Interval `              property:"PERIOD"`
+	ID     []string                 `documentid:""`
+	Period core.Interval[core.Time] `              property:"PERIOD"`
 }
 
 type DocWithAmount struct {
@@ -92,9 +92,9 @@ type DocWithUnknown struct {
 }
 
 type NestedValue struct {
-	Value  string        `                  value:""`
-	Period core.Interval `property:"PERIOD"`
-	Note   string        `property:"NOTE"`
+	Value  string                   `                  value:""`
+	Period core.Interval[core.Time] `property:"PERIOD"`
+	Note   string                   `property:"NOTE"`
 }
 
 type DocWithNestedValue struct {
@@ -104,8 +104,8 @@ type DocWithNestedValue struct {
 }
 
 type NestedWithoutValue struct {
-	Location core.Ref      `property:"LOCATION"`
-	Period   core.Interval `property:"PERIOD"`
+	Location core.Ref                 `property:"LOCATION"`
+	Period   core.Interval[core.Time] `property:"PERIOD"`
 }
 
 type DocWithNestedNoValue struct {
@@ -430,11 +430,13 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 	docs := []any{
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
-			Period: core.Interval{
+			Period: core.Interval[core.Time]{
 				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
-				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
 				FromIsUnknown: false,
+				FromIsNone:    false,
+				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
 				ToIsUnknown:   false,
+				ToIsNone:      false,
 			},
 		},
 	}
@@ -459,11 +461,13 @@ func TestDocuments_IntervalUnknown(t *testing.T) {
 	docs := []any{
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
-			Period: core.Interval{
-				FromIsUnknown: true,
-				ToIsUnknown:   true,
+			Period: core.Interval[core.Time]{
 				From:          nil,
+				FromIsUnknown: true,
+				FromIsNone:    false,
 				To:            nil,
+				ToIsUnknown:   true,
+				ToIsNone:      false,
 			},
 		},
 	}
@@ -510,6 +514,127 @@ func TestDocuments_AmountClaim(t *testing.T) {
 	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount) //nolint:testifylint
 	assert.Equal(t, document.AmountUnitNone, doc.Claims.Amount[2].Unit)
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
+}
+
+func TestDocuments_CoreAmountClaim(t *testing.T) {
+	t.Parallel()
+
+	type DocWithCoreAmount struct {
+		ID     []string             `documentid:""`
+		Width  core.Amount[float64] `              property:"WIDTH"  unit:"m"`
+		Height core.Amount[int]     `              property:"HEIGHT" unit:"m"`
+		Count  core.Amount[uint]    `              property:"COUNT"  unit:"1"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithCoreAmount{
+			ID:     []string{"test", "doc1"},
+			Width:  core.Amount[float64]{Amount: 1.5, Precision: 0.1},
+			Height: core.Amount[int]{Amount: 200, Precision: 1},
+			Count:  core.Amount[uint]{Amount: 42, Precision: 0},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	require.Len(t, doc.Claims.Amount, 3)
+
+	// Check Width (float64, precision ignored).
+	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount) //nolint:testifylint
+	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[0].Unit)
+	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
+
+	// Check Height (int, precision ignored).
+	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount) //nolint:testifylint
+	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[1].Unit)
+	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
+
+	// Check Count (uint with unit "1", precision ignored).
+	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount) //nolint:testifylint
+	assert.Equal(t, document.AmountUnitNone, doc.Claims.Amount[2].Unit)
+	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
+}
+
+func TestDocuments_CoreAmountMissingUnit(t *testing.T) {
+	t.Parallel()
+
+	type DocWithCoreAmountNoUnit struct {
+		ID    []string             `documentid:""`
+		Width core.Amount[float64] `              property:"WIDTH"` // Missing unit tag.
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithCoreAmountNoUnit{
+			ID:    []string{"test", "doc1"},
+			Width: core.Amount[float64]{Amount: 1.5}, //nolint:exhaustruct
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.Nil(t, results)
+}
+
+func TestDocuments_AmountRangeClaim(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountInterval struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD" unit:"1"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountInterval{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1, Precision: 0},
+				To:   &core.Amount[int]{Amount: 10, Precision: 0},
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	require.Len(t, doc.Claims.AmountRange, 1)
+
+	claim := doc.Claims.AmountRange[0]
+	assert.Equal(t, 1.0, claim.Lower)  //nolint:testifylint
+	assert.Equal(t, 10.0, claim.Upper) //nolint:testifylint
+	assert.Equal(t, document.AmountUnitNone, claim.Unit)
+	assert.Equal(t, identifier.From("test", "doc1", "PERIOD", "0"), claim.ID)
+}
+
+func TestDocuments_AmountRangeMissingUnit(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountIntervalNoUnit struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"` // Missing unit tag.
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountIntervalNoUnit{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1},  //nolint:exhaustruct
+				To:   &core.Amount[int]{Amount: 10}, //nolint:exhaustruct
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.Error(t, errE)
+	assert.Nil(t, results)
 }
 
 func TestDocuments_BoolNoValue(t *testing.T) {
@@ -625,11 +750,13 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Title: NestedValue{
 				Value: "Main Title",
-				Period: core.Interval{
+				Period: core.Interval[core.Time]{
 					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
-					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
 					FromIsUnknown: false,
+					FromIsNone:    false,
+					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
 					ToIsUnknown:   false,
+					ToIsNone:      false,
 				},
 				Note: "Important",
 			},
@@ -671,11 +798,13 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Address: NestedWithoutValue{
 				Location: core.Ref{ID: []string{"location", "1"}},
-				Period: core.Interval{
+				Period: core.Interval[core.Time]{
 					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
-					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
 					FromIsUnknown: false,
+					FromIsNone:    false,
+					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
 					ToIsUnknown:   false,
+					ToIsNone:      false,
 				},
 			},
 			History: nil,
@@ -1572,9 +1701,9 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 
 	// Test that partial intervals (missing From or To) are skipped.
 	type DocWithEmptyInterval struct {
-		ID            []string      `documentid:""`
-		ValidPeriod   core.Interval `              property:"VALID_PERIOD"`
-		InvalidPeriod core.Interval `              property:"INVALID_PERIOD"` // Will be empty.
+		ID            []string                 `documentid:""`
+		ValidPeriod   core.Interval[core.Time] `              property:"VALID_PERIOD"`
+		InvalidPeriod core.Interval[core.Time] `              property:"INVALID_PERIOD"` // Will be empty.
 	}
 
 	mnemonics := createMnemonics()
@@ -1586,17 +1715,21 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 	docs := []any{
 		&DocWithEmptyInterval{
 			ID: []string{"test", "doc1"},
-			ValidPeriod: core.Interval{
+			ValidPeriod: core.Interval[core.Time]{
 				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+				FromIsUnknown: false,
+				FromIsNone:    false,
 				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
-				FromIsUnknown: false,
 				ToIsUnknown:   false,
+				ToIsNone:      false,
 			},
-			InvalidPeriod: core.Interval{
+			InvalidPeriod: core.Interval[core.Time]{
 				From:          nil,
-				To:            nil,
 				FromIsUnknown: false,
+				FromIsNone:    false,
+				To:            nil,
 				ToIsUnknown:   false,
+				ToIsNone:      false,
 			}, // Empty interval.
 		},
 	}
@@ -3162,8 +3295,8 @@ func TestDocuments_ValueTagConflicts(t *testing.T) {
 }
 
 type DocWithIntervalVariants struct {
-	ID       []string      `documentid:""`
-	Interval core.Interval `              property:"INTERVAL"`
+	ID       []string                 `documentid:""`
+	Interval core.Interval[core.Time] `              property:"INTERVAL"`
 }
 
 type DocWithRawHTMLConflict struct {
@@ -3210,7 +3343,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		docs := []any{
 			&DocWithIntervalVariants{
 				ID: []string{"doc1"},
-				Interval: core.Interval{ //nolint:exhaustruct
+				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
 					From: &core.Time{
 						Timestamp: start,
 						Precision: document.TimePrecisionSecond,
@@ -3245,7 +3378,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		docs := []any{
 			&DocWithIntervalVariants{
 				ID: []string{"doc1"},
-				Interval: core.Interval{ //nolint:exhaustruct
+				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
 					From: nil,
 					To: &core.Time{
 						Timestamp: end,
@@ -3276,7 +3409,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		docs := []any{
 			&DocWithIntervalVariants{
 				ID: []string{"doc1"},
-				Interval: core.Interval{ //nolint:exhaustruct
+				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
 					From: &core.Time{
 						Timestamp: start,
 						Precision: document.TimePrecisionDay,
@@ -5746,8 +5879,8 @@ func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 
 	// When interval.To.Precision > interval.From.Precision, the result uses To's precision.
 	type DocWithIntervalPrecision struct {
-		ID       []string      `documentid:""`
-		Duration core.Interval `              property:"PERIOD"`
+		ID       []string                 `documentid:""`
+		Duration core.Interval[core.Time] `              property:"PERIOD"`
 	}
 
 	mnemonics := createMnemonics()
@@ -5758,7 +5891,7 @@ func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 	docs := []any{
 		&DocWithIntervalPrecision{
 			ID: []string{"test", "doc1"},
-			Duration: core.Interval{ //nolint:exhaustruct
+			Duration: core.Interval[core.Time]{ //nolint:exhaustruct
 				From: &core.Time{
 					Timestamp: start,
 					Precision: document.TimePrecisionDay,
