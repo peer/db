@@ -19,6 +19,9 @@ const listenerReconnectDelay = 5 * time.Second
 func NewListener(dbpool *pgxpool.Pool) *pgxlisten.Listener {
 	return &pgxlisten.Listener{
 		Connect: func(ctx context.Context) (*pgx.Conn, error) {
+			// TODO: Measure how many re-connections have to be made to the database and abort if it is too much.
+			//       The goal is that if this is happening too often, we should terminate whole the process and let the
+			//       process supervisor decide what to do about instability of connections (it is probably not a local thing).
 			conn, err := dbpool.Acquire(ctx)
 			if err != nil {
 				return nil, errors.WithStack(err)
