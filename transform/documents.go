@@ -55,8 +55,8 @@
 // becomes the main claim, while other fields in the struct become meta claims.
 //
 //	type PersonName struct {
-//		Value  string        `value:""`
-//		Period core.Interval `property:"PERIOD"`
+//		Value  string               `value:""`
+//		Period core.Interval[core.Time] `property:"PERIOD"`
 //	}
 //
 // Cannot be combined with property and cardinality tags.
@@ -155,7 +155,9 @@
 //   - bool: none-value claim when true (or none-value/unknown-value claim with type tag) (TODO: Change to has claim),
 //   - core.Ref: relation claim,
 //   - core.Time: time claim,
-//   - core.Interval: time range claim,
+//   - core.Amount[T]: amount claim (requires unit tag),
+//   - core.Interval[core.Time]: time range claim,
+//   - core.Interval[core.Amount[T]]: amount range claim (requires unit tag),
 //   - core.Identifier: identifier claim,
 //   - core.IRI: reference claim,
 //   - core.HTML: text claim (with escaping),
@@ -198,9 +200,9 @@
 // ## Nested Structures with Value Field
 //
 //	type PersonName struct {
-//		Value  string        `value:""`
-//		Period core.Interval `property:"PERIOD"`
-//		Note   string        `property:"NOTE"`
+//		Value  string                   `value:""`
+//		Period core.Interval[core.Time] `property:"PERIOD"`
+//		Note   string                   `property:"NOTE"`
 //	}
 //
 //	type Person struct {
@@ -249,22 +251,51 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/document"
-
 	"gitlab.com/peerdb/peerdb/core"
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 //nolint:gochecknoglobals
 var (
-	coreRef        = reflect.TypeFor[core.Ref]()
-	coreTime       = reflect.TypeFor[core.Time]()
-	coreInterval   = reflect.TypeFor[core.Interval]()
-	coreIdentifier = reflect.TypeFor[core.Identifier]()
-	coreIRI        = reflect.TypeFor[core.IRI]()
-	coreHTML       = reflect.TypeFor[core.HTML]()
-	coreRawHTML    = reflect.TypeFor[core.RawHTML]()
-	coreNone       = reflect.TypeFor[core.None]()
-	coreUnknown    = reflect.TypeFor[core.Unknown]()
+	coreRef          = reflect.TypeFor[core.Ref]()
+	coreTime         = reflect.TypeFor[core.Time]()
+	coreTimeInterval = reflect.TypeFor[core.Interval[core.Time]]()
+	coreIdentifier   = reflect.TypeFor[core.Identifier]()
+	coreIRI          = reflect.TypeFor[core.IRI]()
+	coreHTML         = reflect.TypeFor[core.HTML]()
+	coreRawHTML      = reflect.TypeFor[core.RawHTML]()
+	coreNone         = reflect.TypeFor[core.None]()
+	coreUnknown      = reflect.TypeFor[core.Unknown]()
+
+	coreAmountTypes = map[reflect.Type]bool{
+		reflect.TypeFor[core.Amount[int]]():     true,
+		reflect.TypeFor[core.Amount[int8]]():    true,
+		reflect.TypeFor[core.Amount[int16]]():   true,
+		reflect.TypeFor[core.Amount[int32]]():   true,
+		reflect.TypeFor[core.Amount[int64]]():   true,
+		reflect.TypeFor[core.Amount[uint]]():    true,
+		reflect.TypeFor[core.Amount[uint8]]():   true,
+		reflect.TypeFor[core.Amount[uint16]]():  true,
+		reflect.TypeFor[core.Amount[uint32]]():  true,
+		reflect.TypeFor[core.Amount[uint64]]():  true,
+		reflect.TypeFor[core.Amount[float32]](): true,
+		reflect.TypeFor[core.Amount[float64]](): true,
+	}
+
+	coreAmountIntervalTypes = map[reflect.Type]bool{
+		reflect.TypeFor[core.Interval[core.Amount[int]]]():     true,
+		reflect.TypeFor[core.Interval[core.Amount[int8]]]():    true,
+		reflect.TypeFor[core.Interval[core.Amount[int16]]]():   true,
+		reflect.TypeFor[core.Interval[core.Amount[int32]]]():   true,
+		reflect.TypeFor[core.Interval[core.Amount[int64]]]():   true,
+		reflect.TypeFor[core.Interval[core.Amount[uint]]]():    true,
+		reflect.TypeFor[core.Interval[core.Amount[uint8]]]():   true,
+		reflect.TypeFor[core.Interval[core.Amount[uint16]]]():  true,
+		reflect.TypeFor[core.Interval[core.Amount[uint32]]]():  true,
+		reflect.TypeFor[core.Interval[core.Amount[uint64]]]():  true,
+		reflect.TypeFor[core.Interval[core.Amount[float32]]](): true,
+		reflect.TypeFor[core.Interval[core.Amount[float64]]](): true,
+	}
 )
 
 var ErrDocumentIDNotFound = errors.Base("document ID not found")
@@ -905,10 +936,11 @@ func makeClaim(
 		}, nil
 	}
 
-	// Handle core.Interval.
-	if t == coreInterval {
-		interval := fieldValue.Interface().(core.Interval) //nolint:errcheck,forcetypeassert
+	// Handle core.Interval[core.Time].
+	if t == coreTimeInterval {
+		interval := fieldValue.Interface().(core.Interval[core.Time]) //nolint:errcheck,forcetypeassert
 
+		// TODO: This should be changed to return claimNotMadeError only when no fields are set and return explicit unknown or none claims if both corresponding flags are set.
 		if interval.From == nil && interval.To == nil && interval.FromIsUnknown && interval.ToIsUnknown {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -943,6 +975,103 @@ func makeClaim(
 			Lower:     document.Timestamp(interval.From.Timestamp),
 			Upper:     document.Timestamp(interval.To.Timestamp),
 			Precision: precision,
+		}, nil
+	}
+
+	// Handle core.Interval[core.Amount[T]].
+	if coreAmountIntervalTypes[t] {
+		if unit == "" {
+			return nil, errors.New(`field has core.Interval[core.Amount] type but is missing required "unit" tag`)
+		}
+
+		u, errE := parseAmountUnit(unit)
+		if errE != nil {
+			return nil, errE
+		}
+
+		fromField := fieldValue.Field(0)
+		fromIsUnknown := fieldValue.Field(1).Bool()
+		fromIsNone := fieldValue.Field(2).Bool()  //nolint:mnd
+		toField := fieldValue.Field(3)            //nolint:mnd
+		toIsUnknown := fieldValue.Field(4).Bool() //nolint:mnd
+		toIsNone := fieldValue.Field(5).Bool()    //nolint:mnd
+
+		// TODO: This should be changed to return claimNotMadeError only when no fields are set and return explicit unknown or none claims if both corresponding flags are set.
+		if fromField.IsNil() && toField.IsNil() && fromIsUnknown && toIsUnknown {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
+		// TODO: This is just temporary. Support unknown interval bounds.
+		if fromField.IsNil() || toField.IsNil() || fromIsUnknown || toIsUnknown || fromIsNone || toIsNone {
+			claimID := newClaimID(idPath, propertyID, claims)
+			return &document.UnknownValueClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         claimID,
+					Confidence: document.HighConfidence,
+				},
+				Prop: document.Reference{ID: &propertyID},
+			}, nil
+		}
+
+		lower, _ := getNumericValue(fromField.Elem().Field(0))
+		upper, _ := getNumericValue(toField.Elem().Field(0))
+
+		if math.IsInf(lower, 0) || math.IsNaN(lower) {
+			errE := errors.New(`interval's "from" is infinity or not a number`)
+			errors.Details(errE)["value"] = lower
+			return nil, errE
+		}
+		if math.IsInf(upper, 0) || math.IsNaN(upper) {
+			errE := errors.New(`interval's "to" is infinity or not a number`)
+			errors.Details(errE)["value"] = upper
+			return nil, errE
+		}
+
+		claimID := newClaimID(idPath, propertyID, claims)
+		// TODO: Change unit to be derived from a unit sub-claim instead of a struct tag.
+		return &document.AmountRangeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: document.HighConfidence,
+			},
+			Prop:  document.Reference{ID: &propertyID},
+			Lower: lower,
+			Upper: upper,
+			Unit:  u,
+		}, nil
+	}
+
+	// Handle core.Amount[T].
+	if coreAmountTypes[t] {
+		if unit == "" {
+			return nil, errors.New(`field has core.Amount type but is missing required "unit" tag`)
+		}
+
+		u, errE := parseAmountUnit(unit)
+		if errE != nil {
+			return nil, errE
+		}
+
+		// TODO: Map precision.
+		amount, _ := getNumericValue(fieldValue.Field(0))
+
+		if math.IsInf(amount, 0) || math.IsNaN(amount) {
+			errE := errors.New("value is infinity or not a number")
+			errors.Details(errE)["value"] = amount
+			return nil, errE
+		}
+
+		claimID := newClaimID(idPath, propertyID, claims)
+		return &document.AmountClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: document.HighConfidence,
+			},
+			Prop:   document.Reference{ID: &propertyID},
+			Amount: amount,
+			Unit:   u,
 		}, nil
 	}
 
@@ -1206,8 +1335,8 @@ func makeClaim(
 		}, nil
 	}
 
-	// Handle int types.
-	if fieldValue.Kind() >= reflect.Int && fieldValue.Kind() <= reflect.Int64 {
+	// Handle numeric types.
+	if amount, ok := getNumericValue(fieldValue); ok {
 		if unit == "" {
 			return nil, errors.New(`field has numeric type but is missing required "unit" tag`)
 		}
@@ -1217,53 +1346,6 @@ func makeClaim(
 			return nil, errE
 		}
 
-		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.AmountClaim{
-			CoreClaim: document.CoreClaim{
-				ID:         claimID,
-				Confidence: document.HighConfidence,
-			},
-			Prop:   document.Reference{ID: &propertyID},
-			Amount: float64(fieldValue.Int()),
-			Unit:   u,
-		}, nil
-	}
-
-	// Handle uint types.
-	if fieldValue.Kind() >= reflect.Uint && fieldValue.Kind() <= reflect.Uint64 {
-		if unit == "" {
-			return nil, errors.New(`field has numeric type but is missing required "unit" tag`)
-		}
-
-		u, errE := parseAmountUnit(unit)
-		if errE != nil {
-			return nil, errE
-		}
-
-		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.AmountClaim{
-			CoreClaim: document.CoreClaim{
-				ID:         claimID,
-				Confidence: document.HighConfidence,
-			},
-			Prop:   document.Reference{ID: &propertyID},
-			Amount: float64(fieldValue.Uint()),
-			Unit:   u,
-		}, nil
-	}
-
-	// Handle float types.
-	if fieldValue.Kind() == reflect.Float32 || fieldValue.Kind() == reflect.Float64 {
-		if unit == "" {
-			return nil, errors.New(`field has numeric type but is missing required "unit" tag`)
-		}
-
-		u, errE := parseAmountUnit(unit)
-		if errE != nil {
-			return nil, errE
-		}
-
-		amount := fieldValue.Float()
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
 			errE := errors.New("value is infinity or not a number")
 			errors.Details(errE)["value"] = amount
@@ -1292,6 +1374,20 @@ func newClaimID(idPath []string, propertyID identifier.Identifier, claims map[id
 	newIDPath := append(slices.Clone(idPath), strconv.Itoa(i))
 	claimID := identifier.From(newIDPath...)
 	return claimID
+}
+
+// getNumericValue returns the numeric value from a reflect.Value of a numeric kind as float64.
+func getNumericValue(v reflect.Value) (float64, bool) {
+	switch v.Kind() { //nolint:exhaustive
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(v.Int()), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(v.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return v.Float(), true
+	default:
+		return 0, false
+	}
 }
 
 // parseAmountUnit parses a unit tag string and returns the corresponding AmountUnit.

@@ -43,13 +43,18 @@ type Amount[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint3
 
 // Interval represents an interval between two values.
 //
-// If From or To is nil, it is none value, unless FromIsUnknown or ToIsUnknown is true, respectively.
+// If From or To is nil, it is zero value value, unless *IsUnknown or *IsNone is true, respectively.
+//
+// Only one of From* fields can be set at a time.
+// Only one of To* fields can be set at a time.
 // TODO: Add open/closed flags.
-type Interval[T Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] | Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] | Amount[float32] | Amount[float64]] struct {
+type Interval[T Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] | Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] | Amount[float32] | Amount[float64]] struct { //nolint:lll
 	From          *T   `json:"from,omitempty"`
 	FromIsUnknown bool `json:"fromIsUnknown,omitempty"`
+	FromIsNone    bool `json:"fromIsNone,omitempty"`
 	To            *T   `json:"to,omitempty"`
 	ToIsUnknown   bool `json:"toIsUnknown,omitempty"`
+	ToIsNone      bool `json:"toIsNone,omitempty"`
 }
 
 // DocumentFields contains common fields for all documents.
@@ -154,9 +159,9 @@ type SectionName struct {
 
 // Section represents a section of fields of an entity.
 type Section struct {
-	Name        []SectionName `cardinality:"1.." json:"name" property:"NAME"`
-	OrderInList int           `cardinality:"1" json:"orderInList" property:"ORDER_IN_LIST"`
-	Field       []Field       `cardinality:"0.." json:"field,omitempty"   property:"FIELD"`
+	Name        []SectionName `cardinality:"1.." json:"name"            property:"NAME"`
+	OrderInList int           `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
+	Field       []Field       `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
 }
 
 // FieldName represents a name of a field.
@@ -168,9 +173,9 @@ type FieldName struct {
 
 // Field represents a field of an entity.
 type Field struct {
-	Name        []FieldName           `cardinality:"1.." json:"name" property:"NAME"`
-	OrderInList int                   `cardinality:"1" json:"orderInList" property:"ORDER_IN_LIST"`
-	Cardinality Interval[Amount[int]] `cardinality:"1" json:"cardinality" property:"CARDINALITY"`
+	Name        []FieldName           `cardinality:"1.." json:"name"             property:"NAME"`
+	OrderInList int                   `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
+	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"      property:"CARDINALITY"   unit:"1"`
 	Values      []Identifier          `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
 }
 
