@@ -275,7 +275,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -359,7 +359,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -436,7 +436,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			// There is nothing wrong with having no values.
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -527,7 +527,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -657,7 +657,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			// There is nothing wrong with having no changes anymore for valid value ID and after a valid after changeset.
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -706,7 +706,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -737,7 +737,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name

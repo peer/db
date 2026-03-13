@@ -224,7 +224,7 @@ func InitForSite(
 ) {
 	// TODO: Add some monitoring of the channel contention.
 	channel := make(
-		chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+		chan store.CommittedChangesets[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 		bridgeBufferSize,
 	)
 	context.AfterFunc(ctx, func() { close(channel) })
@@ -236,7 +236,7 @@ func InitForSite(
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	}, nil)
+	})
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
