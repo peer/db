@@ -92,6 +92,8 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	return version, nil
 }
 
+// TODO: Support replacing/updating/updating/merging the value as Reader interface value instead of whole Data in memory.
+
 // Replace auto-commits the replace change into the view.
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
@@ -183,6 +185,8 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	}
 	return version, nil
 }
+
+// TODO: Support getting the value as ReadSeekCloser interface value instead of whole Data in memory.
 
 // GetLatest returns the latest committed version of the value for the view.
 //
