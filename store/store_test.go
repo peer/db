@@ -110,7 +110,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	t *testing.T, dataType string,
 ) (
 	context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
-	*internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
+	*internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
 ) {
 	t.Helper()
 
@@ -120,6 +120,8 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+
+	channel := make(chan store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch])
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -132,17 +134,19 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	}, nil)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch])
-	t.Cleanup(func() { close(channel) })
-
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
+	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
 
 	go func() {
-		for c := range channel {
-			channelContents.Append(c)
+		for {
+			select {
+			case c := <-channel:
+				channelContents.Append(c)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
@@ -156,6 +160,9 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 
 	errE = s.Init(ctx, dbpool)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
+	time.Sleep(100 * time.Millisecond)
 
 	return ctx, s, channelContents
 }
@@ -192,14 +199,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c := channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, insertVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, insertVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -239,14 +247,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, updateVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, updateVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -293,14 +302,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, replaceVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, replaceVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -354,14 +364,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, deleteVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, deleteVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, expectedID, changes[0].ID)
@@ -398,7 +409,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	assert.Nil(t, metadata)
 	assert.Empty(t, version)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
 	assert.Empty(t, c)
 
@@ -441,14 +452,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
-		changeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, newVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID, changes[0].ID)
@@ -497,14 +509,15 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		newVersion.Changeset,
 	})
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
-	if assert.Len(t, c, 1) {
+	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		assert.Equal(t, newVersion.Changeset, c[0].Changeset.ID())
-		committedChangeset, errE := c[0].WithStore(ctx, s)
+		assert.Equal(t, newVersion.Changeset, c[0].Changesets[0].ID())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s)
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := committedChangeset.Changeset.Changes(ctx, nil)
+			changes, errE := committed.Changesets[0].Changes(ctx, nil)
 			if assert.NoError(t, errE, "% -+#.1v", errE) {
 				if assert.Len(t, changes, 1) {
 					assert.Equal(t, newID2, changes[0].ID)
@@ -558,7 +571,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, ids, inserted)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c := channelContents.Prune()
 	assert.Len(t, c, 1)
 
@@ -650,9 +663,14 @@ func TestChangesPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 6000)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	c := channelContents.Prune()
-	assert.Len(t, c, 6001)
+	// One CommittedChangesets per commit: initial insert (1 changeset) + big commit (6000 changesets).
+	assert.Len(t, c, 2)
+	if len(c) == 2 {
+		assert.Len(t, c[0].Changesets, 1)
+		assert.Len(t, c[1].Changesets, 6000)
+	}
 
 	page1, errE := s.Changes(ctx, newID, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1504,4 +1522,67 @@ func TestParallelChange(t *testing.T) {
 
 	_, errE = s.Commit(ctx, changeset2, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestCommittedOrdering(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	const n = 10
+	for range n {
+		id := identifier.New()
+		_, errE := s.Insert(ctx, id, internal.DummyData, internal.DummyData, internal.DummyData)
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+	c := channelContents.Prune()
+	require.Len(t, c, n)
+
+	// Check that seq numbers are positive and strictly increasing.
+	for i := range c {
+		assert.Positive(t, c[i].Seq, "seq at index %d should be positive", i)
+	}
+	for i := 1; i < len(c); i++ {
+		assert.Greater(t, c[i].Seq, c[i-1].Seq, "seq at index %d should be greater than seq at index %d", i, i-1)
+	}
+}
+
+func TestCommittedSeqSameForCommit(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Prepare a chain: first insert two values in separate changesets,
+	// then commit only the second, which also commits the first.
+	firstID := identifier.New()
+	changeset1, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset1.Insert(ctx, firstID, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	secondID := identifier.New()
+	changeset2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Update(ctx, firstID, changeset1.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = changeset2.Insert(ctx, secondID, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Committing changeset2 also commits changeset1 (its uncommitted ancestor).
+	committed, errE := s.Commit(ctx, changeset2, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, committed, 2)
+
+	time.Sleep(100 * time.Millisecond)
+	c := channelContents.Prune()
+	// One CommittedChangesets per commit: the commit contains both changesets.
+	require.Len(t, c, 1)
+	assert.Positive(t, c[0].Seq)
+	assert.Equal(t, store.MainView, c[0].View.Name())
+	assert.Len(t, c[0].Changesets, 2)
 }

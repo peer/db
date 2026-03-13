@@ -3,11 +3,15 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgxlisten"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
@@ -37,23 +41,40 @@ const (
 	errorCodeChangesetNotFound = "P1005"
 )
 
-// CommittedChangeset represents a changeset committed to a view.
-type CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
-	Changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
-	View      View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+const listenerReconnectDelay = 5 * time.Second
+
+// CommittedChangesets represents all changesets committed together in one commit to a view.
+type CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+	// Seq is the sequential number assigned to this commit in the commit log.
+	// It reflects the order in which commits were made to the database.
+	Seq int64
+	// Changesets are all changesets committed together in this commit.
+	Changesets []Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	View       View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
-// WithStore returns a new CommittedChangeset object with
-// changeset and view associated with the given Store.
-func (c CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
+// WithStore returns a new CommittedChangesets object with
+// all changesets and view associated with the given Store.
+func (c CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
 	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
-) (CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
-	changeset, errE1 := c.Changeset.WithStore(ctx, store)
-	view, errE2 := c.View.WithStore(ctx, store)
-	return CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-		Changeset: changeset,
-		View:      view,
-	}, errors.Join(errE1, errE2)
+) (CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
+	changesets := make([]Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], 0, len(c.Changesets))
+	for _, cs := range c.Changesets {
+		csWithStore, errE := cs.WithStore(ctx, store)
+		if errE != nil {
+			return CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE
+		}
+		changesets = append(changesets, csWithStore)
+	}
+	view, errE := c.View.WithStore(ctx, store)
+	if errE != nil {
+		return CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE
+	}
+	return CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		Seq:        c.Seq,
+		Changesets: changesets,
+		View:       view,
+	}, errE
 }
 
 // Store is a key-value store which preserves history of changes.
@@ -66,12 +87,12 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	// Prefix to use when initializing PostgreSQL objects used by this store.
 	Prefix string
 
-	// A channel to which changesets are send when they are committed.
+	// A channel to which one CommittedChangesets is sent for each commit.
 	// The changesets and view objects sent do not have an associated Store.
 	//
-	// The order in which they are sent is not necessary the order in which
-	// they were committed. You should not rely on the order.
-	Committed chan<- CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	// CommittedChangesets are sent in the order in which commits were serialized
+	// by the database, as reflected by each CommittedChangesets's Seq field.
+	Committed chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 
 	// PostgreSQL column types to store data, metadata, and patches.
 	// It should probably be one of the jsonb, bytea, or text.
@@ -432,9 +453,44 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 					-- are committed, there is only one version of a value per view. Branching can happen but everything
 					-- has to be merged back together into one version before a set of changesets is committed.
 					SET CONSTRAINTS "`+s.Prefix+`CommittedValuesLatest" IMMEDIATE;
+					INSERT INTO "`+s.Prefix+`CommitLog" ("view", "name", "changesets") VALUES (_view, _name, _changesetsToCommit);
 					RETURN _changesetsToCommit;
 					END;
 				$$;
+
+				-- "CommitLog" table serializes all commits with a sequential number.
+				CREATE TABLE "`+s.Prefix+`CommitLog" (
+					-- Sequential number of this commit, assigned at commit time.
+					-- It reflects the order in which commits were serialized by the database.
+					"seq" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+					-- ID of the view the changesets were committed to.
+					"view" text STORAGE PLAIN COLLATE "C" NOT NULL,
+					-- Name of the view the changesets were committed to at commit time.
+					-- View's name might change since the commit time and this is not represented here.
+					"name" text NOT NULL,
+					-- IDs of all changesets committed together in this commit.
+					"changesets" text[] COLLATE "C" NOT NULL
+				);
+				CREATE FUNCTION "`+s.Prefix+`CommitLogAfterInsertFunc"()
+					RETURNS TRIGGER LANGUAGE plpgsql AS $$
+					DECLARE
+						_payload text;
+					BEGIN
+						-- Build full JSON payload: {"seq":N,"name":"...","changesets":["cs1",...]}.
+						-- If it exceeds 7900 bytes, fall back to {"seq":N} so the receiver
+						-- fetches the remaining fields from the CommitLog table.
+						_payload := json_build_object('seq', NEW."seq", 'name', NEW."name", 'changesets', NEW."changesets")::text;
+						IF length(_payload) > 7900 THEN
+							_payload := json_build_object('seq', NEW."seq")::text;
+						END IF;
+						PERFORM pg_notify('`+s.Prefix+`CommitLog', _payload);
+						RETURN NULL;
+					END;
+				$$;
+				CREATE TRIGGER "`+s.Prefix+`CommitLogAfterInsert" AFTER INSERT ON "`+s.Prefix+`CommitLog"
+					FOR EACH ROW EXECUTE FUNCTION "`+s.Prefix+`CommitLogAfterInsertFunc"();
+				CREATE TRIGGER "`+s.Prefix+`CommitLogNotAllowed" BEFORE UPDATE OR DELETE OR TRUNCATE ON "`+s.Prefix+`CommitLog"
+					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 			`)
 		if err != nil {
 			return internal.WithPgxError(err)
@@ -447,7 +503,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		}
 
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 			switch pgError.Code {
@@ -467,5 +523,95 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 	s.dbpool = dbpool
 
+	if s.Committed != nil {
+		s.startListener(ctx)
+	}
+
+	return nil
+}
+
+// startListener starts listening for PostgreSQL NOTIFY messages and processing them.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) startListener(ctx context.Context) {
+	listener := &pgxlisten.Listener{
+		Connect: func(ctx context.Context) (*pgx.Conn, error) {
+			conn, err := s.dbpool.Acquire(ctx)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			// Hijack detaches the connection from the pool so listener manages its lifetime.
+			return conn.Hijack(), nil
+		},
+		LogError: func(ctx context.Context, err error) {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener error")
+		},
+		ReconnectDelay: listenerReconnectDelay,
+	}
+
+	listener.Handle(s.Prefix+"CommitLog", pgxlisten.HandlerFunc(s.handleCommitLogMessages))
+
+	go func() {
+		err := listener.Listen(ctx)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+
+		zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener stopped unexpectedly")
+	}()
+}
+
+// handleCommitLogMessages handles CommitLog messages  and forwards committed changesets to the Committed channel in commit order.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleCommitLogMessages(
+	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
+) error {
+	// Payload is a JSON object. Full form: {"seq":N,"name":"...","changesets":["cs1",...]}.
+	// When the full payload exceeds 7900 bytes, only {"seq":N} is sent
+	// and changesets are fetched from the CommitLog table.
+	var payload struct {
+		Seq        int64    `json:"seq"`
+		Name       string   `json:"name"`
+		Changesets []string `json:"changesets"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields([]byte(notification.Payload), &payload)
+	if errE != nil {
+		return errE
+	}
+
+	var changesets []string
+	var viewName string
+	if payload.Changesets != nil {
+		// Full payload: no database fetch needed.
+		viewName = payload.Name
+		changesets = payload.Changesets
+	} else {
+		// Payload exceeded 7900 bytes: fetch changesets and view name from CommitLog.
+		err := s.dbpool.QueryRow(ctx, `SELECT "changesets", "name" FROM "`+s.Prefix+`CommitLog" WHERE "seq"=$1`, payload.Seq).Scan(&changesets, &viewName)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	// We send changesets and a view without store, requiring the receiver to use WithStore on them.
+	commit := CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		Seq:        payload.Seq,
+		Changesets: make([]Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], 0, len(changesets)),
+		View: View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+			name:  viewName,
+			store: nil,
+		},
+	}
+	// There might be more than just one changeset committed if its parent changesets were not committed before.
+	for _, changesetID := range changesets {
+		commit.Changesets = append(commit.Changesets, Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+			id:    identifier.String(changesetID),
+			store: nil,
+		})
+	}
+	select {
+	case s.Committed <- commit:
+	case <-ctx.Done():
+	}
 	return nil
 }

@@ -21,7 +21,7 @@ import (
 func Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any](
 	ctx context.Context, logger zerolog.Logger, s *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 	esProcessor *elastic.BulkProcessor, index string,
-	committedChangesets <-chan store.CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+	committedChangesets <-chan store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 ) {
 	for {
 		select {
@@ -32,43 +32,44 @@ func Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetad
 				return
 			}
 
-			// The order in which changesets are send to the channel is not necessary
-			// the order in which they were committed. We should not relay on the order.
+			// Items arrive in the order commits were serialized in the database (by Seq).
 
-			// We have to reconstruct the committedChangeset and the view using our store.
-			committedChangeset, errE := c.WithStore(ctx, s)
+			// We have to reconstruct the committedChangesets and the view using our store.
+			committed, errE := c.WithStore(ctx, s)
 			if errE != nil {
-				logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: with store")
+				logger.Error().Err(errE).Int64("seq", c.Seq).Str("view", c.View.Name()).Msg("bridge error: with store")
 				continue
 			}
 
-			var after *identifier.Identifier
-			changes := []store.Change{}
-			for {
-				page, errE := committedChangeset.Changeset.Changes(ctx, after)
-				if errE != nil {
-					logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: changes")
-					break
-				}
-				changes = append(changes, page...)
-				if len(page) < store.MaxPageLength {
-					break
-				}
-				after = &page[4999].ID
-			}
-
-			for _, change := range changes {
-				// Because changesets are not necessary in order, we always get the latest version and index it.
-				data, _, _, errE := s.GetLatest(ctx, change.ID)
-				if errE != nil {
-					logger.Error().Err(errE).Str("changeset", c.Changeset.String()).Str("view", c.View.Name()).Msg("bridge error: get current")
-					continue
+			for _, cs := range committed.Changesets {
+				var after *identifier.Identifier
+				changes := []store.Change{}
+				for {
+					page, errE := cs.Changes(ctx, after)
+					if errE != nil {
+						logger.Error().Err(errE).Int64("seq", c.Seq).Str("changeset", cs.String()).Str("view", c.View.Name()).Msg("bridge error: changes")
+						break
+					}
+					changes = append(changes, page...)
+					if len(page) < store.MaxPageLength {
+						break
+					}
+					after = &page[4999].ID
 				}
 
-				// TODO: Convert data into searchable document for the general case.
-				// TODO: Use also information about the view so that documents are searchable by view as well.
-				req := elastic.NewBulkIndexRequest().Index(index).Id(change.ID.String()).Doc(data)
-				esProcessor.Add(req)
+				for _, change := range changes {
+					// We always get the latest version and index it.
+					data, _, _, errE := s.GetLatest(ctx, change.ID)
+					if errE != nil {
+						logger.Error().Err(errE).Int64("seq", c.Seq).Str("changeset", cs.String()).Str("view", c.View.Name()).Msg("bridge error: get current")
+						continue
+					}
+
+					// TODO: Convert data into searchable document for the general case.
+					// TODO: Use also information about the view so that documents are searchable by view as well.
+					req := elastic.NewBulkIndexRequest().Index(index).Id(change.ID.String()).Doc(data)
+					esProcessor.Add(req)
+				}
 			}
 		}
 	}

@@ -58,12 +58,12 @@ type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
-	// A channel to which changesets are send when they are committed.
+	// A channel to which one CommittedChangesets is sent for each commit.
 	// The changesets and view objects sent do not have an associated Store.
 	//
-	// The order in which they are sent is not necessary the order in which
-	// they were committed. You should not rely on the order.
-	Committed chan<- store.CommittedChangeset[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
+	// CommittedChangesets are sent in the order in which commits were serialized
+	// by the database, as reflected by each CommittedChangesets's Seq field.
+	Committed chan<- store.CommittedChangesets[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]

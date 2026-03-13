@@ -92,7 +92,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -144,7 +144,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -207,7 +207,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -261,7 +261,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -312,7 +312,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		version.Changeset = c.id
 		version.Revision = 1
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
@@ -363,23 +363,6 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			return errE
 		}
 		return nil
-	}, func() {
-		if c.store.Committed != nil {
-			// There might be more than just this changeset committed if its parent changesets were not committed as well.
-			for _, changeset := range committedChangesets {
-				// We send over a changeset and view without store, requiring the receiver to use WithStore on them.
-				c.store.Committed <- CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-					Changeset: Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-						id:    identifier.String(changeset),
-						store: nil,
-					},
-					View: View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-						name:  view.name,
-						store: nil,
-					},
-				}
-			}
-		}
 	})
 	if errE != nil {
 		details := errors.Details(errE)
@@ -427,7 +410,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			return errE
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["changeset"] = c.String()
@@ -525,7 +508,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			// There is nothing wrong with having no values.
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["changeset"] = c.String()

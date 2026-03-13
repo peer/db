@@ -27,6 +27,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c // indirect
 	golang.org/x/text v0.33.0 // indirect
 )
 
