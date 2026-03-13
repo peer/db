@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgxlisten"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -70,7 +71,9 @@ type Storage struct {
 }
 
 // Init initializes the Storage with the given database connection pool.
-func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
+//
+// A non-nil listener is required when the Committed channel is set.
+func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
 	}
@@ -82,7 +85,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		MetadataType: "jsonb",
 		PatchType:    "",
 	}
-	errE := storageStore.Init(ctx, dbpool)
+	errE := storageStore.Init(ctx, dbpool, listener)
 	if errE != nil {
 		return errE
 	}
@@ -95,7 +98,8 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		Appended:     nil,
 		Ended:        nil,
 	}
-	errE = storageCoordinator.Init(ctx, dbpool)
+	// We do not use Appended and Ended channels here so we pass nil for listener.
+	errE = storageCoordinator.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return errE
 	}

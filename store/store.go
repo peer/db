@@ -3,13 +3,11 @@ package store
 
 import (
 	"context"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgxlisten"
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -40,8 +38,6 @@ const (
 	errorCodeViewNotFound      = "P1004"
 	errorCodeChangesetNotFound = "P1005"
 )
-
-const listenerReconnectDelay = 5 * time.Second
 
 // CommittedChangesets represents all changesets committed together in one commit to a view.
 type CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
@@ -110,8 +106,10 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 //
 // It creates and configures the PostgreSQL tables, indices, and
 // stored procedures if they do not already exist.
+//
+// A non-nil listener is required when the Committed channel is set.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init( //nolint:maintidx
-	ctx context.Context, dbpool *pgxpool.Pool,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
 ) errors.E {
 	if s.dbpool != nil {
 		return errors.New("already initialized")
@@ -483,7 +481,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 						IF length(_payload) > 7900 THEN
 							_payload := json_build_object('seq', NEW."seq")::text;
 						END IF;
-						PERFORM pg_notify('`+s.Prefix+`CommitLog', _payload);
+						PERFORM pg_notify('`+s.Prefix+`CommittedChangesets', _payload);
 						RETURN NULL;
 					END;
 				$$;
@@ -524,46 +522,15 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	s.dbpool = dbpool
 
 	if s.Committed != nil {
-		s.startListener(ctx)
+		listener.Handle(s.Prefix+"CommittedChangesets", pgxlisten.HandlerFunc(s.handleCommittedChangesets))
 	}
 
 	return nil
 }
 
-// startListener starts listening for PostgreSQL NOTIFY messages and processing them.
-func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) startListener(ctx context.Context) {
-	listener := &pgxlisten.Listener{
-		Connect: func(ctx context.Context) (*pgx.Conn, error) {
-			conn, err := s.dbpool.Acquire(ctx)
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
-			// Hijack detaches the connection from the pool so listener manages its lifetime.
-			return conn.Hijack(), nil
-		},
-		LogError: func(ctx context.Context, err error) {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
-			zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener error")
-		},
-		ReconnectDelay: listenerReconnectDelay,
-	}
-
-	listener.Handle(s.Prefix+"CommitLog", pgxlisten.HandlerFunc(s.handleCommitLogMessages))
-
-	go func() {
-		err := listener.Listen(ctx)
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-
-		zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener stopped unexpectedly")
-	}()
-}
-
-// handleCommitLogMessages handles CommitLog messages  and forwards committed changesets to the Committed channel in commit order.
-func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleCommitLogMessages(
+// handleCommitLogNotification handles CommittedChangesets notifications and forwards
+// the committed changesets to the Committed channel in commit order.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleCommittedChangesets(
 	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
 	// Payload is a JSON object. Full form: {"seq":N,"name":"...","changesets":["cs1",...]}.

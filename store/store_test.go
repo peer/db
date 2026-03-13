@@ -150,6 +150,8 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		}
 	}()
 
+	listener := internal.NewListener(dbpool)
+
 	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		Prefix:       prefix,
 		Committed:    channel,
@@ -158,8 +160,10 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		PatchType:    dataType,
 	}
 
-	errE = s.Init(ctx, dbpool)
+	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
 
 	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
 	time.Sleep(100 * time.Millisecond)

@@ -7,7 +7,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgxlisten"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
@@ -53,15 +55,11 @@ type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct
 	EndCallback func(ctx context.Context, session identifier.Identifier, metadata EndMetadata) (EndMetadata, errors.E)
 
 	// A channel to which operations are send when they are appended.
-	//
-	// The order in which they are sent is not necessary the order in which
-	// they were appended. You should not rely on the order.
+	// Operations are sent in the order in which they were appended to the database.
 	Appended chan<- AppendedOperation
 
 	// A channel to which sessions are send when they end.
-	//
-	// The order in which they are sent is not necessary the order in which
-	// they ended. You should not rely on the order.
+	// Sessions are sent in the order in which they ended in the database.
 	Ended chan<- identifier.Identifier
 
 	dbpool *pgxpool.Pool
@@ -71,7 +69,9 @@ type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct
 //
 // It creates and configures the PostgreSQL tables, indices, and
 // stored procedures if they do not already exist.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
+//
+// A non-nil listener is required when the Appended or Ended channel is set.
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
@@ -111,6 +111,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 					END IF;
 					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
 					UPDATE "`+c.Prefix+`Sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
+					PERFORM pg_notify('`+c.Prefix+`EndedSession', json_build_object('session', _session)::text);
 				END;
 			$$;
 
@@ -135,6 +136,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 					IF NOT FOUND THEN
 						RAISE EXCEPTION 'conflict' USING ERRCODE='`+errorCodeConflict+`';
 					END IF;
+					PERFORM pg_notify('`+c.Prefix+`AppendedOperation', json_build_object('session', _session, 'operation', _operation)::text);
 					RETURN _operation;
 				END;
 			$$;
@@ -163,6 +165,13 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 	}
 
 	c.dbpool = dbpool
+
+	if c.Ended != nil {
+		listener.Handle(c.Prefix+"EndedSession", pgxlisten.HandlerFunc(c.handleEndedSession))
+	}
+	if c.Appended != nil {
+		listener.Handle(c.Prefix+"AppendedOperation", pgxlisten.HandlerFunc(c.handleAppendedOperation))
+	}
 
 	return nil
 }
@@ -223,10 +232,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 		}
 		return nil
 	})
-	if errE == nil && c.Ended != nil {
-		// TODO: Use NOTIFY to assure order.
-		c.Ended <- session
-	}
+
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
 	}
@@ -268,13 +274,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Appen
 		}
 		return nil
 	})
-	if errE == nil && c.Appended != nil {
-		// TODO: Use NOTIFY to assure order.
-		c.Appended <- AppendedOperation{
-			Session:   session,
-			Operation: operation,
-		}
-	}
+
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
 	}
@@ -483,4 +483,46 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( 
 		details["session"] = session.String()
 	}
 	return beginMetadata, endMetadata, errE
+}
+
+// handleAppendedOperation handles AppendedOperation notifications and forwards
+// the operation to the Appended channel.
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) handleAppendedOperation(
+	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
+) error {
+	var payload struct {
+		Session   string `json:"session"`
+		Operation int64  `json:"operation"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields([]byte(notification.Payload), &payload)
+	if errE != nil {
+		return errE
+	}
+	select {
+	case c.Appended <- AppendedOperation{
+		Session:   identifier.String(payload.Session),
+		Operation: payload.Operation,
+	}:
+	case <-ctx.Done():
+	}
+	return nil
+}
+
+// handleEndedSession handles EndedSession notifications and forwards
+// the session identifier to the Ended channel.
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) handleEndedSession(
+	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
+) error {
+	var payload struct {
+		Session string `json:"session"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields([]byte(notification.Payload), &payload)
+	if errE != nil {
+		return errE
+	}
+	select {
+	case c.Ended <- identifier.String(payload.Session):
+	case <-ctx.Done():
+	}
+	return nil
 }

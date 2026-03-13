@@ -64,13 +64,17 @@ func initDatabase(t *testing.T) (
 		}
 	}()
 
+	listener := internal.NewListener(dbpool)
+
 	s := &storage.Storage{
 		Prefix:    prefix,
 		Committed: channel,
 	}
 
-	errE = s.Init(ctx, dbpool)
+	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
 
 	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
 	time.Sleep(100 * time.Millisecond)
