@@ -13,6 +13,13 @@ import (
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// TODO: Implement "meld" functionality: allowing two values with different IDs to be merged into one.
+//       From that moment on, both IDs should resolve to this new value (e.g., even with later changes,
+//       for the latest version of the value returns the same value for both IDs).
+//       One ID becomes the main one though and all changes are then tracked under that ID.
+
+// TODO: Support "hard-forking" a value. In this case history is preserved, but a new identity is made for the value.
+
 // None is a special type which can be used for Patch type parameter
 // to configure the Store instance to not use nor store patches.
 type None *struct{}
@@ -131,7 +138,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 					"parentChangesets" text[] COLLATE "C" NOT NULL,
 					-- Direct previous IDs of this value. Multiple if this change is melding multiple
 					-- values (number of IDs and order matches parentChangesets). Only one ID if a new
-					-- value is being forked from the existing one (in this case history is preserved,
+					-- value is being hard-forked from the existing one (in this case history is preserved,
 					-- but a new identity is made). An empty array means that the ID has not changed.
 					-- The same parent ID can happen to repeat when both merging and melding at the
 					-- same time.
