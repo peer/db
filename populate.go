@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
@@ -194,10 +193,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 
 	count := x.NewCounter(0)
 	size := x.NewCounter(int64(len(transformed)))
-	progress := indexer.Progress(logger, "indexing", func(e *zerolog.Event) {
-		stats := site.ESProcessor.Stats()
-		e.Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded)
-	})
+	progress := indexer.Progress(logger, "indexing", nil)
 	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -224,23 +220,10 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		return errors.WithStack(ctx.Err())
 	}
 
-	// We wait for everything to be indexed into ElasticSearch.
-	// TODO: Improve this to not have a busy wait.
-	for {
-		if ctx.Err() != nil {
-			return errors.WithStack(ctx.Err())
-		}
-
-		err := site.ESProcessor.Flush()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		stats := site.ESProcessor.Stats()
-		c := count.Count()
-		if c <= stats.Indexed {
-			break
-		}
-		time.Sleep(time.Second)
+	// We wait for the bridge to index all committed documents into ElasticSearch.
+	errE = site.Bridge.WaitUntilCaughtUp(ctx)
+	if errE != nil {
+		return errE
 	}
 
 	_, err := site.ESClient.Refresh(site.Index).Do(ctx)
@@ -248,12 +231,10 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		return errors.WithStack(err)
 	}
 
-	stats := site.ESProcessor.Stats()
 	logger.Info().
 		Str("index", site.Index).Str("schema", site.Schema).
 		Int64("count", count.Count()).
 		Int64("total", size.Count()).
-		Int64("failed", stats.Failed).Int64("indexed", stats.Succeeded).
 		Msg("indexing done")
 
 	return nil
@@ -276,10 +257,10 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Index:           globals.Elastic.Index,
 			Schema:          globals.Postgres.Schema,
 			Title:           "",
+			Bridge:          nil,
 			Store:           nil,
 			Coordinator:     nil,
 			Storage:         nil,
-			ESProcessor:     nil,
 			ESClient:        nil,
 			DBPool:          nil,
 			propertiesTotal: 0,

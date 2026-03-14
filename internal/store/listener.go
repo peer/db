@@ -45,7 +45,8 @@ func NewListener(dbpool *pgxpool.Pool) *pgxlisten.Listener {
 func StartListener(ctx context.Context, listener *pgxlisten.Listener) {
 	go func() {
 		err := listener.Listen(ctx)
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
+			// We are stopping.
 			return
 		}
 		// TODO: We should terminate the whole process and let the process supervisor decide what to do.
