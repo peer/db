@@ -142,7 +142,7 @@ func initDatabase[Data, Metadata any](
 		CompleteSession: completeSession,
 	}
 
-	errE = c.Init(ctx, dbpool, listener, riverClient, workers)
+	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := riverClient.Start(ctx)
@@ -474,7 +474,7 @@ func TestNotifyRecovery(t *testing.T) {
 		CompleteSession: nil,
 	}
 
-	errE = c.Init(ctx, dbpool, listener, riverClient, workers)
+	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := riverClient.Start(ctx)
