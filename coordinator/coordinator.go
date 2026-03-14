@@ -1,4 +1,6 @@
 // Package coordinator provides a coordinator for synchronizing real-time collaboration sessions.
+//
+// This is a low-level component.
 package coordinator
 
 import (

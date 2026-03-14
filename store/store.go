@@ -1,4 +1,6 @@
 // Package store provides a versioned object store.
+//
+// This is a low-level component.
 package store
 
 import (

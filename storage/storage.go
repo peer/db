@@ -1,4 +1,6 @@
 // Package storage provides file storage functionality for PeerDB.
+//
+// This is a low-level component.
 package storage
 
 import (
