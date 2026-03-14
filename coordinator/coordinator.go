@@ -166,11 +166,11 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 
 	c.dbpool = dbpool
 
-	if c.Ended != nil {
-		listener.Handle(c.Prefix+"EndedSession", pgxlisten.HandlerFunc(c.handleEndedSession))
-	}
 	if c.Appended != nil {
-		listener.Handle(c.Prefix+"AppendedOperation", pgxlisten.HandlerFunc(c.handleAppendedOperation))
+		listener.Handle(c.Prefix+"AppendedOperation", c)
+	}
+	if c.Ended != nil {
+		listener.Handle(c.Prefix+"EndedSession", c)
 	}
 
 	return nil
@@ -483,6 +483,22 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( 
 		details["session"] = session.String()
 	}
 	return beginMetadata, endMetadata, errE
+}
+
+// HandleNotification implements pgxlisten.Handler interface.
+func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) HandleNotification(
+	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
+) error {
+	switch notification.Channel {
+	case c.Prefix + "AppendedOperation":
+		return c.handleAppendedOperation(ctx, notification, conn)
+	case c.Prefix + "EndedSession":
+		return c.handleEndedSession(ctx, notification, conn)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = notification.Channel
+		return errE
+	}
 }
 
 // handleAppendedOperation handles AppendedOperation notifications and forwards
