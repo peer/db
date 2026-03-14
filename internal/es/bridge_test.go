@@ -272,6 +272,52 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 	assert.GreaterOrEqual(t, maxSeq, int64(1))
 }
 
+func TestBridgeNotifyRecovery(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, b, esClient := initBridge(t)
+
+	b.Start(ctx)
+
+	// Insert initial documents and wait for the bridge to catch up.
+	id1 := identifier.New()
+	id2 := identifier.New()
+	_, errE := s.Insert(ctx, id1, json.RawMessage(`{"name":"initial1"}`), internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, id2, json.RawMessage(`{"name":"initial2"}`), internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Simulate a listener reconnection by closing the store's Committed channel.
+	// The bridge's run loop detects the channel close, exits with errCommittedChannelClosed,
+	// and restarts — re-running the catch-up phase to recover any missed commits.
+	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
+	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+
+	// Insert more documents after the simulated reconnection. These may be missed by the
+	// real-time channel but must be recovered via the catch-up phase on bridge restart.
+	id3 := identifier.New()
+	id4 := identifier.New()
+	_, errE = s.Insert(ctx, id3, json.RawMessage(`{"name":"recovery1"}`), internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, id4, json.RawMessage(`{"name":"recovery2"}`), internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, err = esClient.Refresh(b.Index).Do(ctx)
+	require.NoError(t, err)
+
+	// All four documents must be indexed, including those inserted after the simulated reconnection.
+	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "initial doc1 should be in ES")
+	assert.True(t, docExists(t, ctx, esClient, b.Index, id2.String()), "initial doc2 should be in ES")
+	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "recovery doc3 should be in ES")
+	assert.True(t, docExists(t, ctx, esClient, b.Index, id4.String()), "recovery doc4 should be in ES")
+}
+
 func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	t.Parallel()
 

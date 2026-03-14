@@ -55,14 +55,14 @@ func TestDocument(t *testing.T) {
 
 	id := identifier.New()
 
-	err := doc.Add(&document.NoValueClaim{
+	errE := doc.Add(&document.NoValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
 	})
-	require.NoError(t, err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, document.D{ //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			NoValue: document.NoValueClaims{
@@ -106,14 +106,14 @@ func TestDocument(t *testing.T) {
 
 	id2 := identifier.New()
 
-	err = claim.Add(&document.UnknownValueClaim{
+	errE = claim.Add(&document.UnknownValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
 	})
-	require.NoError(t, err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, &document.NoValueClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,

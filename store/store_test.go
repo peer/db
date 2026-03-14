@@ -545,10 +545,10 @@ func TestListPagination(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	for range 6000 {
+	for i := range 6000 {
 		newID := identifier.New()
 		_, errE = changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
-		require.NoError(t, errE, "%d % -+#.1v", errE)
+		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		ids = append(ids, newID)
 	}
@@ -649,12 +649,12 @@ func TestChangesPagination(t *testing.T) {
 	changesets = append(changesets, version.Changeset)
 
 	var changeset store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
-	for range 6000 {
+	for i := range 6000 {
 		changeset, errE = s.Begin(ctx)
 		require.NoError(t, errE, "% -+#.1v", errE)
 
 		version, errE = changeset.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
-		require.NoError(t, errE, "%d % -+#.1v", errE)
+		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		changesets = append(changesets, version.Changeset)
 	}
@@ -1751,4 +1751,95 @@ func TestCommitLogViewFilter(t *testing.T) {
 		assert.Equal(t, "child", renamed[0].View.Name())
 		assert.Equal(t, vChild2.Changeset, renamed[0].Changesets[0].ID())
 	}
+}
+
+func TestNotifyRecovery(t *testing.T) {
+	t.Parallel()
+
+	if os.Getenv("POSTGRES") == "" {
+		t.Skip("POSTGRES is not available")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	schema := identifier.New().String()
+	prefix := identifier.New().String() + "_"
+
+	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+		return schema, "tests"
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	listener := internal.NewListener(dbpool)
+
+	s := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
+		Prefix:        prefix,
+		CommittedSize: 1,
+		DataType:      "jsonb",
+		MetadataType:  "jsonb",
+		PatchType:     "jsonb",
+	}
+
+	errE = s.Init(ctx, dbpool, listener)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
+	time.Sleep(100 * time.Millisecond)
+
+	// Insert an initial document to confirm the channel is working.
+	id1 := identifier.New()
+	_, errE = s.Insert(ctx, id1, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		select {
+		case <-s.Committed.Get():
+		default:
+			assert.Fail(c, "commit notification not yet received")
+		}
+	}, 5*time.Second, 10*time.Millisecond)
+
+	// Save the current channel before simulating a listener reconnection.
+	oldCh := s.Committed.Get()
+
+	// Simulate a listener reconnection by calling HandleBacklog directly.
+	// In production this is triggered when pgxlisten reconnects after a connection drop.
+	// It should close the old channel (signaling consumers that notifications may have been
+	// missed) and create a new one.
+	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
+	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E
+
+	// Old channel must be closed so that consumers know to take corrective action.
+	select {
+	case _, ok := <-oldCh:
+		require.False(t, ok, "old channel should be closed after HandleBacklog")
+	case <-time.After(time.Second):
+		t.Fatal("old channel was not closed by HandleBacklog")
+	}
+
+	// A new channel must be created.
+	newCh := s.Committed.Get()
+	require.NotEqual(t, oldCh, newCh, "HandleBacklog should create a new channel")
+
+	// Commits after the reconnection must arrive on the new channel.
+	id2 := identifier.New()
+	_, errE = s.Insert(ctx, id2, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		select {
+		case <-newCh:
+		default:
+			assert.Fail(c, "commit notification not yet received on new channel")
+		}
+	}, 5*time.Second, 10*time.Millisecond)
 }
