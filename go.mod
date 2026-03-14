@@ -10,6 +10,7 @@ require (
 	github.com/foolin/pagser v0.1.6
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.34.1-0.20250418111443-9dacc014f38d
@@ -27,7 +28,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c // indirect
 	golang.org/x/text v0.33.0 // indirect
 )
 
