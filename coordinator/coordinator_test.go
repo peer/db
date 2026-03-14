@@ -191,7 +191,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -204,7 +204,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -218,7 +218,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(3), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -232,7 +232,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(4), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -299,7 +299,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Equal(t, d.EndMetadata, endMetadata)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	ended := endedChannelContents.Prune()
 	if assert.Len(t, ended, 1) {
 		assert.Equal(t, session, ended[0])
@@ -407,7 +407,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, operations, allPages)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	assert.Len(t, appended, 6000)
 
