@@ -18,6 +18,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 const (
@@ -422,12 +423,24 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 ) error {
 	metadata, errE := c.CompleteSession(ctx, session)
 	if errE != nil {
-		// CompleteSession is probably fetching coordinator state from the database.
-		// It is not possible to recover from these errors, so we cancel the job so
+		// CompleteSession is probably fetching coordinator or sore state from the database.
+		// It is not possible to recover from some of these errors, so we cancel the job so
 		// that it does not retry unnecessarily.
 		if errors.Is(errE, ErrSessionNotFound) {
 			return river.JobCancel(errE)
 		} else if errors.Is(errE, ErrAlreadyCompleted) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrViewNotFound) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrValueNotFound) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrChangesetNotFound) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrAlreadyCommitted) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrParentInvalid) {
+			return river.JobCancel(errE)
+		} else if errors.Is(errE, store.ErrConflict) {
 			return river.JobCancel(errE)
 		}
 		return errE
