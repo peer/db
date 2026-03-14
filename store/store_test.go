@@ -121,8 +121,6 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	channel := make(chan store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch])
-
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
 	prefix := identifier.New().String() + "_"
@@ -137,24 +135,10 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
-
-	go func() {
-		for {
-			select {
-			case c := <-channel:
-				channelContents.Append(c)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
 	listener := internal.NewListener(dbpool)
 
 	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		Prefix:       prefix,
-		Committed:    channel,
 		DataType:     dataType,
 		MetadataType: dataType,
 		PatchType:    dataType,
@@ -167,6 +151,19 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 
 	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
 	time.Sleep(100 * time.Millisecond)
+
+	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
+
+	go func() {
+		for {
+			select {
+			case c := <-s.Committed.Get():
+				channelContents.Append(c)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	return ctx, s, channelContents
 }

@@ -67,28 +67,24 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 		assert.NoError(t, err)
 	})
 
-	channel := make(chan store.CommittedChangesets[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage], 100)
-
 	listener := internal.NewListener(dbpool)
 
 	s := &bridgeStore{
-		Prefix:       prefix,
-		Committed:    channel,
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		PatchType:    "jsonb",
+		Prefix:        prefix,
+		DataType:      "jsonb",
+		MetadataType:  "jsonb",
+		PatchType:     "jsonb",
+		CommittedSize: 100,
 	}
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	b := &bridgeType{
-		Store:     s,
-		ESClient:  esClient,
-		Index:     index,
-		Committed: channel,
-		Listener:  listener,
+		Store:    s,
+		ESClient: esClient,
+		Index:    index,
 	}
-	errE = b.Init(ctx, dbpool)
+	errE = b.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	internal.StartListener(ctx, listener)

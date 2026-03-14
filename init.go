@@ -23,6 +23,7 @@ import (
 
 const (
 	// TODO: Determine reasonable size for the buffer.
+	// TODO: Add some monitoring of the channel contention.
 	bridgeBufferSize = 100
 )
 
@@ -48,12 +49,6 @@ func initForSite(
 	ctx = WithFallbackDBContext(ctx, "init", schema)
 	ctx = logger.With().Str("schema", schema).Str("index", index).Logger().WithContext(ctx)
 
-	// TODO: Add some monitoring of the channel contention.
-	channel := make(
-		chan store.CommittedChangesets[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-		bridgeBufferSize,
-	)
-
 	errE := es.EnsureIndex(ctx, esClient, index)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
@@ -69,11 +64,11 @@ func initForSite(
 	listener := internal.NewListener(dbpool)
 
 	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Prefix:       "docs",
-		Committed:    channel,
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		PatchType:    "jsonb",
+		Prefix:        "docs",
+		DataType:      "jsonb",
+		MetadataType:  "jsonb",
+		PatchType:     "jsonb",
+		CommittedSize: bridgeBufferSize,
 	}
 	errE = s.Init(ctx, dbpool, listener)
 	if errE != nil {
@@ -88,33 +83,26 @@ func initForSite(
 		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
 			return es.EndDocumentSession(ctx, s, c, session, metadata)
 		},
-		Appended: nil,
-		Ended:    nil,
 	}
-	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = c.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
 
 	storage := &storage.Storage{
-		Prefix:    "storage",
-		Committed: nil,
+		Prefix: "storage",
 	}
-	// We do not use Committed channel here so we pass nil for listener.
 	errE = storage.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}
 
 	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Store:     s,
-		ESClient:  esClient,
-		Index:     index,
-		Committed: channel,
-		Listener:  listener,
+		Store:    s,
+		ESClient: esClient,
+		Index:    index,
 	}
-	errE = b.Init(ctx, dbpool)
+	errE = b.Init(ctx, dbpool, listener)
 	if errE != nil {
 		return nil, nil, nil, nil, errE
 	}

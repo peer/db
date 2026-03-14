@@ -22,6 +22,8 @@ import (
 
 const bridgeRetryDelay = 5 * time.Second
 
+var errCommittedChannelClosed = errors.Base("committed channel is closed")
+
 type bulkError struct {
 	ID    string                `json:"id"`
 	Error *elastic.ErrorDetails `json:"error,omitempty"`
@@ -40,12 +42,6 @@ type Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetad
 	// Index is the ElasticSearch index name.
 	Index string
 
-	// Committed is the channel of newly committed changesets from the store listener.
-	Committed <-chan store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
-
-	// Listener is the shared NOTIFY listener used to receive bridge table update notifications.
-	Listener *pgxlisten.Listener
-
 	dbpool  *pgxpool.Pool
 	mu      sync.RWMutex
 	seqCond *sync.Cond
@@ -54,15 +50,11 @@ type Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetad
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init(
+	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
+) errors.E {
 	if b.dbpool != nil {
 		return errors.New("already initialized")
-	}
-	if b.Committed == nil {
-		return errors.New("committed channel is nil")
-	}
-	if b.Listener == nil {
-		return errors.New("listener is nil")
 	}
 
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -101,7 +93,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	}
 
 	b.seqCond = sync.NewCond(b.mu.RLocker())
-	b.Listener.Handle(b.Store.Prefix+"BridgeSeq", b)
+	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
 
 	b.dbpool = dbpool
 
@@ -122,15 +114,52 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	}
 }
 
+// HandleBacklog implements pgxlisten.BacklogHandler interface.
+//
+// It fetches the last seq from the Bridge table to get the current state if anything was missed.
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleBacklog(
+	ctx context.Context, channel string, _ *pgx.Conn,
+) error {
+	switch channel {
+	case b.Store.Prefix + "BridgeSeq":
+		// TODO: Improve what happens on an error.
+		//       Any error from fixBridgeSeq is just logged. Which means that goroutines waiting in WaitUntilCaughtUp
+		//       might continue waiting until some other new commit is made, which might be never.
+		return b.fixBridgeSeq(ctx)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = channel
+		return errE
+	}
+}
+
 // handleBridgeSeq handles BridgeSeq notifications from the Bridge table trigger and
 // broadcasts to any goroutines waiting in WaitUntilCaughtUp.
 func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleBridgeSeq(
-	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
+	_ context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
 	seq, err := strconv.ParseInt(notification.Payload, 10, 64)
 	if err != nil {
 		errE := errors.WithMessage(err, "failed to parse bridge seq notification payload")
 		errors.Details(errE)["payload"] = notification.Payload
+		return errE
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if seq > b.lastSeq {
+		b.lastSeq = seq
+		b.seqCond.Broadcast()
+	}
+	return nil
+}
+
+// fixBridgeSeq fetches the last seq from the Bridge table and broadcasts to any goroutines
+// waiting in WaitUntilCaughtUp.
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) fixBridgeSeq(
+	ctx context.Context,
+) error {
+	seq, errE := b.getSeq(ctx)
+	if errE != nil {
 		return errE
 	}
 	b.mu.Lock()
@@ -160,6 +189,11 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 			if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
 				// No need to retry. We are stopping.
 				return
+			} else if errors.Is(errE, errCommittedChannelClosed) {
+				// Channel was closed which means that notifications about commits made might have been
+				// missed and we should take corrective actions. We just rerun and our existing catch-up
+				// logic will do the rest.
+				continue
 			}
 			// There should always be an error.
 			zerolog.Ctx(ctx).Error().Err(errE).Msg("bridge error")
@@ -253,10 +287,11 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 		select {
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
-		case c, ok := <-b.Committed:
+		case c, ok := <-b.Store.Committed.Get():
 			if !ok {
-				// We never close the channel, so this should never happen.
-				panic(errors.New("committed channel is closed"))
+				// Channel was closed which means that notifications about commits made might have been
+				// missed and we should take corrective actions. We return the sentinel error.
+				return errors.WithStack(errCommittedChannelClosed)
 			}
 			// Skip commits already processed during catch-up.
 			if c.Seq <= lastSeq {

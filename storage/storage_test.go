@@ -33,8 +33,6 @@ func initDatabase(t *testing.T) (
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	channel := make(chan store.CommittedChangesets[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None])
-
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
 	prefix := identifier.New().String() + "_"
@@ -49,26 +47,10 @@ func initDatabase(t *testing.T) (
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
-	]])
-
-	go func() {
-		for {
-			select {
-			case co := <-channel:
-				channelContents.Append(co)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
 	listener := internal.NewListener(dbpool)
 
 	s := &storage.Storage{
-		Prefix:    prefix,
-		Committed: channel,
+		Prefix: prefix,
 	}
 
 	errE = s.Init(ctx, dbpool, listener)
@@ -79,6 +61,20 @@ func initDatabase(t *testing.T) (
 	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
 	time.Sleep(100 * time.Millisecond)
 
+	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
+		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
+	]])
+
+	go func() {
+		for {
+			select {
+			case co := <-s.Store().Committed.Get():
+				channelContents.Append(co)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	return ctx, s, channelContents
 }
 

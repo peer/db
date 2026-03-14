@@ -126,41 +126,10 @@ func initDatabase[Data, Metadata any](
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	appendedChannel := make(chan coordinator.AppendedOperation)
-	endedChannel := make(chan identifier.Identifier)
-
-	appendedChannelContents := new(internal.LockableSlice[coordinator.AppendedOperation])
-
-	go func() {
-		for {
-			select {
-			case o := <-appendedChannel:
-				appendedChannelContents.Append(o)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	endedChannelContents := new(internal.LockableSlice[identifier.Identifier])
-
-	go func() {
-		for {
-			select {
-			case s := <-endedChannel:
-				endedChannelContents.Append(s)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
 	listener := internal.NewListener(dbpool)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
 		Prefix:       prefix,
-		Appended:     appendedChannel,
-		Ended:        endedChannel,
 		DataType:     dataType,
 		MetadataType: dataType,
 		EndCallback:  endCallback,
@@ -173,6 +142,32 @@ func initDatabase[Data, Metadata any](
 
 	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
 	time.Sleep(100 * time.Millisecond)
+
+	appendedChannelContents := new(internal.LockableSlice[coordinator.AppendedOperation])
+
+	go func() {
+		for {
+			select {
+			case o := <-c.Appended.Get():
+				appendedChannelContents.Append(o)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	endedChannelContents := new(internal.LockableSlice[identifier.Identifier])
+
+	go func() {
+		for {
+			select {
+			case s := <-c.Ended.Get():
+				endedChannelContents.Append(s)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	return ctx, c, appendedChannelContents, endedChannelContents
 }

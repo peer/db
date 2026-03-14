@@ -83,13 +83,6 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	// Prefix to use when initializing PostgreSQL objects used by this store.
 	Prefix string
 
-	// A channel to which one CommittedChangesets is sent for each commit.
-	// The changesets and view objects sent do not have an associated Store.
-	//
-	// CommittedChangesets are sent in the order in which commits were serialized
-	// by the database, as reflected by each CommittedChangesets's Seq field.
-	Committed chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
-
 	// PostgreSQL column types to store data, metadata, and patches.
 	// It should probably be one of the jsonb, bytea, or text.
 	// Go types used for Store type parameters should be compatible with
@@ -98,8 +91,23 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	MetadataType string
 	PatchType    string
 
+	// CommittedSize is the size of the channel to which one CommittedChangesets is sent for each commit.
+	//
+	// Set to a negative value to disable creating the channel.
+	CommittedSize int `exhaustruct:"optional"`
+
+	// A channel to which one CommittedChangesets is sent for each commit.
+	// The changesets and view objects sent do not have an associated Store.
+	//
+	// CommittedChangesets are sent in the order in which commits were serialized
+	// by the database, as reflected by each CommittedChangesets's Seq field.
+	//
+	// Channel is created by the listener when started and recreated on reconnection.
+	Committed x.RecreatableChannel[CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]] `exhaustruct:"optional"`
+
 	dbpool         *pgxpool.Pool
 	patchesEnabled bool
+	committed      chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
 // Init initializes the Store.
@@ -521,8 +529,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 	s.dbpool = dbpool
 
-	if s.Committed != nil {
-		listener.Handle(s.Prefix+"CommittedChangesets", s)
+	if listener != nil {
+		if s.CommittedSize >= 0 {
+			listener.Handle(s.Prefix+"CommittedChangesets", s)
+		}
 	}
 
 	return nil
@@ -540,6 +550,25 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		errors.Details(errE)["channel"] = notification.Channel
 		return errE
 	}
+}
+
+// HandleBacklog implements pgxlisten.BacklogHandler interface.
+//
+// It recreates channels to signal to their consumers that notifications might have been
+// missed and that they should take corrective actions, if possible.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleBacklog(
+	_ context.Context, channel string, _ *pgx.Conn,
+) error {
+	switch channel {
+	case s.Prefix + "CommittedChangesets":
+		// CommittedSize should be >= 0 here unless it was changed after initialization which is not allowed.
+		s.committed = s.Committed.Recreate(s.CommittedSize)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = channel
+		return errE
+	}
+	return nil
 }
 
 // handleCommitLogNotification handles CommittedChangesets notifications and forwards
@@ -591,7 +620,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		})
 	}
 	select {
-	case s.Committed <- commit:
+	case s.committed <- commit:
 	case <-ctx.Done():
 	}
 	return nil
