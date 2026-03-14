@@ -39,13 +39,19 @@ type coordinatorJob interface {
 	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
 }
 
+type schemaPrefix struct {
+	Schema string
+	Prefix string
+}
+
 //nolint:gochecknoglobals
 var (
-	coordinators   = map[string]coordinatorJob{}
+	coordinators   = map[schemaPrefix]coordinatorJob{}
 	coordinatorsMu = sync.RWMutex{}
 )
 
 type jobArgs struct {
+	Schema  string                `json:"schema"`
 	Prefix  string                `json:"prefix"`
 	Session identifier.Identifier `json:"session"`
 }
@@ -61,7 +67,7 @@ type worker struct {
 
 // Work implements river.Worker interface.
 func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
-	c, errE := w.getCoordinator(job.Args.Prefix)
+	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
 	if errE != nil {
 		return errE
 	}
@@ -69,13 +75,14 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	return c.runCompleteSession(ctx, job.Args.Session, job)
 }
 
-func (w *worker) getCoordinator(prefix string) (coordinatorJob, errors.E) { //nolint:ireturn
+func (w *worker) getCoordinator(schema, prefix string) (coordinatorJob, errors.E) { //nolint:ireturn
 	coordinatorsMu.RLock()
 	defer coordinatorsMu.RUnlock()
 
-	c, ok := coordinators[prefix]
+	c, ok := coordinators[schemaPrefix{Schema: schema, Prefix: prefix}]
 	if !ok {
 		errE := errors.New("coordinator not found")
+		errors.Details(errE)["schema"] = schema
 		errors.Details(errE)["prefix"] = prefix
 		return nil, errE
 	}
@@ -164,6 +171,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 	Changed x.RecreatableChannel[SessionStateChanged] `exhaustruct:"optional"`
 
 	dbpool      *pgxpool.Pool
+	schema      string
 	riverClient *river.Client[pgx.Tx]
 	appended    chan<- OperationAppended
 	changed     chan<- SessionStateChanged
@@ -176,7 +184,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 //
 // A non-nil listener is required when the Appended or Ended channel is set.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if c.dbpool != nil {
@@ -294,6 +302,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 
 	c.dbpool = dbpool
+	c.schema = schema
 	c.riverClient = riverClient
 
 	errE = c.registerCoordinator(workers)
@@ -317,9 +326,12 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	coordinatorsMu.Lock()
 	defer coordinatorsMu.Unlock()
 
-	_, ok := coordinators[c.Prefix]
+	sp := schemaPrefix{Schema: c.schema, Prefix: c.Prefix}
+
+	_, ok := coordinators[sp]
 	if ok {
 		errE := errors.New("coordinator already registered")
+		errors.Details(errE)["schema"] = c.schema
 		errors.Details(errE)["prefix"] = c.Prefix
 		return errE
 	}
@@ -332,7 +344,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		}
 	}
 
-	coordinators[c.Prefix] = c
+	coordinators[sp] = c
 
 	return nil
 }
@@ -384,6 +396,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 		// We submit a job to the worker to call CompleteSession and complete the session.
 		_, err = c.riverClient.InsertTx(ctx, tx, jobArgs{
+			Schema:  c.schema,
 			Prefix:  c.Prefix,
 			Session: session,
 		}, nil)

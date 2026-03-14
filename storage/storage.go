@@ -73,7 +73,7 @@ type Storage struct {
 // Init initializes the Storage with the given database connection pool.
 //
 // A non-nil listener is required when the Committed channel is set.
-func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, riverClient *river.Client[pgx.Tx], workers *river.Workers) errors.E {
+func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, schema string, riverClient *river.Client[pgx.Tx], workers *river.Workers) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
 	}
@@ -98,7 +98,7 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxl
 		},
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = storageCoordinator.Init(ctx, dbpool, nil, riverClient, workers)
+	errE = storageCoordinator.Init(ctx, dbpool, nil, schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}

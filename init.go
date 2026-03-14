@@ -89,7 +89,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger) errors.E {
 			return es.CompleteDocumentSession(ctx, st, c, session)
 		},
 	}
-	errE = c.Init(ctx, dbpool, nil, riverClient, workers)
+	errE = c.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}
@@ -97,7 +97,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger) errors.E {
 	storage := &storage.Storage{
 		Prefix: "storage",
 	}
-	errE = storage.Init(ctx, dbpool, nil, riverClient, workers)
+	errE = storage.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}

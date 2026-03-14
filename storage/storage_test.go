@@ -55,7 +55,7 @@ func initDatabase(t *testing.T) (
 		Prefix: prefix,
 	}
 
-	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
+	errE = s.Init(ctx, dbpool, listener, schema, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := riverClient.Start(ctx)
