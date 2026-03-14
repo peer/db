@@ -59,13 +59,6 @@ type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
-	// A channel to which one CommittedChangesets is sent for each commit.
-	// The changesets and view objects sent do not have an associated Store.
-	//
-	// CommittedChangesets are sent in the order in which commits were serialized
-	// by the database, as reflected by each CommittedChangesets's Seq field.
-	Committed chan<- store.CommittedChangesets[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
-
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
 }
@@ -80,7 +73,6 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxl
 
 	storageStore := &store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]{
 		Prefix:       s.Prefix,
-		Committed:    s.Committed,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
 		PatchType:    "",
@@ -95,8 +87,6 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxl
 		DataType:     "bytea",
 		MetadataType: "jsonb",
 		EndCallback:  s.endCallback,
-		Appended:     nil,
-		Ended:        nil,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = storageCoordinator.Init(ctx, dbpool, nil)
