@@ -42,7 +42,7 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
 	prefix := identifier.New().String() + "_"
-	index := strings.ToLower(identifier.New().String())
+	index := "s" + strings.ToLower(identifier.New().String())
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
