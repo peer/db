@@ -1,7 +1,6 @@
 package document_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,7 +60,7 @@ func TestPatchJSON(t *testing.T) {
 		},
 	}
 	base := identifier.String("TqtRsbk7rTKviW3TJapTim")
-	errE = changes.Validate(context.Background(), base)
+	errE = changes.Validate(t.Context(), base)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
