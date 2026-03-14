@@ -40,7 +40,7 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger) errors.E {
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) errors.E {
 	if s.initialized {
 		return nil
 	}
@@ -136,12 +136,6 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger) errors.E {
 	return nil
 }
 
-//nolint:gochecknoglobals
-var (
-	dbpool   *pgxpool.Pool
-	esClient *elastic.Client
-)
-
 // Init initializes PeerDB for all sites defined in globals.
 //
 // It establishes connections to PostgreSQL database and ElasticSearch.
@@ -150,6 +144,24 @@ var (
 // It can be called multiple times. In that case it will initialize only
 // sites which have not been initialized yet.
 func Init(ctx context.Context, globals *Globals) errors.E {
+	var dbpool *pgxpool.Pool
+	var esClient *elastic.Client
+
+	// First we check if any site have them initialized already.
+	for _, site := range globals.Sites {
+		if dbpool == nil && site.DBPool != nil {
+			dbpool = site.DBPool
+		}
+
+		if esClient == nil && site.ESClient != nil {
+			esClient = site.ESClient
+		}
+
+		if dbpool != nil && esClient != nil {
+			break
+		}
+	}
+
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
@@ -171,7 +183,7 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		errE := site.init(ctx, globals.Logger)
+		errE := site.init(ctx, globals.Logger, dbpool, esClient)
 		if errE != nil {
 			return errE
 		}
