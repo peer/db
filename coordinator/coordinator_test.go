@@ -100,7 +100,7 @@ func initDatabase[Data, Metadata any](
 ) (
 	context.Context,
 	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata],
-	*internal.LockableSlice[coordinator.AppendedOperation],
+	*internal.LockableSlice[coordinator.OperationAppended],
 	*internal.LockableSlice[identifier.Identifier],
 ) {
 	t.Helper()
@@ -143,7 +143,7 @@ func initDatabase[Data, Metadata any](
 	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
 	time.Sleep(100 * time.Millisecond)
 
-	appendedChannelContents := new(internal.LockableSlice[coordinator.AppendedOperation])
+	appendedChannelContents := new(internal.LockableSlice[coordinator.OperationAppended])
 
 	go func() {
 		for {
@@ -194,7 +194,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	time.Sleep(100 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
-		assert.Equal(t, coordinator.AppendedOperation{
+		assert.Equal(t, coordinator.OperationAppended{
 			Session:   session,
 			Operation: 1,
 		}, appended[0])
@@ -207,7 +207,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
-		assert.Equal(t, coordinator.AppendedOperation{
+		assert.Equal(t, coordinator.OperationAppended{
 			Session:   session,
 			Operation: 2,
 		}, appended[0])
@@ -221,7 +221,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
-		assert.Equal(t, coordinator.AppendedOperation{
+		assert.Equal(t, coordinator.OperationAppended{
 			Session:   session,
 			Operation: 3,
 		}, appended[0])
@@ -235,7 +235,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
-		assert.Equal(t, coordinator.AppendedOperation{
+		assert.Equal(t, coordinator.OperationAppended{
 			Session:   session,
 			Operation: 4,
 		}, appended[0])

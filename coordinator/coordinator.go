@@ -25,23 +25,49 @@ const (
 
 const (
 	// Our PostgreSQL error codes.
-	errorCodeSessionNotFound = "P1020"
-	errorCodeAlreadyEnded    = "P1021"
-	errorCodeConflict        = "P1022"
+	errorCodeSessionNotFound  = "P1020"
+	errorCodeAlreadyEnded     = "P1021"
+	errorCodeNotEnded         = "P1022"
+	errorCodeAlreadyCompleted = "P1023"
+	errorCodeConflict         = "P1024"
 )
 
-// AppendedOperation represents an operation appended to a session.
-type AppendedOperation struct {
-	Session   identifier.Identifier
-	Operation int64
+// OperationAppended represents an operation appended to a session.
+type OperationAppended struct {
+	Session   identifier.Identifier `json:"session"`
+	Operation int64                 `json:"operation"`
+}
+
+// SessionState represents the state of a session.
+type SessionState string
+
+const (
+	SessionStateEnded     SessionState = "ended"
+	SessionStateCompleted SessionState = "completed"
+)
+
+// SessionStateChanged represents a change in the state of a session.
+type SessionStateChanged struct {
+	Session identifier.Identifier `json:"session"`
+	State   SessionState          `json:"state"`
 }
 
 // Coordinator provides an append-only log of operations to support
 // synchronizing real-time collaboration sessions.
 //
 // For every operation, its metadata and optional data are stored.
-// Go types for them you configure with type parameters.
-type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct {
+// You configure Go types for them with type parameters.
+//
+// Every coordinator session goes through the following lifetime:
+//
+//   - First, you call [Coordinator.Begin] to create a new session.
+//   - Then, you call [Coordinator.Append] to append operations to the session.
+//   - Finally, you call [Coordinator.End] to end the session. After the session
+//     has ended, you cannot append new operations to it. After the session ends,
+//     the coordinator runs the `CompleteSession` function.
+//   - After `CompleteSession` successfully completes, the session is considered
+//     completed and all operations for the session are deleted.
+type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata any] struct {
 	// Prefix to use when initializing PostgreSQL objects used by this coordinator.
 	Prefix string
 
@@ -52,9 +78,16 @@ type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct
 	DataType     string
 	MetadataType string
 
-	// EndCallback is called inside a transaction before all operations
-	// for the session are deleted and session is ended.
-	EndCallback func(ctx context.Context, session identifier.Identifier, metadata EndMetadata) (EndMetadata, errors.E)
+	// CompleteSession is called after a session has ended. You should use it to use operations' data
+	// and metadata to complete the session (e.g., store session results into a database or file).
+	//
+	// After CompleteSession successfully completes, the session is considered
+	// completed and all operations for the session are deleted.
+	//
+	// CompleteSession should be idempotent as might be called multiple times in the case of any issues.
+	// In the case of errors, it should try to revert any changes made by it, but it should not rely on those
+	// changes being reverted because it might be run again even if CompleteSession itself successfully runs.
+	CompleteSession func(ctx context.Context, session identifier.Identifier) (CompleteMetadata, errors.E)
 
 	// AppendedSize is the size of the channel to which operations are send when they are appended.
 	//
@@ -65,22 +98,22 @@ type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct
 	// Operations are sent in the order in which they were appended to the database.
 	//
 	// Channel is created by the listener when started and recreated on reconnection.
-	Appended x.RecreatableChannel[AppendedOperation] `exhaustruct:"optional"`
+	Appended x.RecreatableChannel[OperationAppended] `exhaustruct:"optional"`
 
-	// EndedSize is the size of the channel to which sessions are send when they end.
+	// EndedSize is the size of the channel to which session state changes are send.
 	//
 	// Set to a negative value to disable creating the channel.
-	EndedSize int `exhaustruct:"optional"`
+	ChangedSize int `exhaustruct:"optional"`
 
-	// A channel to which sessions are send when they end.
-	// Sessions are sent in the order in which they ended in the database.
+	// A channel to which session state changes are send.
+	// State changes are sent in the order in which they were serialized by the database.
 	//
 	// Channel is created by the listener when started and recreated on reconnection.
-	Ended x.RecreatableChannel[identifier.Identifier] `exhaustruct:"optional"`
+	Changed x.RecreatableChannel[SessionStateChanged] `exhaustruct:"optional"`
 
 	dbpool   *pgxpool.Pool
-	appended chan<- AppendedOperation
-	ended    chan<- identifier.Identifier
+	appended chan<- OperationAppended
+	changed  chan<- SessionStateChanged
 }
 
 // Init initializes the Coordinator.
@@ -89,7 +122,7 @@ type Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata any] struct
 // stored procedures if they do not already exist.
 //
 // A non-nil listener is required when the Appended or Ended channel is set.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
@@ -102,6 +135,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 				"session" text STORAGE PLAIN COLLATE "C" NOT NULL,
 				"beginMetadata" `+c.MetadataType+` NOT NULL,
 				"endMetadata" `+c.MetadataType+`,
+				"completeMetadata" `+c.MetadataType+`,
 				PRIMARY KEY ("session")
 			);
 			CREATE TABLE "`+c.Prefix+`Operations" (
@@ -127,9 +161,30 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 					ELSIF _sessionEnded THEN
 						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
 					END IF;
-					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
 					UPDATE "`+c.Prefix+`Sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
-					PERFORM pg_notify('`+c.Prefix+`EndedSession', json_build_object('session', _session)::text);
+					PERFORM pg_notify('`+c.Prefix+`SessionStateChanged', json_build_object('session', _session, 'state', '`+string(SessionStateEnded)+`')::text);
+				END;
+			$$;
+
+			CREATE FUNCTION "`+c.Prefix+`CompleteSession"(_session text, _metadata `+c.MetadataType+`)
+				RETURNS void LANGUAGE plpgsql AS $$
+				DECLARE
+					_sessionEnded boolean;
+					_sessionCompleted boolean;
+				BEGIN
+					-- Does session exist and has ended and not completed.
+					SELECT "endMetadata" IS NOT NULL, "completeMetadata" IS NOT NULL INTO _sessionEnded, _sessionCompleted
+						FROM "`+c.Prefix+`Sessions" WHERE "session"=_session;
+					IF NOT FOUND THEN
+						RAISE EXCEPTION 'session not found' USING ERRCODE='`+errorCodeSessionNotFound+`';
+					ELSIF NOT _sessionEnded THEN
+						RAISE EXCEPTION 'session not ended' USING ERRCODE='`+errorCodeNotEnded+`';
+					ELSIF _sessionCompleted THEN
+						RAISE EXCEPTION 'session already completed' USING ERRCODE='`+errorCodeAlreadyCompleted+`';
+					END IF;
+					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
+					UPDATE "`+c.Prefix+`Sessions" SET "completeMetadata"=_metadata WHERE "session"=_session;
+					PERFORM pg_notify('`+c.Prefix+`SessionStateChanged', json_build_object('session', _session, 'state', '`+string(SessionStateCompleted)+`')::text);
 				END;
 			$$;
 
@@ -154,7 +209,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 					IF NOT FOUND THEN
 						RAISE EXCEPTION 'conflict' USING ERRCODE='`+errorCodeConflict+`';
 					END IF;
-					PERFORM pg_notify('`+c.Prefix+`AppendedOperation', json_build_object('session', _session, 'operation', _operation)::text);
+					PERFORM pg_notify('`+c.Prefix+`OperationAppended', json_build_object('session', _session, 'operation', _operation)::text);
 					RETURN _operation;
 				END;
 			$$;
@@ -186,10 +241,10 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 
 	if listener != nil {
 		if c.AppendedSize >= 0 {
-			listener.Handle(c.Prefix+"AppendedOperation", c)
+			listener.Handle(c.Prefix+"OperationAppended", c)
 		}
-		if c.EndedSize >= 0 {
-			listener.Handle(c.Prefix+"EndedSession", c)
+		if c.ChangedSize >= 0 {
+			listener.Handle(c.Prefix+"SessionStateChanged", c)
 		}
 	}
 
@@ -199,13 +254,13 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Init(
 // Begin starts a new session.
 //
 // The session has to be explicitly ended by calling End.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Begin(ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E) {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Begin(ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E) {
 	session := identifier.New()
 	arguments := []any{
 		session.String(), metadata,
 	}
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `INSERT INTO "`+c.Prefix+`Sessions" VALUES ($1, $2, NULL)`, arguments...)
+		_, err := tx.Exec(ctx, `INSERT INTO "`+c.Prefix+`Sessions" VALUES ($1, $2, NULL, NULL)`, arguments...)
 		return internal.WithPgxError(err)
 	})
 	if errE != nil {
@@ -216,28 +271,16 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Begin
 
 // End ends the session.
 //
-// It deletes all operations associated with the session and marks the session as ended.
 // Once the session has ended no more operations can be appended to it.
 //
-// Just before all operations are deleted, EndCallback is called inside a transaction.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( //nolint:ireturn
+// After the session ends, the coordinator runs the `CompleteSession` function.
+// After `CompleteSession` successfully completes, the session is considered
+// completed and all operations associated with the session are deleted.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) End(
 	ctx context.Context, session identifier.Identifier, metadata EndMetadata,
-) (EndMetadata, errors.E) {
-	var m EndMetadata
+) errors.E {
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// Initialize in the case transaction is retried.
-		m = *new(EndMetadata)
-
-		var errE errors.E
-		if c.EndCallback != nil {
-			m, errE = c.EndCallback(ctx, session, metadata)
-			if errE != nil {
-				return errE
-			}
-		} else {
-			m = metadata
-		}
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), m)
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
@@ -250,13 +293,45 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 			}
 			return errE
 		}
+		// TODO: Submit a job to the worker to call CompleteSession and complete the session.
 		return nil
 	})
 
 	if errE != nil {
 		errors.Details(errE)["session"] = session.String()
 	}
-	return m, errE
+	return errE
+}
+
+// complete completes the session.
+//
+// It deletes all operations associated with the session and marks the session as completed.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) complete(
+	ctx context.Context, session identifier.Identifier, metadata CompleteMetadata,
+) errors.E {
+	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
+		if err != nil {
+			errE := internal.WithPgxError(err)
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+				switch pgError.Code {
+				case errorCodeSessionNotFound:
+					return errors.WrapWith(errE, ErrSessionNotFound)
+				case errorCodeNotEnded:
+					return errors.WrapWith(errE, ErrNotEnded)
+				case errorCodeAlreadyCompleted:
+					return errors.WrapWith(errE, ErrAlreadyCompleted)
+				}
+			}
+			return errE
+		}
+		return nil
+	})
+
+	if errE != nil {
+		errors.Details(errE)["session"] = session.String()
+	}
+	return errE
 }
 
 // Append appends a new operation into the log with the next available operation number.
@@ -265,7 +340,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) End( 
 //
 // Optional expected operation number can be provided in which case the next available
 // operation number has to match the provided number for the call to succeed.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Append(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Append(
 	ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata,
 	expectedOperation *int64,
 ) (int64, errors.E) {
@@ -303,7 +378,7 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Appen
 
 // List returns up to MaxPageLength operation numbers appended to the session, in decreasing order
 // (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(ctx context.Context, session identifier.Identifier, before *int64) ([]int64, errors.E) {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) List(ctx context.Context, session identifier.Identifier, before *int64) ([]int64, errors.E) {
 	arguments := []any{
 		session.String(),
 	}
@@ -338,15 +413,15 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(
 		}
 		if len(operations) == 0 {
 			// TODO: Is there a better way to check without doing another query?
-			var sessionEnded bool
-			err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+			var sessionCompleted bool
+			err = tx.QueryRow(ctx, `SELECT "completeMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionCompleted)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					return errors.WithStack(ErrSessionNotFound)
 				}
 				return internal.WithPgxError(err)
-			} else if sessionEnded {
-				return errors.WithStack(ErrAlreadyEnded)
+			} else if sessionCompleted {
+				return errors.WithStack(ErrAlreadyCompleted)
 			}
 			if before != nil {
 				var exists bool
@@ -375,8 +450,8 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) List(
 //
 // Data might be nil if the operation does not contain data.
 //
-// Data and metadata are not available anymore once the session ends.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetData( //nolint:ireturn
+// Data and metadata are not available anymore once the session completes.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) GetData( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier, operation int64,
 ) (Data, OperationMetadata, errors.E) {
 	arguments := []any{
@@ -398,15 +473,15 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetDa
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
-				var sessionEnded bool
-				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+				var sessionCompleted bool
+				err = tx.QueryRow(ctx, `SELECT "completeMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionCompleted)
 				if err != nil {
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
 					}
 					return errors.Join(errE, internal.WithPgxError(err))
-				} else if sessionEnded {
-					return errors.WrapWith(errE, ErrAlreadyEnded)
+				} else if sessionCompleted {
+					return errors.WrapWith(errE, ErrAlreadyCompleted)
 				}
 				return errors.WrapWith(errE, ErrOperationNotFound)
 			}
@@ -424,8 +499,8 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetDa
 
 // GetMetadata returns metadata for the operation from the session.
 //
-// Metadata is not available anymore once the session ends.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMetadata( //nolint:ireturn
+// Metadata is not available anymore once the session completes.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) GetMetadata( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier, operation int64,
 ) (OperationMetadata, errors.E) {
 	arguments := []any{
@@ -445,15 +520,15 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMe
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
-				var sessionEnded bool
-				err = tx.QueryRow(ctx, `SELECT "endMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionEnded)
+				var sessionCompleted bool
+				err = tx.QueryRow(ctx, `SELECT "completeMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionCompleted)
 				if err != nil {
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
 					}
 					return errors.Join(errE, internal.WithPgxError(err))
-				} else if sessionEnded {
-					return errors.WrapWith(errE, ErrAlreadyEnded)
+				} else if sessionCompleted {
+					return errors.WrapWith(errE, ErrAlreadyCompleted)
 				}
 				return errors.WrapWith(errE, ErrOperationNotFound)
 			}
@@ -469,26 +544,28 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) GetMe
 	return metadata, errE
 }
 
-// Get returns initial and ending (once session has ended, otherwise it is nil)
+// Get returns initial, ending, and completed (once session has ended and/or completed, respectively, otherwise nil)
 // metadata for the session.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( //nolint:ireturn
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Get( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier,
-) (BeginMetadata, EndMetadata, errors.E) {
+) (BeginMetadata, EndMetadata, CompleteMetadata, errors.E) {
 	arguments := []any{
 		session.String(),
 	}
 	var beginMetadata BeginMetadata
 	var endMetadata EndMetadata
+	var completeMetadata CompleteMetadata
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		beginMetadata = *new(BeginMetadata)
 		endMetadata = *new(EndMetadata)
+		completeMetadata = *new(CompleteMetadata)
 
 		err := tx.QueryRow(ctx, `
-			SELECT "beginMetadata", "endMetadata"
+			SELECT "beginMetadata", "endMetadata", "completeMetadata"
 				FROM "`+c.Prefix+`Sessions"
 				WHERE "session"=$1
-		`, arguments...).Scan(&beginMetadata, &endMetadata)
+		`, arguments...).Scan(&beginMetadata, &endMetadata, &completeMetadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -502,18 +579,18 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Get( 
 		details := errors.Details(errE)
 		details["session"] = session.String()
 	}
-	return beginMetadata, endMetadata, errE
+	return beginMetadata, endMetadata, completeMetadata, errE
 }
 
 // HandleNotification implements pgxlisten.Handler interface.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) HandleNotification(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandleNotification(
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
-	case c.Prefix + "AppendedOperation":
-		return c.handleAppendedOperation(ctx, notification, conn)
-	case c.Prefix + "EndedSession":
-		return c.handleEndedSession(ctx, notification, conn)
+	case c.Prefix + "OperationAppended":
+		return c.handleOperationAppended(ctx, notification, conn)
+	case c.Prefix + "SessionStateChanged":
+		return c.handleSessionStateChanged(ctx, notification, conn)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = notification.Channel
@@ -525,16 +602,16 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Handl
 //
 // It recreates channels to signal to their consumers that notifications might have been
 // missed and that they should take corrective actions, if possible.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) HandleBacklog(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandleBacklog(
 	_ context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
-	case c.Prefix + "AppendedOperation":
+	case c.Prefix + "OperationAppended":
 		// AppendedSize should be >= 0 here unless it was changed after initialization which is not allowed.
 		c.appended = c.Appended.Recreate(c.AppendedSize)
-	case c.Prefix + "EndedSession":
-		// EndedSize should be >= 0 here unless it was changed after initialization which is not allowed.
-		c.ended = c.Ended.Recreate(c.EndedSize)
+	case c.Prefix + "SessionStateChanged":
+		// ChangedSize should be >= 0 here unless it was changed after initialization which is not allowed.
+		c.changed = c.Changed.Recreate(c.ChangedSize)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -543,43 +620,35 @@ func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) Handl
 	return nil
 }
 
-// handleAppendedOperation handles AppendedOperation notifications and forwards
+// handleOperationAppended handles OperationAppended notifications and forwards
 // the operation to the Appended channel.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) handleAppendedOperation(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) handleOperationAppended(
 	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
-	var payload struct {
-		Session   string `json:"session"`
-		Operation int64  `json:"operation"`
-	}
+	var payload OperationAppended
 	errE := x.UnmarshalWithoutUnknownFields([]byte(notification.Payload), &payload)
 	if errE != nil {
 		return errE
 	}
 	select {
-	case c.appended <- AppendedOperation{
-		Session:   identifier.String(payload.Session),
-		Operation: payload.Operation,
-	}:
+	case c.appended <- payload:
 	case <-ctx.Done():
 	}
 	return nil
 }
 
-// handleEndedSession handles EndedSession notifications and forwards
-// the session identifier to the Ended channel.
-func (c *Coordinator[Data, BeginMetadata, EndMetadata, OperationMetadata]) handleEndedSession(
+// handleSessionStateChanged handles SessionStateChanged notifications and forwards
+// the session state change to the Changed channel.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) handleSessionStateChanged(
 	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
-	var payload struct {
-		Session string `json:"session"`
-	}
+	var payload SessionStateChanged
 	errE := x.UnmarshalWithoutUnknownFields([]byte(notification.Payload), &payload)
 	if errE != nil {
 		return errE
 	}
 	select {
-	case c.ended <- identifier.String(payload.Session):
+	case c.changed <- payload:
 	case <-ctx.Done():
 	}
 	return nil
