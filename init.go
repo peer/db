@@ -107,8 +107,6 @@ func initForSite(
 		return nil, nil, nil, nil, errE
 	}
 
-	internal.StartListener(ctx, listener)
-
 	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
 		Store:     s,
 		ESClient:  esClient,
@@ -121,6 +119,10 @@ func initForSite(
 		return nil, nil, nil, nil, errE
 	}
 
+	// Now that everything is initialized, we can start the listener.
+	internal.StartListener(ctx, listener)
+
+	// And after the listener we can start the bridge.
 	b.Start(ctx)
 
 	return s, c, storage, b, nil
