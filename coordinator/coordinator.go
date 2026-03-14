@@ -426,22 +426,23 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		// CompleteSession is probably fetching coordinator or sore state from the database.
 		// It is not possible to recover from some of these errors, so we cancel the job so
 		// that it does not retry unnecessarily.
+		// TODO: Maybe our errors should have some "is permanent" flag we could use here?
 		if errors.Is(errE, ErrSessionNotFound) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, ErrAlreadyCompleted) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrViewNotFound) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrValueNotFound) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrChangesetNotFound) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrAlreadyCommitted) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrParentInvalid) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrConflict) {
-			return river.JobCancel(errE)
+			return river.JobCancel(errE) //nolint:wrapcheck
 		}
 		return errE
 	}
