@@ -14,6 +14,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/internal/es"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -43,7 +44,7 @@ type Site struct {
 	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]  `json:"-" yaml:"-"`
 	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata] `json:"-" yaml:"-"`
 	Storage     *storage.Storage                                                                                                                   `json:"-" yaml:"-"`
-	ESProcessor *elastic.BulkProcessor                                                                                                             `json:"-" yaml:"-"`
+	Bridge      *es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]    `json:"-" yaml:"-"`
 	ESClient    *elastic.Client                                                                                                                    `json:"-" yaml:"-"`
 	DBPool      *pgxpool.Pool                                                                                                                      `json:"-" yaml:"-"`
 

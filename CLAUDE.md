@@ -214,8 +214,7 @@ Chunked file upload management with begin/append/end lifecycle. Files stored in 
 
 #### 6. **ES Bridge** (`internal/es/bridge.go`)
 
-Listens to Store changesets and synchronizes to Elasticsearch using bulk indexing (2 workers, 1000 bulk actions,
-1s flush interval). Non-blocking design continues on individual document failures.
+Listens to Store changesets and synchronizes to Elasticsearch using bulk indexing.
 
 ### HTTP API Routes
 
