@@ -417,6 +417,11 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 ) errors.E {
 	metadata, errE := c.CompleteSession(ctx, session)
 	if errE != nil {
+		if errors.Is(errE, ErrSessionNotFound) {
+			return errors.WithStack(river.JobCancel(errE))
+		} else if errors.Is(errE, ErrAlreadyCompleted) {
+			return errors.WithStack(river.JobCancel(errE))
+		}
 		return errE
 	}
 
