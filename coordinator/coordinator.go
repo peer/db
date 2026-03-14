@@ -36,7 +36,7 @@ const (
 )
 
 type coordinatorJob interface {
-	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
+	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) error
 }
 
 type schemaPrefix struct {
@@ -82,8 +82,9 @@ func (w *worker) getCoordinator(schema, prefix string) (coordinatorJob, errors.E
 	c, ok := coordinators[schemaPrefix{Schema: schema, Prefix: prefix}]
 	if !ok {
 		errE := errors.New("coordinator not found")
-		errors.Details(errE)["schema"] = schema
-		errors.Details(errE)["prefix"] = prefix
+		details := errors.Details(errE)
+		details["schema"] = schema
+		details["prefix"] = prefix
 		return nil, errE
 	}
 
@@ -331,8 +332,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	_, ok := coordinators[sp]
 	if ok {
 		errE := errors.New("coordinator already registered")
-		errors.Details(errE)["schema"] = c.schema
-		errors.Details(errE)["prefix"] = c.Prefix
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 		return errE
 	}
 
@@ -404,7 +406,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 
 	if errE != nil {
-		errors.Details(errE)["session"] = session.String()
+		details := errors.Details(errE)
+		details["session"] = session.String()
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 	}
 	return errE
 }
@@ -414,13 +419,16 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // It deletes all operations associated with the session and marks the session as completed.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) runCompleteSession(
 	ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs],
-) errors.E {
+) error {
 	metadata, errE := c.CompleteSession(ctx, session)
 	if errE != nil {
+		// CompleteSession is probably fetching coordinator state from the database.
+		// It is not possible to recover from these errors, so we cancel the job so
+		// that it does not retry unnecessarily.
 		if errors.Is(errE, ErrSessionNotFound) {
-			return errors.WithStack(river.JobCancel(errE))
+			return river.JobCancel(errE)
 		} else if errors.Is(errE, ErrAlreadyCompleted) {
-			return errors.WithStack(river.JobCancel(errE))
+			return river.JobCancel(errE)
 		}
 		return errE
 	}
@@ -448,7 +456,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 
 	if errE != nil {
-		errors.Details(errE)["session"] = session.String()
+		details := errors.Details(errE)
+		details["session"] = session.String()
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 	}
 	return errE
 }
@@ -490,7 +501,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 
 	if errE != nil {
-		errors.Details(errE)["session"] = session.String()
+		details := errors.Details(errE)
+		details["session"] = session.String()
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 	}
 	return operation, errE
 }
@@ -560,6 +574,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	if errE != nil {
 		details := errors.Details(errE)
 		details["session"] = session.String()
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 		if before != nil {
 			details["before"] = *before
 		}
@@ -612,6 +628,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 	if errE != nil {
 		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 		details["session"] = session.String()
 		details["operation"] = operation
 	}
@@ -659,6 +677,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 	if errE != nil {
 		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 		details["session"] = session.String()
 		details["operation"] = operation
 	}
@@ -698,6 +718,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	})
 	if errE != nil {
 		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
 		details["session"] = session.String()
 	}
 	return beginMetadata, endMetadata, completeMetadata, errE
@@ -714,7 +736,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		return c.handleSessionStateChanged(ctx, notification, conn)
 	default:
 		errE := errors.New("unknown notification channel")
-		errors.Details(errE)["channel"] = notification.Channel
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+		details["channel"] = notification.Channel
 		return errE
 	}
 }
@@ -735,7 +760,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		c.changed = c.Changed.Recreate(c.ChangedSize)
 	default:
 		errE := errors.New("unknown notification channel")
-		errors.Details(errE)["channel"] = channel
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+		details["channel"] = channel
 		return errE
 	}
 	return nil
