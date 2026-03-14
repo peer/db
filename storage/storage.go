@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgxlisten"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -58,31 +59,25 @@ type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
-	// A channel to which changesets are send when they are committed.
-	// The changesets and view objects sent do not have an associated Store.
-	//
-	// The order in which they are sent is not necessary the order in which
-	// they were committed. You should not rely on the order.
-	Committed chan<- store.CommittedChangeset[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
-
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
 }
 
 // Init initializes the Storage with the given database connection pool.
-func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
+//
+// A non-nil listener is required when the Committed channel is set.
+func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
 	}
 
 	storageStore := &store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]{
 		Prefix:       s.Prefix,
-		Committed:    s.Committed,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
 		PatchType:    "",
 	}
-	errE := storageStore.Init(ctx, dbpool)
+	errE := storageStore.Init(ctx, dbpool, listener)
 	if errE != nil {
 		return errE
 	}
@@ -92,10 +87,9 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool) errors.E {
 		DataType:     "bytea",
 		MetadataType: "jsonb",
 		EndCallback:  s.endCallback,
-		Appended:     nil,
-		Ended:        nil,
 	}
-	errE = storageCoordinator.Init(ctx, dbpool)
+	// We do not use Appended and Ended channels here so we pass nil for listener.
+	errE = storageCoordinator.Init(ctx, dbpool, nil)
 	if errE != nil {
 		return errE
 	}

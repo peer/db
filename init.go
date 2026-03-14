@@ -2,14 +2,29 @@ package peerdb
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/storage"
+	"gitlab.com/peerdb/peerdb/store"
+)
+
+const (
+	// TODO: Determine reasonable size for the buffer.
+	// TODO: Add some monitoring of the channel contention.
+	bridgeBufferSize = 100
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
@@ -19,6 +34,86 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 	ctx = context.WithValue(ctx, requestIDContextKey, name)
 	ctx = context.WithValue(ctx, schemaContextKey, schema)
 	return ctx
+}
+
+// initForSite initializes the store, coordinator, storage, and bridge for a specific site.
+func initForSite(
+	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
+) (
+	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
+	*storage.Storage,
+	*es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	errors.E,
+) {
+	ctx = WithFallbackDBContext(ctx, "init", schema)
+	ctx = logger.With().Str("schema", schema).Str("index", index).Logger().WithContext(ctx)
+
+	errE := es.EnsureIndex(ctx, esClient, index)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
+	})
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	listener := internal.NewListener(dbpool)
+
+	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+		Prefix:        "docs",
+		DataType:      "jsonb",
+		MetadataType:  "jsonb",
+		PatchType:     "jsonb",
+		CommittedSize: bridgeBufferSize,
+	}
+	errE = s.Init(ctx, dbpool, listener)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
+	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]{
+		Prefix:       "docs",
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
+		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
+			return es.EndDocumentSession(ctx, s, c, session, metadata)
+		},
+	}
+	errE = c.Init(ctx, dbpool, nil)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	storage := &storage.Storage{
+		Prefix: "storage",
+	}
+	errE = storage.Init(ctx, dbpool, nil)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+		Store:    s,
+		ESClient: esClient,
+		Index:    index,
+	}
+	errE = b.Init(ctx, dbpool, listener)
+	if errE != nil {
+		return nil, nil, nil, nil, errE
+	}
+
+	// Now that everything is initialized, we can start the listener.
+	internal.StartListener(ctx, listener)
+
+	// And after the listener we can start the bridge.
+	b.Start(ctx)
+
+	return s, c, storage, b, nil
 }
 
 // Init initializes PeerDB for all sites defined in globals.
@@ -68,10 +163,8 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		siteCtx := WithFallbackDBContext(ctx, "init", site.Schema)
-
-		if site.Store == nil || site.Coordinator == nil || site.Storage == nil || site.ESProcessor == nil {
-			store, coordinator, storage, esProcessor, errE := es.InitForSite(siteCtx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
+		if site.Store == nil || site.Coordinator == nil || site.Storage == nil || site.Bridge == nil {
+			store, coordinator, storage, bridge, errE := initForSite(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
 			if errE != nil {
 				return errE
 			}
@@ -79,7 +172,7 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 			site.Store = store
 			site.Coordinator = coordinator
 			site.Storage = storage
-			site.ESProcessor = esProcessor
+			site.Bridge = bridge
 		}
 
 		if site.ESClient == nil {

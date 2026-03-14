@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
@@ -22,18 +20,8 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/mapping"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
-	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
-)
-
-const (
-	bulkProcessorWorkers = 2
-	bulkActions          = 1000
-	flushInterval        = time.Second
-	// TODO: Determine reasonable size for the buffer.
-	bridgeBufferSize = 100
 )
 
 type loggerAdapter struct {
@@ -69,10 +57,10 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 	return esClient, errors.WithStack(err)
 }
 
-// ensureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
+// EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
-// what current implementation of ensureIndex would otherwise create.
-func ensureIndex(ctx context.Context, esClient *elastic.Client, index string) errors.E {
+// what current implementation of EnsureIndex would otherwise create.
+func EnsureIndex(ctx context.Context, esClient *elastic.Client, index string) errors.E {
 	exists, err := esClient.IndexExists(index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
@@ -102,37 +90,8 @@ func ensureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	return nil
 }
 
-func initProcessor(ctx context.Context, logger zerolog.Logger, esClient *elastic.Client, index string) (*elastic.BulkProcessor, errors.E) {
-	// TODO: Make number of workers configurable.
-	// TODO: Make bulk actions configurable.
-	// TODO: Make flush interval configurable.
-	processor, err := esClient.BulkProcessor().Workers(bulkProcessorWorkers).Stats(true).BulkActions(bulkActions).FlushInterval(flushInterval).After(
-		func(_ int64, _ []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
-			if err != nil {
-				logger.Error().Err(err).Str("index", index).Msg("indexing error")
-			} else if failed := response.Failed(); len(failed) > 0 {
-				for _, f := range failed {
-					logger.Error().
-						Str("index", index).
-						Str("id", f.Id).Int("code", f.Status).
-						Str("reason", f.Error.Reason).Str("type", f.Error.Type).
-						Msg("indexing error")
-				}
-			}
-		},
-		// Do's documentation states that passed context should not be used for cancellation,
-		// so we pass a new context here and register context.AfterFunc later on.
-	).Do(context.Background()) //nolint:contextcheck
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	context.AfterFunc(ctx, func() { processor.Close() }) //nolint:errcheck,gosec
-
-	return processor, nil
-}
-
-func endDocumentSession(
+// EndDocumentSession ends the document editing session.
+func EndDocumentSession(
 	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
 	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
@@ -210,87 +169,4 @@ func endDocumentSession(
 func NewHTTPClient(logger zerolog.Logger, httpClient *http.Client) *http.Client {
 	// TODO: Make contact e-mail into a CLI argument.
 	return indexer.NewHTTPClient(logger, httpClient, fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision)) //nolint:lll
-}
-
-// InitForSite initializes the store and Elasticsearch bulk processor for a specific site, creating necessary database tables.
-func InitForSite(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
-) (
-	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
-	*storage.Storage,
-	*elastic.BulkProcessor,
-	errors.E,
-) {
-	// TODO: Add some monitoring of the channel contention.
-	channel := make(
-		chan store.CommittedChangeset[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-		bridgeBufferSize,
-	)
-	context.AfterFunc(ctx, func() { close(channel) })
-
-	errE := ensureIndex(ctx, esClient, index)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
-	}, nil)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	esProcessor, errE := initProcessor(ctx, logger, esClient, index)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Prefix:       "docs",
-		Committed:    channel,
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		PatchType:    "jsonb",
-	}
-	errE = s.Init(ctx, dbpool)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
-	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]{
-		Prefix:       "docs",
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
-			return endDocumentSession(ctx, s, c, session, metadata)
-		},
-		Appended: nil,
-		Ended:    nil,
-	}
-	errE = c.Init(ctx, dbpool)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	storage := &storage.Storage{
-		Prefix:    "storage",
-		Committed: nil,
-	}
-	errE = storage.Init(ctx, dbpool)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
-
-	go Bridge(
-		ctx,
-		logger.With().Str("schema", schema).Str("index", index).Logger(),
-		s,
-		esProcessor,
-		index,
-		channel,
-	)
-
-	return s, c, storage, esProcessor, nil
 }

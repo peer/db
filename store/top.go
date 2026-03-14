@@ -5,8 +5,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // Version represents a version of the value.
@@ -206,4 +209,84 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		return nil, errE
 	}
 	return view.Changes(ctx, id, after)
+}
+
+// CommitLog returns up to MaxPageLength commit log entries in increasing seq order, after optional
+// seq number, to support keyset pagination. The optional view parameter filters results to commits
+// whose view has that name.
+//
+// The changesets and views in the returned CommittedChangesets do not have an associated Store.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) CommitLog(
+	ctx context.Context, after *int64, view *string,
+) ([]CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
+	var conditions []string
+	var arguments []any
+	if after != nil {
+		arguments = append(arguments, *after)
+		conditions = append(conditions, `cl."seq" > $`+strconv.Itoa(len(arguments)))
+	}
+	if view != nil {
+		arguments = append(arguments, *view)
+		conditions = append(conditions, `cv."name" = $`+strconv.Itoa(len(arguments)))
+	}
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+	var commits []CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	errE := internal.RetryTransaction(ctx, s.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		commits = make([]CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], 0, MaxPageLength)
+
+		// Join with CurrentViews to get the current name of the view, not the name stored at commit time.
+		rows, err := tx.Query(ctx, `
+			SELECT cl."seq", cv."name", cl."changesets"
+				FROM "`+s.Prefix+`CommitLog" cl
+					JOIN "`+s.Prefix+`CurrentViews" cv USING ("view")
+				`+whereClause+`
+				ORDER BY cl."seq" ASC
+				LIMIT `+maxPageLengthStr, arguments...)
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		var seq int64
+		var name *string
+		var changesets []string
+		_, err = pgx.ForEachRow(rows, []any{&seq, &name, &changesets}, func() error {
+			viewName := ""
+			if name != nil {
+				// cv."name" may be NULL if the view has since been released (removed).
+				viewName = *name
+			}
+			commit := CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+				Seq:        seq,
+				Changesets: make([]Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], 0, len(changesets)),
+				View: View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+					name:  viewName,
+					store: nil,
+				},
+			}
+			for _, changesetID := range changesets {
+				commit.Changesets = append(commit.Changesets, Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+					id:    identifier.String(changesetID),
+					store: nil,
+				})
+			}
+			commits = append(commits, commit)
+			return nil
+		})
+		if err != nil {
+			return internal.WithPgxError(err)
+		}
+		return nil
+	})
+	if errE != nil {
+		if after != nil {
+			errors.Details(errE)["after"] = *after
+		}
+		if view != nil {
+			errors.Details(errE)["view"] = *view
+		}
+	}
+	return commits, errE
 }

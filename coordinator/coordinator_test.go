@@ -123,41 +123,51 @@ func initDatabase[Data, Metadata any](
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	}, nil)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	appendedChannel := make(chan coordinator.AppendedOperation)
-	t.Cleanup(func() { close(appendedChannel) })
-	endedChannel := make(chan identifier.Identifier)
-	t.Cleanup(func() { close(endedChannel) })
+	listener := internal.NewListener(dbpool)
+
+	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
+		Prefix:       prefix,
+		DataType:     dataType,
+		MetadataType: dataType,
+		EndCallback:  endCallback,
+	}
+
+	errE = c.Init(ctx, dbpool, listener)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
+	time.Sleep(100 * time.Millisecond)
 
 	appendedChannelContents := new(internal.LockableSlice[coordinator.AppendedOperation])
 
 	go func() {
-		for o := range appendedChannel {
-			appendedChannelContents.Append(o)
+		for {
+			select {
+			case o := <-c.Appended.Get():
+				appendedChannelContents.Append(o)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
 	endedChannelContents := new(internal.LockableSlice[identifier.Identifier])
 
 	go func() {
-		for s := range endedChannel {
-			endedChannelContents.Append(s)
+		for {
+			select {
+			case s := <-c.Ended.Get():
+				endedChannelContents.Append(s)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
-
-	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
-		Prefix:       prefix,
-		Appended:     appendedChannel,
-		Ended:        endedChannel,
-		DataType:     dataType,
-		MetadataType: dataType,
-		EndCallback:  endCallback,
-	}
-
-	errE = c.Init(ctx, dbpool)
-	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, c, appendedChannelContents, endedChannelContents
 }
@@ -181,7 +191,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -194,7 +204,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -208,7 +218,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(3), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -222,7 +232,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(4), i)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.AppendedOperation{
@@ -289,7 +299,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Equal(t, d.EndMetadata, endMetadata)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	ended := endedChannelContents.Prune()
 	if assert.Len(t, ended, 1) {
 		assert.Equal(t, session, ended[0])
@@ -397,7 +407,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, operations, allPages)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	assert.Len(t, appended, 6000)
 
@@ -413,4 +423,121 @@ func TestListPagination(t *testing.T) {
 	before := int64(10000)
 	_, errE = c.List(ctx, session, &before)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
+}
+
+func TestNotifyRecovery(t *testing.T) {
+	t.Parallel()
+
+	if os.Getenv("POSTGRES") == "" {
+		t.Skip("POSTGRES is not available")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	schema := identifier.New().String()
+	prefix := identifier.New().String() + "_"
+
+	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+		return schema, "tests"
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	listener := internal.NewListener(dbpool)
+
+	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
+		Prefix:       prefix,
+		AppendedSize: 1,
+		EndedSize:    1,
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
+		EndCallback:  nil,
+	}
+
+	errE = c.Init(ctx, dbpool, listener)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
+	time.Sleep(100 * time.Millisecond)
+
+	session, errE := c.Begin(ctx, json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Append an initial operation to confirm the Appended channel is working.
+	_, errE = c.Append(ctx, session, json.RawMessage(`{}`), json.RawMessage(`{}`), nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(tc *assert.CollectT) {
+		select {
+		case <-c.Appended.Get():
+		default:
+			assert.Fail(tc, "appended notification not yet received")
+		}
+	}, 5*time.Second, 10*time.Millisecond)
+
+	// Simulate a reconnection on the AppendedOperation channel.
+	oldAppendedCh := c.Appended.Get()
+	err := c.HandleBacklog(ctx, c.Prefix+"AppendedOperation", nil)
+	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+
+	// Old Appended channel must be closed.
+	select {
+	case _, ok := <-oldAppendedCh:
+		require.False(t, ok, "old appended channel should be closed after HandleBacklog")
+	case <-time.After(time.Second):
+		t.Fatal("old appended channel was not closed by HandleBacklog")
+	}
+
+	// A new Appended channel must be created.
+	newAppendedCh := c.Appended.Get()
+	require.NotEqual(t, oldAppendedCh, newAppendedCh, "HandleBacklog should create a new Appended channel")
+
+	// Appended operations after the reconnection must arrive on the new channel.
+	_, errE = c.Append(ctx, session, json.RawMessage(`{}`), json.RawMessage(`{}`), nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(tc *assert.CollectT) {
+		select {
+		case <-newAppendedCh:
+		default:
+			assert.Fail(tc, "appended notification not yet received on new channel")
+		}
+	}, 5*time.Second, 10*time.Millisecond)
+
+	// Simulate a reconnection on the EndedSession channel.
+	oldEndedCh := c.Ended.Get()
+	err = c.HandleBacklog(ctx, c.Prefix+"EndedSession", nil)
+	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+
+	// Old Ended channel must be closed.
+	select {
+	case _, ok := <-oldEndedCh:
+		require.False(t, ok, "old ended channel should be closed after HandleBacklog")
+	case <-time.After(time.Second):
+		t.Fatal("old ended channel was not closed by HandleBacklog")
+	}
+
+	// A new Ended channel must be created.
+	newEndedCh := c.Ended.Get()
+	require.NotEqual(t, oldEndedCh, newEndedCh, "HandleBacklog should create a new Ended channel")
+
+	// End the session; the notification must arrive on the new channel.
+	_, errE = c.End(ctx, session, json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(tc *assert.CollectT) {
+		select {
+		case <-newEndedCh:
+		default:
+			assert.Fail(tc, "ended notification not yet received on new channel")
+		}
+	}, 5*time.Second, 10*time.Millisecond)
 }

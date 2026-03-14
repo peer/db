@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"slices"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,12 +15,6 @@ const maxRetries = 10
 var ErrMaxRetriesReached = errors.Base("max retries reached")
 
 // TODO: For cases where only one query is made inside a transaction, we could make a query single-trip by making transaction and committing it ourselves.
-
-// See: https://github.com/jackc/pgx/issues/2001
-type dbTx struct {
-	Tx        pgx.Tx
-	Callbacks []func()
-}
 
 func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context.Context, tx pgx.Tx) errors.E) (errE errors.E) { //nolint:nonamedreturns
 	tx, err := parentTx.Begin(ctx)
@@ -52,14 +45,10 @@ func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context
 func RetryTransaction(
 	ctx context.Context, dbpool *pgxpool.Pool, accessMode pgx.TxAccessMode,
 	fn func(ctx context.Context, tx pgx.Tx) errors.E,
-	afterCommitFn func(),
 ) errors.E {
-	parentTx, ok := ctx.Value(transactionContextKey).(*dbTx)
+	parentTx, ok := ctx.Value(transactionContextKey).(pgx.Tx)
 	if ok {
-		if afterCommitFn != nil {
-			parentTx.Callbacks = append(parentTx.Callbacks, afterCommitFn)
-		}
-		return nestedTransaction(ctx, parentTx.Tx, fn)
+		return nestedTransaction(ctx, parentTx, fn)
 	}
 
 	metrics, _ := waf.GetMetrics(ctx)
@@ -71,8 +60,6 @@ func RetryTransaction(
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
-
-		var callbacks []func()
 
 		errE := (func() (errE errors.E) { //nolint:nonamedreturns
 			tx, err := dbpool.BeginTx(ctx, pgx.TxOptions{
@@ -92,17 +79,10 @@ func RetryTransaction(
 				}
 			}()
 
-			parentTx := &dbTx{
-				Tx:        tx,
-				Callbacks: nil,
-			}
-
-			errE = fn(context.WithValue(ctx, transactionContextKey, parentTx), tx)
+			errE = fn(context.WithValue(ctx, transactionContextKey, tx), tx)
 			if errE != nil {
 				return errE
 			}
-
-			callbacks = parentTx.Callbacks
 
 			err = tx.Commit(ctx)
 			if err != nil && (errors.Is(err, pgx.ErrTxClosed) || errors.Is(err, pgx.ErrTxCommitRollback)) {
@@ -134,14 +114,6 @@ func RetryTransaction(
 			}
 			// A non-retryable error.
 			return errE
-		}
-
-		if afterCommitFn != nil {
-			callbacks = append(callbacks, afterCommitFn)
-		}
-		slices.Reverse(callbacks)
-		for _, fn := range callbacks {
-			fn()
 		}
 
 		// No error.

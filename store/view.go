@@ -92,6 +92,8 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	return version, nil
 }
 
+// TODO: Support replacing/updating/updating/merging the value as Reader interface value instead of whole Data in memory.
+
 // Replace auto-commits the replace change into the view.
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
@@ -184,6 +186,8 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	return version, nil
 }
 
+// TODO: Support getting the value as ReadSeekCloser interface value instead of whole Data in memory.
+
 // GetLatest returns the latest committed version of the value for the view.
 //
 // The latest committed version is not the latest based on the time it was made,
@@ -271,7 +275,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -355,7 +359,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueDeleted)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -432,7 +436,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			// There is nothing wrong with having no values.
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -523,7 +527,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrValueNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -653,7 +657,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			// There is nothing wrong with having no changes anymore for valid value ID and after a valid after changeset.
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -671,7 +675,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 
 // TODO: Allow adding a name to an existing view.
 
-// TODO: Allow views to start remove a value so that the value from the parent view is again automatically available.
+// TODO: Allow views to remove a value so that the value from the parent view is again automatically available.
 //       For example, parent view might have resolved issues in its version of the value and the author of the current view
 //       might not want to have an explicit locked version anymore as they are satisfied with the parent version now.
 
@@ -702,7 +706,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name
@@ -733,7 +737,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errors.WithStack(ErrViewNotFound)
 		}
 		return nil
-	}, nil)
+	})
 	if errE != nil {
 		details := errors.Details(errE)
 		details["view"] = v.name

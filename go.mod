@@ -9,14 +9,15 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/foolin/pagser v0.1.6
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/rs/zerolog v1.34.1-0.20250418111443-9dacc014f38d
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.6.0
-	gitlab.com/tozd/go/x v0.0.0-20260307120620-9c9c02df2ee4
+	gitlab.com/tozd/go/x v0.0.0-20260314110808-0f23542feb34
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.8.1
 	gitlab.com/tozd/waf v0.22.0

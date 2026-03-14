@@ -22,7 +22,7 @@ import (
 func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
-	*internal.LockableSlice[store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]],
+	*internal.LockableSlice[store.CommittedChangesets[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]],
 ) {
 	t.Helper()
 
@@ -44,30 +44,37 @@ func initDatabase(t *testing.T) (
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, schema)
-	}, nil)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channel := make(chan store.CommittedChangeset[[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None])
-	t.Cleanup(func() { close(channel) })
+	listener := internal.NewListener(dbpool)
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangeset[
+	s := &storage.Storage{
+		Prefix: prefix,
+	}
+
+	errE = s.Init(ctx, dbpool, listener)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	internal.StartListener(ctx, listener)
+
+	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
+	time.Sleep(100 * time.Millisecond)
+
+	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
 		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
 	]])
 
 	go func() {
-		for co := range channel {
-			channelContents.Append(co)
+		for {
+			select {
+			case co := <-s.Store().Committed.Get():
+				channelContents.Append(co)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
-
-	s := &storage.Storage{
-		Prefix:    prefix,
-		Committed: channel,
-	}
-
-	errE = s.Init(ctx, dbpool)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
 	return ctx, s, channelContents
 }
 
@@ -118,16 +125,19 @@ func TestHappyPath(t *testing.T) {
 	errE = s.EndUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
-		changeset, errE := c[0].WithStore(ctx, s.Store())
+		assert.Positive(t, c[0].Seq)
+		committed, errE := c[0].WithStore(ctx, s.Store())
 		if assert.NoError(t, errE, "% -+#.1v", errE) {
-			changes, errE := changeset.Changeset.Changes(ctx, nil)
-			if assert.NoError(t, errE, "% -+#.1v", errE) {
-				if assert.Len(t, changes, 1) {
-					assert.Equal(t, session, changes[0].ID)
+			if assert.Len(t, committed.Changesets, 1) {
+				changes, errE := committed.Changesets[0].Changes(ctx, nil)
+				if assert.NoError(t, errE, "% -+#.1v", errE) {
+					if assert.Len(t, changes, 1) {
+						assert.Equal(t, session, changes[0].ID)
+					}
 				}
 			}
 		}
