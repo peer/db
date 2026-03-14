@@ -101,11 +101,25 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	}
 
 	b.seqCond = sync.NewCond(b.mu.RLocker())
-	b.Listener.Handle(b.Store.Prefix+"BridgeSeq", pgxlisten.HandlerFunc(b.handleBridgeSeq))
+	b.Listener.Handle(b.Store.Prefix+"BridgeSeq", b)
 
 	b.dbpool = dbpool
 
 	return nil
+}
+
+// HandleNotification implements pgxlisten.Handler interface.
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleNotification(
+	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
+) error {
+	switch notification.Channel {
+	case b.Store.Prefix + "BridgeSeq":
+		return b.handleBridgeSeq(ctx, notification, conn)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = notification.Channel
+		return errE
+	}
 }
 
 // handleBridgeSeq handles BridgeSeq notifications from the Bridge table trigger and

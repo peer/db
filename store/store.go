@@ -522,10 +522,24 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	s.dbpool = dbpool
 
 	if s.Committed != nil {
-		listener.Handle(s.Prefix+"CommittedChangesets", pgxlisten.HandlerFunc(s.handleCommittedChangesets))
+		listener.Handle(s.Prefix+"CommittedChangesets", s)
 	}
 
 	return nil
+}
+
+// HandleNotification implements pgxlisten.Handler interface.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleNotification(
+	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
+) error {
+	switch notification.Channel {
+	case s.Prefix + "CommittedChangesets":
+		return s.handleCommittedChangesets(ctx, notification, conn)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = notification.Channel
+		return errE
+	}
 }
 
 // handleCommitLogNotification handles CommittedChangesets notifications and forwards
