@@ -261,8 +261,10 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Store:           nil,
 			Coordinator:     nil,
 			Storage:         nil,
-			ESClient:        nil,
 			DBPool:          nil,
+			ESClient:        nil,
+			RiverClient:     nil,
+			initialized:     false,
 			propertiesTotal: 0,
 		}}
 	}

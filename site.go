@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
+	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
@@ -31,6 +33,8 @@ type Build struct {
 }
 
 // Site represents a single site in the PeerDB application with its configuration and state.
+//
+//nolint:lll
 type Site struct {
 	waf.Site `yaml:",inline"`
 
@@ -41,12 +45,15 @@ type Site struct {
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]  `json:"-" yaml:"-"`
-	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata] `json:"-" yaml:"-"`
-	Storage     *storage.Storage                                                                                                                   `json:"-" yaml:"-"`
-	Bridge      *es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]    `json:"-" yaml:"-"`
-	ESClient    *elastic.Client                                                                                                                    `json:"-" yaml:"-"`
-	DBPool      *pgxpool.Pool                                                                                                                      `json:"-" yaml:"-"`
+	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                   `json:"-" yaml:"-"`
+	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata] `json:"-" yaml:"-"`
+	Storage     *storage.Storage                                                                                                                                                    `json:"-" yaml:"-"`
+	Bridge      *es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                     `json:"-" yaml:"-"`
+	DBPool      *pgxpool.Pool                                                                                                                                                       `json:"-" yaml:"-"`
+	ESClient    *elastic.Client                                                                                                                                                     `json:"-" yaml:"-"`
+	RiverClient *river.Client[pgx.Tx]                                                                                                                                               `json:"-" yaml:"-"`
+
+	initialized bool
 
 	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
 	propertiesTotal int64

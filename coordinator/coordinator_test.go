@@ -20,16 +20,17 @@ import (
 )
 
 type testCase[Data, Metadata any] struct {
-	BeginMetadata   Metadata
-	Append1Data     Data
-	Append1Metadata Metadata
-	Append2Data     Data
-	Append2Metadata Metadata
-	Append3Data     Data
-	Append3Metadata Metadata
-	Append4Data     Data
-	Append4Metadata Metadata
-	EndMetadata     Metadata
+	BeginMetadata    Metadata
+	Append1Data      Data
+	Append1Metadata  Metadata
+	Append2Data      Data
+	Append2Metadata  Metadata
+	Append3Data      Data
+	Append3Metadata  Metadata
+	Append4Data      Data
+	Append4Metadata  Metadata
+	EndMetadata      Metadata
+	CompleteMetadata Metadata
 }
 
 func TestHappyPath(t *testing.T) {
@@ -40,55 +41,59 @@ func TestHappyPath(t *testing.T) {
 			t.Parallel()
 
 			testHappyPath(t, testCase[*internal.TestData, *internal.TestMetadata]{
-				BeginMetadata:   &internal.TestMetadata{Metadata: "begin"},
-				Append1Data:     &internal.TestData{Data: 123, Patch: false},
-				Append1Metadata: &internal.TestMetadata{Metadata: "append1"},
-				Append2Data:     nil,
-				Append2Metadata: &internal.TestMetadata{Metadata: "append2"},
-				Append3Data:     &internal.TestData{Data: 345, Patch: false},
-				Append3Metadata: &internal.TestMetadata{Metadata: "append3"},
-				Append4Data:     nil,
-				Append4Metadata: &internal.TestMetadata{Metadata: "append4"},
-				EndMetadata:     &internal.TestMetadata{Metadata: "end"},
+				BeginMetadata:    &internal.TestMetadata{Metadata: "begin"},
+				Append1Data:      &internal.TestData{Data: 123, Patch: false},
+				Append1Metadata:  &internal.TestMetadata{Metadata: "append1"},
+				Append2Data:      nil,
+				Append2Metadata:  &internal.TestMetadata{Metadata: "append2"},
+				Append3Data:      &internal.TestData{Data: 345, Patch: false},
+				Append3Metadata:  &internal.TestMetadata{Metadata: "append3"},
+				Append4Data:      nil,
+				Append4Metadata:  &internal.TestMetadata{Metadata: "append4"},
+				EndMetadata:      &internal.TestMetadata{Metadata: "end"},
+				CompleteMetadata: &internal.TestMetadata{Metadata: "complete"},
 			}, dataType)
 
 			testHappyPath(t, testCase[json.RawMessage, json.RawMessage]{
-				BeginMetadata:   json.RawMessage(`{"metadata": "begin"}`),
-				Append1Data:     json.RawMessage(`{"data": 123}`),
-				Append1Metadata: json.RawMessage(`{"metadata": "append1"}`),
-				Append2Data:     nil,
-				Append2Metadata: json.RawMessage(`{"metadata": "append2"}`),
-				Append3Data:     json.RawMessage(`{"data": 345}`),
-				Append3Metadata: json.RawMessage(`{"metadata": "append3"}`),
-				Append4Data:     nil,
-				Append4Metadata: json.RawMessage(`{"metadata": "append4"}`),
-				EndMetadata:     json.RawMessage(`{"metadata": "end"}`),
+				BeginMetadata:    json.RawMessage(`{"metadata": "begin"}`),
+				Append1Data:      json.RawMessage(`{"data": 123}`),
+				Append1Metadata:  json.RawMessage(`{"metadata": "append1"}`),
+				Append2Data:      nil,
+				Append2Metadata:  json.RawMessage(`{"metadata": "append2"}`),
+				Append3Data:      json.RawMessage(`{"data": 345}`),
+				Append3Metadata:  json.RawMessage(`{"metadata": "append3"}`),
+				Append4Data:      nil,
+				Append4Metadata:  json.RawMessage(`{"metadata": "append4"}`),
+				EndMetadata:      json.RawMessage(`{"metadata": "end"}`),
+				CompleteMetadata: json.RawMessage(`{"metadata": "complete"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[*json.RawMessage, *json.RawMessage]{
-				BeginMetadata:   internal.ToRawMessagePtr(`{"metadata": "begin"}`),
-				Append1Data:     internal.ToRawMessagePtr(`{"data": 123}`),
-				Append1Metadata: internal.ToRawMessagePtr(`{"metadata": "append1"}`),
-				Append2Data:     nil,
-				Append2Metadata: internal.ToRawMessagePtr(`{"metadata": "append2"}`),
-				Append3Data:     internal.ToRawMessagePtr(`{"data": 345}`),
-				Append3Metadata: internal.ToRawMessagePtr(`{"metadata": "append3"}`),
-				Append4Data:     nil,
-				Append4Metadata: internal.ToRawMessagePtr(`{"metadata": "append4"}`),
-				EndMetadata:     internal.ToRawMessagePtr(`{"metadata": "end"}`),
+				BeginMetadata:    internal.ToRawMessagePtr(`{"metadata": "begin"}`),
+				Append1Data:      internal.ToRawMessagePtr(`{"data": 123}`),
+				Append1Metadata:  internal.ToRawMessagePtr(`{"metadata": "append1"}`),
+				Append2Data:      nil,
+				Append2Metadata:  internal.ToRawMessagePtr(`{"metadata": "append2"}`),
+				Append3Data:      internal.ToRawMessagePtr(`{"data": 345}`),
+				Append3Metadata:  internal.ToRawMessagePtr(`{"metadata": "append3"}`),
+				Append4Data:      nil,
+				Append4Metadata:  internal.ToRawMessagePtr(`{"metadata": "append4"}`),
+				EndMetadata:      internal.ToRawMessagePtr(`{"metadata": "end"}`),
+				CompleteMetadata: internal.ToRawMessagePtr(`{"metadata": "complete"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[[]byte, []byte]{
-				BeginMetadata:   []byte(`{"metadata": "begin"}`),
-				Append1Data:     []byte(`{"data": 123}`),
-				Append1Metadata: []byte(`{"metadata": "append1"}`),
-				Append2Data:     nil,
-				Append2Metadata: []byte(`{"metadata": "append2"}`),
-				Append3Data:     []byte(`{"data": 345}`),
-				Append3Metadata: []byte(`{"metadata": "append3"}`),
-				Append4Data:     nil,
-				Append4Metadata: []byte(`{"metadata": "append4"}`),
-				EndMetadata:     []byte(`{"metadata": "end"}`),
+				BeginMetadata:    []byte(`{"metadata": "begin"}`),
+				Append1Data:      []byte(`{"data": 123}`),
+				Append1Metadata:  []byte(`{"metadata": "append1"}`),
+				Append2Data:      nil,
+				Append2Metadata:  []byte(`{"metadata": "append2"}`),
+				Append3Data:      []byte(`{"data": 345}`),
+				Append3Metadata:  []byte(`{"metadata": "append3"}`),
+				Append4Data:      nil,
+				Append4Metadata:  []byte(`{"metadata": "append4"}`),
+				EndMetadata:      []byte(`{"metadata": "end"}`),
+				CompleteMetadata: []byte(`{"metadata": "complete"}`),
 			}, dataType)
 		})
 	}
@@ -96,12 +101,12 @@ func TestHappyPath(t *testing.T) {
 
 func initDatabase[Data, Metadata any](
 	t *testing.T, dataType string,
-	endCallback func(ctx context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E),
+	completeSession func(context.Context, identifier.Identifier) (Metadata, errors.E),
 ) (
 	context.Context,
-	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata],
+	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata],
 	*internal.LockableSlice[coordinator.OperationAppended],
-	*internal.LockableSlice[identifier.Identifier],
+	*internal.LockableSlice[coordinator.SessionStateChanged],
 ) {
 	t.Helper()
 
@@ -109,8 +114,7 @@ func initDatabase[Data, Metadata any](
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -128,15 +132,21 @@ func initDatabase[Data, Metadata any](
 
 	listener := internal.NewListener(dbpool)
 
-	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata]{
-		Prefix:       prefix,
-		DataType:     dataType,
-		MetadataType: dataType,
-		EndCallback:  endCallback,
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata]{
+		Prefix:          prefix,
+		DataType:        dataType,
+		MetadataType:    dataType,
+		CompleteSession: completeSession,
 	}
 
-	errE = c.Init(ctx, dbpool, listener)
+	errE = c.Init(ctx, dbpool, listener, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	err := riverClient.Start(ctx)
+	require.NoError(t, err)
 
 	internal.StartListener(ctx, listener)
 
@@ -156,31 +166,31 @@ func initDatabase[Data, Metadata any](
 		}
 	}()
 
-	endedChannelContents := new(internal.LockableSlice[identifier.Identifier])
+	changedChannelContents := new(internal.LockableSlice[coordinator.SessionStateChanged])
 
 	go func() {
 		for {
 			select {
-			case s := <-c.Ended.Get():
-				endedChannelContents.Append(s)
+			case s := <-c.Changed.Get():
+				changedChannelContents.Append(s)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	return ctx, c, appendedChannelContents, endedChannelContents
+	return ctx, c, appendedChannelContents, changedChannelContents
 }
 
 func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
 	t.Helper()
 
-	endedSessions := []identifier.Identifier{}
-	ctx, c, appendedChannelContents, endedChannelContents := initDatabase[Data, Metadata](
+	completedSessions := []identifier.Identifier{}
+	ctx, c, appendedChannelContents, changedChannelContents := initDatabase[Data, Metadata](
 		t, dataType,
-		func(_ context.Context, session identifier.Identifier, metadata Metadata) (Metadata, errors.E) {
-			endedSessions = append(endedSessions, session)
-			return metadata, nil
+		func(_ context.Context, session identifier.Identifier) (Metadata, errors.E) {
+			completedSessions = append(completedSessions, session)
+			return d.CompleteMetadata, nil
 		},
 	)
 
@@ -281,26 +291,28 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.Append4Metadata, metadata)
 
-	beginMetadata, endMetadata, errE := c.Get(ctx, session)
+	beginMetadata, endMetadata, completeMetadata, errE := c.Get(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Nil(t, endMetadata)
+	assert.Nil(t, completeMetadata)
 
-	assert.Empty(t, endedSessions)
-	_, errE = c.End(ctx, session, d.EndMetadata)
+	assert.Empty(t, completedSessions)
+	errE = c.End(ctx, session, d.EndMetadata)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	if assert.Len(t, endedSessions, 1) {
-		assert.Equal(t, session, endedSessions[0])
+	time.Sleep(100 * time.Millisecond)
+	if assert.Len(t, completedSessions, 1) {
+		assert.Equal(t, session, completedSessions[0])
 	}
 
-	beginMetadata, endMetadata, errE = c.Get(ctx, session)
+	beginMetadata, endMetadata, completeMetadata, errE = c.Get(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Equal(t, d.EndMetadata, endMetadata)
+	assert.Equal(t, d.CompleteMetadata, completeMetadata)
 
-	time.Sleep(100 * time.Millisecond)
-	ended := endedChannelContents.Prune()
+	ended := changedChannelContents.Prune()
 	if assert.Len(t, ended, 1) {
 		assert.Equal(t, session, ended[0])
 	}
@@ -315,10 +327,10 @@ func TestErrors(t *testing.T) {
 
 	ctx, c, _, _ := initDatabase[json.RawMessage, json.RawMessage](t, "jsonb", nil)
 
-	_, _, errE := c.Get(ctx, identifier.New())
+	_, _, _, errE := c.Get(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	_, errE = c.End(ctx, identifier.New(), internal.DummyData)
+	errE = c.End(ctx, identifier.New(), internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	_, errE = c.Append(ctx, identifier.New(), internal.DummyData, internal.DummyData, nil)
@@ -350,7 +362,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 2)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 
-	_, errE = c.End(ctx, session, internal.DummyData)
+	errE = c.End(ctx, session, internal.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, nil)
@@ -366,7 +378,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	_, errE = c.End(ctx, session, internal.DummyData)
+	errE = c.End(ctx, session, internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	_, errE = c.List(ctx, session, nil)
@@ -432,8 +444,7 @@ func TestNotifyRecovery(t *testing.T) {
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -451,17 +462,23 @@ func TestNotifyRecovery(t *testing.T) {
 
 	listener := internal.NewListener(dbpool)
 
-	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
-		Prefix:       prefix,
-		AppendedSize: 1,
-		EndedSize:    1,
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		EndCallback:  nil,
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
+		Prefix:          prefix,
+		AppendedSize:    1,
+		ChangedSize:     1,
+		DataType:        "jsonb",
+		MetadataType:    "jsonb",
+		CompleteSession: nil,
 	}
 
-	errE = c.Init(ctx, dbpool, listener)
+	errE = c.Init(ctx, dbpool, listener, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	err := riverClient.Start(ctx)
+	require.NoError(t, err)
 
 	internal.StartListener(ctx, listener)
 
@@ -483,9 +500,9 @@ func TestNotifyRecovery(t *testing.T) {
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 
-	// Simulate a reconnection on the AppendedOperation channel.
+	// Simulate a reconnection on the OperationAppended channel.
 	oldAppendedCh := c.Appended.Get()
-	err := c.HandleBacklog(ctx, c.Prefix+"AppendedOperation", nil)
+	err = c.HandleBacklog(ctx, c.Prefix+"OperationAppended", nil)
 	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Appended channel must be closed.
@@ -512,25 +529,25 @@ func TestNotifyRecovery(t *testing.T) {
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 
-	// Simulate a reconnection on the EndedSession channel.
-	oldEndedCh := c.Ended.Get()
-	err = c.HandleBacklog(ctx, c.Prefix+"EndedSession", nil)
+	// Simulate a reconnection on the SessionStateChanged channel.
+	oldChangedCh := c.Changed.Get()
+	err = c.HandleBacklog(ctx, c.Prefix+"SessionStateChanged", nil)
 	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
-	// Old Ended channel must be closed.
+	// Old Changed channel must be closed.
 	select {
-	case _, ok := <-oldEndedCh:
+	case _, ok := <-oldChangedCh:
 		require.False(t, ok, "old ended channel should be closed after HandleBacklog")
 	case <-time.After(time.Second):
 		t.Fatal("old ended channel was not closed by HandleBacklog")
 	}
 
-	// A new Ended channel must be created.
-	newEndedCh := c.Ended.Get()
-	require.NotEqual(t, oldEndedCh, newEndedCh, "HandleBacklog should create a new Ended channel")
+	// A new Changed channel must be created.
+	newEndedCh := c.Changed.Get()
+	require.NotEqual(t, oldChangedCh, newEndedCh, "HandleBacklog should create a new Changed channel")
 
 	// End the session; the notification must arrive on the new channel.
-	_, errE = c.End(ctx, session, json.RawMessage(`{}`))
+	errE = c.End(ctx, session, json.RawMessage(`{}`))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(tc *assert.CollectT) {

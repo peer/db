@@ -5,11 +5,14 @@ package coordinator
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgxlisten"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -32,6 +35,54 @@ const (
 	errorCodeConflict         = "P1024"
 )
 
+type coordinatorJob interface {
+	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
+}
+
+//nolint:gochecknoglobals
+var (
+	coordinators   = map[string]coordinatorJob{}
+	coordinatorsMu = sync.RWMutex{}
+)
+
+type jobArgs struct {
+	Prefix  string                `json:"prefix"`
+	Session identifier.Identifier `json:"session"`
+}
+
+// Kind implements river.JobArgs interface.
+func (jobArgs) Kind() string {
+	return "CoordinatorCompleteSession"
+}
+
+type worker struct {
+	river.WorkerDefaults[jobArgs]
+}
+
+// Work implements river.Worker interface.
+func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
+	c, errE := w.getCoordinator(job.Args.Prefix)
+	if errE != nil {
+		return errE
+	}
+
+	return c.runCompleteSession(ctx, job.Args.Session, job)
+}
+
+func (w *worker) getCoordinator(prefix string) (coordinatorJob, errors.E) { //nolint:ireturn
+	coordinatorsMu.RLock()
+	defer coordinatorsMu.RUnlock()
+
+	c, ok := coordinators[prefix]
+	if !ok {
+		errE := errors.New("coordinator not found")
+		errors.Details(errE)["prefix"] = prefix
+		return nil, errE
+	}
+
+	return c, nil
+}
+
 // OperationAppended represents an operation appended to a session.
 type OperationAppended struct {
 	Session   identifier.Identifier `json:"session"`
@@ -41,6 +92,7 @@ type OperationAppended struct {
 // SessionState represents the state of a session.
 type SessionState string
 
+// SessionState values.
 const (
 	SessionStateEnded     SessionState = "ended"
 	SessionStateCompleted SessionState = "completed"
@@ -111,9 +163,10 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 	// Channel is created by the listener when started and recreated on reconnection.
 	Changed x.RecreatableChannel[SessionStateChanged] `exhaustruct:"optional"`
 
-	dbpool   *pgxpool.Pool
-	appended chan<- OperationAppended
-	changed  chan<- SessionStateChanged
+	dbpool      *pgxpool.Pool
+	riverClient *river.Client[pgx.Tx]
+	appended    chan<- OperationAppended
+	changed     chan<- SessionStateChanged
 }
 
 // Init initializes the Coordinator.
@@ -122,7 +175,10 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 // stored procedures if they do not already exist.
 //
 // A non-nil listener is required when the Appended or Ended channel is set.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(
+	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
+	riverClient *river.Client[pgx.Tx], workers *river.Workers,
+) errors.E {
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
@@ -238,6 +294,12 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 
 	c.dbpool = dbpool
+	c.riverClient = riverClient
+
+	errE = c.registerCoordinator(workers)
+	if errE != nil {
+		return errE
+	}
 
 	if listener != nil {
 		if c.AppendedSize >= 0 {
@@ -251,10 +313,36 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return nil
 }
 
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) registerCoordinator(workers *river.Workers) errors.E {
+	coordinatorsMu.Lock()
+	defer coordinatorsMu.Unlock()
+
+	_, ok := coordinators[c.Prefix]
+	if ok {
+		errE := errors.New("coordinator already registered")
+		errors.Details(errE)["prefix"] = c.Prefix
+		return errE
+	}
+
+	if len(coordinators) == 0 {
+		// We register the worker if this is the first coordinator.
+		err := river.AddWorkerSafely(workers, &worker{})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	coordinators[c.Prefix] = c
+
+	return nil
+}
+
 // Begin starts a new session.
 //
 // The session has to be explicitly ended by calling End.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Begin(ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E) {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Begin(
+	ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E,
+) {
 	session := identifier.New()
 	arguments := []any{
 		session.String(), metadata,
@@ -293,8 +381,13 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			}
 			return errE
 		}
-		// TODO: Submit a job to the worker to call CompleteSession and complete the session.
-		return nil
+
+		// We submit a job to the worker to call CompleteSession and complete the session.
+		_, err = c.riverClient.InsertTx(ctx, tx, jobArgs{
+			Prefix:  c.Prefix,
+			Session: session,
+		}, nil)
+		return errors.WithStack(err)
 	})
 
 	if errE != nil {
@@ -303,13 +396,18 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return errE
 }
 
-// complete completes the session.
+// runCompleteSession runs the CompleteSession and if successfully runs, it completes the session.
 //
 // It deletes all operations associated with the session and marks the session as completed.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) complete(
-	ctx context.Context, session identifier.Identifier, metadata CompleteMetadata,
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) runCompleteSession(
+	ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs],
 ) errors.E {
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	metadata, errE := c.CompleteSession(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
+	errE = internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -325,7 +423,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			}
 			return errE
 		}
-		return nil
+
+		// We mark the job as completed inside a transaction.
+		_, err = river.JobCompleteTx[*riverpgxv5.Driver](ctx, tx, job)
+		return errors.WithStack(err)
 	})
 
 	if errE != nil {
@@ -378,7 +479,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 // List returns up to MaxPageLength operation numbers appended to the session, in decreasing order
 // (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) List(ctx context.Context, session identifier.Identifier, before *int64) ([]int64, errors.E) {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) List(
+	ctx context.Context, session identifier.Identifier, before *int64,
+) ([]int64, errors.E) {
 	arguments := []any{
 		session.String(),
 	}

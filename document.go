@@ -378,10 +378,6 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 	s.WriteJSON(w, req, dataJSON, nil)
 }
 
-type documentEndEditResponse struct {
-	Changeset identifier.Identifier `json:"changeset"`
-}
-
 // DocumentEndEditPostAPI handles POST requests to finalize an edit session and commit changes.
 func (s *Service) DocumentEndEditPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	s.documentEndEdit(w, req, params, false)
@@ -416,11 +412,9 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	metadata := &types.DocumentEndMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: discard,
-		Changeset: nil,
-		Time:      0,
 	}
 
-	metadata, errE = site.Coordinator.End(ctx, session, metadata)
+	errE = site.Coordinator.End(ctx, session, metadata)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -432,14 +426,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	if discard {
-		s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
-		return
-	}
-
-	s.WriteJSON(w, req, documentEndEditResponse{
-		Changeset: *metadata.Changeset,
-	}, nil)
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
 // DocumentEditGet is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
@@ -460,7 +447,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, _, errE := site.Coordinator.Get(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -501,7 +488,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, _, errE := site.Coordinator.Get(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

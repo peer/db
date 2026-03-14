@@ -54,6 +54,9 @@ linters:
       - linters:
           - revive
         text: "exported: exported var Err"
+    paths:
+      # Some NPM modules ship Go code.
+      - node_modules
 formatters:
   enable:
     - gofmt

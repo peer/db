@@ -36,85 +36,111 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 	return ctx
 }
 
-// initForSite initializes the store, coordinator, storage, and bridge for a specific site.
-func initForSite(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
-) (
-	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
-	*storage.Storage,
-	*es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	errors.E,
-) {
-	ctx = WithFallbackDBContext(ctx, "init", schema)
-	ctx = logger.With().Str("schema", schema).Str("index", index).Logger().WithContext(ctx)
+// init initializes the store, coordinator, storage, and bridge for a specific site.
+//
+// It can be called multiple times. In that case it will not initialize again if
+// the site has already been initialized.
+func (s *Site) init(ctx context.Context, logger zerolog.Logger) errors.E {
+	if s.initialized {
+		return nil
+	}
+	s.initialized = true
 
-	errE := es.EnsureIndex(ctx, esClient, index)
+	ctx = WithFallbackDBContext(ctx, "init", s.Schema)
+	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
+
+	errE := es.EnsureIndex(ctx, esClient, s.Index)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+		return internal.EnsureSchema(ctx, tx, s.Schema)
 	})
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
 	listener := internal.NewListener(dbpool)
 
-	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+	st := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
 		PatchType:     "jsonb",
 		CommittedSize: bridgeBufferSize,
 	}
-	errE = s.Init(ctx, dbpool, listener)
+	errE = st.Init(ctx, dbpool, listener)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
-	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
-	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]{
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, s.Schema)
+	if errE != nil {
+		return errE
+	}
+
+	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata]
+	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata]{
 		Prefix:       "docs",
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
-		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
-			return es.EndDocumentSession(ctx, s, c, session, metadata)
+		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*types.DocumentCompleteMetadata, errors.E) {
+			return es.CompleteDocumentSession(ctx, st, c, session)
 		},
 	}
-	errE = c.Init(ctx, dbpool, nil)
+	errE = c.Init(ctx, dbpool, nil, riverClient, workers)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
 	storage := &storage.Storage{
 		Prefix: "storage",
 	}
-	errE = storage.Init(ctx, dbpool, nil)
+	errE = storage.Init(ctx, dbpool, nil, riverClient, workers)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
 	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Store:    s,
+		Store:    st,
 		ESClient: esClient,
-		Index:    index,
+		Index:    s.Index,
 	}
 	errE = b.Init(ctx, dbpool, listener)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return errE
 	}
 
-	// Now that everything is initialized, we can start the listener.
+	// Now that everything is initialized, we can start the river client.
+	// It will be stopped when ctx is cancelled.
+	err := riverClient.Start(ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// After that, we can start the listener.
 	internal.StartListener(ctx, listener)
 
 	// And after the listener we can start the bridge.
 	b.Start(ctx)
 
-	return s, c, storage, b, nil
+	s.Store = st
+	s.Coordinator = c
+	s.Storage = storage
+	s.Bridge = b
+	s.DBPool = dbpool
+	s.ESClient = esClient
+	s.RiverClient = riverClient
+
+	return nil
 }
+
+//nolint:gochecknoglobals
+var (
+	dbpool   *pgxpool.Pool
+	esClient *elastic.Client
+)
 
 // Init initializes PeerDB for all sites defined in globals.
 //
@@ -124,24 +150,6 @@ func initForSite(
 // It can be called multiple times. In that case it will initialize only
 // sites which have not been initialized yet.
 func Init(ctx context.Context, globals *Globals) errors.E {
-	var dbpool *pgxpool.Pool
-	var esClient *elastic.Client
-
-	// First we check if any site have them initialized already.
-	for _, site := range globals.Sites {
-		if dbpool == nil && site.DBPool != nil {
-			dbpool = site.DBPool
-		}
-
-		if esClient == nil && site.ESClient != nil {
-			esClient = site.ESClient
-		}
-
-		if dbpool != nil && esClient != nil {
-			break
-		}
-	}
-
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
@@ -163,24 +171,9 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		if site.Store == nil || site.Coordinator == nil || site.Storage == nil || site.Bridge == nil {
-			store, coordinator, storage, bridge, errE := initForSite(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
-			if errE != nil {
-				return errE
-			}
-
-			site.Store = store
-			site.Coordinator = coordinator
-			site.Storage = storage
-			site.Bridge = bridge
-		}
-
-		if site.ESClient == nil {
-			site.ESClient = esClient
-		}
-
-		if site.DBPool == nil {
-			site.DBPool = dbpool
+		errE := site.init(ctx, globals.Logger)
+		if errE != nil {
+			return errE
 		}
 	}
 

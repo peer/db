@@ -51,8 +51,10 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Store:           nil,
 			Coordinator:     nil,
 			Storage:         nil,
-			ESClient:        nil,
 			DBPool:          nil,
+			ESClient:        nil,
+			RiverClient:     nil,
+			initialized:     false,
 			propertiesTotal: 0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
