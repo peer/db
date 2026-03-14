@@ -1,7 +1,6 @@
 package peerdb_test
 
 import (
-	"context"
 	"encoding/base64"
 	"net/http"
 	"testing"
@@ -66,7 +65,7 @@ func TestBasicAuth(t *testing.T) {
 				serve.Password = []byte(testPassword)
 			})
 
-			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ts.URL, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 
 			if tt.username != "" || tt.password != "" {
@@ -135,7 +134,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 				serve.Password = []byte(testPassword)
 			})
 			// We only test unauthorized responses here to verify the realm.
-			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, ts.URL, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 			req.Host = tt.domain
 

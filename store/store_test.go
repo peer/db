@@ -118,8 +118,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -1760,8 +1759,7 @@ func TestNotifyRecovery(t *testing.T) {
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
