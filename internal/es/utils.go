@@ -90,19 +90,22 @@ func EnsureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	return nil
 }
 
-// EndDocumentSession ends the document editing session.
-func EndDocumentSession(
+// CompleteDocumentSession completes the document editing session.
+func CompleteDocumentSession(
 	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
-	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
-) (*types.DocumentEndMetadata, errors.E) {
-	if endMetadata.Discarded {
-		return nil, nil //nolint:nilnil
-	}
-
-	beginMetadata, _, errE := c.Get(ctx, session)
+	c *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata],
+	session identifier.Identifier,
+) (*types.DocumentCompleteMetadata, errors.E) {
+	beginMetadata, endMetadata, _, errE := c.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
+	}
+
+	if endMetadata.Discarded {
+		return &types.DocumentCompleteMetadata{
+			Changeset: nil,
+			Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		}, nil
 	}
 
 	// TODO: Support more than 5000 changes.
@@ -160,9 +163,10 @@ func EndDocumentSession(
 		return nil, errE
 	}
 
-	endMetadata.Changeset = &version.Changeset
-	endMetadata.Time = time.Since(time.Time(endMetadata.At)).Milliseconds()
-	return endMetadata, nil
+	return &types.DocumentCompleteMetadata{
+		Changeset: &version.Changeset,
+		Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
+	}, nil
 }
 
 // NewHTTPClient creates a retryable HTTP client with the specified base HTTP client and logger.

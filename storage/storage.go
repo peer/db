@@ -9,8 +9,10 @@ import (
 	"slices"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgxlisten"
+	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -29,7 +31,10 @@ type beginMetadata struct {
 type endMetadata struct {
 	At        types.Time `json:"at"`
 	Discarded bool       `json:"discarded,omitempty"`
-	Chunks    int64      `json:"chunks,omitempty"`
+}
+
+type completeMetadata struct {
+	Chunks int64 `json:"chunks,omitempty"`
 
 	// Processing time in milliseconds.
 	Time int64 `json:"time,omitempty"`
@@ -62,13 +67,13 @@ type Storage struct {
 	Prefix string
 
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
-	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
+	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeMetadata]
 }
 
 // Init initializes the Storage with the given database connection pool.
 //
 // A non-nil listener is required when the Committed channel is set.
-func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
+func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, riverClient *river.Client[pgx.Tx], workers *river.Workers) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
 	}
@@ -84,14 +89,16 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxl
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]{
+	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeMetadata]{
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
-		EndCallback:  s.endCallback,
+		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*completeMetadata, errors.E) {
+			return s.completeStorageSession(ctx, session)
+		},
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = storageCoordinator.Init(ctx, dbpool, nil)
+	errE = storageCoordinator.Init(ctx, dbpool, nil, riverClient, workers)
 	if errE != nil {
 		return errE
 	}
@@ -107,16 +114,20 @@ func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata,
 	return s.store
 }
 
-func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadata *endMetadata) (*endMetadata, errors.E) {
-	if endMetadata.Discarded {
-		return nil, nil //nolint:nilnil
-	}
-
-	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
+func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeMetadata, errors.E) {
+	beginMetadata, endMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
 	}
 
+	if endMetadata.Discarded {
+		return &completeMetadata{
+			Chunks: 0,
+			Time:   time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		}, nil
+	}
+
+	// TODO: Support more than 5000 chunks.
 	chunksList, errE := s.ListChunks(ctx, session)
 	if errE != nil {
 		return nil, errE
@@ -193,9 +204,10 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		return nil, errE
 	}
 
-	endMetadata.Chunks = int64(len(chunksList))
-	endMetadata.Time = time.Since(time.Time(endMetadata.At)).Milliseconds()
-	return endMetadata, nil
+	return &completeMetadata{
+		Chunks: int64(len(chunksList)),
+		Time:   time.Since(time.Time(endMetadata.At)).Milliseconds(),
+	}, nil
 }
 
 // BeginUpload starts a new file upload session.
@@ -215,7 +227,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		return errors.Errorf("%w: zero length chunk", ErrInvalidChunk)
 	}
 
-	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
+	beginMetadata, _, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return errE
 	}
@@ -257,11 +269,8 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) 
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: false,
-		Chunks:    0,
-		Time:      0,
 	}
-	_, errE := s.coordinator.End(ctx, session, metadata)
-	return errE
+	return s.coordinator.End(ctx, session, metadata)
 }
 
 // DiscardUpload discards an upload session without saving the file.
@@ -269,9 +278,6 @@ func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifi
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: true,
-		Chunks:    0,
-		Time:      0,
 	}
-	_, errE := s.coordinator.End(ctx, session, metadata)
-	return errE
+	return s.coordinator.End(ctx, session, metadata)
 }

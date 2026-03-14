@@ -56,8 +56,12 @@ type DocumentBeginMetadata struct {
 
 // DocumentEndMetadata contains metadata captured at the end of document edit session.
 type DocumentEndMetadata struct {
-	At        Time                   `json:"at"`
-	Discarded bool                   `json:"discarded,omitempty"`
+	At        Time `json:"at"`
+	Discarded bool `json:"discarded,omitempty"`
+}
+
+// DocumentCompleteMetadata contains metadata captured when document edit session completes.
+type DocumentCompleteMetadata struct {
 	Changeset *identifier.Identifier `json:"changeset,omitempty"`
 
 	// Processing time in milliseconds.

@@ -30,8 +30,7 @@ func initDatabase(t *testing.T) (
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -49,12 +48,18 @@ func initDatabase(t *testing.T) (
 
 	listener := internal.NewListener(dbpool)
 
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
 	s := &storage.Storage{
 		Prefix: prefix,
 	}
 
-	errE = s.Init(ctx, dbpool, listener)
+	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	err := riverClient.Start(ctx)
+	require.NoError(t, err)
 
 	internal.StartListener(ctx, listener)
 
