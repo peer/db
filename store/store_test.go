@@ -1816,7 +1816,7 @@ func TestNotifyRecovery(t *testing.T) {
 	// It should close the old channel (signaling consumers that notifications may have been
 	// missed) and create a new one.
 	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
-	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E
+	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
 	// Old channel must be closed so that consumers know to take corrective action.
 	select {
