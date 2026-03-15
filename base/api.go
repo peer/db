@@ -9,7 +9,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/internal/types"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -27,15 +27,15 @@ func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (js
 // InsertDocument inserts a new document with the given ID.
 func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, documentJSON json.RawMessage) errors.E {
 	_, errE := b.documents.Insert(ctx, id, documentJSON, &DocumentMetadata{
-		At: types.Time(time.Now().UTC()),
-	}, &types.NoMetadata{})
+		At: internal.Time(time.Now().UTC()),
+	}, &internal.NoMetadata{})
 	return errE
 }
 
 // BeginDocumentEdit begins an edit session for the document at the given version.
 func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier, version store.Version) (identifier.Identifier, errors.E) {
 	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
-		At:      types.Time(time.Now().UTC()),
+		At:      internal.Time(time.Now().UTC()),
 		ID:      id,
 		Version: version,
 	})
@@ -44,7 +44,7 @@ func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier, ver
 // AppendDocumentChange appends a change to an edit session at the given sequence number.
 func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identifier, data json.RawMessage, seqNo *int64) (int64, errors.E) {
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
-		At: types.Time(time.Now().UTC()),
+		At: internal.Time(time.Now().UTC()),
 	}, seqNo)
 }
 
@@ -62,7 +62,7 @@ func (b *B) GetDocumentChange(ctx context.Context, session identifier.Identifier
 // EndDocumentEdit ends an edit session, committing or discarding its changes.
 func (b *B) EndDocumentEdit(ctx context.Context, session identifier.Identifier, discard bool) errors.E {
 	return b.coordinator.End(ctx, session, &documentEndMetadata{
-		At:        types.Time(time.Now().UTC()),
+		At:        internal.Time(time.Now().UTC()),
 		Discarded: discard,
 	})
 }

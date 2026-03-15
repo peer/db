@@ -12,21 +12,21 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/types"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
-	At      types.Time            `json:"at"`
+	At      internal.Time         `json:"at"`
 	ID      identifier.Identifier `json:"id"`
 	Version store.Version         `json:"version"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
 type documentEndMetadata struct {
-	At        types.Time `json:"at"`
-	Discarded bool       `json:"discarded,omitempty"`
+	At        internal.Time `json:"at"`
+	Discarded bool          `json:"discarded,omitempty"`
 }
 
 // documentCompleteData contains JSON serialized document with metadata to be
@@ -48,7 +48,7 @@ type documentCompleteMetadata struct {
 
 // documentChangeMetadata contains metadata about document changes.
 type documentChangeMetadata struct {
-	At types.Time `json:"at"`
+	At internal.Time `json:"at"`
 }
 
 func (b *B) completeDocumentSession(ctx context.Context, session identifier.Identifier) (*documentCompleteData, errors.E) {
@@ -136,7 +136,7 @@ func (b *B) completeDocumentSessionTx(
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, &DocumentMetadata{
 		At: data.BeginMetadata.At,
-	}, &types.NoMetadata{})
+	}, &internal.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}
