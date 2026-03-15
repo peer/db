@@ -12,7 +12,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //nolint:tagliatelle
@@ -128,15 +128,15 @@ func FiltersGet(
 		Aggregation("time", timeAggregation).
 		Aggregation("string", stringAggregation)
 
-	m := metrics.Duration(internal.MetricElasticSearch).Start()
+	m := metrics.Duration(store.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(store.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration(internal.MetricJSONUnmarshal).Start()
+	m = metrics.Duration(store.MetricJSONUnmarshal).Start()
 	var rel termAggregations
 	errE := x.Unmarshal(res.Aggregations["rel"], &rel)
 	if errE != nil {

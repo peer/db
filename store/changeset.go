@@ -8,7 +8,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // TODO: We build query strings again and again based on patchesEnabled. We should create them once during Init and reuse them here.
@@ -72,18 +72,18 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		patchesEmptyValue = ", '{}'" //nolint:goconst
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, '{}', $3, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -122,20 +122,20 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		patchesPlaceholders = ", $6"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -185,20 +185,20 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		patchesPlaceholders = ", $6"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesPlaceholders+`)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -239,20 +239,20 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		patchesEmptyValue = ", '{}'"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, $4, $5`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -290,20 +290,20 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		patchesEmptyValue = ", '{}'"
 	}
 	var version Version
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		version = Version{}
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetCreate"($1, $2, $3, NULL, $4`+patchesEmptyValue+`)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -341,22 +341,22 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		c.String(), metadata, view.name,
 	}
 	var committedChangesets []string
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		committedChangesets = nil
 
 		err := tx.QueryRow(ctx, `SELECT "`+c.store.Prefix+`ChangesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeViewNotFound:
 					return errors.WrapWith(errE, ErrViewNotFound)
 				case errorCodeChangesetNotFound:
 					return errors.WrapWith(errE, ErrChangesetNotFound)
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case internal.ErrorExclusionViolation:
+				case store.ErrorExclusionViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -395,10 +395,10 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	arguments := []any{
 		c.String(),
 	}
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "`+c.store.Prefix+`ChangesetDiscard"($1)`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
@@ -459,7 +459,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		afterCondition = `AND EXISTS (SELECT 1 FROM "` + c.store.Prefix + `CurrentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
 	}
 	var changes []Change
-	errE := internal.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changes = nil
 
@@ -470,7 +470,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			ORDER BY "id"
 			LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		var id string
 		var revision int64
@@ -485,7 +485,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			return nil
 		})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		if len(changes) == 0 {
 			if after == nil {
@@ -495,13 +495,13 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrChangesetNotFound)
 			}
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrValueNotFound)
 			}
