@@ -52,6 +52,12 @@ type chunk struct {
 	Metadata chunkMetadata
 }
 
+type chunkPos struct {
+	start  int64
+	length int64
+	chunk  int64
+}
+
 // FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
 	At        types.Time `json:"at"`
@@ -129,7 +135,6 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		}, nil
 	}
 
-	// TODO: Support more than 5000 chunks.
 	chunksList, errE := s.ListChunks(ctx, session)
 	if errE != nil {
 		return nil, errE
@@ -159,6 +164,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 	size := int64(0)
 	buffer := make([]byte, beginMetadata.Size)
 
+	// This should match implementation in validateChunks.
 	for _, c := range chunks {
 		if c.Metadata.Start > size {
 			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
@@ -181,7 +187,6 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 			// We already have this data.
 			continue
 		}
-
 		copy(buffer[c.Metadata.Start:end], c.Data)
 		size = end
 	}
@@ -268,11 +273,86 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 
 // EndUpload finalizes an upload session and assembles the file.
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
+	// Validate chunks before ending the session so that errors are returned synchronously
+	// and the session remains active for user to attempt to fix any error.
+	errE := s.validateChunks(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: false,
 	}
 	return s.coordinator.End(ctx, session, metadata)
+}
+
+// validateChunks checks that the uploaded chunks cover the full file without gaps.
+func (s *Storage) validateChunks(ctx context.Context, session identifier.Identifier) errors.E {
+	beginMetadata, _, _, errE := s.coordinator.Get(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
+	chunksList, errE := s.ListChunks(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
+	chunks := make([]chunkPos, 0, len(chunksList))
+	for _, c := range chunksList {
+		start, length, errE := s.GetChunk(ctx, session, c)
+		if errE != nil {
+			errors.Details(errE)["chunk"] = c
+			return errE
+		}
+		chunks = append(chunks, chunkPos{
+			start:  start,
+			length: length,
+			chunk:  c,
+		})
+	}
+	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
+	// result is that if there are multiple chunks at the same start, newer will be will be used first.
+	slices.SortStableFunc(chunks, func(a, b chunkPos) int {
+		return cmp.Compare(a.start, b.start)
+	})
+
+	size := int64(0)
+
+	// This should match implementation in completeStorageSession.
+	for _, p := range chunks {
+		if p.start > size {
+			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
+			errors.Details(errE)["end"] = size
+			errors.Details(errE)["start"] = p.start
+			errors.Details(errE)["chunk"] = p.chunk
+			return errE
+		}
+		end := p.start + p.length
+		if end > beginMetadata.Size {
+			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
+			errE = errors.New("chunk larger than file")
+			errors.Details(errE)["start"] = p.start
+			errors.Details(errE)["end"] = end
+			errors.Details(errE)["size"] = beginMetadata.Size
+			errors.Details(errE)["chunk"] = p.chunk
+			return errE
+		}
+		if end <= size {
+			continue
+		}
+		size = end
+	}
+
+	if size < beginMetadata.Size {
+		errE = errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
+		errors.Details(errE)["chunks"] = size
+		errors.Details(errE)["size"] = beginMetadata.Size
+		return errE
+	}
+
+	return nil
 }
 
 // DiscardUpload discards an upload session without saving the file.
