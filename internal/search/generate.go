@@ -1,5 +1,4 @@
-// Package mapping provides logic to generate PeerDB ElasticSearch mapping.
-package mapping
+package search
 
 import (
 	"bytes"
@@ -350,8 +349,8 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 
 // TODO: Generate index configuration automatically from document structs?
 
-// Generate generates PeerDB ElasticSearch mapping.
-func Generate() ([]byte, errors.E) {
+// Mapping generates PeerDB ElasticSearch mapping.
+func Mapping() ([]byte, errors.E) {
 	t, err := template.New("indexTemplate").Parse(indexTemplate)
 	if err != nil {
 		return nil, errors.WithStack(err)

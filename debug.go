@@ -6,7 +6,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/internal/mapping"
+	"gitlab.com/peerdb/peerdb/internal/search"
 )
 
 // DebugMappingGetAPI handles GET requests to serve generated ElasticSearch mapping for debugging.
@@ -16,7 +16,7 @@ func (s *Service) DebugMappingGetAPI(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	indexConfiguration, errE := mapping.Generate()
+	indexConfiguration, errE := search.Mapping()
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
