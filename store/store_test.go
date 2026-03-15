@@ -199,7 +199,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -247,7 +247,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -302,7 +302,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -364,7 +364,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -452,7 +452,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -509,7 +509,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		newVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -571,7 +571,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, ids, inserted)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	assert.Len(t, c, 1)
 
@@ -663,7 +663,7 @@ func TestChangesPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 6000)
 
-	time.Sleep(500 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	// One CommittedChangesets per commit: initial insert (1 changeset) + big commit (6000 changesets).
 	assert.Len(t, c, 2)
@@ -1536,7 +1536,7 @@ func TestCommittedOrdering(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= n }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	require.Len(t, c, n)
 
@@ -1578,7 +1578,7 @@ func TestCommittedSeqSameForCommit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 2)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	// One CommittedChangesets per commit: the commit contains both changesets.
 	require.Len(t, c, 1)

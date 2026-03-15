@@ -191,11 +191,11 @@ func initDatabase[Data, Metadata any](
 func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
 	t.Helper()
 
-	completedSessions := []identifier.Identifier{}
+	completedSessions := new(internal.LockableSlice[identifier.Identifier])
 	ctx, c, appendedChannelContents, changedChannelContents := initDatabase[Data, Metadata](
 		t, dataType,
 		func(_ context.Context, session identifier.Identifier) (Metadata, errors.E) {
-			completedSessions = append(completedSessions, session)
+			completedSessions.Append(session)
 			return d.CompleteMetadata, nil
 		},
 	)
@@ -207,7 +207,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.OperationAppended{
@@ -220,7 +220,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), i)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.OperationAppended{
@@ -234,7 +234,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(3), i)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.OperationAppended{
@@ -248,7 +248,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(4), i)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	appended = appendedChannelContents.Prune()
 	if assert.Len(t, appended, 1) {
 		assert.Equal(t, coordinator.OperationAppended{
@@ -303,13 +303,14 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	assert.Nil(t, endMetadata)
 	assert.Nil(t, completeMetadata)
 
-	assert.Empty(t, completedSessions)
+	assert.Empty(t, completedSessions.Prune())
 	errE = c.End(ctx, session, d.EndMetadata)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	time.Sleep(100 * time.Millisecond)
-	if assert.Len(t, completedSessions, 1) {
-		assert.Equal(t, session, completedSessions[0])
+	require.Eventually(t, func() bool { return completedSessions.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
+	completed := completedSessions.Prune()
+	if assert.Len(t, completed, 1) {
+		assert.Equal(t, session, completed[0])
 	}
 
 	beginMetadata, endMetadata, completeMetadata, errE = c.Get(ctx, session)
@@ -318,9 +319,13 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	assert.Equal(t, d.EndMetadata, endMetadata)
 	assert.Equal(t, d.CompleteMetadata, completeMetadata)
 
-	ended := changedChannelContents.Prune()
-	if assert.Len(t, ended, 1) {
-		assert.Equal(t, session, ended[0])
+	require.Eventually(t, func() bool { return changedChannelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
+	changed := changedChannelContents.Prune()
+	if assert.Len(t, changed, 2) {
+		assert.Equal(t, session, changed[0].Session)
+		assert.Equal(t, coordinator.SessionStateEnded, changed[0].State)
+		assert.Equal(t, session, changed[1].Session)
+		assert.Equal(t, coordinator.SessionStateCompleted, changed[1].State)
 	}
 
 	// Nothing new since the last time.
@@ -425,7 +430,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, operations, allPages)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 6000 }, 30*time.Second, 10*time.Millisecond)
 	appended := appendedChannelContents.Prune()
 	assert.Len(t, appended, 6000)
 

@@ -128,6 +128,13 @@ func (l *LockableSlice[T]) Append(v T) {
 	l.data = append(l.data, v)
 }
 
+// Len returns the number of values in the slice in a thread-safe manner.
+func (l *LockableSlice[T]) Len() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.data)
+}
+
 // Prune returns and clears all values from the slice in a thread-safe manner.
 func (l *LockableSlice[T]) Prune() []T {
 	l.mu.Lock()
