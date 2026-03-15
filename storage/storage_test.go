@@ -61,6 +61,11 @@ func initDatabase(t *testing.T) (
 	err := riverClient.Start(ctx)
 	require.NoError(t, err)
 
+	t.Cleanup(func() {
+		// Wait for the client to stop.
+		<-riverClient.Stopped()
+	})
+
 	internal.StartListener(ctx, listener)
 
 	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
