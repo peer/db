@@ -17,7 +17,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 type testCase[Data, Metadata any] struct {
@@ -42,19 +42,19 @@ func TestHappyPath(t *testing.T) {
 		t.Run(dataType, func(t *testing.T) {
 			t.Parallel()
 
-			testHappyPath(t, testCase[*internal.TestData, *internal.TestMetadata]{
-				BeginMetadata:    &internal.TestMetadata{Metadata: "begin"},
-				Append1Data:      &internal.TestData{Data: 123, Patch: false},
-				Append1Metadata:  &internal.TestMetadata{Metadata: "append1"},
+			testHappyPath(t, testCase[*store.TestData, *store.TestMetadata]{
+				BeginMetadata:    &store.TestMetadata{Metadata: "begin"},
+				Append1Data:      &store.TestData{Data: 123, Patch: false},
+				Append1Metadata:  &store.TestMetadata{Metadata: "append1"},
 				Append2Data:      nil,
-				Append2Metadata:  &internal.TestMetadata{Metadata: "append2"},
-				Append3Data:      &internal.TestData{Data: 345, Patch: false},
-				Append3Metadata:  &internal.TestMetadata{Metadata: "append3"},
+				Append2Metadata:  &store.TestMetadata{Metadata: "append2"},
+				Append3Data:      &store.TestData{Data: 345, Patch: false},
+				Append3Metadata:  &store.TestMetadata{Metadata: "append3"},
 				Append4Data:      nil,
-				Append4Metadata:  &internal.TestMetadata{Metadata: "append4"},
-				EndMetadata:      &internal.TestMetadata{Metadata: "end"},
-				CompleteData:     &internal.TestMetadata{Metadata: "data"},
-				CompleteMetadata: &internal.TestMetadata{Metadata: "complete"},
+				Append4Metadata:  &store.TestMetadata{Metadata: "append4"},
+				EndMetadata:      &store.TestMetadata{Metadata: "end"},
+				CompleteData:     &store.TestMetadata{Metadata: "data"},
+				CompleteMetadata: &store.TestMetadata{Metadata: "complete"},
 			}, dataType)
 
 			testHappyPath(t, testCase[json.RawMessage, json.RawMessage]{
@@ -73,18 +73,18 @@ func TestHappyPath(t *testing.T) {
 			}, dataType)
 
 			testHappyPath(t, testCase[*json.RawMessage, *json.RawMessage]{
-				BeginMetadata:    internal.ToRawMessagePtr(`{"metadata": "begin"}`),
-				Append1Data:      internal.ToRawMessagePtr(`{"data": 123}`),
-				Append1Metadata:  internal.ToRawMessagePtr(`{"metadata": "append1"}`),
+				BeginMetadata:    store.ToRawMessagePtr(`{"metadata": "begin"}`),
+				Append1Data:      store.ToRawMessagePtr(`{"data": 123}`),
+				Append1Metadata:  store.ToRawMessagePtr(`{"metadata": "append1"}`),
 				Append2Data:      nil,
-				Append2Metadata:  internal.ToRawMessagePtr(`{"metadata": "append2"}`),
-				Append3Data:      internal.ToRawMessagePtr(`{"data": 345}`),
-				Append3Metadata:  internal.ToRawMessagePtr(`{"metadata": "append3"}`),
+				Append2Metadata:  store.ToRawMessagePtr(`{"metadata": "append2"}`),
+				Append3Data:      store.ToRawMessagePtr(`{"data": 345}`),
+				Append3Metadata:  store.ToRawMessagePtr(`{"metadata": "append3"}`),
 				Append4Data:      nil,
-				Append4Metadata:  internal.ToRawMessagePtr(`{"metadata": "append4"}`),
-				EndMetadata:      internal.ToRawMessagePtr(`{"metadata": "end"}`),
-				CompleteData:     internal.ToRawMessagePtr(`{"metadata": "data"}`),
-				CompleteMetadata: internal.ToRawMessagePtr(`{"metadata": "complete"}`),
+				Append4Metadata:  store.ToRawMessagePtr(`{"metadata": "append4"}`),
+				EndMetadata:      store.ToRawMessagePtr(`{"metadata": "end"}`),
+				CompleteData:     store.ToRawMessagePtr(`{"metadata": "data"}`),
+				CompleteMetadata: store.ToRawMessagePtr(`{"metadata": "complete"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[[]byte, []byte]{
@@ -112,8 +112,8 @@ func initDatabase[Data, Metadata any](
 ) (
 	context.Context,
 	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata],
-	*internal.LockableSlice[coordinator.OperationAppended],
-	*internal.LockableSlice[coordinator.SessionStateChanged],
+	*store.LockableSlice[coordinator.OperationAppended],
+	*store.LockableSlice[coordinator.SessionStateChanged],
 ) {
 	t.Helper()
 
@@ -127,19 +127,19 @@ func initDatabase[Data, Metadata any](
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, errE := store.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+	errE = store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return store.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	listener := internal.NewListener(dbpool)
+	listener := store.NewListener(dbpool)
 
-	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := store.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
@@ -166,7 +166,7 @@ func initDatabase[Data, Metadata any](
 	errE = listener.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	appendedChannelContents := new(internal.LockableSlice[coordinator.OperationAppended])
+	appendedChannelContents := new(store.LockableSlice[coordinator.OperationAppended])
 
 	go func() {
 		for {
@@ -182,7 +182,7 @@ func initDatabase[Data, Metadata any](
 		}
 	}()
 
-	changedChannelContents := new(internal.LockableSlice[coordinator.SessionStateChanged])
+	changedChannelContents := new(store.LockableSlice[coordinator.SessionStateChanged])
 
 	go func() {
 		for {
@@ -204,7 +204,7 @@ func initDatabase[Data, Metadata any](
 func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
 	t.Helper()
 
-	completedSessions := new(internal.LockableSlice[identifier.Identifier])
+	completedSessions := new(store.LockableSlice[identifier.Identifier])
 	ctx, c, appendedChannelContents, changedChannelContents := initDatabase[Data, Metadata](
 		t, dataType,
 		func(_ context.Context, _ identifier.Identifier) (Metadata, errors.E) {
@@ -359,21 +359,21 @@ func TestErrors(t *testing.T) {
 		t, "jsonb",
 		nil,
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
-			return internal.DummyData, nil
+			return store.DummyData, nil
 		},
 	)
 
 	_, _, _, errE := c.Get(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	errE = c.End(ctx, identifier.New(), internal.DummyData)
+	errE = c.End(ctx, identifier.New(), store.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	_, errE = c.Append(ctx, identifier.New(), internal.DummyData, internal.DummyData, nil)
+	_, errE = c.Append(ctx, identifier.New(), store.DummyData, store.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	operation := int64(1)
-	_, errE = c.Append(ctx, identifier.New(), internal.DummyData, internal.DummyData, &operation)
+	_, errE = c.Append(ctx, identifier.New(), store.DummyData, store.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	_, _, errE = c.GetData(ctx, identifier.New(), 1)
@@ -382,14 +382,14 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, identifier.New(), 1)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	session, errE := c.Begin(ctx, internal.DummyData)
+	session, errE := c.Begin(ctx, store.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	i, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
+	i, errE := c.Append(ctx, session, store.DummyData, store.DummyData, &operation)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
-	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
+	_, errE = c.Append(ctx, session, store.DummyData, store.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrConflict)
 
 	_, _, errE = c.GetData(ctx, session, 2)
@@ -398,14 +398,14 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 2)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 
-	errE = c.End(ctx, session, internal.DummyData)
+	errE = c.End(ctx, session, store.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, nil)
+	_, errE = c.Append(ctx, session, store.DummyData, store.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	operation = 2
-	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
+	_, errE = c.Append(ctx, session, store.DummyData, store.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	// Operations are still accessible after End and before Complete (only deleted after Complete).
@@ -416,7 +416,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 
-	errE = c.End(ctx, session, internal.DummyData)
+	errE = c.End(ctx, session, store.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	ops, errE := c.List(ctx, session, nil)
@@ -447,17 +447,17 @@ func TestListPagination(t *testing.T) {
 		t, "jsonb",
 		nil,
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
-			return internal.DummyData, nil
+			return store.DummyData, nil
 		},
 	)
 
 	operations := []int64{}
 
-	session, errE := c.Begin(ctx, internal.DummyData)
+	session, errE := c.Begin(ctx, store.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for range 6000 {
-		o, errE := c.Append(ctx, session, internal.DummyData, internal.DummyData, nil)
+		o, errE := c.Append(ctx, session, store.DummyData, store.DummyData, nil)
 		require.NoError(t, errE, "%d % -+#.1v", errE)
 
 		operations = append(operations, o)
@@ -511,19 +511,19 @@ func TestNotifyRecovery(t *testing.T) {
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, errE := store.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+	errE = store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return store.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	listener := internal.NewListener(dbpool)
+	listener := store.NewListener(dbpool)
 
-	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := store.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{

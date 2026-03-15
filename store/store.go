@@ -13,7 +13,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // TODO: Implement "meld" functionality: allowing two values with different IDs to be merged into one.
@@ -118,7 +118,7 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 //
 // A non-nil listener is required when the Committed channel is set.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init( //nolint:maintidx
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *store.Listener,
 ) errors.E {
 	if s.dbpool != nil {
 		return errors.New("already initialized")
@@ -127,7 +127,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	s.patchesEnabled = !isNoneType[Patch]()
 
 	// TODO: Use schema management/migration instead.
-	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		patches := ""
 		patchesArgument := ""
 		patchesValue := ""
@@ -500,13 +500,13 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 					FOR EACH STATEMENT EXECUTE FUNCTION "`+s.Prefix+`DoNotAllow"();
 			`)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 
 		viewID := identifier.New()
 		_, err = tx.Exec(ctx, `INSERT INTO "`+s.Prefix+`Views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 
 		return nil
@@ -514,11 +514,11 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	if errE != nil {
 		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 			switch pgError.Code {
-			case internal.ErrorCodeUniqueViolation:
+			case store.ErrorCodeUniqueViolation:
 				// Nothing.
-			case internal.ErrorCodeDuplicateFunction:
+			case store.ErrorCodeDuplicateFunction:
 				// Nothing.
-			case internal.ErrorCodeDuplicateTable:
+			case store.ErrorCodeDuplicateTable:
 				// Nothing.
 			default:
 				return errE
@@ -572,7 +572,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	return nil
 }
 
-// HandlingReady implements internal.Handler interface.
+// HandlingReady implements store.Handler interface.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case s.Prefix + "CommittedChangesets":

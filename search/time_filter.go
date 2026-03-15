@@ -13,7 +13,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //nolint:tagliatelle
@@ -55,7 +55,7 @@ func TimeFilterGet(
 ) ([]HistogramTimeResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(internal.MetricSearchSession).Start()
+	m := metrics.Duration(store.MetricSearchSession).Start()
 	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
 	if errE != nil {
@@ -79,15 +79,15 @@ func TimeFilterGet(
 	)
 	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
 
-	m = metrics.Duration(internal.MetricElasticSearch1).Start()
+	m = metrics.Duration(store.MetricElasticSearch1).Start()
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internal.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(store.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration(internal.MetricJSONUnmarshal1).Start()
+	m = metrics.Duration(store.MetricJSONUnmarshal1).Start()
 	var minMax minMaxTimeAggregations
 	errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
 	m.Stop()
@@ -133,15 +133,15 @@ func TimeFilterGet(
 	)
 	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
 
-	m = metrics.Duration(internal.MetricElasticSearch2).Start()
+	m = metrics.Duration(store.MetricElasticSearch2).Start()
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internal.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(store.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration(internal.MetricJSONUnmarshal2).Start()
+	m = metrics.Duration(store.MetricJSONUnmarshal2).Start()
 	var histogram histogramTimeAggregations
 	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
 	m.Stop()

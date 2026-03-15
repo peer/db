@@ -8,7 +8,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -213,7 +213,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	var data Data
 	var metadata Metadata
 	var version Version
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
@@ -253,13 +253,13 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					AND "depth"=0
 		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, internal.WithPgxError(err))
+					return errors.Join(errE, store.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
@@ -306,7 +306,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	}
 	var data Data
 	var metadata Metadata
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
@@ -339,13 +339,13 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					AND "revision"=$4
 		`, arguments...).Scan(&data, &dataIsNull, &metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, internal.WithPgxError(err))
+					return errors.Join(errE, store.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
@@ -384,7 +384,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
 	}
 	var values []identifier.Identifier
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		values = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -400,7 +400,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				ORDER BY "id"
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -408,14 +408,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		if len(values) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -428,7 +428,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					SELECT 1 FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2
 				)`, arguments...).Scan(&exists)
 				if err != nil {
-					return internal.WithPgxError(err)
+					return store.WithPgxError(err)
 				} else if !exists {
 					return errors.WithStack(ErrValueNotFound)
 				}
@@ -467,7 +467,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		v.name, id.String(),
 	}
 	var changesets []identifier.Identifier
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -504,7 +504,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				ORDER BY "depth" ASC
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -512,14 +512,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -543,7 +543,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		v.name, id.String(), after.String(),
 	}
 	var changesets []identifier.Identifier
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -596,7 +596,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					"changeset" ASC
 		`, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -604,14 +604,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -625,7 +625,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				)
 			`, v.name, id.String()).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrValueNotFound)
 			}
@@ -650,7 +650,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				)
 			`, arguments...).Scan(&exists)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return store.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrChangesetNotFound)
 			}
@@ -686,17 +686,17 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		identifier.New().String(), name, metadata, v.name,
 	}
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "`+v.store.Prefix+`Views" SELECT $1, 1, $2, array_prepend($1, "path"), $3
 				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
 				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$4;
 		`, arguments...)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := store.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code { //nolint:gocritic
-				case internal.ErrorCodeUniqueViolation:
+				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -724,14 +724,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		v.name, metadata,
 	}
-	errE := internal.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "`+v.store.Prefix+`Views" SELECT "view", "revision"+1, NULL, "path", $2
 				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
 				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1;
 		`, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return store.WithPgxError(err)
 		}
 		if res.RowsAffected() == 0 {
 			return errors.WithStack(ErrViewNotFound)
