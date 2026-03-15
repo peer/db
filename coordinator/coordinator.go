@@ -36,7 +36,7 @@ const (
 )
 
 type coordinatorJob interface {
-	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) error
+	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
 }
 
 //nolint:gochecknoglobals
@@ -68,7 +68,32 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 		return errE
 	}
 
-	return c.runCompleteSession(ctx, job.Args.Session, job)
+	errE = c.runCompleteSession(ctx, job.Args.Session, job)
+	if errE != nil {
+		// CompleteSession is probably fetching coordinator or some state from the database.
+		// It is not possible to recover from some of these errors, so we cancel the job so
+		// that it does not retry unnecessarily.
+		// TODO: Maybe our errors should have some "is permanent" flag we could use here?
+		if errors.Is(errE, ErrSessionNotFound) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, ErrAlreadyCompleted) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrViewNotFound) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrValueNotFound) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrChangesetNotFound) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrAlreadyCommitted) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrParentInvalid) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, store.ErrConflict) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		}
+	}
+
+	return nil
 }
 
 func (w *worker) getCoordinator(schema, prefix string) (coordinatorJob, errors.E) { //nolint:ireturn
@@ -430,30 +455,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // It deletes all operations associated with the session and marks the session as completed.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) runCompleteSession(
 	ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs],
-) error {
+) errors.E {
 	metadata, errE := c.CompleteSession(ctx, session)
 	if errE != nil {
-		// CompleteSession is probably fetching coordinator or sore state from the database.
-		// It is not possible to recover from some of these errors, so we cancel the job so
-		// that it does not retry unnecessarily.
-		// TODO: Maybe our errors should have some "is permanent" flag we could use here?
-		if errors.Is(errE, ErrSessionNotFound) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, ErrAlreadyCompleted) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrViewNotFound) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrValueNotFound) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrChangesetNotFound) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrAlreadyCommitted) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrParentInvalid) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		} else if errors.Is(errE, store.ErrConflict) {
-			return river.JobCancel(errE) //nolint:wrapcheck
-		}
 		return errE
 	}
 
