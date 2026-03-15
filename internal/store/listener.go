@@ -55,6 +55,8 @@ func NewListener(dbpool *pgxpool.Pool) *Listener {
 			},
 			ReconnectDelay: listenerReconnectDelay,
 		},
+		handlers: nil,
+		started:  false,
 	}
 }
 
