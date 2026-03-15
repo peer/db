@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"log/slog"
+	"runtime"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -96,6 +97,13 @@ func NewRiver(
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(dbpool), &river.Config{ //nolint:exhaustruct
 		Workers: workers,
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {
+				MaxWorkers:        runtime.GOMAXPROCS(0),
+				FetchCooldown:     0,
+				FetchPollInterval: 0,
+			},
+		},
 		ErrorHandler: riverErrorHandler{
 			Logger: logger,
 		},
