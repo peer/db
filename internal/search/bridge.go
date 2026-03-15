@@ -1,5 +1,5 @@
-// Package es provides ElasticSearch integration functionality for PeerDB.
-package es
+// Package search provides ElasticSearch integration functionality for PeerDB.
+package search
 
 import (
 	"context"
