@@ -1,4 +1,4 @@
-package es_test
+package search_test
 
 import (
 	"context"
@@ -16,14 +16,14 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/search"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 type (
 	bridgeStore = store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
-	bridgeType  = es.Bridge[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
+	bridgeType  = search.Bridge[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
 )
 
 func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elastic.Client) {
@@ -53,7 +53,7 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Register cleanup before creating the index so it is removed even if creation partially succeeds.
@@ -153,7 +153,7 @@ func TestBridgeRealTime(t *testing.T) {
 	_, err := esClient.Refresh(b.Index).Do(ctx)
 	require.NoError(t, err)
 
-	// All three documents should now be in ES.
+	// All three documents should now be in search.
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "doc1 should exist in ES")
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id2.String()), "doc2 should exist in ES")
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "doc3 should exist in ES")
@@ -238,7 +238,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	_, err = esClient.Refresh(b.Index).Do(ctx)
 	require.NoError(t, err)
 
-	// After deletion the bridge issues a bulk delete, so the document is removed from ES.
+	// After deletion the bridge issues a bulk delete, so the document is removed from search.
 	assert.False(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should be removed from ES after delete")
 }
 

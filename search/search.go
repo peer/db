@@ -12,7 +12,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -487,13 +487,13 @@ func ResultsGet(ctx context.Context, getSearchService func() (*elastic.SearchSer
 
 	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
 
-	m := metrics.Duration(internal.MetricElasticSearch).Start()
+	m := metrics.Duration(store.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internal.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(store.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	results := make([]Result, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {

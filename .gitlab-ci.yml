@@ -24,6 +24,8 @@ variables:
   # We always want to run with the Go version installed in a Docker image.
   GOTOOLCHAIN: local
   DOCKER_PIPELINE_IMAGE_NAME: "$CI_REGISTRY_IMAGE/pipeline:$CI_PIPELINE_ID"
+  DOCKER_ELASTIC_PIPELINE_IMAGE_NAME: "$CI_REGISTRY_IMAGE/elastic/pipeline:$CI_PIPELINE_ID"
+  ELASTIC_VERSION: "7.17.9"
   DOCKER_DRIVER: overlayfs
   FF_NETWORK_PER_BUILD: 1
   DOCKER_HOST: tcp://docker:2375
@@ -48,6 +50,7 @@ test_go:
         discovery.type: single-node
         xpack.security.enabled: false
         ingest.geoip.downloader.enabled: false
+        cluster.routing.allocation.disk.watermark.flood_stage: "100%"
     - name: registry.gitlab.com/tozd/docker/postgresql:18
       alias: postgres
       variables:
@@ -286,6 +289,7 @@ docker:
     - export VERSION="$(git describe --tags --always --dirty=+)"
     - echo VERSION "$VERSION"
     - docker build
+      --platform linux/amd64,linux/arm64
       --target production
       --tag "$DOCKER_PIPELINE_IMAGE_NAME"
       --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
@@ -295,6 +299,7 @@ docker:
       --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
       --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
     - docker build
+      --platform linux/amd64,linux/arm64
       --target debug
       --tag "$DOCKER_PIPELINE_IMAGE_NAME-debug"
       --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
@@ -307,8 +312,11 @@ docker:
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
     - docker push "$DOCKER_PIPELINE_IMAGE_NAME-debug"
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
-    - export IMAGE_ID=$(docker create "$DOCKER_PIPELINE_IMAGE_NAME")
+    - export IMAGE_ID=$(docker create --platform linux/amd64 "$DOCKER_PIPELINE_IMAGE_NAME")
     - docker cp "$IMAGE_ID:/peerdb" peerdb-linux-amd64
+    - docker rm "$IMAGE_ID"
+    - export IMAGE_ID=$(docker create --platform linux/arm64 "$DOCKER_PIPELINE_IMAGE_NAME")
+    - docker cp "$IMAGE_ID:/peerdb" peerdb-linux-arm64
     - docker rm "$IMAGE_ID"
 
   artifacts:
@@ -316,7 +324,36 @@ docker:
     name: binaries
     paths:
       - peerdb-linux-amd64
+      - peerdb-linux-arm64
     expire_in: never
+
+  # We want to run it as soon as possible and do not wait for test stage to finish.
+  needs: []
+
+docker_elastic:
+  stage: build
+
+  image: docker:28-cli
+
+  services:
+    - name: docker:28-dind
+      command:
+        - "--feature"
+        - "containerd-snapshotter=true"
+
+  before_script:
+    - docker info
+    - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+  script:
+    - docker build
+      --platform linux/amd64,linux/arm64
+      --file elastic.dockerfile
+      --tag "$DOCKER_ELASTIC_PIPELINE_IMAGE_NAME"
+      --tag "$CI_REGISTRY_IMAGE/elastic/commit:$CI_COMMIT_SHA"
+      --build-arg ELASTIC_VERSION .
+    - docker push "$DOCKER_ELASTIC_PIPELINE_IMAGE_NAME"
+    - docker push "$CI_REGISTRY_IMAGE/elastic/commit:$CI_COMMIT_SHA"
 
   # We want to run it as soon as possible and do not wait for test stage to finish.
   needs: []
@@ -366,6 +403,26 @@ push_tag:
   # We do not need build artifacts in this job.
   dependencies: []
 
+push_elastic:
+  stage: deploy
+
+  image:
+    name: gcr.io/go-containerregistry/crane/debug:v0.20.3
+    entrypoint: [""]
+
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | crane auth login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+  script:
+    - crane cp "$DOCKER_ELASTIC_PIPELINE_IMAGE_NAME" "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:$CI_COMMIT_SHA"
+    - crane tag "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:$CI_COMMIT_SHA" latest
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+  # We do not need build artifacts in this job.
+  dependencies: []
+
 upload_binaries:
   stage: deploy
 
@@ -373,6 +430,7 @@ upload_binaries:
 
   script:
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-linux-amd64 "$PACKAGE_REGISTRY_URL/linux-amd64/${CI_COMMIT_REF_NAME#v}/peerdb"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-linux-arm64 "$PACKAGE_REGISTRY_URL/linux-arm64/${CI_COMMIT_REF_NAME#v}/peerdb"'
 
   rules:
     # Only on protected tags. Protected tags start with "v".

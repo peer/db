@@ -21,9 +21,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/search"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -36,7 +35,7 @@ const (
 
 // DocumentMetadata contains metadata about a document including its timestamp.
 type DocumentMetadata struct {
-	At types.Time `json:"at"`
+	At internal.Time `json:"at"`
 }
 
 // B is a base for data and files.
@@ -47,10 +46,10 @@ type B struct {
 	Index  string
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	documents   *store.Store[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
+	documents   *store.Store[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
 	files       *storage.Storage
-	bridge      *es.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
+	bridge      *search.Bridge[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
 }
 
 // Init initializes the base.
@@ -64,7 +63,7 @@ func (b *B) Init(
 		return errors.New("already initialized")
 	}
 
-	documents := &store.Store[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+	documents := &store.Store[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -99,7 +98,7 @@ func (b *B) Init(
 		return errE
 	}
 
-	bridge := &es.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+	bridge := &search.Bridge[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
 		Store:    documents,
 		ESClient: esClient,
 		Index:    b.Index,

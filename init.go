@@ -11,8 +11,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/peerdb/base"
-	"gitlab.com/peerdb/peerdb/internal/es"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
@@ -37,21 +37,21 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	ctx = WithFallbackDBContext(ctx, "init", s.Schema)
 	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
 
-	errE := es.EnsureIndex(ctx, esClient, s.Index)
+	errE := search.EnsureIndex(ctx, esClient, s.Index)
 	if errE != nil {
 		return nil, errE
 	}
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, s.Schema)
+	errE = store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return store.EnsureSchema(ctx, tx, s.Schema)
 	})
 	if errE != nil {
 		return nil, errE
 	}
 
-	listener := internal.NewListener(dbpool)
+	listener := store.NewListener(dbpool)
 
-	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, s.Schema)
+	riverClient, workers, errE := store.NewRiver(ctx, logger, dbpool, s.Schema)
 	if errE != nil {
 		return nil, errE
 	}
@@ -128,7 +128,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
-		dbpool, errE = internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
+		dbpool, errE = store.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 		if errE != nil {
 			return nil, errE
 		}
@@ -137,7 +137,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	// Initialize for the first time.
 	if esClient == nil {
 		var errE errors.E
-		esClient, errE = es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+		esClient, errE = search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
 			return nil, errE
 		}
