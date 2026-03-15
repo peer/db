@@ -13,7 +13,6 @@ import (
 	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/indexer"
-	"gitlab.com/peerdb/peerdb/internal/mapping"
 )
 
 type loggerAdapter struct {
@@ -59,7 +58,7 @@ func EnsureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	}
 
 	if !exists {
-		indexConfiguration, errE := mapping.Generate()
+		indexConfiguration, errE := Mapping()
 		if errE != nil {
 			return errE
 		}
