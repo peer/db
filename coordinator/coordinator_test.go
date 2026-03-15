@@ -394,19 +394,22 @@ func TestErrors(t *testing.T) {
 	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	// Operations are still accessible after End (only deleted after Complete).
+	// Operations are still accessible after End and before Complete (only deleted after Complete).
+	// The completion job may have already run, so both nil and ErrAlreadyCompleted are valid.
 	_, _, errE = c.GetData(ctx, session, 1)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 
 	_, errE = c.GetMetadata(ctx, session, 1)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 
 	errE = c.End(ctx, session, internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	ops, errE := c.List(ctx, session, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []int64{1}, ops)
+	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
+	if errE == nil {
+		assert.Equal(t, []int64{1}, ops)
+	}
 
 	// Wait for the River job to complete the session (operations are deleted after Complete).
 	require.Eventually(t, func() bool { return changedChannelContents.Len() >= 2 }, 5*time.Second, 50*time.Millisecond)
