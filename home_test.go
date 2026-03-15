@@ -26,7 +26,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/search"
 )
 
 //go:embed public
@@ -192,7 +192,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		site.KeyFile = keyPath
 	}
 
-	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	cleanupESClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Register cleanup before Init so that indices are removed even if Init partially succeeds.

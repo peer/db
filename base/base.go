@@ -21,7 +21,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/es"
+	"gitlab.com/peerdb/peerdb/internal/search"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/storage"
@@ -50,7 +50,7 @@ type B struct {
 	documents   *store.Store[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
 	files       *storage.Storage
-	bridge      *es.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
+	bridge      *search.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]
 }
 
 // Init initializes the base.
@@ -99,7 +99,7 @@ func (b *B) Init(
 		return errE
 	}
 
-	bridge := &es.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
+	bridge := &search.Bridge[json.RawMessage, *DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
 		Store:    documents,
 		ESClient: esClient,
 		Index:    b.Index,
