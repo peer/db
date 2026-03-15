@@ -210,16 +210,12 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		}
 	})
 
-	service, errE := serve.Init(t.Context(), globals, testFiles)
+	service, onShutdown, errE := serve.Init(t.Context(), globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Cleanup(func() {
-		for i := range globals.Sites {
-			site := &globals.Sites[i]
-			if site.RiverClient != nil {
-				// Wait for the client to stop.
-				<-site.RiverClient.Stopped()
-			}
+		if onShutdown != nil {
+			onShutdown()
 		}
 	})
 
