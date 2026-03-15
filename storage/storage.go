@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
@@ -212,7 +213,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		Size:      beginMetadata.Size,
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
-		Etag:      computeEtag(buffer),
+		Etag:      x.ComputeEtag(buffer),
 	}
 
 	return &completeData{

@@ -11,6 +11,7 @@ require (
 	github.com/cockroachdb/field-eng-powertools v0.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/foolin/pagser v0.1.6
+	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
@@ -24,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.6.0
-	gitlab.com/tozd/go/x v0.0.0-20260315013425-d0e6990a4806
+	gitlab.com/tozd/go/x v0.0.0-20260315142907-e9103a5928d0
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.8.1
 	gitlab.com/tozd/waf v0.22.0
