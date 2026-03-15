@@ -192,6 +192,24 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		site.KeyFile = keyPath
 	}
 
+	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Register cleanup before Init so that indices are removed even if Init partially succeeds.
+	t.Cleanup(func() {
+		// We do not use t.Context() because we want an active context, not a canceled one.
+		ctx := context.Background()
+		if len(globals.Sites) == 0 {
+			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
+			require.NoError(t, err)
+		} else {
+			for _, site := range globals.Sites {
+				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
+				require.NoError(t, err)
+			}
+		}
+	})
+
 	service, errE := serve.Init(t.Context(), globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -249,26 +267,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		}
 		return dialerContext(ctx, network, addr)
 	}
-
-	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	t.Cleanup(func() {
-		ctx := context.Background()
-		if len(globals.Sites) == 0 {
-			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
-			if err != nil {
-				require.NoError(t, err)
-			}
-		} else {
-			for _, site := range globals.Sites {
-				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
-				if err != nil {
-					require.NoError(t, err)
-				}
-			}
-		}
-	})
 
 	return ts, service
 }

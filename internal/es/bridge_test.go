@@ -57,15 +57,17 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Register cleanup before creating the index so it is removed even if creation partially succeeds.
+	t.Cleanup(func() {
+		// We do not use t.Context() because we want an active context, not a canceled one.
+		_, err := esClient.DeleteIndex(index).Do(context.Background())
+		require.NoError(t, err)
+	})
+
 	// Use a simple index without the PeerDB mapping so that _source is enabled,
 	// allowing tests to verify document content via the Get API.
 	_, err := esClient.CreateIndex(index).Do(ctx)
 	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_, err := esClient.DeleteIndex(index).Do(context.Background())
-		assert.NoError(t, err)
-	})
 
 	listener := internal.NewListener(dbpool)
 
