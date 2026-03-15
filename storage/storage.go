@@ -76,6 +76,9 @@ type FileMetadata struct {
 
 // Storage provides file storage operations.
 type Storage struct {
+	// Schema is PostgreSQL schema used by this storage.
+	Schema string
+
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
@@ -83,11 +86,9 @@ type Storage struct {
 	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]
 }
 
-// Init initializes the Storage with the given database connection pool.
-//
-// A non-nil listener is required when the Committed channel is set.
+// Init initializes the Storage.
 func (s *Storage) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string, riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
@@ -112,7 +113,7 @@ func (s *Storage) Init(
 		CompleteSessionTx: s.completeStorageSessionTx,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = storageCoordinator.Init(ctx, dbpool, nil, schema, riverClient, workers)
+	errE = storageCoordinator.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}
@@ -230,6 +231,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		}, nil
 	}
 
+	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	_, errE := s.store.Insert(ctx, session, data.Buffer, data.FileMetadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
