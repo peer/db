@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgxlisten"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -51,7 +50,7 @@ type Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetad
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
 func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener,
 ) errors.E {
 	if b.dbpool != nil {
 		return errors.New("already initialized")
@@ -133,11 +132,23 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	}
 }
 
+// HandlingReady implements internal.Handler interface.
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandlingReady(ctx context.Context, channel string) errors.E {
+	switch channel {
+	case b.Store.Prefix + "BridgeSeq":
+		return b.waitForFixBridgeSeq(ctx)
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = channel
+		return errE
+	}
+}
+
 // handleBridgeSeq handles BridgeSeq notifications from the Bridge table trigger and
 // broadcasts to any goroutines waiting in WaitUntilCaughtUp.
 func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleBridgeSeq(
 	_ context.Context, notification *pgconn.Notification, _ *pgx.Conn,
-) error {
+) errors.E {
 	seq, err := strconv.ParseInt(notification.Payload, 10, 64)
 	if err != nil {
 		errE := errors.WithMessage(err, "failed to parse bridge seq notification payload")
@@ -157,7 +168,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 // waiting in WaitUntilCaughtUp.
 func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) fixBridgeSeq(
 	ctx context.Context,
-) error {
+) errors.E {
 	seq, errE := b.getSeq(ctx)
 	if errE != nil {
 		return errE
@@ -168,6 +179,37 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 		b.lastSeq = seq
 		b.seqCond.Broadcast()
 	}
+	return nil
+}
+
+// waitForFixBridgeSeq is similar to WaitUntilCaughtUp but it does not wait for b.lastSeq to catch up with
+// committed commits, but just that it catches up with the current last-indexed seq from the bridge table.
+func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) waitForFixBridgeSeq(
+	ctx context.Context,
+) errors.E {
+	seq, errE := b.getSeq(ctx)
+	if errE != nil {
+		return errE
+	}
+	b.seqCond.L.Lock()
+	defer b.seqCond.L.Unlock()
+
+	// This is based on example for context.AfterFunc from the context package.
+	// See comments there for explanation how it works and why.
+	stop := context.AfterFunc(ctx, func() {
+		b.seqCond.L.Lock()
+		defer b.seqCond.L.Unlock()
+		b.seqCond.Broadcast()
+	})
+	defer stop()
+
+	for b.lastSeq < seq {
+		b.seqCond.Wait()
+		if ctx.Err() != nil {
+			return errors.WithStack(ctx.Err())
+		}
+	}
+
 	return nil
 }
 
@@ -282,12 +324,17 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 		}
 	}
 
+	ch, errE := b.Store.Committed.Get(ctx)
+	if errE != nil {
+		return errE
+	}
+
 	// Real-time: process new commits from the channel.
 	for {
 		select {
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
-		case c, ok := <-b.Store.Committed.Get():
+		case c, ok := <-ch:
 			if !ok {
 				// Channel was closed which means that notifications about commits made might have been
 				// missed and we should take corrective actions. We return the sentinel error.

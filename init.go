@@ -120,7 +120,10 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 
 	// After that, we can start the listener.
-	internal.StartListener(ctx, listener)
+	errE = listener.Start(ctx)
+	if errE != nil {
+		return errE
+	}
 
 	// And after the listener we can start the bridge.
 	b.Start(ctx)

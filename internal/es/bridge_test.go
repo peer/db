@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
@@ -89,10 +88,8 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	errE = b.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before tests make commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, s, b, esClient
 }

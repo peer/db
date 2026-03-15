@@ -154,18 +154,19 @@ func initDatabase[Data, Metadata any](
 		<-riverClient.Stopped()
 	})
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	appendedChannelContents := new(internal.LockableSlice[coordinator.OperationAppended])
 
 	go func() {
 		for {
+			ch, _ := c.Appended.Get(ctx)
 			select {
-			case o := <-c.Appended.Get():
-				appendedChannelContents.Append(o)
+			case o, ok := <-ch:
+				if ok {
+					appendedChannelContents.Append(o)
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -176,9 +177,12 @@ func initDatabase[Data, Metadata any](
 
 	go func() {
 		for {
+			ch, _ := c.Changed.Get(ctx)
 			select {
-			case s := <-c.Changed.Get():
-				changedChannelContents.Append(s)
+			case s, ok := <-ch:
+				if ok {
+					changedChannelContents.Append(s)
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -496,10 +500,8 @@ func TestNotifyRecovery(t *testing.T) {
 		<-riverClient.Stopped()
 	})
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes operations.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	session, errE := c.Begin(ctx, json.RawMessage(`{}`))
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -509,15 +511,18 @@ func TestNotifyRecovery(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(tc *assert.CollectT) {
+		c, errE := c.Appended.Get(t.Context())
+		require.NoError(t, errE, "% -+#.1v", errE)
 		select {
-		case <-c.Appended.Get():
+		case <-c:
 		default:
 			assert.Fail(tc, "appended notification not yet received")
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Simulate a reconnection on the OperationAppended channel.
-	oldAppendedCh := c.Appended.Get()
+	oldAppendedCh, errE := c.Appended.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	err = c.HandleBacklog(ctx, c.Prefix+"OperationAppended", nil)
 	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
@@ -530,7 +535,8 @@ func TestNotifyRecovery(t *testing.T) {
 	}
 
 	// A new Appended channel must be created.
-	newAppendedCh := c.Appended.Get()
+	newAppendedCh, errE := c.Appended.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEqual(t, oldAppendedCh, newAppendedCh, "HandleBacklog should create a new Appended channel")
 
 	// Appended operations after the reconnection must arrive on the new channel.
@@ -546,7 +552,8 @@ func TestNotifyRecovery(t *testing.T) {
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Simulate a reconnection on the SessionStateChanged channel.
-	oldChangedCh := c.Changed.Get()
+	oldChangedCh, errE := c.Changed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	err = c.HandleBacklog(ctx, c.Prefix+"SessionStateChanged", nil)
 	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
@@ -559,7 +566,8 @@ func TestNotifyRecovery(t *testing.T) {
 	}
 
 	// A new Changed channel must be created.
-	newEndedCh := c.Changed.Get()
+	newEndedCh, errE := c.Changed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEqual(t, oldChangedCh, newEndedCh, "HandleBacklog should create a new Changed channel")
 
 	// End the session; the notification must arrive on the new channel.
