@@ -91,6 +91,7 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 		} else if errors.Is(errE, store.ErrConflict) {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		}
+		return errE
 	}
 
 	return nil
