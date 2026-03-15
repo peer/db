@@ -1,7 +1,4 @@
-// Package types provides type definitions and utilities for metadata and time handling.
-//
-//nolint:revive
-package types
+package store
 
 import (
 	"time"

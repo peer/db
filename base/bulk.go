@@ -12,7 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 )
 
@@ -26,8 +26,8 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	}
 	// TODO: Implement "or replace" part. Currently we just insert.
 	_, errE = b.documents.Insert(ctx, doc.ID, data, &DocumentMetadata{
-		At: types.Time(time.Now().UTC()),
-	}, &types.NoMetadata{})
+		At: store.Time(time.Now().UTC()),
+	}, &store.NoMetadata{})
 	return errE
 }
 
@@ -43,7 +43,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, d
 	}
 
 	metadata := &storage.FileMetadata{
-		At:        types.Time(time.Now().UTC()),
+		At:        store.Time(time.Now().UTC()),
 		Size:      int64(len(data)),
 		MediaType: mediaType,
 		Filename:  filename,
@@ -51,7 +51,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, d
 	}
 
 	// TODO: Implement "or replace" part. Currently we just insert.
-	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &types.NoMetadata{})
+	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &store.NoMetadata{})
 	return errE
 }
 
