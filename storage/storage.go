@@ -33,6 +33,13 @@ type endMetadata struct {
 	Discarded bool       `json:"discarded,omitempty"`
 }
 
+type completeData struct {
+	Buffer       []byte
+	FileMetadata *FileMetadata
+	EndMetadata  *endMetadata
+	Chunks       int64
+}
+
 type completeMetadata struct {
 	Chunks int64 `json:"chunks,omitempty"`
 
@@ -73,7 +80,7 @@ type Storage struct {
 	Prefix string
 
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
-	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeMetadata]
+	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]
 }
 
 // Init initializes the Storage with the given database connection pool.
@@ -97,13 +104,12 @@ func (s *Storage) Init(
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeMetadata]{
-		Prefix:       s.Prefix,
-		DataType:     "bytea",
-		MetadataType: "jsonb",
-		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*completeMetadata, errors.E) {
-			return s.completeStorageSession(ctx, session)
-		},
+	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]{
+		Prefix:            s.Prefix,
+		DataType:          "bytea",
+		MetadataType:      "jsonb",
+		CompleteSession:   s.completeStorageSession,
+		CompleteSessionTx: s.completeStorageSessionTx,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = storageCoordinator.Init(ctx, dbpool, nil, schema, riverClient, workers)
@@ -122,16 +128,18 @@ func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata,
 	return s.store
 }
 
-func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeMetadata, errors.E) {
+func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeData, errors.E) {
 	beginMetadata, endMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
 	}
 
 	if endMetadata.Discarded {
-		return &completeMetadata{
-			Chunks: 0,
-			Time:   time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		return &completeData{
+			Buffer:       nil,
+			FileMetadata: nil,
+			EndMetadata:  endMetadata,
+			Chunks:       0,
 		}, nil
 	}
 
@@ -206,14 +214,23 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		Etag:      computeEtag(buffer),
 	}
 
-	_, errE = s.store.Insert(ctx, session, buffer, metadata, &types.NoMetadata{})
+	return &completeData{
+		Buffer:       buffer,
+		FileMetadata: metadata,
+		EndMetadata:  endMetadata,
+		Chunks:       int64(len(chunksList)),
+	}, nil
+}
+
+func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*completeMetadata, errors.E) {
+	_, errE := s.store.Insert(ctx, session, data.Buffer, data.FileMetadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}
 
 	return &completeMetadata{
-		Chunks: int64(len(chunksList)),
-		Time:   time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		Chunks: data.Chunks,
+		Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 	}, nil
 }
 

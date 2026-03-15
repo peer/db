@@ -90,21 +90,24 @@ func EnsureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	return nil
 }
 
-// CompleteDocumentSession completes the document editing session.
+// CompleteDocumentSession completes the document.
 func CompleteDocumentSession(
-	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	c *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata],
+	ctx context.Context,
+	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	c *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteData, *types.DocumentCompleteMetadata], //nolint:lll
 	session identifier.Identifier,
-) (*types.DocumentCompleteMetadata, errors.E) {
+) (*types.DocumentCompleteData, errors.E) {
 	beginMetadata, endMetadata, _, errE := c.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
 	}
 
 	if endMetadata.Discarded {
-		return &types.DocumentCompleteMetadata{
-			Changeset: nil,
-			Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		return &types.DocumentCompleteData{
+			BeginMetadata: beginMetadata,
+			EndMetadata:   endMetadata,
+			Changes:       nil,
+			Doc:           nil,
 		}, nil
 	}
 
@@ -154,18 +157,31 @@ func CompleteDocumentSession(
 		return nil, errE
 	}
 
-	metadata := &types.DocumentMetadata{
-		At: beginMetadata.At,
-	}
+	return &types.DocumentCompleteData{
+		BeginMetadata: beginMetadata,
+		EndMetadata:   endMetadata,
+		Changes:       changes,
+		Doc:           docJSON,
+	}, nil
+}
 
-	version, errE := s.Update(ctx, beginMetadata.ID, beginMetadata.Version.Changeset, docJSON, changes, metadata, &types.NoMetadata{})
+// CompleteDocumentSessionTx completes the document editing session.
+func CompleteDocumentSessionTx(
+	ctx context.Context,
+	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
+	data *types.DocumentCompleteData,
+) (*types.DocumentCompleteMetadata, errors.E) {
+	// We do not have to use the "tx" parameter because we access the transaction through ctx.
+	version, errE := s.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, &types.DocumentMetadata{
+		At: data.BeginMetadata.At,
+	}, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}
 
 	return &types.DocumentCompleteMetadata{
 		Changeset: &version.Changeset,
-		Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
+		Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 	}, nil
 }
 
