@@ -281,7 +281,10 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	errE := Init(ctx, globals)
+	onShutdown, errE := Init(ctx, globals)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
 	if errE != nil {
 		return errE
 	}

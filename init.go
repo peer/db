@@ -40,9 +40,9 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) errors.E {
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) ([]func(), errors.E) {
 	if s.initialized {
-		return nil
+		return nil, nil
 	}
 	s.initialized = true
 
@@ -51,14 +51,14 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 
 	errE := es.EnsureIndex(ctx, esClient, s.Index)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internal.EnsureSchema(ctx, tx, s.Schema)
 	})
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	listener := internal.NewListener(dbpool)
@@ -72,12 +72,12 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 	errE = st.Init(ctx, dbpool, listener)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, s.Schema)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	var c *coordinator.Coordinator[
@@ -108,7 +108,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 	errE = c.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	storage := &storage.Storage{
@@ -116,7 +116,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 	errE = storage.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
@@ -126,20 +126,27 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 	errE = b.Init(ctx, dbpool, listener)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	// Now that everything is initialized, we can start the river client.
 	// It will be stopped when ctx is cancelled.
 	err := riverClient.Start(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
+	}
+
+	onShutdown := []func(){
+		func() {
+			// Wait for the client to stop.
+			<-riverClient.Stopped()
+		},
 	}
 
 	// After that, we can start the listener.
 	errE = listener.Start(ctx)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	// And after the listener we can start the bridge.
@@ -153,7 +160,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	s.ESClient = esClient
 	s.RiverClient = riverClient
 
-	return nil
+	return onShutdown, nil
 }
 
 // Init initializes PeerDB for all sites defined in globals.
@@ -163,7 +170,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 //
 // It can be called multiple times. In that case it will initialize only
 // sites which have not been initialized yet.
-func Init(ctx context.Context, globals *Globals) errors.E {
+func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	var dbpool *pgxpool.Pool
 	var esClient *elastic.Client
 
@@ -187,7 +194,7 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 		var errE errors.E
 		dbpool, errE = internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 		if errE != nil {
-			return errE
+			return nil, errE
 		}
 	}
 
@@ -196,18 +203,26 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 		var errE errors.E
 		esClient, errE = es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
-			return errE
+			return nil, errE
+		}
+	}
+
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			f()
 		}
 	}
 
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		errE := site.init(ctx, globals.Logger, dbpool, esClient)
+		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient)
+		onShutdown = append(onShutdown, onS...)
 		if errE != nil {
-			return errE
+			return onShutdownF, errE
 		}
 	}
 
-	return nil
+	return onShutdownF, nil
 }
