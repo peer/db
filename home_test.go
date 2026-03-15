@@ -136,11 +136,11 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		},
 		Postgres: peerdb.PostgresConfig{
 			URL:    []byte(os.Getenv("POSTGRES")),
-			Schema: identifier.New().String(),
+			Schema: "s" + strings.ToLower(identifier.New().String()),
 		},
 		Elastic: peerdb.ElasticConfig{
 			URL:   os.Getenv("ELASTIC"),
-			Index: strings.ToLower(identifier.New().String()),
+			Index: "s" + strings.ToLower(identifier.New().String()),
 		},
 	}
 
@@ -165,9 +165,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 		require.Empty(t, site.Schema)
-		site.Schema = identifier.New().String()
+		site.Schema = "s" + strings.ToLower(identifier.New().String())
 		require.Empty(t, site.Index)
-		site.Index = strings.ToLower(identifier.New().String())
+		site.Index = "s" + strings.ToLower(identifier.New().String())
 	}
 
 	err := globals.Validate()
