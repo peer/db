@@ -99,16 +99,12 @@ docker run -d --network peerdb --name elasticsearch -p 127.0.0.1:9200:9200 \
  -e network.bind_host=0.0.0.0 -e network.publish_host=elasticsearch -e ES_JAVA_OPTS="-Xmx1000m" \
  -e "discovery.type=single-node" -e "xpack.security.enabled=false" -e "ingest.geoip.downloader.enabled=false" \
  -e "cluster.routing.allocation.disk.watermark.flood_stage=100%" \
- elasticsearch:7.16.3
+ registry.gitlab.com/peerdb/peerdb/elastic/7.17.9:latest
 ```
 
 Feel free to change any of the above parameters (e.g., remove `ES_JAVA_OPTS` if you have enough memory).
-The parameters above are primarily meant for development on a local machine.
-
-ElasticSearch instance needs to have an index with documents in PeerDB schema
-and configured with PeerDB mapping.
-If you already have such an index, proceed to run PeerDB, otherwise first
-[populate ElasticSearch with data](#populating-with-data).
+The parameters above are primarily meant for development on a local machine. ElasticSearch Docker image
+used above is standard Docker image [with additional plugins installed](./elastic.dockerfile).
 
 Next, to run PeerDB you need a HTTPS TLS certificate (as required by HTTP2). When running locally
 you can use [mkcert](https://github.com/FiloSottile/mkcert), a tool to create a local CA
