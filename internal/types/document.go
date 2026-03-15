@@ -4,11 +4,13 @@
 package types
 
 import (
+	"encoding/json"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -58,6 +60,15 @@ type DocumentBeginMetadata struct {
 type DocumentEndMetadata struct {
 	At        Time `json:"at"`
 	Discarded bool `json:"discarded,omitempty"`
+}
+
+// DocumentCompleteData contains JSON serialized document with metadata to be
+// passed between CompleteSession and CompleteSessionTx.
+type DocumentCompleteData struct {
+	BeginMetadata *DocumentBeginMetadata
+	EndMetadata   *DocumentEndMetadata
+	Changes       document.Changes
+	Doc           json.RawMessage
 }
 
 // DocumentCompleteMetadata contains metadata captured when document edit session completes.

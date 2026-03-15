@@ -45,13 +45,13 @@ type Site struct {
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	// Data for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                   `json:"-" yaml:"-"`
-	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata] `json:"-" yaml:"-"`
-	Storage     *storage.Storage                                                                                                                                                    `json:"-" yaml:"-"`
-	Bridge      *es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                     `json:"-" yaml:"-"`
-	DBPool      *pgxpool.Pool                                                                                                                                                       `json:"-" yaml:"-"`
-	ESClient    *elastic.Client                                                                                                                                                     `json:"-" yaml:"-"`
-	RiverClient *river.Client[pgx.Tx]                                                                                                                                               `json:"-" yaml:"-"`
+	Store       *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                                                `json:"-" yaml:"-"`
+	Coordinator *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteData, *types.DocumentCompleteMetadata] `json:"-" yaml:"-"`
+	Storage     *storage.Storage                                                                                                                                                                                 `json:"-" yaml:"-"`
+	Bridge      *es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]                                                                  `json:"-" yaml:"-"`
+	DBPool      *pgxpool.Pool                                                                                                                                                                                    `json:"-" yaml:"-"`
+	ESClient    *elastic.Client                                                                                                                                                                                  `json:"-" yaml:"-"`
+	RiverClient *river.Client[pgx.Tx]                                                                                                                                                                            `json:"-" yaml:"-"`
 
 	initialized bool
 

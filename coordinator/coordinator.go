@@ -70,8 +70,8 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 
 	errE = c.runCompleteSession(ctx, job.Args.Session, job)
 	if errE != nil {
-		// CompleteSession is probably fetching coordinator or some state from the database.
-		// It is not possible to recover from some of these errors, so we cancel the job so
+		// CompleteSession and CompleteSessionTx are probably fetching coordinator or some state from
+		// the database. It is not possible to recover from some of these errors, so we cancel the job so
 		// that it does not retry unnecessarily.
 		// TODO: Maybe our errors should have some "is permanent" flag we could use here?
 		if errors.Is(errE, ErrSessionNotFound) {
@@ -154,10 +154,10 @@ type SessionStateChanged struct {
 //   - Then, you call [Coordinator.Append] to append operations to the session.
 //   - Finally, you call [Coordinator.End] to end the session. After the session
 //     has ended, you cannot append new operations to it. After the session ends,
-//     the coordinator runs the `CompleteSession` function.
-//   - After `CompleteSession` successfully completes, the session is considered
+//     the coordinator runs the `CompleteSession` function followed by `CompleteSessionTx`.
+//   - After `CompleteSessionTx` successfully completes, the session is considered
 //     completed and all operations for the session are deleted.
-type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata any] struct {
+type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata any] struct {
 	// Prefix to use when initializing PostgreSQL objects used by this coordinator.
 	Prefix string
 
@@ -168,16 +168,29 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 	DataType     string
 	MetadataType string
 
-	// CompleteSession is called after a session has ended. You should use it to use operations' data
-	// and metadata to complete the session (e.g., store session results into a database or file).
+	// CompleteSession is called after a session has ended. You should use it to process operations' data
+	// and metadata to complete the session. CompleteSession is optional and if defined it can return
+	// data which is then passed to CompleteSessionTx.
 	//
-	// After CompleteSession successfully completes, the session is considered
+	// CompleteSession runs outside of a transaction and it should be idempotent as it might be called multiple
+	// times in the case of any issues. In the case of errors, it should try to revert any changes made by it,
+	// but it should not rely on those changes being reverted because it might be run again even if
+	// CompleteSession itself successfully runs.
+	//
+	// The idea is that you use CompleteSession to do any heavy but idempotent processing while
+	// you use CompleteSessionTx to then do any database operations.
+	CompleteSession func(ctx context.Context, session identifier.Identifier) (CompleteData, errors.E) `exhaustruct:"optional"`
+
+	// CompleteSessionTx is called after a session has ended and after CompleteSession has run successfully
+	// (if defined). CompleteSessionTx is required.
+	//
+	// CompleteSessionTx runs inside a transaction which will be reverted on any issues. So it is best
+	// suitable for database operations. At the same time, it is not suitable for heavy processing to
+	// not keep the transaction open for too long.
+	//
+	// After CompleteSessionTx successfully completes, the session is considered
 	// completed and all operations for the session are deleted.
-	//
-	// CompleteSession should be idempotent as might be called multiple times in the case of any issues.
-	// In the case of errors, it should try to revert any changes made by it, but it should not rely on those
-	// changes being reverted because it might be run again even if CompleteSession itself successfully runs.
-	CompleteSession func(ctx context.Context, session identifier.Identifier) (CompleteMetadata, errors.E)
+	CompleteSessionTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, data CompleteData) (CompleteMetadata, errors.E)
 
 	// AppendedSize is the size of the channel to which operations are send when they are appended.
 	//
@@ -214,7 +227,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 // stored procedures if they do not already exist.
 //
 // A non-nil listener is required when the Appended or Ended channel is set.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Init(
 	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
@@ -222,8 +235,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		return errors.New("already initialized")
 	}
 
-	if c.CompleteSession == nil {
-		return errors.New("CompleteSession cannot be nil")
+	if c.CompleteSessionTx == nil {
+		return errors.New("CompleteSessionTx cannot be nil")
 	}
 
 	// TODO: Use schema management/migration instead.
@@ -357,7 +370,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return nil
 }
 
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) registerCoordinator(workers *river.Workers) errors.E {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) registerCoordinator(workers *river.Workers) errors.E {
 	coordinatorsMu.Lock()
 	defer coordinatorsMu.Unlock()
 
@@ -390,7 +403,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // Begin starts a new session.
 //
 // The session has to be explicitly ended by calling End.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Begin(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Begin(
 	ctx context.Context, metadata BeginMetadata) (identifier.Identifier, errors.E,
 ) {
 	session := identifier.New()
@@ -411,10 +424,11 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 //
 // Once the session has ended no more operations can be appended to it.
 //
-// After the session ends, the coordinator runs the `CompleteSession` function.
-// After `CompleteSession` successfully completes, the session is considered
+// After the session ends, the coordinator runs the `CompleteSession` function
+// followed by `CompleteSessionTx`.
+// After `CompleteSessionTx` successfully completes, the session is considered
 // completed and all operations associated with the session are deleted.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) End(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) End(
 	ctx context.Context, session identifier.Identifier, metadata EndMetadata,
 ) errors.E {
 	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -432,7 +446,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			return errE
 		}
 
-		// We submit a job to the worker to call CompleteSession and complete the session.
+		// We submit a job to the worker to call CompleteSession and CompleteSessionTx and complete the session.
 		_, err = c.riverClient.InsertTx(ctx, tx, jobArgs{
 			Schema:  c.schema,
 			Prefix:  c.Prefix,
@@ -450,18 +464,29 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return errE
 }
 
-// runCompleteSession runs the CompleteSession and if successfully runs, it completes the session.
+// runCompleteSession runs the CompleteSession and CompleteSessionTx and if both successfully run,
+// it completes the session.
 //
 // It deletes all operations associated with the session and marks the session as completed.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) runCompleteSession(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) runCompleteSession(
 	ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs],
 ) errors.E {
-	metadata, errE := c.CompleteSession(ctx, session)
-	if errE != nil {
-		return errE
+	var data CompleteData
+	// CompleteSession is optional and runs outside of a transaction.
+	if c.CompleteSession != nil {
+		var errE errors.E
+		data, errE = c.CompleteSession(ctx, session)
+		if errE != nil {
+			return errE
+		}
 	}
 
-	errE = internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		metadata, errE := c.CompleteSessionTx(ctx, tx, session, data)
+		if errE != nil {
+			return errE
+		}
+
 		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
 			errE := internal.WithPgxError(err)
@@ -498,7 +523,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 //
 // Optional expected operation number can be provided in which case the next available
 // operation number has to match the provided number for the call to succeed.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Append(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Append(
 	ctx context.Context, session identifier.Identifier, data Data, metadata OperationMetadata,
 	expectedOperation *int64,
 ) (int64, errors.E) {
@@ -539,7 +564,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 // List returns up to MaxPageLength operation numbers appended to the session, in decreasing order
 // (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) List(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) List(
 	ctx context.Context, session identifier.Identifier, before *int64,
 ) ([]int64, errors.E) {
 	arguments := []any{
@@ -616,7 +641,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // Data might be nil if the operation does not contain data.
 //
 // Data and metadata are not available anymore once the session completes.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) GetData( //nolint:ireturn
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) GetData( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier, operation int64,
 ) (Data, OperationMetadata, errors.E) {
 	arguments := []any{
@@ -667,7 +692,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // GetMetadata returns metadata for the operation from the session.
 //
 // Metadata is not available anymore once the session completes.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) GetMetadata( //nolint:ireturn
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) GetMetadata( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier, operation int64,
 ) (OperationMetadata, errors.E) {
 	arguments := []any{
@@ -715,7 +740,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 // Get returns initial, ending, and completed (once session has ended and/or completed, respectively, otherwise nil)
 // metadata for the session.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Get( //nolint:ireturn
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Get( //nolint:ireturn
 	ctx context.Context, session identifier.Identifier,
 ) (BeginMetadata, EndMetadata, CompleteMetadata, errors.E) {
 	arguments := []any{
@@ -754,7 +779,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 }
 
 // HandleNotification implements pgxlisten.Handler interface.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandleNotification(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) HandleNotification(
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
@@ -776,7 +801,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 //
 // It recreates channels to signal to their consumers that notifications might have been
 // missed and that they should take corrective actions, if possible.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandleBacklog(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) HandleBacklog(
 	_ context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
@@ -798,7 +823,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 }
 
 // HandlingReady implements internal.Handler interface.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandlingReady(ctx context.Context, channel string) errors.E {
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case c.Prefix + "OperationAppended":
 		// We just wait for channel to be available. This means that HandleBacklog has completed.
@@ -820,7 +845,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 // handleOperationAppended handles OperationAppended notifications and forwards
 // the operation to the Appended channel.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) handleOperationAppended(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) handleOperationAppended(
 	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
 	var payload OperationAppended
@@ -837,7 +862,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 // handleSessionStateChanged handles SessionStateChanged notifications and forwards
 // the session state change to the Changed channel.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) handleSessionStateChanged(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) handleSessionStateChanged(
 	ctx context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) error {
 	var payload SessionStateChanged

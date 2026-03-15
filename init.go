@@ -80,13 +80,30 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 		return errE
 	}
 
-	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata]
-	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentChangeMetadata, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentCompleteMetadata]{
+	var c *coordinator.Coordinator[
+		json.RawMessage,
+		*types.DocumentChangeMetadata,
+		*types.DocumentBeginMetadata,
+		*types.DocumentEndMetadata,
+		*types.DocumentCompleteData,
+		*types.DocumentCompleteMetadata,
+	]
+	c = &coordinator.Coordinator[
+		json.RawMessage,
+		*types.DocumentChangeMetadata,
+		*types.DocumentBeginMetadata,
+		*types.DocumentEndMetadata,
+		*types.DocumentCompleteData,
+		*types.DocumentCompleteMetadata,
+	]{
 		Prefix:       "docs",
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
-		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*types.DocumentCompleteMetadata, errors.E) {
+		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*types.DocumentCompleteData, errors.E) {
 			return es.CompleteDocumentSession(ctx, st, c, session)
+		},
+		CompleteSessionTx: func(ctx context.Context, _ pgx.Tx, _ identifier.Identifier, data *types.DocumentCompleteData) (*types.DocumentCompleteMetadata, errors.E) {
+			return es.CompleteDocumentSessionTx(ctx, st, data)
 		},
 	}
 	errE = c.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)

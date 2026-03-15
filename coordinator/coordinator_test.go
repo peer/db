@@ -31,6 +31,7 @@ type testCase[Data, Metadata any] struct {
 	Append4Data      Data
 	Append4Metadata  Metadata
 	EndMetadata      Metadata
+	CompleteData     Metadata
 	CompleteMetadata Metadata
 }
 
@@ -52,6 +53,7 @@ func TestHappyPath(t *testing.T) {
 				Append4Data:      nil,
 				Append4Metadata:  &internal.TestMetadata{Metadata: "append4"},
 				EndMetadata:      &internal.TestMetadata{Metadata: "end"},
+				CompleteData:     &internal.TestMetadata{Metadata: "data"},
 				CompleteMetadata: &internal.TestMetadata{Metadata: "complete"},
 			}, dataType)
 
@@ -66,6 +68,7 @@ func TestHappyPath(t *testing.T) {
 				Append4Data:      nil,
 				Append4Metadata:  json.RawMessage(`{"metadata": "append4"}`),
 				EndMetadata:      json.RawMessage(`{"metadata": "end"}`),
+				CompleteData:     json.RawMessage(`{"metadata": "data"}`),
 				CompleteMetadata: json.RawMessage(`{"metadata": "complete"}`),
 			}, dataType)
 
@@ -80,6 +83,7 @@ func TestHappyPath(t *testing.T) {
 				Append4Data:      nil,
 				Append4Metadata:  internal.ToRawMessagePtr(`{"metadata": "append4"}`),
 				EndMetadata:      internal.ToRawMessagePtr(`{"metadata": "end"}`),
+				CompleteData:     internal.ToRawMessagePtr(`{"metadata": "data"}`),
 				CompleteMetadata: internal.ToRawMessagePtr(`{"metadata": "complete"}`),
 			}, dataType)
 
@@ -94,6 +98,7 @@ func TestHappyPath(t *testing.T) {
 				Append4Data:      nil,
 				Append4Metadata:  []byte(`{"metadata": "append4"}`),
 				EndMetadata:      []byte(`{"metadata": "end"}`),
+				CompleteData:     []byte(`{"metadata": "data"}`),
 				CompleteMetadata: []byte(`{"metadata": "complete"}`),
 			}, dataType)
 		})
@@ -103,9 +108,10 @@ func TestHappyPath(t *testing.T) {
 func initDatabase[Data, Metadata any](
 	t *testing.T, dataType string,
 	completeSession func(context.Context, identifier.Identifier) (Metadata, errors.E),
+	completeSessionTx func(context.Context, identifier.Identifier, Metadata) (Metadata, errors.E),
 ) (
 	context.Context,
-	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata],
+	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata],
 	*internal.LockableSlice[coordinator.OperationAppended],
 	*internal.LockableSlice[coordinator.SessionStateChanged],
 ) {
@@ -136,11 +142,14 @@ func initDatabase[Data, Metadata any](
 	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata]{
+	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
 		Prefix:          prefix,
 		DataType:        dataType,
 		MetadataType:    dataType,
 		CompleteSession: completeSession,
+		CompleteSessionTx: func(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data Metadata) (Metadata, errors.E) {
+			return completeSessionTx(ctx, session, data)
+		},
 	}
 
 	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
@@ -198,7 +207,11 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 	completedSessions := new(internal.LockableSlice[identifier.Identifier])
 	ctx, c, appendedChannelContents, changedChannelContents := initDatabase[Data, Metadata](
 		t, dataType,
-		func(_ context.Context, session identifier.Identifier) (Metadata, errors.E) {
+		func(_ context.Context, _ identifier.Identifier) (Metadata, errors.E) {
+			return d.CompleteData, nil
+		},
+		func(_ context.Context, session identifier.Identifier, data Metadata) (Metadata, errors.E) {
+			assert.Equal(t, d.CompleteData, data)
 			completedSessions.Append(session)
 			return d.CompleteMetadata, nil
 		},
@@ -344,7 +357,8 @@ func TestErrors(t *testing.T) {
 
 	ctx, c, _, changedChannelContents := initDatabase[json.RawMessage, json.RawMessage](
 		t, "jsonb",
-		func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+		nil,
+		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return internal.DummyData, nil
 		},
 	)
@@ -431,7 +445,8 @@ func TestListPagination(t *testing.T) {
 
 	ctx, c, appendedChannelContents, _ := initDatabase[json.RawMessage, json.RawMessage](
 		t, "jsonb",
-		func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+		nil,
+		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return internal.DummyData, nil
 		},
 	)
@@ -511,13 +526,13 @@ func TestNotifyRecovery(t *testing.T) {
 	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
+	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
 		Prefix:       prefix,
 		AppendedSize: 1,
 		ChangedSize:  1,
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
-		CompleteSession: func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+		CompleteSessionTx: func(_ context.Context, _ pgx.Tx, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return json.RawMessage(`{}`), nil
 		},
 	}
