@@ -11,12 +11,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgxlisten"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -80,7 +80,7 @@ type Storage struct {
 //
 // A non-nil listener is required when the Committed channel is set.
 func (s *Storage) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, schema string, riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string, riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")

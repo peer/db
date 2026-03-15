@@ -67,10 +67,8 @@ func initDatabase(t *testing.T) (
 		<-riverClient.Stopped()
 	})
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
 		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
@@ -78,9 +76,12 @@ func initDatabase(t *testing.T) (
 
 	go func() {
 		for {
+			ch, _ := s.Store().Committed.Get(ctx)
 			select {
-			case co := <-s.Store().Committed.Get():
-				channelContents.Append(co)
+			case co, ok := <-ch:
+				if ok {
+					channelContents.Append(co)
+				}
 			case <-ctx.Done():
 				return
 			}

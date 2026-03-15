@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgxlisten"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"gitlab.com/tozd/go/errors"
@@ -186,7 +185,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMe
 //
 // A non-nil listener is required when the Appended or Ended channel is set.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener, schema string,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if c.dbpool != nil {
@@ -781,6 +780,27 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		return errE
 	}
 	return nil
+}
+
+// HandlingReady implements internal.Handler interface.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteMetadata]) HandlingReady(ctx context.Context, channel string) errors.E {
+	switch channel {
+	case c.Prefix + "OperationAppended":
+		// We just wait for channel to be available. This means that HandleBacklog has completed.
+		_, errE := c.Appended.Get(ctx)
+		return errE
+	case c.Prefix + "SessionStateChanged":
+		// We just wait for channel to be available. This means that HandleBacklog has completed.
+		_, errE := c.Changed.Get(ctx)
+		return errE
+	default:
+		errE := errors.New("unknown notification channel")
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+		details["channel"] = channel
+		return errE
+	}
 }
 
 // handleOperationAppended handles OperationAppended notifications and forwards

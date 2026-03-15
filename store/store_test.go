@@ -146,18 +146,19 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
 
 	go func() {
 		for {
+			ch, _ := s.Committed.Get(ctx)
 			select {
-			case c := <-s.Committed.Get():
-				channelContents.Append(c)
+			case c, ok := <-ch:
+				if ok {
+					channelContents.Append(c)
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -1788,10 +1789,8 @@ func TestNotifyRecovery(t *testing.T) {
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert an initial document to confirm the channel is working.
 	id1 := identifier.New()
@@ -1799,15 +1798,18 @@ func TestNotifyRecovery(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		ch, errE := s.Committed.Get(ctx)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		select {
-		case <-s.Committed.Get():
+		case <-ch:
 		default:
 			assert.Fail(c, "commit notification not yet received")
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Save the current channel before simulating a listener reconnection.
-	oldCh := s.Committed.Get()
+	oldCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Simulate a listener reconnection by calling HandleBacklog directly.
 	// In production this is triggered when pgxlisten reconnects after a connection drop.
@@ -1825,7 +1827,8 @@ func TestNotifyRecovery(t *testing.T) {
 	}
 
 	// A new channel must be created.
-	newCh := s.Committed.Get()
+	newCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEqual(t, oldCh, newCh, "HandleBacklog should create a new channel")
 
 	// Commits after the reconnection must arrive on the new channel.
