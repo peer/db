@@ -171,6 +171,13 @@ func CompleteDocumentSessionTx(
 	s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
 	data *types.DocumentCompleteData,
 ) (*types.DocumentCompleteMetadata, errors.E) {
+	if data.EndMetadata.Discarded {
+		return &types.DocumentCompleteMetadata{
+			Changeset: nil,
+			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+		}, nil
+	}
+
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	version, errE := s.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, &types.DocumentMetadata{
 		At: data.BeginMetadata.At,

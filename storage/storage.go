@@ -223,6 +223,13 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 }
 
 func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*completeMetadata, errors.E) {
+	if data.EndMetadata.Discarded {
+		return &completeMetadata{
+			Chunks: 0,
+			Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+		}, nil
+	}
+
 	_, errE := s.store.Insert(ctx, session, data.Buffer, data.FileMetadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
