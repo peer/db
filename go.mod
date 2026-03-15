@@ -2,22 +2,30 @@ module gitlab.com/peerdb/peerdb
 
 go 1.25.0
 
+// Some NPM modules ship Go code.
+ignore ./node_modules
+
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alecthomas/kong v1.13.0
 	github.com/cockroachdb/field-eng-powertools v0.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/foolin/pagser v0.1.6
+	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/olivere/elastic/v7 v7.0.32
+	github.com/riverqueue/river v0.31.0
+	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
+	github.com/riverqueue/river/rivertype v0.31.0
 	github.com/rs/zerolog v1.34.1-0.20250418111443-9dacc014f38d
+	github.com/samber/slog-zerolog/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.6.0
-	gitlab.com/tozd/go/x v0.0.0-20260314110808-0f23542feb34
+	gitlab.com/tozd/go/x v0.0.0-20260315142907-e9103a5928d0
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.8.1
 	gitlab.com/tozd/waf v0.22.0
@@ -28,7 +36,16 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	github.com/riverqueue/river/riverdriver v0.31.0 // indirect
+	github.com/riverqueue/river/rivershared v0.31.0 // indirect
+	github.com/samber/lo v1.52.0 // indirect
+	github.com/samber/slog-common v0.20.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.2.0 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 )
 
 require (

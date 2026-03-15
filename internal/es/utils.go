@@ -2,26 +2,18 @@ package es
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"strings"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/internal/mapping"
-	"gitlab.com/peerdb/peerdb/internal/types"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 type loggerAdapter struct {
@@ -88,81 +80,6 @@ func EnsureIndex(ctx context.Context, esClient *elastic.Client, index string) er
 	}
 
 	return nil
-}
-
-// EndDocumentSession ends the document editing session.
-func EndDocumentSession(
-	ctx context.Context, s *store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
-	session identifier.Identifier, endMetadata *types.DocumentEndMetadata,
-) (*types.DocumentEndMetadata, errors.E) {
-	if endMetadata.Discarded {
-		return nil, nil //nolint:nilnil
-	}
-
-	beginMetadata, _, errE := c.Get(ctx, session)
-	if errE != nil {
-		return nil, errE
-	}
-
-	// TODO: Support more than 5000 changes.
-	changesList, errE := c.List(ctx, session, nil)
-	if errE != nil {
-		return nil, errE
-	}
-
-	// changesList is sorted from newest to oldest change, but we want the opposite as we have forward patches.
-	slices.Reverse(changesList)
-
-	changes := make(document.Changes, 0, len(changesList))
-	for _, ch := range changesList {
-		data, _, errE := c.GetData(ctx, session, ch)
-		if errE != nil {
-			errors.Details(errE)["change"] = ch
-			return nil, errE
-		}
-		change, errE := document.ChangeUnmarshalJSON(data)
-		if errE != nil {
-			errors.Details(errE)["change"] = ch
-			return nil, errE
-		}
-		changes = append(changes, change)
-	}
-
-	// TODO: Get latest revision at the same changeset?
-	docJSON, _, errE := s.Get(ctx, beginMetadata.ID, beginMetadata.Version)
-	if errE != nil {
-		return nil, errE
-	}
-
-	var doc document.D
-	errE = x.UnmarshalWithoutUnknownFields(docJSON, &doc)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = changes.Apply(&doc)
-	if errE != nil {
-		return nil, errE
-	}
-
-	docJSON, errE = x.MarshalWithoutEscapeHTML(doc)
-	if errE != nil {
-		return nil, errE
-	}
-
-	metadata := &types.DocumentMetadata{
-		At: beginMetadata.At,
-	}
-
-	version, errE := s.Update(ctx, beginMetadata.ID, beginMetadata.Version.Changeset, docJSON, changes, metadata, &types.NoMetadata{})
-	if errE != nil {
-		return nil, errE
-	}
-
-	endMetadata.Changeset = &version.Changeset
-	endMetadata.Time = time.Since(time.Time(endMetadata.At)).Milliseconds()
-	return endMetadata, nil
 }
 
 // NewHTTPClient creates a retryable HTTP client with the specified base HTTP client and logger.

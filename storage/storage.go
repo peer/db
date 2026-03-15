@@ -1,4 +1,6 @@
 // Package storage provides file storage functionality for PeerDB.
+//
+// This is a low-level component.
 package storage
 
 import (
@@ -7,12 +9,15 @@ import (
 	"slices"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgxlisten"
+	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -27,7 +32,17 @@ type beginMetadata struct {
 type endMetadata struct {
 	At        types.Time `json:"at"`
 	Discarded bool       `json:"discarded,omitempty"`
-	Chunks    int64      `json:"chunks,omitempty"`
+}
+
+type completeData struct {
+	Buffer       []byte
+	FileMetadata *FileMetadata
+	EndMetadata  *endMetadata
+	Chunks       int64
+}
+
+type completeMetadata struct {
+	Chunks int64 `json:"chunks,omitempty"`
 
 	// Processing time in milliseconds.
 	Time int64 `json:"time,omitempty"`
@@ -45,6 +60,12 @@ type chunk struct {
 	Metadata chunkMetadata
 }
 
+type chunkPos struct {
+	start  int64
+	length int64
+	chunk  int64
+}
+
 // FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
 	At        types.Time `json:"at"`
@@ -56,17 +77,20 @@ type FileMetadata struct {
 
 // Storage provides file storage operations.
 type Storage struct {
+	// Schema is PostgreSQL schema used by this storage.
+	Schema string
+
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
 	store       *store.Store[[]byte, *FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None]
-	coordinator *coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]
+	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]
 }
 
-// Init initializes the Storage with the given database connection pool.
-//
-// A non-nil listener is required when the Committed channel is set.
-func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener) errors.E {
+// Init initializes the Storage.
+func (s *Storage) Init(
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, riverClient *river.Client[pgx.Tx], workers *river.Workers,
+) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
 	}
@@ -82,14 +106,15 @@ func (s *Storage) Init(ctx context.Context, dbpool *pgxpool.Pool, listener *pgxl
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, *beginMetadata, *endMetadata, *chunkMetadata]{
-		Prefix:       s.Prefix,
-		DataType:     "bytea",
-		MetadataType: "jsonb",
-		EndCallback:  s.endCallback,
+	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]{
+		Prefix:            s.Prefix,
+		DataType:          "bytea",
+		MetadataType:      "jsonb",
+		CompleteSession:   s.completeStorageSession,
+		CompleteSessionTx: s.completeStorageSessionTx,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = storageCoordinator.Init(ctx, dbpool, nil)
+	errE = storageCoordinator.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}
@@ -105,14 +130,19 @@ func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *types.NoMetadata,
 	return s.store
 }
 
-func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier, endMetadata *endMetadata) (*endMetadata, errors.E) {
-	if endMetadata.Discarded {
-		return nil, nil //nolint:nilnil
-	}
-
-	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
+func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeData, errors.E) {
+	beginMetadata, endMetadata, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return nil, errE
+	}
+
+	if endMetadata.Discarded {
+		return &completeData{
+			Buffer:       nil,
+			FileMetadata: nil,
+			EndMetadata:  endMetadata,
+			Chunks:       0,
+		}, nil
 	}
 
 	chunksList, errE := s.ListChunks(ctx, session)
@@ -144,6 +174,7 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 	size := int64(0)
 	buffer := make([]byte, beginMetadata.Size)
 
+	// This should match implementation in validateChunks.
 	for _, c := range chunks {
 		if c.Metadata.Start > size {
 			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
@@ -166,7 +197,6 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 			// We already have this data.
 			continue
 		}
-
 		copy(buffer[c.Metadata.Start:end], c.Data)
 		size = end
 	}
@@ -183,17 +213,35 @@ func (s *Storage) endCallback(ctx context.Context, session identifier.Identifier
 		Size:      beginMetadata.Size,
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
-		Etag:      computeEtag(buffer),
+		Etag:      x.ComputeEtag(buffer),
 	}
 
-	_, errE = s.store.Insert(ctx, session, buffer, metadata, &types.NoMetadata{})
+	return &completeData{
+		Buffer:       buffer,
+		FileMetadata: metadata,
+		EndMetadata:  endMetadata,
+		Chunks:       int64(len(chunksList)),
+	}, nil
+}
+
+func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*completeMetadata, errors.E) {
+	if data.EndMetadata.Discarded {
+		return &completeMetadata{
+			Chunks: 0,
+			Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+		}, nil
+	}
+
+	// We do not have to use the "tx" parameter because we access the transaction through ctx.
+	_, errE := s.store.Insert(ctx, session, data.Buffer, data.FileMetadata, &types.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}
 
-	endMetadata.Chunks = int64(len(chunksList))
-	endMetadata.Time = time.Since(time.Time(endMetadata.At)).Milliseconds()
-	return endMetadata, nil
+	return &completeMetadata{
+		Chunks: data.Chunks,
+		Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+	}, nil
 }
 
 // BeginUpload starts a new file upload session.
@@ -213,7 +261,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		return errors.Errorf("%w: zero length chunk", ErrInvalidChunk)
 	}
 
-	beginMetadata, _, errE := s.coordinator.Get(ctx, session)
+	beginMetadata, _, _, errE := s.coordinator.Get(ctx, session)
 	if errE != nil {
 		return errE
 	}
@@ -252,14 +300,86 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 
 // EndUpload finalizes an upload session and assembles the file.
 func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
+	// Validate chunks before ending the session so that errors are returned synchronously
+	// and the session remains active for user to attempt to fix any error.
+	errE := s.validateChunks(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: false,
-		Chunks:    0,
-		Time:      0,
 	}
-	_, errE := s.coordinator.End(ctx, session, metadata)
-	return errE
+	return s.coordinator.End(ctx, session, metadata)
+}
+
+// validateChunks checks that the uploaded chunks cover the full file without gaps.
+func (s *Storage) validateChunks(ctx context.Context, session identifier.Identifier) errors.E {
+	beginMetadata, _, _, errE := s.coordinator.Get(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
+	chunksList, errE := s.ListChunks(ctx, session)
+	if errE != nil {
+		return errE
+	}
+
+	chunks := make([]chunkPos, 0, len(chunksList))
+	for _, c := range chunksList {
+		start, length, errE := s.GetChunk(ctx, session, c)
+		if errE != nil {
+			errors.Details(errE)["chunk"] = c
+			return errE
+		}
+		chunks = append(chunks, chunkPos{
+			start:  start,
+			length: length,
+			chunk:  c,
+		})
+	}
+	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
+	// result is that if there are multiple chunks at the same start, newer will be will be used first.
+	slices.SortStableFunc(chunks, func(a, b chunkPos) int {
+		return cmp.Compare(a.start, b.start)
+	})
+
+	size := int64(0)
+
+	// This should match implementation in completeStorageSession.
+	for _, p := range chunks {
+		if p.start > size {
+			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
+			errors.Details(errE)["end"] = size
+			errors.Details(errE)["start"] = p.start
+			errors.Details(errE)["chunk"] = p.chunk
+			return errE
+		}
+		end := p.start + p.length
+		if end > beginMetadata.Size {
+			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
+			errE = errors.New("chunk larger than file")
+			errors.Details(errE)["start"] = p.start
+			errors.Details(errE)["end"] = end
+			errors.Details(errE)["size"] = beginMetadata.Size
+			errors.Details(errE)["chunk"] = p.chunk
+			return errE
+		}
+		if end <= size {
+			continue
+		}
+		size = end
+	}
+
+	if size < beginMetadata.Size {
+		errE = errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
+		errors.Details(errE)["chunks"] = size
+		errors.Details(errE)["size"] = beginMetadata.Size
+		return errE
+	}
+
+	return nil
 }
 
 // DiscardUpload discards an upload session without saving the file.
@@ -267,9 +387,6 @@ func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifi
 	metadata := &endMetadata{
 		At:        types.Time(time.Now().UTC()),
 		Discarded: true,
-		Chunks:    0,
-		Time:      0,
 	}
-	_, errE := s.coordinator.End(ctx, session, metadata)
-	return errE
+	return s.coordinator.End(ctx, session, metadata)
 }

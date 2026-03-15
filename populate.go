@@ -210,7 +210,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		count.Increment()
 
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-		errE := InsertOrReplaceDocument(ctx, site.Store, &doc)
+		errE := site.Base.InsertOrReplaceDocument(ctx, &doc)
 		if errE != nil {
 			return errE
 		}
@@ -220,8 +220,8 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		return errors.WithStack(ctx.Err())
 	}
 
-	// We wait for the bridge to index all committed documents into ElasticSearch.
-	errE = site.Bridge.WaitUntilCaughtUp(ctx)
+	// We wait for the base to index all committed documents into ElasticSearch.
+	errE = site.Base.WaitUntilCaughtUp(ctx)
 	if errE != nil {
 		return errE
 	}
@@ -257,12 +257,11 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Index:           globals.Elastic.Index,
 			Schema:          globals.Postgres.Schema,
 			Title:           "",
-			Bridge:          nil,
-			Store:           nil,
-			Coordinator:     nil,
-			Storage:         nil,
-			ESClient:        nil,
+			Base:            nil,
 			DBPool:          nil,
+			ESClient:        nil,
+			RiverClient:     nil,
+			initialized:     false,
 			propertiesTotal: 0,
 		}}
 	}
@@ -279,7 +278,10 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	errE := Init(ctx, globals)
+	onShutdown, errE := Init(ctx, globals)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
 	if errE != nil {
 		return errE
 	}

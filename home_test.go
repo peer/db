@@ -136,11 +136,11 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		},
 		Postgres: peerdb.PostgresConfig{
 			URL:    []byte(os.Getenv("POSTGRES")),
-			Schema: identifier.New().String(),
+			Schema: "s" + strings.ToLower(identifier.New().String()),
 		},
 		Elastic: peerdb.ElasticConfig{
 			URL:   os.Getenv("ELASTIC"),
-			Index: strings.ToLower(identifier.New().String()),
+			Index: "s" + strings.ToLower(identifier.New().String()),
 		},
 	}
 
@@ -165,9 +165,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 		require.Empty(t, site.Schema)
-		site.Schema = identifier.New().String()
+		site.Schema = "s" + strings.ToLower(identifier.New().String())
 		require.Empty(t, site.Index)
-		site.Index = strings.ToLower(identifier.New().String())
+		site.Index = "s" + strings.ToLower(identifier.New().String())
 	}
 
 	err := globals.Validate()
@@ -192,8 +192,32 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		site.KeyFile = keyPath
 	}
 
-	service, errE := serve.Init(t.Context(), globals, testFiles)
+	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Register cleanup before Init so that indices are removed even if Init partially succeeds.
+	t.Cleanup(func() {
+		// We do not use t.Context() because we want an active context, not a canceled one.
+		ctx := context.Background()
+		if len(globals.Sites) == 0 {
+			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
+			require.NoError(t, err)
+		} else {
+			for _, site := range globals.Sites {
+				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
+				require.NoError(t, err)
+			}
+		}
+	})
+
+	service, onShutdown, errE := serve.Init(t.Context(), globals, testFiles)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	t.Cleanup(func() {
+		if onShutdown != nil {
+			onShutdown()
+		}
+	})
 
 	populate := peerdb.PopulateCommand{}
 
@@ -249,26 +273,6 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		}
 		return dialerContext(ctx, network, addr)
 	}
-
-	cleanupESClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	t.Cleanup(func() {
-		ctx := context.Background()
-		if len(globals.Sites) == 0 {
-			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
-			if err != nil {
-				require.NoError(t, err)
-			}
-		} else {
-			for _, site := range globals.Sites {
-				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
-				if err != nil {
-					require.NoError(t, err)
-				}
-			}
-		}
-	})
 
 	return ts, service
 }

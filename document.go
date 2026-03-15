@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -16,7 +15,6 @@ import (
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/internal/types"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -75,9 +73,9 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	if reqVersion != nil {
-		_, _, errE = site.Store.Get(ctx, id, *reqVersion)
+		_, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
-		_, _, _, errE = site.Store.GetLatest(ctx, id)
+		_, _, _, errE = site.Base.GetDocumentLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -125,9 +123,9 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	if reqVersion != nil {
 		version = *reqVersion
-		dataJSON, _, errE = site.Store.Get(ctx, id, *reqVersion)
+		dataJSON, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
-		dataJSON, _, version, errE = site.Store.GetLatest(ctx, id)
+		dataJSON, _, version, errE = site.Base.GetDocumentLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -180,9 +178,7 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	_, errE = site.Store.Insert(ctx, id, dataJSON, &types.DocumentMetadata{
-		At: types.Time(time.Now().UTC()),
-	}, &types.NoMetadata{})
+	errE = site.Base.InsertDocument(ctx, id, dataJSON)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -218,7 +214,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	_, _, version, errE := site.Store.GetLatest(ctx, id)
+	_, _, version, errE := site.Base.GetDocumentLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -227,13 +223,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	metadata := &types.DocumentBeginMetadata{
-		At:      types.Time(time.Now().UTC()),
-		ID:      id,
-		Version: version,
-	}
-
-	session, errE := site.Coordinator.Begin(ctx, metadata)
+	session, errE := site.Base.BeginDocumentEdit(ctx, id, version)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -292,11 +282,7 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadata := &types.DocumentChangeMetadata{
-		At: types.Time(time.Now().UTC()),
-	}
-
-	_, errE = site.Coordinator.Append(ctx, session, buffer, metadata, &change)
+	_, errE = site.Base.AppendDocumentChange(ctx, session, buffer, &change)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -327,7 +313,7 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 	site := waf.MustGetSite[*Site](ctx)
 
 	// TODO: Support more than 5000 changes.
-	changes, errE := site.Coordinator.List(ctx, session, nil)
+	changes, errE := site.Base.ListDocumentChanges(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -360,7 +346,7 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	dataJSON, _, errE := site.Coordinator.GetData(ctx, session, chunk)
+	dataJSON, errE := site.Base.GetDocumentChange(ctx, session, chunk)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -376,10 +362,6 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 	}
 
 	s.WriteJSON(w, req, dataJSON, nil)
-}
-
-type documentEndEditResponse struct {
-	Changeset identifier.Identifier `json:"changeset"`
 }
 
 // DocumentEndEditPostAPI handles POST requests to finalize an edit session and commit changes.
@@ -413,14 +395,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	metadata := &types.DocumentEndMetadata{
-		At:        types.Time(time.Now().UTC()),
-		Discarded: discard,
-		Changeset: nil,
-		Time:      0,
-	}
-
-	metadata, errE = site.Coordinator.End(ctx, session, metadata)
+	errE = site.Base.EndDocumentEdit(ctx, session, discard)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -432,14 +407,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	if discard {
-		s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
-		return
-	}
-
-	s.WriteJSON(w, req, documentEndEditResponse{
-		Changeset: *metadata.Changeset,
-	}, nil)
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
 // DocumentEditGet is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
@@ -460,17 +428,15 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
+	beginMetadata, errE := site.Base.GetDocumentEditSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	if endMetadata != nil {
-		s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyEnded))
 		return
 	}
 
@@ -501,17 +467,15 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, endMetadata, errE := site.Coordinator.Get(ctx, session)
+	beginMetadata, errE := site.Base.GetDocumentEditSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	if endMetadata != nil {
-		s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyEnded))
 		return
 	}
 

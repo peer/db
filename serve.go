@@ -24,7 +24,7 @@ type Service struct {
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
-func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, errors.E) {
+func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) {
 	c.Server.Logger = globals.Logger
 
 	sites := map[string]*Site{}
@@ -47,12 +47,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Index:           globals.Elastic.Index,
 			Schema:          globals.Postgres.Schema,
 			Title:           c.Title,
-			Bridge:          nil,
-			Store:           nil,
-			Coordinator:     nil,
-			Storage:         nil,
-			ESClient:        nil,
+			Base:            nil,
 			DBPool:          nil,
+			ESClient:        nil,
+			RiverClient:     nil,
+			initialized:     false,
 			propertiesTotal: 0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
@@ -63,7 +62,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	sitesProvided := len(sites) > 0
 	sites, errE := c.Server.Init(sites)
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
 
 	if !sitesProvided {
@@ -90,9 +89,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 	}
 
-	errE = Init(ctx, globals)
+	onShutdown, errE := Init(ctx, globals)
 	if errE != nil {
-		return nil, errE
+		return nil, onShutdown, errE
 	}
 
 	var middleware []func(http.Handler) http.Handler
@@ -138,7 +137,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 	service.setRoutes()
 
-	return service, nil
+	return service, onShutdown, nil
 }
 
 // Prepare prepares the HTTP service for serving.
@@ -168,7 +167,10 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	service, errE := c.Init(ctx, globals, files)
+	service, onShutdown, errE := c.Init(ctx, globals, files)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
 	if errE != nil {
 		return errE
 	}

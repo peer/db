@@ -3,6 +3,7 @@ package storage_test
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,11 +31,10 @@ func initDatabase(t *testing.T) (
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	schema := identifier.New().String()
+	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
@@ -49,17 +49,27 @@ func initDatabase(t *testing.T) (
 
 	listener := internal.NewListener(dbpool)
 
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
 	s := &storage.Storage{
+		Schema: schema,
 		Prefix: prefix,
 	}
 
-	errE = s.Init(ctx, dbpool, listener)
+	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
+	err := riverClient.Start(ctx)
+	require.NoError(t, err)
 
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	t.Cleanup(func() {
+		// Wait for the client to stop.
+		<-riverClient.Stopped()
+	})
+
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
 		[]byte, *storage.FileMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, store.None,
@@ -67,9 +77,12 @@ func initDatabase(t *testing.T) (
 
 	go func() {
 		for {
+			ch, _ := s.Store().Committed.Get(ctx)
 			select {
-			case co := <-s.Store().Committed.Get():
-				channelContents.Append(co)
+			case co, ok := <-ch:
+				if ok {
+					channelContents.Append(co)
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -125,7 +138,7 @@ func TestHappyPath(t *testing.T) {
 	errE = s.EndUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())

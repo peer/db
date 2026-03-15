@@ -2,7 +2,6 @@ package peerdb
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
@@ -10,21 +9,10 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/internal/types"
-	"gitlab.com/peerdb/peerdb/storage"
-	"gitlab.com/peerdb/peerdb/store"
-)
-
-const (
-	// TODO: Determine reasonable size for the buffer.
-	// TODO: Add some monitoring of the channel contention.
-	bridgeBufferSize = 100
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
@@ -36,84 +24,79 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 	return ctx
 }
 
-// initForSite initializes the store, coordinator, storage, and bridge for a specific site.
-func initForSite(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client, schema, index string,
-) (
-	*store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	*coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata],
-	*storage.Storage,
-	*es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes],
-	errors.E,
-) {
-	ctx = WithFallbackDBContext(ctx, "init", schema)
-	ctx = logger.With().Str("schema", schema).Str("index", index).Logger().WithContext(ctx)
+// init initializes the store, coordinator, storage, and bridge for a specific site.
+//
+// It can be called multiple times. In that case it will not initialize again if
+// the site has already been initialized.
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) ([]func(), errors.E) {
+	if s.initialized {
+		return nil, nil
+	}
+	s.initialized = true
 
-	errE := es.EnsureIndex(ctx, esClient, index)
+	ctx = WithFallbackDBContext(ctx, "init", s.Schema)
+	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
+
+	errE := es.EnsureIndex(ctx, esClient, s.Index)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return nil, errE
 	}
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+		return internal.EnsureSchema(ctx, tx, s.Schema)
 	})
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return nil, errE
 	}
 
 	listener := internal.NewListener(dbpool)
 
-	s := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Prefix:        "docs",
-		DataType:      "jsonb",
-		MetadataType:  "jsonb",
-		PatchType:     "jsonb",
-		CommittedSize: bridgeBufferSize,
-	}
-	errE = s.Init(ctx, dbpool, listener)
+	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, s.Schema)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return nil, errE
 	}
 
-	var c *coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]
-	c = &coordinator.Coordinator[json.RawMessage, *types.DocumentBeginMetadata, *types.DocumentEndMetadata, *types.DocumentChangeMetadata]{
-		Prefix:       "docs",
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		EndCallback: func(ctx context.Context, session identifier.Identifier, metadata *types.DocumentEndMetadata) (*types.DocumentEndMetadata, errors.E) {
-			return es.EndDocumentSession(ctx, s, c, session, metadata)
+	b := &base.B{
+		Schema: s.Schema,
+		Index:  s.Index,
+	}
+	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
+	if errE != nil {
+		return nil, errE
+	}
+
+	// Now that everything is initialized, we can start the river client.
+	// It will be stopped when ctx is cancelled.
+	err := riverClient.Start(ctx)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	onShutdown := []func(){
+		func() {
+			// Wait for the client to stop.
+			<-riverClient.Stopped()
 		},
 	}
-	errE = c.Init(ctx, dbpool, nil)
+
+	// After that, we can start the listener.
+	errE = listener.Start(ctx)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return onShutdown, errE
 	}
 
-	storage := &storage.Storage{
-		Prefix: "storage",
-	}
-	errE = storage.Init(ctx, dbpool, nil)
+	// And after the listener we can start the base.
+	errE = b.Start(ctx)
 	if errE != nil {
-		return nil, nil, nil, nil, errE
+		return onShutdown, errE
 	}
 
-	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Store:    s,
-		ESClient: esClient,
-		Index:    index,
-	}
-	errE = b.Init(ctx, dbpool, listener)
-	if errE != nil {
-		return nil, nil, nil, nil, errE
-	}
+	s.Base = b
+	s.DBPool = dbpool
+	s.ESClient = esClient
+	s.RiverClient = riverClient
 
-	// Now that everything is initialized, we can start the listener.
-	internal.StartListener(ctx, listener)
-
-	// And after the listener we can start the bridge.
-	b.Start(ctx)
-
-	return s, c, storage, b, nil
+	return onShutdown, nil
 }
 
 // Init initializes PeerDB for all sites defined in globals.
@@ -123,7 +106,7 @@ func initForSite(
 //
 // It can be called multiple times. In that case it will initialize only
 // sites which have not been initialized yet.
-func Init(ctx context.Context, globals *Globals) errors.E {
+func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	var dbpool *pgxpool.Pool
 	var esClient *elastic.Client
 
@@ -147,7 +130,7 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 		var errE errors.E
 		dbpool, errE = internal.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 		if errE != nil {
-			return errE
+			return nil, errE
 		}
 	}
 
@@ -156,33 +139,26 @@ func Init(ctx context.Context, globals *Globals) errors.E {
 		var errE errors.E
 		esClient, errE = es.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
-			return errE
+			return nil, errE
+		}
+	}
+
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			f()
 		}
 	}
 
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		if site.Store == nil || site.Coordinator == nil || site.Storage == nil || site.Bridge == nil {
-			store, coordinator, storage, bridge, errE := initForSite(ctx, globals.Logger, dbpool, esClient, site.Schema, site.Index)
-			if errE != nil {
-				return errE
-			}
-
-			site.Store = store
-			site.Coordinator = coordinator
-			site.Storage = storage
-			site.Bridge = bridge
-		}
-
-		if site.ESClient == nil {
-			site.ESClient = esClient
-		}
-
-		if site.DBPool == nil {
-			site.DBPool = dbpool
+		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient)
+		onShutdown = append(onShutdown, onS...)
+		if errE != nil {
+			return onShutdownF, errE
 		}
 	}
 
-	return nil
+	return onShutdownF, nil
 }

@@ -1,4 +1,6 @@
 // Package store provides a versioned object store.
+//
+// This is a low-level component.
 package store
 
 import (
@@ -7,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgxlisten"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -117,7 +118,7 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 //
 // A non-nil listener is required when the Committed channel is set.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init( //nolint:maintidx
-	ctx context.Context, dbpool *pgxpool.Pool, listener *pgxlisten.Listener,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener,
 ) errors.E {
 	if s.dbpool != nil {
 		return errors.New("already initialized")
@@ -569,6 +570,20 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		return errE
 	}
 	return nil
+}
+
+// HandlingReady implements internal.Handler interface.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandlingReady(ctx context.Context, channel string) errors.E {
+	switch channel {
+	case s.Prefix + "CommittedChangesets":
+		// We just wait for channel to be available. This means that HandleBacklog has completed.
+		_, errE := s.Committed.Get(ctx)
+		return errE
+	default:
+		errE := errors.New("unknown notification channel")
+		errors.Details(errE)["channel"] = channel
+		return errE
+	}
 }
 
 // handleCommitLogNotification handles CommittedChangesets notifications and forwards

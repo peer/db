@@ -1,4 +1,4 @@
-// Package types provides type definitions and utilities for document metadata and time handling.
+// Package types provides type definitions and utilities for metadata and time handling.
 //
 //nolint:revive
 package types
@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/identifier"
-
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 // RFC3339Milli is the time format string for RFC3339 with millisecond precision.
@@ -40,33 +37,6 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	tt, err := time.Parse(RFC3339Milli, string(data))
 	*t = Time(tt)
 	return errors.WithStack(err)
-}
-
-// DocumentMetadata contains metadata about a document including its timestamp.
-type DocumentMetadata struct {
-	At Time `json:"at"`
-}
-
-// DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
-type DocumentBeginMetadata struct {
-	At      Time                  `json:"at"`
-	ID      identifier.Identifier `json:"id"`
-	Version store.Version         `json:"version"`
-}
-
-// DocumentEndMetadata contains metadata captured at the end of document edit session.
-type DocumentEndMetadata struct {
-	At        Time                   `json:"at"`
-	Discarded bool                   `json:"discarded,omitempty"`
-	Changeset *identifier.Identifier `json:"changeset,omitempty"`
-
-	// Processing time in milliseconds.
-	Time int64 `json:"time,omitempty"`
-}
-
-// DocumentChangeMetadata contains metadata about document changes.
-type DocumentChangeMetadata struct {
-	At Time `json:"at"`
 }
 
 // NoMetadata represents an empty metadata structure.

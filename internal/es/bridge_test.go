@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
@@ -42,7 +41,7 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
 	prefix := identifier.New().String() + "_"
-	index := strings.ToLower(identifier.New().String())
+	index := "s" + strings.ToLower(identifier.New().String())
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
@@ -57,15 +56,17 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	esClient, errE := es.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Register cleanup before creating the index so it is removed even if creation partially succeeds.
+	t.Cleanup(func() {
+		// We do not use t.Context() because we want an active context, not a canceled one.
+		_, err := esClient.DeleteIndex(index).Do(context.Background())
+		require.NoError(t, err)
+	})
+
 	// Use a simple index without the PeerDB mapping so that _source is enabled,
 	// allowing tests to verify document content via the Get API.
 	_, err := esClient.CreateIndex(index).Do(ctx)
 	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_, err := esClient.DeleteIndex(index).Do(context.Background())
-		assert.NoError(t, err)
-	})
 
 	listener := internal.NewListener(dbpool)
 
@@ -87,10 +88,8 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	errE = b.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before tests make commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, s, b, esClient
 }

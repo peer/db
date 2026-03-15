@@ -118,8 +118,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -147,18 +146,19 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
 
 	go func() {
 		for {
+			ch, _ := s.Committed.Get(ctx)
 			select {
-			case c := <-s.Committed.Get():
-				channelContents.Append(c)
+			case c, ok := <-ch:
+				if ok {
+					channelContents.Append(c)
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -200,7 +200,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -248,7 +248,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -303,7 +303,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -365,7 +365,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		insertVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -453,7 +453,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, d.InsertMetadata, metadata)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -510,7 +510,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		newVersion.Changeset,
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c = channelContents.Prune()
 	if assert.Len(t, c, 1) { //nolint:dupl
 		assert.Equal(t, store.MainView, c[0].View.Name())
@@ -572,7 +572,7 @@ func TestListPagination(t *testing.T) {
 
 	assert.Equal(t, ids, inserted)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	assert.Len(t, c, 1)
 
@@ -664,7 +664,7 @@ func TestChangesPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 6000)
 
-	time.Sleep(500 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	// One CommittedChangesets per commit: initial insert (1 changeset) + big commit (6000 changesets).
 	assert.Len(t, c, 2)
@@ -1537,7 +1537,7 @@ func TestCommittedOrdering(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= n }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	require.Len(t, c, n)
 
@@ -1579,7 +1579,7 @@ func TestCommittedSeqSameForCommit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 2)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	// One CommittedChangesets per commit: the commit contains both changesets.
 	require.Len(t, c, 1)
@@ -1760,8 +1760,7 @@ func TestNotifyRecovery(t *testing.T) {
 		t.Skip("POSTGRES is not available")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := identifier.New().String()
@@ -1790,10 +1789,8 @@ func TestNotifyRecovery(t *testing.T) {
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	internal.StartListener(ctx, listener)
-
-	// Allow the listener goroutine to connect and register LISTEN before the test makes commits.
-	time.Sleep(100 * time.Millisecond)
+	errE = listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert an initial document to confirm the channel is working.
 	id1 := identifier.New()
@@ -1801,15 +1798,18 @@ func TestNotifyRecovery(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		ch, errE := s.Committed.Get(ctx)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		select {
-		case <-s.Committed.Get():
+		case <-ch:
 		default:
 			assert.Fail(c, "commit notification not yet received")
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Save the current channel before simulating a listener reconnection.
-	oldCh := s.Committed.Get()
+	oldCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Simulate a listener reconnection by calling HandleBacklog directly.
 	// In production this is triggered when pgxlisten reconnects after a connection drop.
@@ -1827,7 +1827,8 @@ func TestNotifyRecovery(t *testing.T) {
 	}
 
 	// A new channel must be created.
-	newCh := s.Committed.Get()
+	newCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEqual(t, oldCh, newCh, "HandleBacklog should create a new channel")
 
 	// Commits after the reconnection must arrive on the new channel.
