@@ -136,7 +136,7 @@ func TestHappyPath(t *testing.T) {
 	errE = s.EndUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	time.Sleep(100 * time.Millisecond)
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
 	c := channelContents.Prune()
 	if assert.Len(t, c, 1) {
 		assert.Equal(t, store.MainView, c[0].View.Name())
