@@ -192,7 +192,7 @@ type D struct {
 
 - Use the Visitor pattern to traverse/manipulate claims
 - Claims reference properties (also documents) via `prop.id`
-- Built-in properties defined in `document/properties.go` (NAME, TYPE, LABEL, etc.)
+- Built-in classes and properties defined in `core/` (NAME, etc.)
 
 #### 4. **Search** (`search/search.go`)
 
@@ -209,8 +209,7 @@ Elasticsearch query builder with session-based filtering.
 
 #### 5. **Storage** (`storage/storage.go`)
 
-Chunked file upload management with begin/append/end lifecycle. Files stored in PostgreSQL with metadata
-(size, media type, filename, ETag).
+Chunked file upload management with begin/append/end lifecycle.
 
 #### 6. **ES Bridge** (`internal/es/bridge.go`)
 
@@ -218,7 +217,7 @@ Listens to Store changesets and synchronizes to Elasticsearch using bulk indexin
 
 ### HTTP API Routes
 
-Defined in `routes.json` using the WAF framework (`gitlab.com/tozd/waf`).
+Defined in `routes.go` using the WAF framework (`gitlab.com/tozd/waf`).
 
 **Document endpoints** (`/d/`):
 

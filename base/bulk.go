@@ -2,13 +2,18 @@ package base
 
 import (
 	"context"
+	"mime"
+	"path/filepath"
 	"time"
 
+	"github.com/gabriel-vasile/mimetype"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/types"
+	"gitlab.com/peerdb/peerdb/storage"
 )
 
 // InsertOrReplaceDocument inserts or replaces the document based on its ID.
@@ -19,7 +24,34 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	if errE != nil {
 		return errE
 	}
-	_, errE = b.documents.Insert(ctx, doc.ID, data, &DocumentMetadata{At: types.Time(time.Now().UTC())}, &types.NoMetadata{})
+	// TODO: Implement "or replace" part. Currently we just insert.
+	_, errE = b.documents.Insert(ctx, doc.ID, data, &DocumentMetadata{
+		At: types.Time(time.Now().UTC()),
+	}, &types.NoMetadata{})
+	return errE
+}
+
+// InsertOrReplaceFile inserts or replaces the file based on the ID.
+//
+// It is useful for bulk importing data where you do not care about metadata and history tracking.
+func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, data []byte, filename string) errors.E {
+	mediaType := mime.TypeByExtension(filepath.Ext(filename))
+	if mediaType == "" {
+		// Unable to determine media type by extension. Try to detect it by content.
+		mtype := mimetype.Detect(data)
+		mediaType = mtype.String()
+	}
+
+	metadata := &storage.FileMetadata{
+		At:        types.Time(time.Now().UTC()),
+		Size:      int64(len(data)),
+		MediaType: mediaType,
+		Filename:  filename,
+		Etag:      x.ComputeEtag(data),
+	}
+
+	// TODO: Implement "or replace" part. Currently we just insert.
+	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &types.NoMetadata{})
 	return errE
 }
 
