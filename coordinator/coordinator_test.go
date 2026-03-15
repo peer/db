@@ -317,13 +317,15 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		assert.Equal(t, session, completed[0])
 	}
 
+	// Wait for the "completed" notification so we know the DB transaction has committed.
+	require.Eventually(t, func() bool { return changedChannelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
+
 	beginMetadata, endMetadata, completeMetadata, errE = c.Get(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, d.BeginMetadata, beginMetadata)
 	assert.Equal(t, d.EndMetadata, endMetadata)
 	assert.Equal(t, d.CompleteMetadata, completeMetadata)
 
-	require.Eventually(t, func() bool { return changedChannelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
 	changed := changedChannelContents.Prune()
 	if assert.Len(t, changed, 2) {
 		assert.Equal(t, session, changed[0].Session)
@@ -387,17 +389,19 @@ func TestErrors(t *testing.T) {
 	_, errE = c.Append(ctx, session, internal.DummyData, internal.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
+	// Operations are still accessible after End (only deleted after Complete).
 	_, _, errE = c.GetData(ctx, session, 1)
-	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = c.GetMetadata(ctx, session, 1)
-	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = c.End(ctx, session, internal.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	_, errE = c.List(ctx, session, nil)
-	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+	ops, errE := c.List(ctx, session, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []int64{1}, ops)
 }
 
 func TestListPagination(t *testing.T) {
