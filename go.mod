@@ -2,6 +2,9 @@ module gitlab.com/peerdb/peerdb
 
 go 1.25.0
 
+// Some NPM modules ship Go code.
+ignore ./node_modules
+
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alecthomas/kong v1.13.0
