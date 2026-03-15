@@ -509,11 +509,11 @@ func TestNotifyRecovery(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
-		Prefix:          prefix,
-		AppendedSize:    1,
-		ChangedSize:     1,
-		DataType:        "jsonb",
-		MetadataType:    "jsonb",
+		Prefix:       prefix,
+		AppendedSize: 1,
+		ChangedSize:  1,
+		DataType:     "jsonb",
+		MetadataType: "jsonb",
 		CompleteSession: func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
 			return json.RawMessage(`{}`), nil
 		},
