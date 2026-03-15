@@ -39,14 +39,10 @@ type coordinatorJob interface {
 	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) error
 }
 
-type schemaPrefix struct {
-	Schema string
-	Prefix string
-}
-
 //nolint:gochecknoglobals
 var (
-	coordinators   = map[schemaPrefix]coordinatorJob{}
+	// Map from schema to map from prefix to coordinatorJob.
+	coordinators   = map[string]map[string]coordinatorJob{}
 	coordinatorsMu = sync.RWMutex{}
 )
 
@@ -79,7 +75,16 @@ func (w *worker) getCoordinator(schema, prefix string) (coordinatorJob, errors.E
 	coordinatorsMu.RLock()
 	defer coordinatorsMu.RUnlock()
 
-	c, ok := coordinators[schemaPrefix{Schema: schema, Prefix: prefix}]
+	s, ok := coordinators[schema]
+	if !ok {
+		errE := errors.New("coordinator not found")
+		details := errors.Details(errE)
+		details["schema"] = schema
+		details["prefix"] = prefix
+		return nil, errE
+	}
+
+	c, ok := s[prefix]
 	if !ok {
 		errE := errors.New("coordinator not found")
 		details := errors.Details(errE)
@@ -331,26 +336,28 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	coordinatorsMu.Lock()
 	defer coordinatorsMu.Unlock()
 
-	sp := schemaPrefix{Schema: c.schema, Prefix: c.Prefix}
-
-	_, ok := coordinators[sp]
+	s, ok := coordinators[c.schema]
 	if ok {
-		errE := errors.New("coordinator already registered")
-		details := errors.Details(errE)
-		details["schema"] = c.schema
-		details["prefix"] = c.Prefix
-		return errE
-	}
+		_, ok := s[c.Prefix]
+		if ok {
+			errE := errors.New("coordinator already registered")
+			details := errors.Details(errE)
+			details["schema"] = c.schema
+			details["prefix"] = c.Prefix
+			return errE
+		}
+	} else {
+		s = map[string]coordinatorJob{}
+		coordinators[c.schema] = s
 
-	if len(coordinators) == 0 {
-		// We register the worker if this is the first coordinator.
+		// We register the worker if this is the first coordinator for this schema.
 		err := river.AddWorkerSafely(workers, &worker{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	}
 
-	coordinators[sp] = c
+	s[c.Prefix] = c
 
 	return nil
 }
