@@ -192,6 +192,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		return errors.New("already initialized")
 	}
 
+	if c.CompleteSession == nil {
+		return errors.New("CompleteSession cannot be nil")
+	}
+
 	// TODO: Use schema management/migration instead.
 	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `

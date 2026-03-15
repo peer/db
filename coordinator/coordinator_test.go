@@ -342,7 +342,12 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 func TestErrors(t *testing.T) {
 	t.Parallel()
 
-	ctx, c, _, _ := initDatabase[json.RawMessage, json.RawMessage](t, "jsonb", nil)
+	ctx, c, _, changedChannelContents := initDatabase[json.RawMessage, json.RawMessage](
+		t, "jsonb",
+		func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+			return internal.DummyData, nil
+		},
+	)
 
 	_, _, _, errE := c.Get(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
@@ -402,12 +407,31 @@ func TestErrors(t *testing.T) {
 	ops, errE := c.List(ctx, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []int64{1}, ops)
+
+	// Wait for the River job to complete the session (operations are deleted after Complete).
+	require.Eventually(t, func() bool { return changedChannelContents.Len() >= 2 }, 5*time.Second, 50*time.Millisecond)
+	changedChannelContents.Prune()
+
+	// Operations are no longer accessible after Complete.
+	_, _, errE = c.GetData(ctx, session, 1)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
+
+	_, errE = c.GetMetadata(ctx, session, 1)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
+
+	_, errE = c.List(ctx, session, nil)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 }
 
 func TestListPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, c, appendedChannelContents, _ := initDatabase[json.RawMessage, json.RawMessage](t, "jsonb", nil)
+	ctx, c, appendedChannelContents, _ := initDatabase[json.RawMessage, json.RawMessage](
+		t, "jsonb",
+		func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+			return internal.DummyData, nil
+		},
+	)
 
 	operations := []int64{}
 
@@ -490,7 +514,9 @@ func TestNotifyRecovery(t *testing.T) {
 		ChangedSize:     1,
 		DataType:        "jsonb",
 		MetadataType:    "jsonb",
-		CompleteSession: nil,
+		CompleteSession: func(_ context.Context, _ identifier.Identifier) (json.RawMessage, errors.E) {
+			return json.RawMessage(`{}`), nil
+		},
 	}
 
 	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
