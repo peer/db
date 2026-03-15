@@ -286,6 +286,7 @@ docker:
     - export VERSION="$(git describe --tags --always --dirty=+)"
     - echo VERSION "$VERSION"
     - docker build
+      --platform linux/amd64,linux/arm64
       --target production
       --tag "$DOCKER_PIPELINE_IMAGE_NAME"
       --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
@@ -295,6 +296,7 @@ docker:
       --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
       --label "org.opencontainers.image.url=$CI_PROJECT_URL" .
     - docker build
+      --platform linux/amd64,linux/arm64
       --target debug
       --tag "$DOCKER_PIPELINE_IMAGE_NAME-debug"
       --tag "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
@@ -307,8 +309,11 @@ docker:
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA"
     - docker push "$DOCKER_PIPELINE_IMAGE_NAME-debug"
     - docker push "$CI_REGISTRY_IMAGE/commit:$CI_COMMIT_SHA-debug"
-    - export IMAGE_ID=$(docker create "$DOCKER_PIPELINE_IMAGE_NAME")
+    - export IMAGE_ID=$(docker create --platform linux/amd64 "$DOCKER_PIPELINE_IMAGE_NAME")
     - docker cp "$IMAGE_ID:/peerdb" peerdb-linux-amd64
+    - docker rm "$IMAGE_ID"
+    - export IMAGE_ID=$(docker create --platform linux/arm64 "$DOCKER_PIPELINE_IMAGE_NAME")
+    - docker cp "$IMAGE_ID:/peerdb" peerdb-linux-arm64
     - docker rm "$IMAGE_ID"
 
   artifacts:
@@ -316,6 +321,7 @@ docker:
     name: binaries
     paths:
       - peerdb-linux-amd64
+      - peerdb-linux-arm64
     expire_in: never
 
   # We want to run it as soon as possible and do not wait for test stage to finish.
@@ -373,6 +379,7 @@ upload_binaries:
 
   script:
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-linux-amd64 "$PACKAGE_REGISTRY_URL/linux-amd64/${CI_COMMIT_REF_NAME#v}/peerdb"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file peerdb-linux-arm64 "$PACKAGE_REGISTRY_URL/linux-arm64/${CI_COMMIT_REF_NAME#v}/peerdb"'
 
   rules:
     # Only on protected tags. Protected tags start with "v".
