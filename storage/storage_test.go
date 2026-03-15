@@ -53,10 +53,11 @@ func initDatabase(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &storage.Storage{
+		Schema: schema,
 		Prefix: prefix,
 	}
 
-	errE = s.Init(ctx, dbpool, listener, schema, riverClient, workers)
+	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := riverClient.Start(ctx)

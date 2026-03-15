@@ -2,7 +2,6 @@ package peerdb
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
@@ -10,21 +9,10 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/internal/es"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/internal/types"
-	"gitlab.com/peerdb/peerdb/storage"
-	"gitlab.com/peerdb/peerdb/store"
-)
-
-const (
-	// TODO: Determine reasonable size for the buffer.
-	// TODO: Add some monitoring of the channel contention.
-	bridgeBufferSize = 100
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
@@ -63,68 +51,16 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 
 	listener := internal.NewListener(dbpool)
 
-	st := &store.Store[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Prefix:        "docs",
-		DataType:      "jsonb",
-		MetadataType:  "jsonb",
-		PatchType:     "jsonb",
-		CommittedSize: bridgeBufferSize,
-	}
-	errE = st.Init(ctx, dbpool, listener)
-	if errE != nil {
-		return nil, errE
-	}
-
 	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, s.Schema)
 	if errE != nil {
 		return nil, errE
 	}
 
-	var c *coordinator.Coordinator[
-		json.RawMessage,
-		*types.DocumentChangeMetadata,
-		*types.DocumentBeginMetadata,
-		*types.DocumentEndMetadata,
-		*types.DocumentCompleteData,
-		*types.DocumentCompleteMetadata,
-	]
-	c = &coordinator.Coordinator[
-		json.RawMessage,
-		*types.DocumentChangeMetadata,
-		*types.DocumentBeginMetadata,
-		*types.DocumentEndMetadata,
-		*types.DocumentCompleteData,
-		*types.DocumentCompleteMetadata,
-	]{
-		Prefix:       "docs",
-		DataType:     "jsonb",
-		MetadataType: "jsonb",
-		CompleteSession: func(ctx context.Context, session identifier.Identifier) (*types.DocumentCompleteData, errors.E) {
-			return es.CompleteDocumentSession(ctx, st, c, session)
-		},
-		CompleteSessionTx: func(ctx context.Context, _ pgx.Tx, _ identifier.Identifier, data *types.DocumentCompleteData) (*types.DocumentCompleteMetadata, errors.E) {
-			return es.CompleteDocumentSessionTx(ctx, st, data)
-		},
+	b := &base.B{
+		Schema: s.Schema,
+		Index:  s.Index,
 	}
-	errE = c.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
-	if errE != nil {
-		return nil, errE
-	}
-
-	storage := &storage.Storage{
-		Prefix: "storage",
-	}
-	errE = storage.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
-	if errE != nil {
-		return nil, errE
-	}
-
-	b := &es.Bridge[json.RawMessage, *types.DocumentMetadata, *types.NoMetadata, *types.NoMetadata, *types.NoMetadata, document.Changes]{
-		Store:    st,
-		ESClient: esClient,
-		Index:    s.Index,
-	}
-	errE = b.Init(ctx, dbpool, listener)
+	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
 	if errE != nil {
 		return nil, errE
 	}
@@ -149,13 +85,13 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 		return onShutdown, errE
 	}
 
-	// And after the listener we can start the bridge.
-	b.Start(ctx)
+	// And after the listener we can start the base.
+	errE = b.Start(ctx)
+	if errE != nil {
+		return onShutdown, errE
+	}
 
-	s.Store = st
-	s.Coordinator = c
-	s.Storage = storage
-	s.Bridge = b
+	s.Base = b
 	s.DBPool = dbpool
 	s.ESClient = esClient
 	s.RiverClient = riverClient
