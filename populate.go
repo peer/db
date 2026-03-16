@@ -278,10 +278,13 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	onShutdown, errE := Init(ctx, globals)
 	if onShutdown != nil {
 		defer onShutdown()
 	}
+	defer cancel()
 	if errE != nil {
 		return errE
 	}

@@ -167,10 +167,13 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	service, onShutdown, errE := c.Init(ctx, globals, files)
 	if onShutdown != nil {
 		defer onShutdown()
 	}
+	defer cancel()
 	if errE != nil {
 		return errE
 	}
