@@ -436,7 +436,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 		}
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
-		errors.Details(errE)["errors"] = bulkErrors
+		errors.Details(errE)["esErrors"] = bulkErrors
 		return errE
 	}
 
