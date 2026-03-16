@@ -187,5 +187,59 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 		},
 	})
 
+	documents = append(documents, &Class{
+		ClassFields: ClassFields{
+			Name: []ClassName{{
+				Name: "unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "enota",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName: nil,
+			AlternativeName: []ClassName{{
+				Name: "unit of measurement",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "enota mere",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "measurement unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "unit of measure",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "merska enota",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Mnemonic:    "UNIT",
+			Description: nil,
+			SubclassOf: []Ref{{
+				ID: []string{Namespace, "VOCABULARY"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "UNIT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "CLASS"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

@@ -234,14 +234,28 @@ type VocabularyName struct {
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
 
+// VocabularyDescription represents a vocabulary description with language information.
+type VocabularyDescription struct {
+	Description RawHTML `json:"description" value:""`
+
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+}
+
 // VocabularyFields contains fields specific to vocabularies.
 type VocabularyFields struct {
-	Name []VocabularyName `cardinality:"1.." json:"name"           property:"NAME"`
-	Code []Identifier     `cardinality:"0.." json:"code,omitempty" property:"CODE"`
+	Name        []VocabularyName        `cardinality:"1.." json:"name"                  property:"NAME"`
+	Description []VocabularyDescription `cardinality:"0.." json:"description,omitempty" property:"DESCRIPTION"`
+	Code        []Identifier            `cardinality:"0.." json:"code,omitempty"        property:"CODE"`
 }
 
 // Language represents a language vocabulary document.
 type Language struct {
+	VocabularyFields
+	DocumentFields
+}
+
+// Unit represents a unit of measurement vocabulary document.
+type Unit struct {
 	VocabularyFields
 	DocumentFields
 }

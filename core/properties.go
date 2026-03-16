@@ -660,69 +660,6 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []PropertyName{{
-				Name: "unit",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Name: "enota",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			ShortName: nil,
-			AlternativeName: []PropertyName{{
-				Name: "unit of measurement",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Name: "enota mere",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}, {
-				Name: "measurement unit",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Name: "unit of measure",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Name: "merska enota",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			Mnemonic: "UNIT",
-			Description: []PropertyDescription{{
-				Description: "Unit associated with an amount.",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Description: "Enota številčne vrednosti.",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			Instruction:   nil,
-			SubpropertyOf: nil,
-		},
-		DocumentFields: DocumentFields{
-			ID: []string{Namespace, "UNIT"},
-			InstanceOf: []Ref{{
-				ID: []string{Namespace, "PROPERTY"},
-			}},
-		},
-	})
-
-	documents = append(documents, &Property{
-		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
 				Name: "media type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -777,6 +714,69 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "MEDIA_TYPE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []PropertyName{{
+				Name: "in unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "v enoti",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName: nil,
+			AlternativeName: []PropertyName{{
+				Name: "in unit of measurement",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "v enoti mere",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Name: "in measurement unit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "in unit of measure",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Name: "v merski enoti",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Mnemonic: "IN_UNIT",
+			Description: []PropertyDescription{{
+				Description: "Unit associated with an amount.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Description: "Enota številčne vrednosti.",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Instruction:   nil,
+			SubpropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "IN_UNIT"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
