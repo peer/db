@@ -13,13 +13,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "subentity of",
+			Name: []StringWithLanguage{{
+				Value: "subentity of",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "pod-entiteta od",
+				Value: "pod-entiteta od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -41,55 +41,55 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "instance of",
+			Name: []StringWithLanguage{{
+				Value: "instance of",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "instanca od",
+				Value: "instanca od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []PropertyName{{
-				Name: "is",
+			AlternativeName: []StringWithLanguage{{
+				Value: "is",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "je",
+				Value: "je",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "kind",
+				Value: "kind",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "vrsta",
+				Value: "vrsta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "form",
+				Value: "form",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "oblika",
+				Value: "oblika",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "category",
+				Value: "category",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "kategorija",
+				Value: "kategorija",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -111,13 +111,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "subclass of",
+			Name: []StringWithLanguage{{
+				Value: "subclass of",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "pod-razred od",
+				Value: "pod-razred od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -141,13 +141,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "subproperty of",
+			Name: []StringWithLanguage{{
+				Value: "subproperty of",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "pod-lastnost od",
+				Value: "pod-lastnost od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -171,13 +171,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "distinct from",
+			Name: []StringWithLanguage{{
+				Value: "distinct from",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "različen od",
+				Value: "različen od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -199,13 +199,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "naming",
+			Name: []StringWithLanguage{{
+				Value: "naming",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "poimenovanje",
+				Value: "poimenovanje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -227,13 +227,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "name",
+			Name: []StringWithLanguage{{
+				Value: "name",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "ime",
+				Value: "ime",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -257,13 +257,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "short name",
+			Name: []StringWithLanguage{{
+				Value: "short name",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "kratko ime",
+				Value: "kratko ime",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -287,13 +287,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "alternative name",
+			Name: []StringWithLanguage{{
+				Value: "alternative name",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "alternativno ime",
+				Value: "alternativno ime",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -317,13 +317,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "title",
+			Name: []StringWithLanguage{{
+				Value: "title",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "naslov",
+				Value: "naslov",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -347,13 +347,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "description",
+			Name: []StringWithLanguage{{
+				Value: "description",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "opis",
+				Value: "opis",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -375,13 +375,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "instruction",
+			Name: []StringWithLanguage{{
+				Value: "instruction",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "navodilo",
+				Value: "navodilo",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -403,13 +403,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "mnemonic",
+			Name: []StringWithLanguage{{
+				Value: "mnemonic",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "mnemonik",
+				Value: "mnemonik",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -431,13 +431,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "in language",
+			Name: []StringWithLanguage{{
+				Value: "in language",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "v jeziku",
+				Value: "v jeziku",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -459,13 +459,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "variant",
+			Name: []StringWithLanguage{{
+				Value: "variant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "varianta",
+				Value: "varianta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -473,13 +473,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			ShortName:       nil,
 			AlternativeName: nil,
 			Mnemonic:        "VARIANT",
-			Description: []PropertyDescription{{
-				Description: "A variant has an unique ID. All values of a variant share this ID.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "A variant has an unique ID. All values of a variant share this ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Description: "Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.",
+				Value: "Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -497,13 +497,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "default variant",
+			Name: []StringWithLanguage{{
+				Value: "default variant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "privzeta varianta",
+				Value: "privzeta varianta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -525,13 +525,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "selected variant",
+			Name: []StringWithLanguage{{
+				Value: "selected variant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "izbrana varianta",
+				Value: "izbrana varianta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -553,13 +553,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "list",
+			Name: []StringWithLanguage{{
+				Value: "list",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "seznam",
+				Value: "seznam",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -567,13 +567,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			ShortName:       nil,
 			AlternativeName: nil,
 			Mnemonic:        "LIST",
-			Description: []PropertyDescription{{
-				Description: "A list has an unique ID, even a list with just one element. All elements of a list share this ID.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "A list has an unique ID, even a list with just one element. All elements of a list share this ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Description: "Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.",
+				Value: "Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -591,13 +591,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "order in list",
+			Name: []StringWithLanguage{{
+				Value: "order in list",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "vrstni red v seznamu",
+				Value: "vrstni red v seznamu",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -605,13 +605,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			ShortName:       nil,
 			AlternativeName: nil,
 			Mnemonic:        "ORDER_IN_LIST",
-			Description: []PropertyDescription{{
-				Description: "Order of an element inside its list. Smaller number is earlier in the list.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "Order of an element inside its list. Smaller number is earlier in the list.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Description: "Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.",
+				Value: "Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -629,13 +629,13 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "code",
+			Name: []StringWithLanguage{{
+				Value: "code",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "koda",
+				Value: "koda",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -659,50 +659,50 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "media type",
+			Name: []StringWithLanguage{{
+				Value: "media type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "tip medija",
+				Value: "tip medija",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []PropertyName{{
-				Name: "MIME type",
+			AlternativeName: []StringWithLanguage{{
+				Value: "MIME type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "tip MIME",
+				Value: "tip MIME",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "IMT",
+				Value: "IMT",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "Internet media type",
+				Value: "Internet media type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "internetni tip medija",
+				Value: "internetni tip medija",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "content type",
+				Value: "content type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "tip vsebine",
+				Value: "tip vsebine",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -722,52 +722,52 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
-			Name: []PropertyName{{
-				Name: "in unit",
+			Name: []StringWithLanguage{{
+				Value: "in unit",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "v enoti",
+				Value: "v enoti",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []PropertyName{{
-				Name: "in unit of measurement",
+			AlternativeName: []StringWithLanguage{{
+				Value: "in unit of measurement",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "v enoti mere",
+				Value: "v enoti mere",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "in measurement unit",
+				Value: "in measurement unit",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "in unit of measure",
+				Value: "in unit of measure",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "v merski enoti",
+				Value: "v merski enoti",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			Mnemonic: "IN_UNIT",
-			Description: []PropertyDescription{{
-				Description: "Unit associated with an amount.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "Unit associated with an amount.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Description: "Enota številčne vrednosti.",
+				Value: "Enota številčne vrednosti.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},

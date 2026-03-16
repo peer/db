@@ -11,13 +11,13 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Language{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name: "English",
+			Name: []StringWithLanguage{{
+				Value: "English",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "angleščina",
+				Value: "angleščina",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -35,13 +35,13 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Language{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name: "Slovenian",
+			Name: []StringWithLanguage{{
+				Value: "Slovenian",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "slovenščina",
+				Value: "slovenščina",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -59,18 +59,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "litre",
+			Name: []StringWithLanguage{{
+				Value:       "litre",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "liter",
+				Value:       "liter",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The litre volume unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The litre volume unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota liter za prostornino.",
+				Value: "Enota liter za prostornino.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"l"},
@@ -83,18 +83,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "kilogram per kilogram",
+			Name: []StringWithLanguage{{
+				Value:       "kilogram per kilogram",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "kilogram na kilogram",
+				Value:       "kilogram na kilogram",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The kilogram per kilogram ratio unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The kilogram per kilogram ratio unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota kilogram na kilogram za razmerje.",
+				Value: "Enota kilogram na kilogram za razmerje.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"kg/kg"},
@@ -107,18 +107,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "kilogram",
+			Name: []StringWithLanguage{{
+				Value:       "kilogram",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "kilogram",
+				Value:       "kilogram",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The kilogram mass unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The kilogram mass unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota kilogram za maso.",
+				Value: "Enota kilogram za maso.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"kg"},
@@ -131,18 +131,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "kilogram per cubic metre",
+			Name: []StringWithLanguage{{
+				Value:       "kilogram per cubic metre",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "kilogram na kubični meter",
+				Value:       "kilogram na kubični meter",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The kilogram per cubic metre density unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The kilogram per cubic metre density unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota kilogram na kubični meter za gostoto.",
+				Value: "Enota kilogram na kubični meter za gostoto.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"kg/m³"},
@@ -155,18 +155,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "metre",
+			Name: []StringWithLanguage{{
+				Value:       "metre",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "meter",
+				Value:       "meter",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The metre length unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The metre length unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota meter za dolžino.",
+				Value: "Enota meter za dolžino.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"m"},
@@ -179,18 +179,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "square metre",
+			Name: []StringWithLanguage{{
+				Value:       "square metre",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "kvadratni meter",
+				Value:       "kvadratni meter",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The square metre area unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The square metre area unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota kvadratni meter za površino.",
+				Value: "Enota kvadratni meter za površino.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"m²"},
@@ -203,18 +203,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "metre per second",
+			Name: []StringWithLanguage{{
+				Value:       "metre per second",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "meter na sekundo",
+				Value:       "meter na sekundo",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The metre per second velocity unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The metre per second velocity unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota meter na sekundo za hitrost.",
+				Value: "Enota meter na sekundo za hitrost.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"m/s"},
@@ -227,18 +227,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "volt",
+			Name: []StringWithLanguage{{
+				Value:       "volt",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "volt",
+				Value:       "volt",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The volt electric potential unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The volt electric potential unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota volt za električno napetost.",
+				Value: "Enota volt za električno napetost.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"V"},
@@ -251,18 +251,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "watt",
+			Name: []StringWithLanguage{{
+				Value:       "watt",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "vat",
+				Value:       "vat",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The watt power unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The watt power unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota vat za moč.",
+				Value: "Enota vat za moč.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"W"},
@@ -275,18 +275,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "pascal",
+			Name: []StringWithLanguage{{
+				Value:       "pascal",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "pascal",
+				Value:       "pascal",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The pascal pressure unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The pascal pressure unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota pascal za tlak.",
+				Value: "Enota pascal za tlak.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"Pa"},
@@ -299,18 +299,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "coulomb",
+			Name: []StringWithLanguage{{
+				Value:       "coulomb",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "coulomb",
+				Value:       "coulomb",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The coulomb electric charge unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The coulomb electric charge unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota coulomb za električni naboj.",
+				Value: "Enota coulomb za električni naboj.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"C"},
@@ -323,18 +323,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "joule",
+			Name: []StringWithLanguage{{
+				Value:       "joule",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "džul",
+				Value:       "džul",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The joule energy unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The joule energy unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota džul za energijo.",
+				Value: "Enota džul za energijo.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"J"},
@@ -347,18 +347,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "degree Celsius",
+			Name: []StringWithLanguage{{
+				Value:       "degree Celsius",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "stopinja Celzija",
+				Value:       "stopinja Celzija",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The Celsius temperature unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The Celsius temperature unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota stopinja Celzija za temperaturo.",
+				Value: "Enota stopinja Celzija za temperaturo.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"°C"},
@@ -371,18 +371,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "radian",
+			Name: []StringWithLanguage{{
+				Value:       "radian",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "radian",
+				Value:       "radian",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The radian angle unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The radian angle unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota radian za kot.",
+				Value: "Enota radian za kot.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"rad"},
@@ -395,18 +395,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "hertz",
+			Name: []StringWithLanguage{{
+				Value:       "hertz",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "herc",
+				Value:       "herc",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The hertz frequency unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The hertz frequency unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota herc za frekvenco.",
+				Value: "Enota herc za frekvenco.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"Hz"},
@@ -419,18 +419,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "dollar",
+			Name: []StringWithLanguage{{
+				Value:       "dollar",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "dolar",
+				Value:       "dolar",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The dollar currency unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The dollar currency unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota dolar za valuto.",
+				Value: "Enota dolar za valuto.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"$"},
@@ -443,18 +443,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "byte",
+			Name: []StringWithLanguage{{
+				Value:       "byte",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "bajt",
+				Value:       "bajt",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The byte data size unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The byte data size unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota bajt za velikost podatkov.",
+				Value: "Enota bajt za velikost podatkov.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"B"},
@@ -467,18 +467,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "pixel",
+			Name: []StringWithLanguage{{
+				Value:       "pixel",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "piksel",
+				Value:       "piksel",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The pixel digital image measurement unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The pixel digital image measurement unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota piksel za merjenje digitalnih slik.",
+				Value: "Enota piksel za merjenje digitalnih slik.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"px"},
@@ -491,18 +491,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "second",
+			Name: []StringWithLanguage{{
+				Value:       "second",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "sekunda",
+				Value:       "sekunda",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The second time unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The second time unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota sekunda za čas.",
+				Value: "Enota sekunda za čas.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"s"},
@@ -515,18 +515,18 @@ func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
 
 	documents = append(documents, &Unit{
 		VocabularyFields: VocabularyFields{
-			Name: []VocabularyName{{
-				Name:       "decibel",
+			Name: []StringWithLanguage{{
+				Value:       "decibel",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Name:       "decibel",
+				Value:       "decibel",
 				InLanguage: []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
-			Description: []VocabularyDescription{{
-				Description: "The decibel sound intensity unit.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "The decibel sound intensity unit.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "en-GB"}}},
 			}, {
-				Description: "Enota decibel za jakost zvoka.",
+				Value: "Enota decibel za jakost zvoka.",
 				InLanguage:  []Ref{{ID: []string{Namespace, "LANGUAGE", "sl-SI"}}},
 			}},
 			Code: []Identifier{"dB"},

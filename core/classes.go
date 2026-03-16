@@ -12,13 +12,13 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "class",
+			Name: []StringWithLanguage{{
+				Value: "class",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "razred",
+				Value: "razred",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -39,47 +39,47 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "property",
+			Name: []StringWithLanguage{{
+				Value: "property",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "lastnost",
+				Value: "lastnost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []ClassName{{
-				Name: "attribute",
+			AlternativeName: []StringWithLanguage{{
+				Value: "attribute",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "atribut",
+				Value: "atribut",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "characteristic",
+				Value: "characteristic",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "značilnost",
+				Value: "značilnost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			Mnemonic: "PROPERTY",
-			Description: []ClassDescription{{
-				Description: "A document describes a property.",
+			Description: []RawHTMLWithLanguage{{
+				Value: "A document describes a property.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Description: "Dokument opisuje lastnost.",
+				Value: "Dokument opisuje lastnost.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -96,13 +96,13 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "document",
+			Name: []StringWithLanguage{{
+				Value: "document",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "dokument",
+				Value: "dokument",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -123,25 +123,25 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "vocabulary",
+			Name: []StringWithLanguage{{
+				Value: "vocabulary",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "slovar",
+				Value: "slovar",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []ClassName{{
-				Name: "code book",
+			AlternativeName: []StringWithLanguage{{
+				Value: "code book",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "šifrant",
+				Value: "šifrant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -160,13 +160,13 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "language",
+			Name: []StringWithLanguage{{
+				Value: "language",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "jezik",
+				Value: "jezik",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -189,40 +189,40 @@ func Classes(_ zerolog.Logger) ([]any, errors.E) {
 
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
-			Name: []ClassName{{
-				Name: "unit",
+			Name: []StringWithLanguage{{
+				Value: "unit",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "enota",
+				Value: "enota",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			ShortName: nil,
-			AlternativeName: []ClassName{{
-				Name: "unit of measurement",
+			AlternativeName: []StringWithLanguage{{
+				Value: "unit of measurement",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "enota mere",
+				Value: "enota mere",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
-				Name: "measurement unit",
+				Value: "measurement unit",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "unit of measure",
+				Value: "unit of measure",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Name: "merska enota",
+				Value: "merska enota",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},

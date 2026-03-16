@@ -159,35 +159,42 @@ type DocumentFields struct {
 	InstanceOf []Ref    `cardinality:"0.."               json:"instanceOf,omitempty" property:"INSTANCE_OF"`
 }
 
-// PropertyName represents a property name (main, short or alternative) with language information.
-type PropertyName struct {
-	Name string `json:"name" value:""`
+// StringWithLanguage represents string with language information.
+type StringWithLanguage struct {
+	Value string `json:"value" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
 
-// PropertyDescription represents a property description with language information.
-type PropertyDescription struct {
-	Description RawHTML `json:"description" value:""`
+// HTMLWithLanguage represents HTML with language information.
+type HTMLWithLanguage struct {
+	Value HTML `json:"value" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
 
-// PropertyInstruction represents a property instruction with language information.
-type PropertyInstruction struct {
-	Instruction RawHTML `json:"instruction" value:""`
+// RawHTMLWithLanguage represents raw HTML with language information.
+type RawHTMLWithLanguage struct {
+	Value RawHTML `json:"value" value:""`
 
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+}
+
+// IRIWithMediaType represents IRI (URL, URI or IRI) with its media type.
+type IRIWithMediaType struct {
+	Value IRI `json:"value" value:""`
+
+	MediaType []Identifier `cardinality:"0.." json:"mediaType,omitempty" property:"MEDIA_TYPE"`
 }
 
 // PropertyFields contains fields specific to properties.
 type PropertyFields struct {
-	Name            []PropertyName        `cardinality:"1.."  json:"name"                      property:"NAME"`
-	ShortName       []PropertyName        `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
-	AlternativeName []PropertyName        `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
+	Name            []StringWithLanguage  `cardinality:"1.."  json:"name"                      property:"NAME"`
+	ShortName       []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
+	AlternativeName []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
 	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
-	Description     []PropertyDescription `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
-	Instruction     []PropertyInstruction `cardinality:"0.."  json:"instruction,omitempty"     property:"INSTRUCTION"`
+	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
+	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"INSTRUCTION"`
 	SubpropertyOf   []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"   property:"SUBPROPERTY_OF"`
 }
 
@@ -197,28 +204,14 @@ type Property struct {
 	DocumentFields
 }
 
-// ClassName represents a class name (main, short or alternative) with language information.
-type ClassName struct {
-	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
-// ClassDescription represents a class description with language information.
-type ClassDescription struct {
-	Description RawHTML `json:"description" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
 // ClassFields contains fields specific to classes.
 type ClassFields struct {
-	Name            []ClassName        `cardinality:"1.."  json:"name"                      property:"NAME"`
-	ShortName       []ClassName        `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
-	AlternativeName []ClassName        `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
-	Mnemonic        string             `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
-	Description     []ClassDescription `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
-	SubclassOf      []Ref              `cardinality:"0.."  json:"subclassOf,omitempty"      property:"SUBCLASS_OF"`
+	Name            []StringWithLanguage  `cardinality:"1.."  json:"name"                      property:"NAME"`
+	ShortName       []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
+	AlternativeName []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
+	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
+	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
+	SubclassOf      []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"      property:"SUBCLASS_OF"`
 }
 
 // Class represents a class document.
@@ -227,25 +220,11 @@ type Class struct {
 	DocumentFields
 }
 
-// VocabularyName represents a vocabulary name with language information.
-type VocabularyName struct {
-	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
-// VocabularyDescription represents a vocabulary description with language information.
-type VocabularyDescription struct {
-	Description RawHTML `json:"description" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
 // VocabularyFields contains fields specific to vocabularies.
 type VocabularyFields struct {
-	Name        []VocabularyName        `cardinality:"1.." json:"name"                  property:"NAME"`
-	Description []VocabularyDescription `cardinality:"0.." json:"description,omitempty" property:"DESCRIPTION"`
-	Code        []Identifier            `cardinality:"0.." json:"code,omitempty"        property:"CODE"`
+	Name        []StringWithLanguage  `cardinality:"1.." json:"name"                  property:"NAME"`
+	Description []RawHTMLWithLanguage `cardinality:"0.." json:"description,omitempty" property:"DESCRIPTION"`
+	Code        []Identifier          `cardinality:"0.." json:"code,omitempty"        property:"CODE"`
 }
 
 // Language represents a language vocabulary document.
@@ -260,30 +239,16 @@ type Unit struct {
 	DocumentFields
 }
 
-// SectionName represents a name of a section.
-type SectionName struct {
-	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
-}
-
 // Section represents a section of fields of an entity.
 type Section struct {
-	Name        []SectionName `cardinality:"1.." json:"name"            property:"NAME"`
-	OrderInList int           `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
-	Field       []Field       `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
-}
-
-// FieldName represents a name of a field.
-type FieldName struct {
-	Name string `json:"name" value:""`
-
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+	Name        []StringWithLanguage `cardinality:"1.." json:"name"            property:"NAME"`
+	OrderInList int                  `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
+	Field       []Field              `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
 }
 
 // Field represents a field of an entity.
 type Field struct {
-	Name        []FieldName           `cardinality:"1.." json:"name"             property:"NAME"`
+	Name        []StringWithLanguage  `cardinality:"1.." json:"name"             property:"NAME"`
 	OrderInList int                   `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
 	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"      property:"CARDINALITY"   unit:"1"`
 	Values      []Identifier          `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
