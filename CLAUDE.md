@@ -169,14 +169,14 @@ Manages append-only logs for real-time collaboration sessions.
 Claims-based document system supporting 11 claim types:
 
 - **IdentifierClaim**: External IDs (e.g., Wikidata Q-IDs)
-- **TextClaim**: Rich text with HTML in multiple languages
 - **StringClaim**: Plain text strings
+- **HTMLClaim**: Rich text with HTML
+- **AmountClaim/AmountIntervalClaim**: Numeric values with units
+- **TimeClaim/TimeIntervalClaim**: Timestamps and time intervals
+- **ReferenceClaim**: URL/IRI references
 - **RelationClaim**: Relationships to other documents
-- **AmountClaim/AmountRangeClaim**: Numeric values with units
-- **TimeClaim/TimeRangeClaim**: Timestamps and time ranges
-- **FileClaim**: File references
-- **ReferenceClaim**: URL references
-- **NoValueClaim/UnknownValueClaim**: Missing data markers
+- **HasClaim**: Has property
+- **NoneClaim/UnknownClaim**: Missing data markers
 
 **Core structure**:
 

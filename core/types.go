@@ -1,7 +1,10 @@
 package core
 
 import (
+	"math"
 	"time"
+
+	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/peerdb/document"
 )
@@ -31,30 +34,123 @@ type Unknown bool
 
 // Time represents a time with precision.
 type Time struct {
-	Timestamp time.Time              `json:"timestamp"`
+	// We do not use document.Timestamp here for easier interoperability with other systems.
+	Timestamp time.Time              `json:"time"`
 	Precision document.TimePrecision `json:"precision"`
 }
 
+// Validate checks that Precision is a defined TimePrecision value.
+func (t Time) Validate() errors.E {
+	if t.Precision < document.TimePrecisionGigaYears || t.Precision > document.TimePrecisionNanosecond {
+		return errors.New("unknown Precision")
+	}
+	return nil
+}
+
 // Amount represents a numeric amount with precision.
+//
+// Infinite or NaN values are not supported for Amount[float32] and Amount[float64].
 type Amount[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64] struct {
 	Amount    T `json:"amount"`
 	Precision T `json:"precision"`
+}
+
+// Validate checks that the amount values are finite numbers.
+func (a Amount[T]) Validate() errors.E {
+	switch v := any(a).(type) {
+	case Amount[float32]:
+		if math.IsInf(float64(v.Amount), 0) || math.IsNaN(float64(v.Amount)) {
+			return errors.New("Amount must be a finite number")
+		}
+		if math.IsInf(float64(v.Precision), 0) || math.IsNaN(float64(v.Precision)) {
+			return errors.New("Precision must be a finite number")
+		}
+	case Amount[float64]:
+		if math.IsInf(v.Amount, 0) || math.IsNaN(v.Amount) {
+			return errors.New("Amount must be a finite number")
+		}
+		if math.IsInf(v.Precision, 0) || math.IsNaN(v.Precision) {
+			return errors.New("Precision must be a finite number")
+		}
+	}
+	return nil
+}
+
+// IntervalBound is a type constraint for interval bounds.
+type IntervalBound interface {
+	Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] |
+		Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] |
+		Amount[float32] | Amount[float64]
+	Validate() errors.E
 }
 
 // Interval represents an interval between two values.
 //
 // If From or To is nil, it is zero value value, unless *IsUnknown or *IsNone is true, respectively.
 //
-// Only one of From* fields can be set at a time.
-// Only one of To* fields can be set at a time.
-// TODO: Add open/closed flags.
-type Interval[T Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] | Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] | Amount[float32] | Amount[float64]] struct { //nolint:lll
+// Only one of FromIs* fields can be set at a time. If FromIsUnknown or FromIsNone is true, From must be nil.
+// Only one of ToIs* fields can be set at a time. If ToIsUnknown or ToIsNone is true, To must be nil.
+type Interval[T IntervalBound] struct {
 	From          *T   `json:"from,omitempty"`
+	FromIsOpen    bool `json:"fromIsOpen,omitempty"`
 	FromIsUnknown bool `json:"fromIsUnknown,omitempty"`
 	FromIsNone    bool `json:"fromIsNone,omitempty"`
-	To            *T   `json:"to,omitempty"`
-	ToIsUnknown   bool `json:"toIsUnknown,omitempty"`
-	ToIsNone      bool `json:"toIsNone,omitempty"`
+
+	To          *T   `json:"to,omitempty"`
+	ToIsClosed  bool `json:"toIsClosed,omitempty"`
+	ToIsUnknown bool `json:"toIsUnknown,omitempty"`
+	ToIsNone    bool `json:"toIsNone,omitempty"`
+}
+
+// Validate checks that the interval has valid bounds.
+func (i *Interval[T]) Validate() errors.E {
+	fromIsCount := 0
+	if i.FromIsOpen {
+		fromIsCount++
+	}
+	if i.FromIsUnknown {
+		fromIsCount++
+	}
+	if i.FromIsNone {
+		fromIsCount++
+	}
+	if fromIsCount > 1 {
+		return errors.New("only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
+	}
+	if i.From != nil && (i.FromIsUnknown || i.FromIsNone) {
+		return errors.New("From must not be set when FromIsUnknown or FromIsNone is true")
+	}
+	if i.From != nil {
+		errE := (*i.From).Validate()
+		if errE != nil {
+			return errE
+		}
+	}
+
+	toIsCount := 0
+	if i.ToIsClosed {
+		toIsCount++
+	}
+	if i.ToIsUnknown {
+		toIsCount++
+	}
+	if i.ToIsNone {
+		toIsCount++
+	}
+	if toIsCount > 1 {
+		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	}
+	if i.To != nil && (i.ToIsUnknown || i.ToIsNone) {
+		return errors.New("To must not be set when ToIsUnknown or ToIsNone is true")
+	}
+	if i.To != nil {
+		errE := (*i.To).Validate()
+		if errE != nil {
+			return errE
+		}
+	}
+
+	return nil
 }
 
 // DocumentFields contains common fields for all documents.

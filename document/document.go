@@ -11,8 +11,7 @@ import (
 type D struct {
 	CoreDocument
 
-	Mnemonic Mnemonic    `exhaustruct:"optional" json:"mnemonic,omitempty"`
-	Claims   *ClaimTypes `exhaustruct:"optional" json:"claims,omitempty"`
+	Claims *ClaimTypes `exhaustruct:"optional" json:"claims,omitempty"`
 }
 
 // ClaimsContainer defines the interface for types that can hold and manipulate claims.
@@ -33,7 +32,7 @@ var _ ClaimsContainer = (*D)(nil)
 // Reference returns a Reference to this document.
 func (d D) Reference() Reference {
 	return Reference{
-		ID: &d.ID,
+		ID: d.ID,
 	}
 }
 
@@ -137,8 +136,5 @@ func (d *D) MergeFrom(other ...*D) errors.E {
 			}
 		}
 	}
-	// TODO: What to do about scores after merging?
-	d.Score = LowConfidence
-	d.Scores = nil
 	return nil
 }

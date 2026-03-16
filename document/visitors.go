@@ -22,17 +22,17 @@ const (
 // Visitor is an interface for visiting different claim types in a document.
 type Visitor interface { //nolint:interfacebloat
 	VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E)
-	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
-	VisitText(claim *TextClaim) (VisitResult, errors.E)
 	VisitString(claim *StringClaim) (VisitResult, errors.E)
+	VisitHTML(claim *HTMLClaim) (VisitResult, errors.E)
 	VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
-	VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E)
-	VisitRelation(claim *RelationClaim) (VisitResult, errors.E)
-	VisitFile(claim *FileClaim) (VisitResult, errors.E)
-	VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E)
-	VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E)
+	VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E)
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
-	VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E)
+	VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E)
+	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
+	VisitRelation(claim *RelationClaim) (VisitResult, errors.E)
+	VisitHas(claim *HasClaim) (VisitResult, errors.E)
+	VisitNone(claim *NoneClaim) (VisitResult, errors.E)
+	VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E)
 }
 
 // Visit traverses all claims in the ClaimTypes and applies the visitor to each one.
@@ -72,60 +72,6 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 
 	stopping = false
 	k = 0
-	for i := range c.Reference {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitReference(&c.Reference[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Reference[k] = c.Reference[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Reference) != k {
-		c.Reference = c.Reference[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.Text {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitText(&c.Text[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Text[k] = c.Text[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Text) != k {
-		c.Text = c.Text[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
 	for i := range c.String {
 		var keep VisitResult
 		if !stopping {
@@ -146,6 +92,33 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	}
 	if len(c.String) != k {
 		c.String = c.String[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.HTML {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitHTML(&c.HTML[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.HTML[k] = c.HTML[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.HTML) != k {
+		c.HTML = c.HTML[:k]
 	}
 	if stopping {
 		return nil
@@ -180,17 +153,17 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 
 	stopping = false
 	k = 0
-	for i := range c.AmountRange {
+	for i := range c.AmountInterval {
 		var keep VisitResult
 		if !stopping {
-			keep, err = visitor.VisitAmountRange(&c.AmountRange[i])
+			keep, err = visitor.VisitAmountInterval(&c.AmountInterval[i])
 			if err != nil {
 				return err
 			}
 		}
 		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.AmountRange[k] = c.AmountRange[i]
+				c.AmountInterval[k] = c.AmountInterval[i]
 			}
 			k++
 		}
@@ -198,116 +171,8 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 			stopping = true
 		}
 	}
-	if len(c.AmountRange) != k {
-		c.AmountRange = c.AmountRange[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.Relation {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitRelation(&c.Relation[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Relation[k] = c.Relation[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Relation) != k {
-		c.Relation = c.Relation[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.File {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitFile(&c.File[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.File[k] = c.File[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.File) != k {
-		c.File = c.File[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.NoValue {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitNoValue(&c.NoValue[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.NoValue[k] = c.NoValue[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.NoValue) != k {
-		c.NoValue = c.NoValue[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.UnknownValue {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitUnknownValue(&c.UnknownValue[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.UnknownValue[k] = c.UnknownValue[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.UnknownValue) != k {
-		c.UnknownValue = c.UnknownValue[:k]
+	if len(c.AmountInterval) != k {
+		c.AmountInterval = c.AmountInterval[:k]
 	}
 	if stopping {
 		return nil
@@ -342,17 +207,17 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 
 	stopping = false
 	k = 0
-	for i := range c.TimeRange {
+	for i := range c.TimeInterval {
 		var keep VisitResult
 		if !stopping {
-			keep, err = visitor.VisitTimeRange(&c.TimeRange[i])
+			keep, err = visitor.VisitTimeInterval(&c.TimeInterval[i])
 			if err != nil {
 				return err
 			}
 		}
 		if stopping || keep == Keep || keep == KeepAndStop {
 			if i != k {
-				c.TimeRange[k] = c.TimeRange[i]
+				c.TimeInterval[k] = c.TimeInterval[i]
 			}
 			k++
 		}
@@ -360,8 +225,143 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 			stopping = true
 		}
 	}
-	if len(c.TimeRange) != k {
-		c.TimeRange = c.TimeRange[:k]
+	if len(c.TimeInterval) != k {
+		c.TimeInterval = c.TimeInterval[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.Reference {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitReference(&c.Reference[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.Reference[k] = c.Reference[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.Reference) != k {
+		c.Reference = c.Reference[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.Relation {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitRelation(&c.Relation[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.Relation[k] = c.Relation[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.Relation) != k {
+		c.Relation = c.Relation[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.Has {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitHas(&c.Has[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.Has[k] = c.Has[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.Has) != k {
+		c.Has = c.Has[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.None {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitNone(&c.None[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.None[k] = c.None[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.None) != k {
+		c.None = c.None[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
+	for i := range c.Unknown {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitUnknown(&c.Unknown[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.Unknown[k] = c.Unknown[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.Unknown) != k {
+		c.Unknown = c.Unknown[:k]
 	}
 	if stopping {
 		return nil
@@ -392,34 +392,21 @@ func (v *GetByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, e
 	return Keep, errE
 }
 
-// VisitReference visits a reference claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
-// VisitText visits a text claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
 // VisitString visits a string claim and checks if its ID matches the target ID.
 func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitHTML visits an HTML claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -444,60 +431,8 @@ func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 	return Keep, errE
 }
 
-// VisitAmountRange visits an amount range claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
-// VisitRelation visits a relation claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
-// VisitFile visits a file claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
-// VisitNoValue visits a no value claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
-	if claim.ID == v.ID {
-		v.Result = claim
-		return v.Action, nil
-	}
-	errE := claim.Visit(v)
-	if v.Result != nil {
-		return v.Action, errE
-	}
-	return Keep, errE
-}
-
-// VisitUnknownValue visits an unknown value claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
+// VisitAmountInterval visits an amount interval claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -522,8 +457,73 @@ func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	return Keep, errE
 }
 
-// VisitTimeRange visits a time range claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
+// VisitTimeInterval visits a time interval claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitReference visits a reference claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitRelation visits a relation claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitHas visits a has claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitNone visits a none claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
+	if claim.ID == v.ID {
+		v.Result = claim
+		return v.Action, nil
+	}
+	errE := claim.Visit(v)
+	if v.Result != nil {
+		return v.Action, errE
+	}
+	return Keep, errE
+}
+
+// VisitUnknown visits an unknown claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -546,25 +546,7 @@ type GetByPropIDVisitor struct {
 
 // VisitIdentifier visits an identifier claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitReference visits a reference claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitText visits a text claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -573,7 +555,16 @@ func (v *GetByPropIDVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E)
 
 // VisitString visits a string claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitHTML visits an HTML claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -582,52 +573,16 @@ func (v *GetByPropIDVisitor) VisitString(claim *StringClaim) (VisitResult, error
 
 // VisitAmount visits an amount claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
 	return Keep, nil
 }
 
-// VisitAmountRange visits an amount range claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitRelation visits a relation claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitFile visits a file claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitNoValue visits a no value claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
-		v.Result = append(v.Result, claim)
-		return v.Action, nil
-	}
-	return Keep, nil
-}
-
-// VisitUnknownValue visits an unknown value claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+// VisitAmountInterval visits an amount interval claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -636,16 +591,61 @@ func (v *GetByPropIDVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitR
 
 // VisitTime visits a time claim and checks if its property ID matches the target.
 func (v *GetByPropIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
 	return Keep, nil
 }
 
-// VisitTimeRange visits a time range claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
-	if claim.Prop.ID != nil && *claim.Prop.ID == v.ID {
+// VisitTimeInterval visits a time interval claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitReference visits a reference claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitRelation visits a relation claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitHas visits a has claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitNone visits a none claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
+		v.Result = append(v.Result, claim)
+		return v.Action, nil
+	}
+	return Keep, nil
+}
+
+// VisitUnknown visits an unknown claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
+	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
 	}
@@ -667,20 +667,14 @@ func (v *AllClaimsVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult,
 	return Keep, nil
 }
 
-// VisitReference visits a reference claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-// VisitText visits a text claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitText(claim *TextClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
 // VisitString visits a string claim and adds it to the collection.
 func (v *AllClaimsVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitHTML visits an HTML claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
@@ -691,32 +685,8 @@ func (v *AllClaimsVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.
 	return Keep, nil
 }
 
-// VisitAmountRange visits an amount range claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitAmountRange(claim *AmountRangeClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-// VisitRelation visits a relation claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-// VisitFile visits a file claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitFile(claim *FileClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-// VisitNoValue visits a no value claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitNoValue(claim *NoValueClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
-}
-
-// VisitUnknownValue visits an unknown value claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitUnknownValue(claim *UnknownValueClaim) (VisitResult, errors.E) {
+// VisitAmountInterval visits an amount interval claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }
@@ -727,8 +697,38 @@ func (v *AllClaimsVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	return Keep, nil
 }
 
-// VisitTimeRange visits a time range claim and adds it to the collection.
-func (v *AllClaimsVisitor) VisitTimeRange(claim *TimeRangeClaim) (VisitResult, errors.E) {
+// VisitTimeInterval visits a time interval claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitReference visits a reference claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitRelation visits a relation claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitHas visits a has claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitNone visits a none claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
+	v.Result = append(v.Result, claim)
+	return Keep, nil
+}
+
+// VisitUnknown visits an unknown claim and adds it to the collection.
+func (v *AllClaimsVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
 	v.Result = append(v.Result, claim)
 	return Keep, nil
 }

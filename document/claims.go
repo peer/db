@@ -2,14 +2,10 @@
 package document
 
 import (
-	"bytes"
 	"fmt"
-	"regexp"
-	"strconv"
-	"time"
+	"math"
 
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 )
 
@@ -22,24 +18,22 @@ type Claim interface {
 
 var (
 	_ Claim = (*IdentifierClaim)(nil)
-	_ Claim = (*ReferenceClaim)(nil)
-	_ Claim = (*TextClaim)(nil)
 	_ Claim = (*StringClaim)(nil)
+	_ Claim = (*HTMLClaim)(nil)
 	_ Claim = (*AmountClaim)(nil)
-	_ Claim = (*AmountRangeClaim)(nil)
-	_ Claim = (*RelationClaim)(nil)
-	_ Claim = (*FileClaim)(nil)
-	_ Claim = (*NoValueClaim)(nil)
-	_ Claim = (*UnknownValueClaim)(nil)
+	_ Claim = (*AmountIntervalClaim)(nil)
 	_ Claim = (*TimeClaim)(nil)
-	_ Claim = (*TimeRangeClaim)(nil)
+	_ Claim = (*TimeIntervalClaim)(nil)
+	_ Claim = (*ReferenceClaim)(nil)
+	_ Claim = (*RelationClaim)(nil)
+	_ Claim = (*HasClaim)(nil)
+	_ Claim = (*NoneClaim)(nil)
+	_ Claim = (*UnknownClaim)(nil)
 )
 
 // CoreDocument contains the core fields present in all PeerDB documents.
 type CoreDocument struct {
-	ID     identifier.Identifier `                       json:"id"`
-	Score  Score                 `                       json:"score"`
-	Scores Scores                `exhaustruct:"optional" json:"scores,omitempty"`
+	ID identifier.Identifier `json:"id"`
 }
 
 // GetID returns the document's identifier.
@@ -47,127 +41,20 @@ func (d CoreDocument) GetID() identifier.Identifier {
 	return d.ID
 }
 
-// Mnemonic is a human-readable identifier for a document.
-type Mnemonic string
-
-// Timestamp represents a point in time, extending time.Time to support JSON marshaling with extended year format.
-//
-//nolint:recvcheck
-type Timestamp time.Time
-
-var timeRegex = regexp.MustCompile(`^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$`)
-
-// MarshalText implements encoding.TextMarshaler for Timestamp.
-func (t Timestamp) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// MarshalJSON implements json.Marshaler for Timestamp.
-func (t Timestamp) MarshalJSON() ([]byte, error) {
-	b := bytes.Buffer{}
-	b.WriteString(`"`)
-	b.WriteString(t.String())
-	b.WriteString(`"`)
-	return b.Bytes(), nil
-}
-
-// String returns the string representation of Timestamp in ISO 8601 format with extended year support.
-func (t Timestamp) String() string {
-	x := time.Time(t).UTC()
-	w := 4
-	if x.Year() < 0 {
-		// An extra character for the minus sign.
-		w = 5
-	}
-	year, month, day := x.Date()
-	return fmt.Sprintf(`%0*d-%02d-%02dT%02d:%02d:%02dZ`, w, year, month, day, x.Hour(), x.Minute(), x.Second())
-}
-
-// We cannot use standard time.Time implementation.
-// See: https://github.com/golang/go/issues/4556
-
-// UnmarshalText implements encoding.TextUnmarshaler for Timestamp.
-func (t *Timestamp) UnmarshalText(text []byte) error {
-	s := string(text)
-	match := timeRegex.FindStringSubmatch(s)
-	if match == nil {
-		errE := errors.New("unable to parse time")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	year, err := strconv.ParseInt(match[1], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse year")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	month, err := strconv.ParseInt(match[2], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse month")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	day, err := strconv.ParseInt(match[3], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse day")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	hour, err := strconv.ParseInt(match[4], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse hour")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	minute, err := strconv.ParseInt(match[5], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse minute")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	second, err := strconv.ParseInt(match[6], 10, 0)
-	if err != nil {
-		errE := errors.New("unable to parse second")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	*t = Timestamp(time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, time.UTC))
-	return nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler for Timestamp.
-func (t *Timestamp) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		return nil
-	}
-	var s string
-	errE := x.UnmarshalWithoutUnknownFields(data, &s)
-	if errE != nil {
-		return errE
-	}
-	return t.UnmarshalText([]byte(s))
-}
-
-// TranslatableHTMLString maps language codes to HTML strings for multilingual content.
-type TranslatableHTMLString map[string]string
-
-// Scores maps score names to score values.
-type Scores map[string]Score
-
 // ClaimTypes organizes claims by their type.
 type ClaimTypes struct {
-	Identifier   IdentifierClaims   `exhaustruct:"optional" json:"id,omitempty"`
-	Reference    ReferenceClaims    `exhaustruct:"optional" json:"ref,omitempty"`
-	Text         TextClaims         `exhaustruct:"optional" json:"text,omitempty"`
-	String       StringClaims       `exhaustruct:"optional" json:"string,omitempty"`
-	Amount       AmountClaims       `exhaustruct:"optional" json:"amount,omitempty"`
-	AmountRange  AmountRangeClaims  `exhaustruct:"optional" json:"amountRange,omitempty"`
-	Relation     RelationClaims     `exhaustruct:"optional" json:"rel,omitempty"`
-	File         FileClaims         `exhaustruct:"optional" json:"file,omitempty"`
-	NoValue      NoValueClaims      `exhaustruct:"optional" json:"none,omitempty"`
-	UnknownValue UnknownValueClaims `exhaustruct:"optional" json:"unknown,omitempty"`
-	Time         TimeClaims         `exhaustruct:"optional" json:"time,omitempty"`
-	TimeRange    TimeRangeClaims    `exhaustruct:"optional" json:"timeRange,omitempty"`
+	Identifier     IdentifierClaims     `exhaustruct:"optional" json:"id,omitempty"`
+	String         StringClaims         `exhaustruct:"optional" json:"string,omitempty"`
+	HTML           HTMLClaims           `exhaustruct:"optional" json:"html,omitempty"`
+	Amount         AmountClaims         `exhaustruct:"optional" json:"amount,omitempty"`
+	AmountInterval AmountIntervalClaims `exhaustruct:"optional" json:"amountInterval,omitempty"`
+	Time           TimeClaims           `exhaustruct:"optional" json:"time,omitempty"`
+	TimeInterval   TimeIntervalClaims   `exhaustruct:"optional" json:"timeInterval,omitempty"`
+	Reference      ReferenceClaims      `exhaustruct:"optional" json:"ref,omitempty"`
+	Relation       RelationClaims       `exhaustruct:"optional" json:"rel,omitempty"`
+	Has            HasClaims            `exhaustruct:"optional" json:"has,omitempty"`
+	None           NoneClaims           `exhaustruct:"optional" json:"none,omitempty"`
+	Unknown        UnknownClaims        `exhaustruct:"optional" json:"unknown,omitempty"`
 }
 
 // Add adds a claim to the appropriate typed slice based on the claim's type.
@@ -175,28 +62,28 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 	switch cl := claim.(type) {
 	case *IdentifierClaim:
 		c.Identifier = append(c.Identifier, *cl)
-	case *ReferenceClaim:
-		c.Reference = append(c.Reference, *cl)
-	case *TextClaim:
-		c.Text = append(c.Text, *cl)
 	case *StringClaim:
 		c.String = append(c.String, *cl)
+	case *HTMLClaim:
+		c.HTML = append(c.HTML, *cl)
 	case *AmountClaim:
 		c.Amount = append(c.Amount, *cl)
-	case *AmountRangeClaim:
-		c.AmountRange = append(c.AmountRange, *cl)
-	case *RelationClaim:
-		c.Relation = append(c.Relation, *cl)
-	case *FileClaim:
-		c.File = append(c.File, *cl)
-	case *NoValueClaim:
-		c.NoValue = append(c.NoValue, *cl)
-	case *UnknownValueClaim:
-		c.UnknownValue = append(c.UnknownValue, *cl)
+	case *AmountIntervalClaim:
+		c.AmountInterval = append(c.AmountInterval, *cl)
 	case *TimeClaim:
 		c.Time = append(c.Time, *cl)
-	case *TimeRangeClaim:
-		c.TimeRange = append(c.TimeRange, *cl)
+	case *TimeIntervalClaim:
+		c.TimeInterval = append(c.TimeInterval, *cl)
+	case *ReferenceClaim:
+		c.Reference = append(c.Reference, *cl)
+	case *RelationClaim:
+		c.Relation = append(c.Relation, *cl)
+	case *HasClaim:
+		c.Has = append(c.Has, *cl)
+	case *NoneClaim:
+		c.None = append(c.None, *cl)
+	case *UnknownClaim:
+		c.Unknown = append(c.Unknown, *cl)
 	default:
 		errE := errors.New("claim type not supported")
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", claim)
@@ -213,17 +100,17 @@ func (c *ClaimTypes) Size() int {
 
 	s := 0
 	s += len(c.Identifier)
-	s += len(c.Reference)
-	s += len(c.Text)
 	s += len(c.String)
+	s += len(c.HTML)
 	s += len(c.Amount)
-	s += len(c.AmountRange)
-	s += len(c.Relation)
-	s += len(c.File)
-	s += len(c.NoValue)
-	s += len(c.UnknownValue)
+	s += len(c.AmountInterval)
 	s += len(c.Time)
-	s += len(c.TimeRange)
+	s += len(c.TimeInterval)
+	s += len(c.Reference)
+	s += len(c.Relation)
+	s += len(c.Has)
+	s += len(c.None)
+	s += len(c.Unknown)
 	return s
 }
 
@@ -243,28 +130,28 @@ func (c *ClaimTypes) AllClaims() []Claim {
 type (
 	// IdentifierClaims is a slice of IdentifierClaim.
 	IdentifierClaims = []IdentifierClaim
-	// ReferenceClaims is a slice of ReferenceClaim.
-	ReferenceClaims = []ReferenceClaim
-	// TextClaims is a slice of TextClaim.
-	TextClaims = []TextClaim
 	// StringClaims is a slice of StringClaim.
 	StringClaims = []StringClaim
+	// HTMLClaims is a slice of HTMLClaim.
+	HTMLClaims = []HTMLClaim
 	// AmountClaims is a slice of AmountClaim.
 	AmountClaims = []AmountClaim
-	// AmountRangeClaims is a slice of AmountRangeClaim.
-	AmountRangeClaims = []AmountRangeClaim
-	// RelationClaims is a slice of RelationClaim.
-	RelationClaims = []RelationClaim
-	// FileClaims is a slice of FileClaim.
-	FileClaims = []FileClaim
-	// NoValueClaims is a slice of NoValueClaim.
-	NoValueClaims = []NoValueClaim
-	// UnknownValueClaims is a slice of UnknownValueClaim.
-	UnknownValueClaims = []UnknownValueClaim
+	// AmountIntervalClaims is a slice of AmountIntervalClaim.
+	AmountIntervalClaims = []AmountIntervalClaim
 	// TimeClaims is a slice of TimeClaim.
 	TimeClaims = []TimeClaim
-	// TimeRangeClaims is a slice of TimeRangeClaim.
-	TimeRangeClaims = []TimeRangeClaim
+	// TimeIntervalClaims is a slice of TimeIntervalClaim.
+	TimeIntervalClaims = []TimeIntervalClaim
+	// ReferenceClaims is a slice of ReferenceClaim.
+	ReferenceClaims = []ReferenceClaim
+	// RelationClaims is a slice of RelationClaim.
+	RelationClaims = []RelationClaim
+	// HasClaims is a slice of HasClaim.
+	HasClaims = []HasClaim
+	// NoneClaims is a slice of NoneClaim.
+	NoneClaims = []NoneClaim
+	// UnknownClaims is a slice of UnknownClaim.
+	UnknownClaims = []UnknownClaim
 )
 
 // CoreClaim contains fields common to all claim types.
@@ -368,28 +255,15 @@ func (cc *CoreClaim) AllClaims() []Claim {
 	return cc.Meta.AllClaims()
 }
 
-// Confidence is an alias for Score representing the confidence level of a claim.
-type Confidence = Score
-
-// Score represents a confidence or relevance score as a float64.
-type Score float64
-
-// Reference represents a reference to another document, either by ID or as a temporary opaque reference to be resolved other.
-//
-// Temporary references are used to support reference cycles between documents in the same import session and allow storing
-// foreign identifiers in the first pass which are then resolved to PeerDB identifiers in the second pass.
+// Reference represents a reference to another document.
 type Reference struct {
-	ID *identifier.Identifier `json:"id,omitempty"`
-
-	// Used to store temporary opaque reference before it is resolved in the second pass when importing data.
-	Temporary []string `exhaustruct:"optional" json:"_temp,omitempty"` //nolint:tagliatelle
+	ID identifier.Identifier `json:"id"`
 }
 
 // GetReference returns a reference with the given values converted to an ID.
 func GetReference(values ...string) Reference {
-	id := identifier.From(values...)
 	return Reference{
-		ID: &id,
+		ID: identifier.From(values...),
 	}
 }
 
@@ -401,6 +275,284 @@ type IdentifierClaim struct {
 	Value string    `json:"value"`
 }
 
+// Validate checks that the identifier claim has a non-empty value.
+func (c *IdentifierClaim) Validate() errors.E {
+	if c.Value == "" {
+		return errors.New("empty value")
+	}
+
+	return nil
+}
+
+// StringClaim represents a claim with a plain string value.
+//
+// Language of the string, if any, is specified as a meta claim.
+type StringClaim struct {
+	CoreClaim
+
+	Prop   Reference `json:"prop"`
+	String string    `json:"string"`
+}
+
+// Validate checks that the string claim has a non-empty string.
+func (c *StringClaim) Validate() errors.E {
+	if c.String == "" {
+		return errors.New("empty string")
+	}
+
+	return nil
+}
+
+// HTMLClaim represents a claim with HTML text content.
+//
+// Language of the string, if any, is specified as a meta claim.
+type HTMLClaim struct {
+	CoreClaim
+
+	Prop Reference `json:"prop"`
+	HTML string    `json:"html"`
+}
+
+// Validate checks that the HTML claim has non-empty HTML.
+func (c *HTMLClaim) Validate() errors.E {
+	if c.HTML == "" {
+		return errors.New("empty HTML")
+	}
+
+	return nil
+}
+
+// AmountClaim represents a claim for numeric amount and precision.
+//
+// Precision is represented as number so that value % precision == 0.
+// For example, 100 represents two digits precision, 60 represents
+// minute precision for seconds.
+//
+// Infinite or NaN amounts are not supported.
+//
+// Unit of the amount, if any, is specified as a meta claim.
+type AmountClaim struct {
+	CoreClaim
+
+	Prop      Reference `json:"prop"`
+	Amount    float64   `json:"amount"`
+	Precision float64   `json:"precision"`
+}
+
+// Validate checks that the amount claim has finite values.
+func (c *AmountClaim) Validate() errors.E {
+	if math.IsInf(c.Amount, 0) || math.IsNaN(c.Amount) {
+		return errors.New("Amount must be a finite number")
+	}
+	if math.IsInf(c.Precision, 0) || math.IsNaN(c.Precision) {
+		return errors.New("Precision must be a finite number")
+	}
+
+	return nil
+}
+
+// AmountIntervalClaim represents a claim for numeric amount interval.
+//
+// Infinite or NaN amount interval bounds are not supported.
+//
+// Unit of the amount interval bounds, if any, is specified as a meta claim.
+//
+// Only one of FromIs* fields can be set at a time.
+// Exactly one of From (non-nil), FromIsUnknown, or FromIsNone must be set.
+// From and FromPrecision must be set together or both nil.
+// If FromIsUnknown or FromIsNone is true, From and FromPrecision must be nil.
+//
+// Only one of ToIs* fields can be set at a time.
+// Exactly one of To (non-nil), ToIsUnknown, or ToIsNone must be set.
+// To and ToPrecision must be set together or both nil.
+// If ToIsUnknown or ToIsNone is true, To and ToPrecision must be nil.
+type AmountIntervalClaim struct {
+	CoreClaim
+
+	Prop Reference `json:"prop"`
+
+	From          *float64 `json:"from,omitempty"`
+	FromPrecision *float64 `json:"fromPrecision,omitempty"`
+	FromIsOpen    bool     `json:"fromIsOpen,omitempty"`
+	FromIsUnknown bool     `json:"fromIsUnknown,omitempty"`
+	FromIsNone    bool     `json:"fromIsNone,omitempty"`
+
+	To          *float64 `json:"to,omitempty"`
+	ToPrecision *float64 `json:"toPrecision,omitempty"`
+	ToIsClosed  bool     `json:"toIsClosed,omitempty"`
+	ToIsUnknown bool     `json:"toIsUnknown,omitempty"`
+	ToIsNone    bool     `json:"toIsNone,omitempty"`
+}
+
+// Validate checks that the amount interval claim has valid bounds.
+func (c *AmountIntervalClaim) Validate() errors.E {
+	fromIsCount := 0
+	if c.FromIsOpen {
+		fromIsCount++
+	}
+	if c.FromIsUnknown {
+		fromIsCount++
+	}
+	if c.FromIsNone {
+		fromIsCount++
+	}
+	if fromIsCount > 1 {
+		return errors.New("only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
+	}
+	if (c.From == nil) != (c.FromPrecision == nil) {
+		return errors.New("From and FromPrecision must be set together")
+	}
+	if c.From == nil && !c.FromIsUnknown && !c.FromIsNone {
+		return errors.New("one of From, FromIsUnknown, or FromIsNone must be set")
+	}
+	if c.From != nil && (c.FromIsUnknown || c.FromIsNone) {
+		return errors.New("From must not be set when FromIsUnknown or FromIsNone is true")
+	}
+	if c.From != nil && (math.IsInf(*c.From, 0) || math.IsNaN(*c.From)) {
+		return errors.New("From must be a finite number")
+	}
+	if c.FromPrecision != nil && (math.IsInf(*c.FromPrecision, 0) || math.IsNaN(*c.FromPrecision)) {
+		return errors.New("FromPrecision must be a finite number")
+	}
+
+	toIsCount := 0
+	if c.ToIsClosed {
+		toIsCount++
+	}
+	if c.ToIsUnknown {
+		toIsCount++
+	}
+	if c.ToIsNone {
+		toIsCount++
+	}
+	if toIsCount > 1 {
+		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	}
+	if (c.To == nil) != (c.ToPrecision == nil) {
+		return errors.New("To and ToPrecision must be set together")
+	}
+	if c.To == nil && !c.ToIsUnknown && !c.ToIsNone {
+		return errors.New("one of To, ToIsUnknown, or ToIsNone must be set")
+	}
+	if c.To != nil && (c.ToIsUnknown || c.ToIsNone) {
+		return errors.New("To must not be set when ToIsUnknown or ToIsNone is true")
+	}
+	if c.To != nil && (math.IsInf(*c.To, 0) || math.IsNaN(*c.To)) {
+		return errors.New("To must be a finite number")
+	}
+	if c.ToPrecision != nil && (math.IsInf(*c.ToPrecision, 0) || math.IsNaN(*c.ToPrecision)) {
+		return errors.New("ToPrecision must be a finite number")
+	}
+
+	return nil
+}
+
+// TimeClaim represents a claim for timestamp and precision.
+type TimeClaim struct {
+	CoreClaim
+
+	Prop      Reference     `json:"prop"`
+	Timestamp Timestamp     `json:"time"`
+	Precision TimePrecision `json:"precision"`
+}
+
+// Validate checks that the time claim has a valid precision and timestamp.
+func (t *TimeClaim) Validate() errors.E {
+	if t.Precision < TimePrecisionGigaYears || t.Precision > TimePrecisionNanosecond {
+		return errors.New("unknown Precision")
+	}
+
+	return t.Timestamp.Validate(t.Precision)
+}
+
+// TimeIntervalClaim represents a claim for timestamp interval.
+type TimeIntervalClaim struct {
+	CoreClaim
+
+	Prop Reference `json:"prop"`
+
+	From          *Timestamp     `json:"from,omitempty"`
+	FromPrecision *TimePrecision `json:"fromPrecision,omitempty"`
+	FromIsOpen    bool           `json:"fromIsOpen,omitempty"`
+	FromIsUnknown bool           `json:"fromIsUnknown,omitempty"`
+	FromIsNone    bool           `json:"fromIsNone,omitempty"`
+
+	To          *Timestamp     `json:"to,omitempty"`
+	ToPrecision *TimePrecision `json:"toPrecision,omitempty"`
+	ToIsClosed  bool           `json:"toIsClosed,omitempty"`
+	ToIsUnknown bool           `json:"toIsUnknown,omitempty"`
+	ToIsNone    bool           `json:"toIsNone,omitempty"`
+}
+
+// Validate checks that the time interval claim has valid bounds.
+func (c *TimeIntervalClaim) Validate() errors.E {
+	fromIsCount := 0
+	if c.FromIsOpen {
+		fromIsCount++
+	}
+	if c.FromIsUnknown {
+		fromIsCount++
+	}
+	if c.FromIsNone {
+		fromIsCount++
+	}
+	if fromIsCount > 1 {
+		return errors.New("only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
+	}
+	if (c.From == nil) != (c.FromPrecision == nil) {
+		return errors.New("From and FromPrecision must be set together")
+	}
+	if c.From == nil && !c.FromIsUnknown && !c.FromIsNone {
+		return errors.New("one of From, FromIsUnknown, or FromIsNone must be set")
+	}
+	if c.From != nil && (c.FromIsUnknown || c.FromIsNone) {
+		return errors.New("From must not be set when FromIsUnknown or FromIsNone is true")
+	}
+	if c.FromPrecision != nil {
+		if *c.FromPrecision < TimePrecisionGigaYears || *c.FromPrecision > TimePrecisionNanosecond {
+			return errors.New("unknown FromPrecision")
+		}
+		errE := c.From.Validate(*c.FromPrecision)
+		if errE != nil {
+			return errE
+		}
+	}
+
+	toIsCount := 0
+	if c.ToIsClosed {
+		toIsCount++
+	}
+	if c.ToIsUnknown {
+		toIsCount++
+	}
+	if c.ToIsNone {
+		toIsCount++
+	}
+	if toIsCount > 1 {
+		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	}
+	if (c.To == nil) != (c.ToPrecision == nil) {
+		return errors.New("To and ToPrecision must be set together")
+	}
+	if c.To == nil && !c.ToIsUnknown && !c.ToIsNone {
+		return errors.New("one of To, ToIsUnknown, or ToIsNone must be set")
+	}
+	if c.To != nil && (c.ToIsUnknown || c.ToIsNone) {
+		return errors.New("To must not be set when ToIsUnknown or ToIsNone is true")
+	}
+	if c.ToPrecision != nil {
+		if *c.ToPrecision < TimePrecisionGigaYears || *c.ToPrecision > TimePrecisionNanosecond {
+			return errors.New("unknown ToPrecision")
+		}
+		errE := c.To.Validate(*c.ToPrecision)
+		if errE != nil {
+			return errE
+		}
+	}
+
+	return nil
+}
+
 // ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
 type ReferenceClaim struct {
 	CoreClaim
@@ -409,231 +561,13 @@ type ReferenceClaim struct {
 	IRI  string    `json:"iri"`
 }
 
-// TextClaim represents a claim with HTML text content in multiple languages.
-type TextClaim struct {
-	CoreClaim
-
-	Prop Reference              `json:"prop"`
-	HTML TranslatableHTMLString `json:"html"`
-}
-
-// StringClaim represents a claim with a plain string value.
-type StringClaim struct {
-	CoreClaim
-
-	Prop   Reference `json:"prop"`
-	String string    `json:"string"`
-}
-
-// AmountUnit represents the unit of measurement for an amount claim.
-//
-//nolint:recvcheck
-type AmountUnit int
-
-const (
-	// AmountUnitCustom represents a custom amount unit.
-	AmountUnitCustom AmountUnit = iota
-	// AmountUnitNone represents no specific unit.
-	AmountUnitNone
-	// AmountUnitRatio represents a dimensionless ratio unit.
-	AmountUnitRatio
-	// AmountUnitLitre represents the litre unit.
-	AmountUnitLitre
-	// AmountUnitKilogramPerKilogram represents the kilogram per kilogram ratio unit.
-	AmountUnitKilogramPerKilogram
-	// AmountUnitKilogram represents the kilogram mass unit.
-	AmountUnitKilogram
-	// AmountUnitKilogramPerCubicMetre represents the kilogram per cubic metre density unit.
-	AmountUnitKilogramPerCubicMetre
-	// AmountUnitMetre represents the metre length unit.
-	AmountUnitMetre
-	// AmountUnitSquareMetre represents the square metre area unit.
-	AmountUnitSquareMetre
-	// AmountUnitMetrePerSecond represents the metre per second velocity unit.
-	AmountUnitMetrePerSecond
-	// AmountUnitVolt represents the volt electric potential unit.
-	AmountUnitVolt
-	// AmountUnitWatt represents the watt power unit.
-	AmountUnitWatt
-	// AmountUnitPascal represents the pascal pressure unit.
-	AmountUnitPascal
-	// AmountUnitCoulomb represents the coulomb electric charge unit.
-	AmountUnitCoulomb
-	// AmountUnitJoule represents the joule energy unit.
-	AmountUnitJoule
-	// AmountUnitCelsius represents the Celsius temperature unit.
-	AmountUnitCelsius
-	// AmountUnitRadian represents the radian angle unit.
-	AmountUnitRadian
-	// AmountUnitHertz represents the hertz frequency unit.
-	AmountUnitHertz
-	// AmountUnitDollar represents the dollar currency unit.
-	AmountUnitDollar
-	// AmountUnitByte represents the byte data size unit.
-	AmountUnitByte
-	// AmountUnitPixel represents the pixel screen measurement unit.
-	AmountUnitPixel
-	// AmountUnitSecond represents the second time unit.
-	AmountUnitSecond
-	// AmountUnitDecibel represents the decibel sound intensity unit.
-	AmountUnitDecibel
-
-	// AmountUnitsTotal is the count of the number of possible amount unit values.
-	AmountUnitsTotal
-)
-
-// MarshalJSON implements json.Marshaler for AmountUnit.
-func (u AmountUnit) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	switch u {
-	case AmountUnitCustom:
-		buffer.WriteString("@")
-	case AmountUnitNone:
-		buffer.WriteString("1")
-	case AmountUnitRatio:
-		buffer.WriteString("/")
-	case AmountUnitLitre:
-		buffer.WriteString("l")
-	case AmountUnitKilogramPerKilogram:
-		buffer.WriteString("kg/kg")
-	case AmountUnitKilogram:
-		buffer.WriteString("kg")
-	case AmountUnitKilogramPerCubicMetre:
-		buffer.WriteString("kg/m³")
-	case AmountUnitMetre:
-		buffer.WriteString("m")
-	case AmountUnitSquareMetre:
-		buffer.WriteString("m²")
-	case AmountUnitMetrePerSecond:
-		buffer.WriteString("m/s")
-	case AmountUnitVolt:
-		buffer.WriteString("V")
-	case AmountUnitWatt:
-		buffer.WriteString("W")
-	case AmountUnitPascal:
-		buffer.WriteString("Pa")
-	case AmountUnitCoulomb:
-		buffer.WriteString("C")
-	case AmountUnitJoule:
-		buffer.WriteString("J")
-	case AmountUnitCelsius:
-		buffer.WriteString("°C")
-	case AmountUnitRadian:
-		buffer.WriteString("rad")
-	case AmountUnitHertz:
-		buffer.WriteString("Hz")
-	case AmountUnitDollar:
-		buffer.WriteString("$")
-	case AmountUnitByte:
-		buffer.WriteString("B")
-	case AmountUnitPixel:
-		buffer.WriteString("px")
-	case AmountUnitSecond:
-		buffer.WriteString("s")
-	case AmountUnitDecibel:
-		buffer.WriteString("dB")
-	case AmountUnitsTotal:
-		fallthrough
-	default:
-		errE := errors.New("invalid AmountUnit value")
-		errors.Details(errE)["value"] = u
-		panic(errE)
+// Validate checks that the reference claim has a non-empty IRI.
+func (c *ReferenceClaim) Validate() errors.E {
+	if c.IRI == "" {
+		return errors.New("empty IRI")
 	}
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
 
-// UnmarshalJSON implements json.Unmarshaler for AmountUnit.
-func (u *AmountUnit) UnmarshalJSON(b []byte) error {
-	var s string
-	errE := x.UnmarshalWithoutUnknownFields(b, &s)
-	if errE != nil {
-		return errE
-	}
-	switch s {
-	case "@":
-		*u = AmountUnitCustom
-	case "1":
-		*u = AmountUnitNone
-	case "/":
-		*u = AmountUnitRatio
-	case "l":
-		*u = AmountUnitLitre
-	case "kg/kg":
-		*u = AmountUnitKilogramPerKilogram
-	case "kg":
-		*u = AmountUnitKilogram
-	case "kg/m³":
-		*u = AmountUnitKilogramPerCubicMetre
-	case "m":
-		*u = AmountUnitMetre
-	case "m²":
-		*u = AmountUnitSquareMetre
-	case "m/s":
-		*u = AmountUnitMetrePerSecond
-	case "V":
-		*u = AmountUnitVolt
-	case "W":
-		*u = AmountUnitWatt
-	case "Pa":
-		*u = AmountUnitPascal
-	case "C":
-		*u = AmountUnitCoulomb
-	case "J":
-		*u = AmountUnitJoule
-	case "°C":
-		*u = AmountUnitCelsius
-	case "rad":
-		*u = AmountUnitRadian
-	case "Hz":
-		*u = AmountUnitHertz
-	case "$":
-		*u = AmountUnitDollar
-	case "B":
-		*u = AmountUnitByte
-	case "px":
-		*u = AmountUnitPixel
-	case "s":
-		*u = AmountUnitSecond
-	case "dB":
-		*u = AmountUnitDecibel
-	default:
-		errE := errors.New("unknown amount unit")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
 	return nil
-}
-
-// JSONSchemaAlias returns the JSON schema alias for AmountUnit.
-func (u AmountUnit) JSONSchemaAlias() any {
-	return ""
-}
-
-// ValidAmountUnit checks if a given string represents a valid amount unit.
-func ValidAmountUnit(unit string) bool {
-	var u AmountUnit
-	err := x.UnmarshalWithoutUnknownFields([]byte(`"`+unit+`"`), &u)
-	return err == nil
-}
-
-// AmountClaim represents a claim with a numeric amount and unit.
-type AmountClaim struct {
-	CoreClaim
-
-	Prop   Reference  `json:"prop"`
-	Amount float64    `json:"amount"`
-	Unit   AmountUnit `json:"unit"`
-}
-
-// AmountRangeClaim represents a claim with a numeric range (lower to upper) and unit.
-type AmountRangeClaim struct {
-	CoreClaim
-
-	Prop  Reference  `json:"prop"`
-	Lower float64    `json:"lower"`
-	Upper float64    `json:"upper"`
-	Unit  AmountUnit `json:"unit"`
 }
 
 // RelationClaim represents a claim that relates this document to another document.
@@ -644,166 +578,25 @@ type RelationClaim struct {
 	To   Reference `json:"to"`
 }
 
-// FileClaim represents a claim with a file reference including media type and URL.
-type FileClaim struct {
-	CoreClaim
-
-	Prop      Reference `json:"prop"`
-	MediaType string    `json:"mediaType"`
-	URL       string    `json:"url"`
-	Preview   []string  `json:"preview,omitempty"`
-}
-
-// NoValueClaim represents a claim that explicitly states no value exists for a property.
-type NoValueClaim struct {
+// HasClaim represents a claim with just a property.
+//
+// It can also be used for nested claims.
+type HasClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 }
 
-// UnknownValueClaim represents a claim where the value for a property is unknown.
-type UnknownValueClaim struct {
+// NoneClaim represents a claim that explicitly states no value exists for a property.
+type NoneClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 }
 
-// TimePrecision represents the precision level of a timestamp.
-type TimePrecision int
-
-const (
-	// TimePrecisionGigaYears represents a time precision of giga-years (1 billion years).
-	TimePrecisionGigaYears TimePrecision = iota
-	// TimePrecisionHundredMegaYears represents a time precision of 100 million years.
-	TimePrecisionHundredMegaYears
-	// TimePrecisionTenMegaYears represents a time precision of 10 million years.
-	TimePrecisionTenMegaYears
-	// TimePrecisionMegaYears represents a time precision of 1 million years (mega-years).
-	TimePrecisionMegaYears
-	// TimePrecisionHundredKiloYears represents a time precision of 100 thousand years.
-	TimePrecisionHundredKiloYears
-	// TimePrecisionTenKiloYears represents a time precision of 10 thousand years.
-	TimePrecisionTenKiloYears
-	// TimePrecisionKiloYears represents a time precision of 1 thousand years (kilo-years).
-	TimePrecisionKiloYears
-	// TimePrecisionHundredYears represents a time precision of 100 years (centuries).
-	TimePrecisionHundredYears
-	// TimePrecisionTenYears represents a time precision of 10 years (decades).
-	TimePrecisionTenYears
-	// TimePrecisionYear represents a time precision of 1 year.
-	TimePrecisionYear
-	// TimePrecisionMonth represents a time precision of 1 month.
-	TimePrecisionMonth
-	// TimePrecisionDay represents a time precision of 1 day.
-	TimePrecisionDay
-	// TimePrecisionHour represents a time precision of 1 hour.
-	TimePrecisionHour
-	// TimePrecisionMinute represents a time precision of 1 minute.
-	TimePrecisionMinute
-	// TimePrecisionSecond represents a time precision of 1 second.
-	TimePrecisionSecond
-)
-
-// MarshalJSON implements json.Marshaler for TimePrecision.
-func (p TimePrecision) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	switch p {
-	case TimePrecisionGigaYears:
-		buffer.WriteString("G")
-	case TimePrecisionHundredMegaYears:
-		buffer.WriteString("100M")
-	case TimePrecisionTenMegaYears:
-		buffer.WriteString("10M")
-	case TimePrecisionMegaYears:
-		buffer.WriteString("M")
-	case TimePrecisionHundredKiloYears:
-		buffer.WriteString("100k")
-	case TimePrecisionTenKiloYears:
-		buffer.WriteString("10k")
-	case TimePrecisionKiloYears:
-		buffer.WriteString("k")
-	case TimePrecisionHundredYears:
-		buffer.WriteString("100y")
-	case TimePrecisionTenYears:
-		buffer.WriteString("10y")
-	case TimePrecisionYear:
-		buffer.WriteString("y")
-	case TimePrecisionMonth:
-		buffer.WriteString("m")
-	case TimePrecisionDay:
-		buffer.WriteString("d")
-	case TimePrecisionHour:
-		buffer.WriteString("h")
-	case TimePrecisionMinute:
-		buffer.WriteString("min")
-	case TimePrecisionSecond:
-		buffer.WriteString("s")
-	}
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler for TimePrecision.
-func (p *TimePrecision) UnmarshalJSON(b []byte) error {
-	var s string
-	errE := x.UnmarshalWithoutUnknownFields(b, &s)
-	if errE != nil {
-		return errE
-	}
-	switch s {
-	case "G":
-		*p = TimePrecisionGigaYears
-	case "100M":
-		*p = TimePrecisionHundredMegaYears
-	case "10M":
-		*p = TimePrecisionTenMegaYears
-	case "M":
-		*p = TimePrecisionMegaYears
-	case "100k":
-		*p = TimePrecisionHundredKiloYears
-	case "10k":
-		*p = TimePrecisionTenKiloYears
-	case "k":
-		*p = TimePrecisionKiloYears
-	case "100y":
-		*p = TimePrecisionHundredYears
-	case "10y":
-		*p = TimePrecisionTenYears
-	case "y":
-		*p = TimePrecisionYear
-	case "m":
-		*p = TimePrecisionMonth
-	case "d":
-		*p = TimePrecisionDay
-	case "h":
-		*p = TimePrecisionHour
-	case "min":
-		*p = TimePrecisionMinute
-	case "s":
-		*p = TimePrecisionSecond
-	default:
-		errE := errors.New("unknown time precision")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-	return nil
-}
-
-// TimeClaim represents a claim with a timestamp and precision.
-type TimeClaim struct {
+// UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
+type UnknownClaim struct {
 	CoreClaim
 
-	Prop      Reference     `json:"prop"`
-	Timestamp Timestamp     `json:"timestamp"`
-	Precision TimePrecision `json:"precision"`
-}
-
-// TimeRangeClaim represents a claim with a time range (lower to upper) and precision.
-type TimeRangeClaim struct {
-	CoreClaim
-
-	Prop      Reference     `json:"prop"`
-	Lower     Timestamp     `json:"lower"`
-	Upper     Timestamp     `json:"upper"`
-	Precision TimePrecision `json:"precision"`
+	Prop Reference `json:"prop"`
 }
