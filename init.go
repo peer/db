@@ -125,10 +125,22 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		}
 	}
 
+	dbCtx, dbCancel := context.WithCancel(context.WithoutCancel(ctx))
+
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			f()
+		}
+		// We cancel the context for the database connection pool only after everything else shuts down.
+		// When dbpool != nil then dbCtx is unused and calling dbCancel is unnecessary, but it is simpler to just always call it.
+		dbCancel()
+	}
+
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
-		dbpool, errE = store.InitPostgres(ctx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
+		dbpool, errE = store.InitPostgres(dbCtx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
 		if errE != nil {
 			return nil, errE
 		}
@@ -139,14 +151,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		var errE errors.E
 		esClient, errE = search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
-			return nil, errE
-		}
-	}
-
-	onShutdown := []func(){}
-	onShutdownF := func() {
-		for _, f := range onShutdown {
-			f()
+			return onShutdownF, errE
 		}
 	}
 
