@@ -26,8 +26,8 @@ import (
 //   - year component can have more than 4 digits and can have a negative sign
 //   - supports milliseconds, microseconds and nanoseconds with exactly 3, 6, or
 //     9 decimal fraction digits, respectively
-//   - month and day components can be just zeros for timestamps used with
-//     precision which does not require them
+//   - day component can be zero for timestamps used with month precision,
+//     but month component cannot be zero
 //   - timestamp can contain just the part of the format when used with precision
 //     which does not require other parts, parts are in order: a) year, b) month + day,
 //     c) hours + minutes, d) seconds, e) milliseconds, f) microseconds, and g) nanoseconds

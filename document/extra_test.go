@@ -2229,3 +2229,70 @@ func TestTimePrecisionUnmarshalJSONBadJSON(t *testing.T) {
 	err := p.UnmarshalJSON([]byte("123"))
 	assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
 }
+
+// TestReferenceClaimPatchApplyConfidenceOnly tests that ReferenceClaimPatch.Apply accepts a confidence-only patch.
+func TestReferenceClaimPatchApplyConfidenceOnly(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	confidence := document.HighConfidence
+
+	fullPatch := document.ReferenceClaimPatch{
+		Confidence: &confidence,
+		Prop:       &prop,
+		IRI:        "https://example.com",
+	}
+	claim, errE := fullPatch.New([]string{"test", "0"})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newConfidence := document.LowConfidence
+	confidenceOnlyPatch := document.ReferenceClaimPatch{
+		Confidence: &newConfidence,
+	}
+	errE = confidenceOnlyPatch.Apply(claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, document.LowConfidence, claim.GetConfidence()) //nolint:testifylint
+}
+
+// TestRemoveByIDMetaClaim tests that RemoveByID removes a meta claim without removing its parent.
+func TestRemoveByIDMetaClaim(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	topID := identifier.New()
+	metaID := identifier.New()
+
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()},
+	}
+
+	errE := doc.Add(&document.NoneClaim{
+		CoreClaim: document.CoreClaim{ID: topID, Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	topClaim := doc.GetByID(topID)
+	require.NotNil(t, topClaim)
+
+	errE = topClaim.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "meta value",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// RemoveByID on the meta claim ID must not remove the parent top-level claim.
+	removed := doc.RemoveByID(metaID)
+	require.NotNil(t, removed)
+	assert.Equal(t, metaID, removed.GetID())
+
+	// Parent claim must still exist in the document.
+	assert.Equal(t, 1, doc.Size())
+	parent := doc.GetByID(topID)
+	assert.NotNil(t, parent)
+
+	// Meta claim must be gone.
+	meta := doc.GetByID(metaID)
+	assert.Nil(t, meta)
+}

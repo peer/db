@@ -387,7 +387,7 @@ func (v *GetByIDVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, e
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -400,7 +400,7 @@ func (v *GetByIDVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E)
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -413,7 +413,7 @@ func (v *GetByIDVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -426,7 +426,7 @@ func (v *GetByIDVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E)
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -439,7 +439,7 @@ func (v *GetByIDVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitR
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -452,7 +452,7 @@ func (v *GetByIDVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -465,7 +465,7 @@ func (v *GetByIDVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResul
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -478,7 +478,7 @@ func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -491,7 +491,7 @@ func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, error
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -504,7 +504,7 @@ func (v *GetByIDVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -517,7 +517,7 @@ func (v *GetByIDVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }
@@ -530,7 +530,7 @@ func (v *GetByIDVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.
 	}
 	errE := claim.Visit(v)
 	if v.Result != nil {
-		return v.Action, errE
+		return KeepAndStop, errE
 	}
 	return Keep, errE
 }

@@ -263,7 +263,7 @@ func (c AddClaimChange) Validate(_ context.Context, base []string, operation int
 
 // UnmarshalJSON implements json.Unmarshaler for AddClaimChange.
 func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type C AddClaimChange
 	var t struct {
 		C
@@ -332,7 +332,7 @@ func (c SetClaimChange) Validate(_ context.Context, _ []string, _ int64) errors.
 
 // UnmarshalJSON implements json.Unmarshaler for SetClaimChange.
 func (c *SetClaimChange) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type C SetClaimChange
 	var t struct {
 		C
@@ -399,7 +399,7 @@ func (c RemoveClaimChange) Validate(_ context.Context, _ []string, _ int64) erro
 
 // UnmarshalJSON implements json.Unmarshaler for RemoveClaimChange.
 func (c *RemoveClaimChange) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type C RemoveClaimChange
 	var t struct {
 		C
@@ -490,7 +490,7 @@ func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals an identifier claim patch from JSON.
 func (p *IdentifierClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P IdentifierClaimPatch
 	var t struct {
 		P
@@ -581,7 +581,7 @@ func (p StringClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a string claim patch from JSON.
 func (p *StringClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P StringClaimPatch
 	var t struct {
 		P
@@ -672,7 +672,7 @@ func (p HTMLClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals an HTML claim patch from JSON.
 func (p *HTMLClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P HTMLClaimPatch
 	var t struct {
 		P
@@ -768,7 +768,7 @@ func (p AmountClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals an amount claim patch from JSON.
 func (p *AmountClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P AmountClaimPatch
 	var t struct {
 		P
@@ -924,7 +924,7 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals an amount interval claim patch from JSON.
 func (p *AmountIntervalClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P AmountIntervalClaimPatch
 	var t struct {
 		P
@@ -966,7 +966,7 @@ func (p AmountIntervalClaimPatch) MarshalJSON() ([]byte, error) {
 type TimeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Timestamp  *Timestamp             `exhaustruct:"optional" json:"timestamp,omitempty"`
+	Timestamp  *Timestamp             `exhaustruct:"optional" json:"time,omitempty"`
 	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
@@ -1020,7 +1020,7 @@ func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a time claim patch from JSON.
 func (p *TimeClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P TimeClaimPatch
 	var t struct {
 		P
@@ -1176,7 +1176,7 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a time interval claim patch from JSON.
 func (p *TimeIntervalClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P TimeIntervalClaimPatch
 	var t struct {
 		P
@@ -1243,7 +1243,7 @@ func (p ReferenceClaimPatch) New(id []string) (Claim, errors.E) { //nolint:iretu
 
 // Apply applies the patch to an existing reference claim.
 func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
-	if p.Prop == nil && len(p.IRI) == 0 {
+	if p.Confidence == nil && p.Prop == nil && len(p.IRI) == 0 {
 		return errors.New("empty patch")
 	}
 
@@ -1267,7 +1267,7 @@ func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a reference claim patch from JSON.
 func (p *ReferenceClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P ReferenceClaimPatch
 	var t struct {
 		P
@@ -1358,7 +1358,7 @@ func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a relation claim patch from JSON.
 func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P RelationClaimPatch
 	var t struct {
 		P
@@ -1442,7 +1442,7 @@ func (p HasClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a has claim patch from JSON.
 func (p *HasClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P HasClaimPatch
 	var t struct {
 		P
@@ -1526,7 +1526,7 @@ func (p NoneClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals a none claim patch from JSON.
 func (p *NoneClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P NoneClaimPatch
 	var t struct {
 		P
@@ -1610,7 +1610,7 @@ func (p UnknownClaimPatch) Apply(claim Claim) errors.E {
 
 // UnmarshalJSON unmarshals an unknown claim patch from JSON.
 func (p *UnknownClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same MarshalJSON.
+	// We define a new type to not recurse into this same UnmarshalJSON.
 	type P UnknownClaimPatch
 	var t struct {
 		P
