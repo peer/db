@@ -68,9 +68,9 @@ type DocWithInterval struct {
 
 type DocWithAmount struct {
 	ID     []string `documentid:""`
-	Width  float64  `              property:"WIDTH"  unit:"m"`
-	Height int      `              property:"HEIGHT" unit:"m"`
-	Count  uint     `              property:"COUNT"  unit:"1"`
+	Width  float64  `              precision:"0.01" property:"WIDTH"`
+	Height int      `              precision:"1"    property:"HEIGHT"`
+	Count  uint     `              precision:"1"    property:"COUNT"`
 }
 
 type DocWithBool struct {
@@ -160,11 +160,6 @@ type DocWithEmbeddedProperties struct {
 	Extra string   `              property:"EXTRA"`
 }
 
-type DocMissingUnit struct {
-	ID    []string `documentid:""`
-	Width float64  `              property:"WIDTH"` // Missing unit tag.
-}
-
 func createMnemonics() map[string]identifier.Identifier {
 	return map[string]identifier.Identifier{
 		"NAME":            identifier.From("test", "NAME"),
@@ -196,6 +191,7 @@ func createMnemonics() map[string]identifier.Identifier {
 		"HISTORY":         identifier.From("test", "HISTORY"),
 		"NOTE":            identifier.From("test", "NOTE"),
 		"OPTIONAL":        identifier.From("test", "OPTIONAL"),
+		"BORN":            identifier.From("test", "BORN"),
 	}
 }
 
@@ -225,7 +221,7 @@ func TestDocuments_SimpleString(t *testing.T) {
 	assert.Equal(t, "Test Document", claim.String)
 
 	propID := mnemonics["NAME"]
-	assert.Equal(t, propID, *claim.Prop.ID)
+	assert.Equal(t, propID, claim.Prop.ID)
 
 	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), claim.ID)
 }
@@ -261,7 +257,7 @@ func TestDocuments_IdentifierClaim(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "CODES", "1"), doc.Claims.Identifier[2].ID)
 }
 
-func TestDocuments_TextClaim(t *testing.T) {
+func TestDocuments_TextClaim(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	mnemonics := createMnemonics()
@@ -280,14 +276,14 @@ func TestDocuments_TextClaim(t *testing.T) {
 	doc := results[0]
 
 	// Check TextClaims (Description + 2 Notes + HTMLText = 4).
-	require.Len(t, doc.Claims.Text, 4)
+	require.Len(t, doc.Claims.HTML, 4)
 
 	// Check HTML escaping.
-	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "DESCRIPTION", "0"), doc.Claims.Text[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "0"), doc.Claims.Text[1].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "1"), doc.Claims.Text[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.Text[3].ID)
+	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "0"), doc.Claims.HTML[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "1"), doc.Claims.HTML[2].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.HTML[3].ID)
 }
 
 func TestDocuments_RawHTMLTextClaim(t *testing.T) {
@@ -309,22 +305,22 @@ func TestDocuments_RawHTMLTextClaim(t *testing.T) {
 	doc := results[0]
 
 	// Check RawTextClaims (RawDescription + 2 RawNotes + RawHTMLText = 4).
-	require.Len(t, doc.Claims.Text, 4)
+	require.Len(t, doc.Claims.HTML, 4)
 
 	// Check HTML is NOT escaped for rawhtml type.
-	assert.Equal(t, "<p>Test</p>", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, "<b>Note 1</b>", doc.Claims.Text[1].HTML["en"])
-	assert.Equal(t, "<i>Note 2</i>", doc.Claims.Text[2].HTML["en"])
-	assert.Empty(t, doc.Claims.Text[3].HTML["en"])
+	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, "<b>Note 1</b>", doc.Claims.HTML[1].HTML)
+	assert.Equal(t, "<i>Note 2</i>", doc.Claims.HTML[2].HTML)
+	assert.Empty(t, doc.Claims.HTML[3].HTML)
 
 	// Verify claim IDs.
-	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.Text[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "0"), doc.Claims.Text[1].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "1"), doc.Claims.Text[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "RAW_HTML", "0"), doc.Claims.Text[3].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "0"), doc.Claims.HTML[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "1"), doc.Claims.HTML[2].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_HTML", "0"), doc.Claims.HTML[3].ID)
 }
 
-func TestDocuments_ReferenceClaim(t *testing.T) {
+func TestDocuments_ReferenceClaim(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	mnemonics := createMnemonics()
@@ -376,7 +372,7 @@ func TestDocuments_RelationClaim(t *testing.T) {
 	require.Len(t, doc.Claims.Relation, 3)
 
 	expectedParentID := identifier.From("parent", "id")
-	assert.Equal(t, expectedParentID, *doc.Claims.Relation[0].To.ID)
+	assert.Equal(t, expectedParentID, doc.Claims.Relation[0].To.ID)
 	assert.Equal(t, identifier.From("test", "doc1", "PARENT", "0"), doc.Claims.Relation[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "0"), doc.Claims.Relation[1].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "1"), doc.Claims.Relation[2].ID)
@@ -412,7 +408,9 @@ func TestDocuments_TimeClaim(t *testing.T) {
 
 	require.Len(t, doc.Claims.Time, 3)
 
-	assert.Equal(t, now, time.Time(doc.Claims.Time[0].Timestamp))
+	tt, errE := doc.Claims.Time[0].Timestamp.Time(doc.Claims.Time[0].Precision, time.UTC)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, now.UTC().Truncate(time.Second), tt)
 
 	assert.Equal(t, document.TimePrecisionSecond, doc.Claims.Time[0].Precision)
 	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
@@ -432,9 +430,11 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{
 				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				FromIsOpen:    false,
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+				ToIsClosed:    false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			},
@@ -446,11 +446,19 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 
 	doc := results[0]
 
-	require.Len(t, doc.Claims.TimeRange, 1)
+	require.Len(t, doc.Claims.TimeInterval, 1)
 
-	claim := doc.Claims.TimeRange[0]
-	assert.Equal(t, start, time.Time(claim.Lower))
-	assert.Equal(t, end, time.Time(claim.Upper))
+	claim := doc.Claims.TimeInterval[0]
+	require.NotNil(t, claim.From)
+	require.NotNil(t, claim.FromPrecision)
+	fromTime, errE := claim.From.Time(*claim.FromPrecision, time.UTC)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, start, fromTime)
+	require.NotNil(t, claim.To)
+	require.NotNil(t, claim.ToPrecision)
+	toTime, errE := claim.To.Time(*claim.ToPrecision, time.UTC)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, end, toTime)
 	assert.Equal(t, identifier.From("test", "doc1", "PERIOD", "0"), claim.ID)
 }
 
@@ -463,9 +471,11 @@ func TestDocuments_IntervalUnknown(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{
 				From:          nil,
+				FromIsOpen:    false,
 				FromIsUnknown: true,
 				FromIsNone:    false,
 				To:            nil,
+				ToIsClosed:    false,
 				ToIsUnknown:   true,
 				ToIsNone:      false,
 			},
@@ -477,8 +487,208 @@ func TestDocuments_IntervalUnknown(t *testing.T) {
 
 	doc := results[0]
 
-	// Unknown intervals are seen as empty, so no claims are created.
-	assert.Empty(t, doc.Claims.UnknownValue, "unknown intervals are skipped")
+	// Both-unknown interval creates a TimeIntervalClaim with unknown bounds.
+	require.Len(t, doc.Claims.TimeInterval, 1)
+	claim := doc.Claims.TimeInterval[0]
+	assert.True(t, claim.FromIsUnknown)
+	assert.Nil(t, claim.From)
+	assert.True(t, claim.ToIsUnknown)
+	assert.Nil(t, claim.To)
+	assert.Equal(t, identifier.From("test", "doc1", "PERIOD", "0"), claim.ID)
+}
+
+func TestDocuments_TimeIntervalWithNoneBounds(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	docs := []any{
+		&DocWithInterval{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From:     &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				ToIsNone: true,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.TimeInterval, 1)
+	claim := doc.Claims.TimeInterval[0]
+	require.NotNil(t, claim.From)
+	assert.Nil(t, claim.To)
+	assert.True(t, claim.ToIsNone)
+	assert.False(t, claim.FromIsUnknown)
+}
+
+func TestDocuments_TimeIntervalWithOpenBound(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	docs := []any{
+		&DocWithInterval{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From:       &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				FromIsOpen: true,
+				To:         &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+				ToIsClosed: true,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.TimeInterval, 1)
+	claim := doc.Claims.TimeInterval[0]
+	assert.True(t, claim.FromIsOpen)
+	assert.True(t, claim.ToIsClosed)
+	require.NotNil(t, claim.From)
+	require.NotNil(t, claim.To)
+}
+
+func TestDocuments_TimeIntervalMissingBound(t *testing.T) {
+	t.Parallel()
+
+	// From is nil with no flags set - not a valid interval.
+	mnemonics := createMnemonics()
+	end := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	docs := []any{
+		&DocWithInterval{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				To: &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "from" bound is not set`)
+}
+
+func TestDocuments_AmountIntervalWithUnknownBounds(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountInterval struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountInterval{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				FromIsUnknown: true,
+				To:            &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.AmountInterval, 1)
+	claim := doc.Claims.AmountInterval[0]
+	assert.True(t, claim.FromIsUnknown)
+	assert.Nil(t, claim.From)
+	require.NotNil(t, claim.To)
+	assert.Equal(t, 10.0, *claim.To) //nolint:testifylint
+}
+
+func TestDocuments_AmountIntervalWithNoneBounds(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountInterval struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountInterval{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From:     &core.Amount[int]{Amount: 1, Precision: 1},
+				ToIsNone: true,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.AmountInterval, 1)
+	claim := doc.Claims.AmountInterval[0]
+	require.NotNil(t, claim.From)
+	assert.Equal(t, 1.0, *claim.From) //nolint:testifylint
+	assert.Nil(t, claim.To)
+	assert.True(t, claim.ToIsNone)
+}
+
+func TestDocuments_AmountIntervalWithOpenBound(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountInterval struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountInterval{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From:       &core.Amount[int]{Amount: 1, Precision: 1},
+				FromIsOpen: true,
+				To:         &core.Amount[int]{Amount: 10, Precision: 1},
+				ToIsClosed: true,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.AmountInterval, 1)
+	claim := doc.Claims.AmountInterval[0]
+	assert.True(t, claim.FromIsOpen)
+	assert.True(t, claim.ToIsClosed)
+	require.NotNil(t, claim.From)
+	require.NotNil(t, claim.To)
+}
+
+func TestDocuments_AmountIntervalMissingBound(t *testing.T) {
+	t.Parallel()
+
+	type DocWithAmountInterval struct {
+		ID          []string                        `documentid:""`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountInterval{
+			ID: []string{"test", "doc1"},
+			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1, Precision: 1},
+				// To is nil with no flags.
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "to" bound is not set`)
 }
 
 func TestDocuments_AmountClaim(t *testing.T) {
@@ -503,16 +713,14 @@ func TestDocuments_AmountClaim(t *testing.T) {
 
 	// Check Width (float).
 	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[0].Unit)
 	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
 
 	// Check Height (int).
 	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
 
-	// Check Count (uint with unit "1").
+	// Check Count (uint).
 	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitNone, doc.Claims.Amount[2].Unit)
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
 }
 
@@ -521,9 +729,9 @@ func TestDocuments_CoreAmountClaim(t *testing.T) {
 
 	type DocWithCoreAmount struct {
 		ID     []string             `documentid:""`
-		Width  core.Amount[float64] `              property:"WIDTH"  unit:"m"`
-		Height core.Amount[int]     `              property:"HEIGHT" unit:"m"`
-		Count  core.Amount[uint]    `              property:"COUNT"  unit:"1"`
+		Width  core.Amount[float64] `              property:"WIDTH"`
+		Height core.Amount[int]     `              property:"HEIGHT"`
+		Count  core.Amount[uint]    `              property:"COUNT"`
 	}
 
 	mnemonics := createMnemonics()
@@ -543,41 +751,40 @@ func TestDocuments_CoreAmountClaim(t *testing.T) {
 
 	require.Len(t, doc.Claims.Amount, 3)
 
-	// Check Width (float64, precision ignored).
-	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[0].Unit)
+	// Check Width (float64).
+	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount)    //nolint:testifylint
+	assert.Equal(t, 0.1, doc.Claims.Amount[0].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
 
-	// Check Height (int, precision ignored).
-	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[1].Unit)
+	// Check Height (int).
+	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount)  //nolint:testifylint
+	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
 
-	// Check Count (uint with unit "1", precision ignored).
-	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitNone, doc.Claims.Amount[2].Unit)
+	// Check Count (uint, zero precision).
+	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount)   //nolint:testifylint
+	assert.Equal(t, 0.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
 }
 
-func TestDocuments_CoreAmountMissingUnit(t *testing.T) {
+func TestDocuments_CoreAmountPrecisionInfinity(t *testing.T) {
 	t.Parallel()
 
-	type DocWithCoreAmountNoUnit struct {
+	type DocWithInfPrecision struct {
 		ID    []string             `documentid:""`
-		Width core.Amount[float64] `              property:"WIDTH"` // Missing unit tag.
+		Width core.Amount[float64] `              property:"WIDTH"`
 	}
 
 	mnemonics := createMnemonics()
 	docs := []any{
-		&DocWithCoreAmountNoUnit{
+		&DocWithInfPrecision{
 			ID:    []string{"test", "doc1"},
-			Width: core.Amount[float64]{Amount: 1.5}, //nolint:exhaustruct
+			Width: core.Amount[float64]{Amount: 1.5, Precision: math.Inf(1)},
 		},
 	}
 
-	results, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.Nil(t, results)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision is infinity or not a number")
 }
 
 func TestDocuments_AmountRangeClaim(t *testing.T) {
@@ -585,7 +792,7 @@ func TestDocuments_AmountRangeClaim(t *testing.T) {
 
 	type DocWithAmountInterval struct {
 		ID          []string                        `documentid:""`
-		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD" unit:"1"`
+		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"`
 	}
 
 	mnemonics := createMnemonics()
@@ -604,37 +811,14 @@ func TestDocuments_AmountRangeClaim(t *testing.T) {
 
 	doc := results[0]
 
-	require.Len(t, doc.Claims.AmountRange, 1)
+	require.Len(t, doc.Claims.AmountInterval, 1)
 
-	claim := doc.Claims.AmountRange[0]
-	assert.Equal(t, 1.0, claim.Lower)  //nolint:testifylint
-	assert.Equal(t, 10.0, claim.Upper) //nolint:testifylint
-	assert.Equal(t, document.AmountUnitNone, claim.Unit)
+	claim := doc.Claims.AmountInterval[0]
+	require.NotNil(t, claim.From)
+	assert.Equal(t, 1.0, *claim.From) //nolint:testifylint
+	require.NotNil(t, claim.To)
+	assert.Equal(t, 10.0, *claim.To) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "PERIOD", "0"), claim.ID)
-}
-
-func TestDocuments_AmountRangeMissingUnit(t *testing.T) {
-	t.Parallel()
-
-	type DocWithAmountIntervalNoUnit struct {
-		ID          []string                        `documentid:""`
-		Cardinality core.Interval[core.Amount[int]] `              property:"PERIOD"` // Missing unit tag.
-	}
-
-	mnemonics := createMnemonics()
-	docs := []any{
-		&DocWithAmountIntervalNoUnit{
-			ID: []string{"test", "doc1"},
-			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
-				From: &core.Amount[int]{Amount: 1},  //nolint:exhaustruct
-				To:   &core.Amount[int]{Amount: 10}, //nolint:exhaustruct
-			},
-		},
-	}
-
-	results, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.Nil(t, results)
 }
 
 func TestDocuments_BoolNoValue(t *testing.T) {
@@ -654,13 +838,12 @@ func TestDocuments_BoolNoValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Only Published=true should create NoValueClaim.
-	// TODO: Make this better. We currently map true to NoValueClaim, but we should to HasClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
+	// Only Published=true should create HasClaim.
+	require.Len(t, doc.Claims.Has, 1)
 
 	propID := mnemonics["PUBLISHED"]
-	assert.Equal(t, propID, *doc.Claims.NoValue[0].Prop.ID)
-	assert.Equal(t, identifier.From("test", "doc1", "PUBLISHED", "0"), doc.Claims.NoValue[0].ID)
+	assert.Equal(t, propID, doc.Claims.Has[0].Prop.ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PUBLISHED", "0"), doc.Claims.Has[0].ID)
 }
 
 func TestDocuments_RequiredEmpty(t *testing.T) {
@@ -679,9 +862,9 @@ func TestDocuments_RequiredEmpty(t *testing.T) {
 
 	doc := results[0]
 
-	// Should create NoValueClaim for empty string with required cardinality and default:"none" tag.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
+	// Should create NoneClaim for empty string with required cardinality and default:"none" tag.
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_RequiredEmptySlice(t *testing.T) {
@@ -706,9 +889,9 @@ func TestDocuments_RequiredEmptySlice(t *testing.T) {
 
 	doc := results[0]
 
-	// Should create NoValueClaim for empty slice with required tag.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
+	// Should create NoneClaim for empty slice with required tag.
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_UnknownValue(t *testing.T) {
@@ -729,9 +912,9 @@ func TestDocuments_UnknownValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Only AgeIsUnknown=true should create UnknownValueClaim.
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.UnknownValue[0].ID)
+	// Only AgeIsUnknown=true should create UnknownClaim.
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.Unknown[0].ID)
 
 	// Should have string claim for Name.
 	require.Len(t, doc.Claims.String, 1)
@@ -752,9 +935,11 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 				Value: "Main Title",
 				Period: core.Interval[core.Time]{
 					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+					FromIsOpen:    false,
 					FromIsUnknown: false,
 					FromIsNone:    false,
 					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+					ToIsClosed:    false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
 				},
@@ -780,8 +965,8 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 	require.NotNil(t, claim.Meta)
 
 	// Should have 1 TimeRange and 1 String meta claim.
-	assert.Len(t, claim.Meta.TimeRange, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "PERIOD", "0"), claim.Meta.TimeRange[0].ID)
+	assert.Len(t, claim.Meta.TimeInterval, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "PERIOD", "0"), claim.Meta.TimeInterval[0].ID)
 	assert.Len(t, claim.Meta.String, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), claim.Meta.String[0].ID)
 }
@@ -800,9 +985,11 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 				Location: core.Ref{ID: []string{"location", "1"}},
 				Period: core.Interval[core.Time]{
 					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+					FromIsOpen:    false,
 					FromIsUnknown: false,
 					FromIsNone:    false,
 					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+					ToIsClosed:    false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
 				},
@@ -816,20 +1003,19 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Nested struct without value field creates a NoValueClaim for the ADDRESS property,
-	// and the Location and Period fields become meta claims on that NoValueClaim.
-	// TODO: Make this better. We currently map true to NoValueClaim, but we should to HasClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
+	// Nested struct without value field creates a HasClaim for the ADDRESS property,
+	// and the Location and Period fields become meta claims on that HasClaim.
+	require.Len(t, doc.Claims.Has, 1)
 
-	noValueClaim := doc.Claims.NoValue[0]
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), noValueClaim.ID)
-	require.NotNil(t, noValueClaim.Meta)
+	hasClaim := doc.Claims.Has[0]
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), hasClaim.ID)
+	require.NotNil(t, hasClaim.Meta)
 
 	// Should have 1 Relation and 1 TimeRange as meta claims.
-	assert.Len(t, noValueClaim.Meta.Relation, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), noValueClaim.Meta.Relation[0].ID)
-	assert.Len(t, noValueClaim.Meta.TimeRange, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), noValueClaim.Meta.TimeRange[0].ID)
+	assert.Len(t, hasClaim.Meta.Relation, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Relation[0].ID)
+	assert.Len(t, hasClaim.Meta.TimeInterval, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), hasClaim.Meta.TimeInterval[0].ID)
 }
 
 func TestDocuments_SkippedFields(t *testing.T) {
@@ -1043,43 +1229,6 @@ func TestDocuments_MissingPropertyMnemonic(t *testing.T) {
 	assert.EqualError(t, errE, "mnemonic not found")
 }
 
-func TestDocuments_MissingUnitTag(t *testing.T) {
-	t.Parallel()
-
-	mnemonics := createMnemonics()
-	mnemonics["WIDTH"] = identifier.From("test", "WIDTH")
-
-	docs := []any{
-		&DocMissingUnit{
-			ID:    []string{"test", "doc1"},
-			Width: 1.5, // Missing unit tag.
-		},
-	}
-
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
-}
-
-func TestDocuments_InvalidUnitTag(t *testing.T) {
-	t.Parallel()
-
-	type DocInvalidUnit struct {
-		ID    []string `documentid:""`
-		Width float64  `              property:"WIDTH" unit:"invalid"`
-	}
-
-	mnemonics := createMnemonics()
-	docs := []any{
-		&DocInvalidUnit{
-			ID:    []string{"test", "doc1"},
-			Width: 1.5,
-		},
-	}
-
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "unknown amount unit")
-}
-
 func TestDocuments_NotAStruct(t *testing.T) {
 	t.Parallel()
 
@@ -1090,112 +1239,6 @@ func TestDocuments_NotAStruct(t *testing.T) {
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "expected struct")
-}
-
-func TestDocuments_VariousAmountUnits(t *testing.T) {
-	t.Parallel()
-
-	type DocWithVariousUnits struct {
-		ID          []string `documentid:""`
-		Distance    float64  `              property:"DISTANCE"    unit:"m"`
-		Area        float64  `              property:"AREA"        unit:"m²"`
-		Volume      float64  `              property:"VOLUME"      unit:"l"`
-		Mass        float64  `              property:"MASS"        unit:"kg"`
-		Duration    float64  `              property:"DURATION"    unit:"s"`
-		Temperature float64  `              property:"TEMPERATURE" unit:"°C"`
-		Frequency   float64  `              property:"FREQUENCY"   unit:"Hz"`
-		Pressure    float64  `              property:"PRESSURE"    unit:"Pa"`
-		Energy      float64  `              property:"ENERGY"      unit:"J"`
-		Power       float64  `              property:"POWER"       unit:"W"`
-		Voltage     float64  `              property:"VOLTAGE"     unit:"V"`
-		Charge      float64  `              property:"CHARGE"      unit:"C"`
-		Ratio       float64  `              property:"RATIO"       unit:"/"`
-		Pixels      int      `              property:"PIXELS"      unit:"px"`
-		Bytes       int      `              property:"BYTES"       unit:"B"`
-		Count       int      `              property:"COUNT"       unit:"1"`
-	}
-
-	mnemonics := map[string]identifier.Identifier{
-		"DISTANCE":    identifier.From("test", "DISTANCE"),
-		"AREA":        identifier.From("test", "AREA"),
-		"VOLUME":      identifier.From("test", "VOLUME"),
-		"MASS":        identifier.From("test", "MASS"),
-		"DURATION":    identifier.From("test", "DURATION"),
-		"TEMPERATURE": identifier.From("test", "TEMPERATURE"),
-		"FREQUENCY":   identifier.From("test", "FREQUENCY"),
-		"PRESSURE":    identifier.From("test", "PRESSURE"),
-		"ENERGY":      identifier.From("test", "ENERGY"),
-		"POWER":       identifier.From("test", "POWER"),
-		"VOLTAGE":     identifier.From("test", "VOLTAGE"),
-		"CHARGE":      identifier.From("test", "CHARGE"),
-		"RATIO":       identifier.From("test", "RATIO"),
-		"PIXELS":      identifier.From("test", "PIXELS"),
-		"BYTES":       identifier.From("test", "BYTES"),
-		"COUNT":       identifier.From("test", "COUNT"),
-	}
-
-	docs := []any{
-		&DocWithVariousUnits{
-			ID:          []string{"test", "doc1"},
-			Distance:    100.5,
-			Area:        50.25,
-			Volume:      2.5,
-			Mass:        75.0,
-			Duration:    3600.0,
-			Temperature: 25.0,
-			Frequency:   440.0,
-			Pressure:    101325.0,
-			Energy:      1000.0,
-			Power:       500.0,
-			Voltage:     220.0,
-			Charge:      1.5,
-			Ratio:       0.75,
-			Pixels:      1920,
-			Bytes:       1024,
-			Count:       42,
-		},
-	}
-
-	results, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	doc := results[0]
-
-	require.Len(t, doc.Claims.Amount, 16)
-
-	// Verify units are parsed correctly.
-	expectedUnits := []document.AmountUnit{
-		document.AmountUnitMetre,
-		document.AmountUnitSquareMetre,
-		document.AmountUnitLitre,
-		document.AmountUnitKilogram,
-		document.AmountUnitSecond,
-		document.AmountUnitCelsius,
-		document.AmountUnitHertz,
-		document.AmountUnitPascal,
-		document.AmountUnitJoule,
-		document.AmountUnitWatt,
-		document.AmountUnitVolt,
-		document.AmountUnitCoulomb,
-		document.AmountUnitRatio,
-		document.AmountUnitPixel,
-		document.AmountUnitByte,
-		document.AmountUnitNone,
-	}
-
-	for i, expected := range expectedUnits {
-		assert.Equal(t, expected, doc.Claims.Amount[i].Unit, "claim %d", i)
-	}
-
-	// Verify claim IDs.
-	expectedProperties := []string{
-		"DISTANCE", "AREA", "VOLUME", "MASS", "DURATION", "TEMPERATURE",
-		"FREQUENCY", "PRESSURE", "ENERGY", "POWER", "VOLTAGE", "CHARGE",
-		"RATIO", "PIXELS", "BYTES", "COUNT",
-	}
-	for i, prop := range expectedProperties {
-		assert.Equal(t, identifier.From("test", "doc1", prop, "0"), doc.Claims.Amount[i].ID, "claim %d", i)
-	}
 }
 
 func TestDocuments_EmbeddedDocID(t *testing.T) {
@@ -1286,7 +1329,7 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 	require.Len(t, doc.Claims.Relation, 1)
 
 	expectedAuthorID := identifier.From("author", "1")
-	assert.Equal(t, expectedAuthorID, *doc.Claims.Relation[0].To.ID)
+	assert.Equal(t, expectedAuthorID, doc.Claims.Relation[0].To.ID)
 	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Relation[0].ID)
 }
 
@@ -1345,7 +1388,7 @@ func TestDocuments_EmbeddedLikeCore(t *testing.T) {
 	require.Len(t, doc.Claims.Relation, 1)
 
 	expectedInstanceOf := identifier.From("core", "PROPERTY")
-	assert.Equal(t, expectedInstanceOf, *doc.Claims.Relation[0].To.ID)
+	assert.Equal(t, expectedInstanceOf, doc.Claims.Relation[0].To.ID)
 	assert.Equal(t, identifier.From("test", "PROP", "INSTANCE_OF", "0"), doc.Claims.Relation[0].ID)
 }
 
@@ -1400,7 +1443,7 @@ func TestDocuments_MultipleEmbeddedSameLevel(t *testing.T) {
 func TestDocuments_NilRefValueUnknown(t *testing.T) {
 	t.Parallel()
 
-	// Test that nil *core.Ref in value field creates NoValueClaim.
+	// Test that nil *core.Ref in value field creates NoneClaim.
 	type RefWithMeta struct {
 		Ref  *core.Ref `                value:""`
 		Note string    `property:"NOTE"`
@@ -1428,14 +1471,14 @@ func TestDocuments_NilRefValueUnknown(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil *core.Ref value creates NoValueClaim for the struct.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.NoValue[0].ID)
+	// Nil *core.Ref value creates HasClaim for the struct.
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Has[0].ID)
 
 	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.NoValue[0].Meta)
-	assert.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Has[0].Meta)
+	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
 }
 
 func TestDocuments_EmptyRefValue(t *testing.T) {
@@ -1468,9 +1511,9 @@ func TestDocuments_EmptyRefValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Should create NoValueClaim for empty ref with meta claims.
-	assert.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.NoValue[0].ID)
+	// Should create HasClaim for empty ref with meta claims.
+	assert.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Has[0].ID)
 }
 
 func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
@@ -1514,9 +1557,9 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "0"), doc.Claims.Relation[1].ID)
 
 	// Should have 2 unknown value claims (AuthorHasUnknown and ArtistHasUnknown).
-	require.Len(t, doc.Claims.UnknownValue, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "1"), doc.Claims.UnknownValue[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "1"), doc.Claims.UnknownValue[1].ID)
+	require.Len(t, doc.Claims.Unknown, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "1"), doc.Claims.Unknown[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "1"), doc.Claims.Unknown[1].ID)
 }
 
 func TestDocuments_CoreHTMLWithoutTag(t *testing.T) {
@@ -1543,10 +1586,10 @@ func TestDocuments_CoreHTMLWithoutTag(t *testing.T) {
 	doc := results[0]
 
 	// Without html tag, should still be TextClaim.
-	require.Len(t, doc.Claims.Text, 1)
+	require.Len(t, doc.Claims.HTML, 1)
 
-	assert.Equal(t, "&lt;p&gt;HTML content&lt;/p&gt;", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.Text[0].ID)
+	assert.Equal(t, "&lt;p&gt;HTML content&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.HTML[0].ID)
 }
 
 func TestDocuments_CoreRawHTMLWithoutTag(t *testing.T) {
@@ -1573,10 +1616,10 @@ func TestDocuments_CoreRawHTMLWithoutTag(t *testing.T) {
 	doc := results[0]
 
 	// Without rawhtml tag, should still be TextClaim with unescaped HTML.
-	require.Len(t, doc.Claims.Text, 1)
+	require.Len(t, doc.Claims.HTML, 1)
 
-	assert.Equal(t, "<p>HTML content</p>", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.Text[0].ID)
+	assert.Equal(t, "<p>HTML content</p>", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.HTML[0].ID)
 }
 
 func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
@@ -1613,22 +1656,22 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 
 	doc := results[0]
 
-	require.Len(t, doc.Claims.Text, 4)
+	require.Len(t, doc.Claims.HTML, 4)
 
 	// Verify HTML is escaped.
 	escapedExpected := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
-	assert.Equal(t, escapedExpected, doc.Claims.Text[0].HTML["en"], "type:html should escape")
-	assert.Equal(t, escapedExpected, doc.Claims.Text[2].HTML["en"], "core.HTML should escape")
+	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
+	assert.Equal(t, escapedExpected, doc.Claims.HTML[2].HTML, "core.HTML should escape")
 
 	// Verify RawHTML is sanitized.
-	assert.Empty(t, doc.Claims.Text[1].HTML["en"], "type:rawhtml should sanitize")
-	assert.Empty(t, doc.Claims.Text[3].HTML["en"], "core.RawHTML should sanitize")
+	assert.Empty(t, doc.Claims.HTML[1].HTML, "type:rawhtml should sanitize")
+	assert.Empty(t, doc.Claims.HTML[3].HTML, "core.RawHTML should sanitize")
 
 	// Verify claim IDs.
-	assert.Equal(t, identifier.From("test", "doc1", "ESCAPED", "0"), doc.Claims.Text[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "UNESCAPED", "0"), doc.Claims.Text[1].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "CORE_HTML", "0"), doc.Claims.Text[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "CORE_RAW", "0"), doc.Claims.Text[3].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "ESCAPED", "0"), doc.Claims.HTML[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "UNESCAPED", "0"), doc.Claims.HTML[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "CORE_HTML", "0"), doc.Claims.HTML[2].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "CORE_RAW", "0"), doc.Claims.HTML[3].ID)
 }
 
 func TestDocuments_CoreIRIWithoutTag(t *testing.T) {
@@ -1717,17 +1760,21 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			ValidPeriod: core.Interval[core.Time]{
 				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+				FromIsOpen:    false,
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+				ToIsClosed:    false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			},
 			InvalidPeriod: core.Interval[core.Time]{
 				From:          nil,
+				FromIsOpen:    false,
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            nil,
+				ToIsClosed:    false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			}, // Empty interval.
@@ -1740,8 +1787,8 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 	doc := results[0]
 
 	// Only ValidPeriod should create a claim (empty interval is skipped).
-	require.Len(t, doc.Claims.TimeRange, 1, "empty interval skipped")
-	assert.Equal(t, identifier.From("test", "doc1", "VALID_PERIOD", "0"), doc.Claims.TimeRange[0].ID)
+	require.Len(t, doc.Claims.TimeInterval, 1, "empty interval skipped")
+	assert.Equal(t, identifier.From("test", "doc1", "VALID_PERIOD", "0"), doc.Claims.TimeInterval[0].ID)
 }
 
 func TestDocuments_UniqueClaimIDsWithFieldName(t *testing.T) {
@@ -1822,7 +1869,7 @@ func TestDocuments_PointerToRefInValue(t *testing.T) {
 	require.Len(t, doc.Claims.Relation, 1)
 
 	expectedRefID := identifier.From("target", "1")
-	assert.Equal(t, expectedRefID, *doc.Claims.Relation[0].To.ID)
+	assert.Equal(t, expectedRefID, doc.Claims.Relation[0].To.ID)
 	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0"), doc.Claims.Relation[0].ID)
 
 	// Should have meta claim (Note).
@@ -1855,12 +1902,12 @@ func TestDocuments_HTMLEscaping(t *testing.T) {
 
 	doc := results[0]
 
-	require.Len(t, doc.Claims.Text, 1)
+	require.Len(t, doc.Claims.HTML, 1)
 
 	// HTML should be escaped.
 	expected := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
-	assert.Equal(t, expected, doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.Text[0].ID)
+	assert.Equal(t, expected, doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
 
 func TestDocuments_ValueFieldWithPointerString(t *testing.T) {
@@ -1938,14 +1985,14 @@ func TestDocuments_ValueFieldWithPointerStringNil(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil value without required creates NoValueClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
+	// Nil value creates HasClaim (has meta claims).
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Has[0].ID)
 
 	// Should have meta claim.
-	require.NotNil(t, doc.Claims.NoValue[0].Meta)
-	assert.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Has[0].Meta)
+	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithPointerStringRequired(t *testing.T) {
@@ -1979,9 +2026,9 @@ func TestDocuments_ValueFieldWithPointerStringRequired(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil required value creates NoValueClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
+	// Nil value with meta claims creates HasClaim (default:"none" applies to cardinality, not claim type).
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Has[0].ID)
 }
 
 func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
@@ -2025,7 +2072,9 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 	// Should have 1 time claim.
 	require.Len(t, doc.Claims.Time, 1)
 
-	assert.Equal(t, now, time.Time(doc.Claims.Time[0].Timestamp))
+	tt, errE := doc.Claims.Time[0].Timestamp.Time(doc.Claims.Time[0].Precision, time.UTC)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, now.UTC().Truncate(time.Second), tt)
 	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
 
 	// Should have meta claim (Note).
@@ -2147,11 +2196,11 @@ func TestDocuments_ValueFieldWithHTMLTag(t *testing.T) { //nolint:dupl
 	doc := results[0]
 
 	// Should have 1 text claim.
-	require.Len(t, doc.Claims.Text, 1)
+	require.Len(t, doc.Claims.HTML, 1)
 
 	// HTML should be escaped.
-	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.Text[0].ID)
+	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
 
 func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
@@ -2187,11 +2236,11 @@ func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
 	doc := results[0]
 
 	// Should have 1 text claim.
-	require.Len(t, doc.Claims.Text, 1)
+	require.Len(t, doc.Claims.HTML, 1)
 
 	// HTML should NOT be escaped for rawhtml type.
-	assert.Equal(t, "<p>Test</p>", doc.Claims.Text[0].HTML["en"])
-	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.Text[0].ID)
+	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
 
 func TestDocuments_ValueFieldWithIRITag(t *testing.T) { //nolint:dupl
@@ -2307,10 +2356,10 @@ func TestDocuments_ValueFieldUnsupportedStruct(t *testing.T) {
 func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 	t.Parallel()
 
-	// Test value:"" with numeric type and unit tag.
+	// Test value:"" with numeric type.
 	type AmountValue struct {
-		Value float64 `                unit:"m" value:""`
-		Note  string  `property:"NOTE"`
+		Value float64 `precision:"0.01"                 value:""`
+		Note  string  `                 property:"NOTE"`
 	}
 
 	type DocWithAmountValue struct {
@@ -2340,8 +2389,6 @@ func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 	require.Len(t, doc.Claims.Amount, 1)
 
 	assert.Equal(t, 1.75, doc.Claims.Amount[0].Amount) //nolint:testifylint
-
-	assert.Equal(t, document.AmountUnitMetre, doc.Claims.Amount[0].Unit)
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[0].ID)
 
 	// Should have meta claim.
@@ -2382,15 +2429,14 @@ func TestDocuments_ValueFieldWithBool(t *testing.T) {
 
 	doc := results[0]
 
-	// Bool true creates NoValueClaim.
-	// TODO: Make this better. We currently map true to NoValueClaim, but we should to HasClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.NoValue[0].ID)
+	// Bool true creates HasClaim.
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.Has[0].ID)
 
 	// Should have meta claim.
-	require.NotNil(t, doc.Claims.NoValue[0].Meta)
-	assert.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Has[0].Meta)
+	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
@@ -2425,9 +2471,9 @@ func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
 
 	doc := results[0]
 
-	// Bool false is empty, so NoValueClaim for the struct.
-	require.Len(t, doc.Claims.NoValue, 1, "false bool creates no value claim for struct")
-	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.NoValue[0].ID)
+	// Bool false is empty, so HasClaim for the struct (has meta claims).
+	require.Len(t, doc.Claims.Has, 1, "false bool creates has claim for struct when meta claims exist")
+	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.Has[0].ID)
 }
 
 func TestDocuments_StructWithoutValueField(t *testing.T) {
@@ -2462,18 +2508,18 @@ func TestDocuments_StructWithoutValueField(t *testing.T) {
 
 	doc := results[0]
 
-	// Without value field, creates NoValueClaim with meta claims.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), doc.Claims.NoValue[0].ID)
+	// Without value field, creates HasClaim with meta claims.
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), doc.Claims.Has[0].ID)
 
-	noValueClaim := doc.Claims.NoValue[0]
-	require.NotNil(t, noValueClaim.Meta)
+	hasClaim := doc.Claims.Has[0]
+	require.NotNil(t, hasClaim.Meta)
 
 	// Should have Location and Note as meta claims.
-	assert.Len(t, noValueClaim.Meta.Relation, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), noValueClaim.Meta.Relation[0].ID)
-	assert.Len(t, noValueClaim.Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "NOTE", "0"), noValueClaim.Meta.String[0].ID)
+	assert.Len(t, hasClaim.Meta.Relation, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Relation[0].ID)
+	assert.Len(t, hasClaim.Meta.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "NOTE", "0"), hasClaim.Meta.String[0].ID)
 }
 
 func TestDocuments_RequiredPointerNilSlice(t *testing.T) {
@@ -2500,9 +2546,9 @@ func TestDocuments_RequiredPointerNilSlice(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil slice with required creates NoValueClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "0"), doc.Claims.NoValue[0].ID)
+	// Nil slice with required creates NoneClaim.
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_RequiredPointerFieldNil(t *testing.T) {
@@ -2528,9 +2574,9 @@ func TestDocuments_RequiredPointerFieldNil(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil pointer with required creates NoValueClaim.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.NoValue[0].ID)
+	// Nil pointer with required creates NoneClaim.
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_NestedStructInSlice(t *testing.T) {
@@ -2704,7 +2750,7 @@ func TestDocuments_InfinityFloatError(t *testing.T) {
 	// Test that infinity float returns error.
 	type DocWithInfinity struct {
 		ID    []string `documentid:""`
-		Value float64  `              property:"VALUE" unit:"1"`
+		Value float64  `              precision:"1" property:"VALUE"`
 	}
 
 	mnemonics := createMnemonics()
@@ -2729,7 +2775,7 @@ func TestDocuments_NaNFloatError(t *testing.T) {
 	// Test that NaN float returns error.
 	type DocWithNaN struct {
 		ID    []string `documentid:""`
-		Value float64  `              property:"VALUE" unit:"1"`
+		Value float64  `              precision:"1" property:"VALUE"`
 	}
 
 	mnemonics := createMnemonics()
@@ -2792,8 +2838,8 @@ func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
 
 	// Verify the claims are Name and Extra, not Field1 or Field2.
 	propIDs := []identifier.Identifier{
-		*doc.Claims.String[0].Prop.ID,
-		*doc.Claims.String[1].Prop.ID,
+		doc.Claims.String[0].Prop.ID,
+		doc.Claims.String[1].Prop.ID,
 	}
 
 	nameID := mnemonics["NAME"]
@@ -2881,7 +2927,7 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 
 	// Verify all claims have the same property.
 	for i, claim := range doc.Claims.String {
-		assert.Equal(t, sharedPropID, *claim.Prop.ID, "claim %d", i)
+		assert.Equal(t, sharedPropID, claim.Prop.ID, "claim %d", i)
 	}
 
 	// Verify claim IDs increment correctly across all sources.
@@ -2908,9 +2954,9 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "NOTE", "0"), valueClaim.Meta.String[2].ID)
 
 	// Verify meta claims have correct property IDs.
-	assert.Equal(t, sharedPropID, *valueClaim.Meta.String[0].Prop.ID)
-	assert.Equal(t, sharedPropID, *valueClaim.Meta.String[1].Prop.ID)
-	assert.Equal(t, mnemonics["NOTE"], *valueClaim.Meta.String[2].Prop.ID)
+	assert.Equal(t, sharedPropID, valueClaim.Meta.String[0].Prop.ID)
+	assert.Equal(t, sharedPropID, valueClaim.Meta.String[1].Prop.ID)
+	assert.Equal(t, mnemonics["NOTE"], valueClaim.Meta.String[2].Prop.ID)
 }
 
 type DocWithInvalidUnknown struct {
@@ -3086,11 +3132,11 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
-		// Should create a NoValueClaim since there's no value field but there are meta claims.
+		// Should create a HasClaim since there's no value field but there are meta claims.
 		nestedProperty := mnemonics["NESTED"]
 		nestedClaims := result[0].Get(nestedProperty)
 		assert.Len(t, nestedClaims, 1)
-		assert.IsType(t, &document.NoValueClaim{}, nestedClaims[0])
+		assert.IsType(t, &document.HasClaim{}, nestedClaims[0])
 	})
 
 	t.Run("NestedStructWithEmptyMetaClaims", func(t *testing.T) {
@@ -3176,9 +3222,9 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 	})
 }
 
-type DocWithNumericNoUnit struct {
+type DocWithNumeric struct {
 	ID    []string `documentid:""`
-	Count int      `              property:"COUNT"` // Missing required unit tag.
+	Count int      `              precision:"1" property:"COUNT"`
 }
 
 type DocWithInvalidDocID struct {
@@ -3187,7 +3233,7 @@ type DocWithInvalidDocID struct {
 
 type DocWithInvalidFloatValue struct {
 	ID    []string `documentid:""`
-	Value float64  `              property:"VALUE" unit:"1"`
+	Value float64  `              precision:"1" property:"VALUE"`
 }
 
 func TestDocuments_MoreEdgeCases(t *testing.T) {
@@ -3198,19 +3244,19 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 		"VALUE": identifier.New(),
 	}
 
-	t.Run("NumericFieldWithoutUnit", func(t *testing.T) {
+	t.Run("NumericField", func(t *testing.T) {
 		t.Parallel()
 
 		docs := []any{
-			&DocWithNumericNoUnit{
+			&DocWithNumeric{
 				ID:    []string{"doc1"},
 				Count: 42,
 			},
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
-		assert.Nil(t, result)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, result, 1)
 	})
 
 	t.Run("DocumentIDNotStringSlice", func(t *testing.T) {
@@ -3364,10 +3410,11 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		intervalClaims := result[0].Get(intervalProperty)
 		require.Len(t, intervalClaims, 1)
 
-		timeRangeClaim, ok := intervalClaims[0].(*document.TimeRangeClaim)
+		timeRangeClaim, ok := intervalClaims[0].(*document.TimeIntervalClaim)
 		require.True(t, ok)
-		// Verify that precision is set (the code uses the higher numerical value).
-		assert.Positive(t, int(timeRangeClaim.Precision))
+		// Verify that precision is set on both bounds.
+		require.NotNil(t, timeRangeClaim.FromPrecision)
+		assert.Positive(t, int(*timeRangeClaim.FromPrecision))
 	})
 
 	t.Run("IntervalWithNilFrom", func(t *testing.T) {
@@ -3388,37 +3435,26 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 			},
 		}
 
-		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		require.Len(t, result, 1)
-
-		// Should create UnknownValueClaim for interval with nil From.
-		// TODO: This is just temporary. Support unknown interval bounds.
-		intervalProperty := mnemonics["INTERVAL"]
-		intervalClaims := result[0].Get(intervalProperty)
-		require.Len(t, intervalClaims, 1)
-		assert.IsType(t, &document.UnknownValueClaim{}, intervalClaims[0])
+		_, errE := transform.Documents(t.Context(), mnemonics, docs)
+		// Nil From without any flag is an invalid interval bound.
+		assert.EqualError(t, errE, `interval's "from" bound is not set`)
 	})
 
 	t.Run("IntervalWithUnknownBounds", func(t *testing.T) {
 		t.Parallel()
 
-		start := time.Now()
-		end := start.Add(24 * time.Hour)
+		end := time.Now()
 
 		docs := []any{
 			&DocWithIntervalVariants{
 				ID: []string{"doc1"},
 				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
-					From: &core.Time{
-						Timestamp: start,
-						Precision: document.TimePrecisionDay,
-					},
+					From:          nil, // From is unknown (no concrete value).
+					FromIsUnknown: true,
 					To: &core.Time{
 						Timestamp: end,
 						Precision: document.TimePrecisionDay,
 					},
-					FromIsUnknown: true, // Unknown bound.
 				},
 			},
 		}
@@ -3427,28 +3463,31 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
-		// Should create UnknownValueClaim for interval with unknown bounds.
-		// TODO: This is just temporary. Support unknown interval bounds.
+		// FromIsUnknown creates a TimeIntervalClaim with unknown From bound.
 		intervalProperty := mnemonics["INTERVAL"]
 		intervalClaims := result[0].Get(intervalProperty)
 		require.Len(t, intervalClaims, 1)
-		assert.IsType(t, &document.UnknownValueClaim{}, intervalClaims[0])
+		timeRange, ok := intervalClaims[0].(*document.TimeIntervalClaim)
+		require.True(t, ok)
+		assert.True(t, timeRange.FromIsUnknown)
+		assert.Nil(t, timeRange.From)
+		assert.NotNil(t, timeRange.To)
 	})
 }
 
 type DocFlatFields struct {
 	ID          []string `documentid:""`
-	Name        string   `              property:"NAME"`
-	Description string   `              property:"DESCRIPTION" type:"html"`
-	Age         int      `              property:"AGE"                     unit:"1"`
-	IsActive    bool     `              property:"IS_ACTIVE"`
+	Name        string   `                            property:"NAME"`
+	Description string   `                            property:"DESCRIPTION" type:"html"`
+	Age         int      `              precision:"1" property:"AGE"`
+	IsActive    bool     `                            property:"IS_ACTIVE"`
 }
 
 type CommonFields struct {
-	Name        string `property:"NAME"`
-	Description string `property:"DESCRIPTION" type:"html"`
-	Age         int    `property:"AGE"                     unit:"1"`
-	IsActive    bool   `property:"IS_ACTIVE"`
+	Name        string `              property:"NAME"`
+	Description string `              property:"DESCRIPTION" type:"html"`
+	Age         int    `precision:"1" property:"AGE"`
+	IsActive    bool   `              property:"IS_ACTIVE"`
 }
 
 type DocEmbeddedEquivalent struct {
@@ -3587,7 +3626,7 @@ func TestDocuments_CardinalityZeroOrOne(t *testing.T) {
 
 	doc := results[0]
 	require.Empty(t, doc.Claims.String)
-	require.Empty(t, doc.Claims.NoValue)
+	require.Empty(t, doc.Claims.None)
 
 	// Test with one value - should succeed.
 	hello := "Hello"
@@ -3618,7 +3657,7 @@ func TestDocuments_CardinalityOneOrMore(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// Test with empty slice - should add one NoValueClaim (due to default:"none").
+	// Test with empty slice - should add one NoneClaim (due to default:"none").
 	docs := []any{
 		&DocWithOneOrMore{
 			ID:     []string{"test", "doc1"},
@@ -3631,8 +3670,8 @@ func TestDocuments_CardinalityOneOrMore(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[0].ID)
 
 	// Test with one value - should succeed.
 	docs = []any{
@@ -3676,7 +3715,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// Test with 0 values - should add 2 NoValueClaims (due to default:"none").
+	// Test with 0 values - should add 2 NoneClaims (due to default:"none").
 	docs := []any{
 		&DocWithExactTwo{
 			ID:     []string{"test", "doc1"},
@@ -3689,11 +3728,11 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.NoValue[1].ID)
+	require.Len(t, doc.Claims.None, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.None[1].ID)
 
-	// Test with 1 value - should add 1 NoValueClaim.
+	// Test with 1 value - should add 1 NoneClaim.
 	docs = []any{
 		&DocWithExactTwo{
 			ID:     []string{"test", "doc2"},
@@ -3707,7 +3746,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.NoValue, 1)
+	require.Len(t, doc.Claims.None, 1)
 
 	// Test with exactly 2 values - should succeed.
 	docs = []any{
@@ -3723,7 +3762,7 @@ func TestDocuments_CardinalityExactCount(t *testing.T) {
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 2)
-	require.Empty(t, doc.Claims.NoValue)
+	require.Empty(t, doc.Claims.None)
 
 	// Test with 3 values - should fail (exceeds max).
 	docs = []any{
@@ -3749,7 +3788,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// Test with 0 values - should add 2 NoValueClaims.
+	// Test with 0 values - should add 2 NoneClaims.
 	docs := []any{
 		&DocWithRange{
 			ID:     []string{"test", "doc1"},
@@ -3762,9 +3801,9 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 2)
+	require.Len(t, doc.Claims.None, 2)
 
-	// Test with 1 value - should add 1 NoValueClaim.
+	// Test with 1 value - should add 1 NoneClaim.
 	docs = []any{
 		&DocWithRange{
 			ID:     []string{"test", "doc2"},
@@ -3778,7 +3817,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.NoValue, 1)
+	require.Len(t, doc.Claims.None, 1)
 
 	// Test with 2 values - should succeed.
 	docs = []any{
@@ -3794,7 +3833,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 2)
-	require.Empty(t, doc.Claims.NoValue)
+	require.Empty(t, doc.Claims.None)
 
 	// Test with 4 values - should succeed.
 	docs = []any{
@@ -3827,7 +3866,7 @@ func TestDocuments_CardinalityRange(t *testing.T) {
 func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test that with default:"none", missing required values are filled with NoValueClaims.
+	// Test that with default:"none", missing required values are filled with NoneClaims.
 	type DocWithNone struct {
 		ID     []string `                               documentid:""`
 		Titles []string `cardinality:"2" default:"none"               property:"TITLE"`
@@ -3835,7 +3874,7 @@ func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 
 	mnemonics := createMnemonics()
 
-	// With 0 values, should add 2 NoValueClaims.
+	// With 0 values, should add 2 NoneClaims.
 	docs := []any{
 		&DocWithNone{
 			ID:     []string{"test", "doc1"},
@@ -3848,11 +3887,11 @@ func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.NoValue[1].ID)
+	require.Len(t, doc.Claims.None, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.None[1].ID)
 
-	// With 1 value, should add 1 NoValueClaim.
+	// With 1 value, should add 1 NoneClaim.
 	docs = []any{
 		&DocWithNone{
 			ID:     []string{"test", "doc2"},
@@ -3866,8 +3905,8 @@ func TestDocuments_NoneTag_WithCardinality(t *testing.T) { //nolint:dupl
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc2", "TITLE", "1"), doc.Claims.NoValue[0].ID)
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc2", "TITLE", "1"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_NoneTag_WithoutNone(t *testing.T) {
@@ -3933,7 +3972,7 @@ func TestDocuments_NoneTag_Pointer(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["VALUE"] = identifier.From("test", "VALUE")
 
-	// With nil pointer, should add 1 NoValueClaim.
+	// With nil pointer, should add 1 NoneClaim.
 	docs := []any{
 		&DocWithNonePointer{
 			ID:    []string{"test", "doc1"},
@@ -3946,8 +3985,8 @@ func TestDocuments_NoneTag_Pointer(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "VALUE", "0"), doc.Claims.NoValue[0].ID)
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "VALUE", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_CardinalityValidation_MaxCannotBeZero(t *testing.T) {
@@ -4095,7 +4134,7 @@ func TestDocuments_CardinalityValidation_PointerWithNone(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["VALUE"] = identifier.From("test", "VALUE")
 
-	// With nil pointer and default:"none" tag, should add NoValueClaim.
+	// With nil pointer and default:"none" tag, should add NoneClaim.
 	docs := []any{
 		&DocWithPointerAndNone{
 			ID:    []string{"test", "doc1"},
@@ -4108,7 +4147,7 @@ func TestDocuments_CardinalityValidation_PointerWithNone(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
+	require.Len(t, doc.Claims.None, 1)
 }
 
 func TestDocuments_CardinalityValidation_InvalidFormat(t *testing.T) {
@@ -4618,18 +4657,18 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Should have NoValueClaim since value is empty but there are meta claims.
+	// Should have HasClaim since value is empty but there are meta claims.
 	fieldProperty := mnemonics["FIELD"]
 	fieldClaims := doc.Get(fieldProperty)
 	require.Len(t, fieldClaims, 1)
-	assert.IsType(t, &document.NoValueClaim{}, fieldClaims[0])
+	assert.IsType(t, &document.HasClaim{}, fieldClaims[0])
 
 	// Check meta claim exists.
-	noValueClaim, ok := fieldClaims[0].(*document.NoValueClaim)
+	hasClaim, ok := fieldClaims[0].(*document.HasClaim)
 	require.True(t, ok)
-	require.NotNil(t, noValueClaim.Meta)
-	require.Len(t, noValueClaim.Meta.String, 1)
-	assert.Equal(t, "meta-value", noValueClaim.Meta.String[0].String)
+	require.NotNil(t, hasClaim.Meta)
+	require.Len(t, hasClaim.Meta.String, 1)
+	assert.Equal(t, "meta-value", hasClaim.Meta.String[0].String)
 }
 
 func TestDocuments_SliceWithMinCardinality(t *testing.T) {
@@ -4708,7 +4747,7 @@ func TestDocuments_SingleValueDoesNotMeetMin(t *testing.T) {
 func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test that with default:"unknown", missing required values are filled with UnknownValueClaims.
+	// Test that with default:"unknown", missing required values are filled with UnknownClaims.
 	type DocWithUnknownCardinality struct {
 		ID     []string `                                  documentid:""`
 		Titles []string `cardinality:"2" default:"unknown"               property:"TITLE"`
@@ -4716,7 +4755,7 @@ func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 
 	mnemonics := createMnemonics()
 
-	// With 0 values, should add 2 UnknownValueClaims.
+	// With 0 values, should add 2 UnknownClaims.
 	docs := []any{
 		&DocWithUnknownCardinality{
 			ID:     []string{"test", "doc1"},
@@ -4729,11 +4768,11 @@ func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.UnknownValue[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.UnknownValue[1].ID)
+	require.Len(t, doc.Claims.Unknown, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Unknown[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "1"), doc.Claims.Unknown[1].ID)
 
-	// With 1 value, should add 1 UnknownValueClaim.
+	// With 1 value, should add 1 UnknownClaim.
 	docs = []any{
 		&DocWithUnknownCardinality{
 			ID:     []string{"test", "doc2"},
@@ -4747,8 +4786,8 @@ func TestDocuments_UnknownTag_WithCardinality(t *testing.T) { //nolint:dupl
 
 	doc = results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc2", "TITLE", "1"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc2", "TITLE", "1"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_UnknownTag_OneOrMore(t *testing.T) {
@@ -4762,7 +4801,7 @@ func TestDocuments_UnknownTag_OneOrMore(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// With empty slice, should add one UnknownValueClaim.
+	// With empty slice, should add one UnknownClaim.
 	docs := []any{
 		&DocWithUnknownOneOrMore{
 			ID:     []string{"test", "doc1"},
@@ -4775,8 +4814,8 @@ func TestDocuments_UnknownTag_OneOrMore(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_UnknownTag_Pointer(t *testing.T) {
@@ -4791,7 +4830,7 @@ func TestDocuments_UnknownTag_Pointer(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["VALUE"] = identifier.From("test", "VALUE")
 
-	// With nil pointer, should add 1 UnknownValueClaim.
+	// With nil pointer, should add 1 UnknownClaim.
 	docs := []any{
 		&DocWithUnknownPointer{
 			ID:    []string{"test", "doc1"},
@@ -4804,8 +4843,8 @@ func TestDocuments_UnknownTag_Pointer(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "VALUE", "0"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "VALUE", "0"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_UnknownTag_WithMinZero(t *testing.T) {
@@ -4842,7 +4881,7 @@ func TestDocuments_UnknownTag_SingleValue(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// With empty value, should add 1 UnknownValueClaim.
+	// With empty value, should add 1 UnknownClaim.
 	docs := []any{
 		&DocWithUnknownSingle{
 			ID:    []string{"test", "doc1"},
@@ -4855,14 +4894,14 @@ func TestDocuments_UnknownTag_SingleValue(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_UnknownTag_BooleanBehavior(t *testing.T) {
 	t.Parallel()
 
-	// Test that type:"unknown" on boolean field still works as before (creates UnknownValueClaim when true).
+	// Test that type:"unknown" on boolean field still works as before (creates UnknownClaim when true).
 	type DocWithUnknownBool struct {
 		ID           []string `documentid:""`
 		Name         string   `              property:"NAME"`
@@ -4885,15 +4924,15 @@ func TestDocuments_UnknownTag_BooleanBehavior(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Should have UnknownValueClaim for AGE (from boolean field).
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.UnknownValue[0].ID)
+	// Should have UnknownClaim for AGE (from boolean field).
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 	t.Parallel()
 
-	// Test that type:"none" on boolean field creates NoValueClaim when true.
+	// Test that type:"none" on boolean field creates NoneClaim when true.
 	type DocWithNoneBool struct {
 		ID               []string `documentid:""`
 		Name             string   `              property:"NAME"`
@@ -4903,7 +4942,7 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["LAST_NAME"] = identifier.From("test", "LAST_NAME")
 
-	// When true, should create NoValueClaim.
+	// When true, should create NoneClaim.
 	docs := []any{
 		&DocWithNoneBool{
 			ID:               []string{"test", "doc1"},
@@ -4917,9 +4956,9 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Should have NoValueClaim for LAST_NAME (from boolean field).
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.NoValue[0].ID)
+	// Should have NoneClaim for LAST_NAME (from boolean field).
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.None[0].ID)
 
 	// When false, should not create any claim.
 	docs = []any{
@@ -4935,7 +4974,7 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc = results[0]
-	require.Empty(t, doc.Claims.NoValue)
+	require.Empty(t, doc.Claims.None)
 }
 
 func TestDocuments_NoneTag_BooleanVsCardinalityMode(t *testing.T) {
@@ -4954,8 +4993,8 @@ func TestDocuments_NoneTag_BooleanVsCardinalityMode(t *testing.T) {
 	docs := []any{
 		&DocWithBothNoneModes{
 			ID:               []string{"test", "doc1"},
-			LastNameIsAbsent: true,       // Creates NoValueClaim (boolean mode).
-			Titles:           []string{}, // Creates NoValueClaim (cardinality mode).
+			LastNameIsAbsent: true,       // Creates NoneClaim (boolean mode).
+			Titles:           []string{}, // Creates NoneClaim (cardinality mode).
 		},
 	}
 
@@ -4964,16 +5003,16 @@ func TestDocuments_NoneTag_BooleanVsCardinalityMode(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Should have 2 NoValueClaims (one from boolean, one from cardinality).
-	require.Len(t, doc.Claims.NoValue, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.NoValue[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.NoValue[1].ID)
+	// Should have 2 NoneClaims (one from boolean, one from cardinality).
+	require.Len(t, doc.Claims.None, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.None[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.None[1].ID)
 }
 
 func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test core.None type creates NoValueClaim when true.
+	// Test core.None type creates NoneClaim when true.
 	type DocWithCoreNone struct {
 		ID               []string  `documentid:""`
 		Name             string    `              property:"NAME"`
@@ -4983,7 +5022,7 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 	mnemonics := createMnemonics()
 	mnemonics["LAST_NAME"] = identifier.From("test", "LAST_NAME")
 
-	// When true, should create NoValueClaim.
+	// When true, should create NoneClaim.
 	docs := []any{
 		&DocWithCoreNone{
 			ID:               []string{"test", "doc1"},
@@ -4997,8 +5036,8 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.NoValue[0].ID)
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "LAST_NAME", "0"), doc.Claims.None[0].ID)
 
 	// When false, should not create any claim.
 	docs = []any{
@@ -5014,13 +5053,13 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc = results[0]
-	require.Empty(t, doc.Claims.NoValue)
+	require.Empty(t, doc.Claims.None)
 }
 
 func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test core.Unknown type creates UnknownValueClaim when true.
+	// Test core.Unknown type creates UnknownClaim when true.
 	type DocWithCoreUnknown struct {
 		ID           []string     `documentid:""`
 		Name         string       `              property:"NAME"`
@@ -5030,7 +5069,7 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 	mnemonics := createMnemonics()
 	mnemonics["AGE"] = identifier.From("test", "AGE")
 
-	// When true, should create UnknownValueClaim.
+	// When true, should create UnknownClaim.
 	docs := []any{
 		&DocWithCoreUnknown{
 			ID:           []string{"test", "doc1"},
@@ -5044,8 +5083,8 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.Unknown[0].ID)
 
 	// When false, should not create any claim.
 	docs = []any{
@@ -5061,13 +5100,13 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 	require.Len(t, results, 1)
 
 	doc = results[0]
-	require.Empty(t, doc.Claims.UnknownValue)
+	require.Empty(t, doc.Claims.Unknown)
 }
 
 func TestDocuments_BoolWithTypeNone(t *testing.T) {
 	t.Parallel()
 
-	// Test regular bool with type:"none" creates NoValueClaim when true.
+	// Test regular bool with type:"none" creates NoneClaim when true.
 	type DocWithBoolNone struct {
 		ID       []string `documentid:""`
 		Name     string   `              property:"NAME"`
@@ -5077,7 +5116,7 @@ func TestDocuments_BoolWithTypeNone(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["NOTE"] = identifier.From("test", "NOTE")
 
-	// When true, should create NoValueClaim.
+	// When true, should create NoneClaim.
 	docs := []any{
 		&DocWithBoolNone{
 			ID:       []string{"test", "doc1"},
@@ -5091,14 +5130,14 @@ func TestDocuments_BoolWithTypeNone(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "NOTE", "0"), doc.Claims.NoValue[0].ID)
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NOTE", "0"), doc.Claims.None[0].ID)
 }
 
 func TestDocuments_BoolWithTypeUnknown(t *testing.T) {
 	t.Parallel()
 
-	// Test regular bool with type:"unknown" creates UnknownValueClaim when true.
+	// Test regular bool with type:"unknown" creates UnknownClaim when true.
 	type DocWithBoolUnknown struct {
 		ID        []string `documentid:""`
 		Name      string   `              property:"NAME"`
@@ -5108,7 +5147,7 @@ func TestDocuments_BoolWithTypeUnknown(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["AGE"] = identifier.From("test", "AGE")
 
-	// When true, should create UnknownValueClaim.
+	// When true, should create UnknownClaim.
 	docs := []any{
 		&DocWithBoolUnknown{
 			ID:        []string{"test", "doc1"},
@@ -5122,8 +5161,8 @@ func TestDocuments_BoolWithTypeUnknown(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.UnknownValue[0].ID)
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "AGE", "0"), doc.Claims.Unknown[0].ID)
 }
 
 func TestDocuments_CoreNoneWithConflictingTag(t *testing.T) {
@@ -5209,7 +5248,7 @@ func TestDocuments_SliceWithDefaultNone(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// With 1 value, should add 2 NoValueClaims.
+	// With 1 value, should add 2 NoneClaims.
 	docs := []any{
 		&DocWithSliceDefault{
 			ID:     []string{"test", "doc1"},
@@ -5223,7 +5262,7 @@ func TestDocuments_SliceWithDefaultNone(t *testing.T) {
 
 	doc := results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.NoValue, 2)
+	require.Len(t, doc.Claims.None, 2)
 }
 
 func TestDocuments_SliceWithDefaultUnknown(t *testing.T) {
@@ -5237,7 +5276,7 @@ func TestDocuments_SliceWithDefaultUnknown(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// With 1 value, should add 2 UnknownValueClaims.
+	// With 1 value, should add 2 UnknownClaims.
 	docs := []any{
 		&DocWithSliceDefaultUnknown{
 			ID:     []string{"test", "doc1"},
@@ -5251,7 +5290,7 @@ func TestDocuments_SliceWithDefaultUnknown(t *testing.T) {
 
 	doc := results[0]
 	require.Len(t, doc.Claims.String, 1)
-	require.Len(t, doc.Claims.UnknownValue, 2)
+	require.Len(t, doc.Claims.Unknown, 2)
 }
 
 func TestDocuments_PointerWithDefaultNone(t *testing.T) {
@@ -5266,7 +5305,7 @@ func TestDocuments_PointerWithDefaultNone(t *testing.T) {
 	mnemonics := createMnemonics()
 	mnemonics["VALUE"] = identifier.From("test", "VALUE")
 
-	// Nil pointer with min=1 and default:"none" should add NoValueClaim.
+	// Nil pointer with min=1 and default:"none" should add NoneClaim.
 	docs := []any{
 		&DocWithPointerDefault{
 			ID:    []string{"test", "doc1"},
@@ -5279,7 +5318,7 @@ func TestDocuments_PointerWithDefaultNone(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.NoValue, 1)
+	require.Len(t, doc.Claims.None, 1)
 }
 
 func TestDocuments_SingleValueWithDefaultUnknown(t *testing.T) {
@@ -5293,7 +5332,7 @@ func TestDocuments_SingleValueWithDefaultUnknown(t *testing.T) {
 
 	mnemonics := createMnemonics()
 
-	// Empty string with min=1 and default:"unknown" should add UnknownValueClaim.
+	// Empty string with min=1 and default:"unknown" should add UnknownClaim.
 	docs := []any{
 		&DocWithSingleDefault{
 			ID:    []string{"test", "doc1"},
@@ -5306,7 +5345,7 @@ func TestDocuments_SingleValueWithDefaultUnknown(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.UnknownValue, 1)
+	require.Len(t, doc.Claims.Unknown, 1)
 }
 
 func TestDocuments_BooleanWithMaxCardinality(t *testing.T) {
@@ -5365,7 +5404,7 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"none" does not create a NoValueClaim when the value is empty and there are no meta claims.
+	// Test that value:"" default:"none" does not create a NoneClaim when the value is empty and there are no meta claims.
 	type NameValue struct {
 		Value string `default:"none" value:""`
 	}
@@ -5390,13 +5429,13 @@ func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
 	doc := results[0]
 
 	// Empty value with default:"none" but no meta claims should not create any claim.
-	assert.Empty(t, doc.Claims.NoValue)
+	assert.Empty(t, doc.Claims.None)
 }
 
 func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"unknown" does not create an UnknownValueClaim when the value is empty and there are no meta claims.
+	// Test that value:"" default:"unknown" does not create an UnknownClaim when the value is empty and there are no meta claims.
 	type NameValue struct {
 		Value string `default:"unknown" value:""`
 	}
@@ -5421,7 +5460,7 @@ func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
 	doc := results[0]
 
 	// Empty value with default:"unknown" but no meta claims should not create any claim.
-	assert.Empty(t, doc.Claims.UnknownValue)
+	assert.Empty(t, doc.Claims.Unknown)
 }
 
 func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
@@ -5451,9 +5490,9 @@ func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Non-empty value should create a normal StringClaim, not a NoValueClaim.
+	// Non-empty value should create a normal StringClaim, not a NoneClaim.
 	require.Len(t, doc.Claims.String, 1)
-	assert.Empty(t, doc.Claims.NoValue)
+	assert.Empty(t, doc.Claims.None)
 	assert.Equal(t, "Alice", doc.Claims.String[0].String)
 	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.String[0].ID)
 }
@@ -5462,7 +5501,7 @@ func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
 func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"none" creates a NoValueClaim with meta claims when value is empty.
+	// Test that value:"" default:"none" creates a NoneClaim with meta claims when value is empty.
 	type NameValue struct {
 		Value string `default:"none"                 value:""`
 		Note  string `               property:"NOTE"`
@@ -5490,21 +5529,21 @@ func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"none" and meta claims should create a NoValueClaim with meta claims.
-	require.Len(t, doc.Claims.NoValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.NoValue[0].ID)
+	// Empty value with default:"none" and meta claims should create a NoneClaim with meta claims.
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.None[0].ID)
 
-	require.NotNil(t, doc.Claims.NoValue[0].Meta)
-	require.Len(t, doc.Claims.NoValue[0].Meta.String, 1)
-	assert.Equal(t, "Annotation", doc.Claims.NoValue[0].Meta.String[0].String)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.NoValue[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.None[0].Meta)
+	require.Len(t, doc.Claims.None[0].Meta.String, 1)
+	assert.Equal(t, "Annotation", doc.Claims.None[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.None[0].Meta.String[0].ID)
 }
 
 //nolint:dupl
 func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"unknown" creates an UnknownValueClaim with meta claims when value is empty.
+	// Test that value:"" default:"unknown" creates an UnknownClaim with meta claims when value is empty.
 	type NameValue struct {
 		Value string `default:"unknown"                 value:""`
 		Note  string `                  property:"NOTE"`
@@ -5532,14 +5571,14 @@ func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"unknown" and meta claims should create an UnknownValueClaim with meta claims.
-	require.Len(t, doc.Claims.UnknownValue, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.UnknownValue[0].ID)
+	// Empty value with default:"unknown" and meta claims should create an UnknownClaim with meta claims.
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.Unknown[0].ID)
 
-	require.NotNil(t, doc.Claims.UnknownValue[0].Meta)
-	require.Len(t, doc.Claims.UnknownValue[0].Meta.String, 1)
-	assert.Equal(t, "Source unclear", doc.Claims.UnknownValue[0].Meta.String[0].String)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.UnknownValue[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Unknown[0].Meta)
+	require.Len(t, doc.Claims.Unknown[0].Meta.String, 1)
+	assert.Equal(t, "Source unclear", doc.Claims.Unknown[0].Meta.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.Unknown[0].Meta.String[0].ID)
 }
 
 func TestClaimNotMadeError(t *testing.T) {
@@ -5618,10 +5657,10 @@ func TestDocuments_PointerIdentifierConflict(t *testing.T) {
 func TestDocuments_MetaClaimsProcessingError(t *testing.T) {
 	t.Parallel()
 
-	// A nested struct where a meta field fails (missing unit tag) causes processStructFields to error.
+	// A nested struct where a meta field succeeds, with numeric meta claim.
 	type NestedWithBadMeta struct {
-		Value string `                 value:""`
-		Count int    `property:"COUNT"`
+		Value string `                               value:""`
+		Count int    `precision:"1" property:"COUNT"`
 	}
 
 	type DocWithNestedBadMeta struct {
@@ -5642,9 +5681,9 @@ func TestDocuments_MetaClaimsProcessingError(t *testing.T) {
 		},
 	}
 
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 1)
 }
 
 func TestDocuments_EmbeddedNoValueInValueSearch(t *testing.T) {
@@ -5805,75 +5844,6 @@ func TestDocuments_EmptyCoreRawHTMLField(t *testing.T) {
 	assert.Equal(t, 0, doc.Claims.Size())
 }
 
-func TestDocuments_IntInvalidUnit(t *testing.T) {
-	t.Parallel()
-
-	// An int field with an invalid unit tag returns a parse error.
-	type DocWithIntInvalidUnit struct {
-		ID    []string `documentid:""`
-		Count int      `              property:"COUNT" unit:"invalid"`
-	}
-
-	mnemonics := createMnemonics()
-
-	docs := []any{
-		&DocWithIntInvalidUnit{
-			ID:    []string{"test", "doc1"},
-			Count: 5,
-		},
-	}
-
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "unknown amount unit")
-}
-
-func TestDocuments_UintMissingUnit(t *testing.T) {
-	t.Parallel()
-
-	// A uint field without a unit tag returns an error.
-	type DocWithUintNoUnit struct {
-		ID    []string `documentid:""`
-		Count uint     `              property:"COUNT"`
-	}
-
-	mnemonics := createMnemonics()
-
-	docs := []any{
-		&DocWithUintNoUnit{
-			ID:    []string{"test", "doc1"},
-			Count: 5,
-		},
-	}
-
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, `field has numeric type but is missing required "unit" tag`)
-}
-
-func TestDocuments_UintInvalidUnit(t *testing.T) {
-	t.Parallel()
-
-	// A uint field with an invalid unit tag returns a parse error.
-	type DocWithUintInvalidUnit struct {
-		ID    []string `documentid:""`
-		Count uint     `              property:"COUNT" unit:"invalid"`
-	}
-
-	mnemonics := createMnemonics()
-
-	docs := []any{
-		&DocWithUintInvalidUnit{
-			ID:    []string{"test", "doc1"},
-			Count: 5,
-		},
-	}
-
-	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "unknown amount unit")
-}
-
 func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 	t.Parallel()
 
@@ -5912,10 +5882,11 @@ func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 	periodClaims := results[0].Get(periodProperty)
 	require.Len(t, periodClaims, 1)
 
-	timeRangeClaim, ok := periodClaims[0].(*document.TimeRangeClaim)
+	timeRangeClaim, ok := periodClaims[0].(*document.TimeIntervalClaim)
 	require.True(t, ok)
-	// To.Precision (TimePrecisionSecond) > From.Precision (TimePrecisionDay), so result uses To's precision.
-	assert.Equal(t, document.TimePrecisionSecond, timeRangeClaim.Precision)
+	// Each bound retains its own precision.
+	require.NotNil(t, timeRangeClaim.ToPrecision)
+	assert.Equal(t, document.TimePrecisionSecond, *timeRangeClaim.ToPrecision)
 }
 
 func TestDocuments_BooleanWithHighCardinality(t *testing.T) {
@@ -6033,4 +6004,802 @@ func TestDocuments_EmbeddedDocIDError(t *testing.T) {
 	})
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "document ID field is not a string slice")
+}
+
+func TestDocuments_NumericPrecision(t *testing.T) {
+	t.Parallel()
+
+	// Test that precision tag is set correctly on AmountClaim.
+	type DocWithPrecision struct {
+		ID       []string `documentid:""`
+		Width    float64  `              precision:"0.01" property:"WIDTH"`
+		Height   int      `              precision:"1"    property:"HEIGHT"`
+		Count    uint     `              precision:"10"   property:"COUNT"`
+		SmallVal float32  `              precision:"0.5"  property:"SMALL_VAL"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["SMALL_VAL"] = identifier.From("test", "SMALL_VAL")
+
+	docs := []any{
+		&DocWithPrecision{
+			ID:       []string{"test", "doc1"},
+			Width:    1.75,
+			Height:   200,
+			Count:    42,
+			SmallVal: 3.14,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Amount, 4)
+
+	assert.Equal(t, 1.75, doc.Claims.Amount[0].Amount)    //nolint:testifylint
+	assert.Equal(t, 0.01, doc.Claims.Amount[0].Precision) //nolint:testifylint
+	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount)   //nolint:testifylint
+	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision)  //nolint:testifylint
+	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount)    //nolint:testifylint
+	assert.Equal(t, 10.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
+	assert.InDelta(t, 3.14, doc.Claims.Amount[3].Amount, 1e-5)
+	assert.Equal(t, 0.5, doc.Claims.Amount[3].Precision) //nolint:testifylint
+}
+
+func TestDocuments_NumericMissingPrecision(t *testing.T) {
+	t.Parallel()
+
+	// Test that missing precision tag on numeric field returns an error.
+	type DocNoPrecision struct {
+		ID    []string `documentid:""`
+		Width float64  `              property:"WIDTH"` // Missing precision tag.
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocNoPrecision{
+			ID:    []string{"test", "doc1"},
+			Width: 1.5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is required for numeric fields")
+}
+
+func TestDocuments_NumericInvalidPrecision(t *testing.T) {
+	t.Parallel()
+
+	// Test that invalid precision tag on numeric field returns an error.
+	type DocInvalidPrecision struct {
+		ID    []string `documentid:""`
+		Width float64  `              precision:"not-a-number" property:"WIDTH"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocInvalidPrecision{
+			ID:    []string{"test", "doc1"},
+			Width: 1.5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "invalid precision tag value for numeric field")
+}
+
+func TestDocuments_NumericPrecisionZero(t *testing.T) {
+	t.Parallel()
+
+	// Test that precision tag of "0" is valid and sets exact measurement.
+	type DocZeroPrecision struct {
+		ID    []string `documentid:""`
+		Count int      `              precision:"0" property:"COUNT"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocZeroPrecision{
+			ID:    []string{"test", "doc1"},
+			Count: 7,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Amount, 1)
+	assert.Equal(t, 7.0, doc.Claims.Amount[0].Amount)    //nolint:testifylint
+	assert.Equal(t, 0.0, doc.Claims.Amount[0].Precision) //nolint:testifylint
+}
+
+func TestDocuments_NumericPrecisionOnCoreAmountErrors(t *testing.T) {
+	t.Parallel()
+
+	// Test that using precision tag with core.Amount[T] returns an error.
+	type DocCoreAmountWithPrecision struct {
+		ID    []string             `documentid:""`
+		Width core.Amount[float64] `              precision:"0.01" property:"WIDTH"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocCoreAmountWithPrecision{
+			ID:    []string{"test", "doc1"},
+			Width: core.Amount[float64]{Amount: 1.5}, //nolint:exhaustruct
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Amount[T] fields; precision is part of core.Amount")
+}
+
+func TestDocuments_GoTimeClaim(t *testing.T) {
+	t.Parallel()
+
+	// Test that time.Time creates a TimeClaim with the given precision.
+	type DocWithGoTime struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              precision:"d" property:"CREATED"`
+		Born    time.Time `              precision:"y" property:"BORN"`
+	}
+
+	mnemonics := createMnemonics()
+	created := time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC)
+	born := time.Date(1990, 6, 20, 0, 0, 0, 0, time.UTC)
+
+	docs := []any{
+		&DocWithGoTime{
+			ID:      []string{"test", "doc1"},
+			Created: created,
+			Born:    born,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Time, 2)
+
+	// Day precision truncates to YYYY-MM-DD.
+	assert.Equal(t, document.TimePrecisionDay, doc.Claims.Time[0].Precision)
+	assert.Equal(t, document.Timestamp("2024-03-15"), doc.Claims.Time[0].Timestamp)
+	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
+
+	// Year precision truncates to YYYY.
+	assert.Equal(t, document.TimePrecisionYear, doc.Claims.Time[1].Precision)
+	assert.Equal(t, document.Timestamp("1990"), doc.Claims.Time[1].Timestamp)
+	assert.Equal(t, identifier.From("test", "doc1", "BORN", "0"), doc.Claims.Time[1].ID)
+}
+
+func TestDocuments_GoTimeZeroValue(t *testing.T) {
+	t.Parallel()
+
+	// Test that a zero time.Time skips claim creation.
+	type DocWithGoTime struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              precision:"s" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithGoTime{
+			ID:      []string{"test", "doc1"},
+			Created: time.Time{}, // Zero value - no claim.
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	assert.Equal(t, 0, doc.Claims.Size())
+}
+
+func TestDocuments_GoTimeMissingPrecision(t *testing.T) {
+	t.Parallel()
+
+	// Test that missing precision tag on time.Time returns an error.
+	type DocNoPrecisionTime struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              property:"CREATED"` // Missing precision tag.
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocNoPrecisionTime{
+			ID:      []string{"test", "doc1"},
+			Created: time.Now(),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is required for time.Time fields")
+}
+
+func TestDocuments_GoTimeInvalidPrecision(t *testing.T) {
+	t.Parallel()
+
+	// Test that invalid precision tag on time.Time returns an error.
+	type DocInvalidPrecisionTime struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              precision:"invalid" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocInvalidPrecisionTime{
+			ID:      []string{"test", "doc1"},
+			Created: time.Now(),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "unknown time precision")
+}
+
+func TestDocuments_GoTimePrecisionOnCoreTimeErrors(t *testing.T) {
+	t.Parallel()
+
+	// Test that using precision tag with core.Time returns an error.
+	type DocCoreTimeWithPrecision struct {
+		ID      []string  `documentid:""`
+		Created core.Time `              precision:"d" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocCoreTimeWithPrecision{
+			ID:      []string{"test", "doc1"},
+			Created: core.Time{},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Time fields; precision is part of core.Time")
+}
+
+func TestDocuments_PrecisionOnStringErrors(t *testing.T) {
+	t.Parallel()
+
+	// Test that precision tag on a string field returns an error.
+	type DocPrecisionOnString struct {
+		ID   []string `documentid:""`
+		Name string   `              precision:"1" property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocPrecisionOnString{
+			ID:   []string{"test", "doc1"},
+			Name: "test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for string fields")
+}
+
+func TestDocuments_PrecisionOnBoolErrors(t *testing.T) {
+	t.Parallel()
+
+	// Test that precision tag on a bool field returns an error.
+	type DocPrecisionOnBool struct {
+		ID        []string `documentid:""`
+		Published bool     `              precision:"1" property:"PUBLISHED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocPrecisionOnBool{
+			ID:        []string{"test", "doc1"},
+			Published: true,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for bool fields")
+}
+
+func TestDocuments_GoTimeSlice(t *testing.T) {
+	t.Parallel()
+
+	// Test that []time.Time works with precision tag.
+	type DocWithGoTimeSlice struct {
+		ID    []string    `documentid:""`
+		Dates []time.Time `              precision:"d" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	d1 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	d2 := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+
+	docs := []any{
+		&DocWithGoTimeSlice{
+			ID:    []string{"test", "doc1"},
+			Dates: []time.Time{d1, d2},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Time, 2)
+	assert.Equal(t, document.Timestamp("2024-01-01"), doc.Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Timestamp("2024-06-15"), doc.Claims.Time[1].Timestamp)
+}
+
+func TestDocuments_GoTimePointer(t *testing.T) {
+	t.Parallel()
+
+	// Test that *time.Time works with precision tag.
+	type DocWithGoTimePointer struct {
+		ID      []string   `documentid:""`
+		Created *time.Time `              precision:"s" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	ts := time.Date(2024, 3, 15, 10, 30, 45, 0, time.UTC)
+
+	docs := []any{
+		&DocWithGoTimePointer{
+			ID:      []string{"test", "doc1"},
+			Created: &ts,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Time, 1)
+	assert.Equal(t, document.TimePrecisionSecond, doc.Claims.Time[0].Precision)
+	assert.Equal(t, document.Timestamp("2024-03-15 10:30:45"), doc.Claims.Time[0].Timestamp)
+}
+
+func TestDocuments_GoTimeValueField(t *testing.T) {
+	t.Parallel()
+
+	// Test time.Time as a value field in a nested struct.
+	type TimeWithNote struct {
+		Value time.Time `precision:"d"                 value:""`
+		Note  string    `              property:"NOTE"`
+	}
+
+	type DocWithTimeValue struct {
+		ID      []string     `documentid:""`
+		Created TimeWithNote `              property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["CREATED"] = identifier.From("test", "CREATED")
+	ts := time.Date(2024, 3, 15, 12, 0, 0, 0, time.UTC)
+
+	docs := []any{
+		&DocWithTimeValue{
+			ID: []string{"test", "doc1"},
+			Created: TimeWithNote{
+				Value: ts,
+				Note:  "birth date",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Time, 1)
+	assert.Equal(t, document.TimePrecisionDay, doc.Claims.Time[0].Precision)
+	assert.Equal(t, document.Timestamp("2024-03-15"), doc.Claims.Time[0].Timestamp)
+
+	// Should have meta claim.
+	require.NotNil(t, doc.Claims.Time[0].Meta)
+	assert.Len(t, doc.Claims.Time[0].Meta.String, 1)
+	assert.Equal(t, "birth date", doc.Claims.Time[0].Meta.String[0].String)
+}
+
+func TestDocuments_PrecisionOnRefErrors(t *testing.T) {
+	t.Parallel()
+
+	// Test that precision tag on a core.Ref field returns an error.
+	type DocPrecisionOnRef struct {
+		ID     []string `documentid:""`
+		Parent core.Ref `              precision:"1" property:"PARENT"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocPrecisionOnRef{
+			ID:     []string{"test", "doc1"},
+			Parent: core.Ref{ID: []string{"ref", "1"}},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Ref fields")
+}
+
+func TestDocuments_ConfidenceDefault(t *testing.T) {
+	t.Parallel()
+
+	// Test that without confidence tag, HighConfidence (1.0) is used.
+	mnemonics := createMnemonics()
+	docs := []any{
+		&SimpleDoc{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.HighConfidence, doc.Claims.String[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceCustom(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag sets the claim confidence.
+	type DocWithConfidence struct {
+		ID   []string `                  documentid:""`
+		Name string   `confidence:"0.75"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.Confidence(0.75), doc.Claims.String[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceNegative(t *testing.T) {
+	t.Parallel()
+
+	// Test that negative confidence (negation) is supported.
+	type DocWithNegConfidence struct {
+		ID   []string `                  documentid:""`
+		Name string   `confidence:"-0.5"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithNegConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.Confidence(-0.5), doc.Claims.String[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceZero(t *testing.T) {
+	t.Parallel()
+
+	// Test that zero confidence is a valid value.
+	type DocWithZeroConfidence struct {
+		ID   []string `               documentid:""`
+		Name string   `confidence:"0"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithZeroConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.NoConfidence, doc.Claims.String[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceNegativeOne(t *testing.T) {
+	t.Parallel()
+
+	// Test that -1.0 (high negation confidence) is valid.
+	type DocWithNegOneConfidence struct {
+		ID   []string `                documentid:""`
+		Name string   `confidence:"-1"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithNegOneConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.HighNegationConfidence, doc.Claims.String[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceInvalidFloat(t *testing.T) {
+	t.Parallel()
+
+	// Test that non-float confidence tag returns an error.
+	type DocWithInvalidConfidence struct {
+		ID   []string `                         documentid:""`
+		Name string   `confidence:"not-a-float"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithInvalidConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "confidence tag value is not a valid float")
+}
+
+func TestDocuments_ConfidenceOutOfRangeHigh(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence > 1 returns an error.
+	type DocWithHighConfidence struct {
+		ID   []string `                 documentid:""`
+		Name string   `confidence:"1.5"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithHighConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+}
+
+func TestDocuments_ConfidenceOutOfRangeLow(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence < -1 returns an error.
+	type DocWithLowConfidence struct {
+		ID   []string `                  documentid:""`
+		Name string   `confidence:"-1.5"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithLowConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "Test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+}
+
+func TestDocuments_ConfidenceOnBoolField(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag works on bool fields (HasClaim, NoneClaim, UnknownClaim).
+	type DocWithBoolConfidence struct {
+		ID             []string `                 documentid:""`
+		Published      bool     `confidence:"0.5"               property:"PUBLISHED"`
+		AgeIsUnknown   bool     `confidence:"0.5"               property:"AGE"       type:"unknown"`
+		HeightIsAbsent bool     `confidence:"0.5"               property:"HEIGHT"    type:"none"`
+	}
+
+	mnemonics := createMnemonics()
+	// Add HEIGHT to mnemonics.
+	mnemonics["HEIGHT"] = identifier.From("test", "HEIGHT")
+
+	docs := []any{
+		&DocWithBoolConfidence{
+			ID:             []string{"test", "doc1"},
+			Published:      true,
+			AgeIsUnknown:   true,
+			HeightIsAbsent: true,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Has, 1)
+	assert.Equal(t, document.Confidence(0.5), doc.Claims.Has[0].Confidence) //nolint:testifylint
+
+	require.Len(t, doc.Claims.Unknown, 1)
+	assert.Equal(t, document.Confidence(0.5), doc.Claims.Unknown[0].Confidence) //nolint:testifylint
+
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, document.Confidence(0.5), doc.Claims.None[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceOnRefField(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag works on core.Ref fields (RelationClaim).
+	type DocWithRefConfidence struct {
+		ID     []string `                 documentid:""`
+		Parent core.Ref `confidence:"0.6"               property:"PARENT"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithRefConfidence{
+			ID:     []string{"test", "doc1"},
+			Parent: core.Ref{ID: []string{"ref", "parent1"}},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Relation, 1)
+	assert.Equal(t, document.Confidence(0.6), doc.Claims.Relation[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceOnAmountField(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag works on numeric fields (AmountClaim).
+	type DocWithAmountConfidence struct {
+		ID    []string `                 documentid:""`
+		Width float64  `confidence:"0.8"               precision:"0.01" property:"WIDTH"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithAmountConfidence{
+			ID:    []string{"test", "doc1"},
+			Width: 1.5,
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Amount, 1)
+	assert.Equal(t, document.Confidence(0.8), doc.Claims.Amount[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceOnSlice(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag applies to all claims from a slice field.
+	type DocWithSliceConfidence struct {
+		ID    []string `                 documentid:""`
+		Codes []string `confidence:"0.7"               property:"CODES" type:"id"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithSliceConfidence{
+			ID:    []string{"test", "doc1"},
+			Codes: []string{"A", "B", "C"},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.Identifier, 3)
+	for _, claim := range doc.Claims.Identifier {
+		assert.Equal(t, document.Confidence(0.7), claim.Confidence) //nolint:testifylint
+	}
+}
+
+func TestDocuments_ConfidenceOnDefaultFallback(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence tag applies to fallback none/unknown claims from cardinality default.
+	type DocWithDefaultConfidence struct {
+		ID   []string `                                                documentid:""`
+		Name string   `cardinality:"1" confidence:"0.4" default:"none"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithDefaultConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: "", // Empty, triggering default.
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.None, 1)
+	assert.Equal(t, document.Confidence(0.4), doc.Claims.None[0].Confidence) //nolint:testifylint
+}
+
+func TestDocuments_ConfidenceOnNestedStruct(t *testing.T) {
+	t.Parallel()
+
+	// Test that confidence on a field with nested struct applies to the value claim.
+	type NameWithNote struct {
+		Value string `                value:""`
+		Note  string `property:"NOTE"`
+	}
+
+	type DocWithNestedConfidence struct {
+		ID   []string     `                 documentid:""`
+		Name NameWithNote `confidence:"0.6"               property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithNestedConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: NameWithNote{Value: "Alice", Note: "primary name"},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+	require.Len(t, doc.Claims.String, 1)
+	assert.Equal(t, document.Confidence(0.6), doc.Claims.String[0].Confidence) //nolint:testifylint
+	assert.Equal(t, "Alice", doc.Claims.String[0].String)
+}
+
+func TestDocuments_ConfidenceOnValueTagForbidden(t *testing.T) {
+	t.Parallel()
+
+	// Test that using confidence tag on value field returns an error.
+	type NameWithConfidence struct {
+		Value string `confidence:"0.5"                 value:""`
+		Note  string `                 property:"NOTE"`
+	}
+
+	type DocWithValueConfidence struct {
+		ID   []string           `documentid:""`
+		Name NameWithConfidence `              property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithValueConfidence{
+			ID:   []string{"test", "doc1"},
+			Name: NameWithConfidence{Value: "Alice", Note: "primary"},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "confidence tag cannot be used with value tag")
 }

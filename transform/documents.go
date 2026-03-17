@@ -11,7 +11,7 @@
 //	type Person struct {
 //		ID   []string `documentid:""`
 //		Name string   `property:"NAME"`
-//		Age  int      `property:"AGE" unit:"1"`
+//		Age  int      `property:"AGE"`
 //	}
 //
 //	mnemonics := map[string]identifier.Identifier{
@@ -84,13 +84,20 @@
 //	IsAbsent  bool   `property:"NAME" type:"none"`
 //	IsUnknown bool   `property:"AGE" type:"unknown"`
 //
-// ## unit
+// ## precision
 //
-// Required for numeric types (int, float, etc.). Specifies the unit of measurement.
-// Must be a valid PeerDB AmountUnit (e.g., "m", "kg", "1" for unitless).
+// Required for bare numeric types (int, float, etc.) and time.Time.
+// Must not be used with any other field type (use core.Amount[T] or core.Time for their built-in precision).
 //
-//	Height float64 `property:"HEIGHT" unit:"m"`
-//	Count  int     `property:"COUNT" unit:"1"`
+// For bare numeric types, precision is a floating-point number representing measurement precision:
+//
+//	Height float64   `property:"HEIGHT" precision:"0.01"`
+//	Year   int       `property:"YEAR"   precision:"1"`
+//
+// For time.Time, precision is one of the TimePrecision string codes:
+// "G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s", "ms", "us", "ns".
+//
+//	Born time.Time `property:"BORN" precision:"d"`
 //
 // ## cardinality
 //
@@ -145,19 +152,34 @@
 //   - none: it is known that the value does not exist,
 //   - unknown: it is known that the value exists but is unknown or cannot be determined.
 //
+// ## confidence
+//
+// Optional. Overrides the confidence level of the created claim(s).
+// Must be a float in the range [-1, 1]. When not specified, uses document.HighConfidence (1.0).
+//
+// Positive values indicate confidence in the claim, negative values indicate
+// confidence in the negation of the claim.
+//
+// Cannot be used on value fields (fields with value:"" tag); use it on the enclosing
+// field with property:"" instead.
+//
+//	Name string `property:"NAME" confidence:"0.75"` // Medium confidence.
+//	Age  int    `property:"AGE"  confidence:"-0.5" precision:"1"` // Low confidence in negation.
+//
 // # Field Types
 //
 // Supported field types:
 //   - string: string claim (or identifier claim/reference claim/text claim with type tag),
-//   - int, int8, int16, int32, int64: amount claim (requires unit tag),
-//   - uint, uint8, uint16, uint32, uint64: amount claim (requires unit tag),
-//   - float32, float64: amount claim (requires unit tag),
-//   - bool: none-value claim when true (or none-value/unknown-value claim with type tag) (TODO: Change to has claim),
+//   - int, int8, int16, int32, int64: amount claim (requires precision tag),
+//   - uint, uint8, uint16, uint32, uint64: amount claim (requires precision tag),
+//   - float32, float64: amount claim (requires precision tag),
+//   - bool: has claim when true (or none-value/unknown-value claim with type tag),
+//   - time.Time: time claim (requires precision tag),
 //   - core.Ref: relation claim,
 //   - core.Time: time claim,
-//   - core.Amount[T]: amount claim (requires unit tag),
-//   - core.Interval[core.Time]: time range claim,
-//   - core.Interval[core.Amount[T]]: amount range claim (requires unit tag),
+//   - core.Amount[T]: amount claim,
+//   - core.Interval[core.Time]: time interval claim,
+//   - core.Interval[core.Amount[T]]: amount interval claim,
 //   - core.Identifier: identifier claim,
 //   - core.IRI: reference claim,
 //   - core.HTML: text claim (with escaping),
@@ -176,17 +198,18 @@
 //   - field has cardinality with min > 0 without default tag: returns error,
 //   - value field with default:"none" tag: creates a none-value claim,
 //   - value field with default:"unknown" tag: creates an unknown-value claim,
-//   - value field without a default tag: creates none-value claim with meta claims (TODO: Change to has claim),
-//   - nested struct with empty value but has meta claims: creates none-value claim with meta claims (TODO: Change to has claim).
+//   - value field without a default tag: creates has claim with meta claims,
+//   - nested struct with empty value but has meta claims: creates has claim with meta claims.
 //
 // # Examples
 //
 // ## Basic Document
 //
 //	type Article struct {
-//		ID    []string `documentid:""`
-//		Title string   `property:"TITLE"`
-//		Views int      `property:"VIEWS" unit:"1"`
+//		ID    []string  `documentid:""`
+//		Title string    `property:"TITLE"`
+//		Views int       `property:"VIEWS" precision:"1"`
+//		Born  time.Time `property:"BORN"  precision:"d"`
 //	}
 //
 // ## Required Fields
@@ -247,6 +270,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -259,6 +283,7 @@ import (
 var (
 	coreRef          = reflect.TypeFor[core.Ref]()
 	coreTime         = reflect.TypeFor[core.Time]()
+	timeTime         = reflect.TypeFor[time.Time]()
 	coreTimeInterval = reflect.TypeFor[core.Interval[core.Time]]()
 	coreIdentifier   = reflect.TypeFor[core.Identifier]()
 	coreIRI          = reflect.TypeFor[core.IRI]()
@@ -387,8 +412,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 
 	result := document.D{
 		CoreDocument: document.CoreDocument{
-			ID:    identifier.From(docID...),
-			Score: document.LowConfidence,
+			ID: identifier.From(docID...),
 		},
 		Claims: &document.ClaimTypes{},
 	}
@@ -467,13 +491,21 @@ func (tr *transformer) processStructFields(
 		// Get tags.
 		typeTag := field.Tag.Get("type")
 		defaultTag := field.Tag.Get("default")
-		unit := field.Tag.Get("unit")
+		precisionTag := field.Tag.Get("precision")
+		confidenceTag := field.Tag.Get("confidence")
 		cardinality := field.Tag.Get("cardinality")
 
 		hasDefaultTag := defaultTag != ""
 
-		minCardinality, maxCardinality, errE := parseCardinality(cardinality, fieldValue, hasDefaultTag, newFieldPath)
+		minCardinality, maxCardinality, errE := parseCardinality(cardinality, fieldValue, hasDefaultTag)
 		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return errE
+		}
+
+		confidence, errE := parseConfidence(confidenceTag)
+		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 			return errE
 		}
 
@@ -481,8 +513,8 @@ func (tr *transformer) processStructFields(
 		// we have claims map in the first place: because if multiple fields add claims for the same property, we have
 		// to track this to make sure claim IDs do not collide.
 		errE = tr.processField(
-			fieldValue, fieldType, propertyID, typeTag, defaultTag, minCardinality, maxCardinality,
-			unit, newIDPath, newFieldPath, claims,
+			fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, minCardinality, maxCardinality,
+			newIDPath, newFieldPath, claims,
 		)
 		if errE != nil {
 			return errE
@@ -501,9 +533,10 @@ func (tr *transformer) processField(
 	propertyID identifier.Identifier,
 	typeTag string,
 	defaultTag string,
+	precisionTag string,
+	confidence document.Confidence,
 	minCardinality int,
 	maxCardinality int,
-	unit string,
 	idPath []string,
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
@@ -514,7 +547,7 @@ func (tr *transformer) processField(
 	if fieldValue.Kind() == reflect.Slice {
 		for i := range fieldValue.Len() {
 			elem := fieldValue.Index(i)
-			errE := tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, unit, idPath, fieldPath, claims)
+			errE := tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
 			if errors.Is(errE, errClaimNotMade) {
 				continue
 			} else if errE != nil {
@@ -532,7 +565,7 @@ func (tr *transformer) processField(
 
 		if !fieldValue.IsNil() {
 			elem := fieldValue.Elem()
-			err = tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, unit, idPath, fieldPath, claims)
+			err = tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
 		}
 
 		if errors.Is(err, errClaimNotMade) { //nolint:revive
@@ -546,7 +579,7 @@ func (tr *transformer) processField(
 
 		// Handle single value.
 	} else {
-		errE := tr.processSingleValue(fieldValue, fieldType, propertyID, typeTag, unit, idPath, fieldPath, claims)
+		errE := tr.processSingleValue(fieldValue, fieldType, propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
 
 		if errors.Is(errE, errClaimNotMade) { //nolint:revive
 			// Do nothing.
@@ -561,34 +594,34 @@ func (tr *transformer) processField(
 	if count < minCardinality {
 		switch defaultTag {
 		case defaultNone:
-			// Add (minCardinality - count) NoValueClaims.
+			// Add (minCardinality - count) NoneClaims.
 			for range minCardinality - count {
 				claimID := newClaimID(idPath, propertyID, claims)
-				noValueClaim := &document.NoValueClaim{
+				noneClaim := &document.NoneClaim{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
-						Confidence: document.HighConfidence,
+						Confidence: confidence,
 					},
-					Prop: document.Reference{ID: &propertyID},
+					Prop: document.Reference{ID: propertyID},
 				}
-				errE := tr.Claims.Add(noValueClaim)
+				errE := tr.Claims.Add(noneClaim)
 				if errE != nil {
 					errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 					return errE
 				}
 			}
 		case defaultUnknown:
-			// Add (minCardinality - count) UnknownValueClaims.
+			// Add (minCardinality - count) UnknownClaims.
 			for range minCardinality - count {
 				claimID := newClaimID(idPath, propertyID, claims)
-				unknownValueClaim := &document.UnknownValueClaim{
+				unknownClaim := &document.UnknownClaim{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
-						Confidence: document.HighConfidence,
+						Confidence: confidence,
 					},
-					Prop: document.Reference{ID: &propertyID},
+					Prop: document.Reference{ID: propertyID},
 				}
-				errE := tr.Claims.Add(unknownValueClaim)
+				errE := tr.Claims.Add(unknownClaim)
 				if errE != nil {
 					errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 					return errE
@@ -625,12 +658,13 @@ func (tr *transformer) processSingleValue(
 	fieldType reflect.Type,
 	propertyID identifier.Identifier,
 	typeTag string,
-	unit string,
+	precisionTag string,
+	confidence document.Confidence,
 	idPath []string,
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
 ) errors.E {
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, "", unit, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, "", precisionTag, confidence, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return errE
 	} else if errE != nil {
@@ -640,6 +674,12 @@ func (tr *transformer) processSingleValue(
 
 	// Handle structs.
 	if claim == nil && fieldValue.Kind() == reflect.Struct {
+		if precisionTag != "" {
+			errE := errors.New("precision tag is not supported for struct field types")
+			errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+			return errE
+		}
+
 		// We reconstruct the newIDPath under current propertyID-based claim count.
 		// This is the same count which is used below to construct the value claim.
 		newIDPath := append(slices.Clone(idPath), strconv.Itoa(claims[propertyID]))
@@ -660,7 +700,7 @@ func (tr *transformer) processSingleValue(
 
 		// Here we use idPath because this claim really belongs at the level above this struct.
 		// It is only inside the struct so that we can list also its meta claims next to it.
-		claim, errE = extractValueClaim(fieldValue, fieldType, propertyID, idPath, fieldPath, claims)
+		claim, errE = extractValueClaim(fieldValue, fieldType, propertyID, confidence, idPath, fieldPath, claims)
 		if e, ok := errors.AsType[*claimNotMadeError](errE); ok {
 			if metaTr.Claims.Size() == 0 {
 				// There are no meta claims nor a value claim, so we just return errClaimNotMade here.
@@ -669,34 +709,33 @@ func (tr *transformer) processSingleValue(
 
 			// There is a value claim defined, but in this particular instance it has empty value,
 			// but there are meta claims for it, so we make a claim for it.
-			// TODO: What is all meta claims are "no value" claims?
+			// TODO: What if all meta claims are "none" claims?
 			claimID := newClaimID(idPath, propertyID, claims)
 			switch e.Default {
 			case defaultNone:
-				claim = &document.NoValueClaim{
+				claim = &document.NoneClaim{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
-						Confidence: document.HighConfidence,
+						Confidence: confidence,
 					},
-					Prop: document.Reference{ID: &propertyID},
+					Prop: document.Reference{ID: propertyID},
 				}
 			case defaultUnknown:
-				claim = &document.UnknownValueClaim{
+				claim = &document.UnknownClaim{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
-						Confidence: document.HighConfidence,
+						Confidence: confidence,
 					},
-					Prop: document.Reference{ID: &propertyID},
+					Prop: document.Reference{ID: propertyID},
 				}
 			default:
 				// By default, we make nested claims.
-				// TODO: Make this better. We currently map nested claims to NoValueClaim, but we should to HasClaim.
-				claim = &document.NoValueClaim{
+				claim = &document.HasClaim{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
-						Confidence: document.HighConfidence,
+						Confidence: confidence,
 					},
-					Prop: document.Reference{ID: &propertyID},
+					Prop: document.Reference{ID: propertyID},
 				}
 			}
 		} else if errors.Is(errE, errValueClaimNotFound) {
@@ -708,13 +747,12 @@ func (tr *transformer) processSingleValue(
 
 			// Value claim is not defined, so these are nested claims.
 			claimID := newClaimID(idPath, propertyID, claims)
-			// TODO: Make this better. We currently map nested claims to NoValueClaim, but we should to HasClaim.
-			claim = &document.NoValueClaim{
+			claim = &document.HasClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
+				Prop: document.Reference{ID: propertyID},
 			}
 		} else if errE != nil {
 			return errE
@@ -756,6 +794,7 @@ func extractValueClaim(
 	structValue reflect.Value,
 	structType reflect.Type,
 	propertyID identifier.Identifier,
+	confidence document.Confidence,
 	idPath []string,
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
@@ -777,8 +816,14 @@ func extractValueClaim(
 				return nil, errE
 			}
 
-			if _, hasProperty := field.Tag.Lookup("cardinality"); hasProperty {
+			if _, hasCardinality := field.Tag.Lookup("cardinality"); hasCardinality {
 				errE := errors.New("cardinality tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+
+			if _, hasConfidence := field.Tag.Lookup("confidence"); hasConfidence {
+				errE := errors.New("confidence tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -786,9 +831,9 @@ func extractValueClaim(
 			// Get tags.
 			typeTag := field.Tag.Get("type")
 			defaultTag := field.Tag.Get("default")
-			unit := field.Tag.Get("unit")
+			precisionTag := field.Tag.Get("precision")
 
-			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, unit, idPath, newFieldPath, claims)
+			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, idPath, newFieldPath, claims)
 			if errE != nil {
 				return nil, errE
 			}
@@ -799,7 +844,7 @@ func extractValueClaim(
 
 		// If this is an embedded struct, recursively check its fields.
 		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
-			vc, errE := extractValueClaim(fieldValue, fieldType, propertyID, idPath, newFieldPath, claims)
+			vc, errE := extractValueClaim(fieldValue, fieldType, propertyID, confidence, idPath, newFieldPath, claims)
 			if errors.Is(errE, errValueClaimNotFound) {
 				continue
 			} else if errors.Is(errE, errClaimNotMade) {
@@ -844,7 +889,8 @@ func processValueClaimField(
 	propertyID identifier.Identifier,
 	typeTag string,
 	defaultTag string,
-	unit string,
+	precisionTag string,
+	confidence document.Confidence,
 	idPath []string,
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
@@ -861,7 +907,7 @@ func processValueClaimField(
 		fieldType = fieldValue.Type()
 	}
 
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, defaultTag, unit, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return nil, errE
 	} else if errE != nil {
@@ -890,12 +936,17 @@ func makeClaim(
 	propertyID identifier.Identifier,
 	typeTag string,
 	defaultTag string,
-	unit string,
+	precisionTag string,
+	confidence document.Confidence,
 	idPath []string,
 	claims map[identifier.Identifier]int,
 ) (document.Claim, errors.E) {
 	// Handle core.Ref.
 	if t == coreRef {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Ref fields")
+		}
+
 		ref := fieldValue.Interface().(core.Ref) //nolint:errcheck,forcetypeassert
 		if len(ref.ID) == 0 {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -908,15 +959,51 @@ func makeClaim(
 		return &document.RelationClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
-			To:   document.Reference{ID: &refID},
+			Prop: document.Reference{ID: propertyID},
+			To:   document.Reference{ID: refID},
+		}, nil
+	}
+
+	// Handle time.Time.
+	if t == timeTime {
+		if precisionTag == "" {
+			return nil, errors.New("precision tag is required for time.Time fields")
+		}
+
+		var precision document.TimePrecision
+		errE := errors.WithStack(precision.UnmarshalText([]byte(precisionTag)))
+		if errE != nil {
+			errors.Details(errE)["precision"] = precisionTag
+			return nil, errE
+		}
+
+		goTime := fieldValue.Interface().(time.Time) //nolint:errcheck,forcetypeassert
+		if goTime.IsZero() {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
+		claimID := newClaimID(idPath, propertyID, claims)
+		return &document.TimeClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: confidence,
+			},
+			Prop:      document.Reference{ID: propertyID},
+			Timestamp: document.NewTimestamp(goTime, precision, nil),
+			Precision: precision,
 		}, nil
 	}
 
 	// Handle core.Time.
 	if t == coreTime {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Time fields; precision is part of core.Time")
+		}
+
 		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
 		if coreTime.Timestamp.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -928,134 +1015,186 @@ func makeClaim(
 		return &document.TimeClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:      document.Reference{ID: &propertyID},
-			Timestamp: document.Timestamp(coreTime.Timestamp),
+			Prop:      document.Reference{ID: propertyID},
+			Timestamp: document.NewTimestamp(coreTime.Timestamp, coreTime.Precision, nil),
 			Precision: coreTime.Precision,
 		}, nil
 	}
 
 	// Handle core.Interval[core.Time].
 	if t == coreTimeInterval {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Interval[core.Time] fields; precision is part of core.Time")
+		}
+
 		interval := fieldValue.Interface().(core.Interval[core.Time]) //nolint:errcheck,forcetypeassert
 
-		// TODO: This should be changed to return claimNotMadeError only when no fields are set and return explicit unknown or none claims if both corresponding flags are set.
-		if interval.From == nil && interval.To == nil && interval.FromIsUnknown && interval.ToIsUnknown {
+		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
+		if interval.From == nil && !interval.FromIsOpen && !interval.FromIsUnknown && !interval.FromIsNone &&
+			interval.To == nil && !interval.ToIsClosed && !interval.ToIsUnknown && !interval.ToIsNone {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
 		}
 
-		// TODO: This is just temporary. Support unknown interval bounds.
-		if interval.From == nil || interval.To == nil || interval.FromIsUnknown || interval.ToIsUnknown {
-			claimID := newClaimID(idPath, propertyID, claims)
-			return &document.UnknownValueClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         claimID,
-					Confidence: document.HighConfidence,
-				},
-				Prop: document.Reference{ID: &propertyID},
-			}, nil
-		}
-
-		// TODO: Support different precisions for each bound.
-		precision := interval.From.Precision
-		if interval.To.Precision > precision {
-			precision = interval.To.Precision
-		}
-
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.TimeRangeClaim{
+		claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:      document.Reference{ID: &propertyID},
-			Lower:     document.Timestamp(interval.From.Timestamp),
-			Upper:     document.Timestamp(interval.To.Timestamp),
-			Precision: precision,
-		}, nil
+			Prop: document.Reference{ID: propertyID},
+		}
+
+		// Map From bound.
+		if interval.From != nil {
+			fromPrecision := interval.From.Precision
+			fromTimestamp := document.NewTimestamp(interval.From.Timestamp, fromPrecision, nil)
+			claim.From = &fromTimestamp
+			claim.FromPrecision = &fromPrecision
+			claim.FromIsOpen = interval.FromIsOpen
+		} else if interval.FromIsUnknown {
+			claim.FromIsUnknown = true
+		} else if interval.FromIsNone {
+			claim.FromIsNone = true
+		} else {
+			return nil, errors.New(`interval's "from" bound is not set`)
+		}
+
+		// Map To bound.
+		if interval.To != nil {
+			toPrecision := interval.To.Precision
+			toTimestamp := document.NewTimestamp(interval.To.Timestamp, toPrecision, nil)
+			claim.To = &toTimestamp
+			claim.ToPrecision = &toPrecision
+			claim.ToIsClosed = interval.ToIsClosed
+		} else if interval.ToIsUnknown {
+			claim.ToIsUnknown = true
+		} else if interval.ToIsNone {
+			claim.ToIsNone = true
+		} else {
+			return nil, errors.New(`interval's "to" bound is not set`)
+		}
+
+		return claim, nil
 	}
 
 	// Handle core.Interval[core.Amount[T]].
 	if coreAmountIntervalTypes[t] {
-		if unit == "" {
-			return nil, errors.New(`field has core.Interval[core.Amount] type but is missing required "unit" tag`)
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Interval[core.Amount[T]] fields; precision is part of core.Amount")
 		}
 
-		u, errE := parseAmountUnit(unit)
-		if errE != nil {
-			return nil, errE
-		}
-
+		// Interval struct field indices: 0=From, 1=FromIsOpen, 2=FromIsUnknown, 3=FromIsNone, 4=To, 5=ToIsClosed, 6=ToIsUnknown, 7=ToIsNone.
 		fromField := fieldValue.Field(0)
-		fromIsUnknown := fieldValue.Field(1).Bool()
-		fromIsNone := fieldValue.Field(2).Bool()  //nolint:mnd
-		toField := fieldValue.Field(3)            //nolint:mnd
-		toIsUnknown := fieldValue.Field(4).Bool() //nolint:mnd
-		toIsNone := fieldValue.Field(5).Bool()    //nolint:mnd
+		fromIsOpen := fieldValue.Field(1).Bool()
+		fromIsUnknown := fieldValue.Field(2).Bool() //nolint:mnd
+		fromIsNone := fieldValue.Field(3).Bool()    //nolint:mnd
+		toField := fieldValue.Field(4)              //nolint:mnd
+		toIsClosed := fieldValue.Field(5).Bool()    //nolint:mnd
+		toIsUnknown := fieldValue.Field(6).Bool()   //nolint:mnd
+		toIsNone := fieldValue.Field(7).Bool()      //nolint:mnd
 
-		// TODO: This should be changed to return claimNotMadeError only when no fields are set and return explicit unknown or none claims if both corresponding flags are set.
-		if fromField.IsNil() && toField.IsNil() && fromIsUnknown && toIsUnknown {
+		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
+		if fromField.IsNil() && !fromIsOpen && !fromIsUnknown && !fromIsNone &&
+			toField.IsNil() && !toIsClosed && !toIsUnknown && !toIsNone {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
 		}
 
-		// TODO: This is just temporary. Support unknown interval bounds.
-		if fromField.IsNil() || toField.IsNil() || fromIsUnknown || toIsUnknown || fromIsNone || toIsNone {
-			claimID := newClaimID(idPath, propertyID, claims)
-			return &document.UnknownValueClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         claimID,
-					Confidence: document.HighConfidence,
-				},
-				Prop: document.Reference{ID: &propertyID},
-			}, nil
-		}
-
-		lower, _ := getNumericValue(fromField.Elem().Field(0))
-		upper, _ := getNumericValue(toField.Elem().Field(0))
-
-		if math.IsInf(lower, 0) || math.IsNaN(lower) {
-			errE := errors.New(`interval's "from" is infinity or not a number`)
-			errors.Details(errE)["value"] = lower
-			return nil, errE
-		}
-		if math.IsInf(upper, 0) || math.IsNaN(upper) {
-			errE := errors.New(`interval's "to" is infinity or not a number`)
-			errors.Details(errE)["value"] = upper
-			return nil, errE
-		}
-
 		claimID := newClaimID(idPath, propertyID, claims)
-		// TODO: Change unit to be derived from a unit sub-claim instead of a struct tag.
-		return &document.AmountRangeClaim{
+		claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:  document.Reference{ID: &propertyID},
-			Lower: lower,
-			Upper: upper,
-			Unit:  u,
-		}, nil
+			Prop: document.Reference{ID: propertyID},
+		}
+
+		// Map From bound.
+		if !fromField.IsNil() { //nolint:dupl
+			fromAmount, ok := getNumericValue(fromField.Elem().Field(0))
+			if !ok {
+				errE := errors.New("unexpected from kind")
+				errors.Details(errE)["kind"] = fromField.Elem().Field(0).Kind().String()
+				panic(errE)
+			}
+			fromPrecision, ok := getNumericValue(fromField.Elem().Field(1))
+			if !ok {
+				errE := errors.New("unexpected from precision kind")
+				errors.Details(errE)["kind"] = fromField.Elem().Field(1).Kind().String()
+				panic(errE)
+			}
+			if math.IsInf(fromAmount, 0) || math.IsNaN(fromAmount) {
+				errE := errors.New(`interval's "from" is infinity or not a number`)
+				errors.Details(errE)["value"] = fromAmount
+				return nil, errE
+			}
+			claim.From = &fromAmount
+			claim.FromPrecision = &fromPrecision
+			claim.FromIsOpen = fromIsOpen
+		} else if fromIsUnknown {
+			claim.FromIsUnknown = true
+		} else if fromIsNone {
+			claim.FromIsNone = true
+		} else {
+			return nil, errors.New(`interval's "from" bound is not set`)
+		}
+
+		// Map To bound.
+		if !toField.IsNil() { //nolint:dupl
+			toAmount, ok := getNumericValue(toField.Elem().Field(0))
+			if !ok {
+				errE := errors.New("unexpected to kind")
+				errors.Details(errE)["kind"] = toField.Elem().Field(0).Kind().String()
+				panic(errE)
+			}
+			toPrecision, ok := getNumericValue(toField.Elem().Field(1))
+			if !ok {
+				errE := errors.New("unexpected to precision kind")
+				errors.Details(errE)["kind"] = toField.Elem().Field(1).Kind().String()
+				panic(errE)
+			}
+			if math.IsInf(toAmount, 0) || math.IsNaN(toAmount) {
+				errE := errors.New(`interval's "to" is infinity or not a number`)
+				errors.Details(errE)["value"] = toAmount
+				return nil, errE
+			}
+			claim.To = &toAmount
+			claim.ToPrecision = &toPrecision
+			claim.ToIsClosed = toIsClosed
+		} else if toIsUnknown {
+			claim.ToIsUnknown = true
+		} else if toIsNone {
+			claim.ToIsNone = true
+		} else {
+			return nil, errors.New(`interval's "to" bound is not set`)
+		}
+
+		return claim, nil
 	}
 
 	// Handle core.Amount[T].
 	if coreAmountTypes[t] {
-		if unit == "" {
-			return nil, errors.New(`field has core.Amount type but is missing required "unit" tag`)
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Amount[T] fields; precision is part of core.Amount")
 		}
 
-		u, errE := parseAmountUnit(unit)
-		if errE != nil {
-			return nil, errE
+		amount, ok := getNumericValue(fieldValue.Field(0))
+		if !ok {
+			errE := errors.New("unexpected amount kind")
+			errors.Details(errE)["kind"] = fieldValue.Field(0).Kind().String()
+			panic(errE)
 		}
-
-		// TODO: Map precision.
-		amount, _ := getNumericValue(fieldValue.Field(0))
+		precision, ok := getNumericValue(fieldValue.Field(1))
+		if !ok {
+			errE := errors.New("unexpected precision kind")
+			errors.Details(errE)["kind"] = fieldValue.Field(1).Kind().String()
+			panic(errE)
+		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
 			errE := errors.New("value is infinity or not a number")
@@ -1063,20 +1202,30 @@ func makeClaim(
 			return nil, errE
 		}
 
+		if math.IsInf(precision, 0) || math.IsNaN(precision) {
+			errE := errors.New("precision is infinity or not a number")
+			errors.Details(errE)["value"] = precision
+			return nil, errE
+		}
+
 		claimID := newClaimID(idPath, propertyID, claims)
 		return &document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:   document.Reference{ID: &propertyID},
-			Amount: amount,
-			Unit:   u,
+			Prop:      document.Reference{ID: propertyID},
+			Amount:    amount,
+			Precision: precision,
 		}, nil
 	}
 
 	// Handle core.Identifier.
 	if t == coreIdentifier {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Identifier fields")
+		}
+
 		identifier := fieldValue.Interface().(core.Identifier) //nolint:errcheck,forcetypeassert
 		if identifier == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1093,15 +1242,19 @@ func makeClaim(
 		return &document.IdentifierClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:  document.Reference{ID: &propertyID},
+			Prop:  document.Reference{ID: propertyID},
 			Value: string(identifier),
 		}, nil
 	}
 
 	// Handle core.IRI.
 	if t == coreIRI {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.IRI fields")
+		}
+
 		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
 		if iri == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1117,15 +1270,19 @@ func makeClaim(
 		return &document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
+			Prop: document.Reference{ID: propertyID},
 			IRI:  string(iri),
 		}, nil
 	}
 
 	// Handle core.HTML.
 	if t == coreHTML {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.HTML fields")
+		}
+
 		h := fieldValue.Interface().(core.HTML) //nolint:errcheck,forcetypeassert
 		if h == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1138,21 +1295,23 @@ func makeClaim(
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.TextClaim{
+		return &document.HTMLClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
-			HTML: document.TranslatableHTMLString{
-				// We still sanitize HTML, so that our user HTML is consistent.
-				"en": sanitizeHTML(escapeHTML(string(h))),
-			},
+			Prop: document.Reference{ID: propertyID},
+			// We still sanitize HTML, so that our user HTML is consistent.
+			HTML: sanitizeHTML(escapeHTML(string(h))),
 		}, nil
 	}
 
 	// Handle core.RawHTML.
 	if t == coreRawHTML {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.RawHTML fields")
+		}
+
 		rawHTML := fieldValue.Interface().(core.RawHTML) //nolint:errcheck,forcetypeassert
 		if rawHTML == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1165,21 +1324,23 @@ func makeClaim(
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.TextClaim{
+		return &document.HTMLClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
-			HTML: document.TranslatableHTMLString{
-				// No escaping for raw HTML, but we do sanitize it.
-				"en": sanitizeHTML(string(rawHTML)),
-			},
+			Prop: document.Reference{ID: propertyID},
+			// No escaping for raw HTML, but we do sanitize it.
+			HTML: sanitizeHTML(string(rawHTML)),
 		}, nil
 	}
 
 	// Handle core.None.
 	if t == coreNone {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.None fields")
+		}
+
 		none := fieldValue.Interface().(core.None) //nolint:errcheck,forcetypeassert
 		if !bool(none) {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1192,17 +1353,21 @@ func makeClaim(
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.NoValueClaim{
+		return &document.NoneClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
+			Prop: document.Reference{ID: propertyID},
 		}, nil
 	}
 
 	// Handle core.Unknown.
 	if t == coreUnknown {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.Unknown fields")
+		}
+
 		unknown := fieldValue.Interface().(core.Unknown) //nolint:errcheck,forcetypeassert
 		if !bool(unknown) {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1215,17 +1380,21 @@ func makeClaim(
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.UnknownValueClaim{
+		return &document.UnknownClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
+			Prop: document.Reference{ID: propertyID},
 		}, nil
 	}
 
 	// Handle string types.
 	if fieldValue.Kind() == reflect.String {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for string fields")
+		}
+
 		str := fieldValue.String()
 		if str == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1239,38 +1408,34 @@ func makeClaim(
 			return &document.IdentifierClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop:  document.Reference{ID: &propertyID},
+				Prop:  document.Reference{ID: propertyID},
 				Value: str,
 			}, nil
 		}
 
 		if typeTag == typeHTML {
-			return &document.TextClaim{
+			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
-				HTML: document.TranslatableHTMLString{
-					// We still sanitize HTML, so that our user HTML is consistent.
-					"en": sanitizeHTML(escapeHTML(str)),
-				},
+				Prop: document.Reference{ID: propertyID},
+				// We still sanitize HTML, so that our user HTML is consistent.
+				HTML: sanitizeHTML(escapeHTML(str)),
 			}, nil
 		}
 
 		if typeTag == typeRawHTML {
-			return &document.TextClaim{
+			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
-				HTML: document.TranslatableHTMLString{
-					// No escaping for raw HTML, but we do sanitize it.
-					"en": sanitizeHTML(str),
-				},
+				Prop: document.Reference{ID: propertyID},
+				// No escaping for raw HTML, but we do sanitize it.
+				HTML: sanitizeHTML(str),
 			}, nil
 		}
 
@@ -1278,9 +1443,9 @@ func makeClaim(
 			return &document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
+				Prop: document.Reference{ID: propertyID},
 				IRI:  str,
 			}, nil
 		}
@@ -1288,15 +1453,19 @@ func makeClaim(
 		return &document.StringClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:   document.Reference{ID: &propertyID},
+			Prop:   document.Reference{ID: propertyID},
 			String: str,
 		}, nil
 	}
 
 	// Handle bool.
 	if fieldValue.Kind() == reflect.Bool {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for bool fields")
+		}
+
 		if !fieldValue.Bool() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1306,44 +1475,49 @@ func makeClaim(
 		claimID := newClaimID(idPath, propertyID, claims)
 
 		if typeTag == typeNone {
-			return &document.NoValueClaim{
+			return &document.NoneClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
+				Prop: document.Reference{ID: propertyID},
 			}, nil
 		}
 
 		if typeTag == typeUnknown {
-			return &document.UnknownValueClaim{
+			return &document.UnknownClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
-					Confidence: document.HighConfidence,
+					Confidence: confidence,
 				},
-				Prop: document.Reference{ID: &propertyID},
+				Prop: document.Reference{ID: propertyID},
 			}, nil
 		}
 
-		// TODO: Make this better. We currently map true to NoValueClaim, but we should to HasClaim.
-		return &document.NoValueClaim{
+		return &document.HasClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop: document.Reference{ID: &propertyID},
+			Prop: document.Reference{ID: propertyID},
 		}, nil
 	}
 
 	// Handle numeric types.
 	if amount, ok := getNumericValue(fieldValue); ok {
-		if unit == "" {
-			return nil, errors.New(`field has numeric type but is missing required "unit" tag`)
+		if precisionTag == "" {
+			return nil, errors.New("precision tag is required for numeric fields")
 		}
 
-		u, errE := parseAmountUnit(unit)
-		if errE != nil {
+		precision, err := strconv.ParseFloat(precisionTag, 64)
+		if err != nil {
+			errE := errors.New("invalid precision tag value for numeric field")
+			errors.Details(errE)["precision"] = precisionTag
 			return nil, errE
+		}
+
+		if math.IsInf(precision, 0) || math.IsNaN(precision) {
+			return nil, errors.New("precision tag value is infinity or not a number")
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
@@ -1356,11 +1530,11 @@ func makeClaim(
 		return &document.AmountClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
-				Confidence: document.HighConfidence,
+				Confidence: confidence,
 			},
-			Prop:   document.Reference{ID: &propertyID},
-			Amount: amount,
-			Unit:   u,
+			Prop:      document.Reference{ID: propertyID},
+			Amount:    amount,
+			Precision: precision,
 		}, nil
 	}
 
@@ -1390,17 +1564,6 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 	}
 }
 
-// parseAmountUnit parses a unit tag string and returns the corresponding AmountUnit.
-func parseAmountUnit(unit string) (document.AmountUnit, errors.E) {
-	var u document.AmountUnit
-	jsonBytes := []byte(`"` + unit + `"`)
-	err := u.UnmarshalJSON(jsonBytes)
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-	return u, nil
-}
-
 // parseCardinality parses a cardinality tag string and returns min and max values.
 //
 // Supported formats:
@@ -1413,7 +1576,7 @@ func parseAmountUnit(unit string) (document.AmountUnit, errors.E) {
 // Default cardinality, if not specified, is min=0, max=-1.
 //
 // Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
-func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault bool, fieldPath []string) (int, int, errors.E) {
+func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault bool) (int, int, errors.E) {
 	minCardinality := 0
 	maxCardinality := -1
 
@@ -1428,7 +1591,6 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 			if len(parts) != 2 { //nolint:mnd
 				errE := errors.New("invalid cardinality format")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errE
 			}
 
@@ -1436,7 +1598,6 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 			if minStr == "" {
 				errE := errors.New("cardinality min value is empty")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errE
 			}
 			var err error
@@ -1444,13 +1605,11 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 			if err != nil {
 				errE := errors.New("cardinality min value is not a valid integer")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errors.WrapWith(err, errE)
 			}
 			if minCardinality < 0 {
 				errE := errors.New("cardinality min value cannot be negative")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errE
 			}
 
@@ -1461,19 +1620,16 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 				if err != nil {
 					errE := errors.New("cardinality max value is not a valid integer")
 					errors.Details(errE)["cardinality"] = cardinality
-					errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 					return 0, 0, errors.WrapWith(err, errE)
 				}
 				if maxCardinality <= 0 {
 					errE := errors.New("cardinality max value cannot be negative or zero")
 					errors.Details(errE)["cardinality"] = cardinality
-					errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 					return 0, 0, errE
 				}
 				if maxCardinality < minCardinality {
 					errE := errors.New("cardinality max value cannot be less than min")
 					errors.Details(errE)["cardinality"] = cardinality
-					errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 					return 0, 0, errE
 				}
 			}
@@ -1482,13 +1638,11 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 			if err != nil {
 				errE := errors.New("cardinality value is not a valid integer")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errors.WrapWith(err, errE)
 			}
 			if val <= 0 {
 				errE := errors.New("cardinality value cannot be negative or zero")
 				errors.Details(errE)["cardinality"] = cardinality
-				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 				return 0, 0, errE
 			}
 			minCardinality = val
@@ -1504,7 +1658,6 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 	if isPointer && (maxCardinality > 1 || maxCardinality == -1) {
 		errE := errors.New("pointer field cannot have max cardinality greater than 1")
 		errors.Details(errE)["cardinality"] = cardinality
-		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return 0, 0, errE
 	}
 
@@ -1512,7 +1665,6 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 	if isSingleValue && (maxCardinality > 1 || maxCardinality == -1) {
 		errE := errors.New("single value field cannot have max cardinality greater than 1")
 		errors.Details(errE)["cardinality"] = cardinality
-		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return 0, 0, errE
 	}
 
@@ -1520,7 +1672,6 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 	if isBooleanField && (maxCardinality > 1 || maxCardinality == -1) {
 		errE := errors.New("boolean field cannot have max cardinality greater than 1")
 		errors.Details(errE)["cardinality"] = cardinality
-		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return 0, 0, errE
 	}
 
@@ -1528,11 +1679,35 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 	if minCardinality == 0 && hasDefault {
 		errE := errors.New("field cannot have default tag with min cardinality 0")
 		errors.Details(errE)["cardinality"] = cardinality
-		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return 0, 0, errE
 	}
 
 	return minCardinality, maxCardinality, nil
+}
+
+// parseConfidence parses a confidence tag string and returns a document.Confidence value.
+//
+// If the tag is empty, it returns document.HighConfidence.
+// The confidence value must be a float in the range [-1, 1].
+func parseConfidence(tag string) (document.Confidence, errors.E) {
+	if tag == "" {
+		return document.HighConfidence, nil
+	}
+
+	v, err := strconv.ParseFloat(tag, 64)
+	if err != nil {
+		errE := errors.New("confidence tag value is not a valid float")
+		errors.Details(errE)["confidence"] = tag
+		return 0, errE
+	}
+
+	if v < -1 || v > 1 || math.IsInf(v, 0) || math.IsNaN(v) {
+		errE := errors.New("confidence tag value out of range [-1, 1]")
+		errors.Details(errE)["confidence"] = v
+		return 0, errE
+	}
+
+	return document.Confidence(v), nil
 }
 
 // ExtractDocumentID extracts the document ID from a struct.

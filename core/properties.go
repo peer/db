@@ -470,12 +470,22 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			ShortName:       nil,
-			AlternativeName: nil,
-			Mnemonic:        "IN_LOCATION",
-			Description:     nil,
-			Instruction:     nil,
-			SubpropertyOf:   nil,
+			ShortName: nil,
+			AlternativeName: []StringWithLanguage{{
+				Value: "in timezone",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "v časovnem pasu",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Mnemonic:      "IN_LOCATION",
+			Description:   nil,
+			Instruction:   nil,
+			SubpropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "IN_LOCATION"},

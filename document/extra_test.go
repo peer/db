@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2194,12 +2195,44 @@ func TestTimePrecisionUnmarshalTextUnknown(t *testing.T) {
 	assert.EqualError(t, errE, "unknown time precision")
 }
 
-// TestTimestampTimeNilLocation tests Timestamp.Time with a nil location.
+// TestTimestampTimeNilLocation tests that Timestamp.Time with a nil location defaults to UTC.
 func TestTimestampTimeNilLocation(t *testing.T) {
 	t.Parallel()
 
-	_, errE := document.Timestamp("2020-01-01").Time(0, nil)
-	assert.EqualError(t, errE, "missing location")
+	tests := []struct {
+		name      string
+		timestamp string
+		precision document.TimePrecision
+	}{
+		{"year", "2025", document.TimePrecisionYear},
+		{"month", "2025-06-00", document.TimePrecisionMonth},
+		{"day", "2025-06-15", document.TimePrecisionDay},
+		{"hour", "2025-06-15 12:00", document.TimePrecisionHour},
+		{"minute", "2025-06-15 12:30", document.TimePrecisionMinute},
+		{"second", "2025-06-15 12:30:45", document.TimePrecisionSecond},
+		{"millisecond", "2025-06-15 12:30:45.123", document.TimePrecisionMillisecond},
+		{"microsecond", "2025-06-15 12:30:45.123456", document.TimePrecisionMicrosecond},
+		{"nanosecond", "2025-06-15 12:30:45.123456789", document.TimePrecisionNanosecond},
+		{"negative year", "-2025-03-15 10:30:45", document.TimePrecisionSecond},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := document.Timestamp(tc.timestamp)
+
+			tNil, errE := ts.Time(tc.precision, nil)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			tUTC, errE := ts.Time(tc.precision, time.UTC)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			// nil location must behave identically to time.UTC.
+			assert.True(t, tNil.Equal(tUTC), "expected %v, got %v", tUTC, tNil)
+			assert.Equal(t, tUTC.Location(), tNil.Location())
+		})
+	}
 }
 
 // TestTimestampUnmarshalErrors tests error paths in Timestamp.UnmarshalText and UnmarshalJSON.

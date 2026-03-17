@@ -17,7 +17,7 @@ import (
 // which are not part of the timestamp itself:
 //
 //   - [TimePrecision]: precision of the timestamp
-//   - [time.Location]: timezone of the timestamp
+//   - [time.Location]: location (timezone) of the timestamp
 //
 // It is represented as a string to preserve the original format
 // as provided by the user. The format is RFC 3339 compatible with
@@ -32,7 +32,7 @@ import (
 //     which does not require other parts, parts are in order: a) year, b) month + day,
 //     c) hours + minutes, d) seconds, e) milliseconds, f) microseconds, and g) nanoseconds
 //   - instead of T delimiter, a space is used
-//   - timezone must not be present
+//   - location (timezone) must not be present
 //
 //nolint:recvcheck
 type Timestamp string
@@ -72,9 +72,11 @@ func daysIn(month, year int) int {
 // Time returns the time.Time representation of a Timestamp.
 //
 // Passing 0 for precision skips checks for precision.
+//
+// It location is nil, UTC is used.
 func (t Timestamp) Time(precision TimePrecision, location *time.Location) (time.Time, errors.E) { //nolint:maintidx
 	if location == nil {
-		return time.Time{}, errors.New("missing location")
+		location = time.UTC
 	}
 
 	s := string(t)
@@ -474,4 +476,70 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 		return errE
 	}
 	return p.UnmarshalText([]byte(s))
+}
+
+// NewTimestamp formats a time.Time into a Timestamp string
+// with only the parts required by the given precision.
+//
+// The timestamp is formatted in the provided location (timezone).
+// If location is nil, UTC is used.
+func NewTimestamp(t time.Time, precision TimePrecision, location *time.Location) Timestamp {
+	if location == nil {
+		location = time.UTC
+	}
+
+	t = t.In(location)
+	w := 4
+	year, month, day := t.Date()
+	if year < 0 {
+		// An extra character for the minus sign.
+		w = 5
+	}
+	switch {
+	case precision >= TimePrecisionNanosecond:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:%02d:%02d.%09d",
+			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+		))
+	case precision >= TimePrecisionMicrosecond:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:%02d:%02d.%06d",
+			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond()/1000, //nolint:mnd
+		))
+	case precision >= TimePrecisionMillisecond:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:%02d:%02d.%03d",
+			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond()/1_000_000, //nolint:mnd
+		))
+	case precision >= TimePrecisionSecond:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:%02d:%02d",
+			w, year, month, day, t.Hour(), t.Minute(), t.Second(),
+		))
+	case precision >= TimePrecisionMinute:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:%02d",
+			w, year, month, day, t.Hour(), t.Minute(),
+		))
+	case precision >= TimePrecisionHour:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d %02d:00",
+			w, year, month, day, t.Hour(),
+		))
+	case precision >= TimePrecisionDay:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-%02d",
+			w, year, month, day,
+		))
+	case precision >= TimePrecisionMonth:
+		return Timestamp(fmt.Sprintf(
+			"%0*d-%02d-00",
+			w, year, month,
+		))
+	default:
+		return Timestamp(fmt.Sprintf(
+			"%0*d",
+			w, year,
+		))
+	}
 }

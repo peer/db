@@ -148,3 +148,235 @@ func TestTimePrecisionMarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestNewTimestamp(t *testing.T) {
+	t.Parallel()
+
+	newYork, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		input     time.Time
+		precision document.TimePrecision
+		location  *time.Location
+		expected  string
+	}{
+		// nil location defaults to UTC.
+		{
+			name:      "nil location uses UTC",
+			input:     time.Date(2025, 3, 15, 10, 30, 45, 0, time.UTC),
+			precision: document.TimePrecisionSecond,
+			location:  nil,
+			expected:  "2025-03-15 10:30:45",
+		},
+		// Various precisions with UTC.
+		{
+			name:      "year precision",
+			input:     time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionYear,
+			location:  time.UTC,
+			expected:  "2025",
+		},
+		{
+			name:      "giga-years precision",
+			input:     time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionGigaYears,
+			location:  time.UTC,
+			expected:  "2025",
+		},
+		{
+			name:      "month precision",
+			input:     time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionMonth,
+			location:  time.UTC,
+			expected:  "2025-06-00",
+		},
+		{
+			name:      "day precision",
+			input:     time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionDay,
+			location:  time.UTC,
+			expected:  "2025-06-15",
+		},
+		{
+			name:      "hour precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 0, time.UTC),
+			precision: document.TimePrecisionHour,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:00",
+		},
+		{
+			name:      "minute precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 0, time.UTC),
+			precision: document.TimePrecisionMinute,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:30",
+		},
+		{
+			name:      "second precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 123456789, time.UTC),
+			precision: document.TimePrecisionSecond,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:30:45",
+		},
+		{
+			name:      "millisecond precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 123456789, time.UTC),
+			precision: document.TimePrecisionMillisecond,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:30:45.123",
+		},
+		{
+			name:      "microsecond precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 123456789, time.UTC),
+			precision: document.TimePrecisionMicrosecond,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:30:45.123456",
+		},
+		{
+			name:      "nanosecond precision",
+			input:     time.Date(2025, 6, 15, 12, 30, 45, 123456789, time.UTC),
+			precision: document.TimePrecisionNanosecond,
+			location:  time.UTC,
+			expected:  "2025-06-15 12:30:45.123456789",
+		},
+		// Non-UTC timezone: New York is UTC-5 in January.
+		{
+			name:      "New York second (UTC input)",
+			input:     time.Date(2025, 1, 15, 15, 30, 45, 0, time.UTC), // 10:30:45 EST
+			precision: document.TimePrecisionSecond,
+			location:  newYork,
+			expected:  "2025-01-15 10:30:45",
+		},
+		{
+			name:      "New York nanosecond (UTC input)",
+			input:     time.Date(2025, 1, 15, 15, 30, 45, 123456789, time.UTC), // 10:30:45.123456789 EST
+			precision: document.TimePrecisionNanosecond,
+			location:  newYork,
+			expected:  "2025-01-15 10:30:45.123456789",
+		},
+		// Tokyo is UTC+9.
+		{
+			name:      "Tokyo second (UTC input)",
+			input:     time.Date(2025, 3, 15, 0, 30, 45, 0, time.UTC), // 09:30:45 JST
+			precision: document.TimePrecisionSecond,
+			location:  tokyo,
+			expected:  "2025-03-15 09:30:45",
+		},
+		// Timezone crossing midnight: same instant, different local date.
+		{
+			// 2025-03-16 03:30 UTC = 2025-03-15 23:30 EDT (UTC-4, after DST started Mar 9).
+			name:      "New York crosses midnight (day precision)",
+			input:     time.Date(2025, 3, 16, 3, 30, 0, 0, time.UTC),
+			precision: document.TimePrecisionDay,
+			location:  newYork,
+			expected:  "2025-03-15",
+		},
+		{
+			// 2025-03-15 22:00 UTC = 2025-03-16 07:00 JST (UTC+9).
+			name:      "Tokyo crosses midnight (day precision)",
+			input:     time.Date(2025, 3, 15, 22, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionDay,
+			location:  tokyo,
+			expected:  "2025-03-16",
+		},
+		// Negative year.
+		{
+			name:      "negative year",
+			input:     time.Date(-2025, 3, 15, 10, 30, 45, 0, time.UTC),
+			precision: document.TimePrecisionSecond,
+			location:  time.UTC,
+			expected:  "-2025-03-15 10:30:45",
+		},
+		{
+			name:      "negative year precision only",
+			input:     time.Date(-10000, 6, 1, 0, 0, 0, 0, time.UTC),
+			precision: document.TimePrecisionYear,
+			location:  time.UTC,
+			expected:  "-10000",
+		},
+		// Input time in a non-UTC location.
+		{
+			name:      "input already in New York timezone",
+			input:     time.Date(2025, 1, 15, 10, 30, 45, 0, newYork),
+			precision: document.TimePrecisionSecond,
+			location:  newYork,
+			expected:  "2025-01-15 10:30:45",
+		},
+		// nil vs UTC equivalence: 2025-03-15 is after DST (Mar 9), so NY is UTC-4 (EDT).
+		// 10:30:45 EDT = 14:30:45 UTC.
+		{
+			name:      "nil same as UTC for non-UTC input",
+			input:     time.Date(2025, 3, 15, 10, 30, 45, 0, newYork),
+			precision: document.TimePrecisionSecond,
+			location:  nil,
+			expected:  "2025-03-15 14:30:45",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := document.NewTimestamp(tc.input, tc.precision, tc.location)
+			assert.Equal(t, document.Timestamp(tc.expected), ts)
+		})
+	}
+}
+
+func TestNewTimestampRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	newYork, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		input     time.Time
+		precision document.TimePrecision
+		location  *time.Location
+	}{
+		// UTC, all high precisions (exact round-trip).
+		{"UTC second", time.Date(2025, 3, 15, 10, 30, 45, 0, time.UTC), document.TimePrecisionSecond, time.UTC},
+		{"UTC millisecond", time.Date(2025, 3, 15, 10, 30, 45, 123000000, time.UTC), document.TimePrecisionMillisecond, time.UTC},
+		{"UTC microsecond", time.Date(2025, 3, 15, 10, 30, 45, 123456000, time.UTC), document.TimePrecisionMicrosecond, time.UTC},
+		{"UTC nanosecond", time.Date(2025, 3, 15, 10, 30, 45, 123456789, time.UTC), document.TimePrecisionNanosecond, time.UTC},
+		// Non-UTC timezones (exact round-trip).
+		{"New York second", time.Date(2025, 1, 15, 15, 30, 45, 0, time.UTC), document.TimePrecisionSecond, newYork},
+		{"New York nanosecond", time.Date(2025, 1, 15, 15, 30, 45, 123456789, time.UTC), document.TimePrecisionNanosecond, newYork},
+		{"Tokyo second", time.Date(2025, 3, 15, 0, 30, 45, 0, time.UTC), document.TimePrecisionSecond, tokyo},
+		{"Tokyo nanosecond", time.Date(2025, 3, 15, 0, 30, 45, 123456789, time.UTC), document.TimePrecisionNanosecond, tokyo},
+		// Input already in a non-UTC location.
+		{"input in New York timezone", time.Date(2025, 1, 15, 10, 30, 45, 0, newYork), document.TimePrecisionSecond, newYork},
+		// Nil location (UTC).
+		{"nil location second", time.Date(2025, 3, 15, 10, 30, 45, 0, time.UTC), document.TimePrecisionSecond, nil},
+		// Crossing midnight.
+		{"New York crosses midnight", time.Date(2025, 3, 16, 3, 30, 45, 0, time.UTC), document.TimePrecisionSecond, newYork},
+		// Negative year.
+		{"negative year nanosecond", time.Date(-2025, 3, 15, 10, 30, 45, 123456789, time.UTC), document.TimePrecisionNanosecond, time.UTC},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := document.NewTimestamp(tc.input, tc.precision, tc.location)
+			errE := ts.Validate(tc.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			// Pass tc.location directly (nil is allowed and defaults to UTC).
+			t2, errE := ts.Time(tc.precision, tc.location)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			// Round-trip: the parsed time must represent the same instant.
+			assert.True(t, tc.input.Equal(t2), "expected %v, got %v", tc.input, t2)
+		})
+	}
+}
