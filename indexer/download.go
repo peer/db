@@ -137,6 +137,10 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()   //nolint:errcheck,gosec
+			r.WriteFile.Close() //nolint:errcheck,gosec
+			r.ReadFile.Close()  //nolint:errcheck,gosec
+			_ = os.Remove(r.Path)
 			return 0, errors.WithDetails(
 				x.ErrResponseBadStatus,
 				"status", resp.Status,
@@ -242,7 +246,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 func getPathAndURL(cacheDir, url string) (string, string) {
 	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd,gosec
 	_, err := os.Stat(url)
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
 		return filepath.Join(cacheDir, path.Base(url)), url
 	}
@@ -259,7 +263,7 @@ func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog
 	// If url points to a local file, cachedPath is set to url.
 	cachedPath, url := getPathAndURL(cacheDir, url)
 
-	// The try to create the cached file.
+	// Then try to create the cached file.
 	cachedWriteFile, err := os.OpenFile(filepath.Clean(cachedPath), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd,gosec
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {

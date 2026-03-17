@@ -62,14 +62,17 @@ func pagserSchemaOrg(node *goquery.Selection, _ ...string) (interface{}, error) 
 func ExtractData[T any](in io.Reader) (T, errors.E) { //nolint:ireturn
 	config := pagser.DefaultConfig()
 	config.CastError = true
-	p, _ := pagser.NewWithConfig(config)
+	p, err := pagser.NewWithConfig(config)
+	if err != nil {
+		return *new(T), errors.WithStack(err)
+	}
 
 	p.RegisterFunc("exists", pagserExists)
 	p.RegisterFunc("schemaOrg", pagserSchemaOrg)
 	p.RegisterFunc("class", pagserClass)
 
 	var data T
-	err := p.ParseReader(&data, in)
+	err = p.ParseReader(&data, in)
 	if err != nil {
 		return *new(T), errors.WithStack(err)
 	}
@@ -99,10 +102,12 @@ func GetWebData[T any](ctx context.Context, httpClient *http.Client, url string,
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		errE := errors.New("bad response status")
-		errors.Details(errE)["url"] = url
-		errors.Details(errE)["code"] = resp.StatusCode
-		errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+		errE := errors.WithDetails(
+			x.ErrResponseBadStatus,
+			"url", url,
+			"status", resp.Status,
+			"body", strings.TrimSpace(string(body)),
+		)
 		return *new(T), errE
 	}
 
