@@ -32,7 +32,7 @@ const (
 	ErrorCodeDuplicateFunction    = "42723"
 	ErrorCodeSerializationFailure = "40001"
 	ErrorCodeDeadlockDetected     = "40P01"
-	ErrorExclusionViolation       = "23P01"
+	ErrorCodeExclusionViolation   = "23P01"
 )
 
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES

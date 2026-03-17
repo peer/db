@@ -24,7 +24,7 @@ func nestedTransaction(ctx context.Context, parentTx pgx.Tx, fn func(ctx context
 	defer func() {
 		err = tx.Rollback(ctx)
 		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
-			errE = errors.Join(errE, err)
+			errE = errors.Join(errE, WithPgxError(err))
 		}
 	}()
 
@@ -75,7 +75,7 @@ func RetryTransaction(
 			defer func() {
 				err = tx.Rollback(ctx)
 				if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
-					errE = errors.Join(errE, err)
+					errE = errors.Join(errE, WithPgxError(err))
 				}
 			}()
 

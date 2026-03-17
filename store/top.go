@@ -48,7 +48,7 @@ func VersionFromString(text string) (Version, errors.E) {
 	return Version{
 		Changeset: changeset,
 		Revision:  revision,
-	}, errE
+	}, nil
 }
 
 // MarshalText marshals a Version to text format.

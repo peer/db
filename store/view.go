@@ -92,7 +92,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	return version, nil
 }
 
-// TODO: Support replacing/updating/updating/merging the value as Reader interface value instead of whole Data in memory.
+// TODO: Support replacing/updating/merging the value as Reader interface value instead of whole Data in memory.
 
 // Replace auto-commits the replace change into the view.
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace( //nolint:nonamedreturns
@@ -594,7 +594,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					-- If there are multiple changesets at the same depth,
 					-- we order by "id" to enable keyset pagination at the depth.
 					"changeset" ASC
-		`, arguments...)
+				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
 			return store.WithPgxError(err)
 		}

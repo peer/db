@@ -356,7 +356,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrChangesetNotFound)
 				case store.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case store.ErrorExclusionViolation:
+				case store.ErrorCodeExclusionViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}

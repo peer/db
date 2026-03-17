@@ -71,7 +71,7 @@ func (c CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetad
 		Seq:        c.Seq,
 		Changesets: changesets,
 		View:       view,
-	}, errE
+	}, nil
 }
 
 // Store is a key-value store which preserves history of changes.
