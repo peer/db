@@ -460,6 +460,34 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []StringWithLanguage{{
+				Value: "in location",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "na lokaciji",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "IN_LOCATION",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "IN_LOCATION"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
 				Value: "variant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},

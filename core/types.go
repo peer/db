@@ -39,6 +39,8 @@ type Time struct {
 	Precision document.TimePrecision `json:"precision"`
 }
 
+func (Time) intervalBound() {}
+
 // Validate checks that Precision is a defined TimePrecision value.
 func (t Time) Validate() errors.E {
 	if t.Precision < document.TimePrecisionGigaYears || t.Precision > document.TimePrecisionNanosecond {
@@ -47,13 +49,20 @@ func (t Time) Validate() errors.E {
 	return nil
 }
 
+// AmountType is an interface for all amount types.
+type AmountType interface {
+	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64
+}
+
 // Amount represents a numeric amount with precision.
 //
 // Infinite or NaN values are not supported for Amount[float32] and Amount[float64].
-type Amount[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64] struct {
+type Amount[T AmountType] struct {
 	Amount    T `json:"amount"`
 	Precision T `json:"precision"`
 }
+
+func (Amount[T]) intervalBound() {}
 
 // Validate checks that the amount values are finite numbers.
 func (a Amount[T]) Validate() errors.E {
@@ -78,10 +87,10 @@ func (a Amount[T]) Validate() errors.E {
 
 // IntervalBound is a type constraint for interval bounds.
 type IntervalBound interface {
-	Time | Amount[int] | Amount[int8] | Amount[int16] | Amount[int32] | Amount[int64] |
-		Amount[uint] | Amount[uint8] | Amount[uint16] | Amount[uint32] | Amount[uint64] |
-		Amount[float32] | Amount[float64]
 	Validate() errors.E
+
+	// Only Time and Amount implement this unexported method.
+	intervalBound()
 }
 
 // Interval represents an interval between two values.
@@ -157,6 +166,34 @@ func (i *Interval[T]) Validate() errors.E {
 type DocumentFields struct {
 	ID         []string `                  documentid:"" json:"id"`
 	InstanceOf []Ref    `cardinality:"0.."               json:"instanceOf,omitempty" property:"INSTANCE_OF"`
+}
+
+// AmountWithUnit represents an amount with its unit.
+type AmountWithUnit[T AmountType] struct {
+	Value Amount[T] `json:"value" value:""`
+
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" property:"IN_UNIT"`
+}
+
+// AmountIntervalWithUnit represents an amount interval with its unit.
+type AmountIntervalWithUnit[T AmountType] struct {
+	Value Interval[Amount[T]] `json:"value" value:""`
+
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" property:"IN_UNIT"`
+}
+
+// TimeWithLocation represents a time with location information.
+type TimeWithLocation struct {
+	Value Time `json:"value" value:""`
+
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" property:"IN_LOCATION"`
+}
+
+// TimeIntervalWithLocation represents a time interval with location information.
+type TimeIntervalWithLocation struct {
+	Value Interval[Time] `json:"value" value:""`
+
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" property:"IN_LOCATION"`
 }
 
 // StringWithLanguage represents string with language information.
