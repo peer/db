@@ -6424,6 +6424,198 @@ func TestDocuments_PrecisionOnRefErrors(t *testing.T) {
 	assert.EqualError(t, errE, "precision tag is not supported for core.Ref fields")
 }
 
+func TestDocuments_LocationOnGoTime(t *testing.T) {
+	t.Parallel()
+
+	// 2025-01-15 15:30:45 UTC = 2025-01-15 10:30:45 EST (UTC-5).
+	type DocGoTimeLocation struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              location:"America/New_York" precision:"s" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocGoTimeLocation{
+			ID:      []string{"test", "doc1"},
+			Created: time.Date(2025, 1, 15, 15, 30, 45, 0, time.UTC),
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, results[0].Claims.Time, 1)
+	assert.Equal(t, document.TimePrecisionSecond, results[0].Claims.Time[0].Precision)
+	assert.Equal(t, document.Timestamp("2025-01-15 10:30:45"), results[0].Claims.Time[0].Timestamp)
+}
+
+func TestDocuments_LocationOnCoreTime(t *testing.T) {
+	t.Parallel()
+
+	// 2025-03-15 00:30:45 UTC = 2025-03-15 09:30:45 JST (UTC+9).
+	type DocCoreTimeLocation struct {
+		ID      []string  `documentid:""`
+		Created core.Time `              location:"Asia/Tokyo" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocCoreTimeLocation{
+			ID: []string{"test", "doc1"},
+			Created: core.Time{
+				Timestamp: time.Date(2025, 3, 15, 0, 30, 45, 0, time.UTC),
+				Precision: document.TimePrecisionSecond,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, results[0].Claims.Time, 1)
+	assert.Equal(t, document.TimePrecisionSecond, results[0].Claims.Time[0].Precision)
+	assert.Equal(t, document.Timestamp("2025-03-15 09:30:45"), results[0].Claims.Time[0].Timestamp)
+}
+
+func TestDocuments_LocationOnTimeInterval(t *testing.T) {
+	t.Parallel()
+
+	// 2025-01-15 15:00 UTC = 2025-01-15 10:00 EST (UTC-5).
+	// 2025-01-15 20:00 UTC = 2025-01-15 15:00 EST.
+	type DocIntervalLocation struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              location:"America/New_York" property:"PERIOD"`
+	}
+
+	from := core.Time{
+		Timestamp: time.Date(2025, 1, 15, 15, 0, 0, 0, time.UTC),
+		Precision: document.TimePrecisionMinute,
+	}
+	to := core.Time{
+		Timestamp: time.Date(2025, 1, 15, 20, 0, 0, 0, time.UTC),
+		Precision: document.TimePrecisionMinute,
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocIntervalLocation{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{
+				From:          &from,
+				FromIsOpen:    false,
+				FromIsUnknown: false,
+				FromIsNone:    false,
+				To:            &to,
+				ToIsClosed:    false,
+				ToIsUnknown:   false,
+				ToIsNone:      false,
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, results[0].Claims.TimeInterval, 1)
+	claim := results[0].Claims.TimeInterval[0]
+	require.NotNil(t, claim.From)
+	require.NotNil(t, claim.To)
+	assert.Equal(t, document.Timestamp("2025-01-15 10:00"), *claim.From)
+	assert.Equal(t, document.Timestamp("2025-01-15 15:00"), *claim.To)
+}
+
+func TestDocuments_LocationOnGoTimeValueField(t *testing.T) {
+	t.Parallel()
+
+	// 2025-01-15 15:30:45 UTC = 2025-01-15 10:30:45 EST.
+	type TimeWithNoteAndLocation struct {
+		Value time.Time `location:"America/New_York" precision:"s"                 value:""`
+		Note  string    `                                          property:"NOTE"`
+	}
+
+	type DocGoTimeLocationValue struct {
+		ID      []string                `documentid:""`
+		Created TimeWithNoteAndLocation `              property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocGoTimeLocationValue{
+			ID: []string{"test", "doc1"},
+			Created: TimeWithNoteAndLocation{
+				Value: time.Date(2025, 1, 15, 15, 30, 45, 0, time.UTC),
+				Note:  "birth date",
+			},
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, results[0].Claims.Time, 1)
+	assert.Equal(t, document.Timestamp("2025-01-15 10:30:45"), results[0].Claims.Time[0].Timestamp)
+}
+
+func TestDocuments_LocationInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	type DocInvalidLocation struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              location:"Invalid/Zone" precision:"s" property:"CREATED"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocInvalidLocation{
+			ID:      []string{"test", "doc1"},
+			Created: time.Date(2025, 1, 15, 15, 30, 45, 0, time.UTC),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "invalid location")
+}
+
+func TestDocuments_LocationOnRefErrors(t *testing.T) {
+	t.Parallel()
+
+	type DocLocationOnRef struct {
+		ID     []string `documentid:""`
+		Parent core.Ref `              location:"UTC" property:"PARENT"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocLocationOnRef{
+			ID:     []string{"test", "doc1"},
+			Parent: core.Ref{ID: []string{"ref", "1"}},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Ref fields")
+}
+
+func TestDocuments_LocationOnStringErrors(t *testing.T) {
+	t.Parallel()
+
+	type DocLocationOnString struct {
+		ID   []string `documentid:""`
+		Name string   `              location:"UTC" property:"NAME"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocLocationOnString{
+			ID:   []string{"test", "doc1"},
+			Name: "test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for string fields")
+}
+
 func TestDocuments_ConfidenceDefault(t *testing.T) {
 	t.Parallel()
 

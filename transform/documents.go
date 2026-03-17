@@ -99,6 +99,16 @@
 //
 //	Born time.Time `property:"BORN" precision:"d"`
 //
+// ## location
+//
+// Optional. Only supported for time.Time, core.Time, and core.Interval[core.Time] fields.
+// Specifies the timezone for formatting the timestamp. The value must be a valid IANA timezone name
+// (e.g., "America/New_York", "Europe/London", "UTC"). Parsed using time.LoadLocation.
+// When not specified, UTC is used.
+//
+//	Born  time.Time `property:"BORN"  precision:"d" location:"America/New_York"`
+//	Start core.Time `property:"START" location:"Europe/Ljubljana"`
+//
 // ## cardinality
 //
 // Specifies minimum and maximum number of values for a field. Format: "min..max".
@@ -492,6 +502,7 @@ func (tr *transformer) processStructFields(
 		typeTag := field.Tag.Get("type")
 		defaultTag := field.Tag.Get("default")
 		precisionTag := field.Tag.Get("precision")
+		locationTag := field.Tag.Get("location")
 		confidenceTag := field.Tag.Get("confidence")
 		cardinality := field.Tag.Get("cardinality")
 
@@ -513,7 +524,7 @@ func (tr *transformer) processStructFields(
 		// we have claims map in the first place: because if multiple fields add claims for the same property, we have
 		// to track this to make sure claim IDs do not collide.
 		errE = tr.processField(
-			fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, minCardinality, maxCardinality,
+			fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, locationTag, confidence, minCardinality, maxCardinality,
 			newIDPath, newFieldPath, claims,
 		)
 		if errE != nil {
@@ -534,6 +545,7 @@ func (tr *transformer) processField(
 	typeTag string,
 	defaultTag string,
 	precisionTag string,
+	locationTag string,
 	confidence document.Confidence,
 	minCardinality int,
 	maxCardinality int,
@@ -547,7 +559,7 @@ func (tr *transformer) processField(
 	if fieldValue.Kind() == reflect.Slice {
 		for i := range fieldValue.Len() {
 			elem := fieldValue.Index(i)
-			errE := tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
+			errE := tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, locationTag, confidence, idPath, fieldPath, claims)
 			if errors.Is(errE, errClaimNotMade) {
 				continue
 			} else if errE != nil {
@@ -565,7 +577,7 @@ func (tr *transformer) processField(
 
 		if !fieldValue.IsNil() {
 			elem := fieldValue.Elem()
-			err = tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
+			err = tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, locationTag, confidence, idPath, fieldPath, claims)
 		}
 
 		if errors.Is(err, errClaimNotMade) { //nolint:revive
@@ -579,7 +591,7 @@ func (tr *transformer) processField(
 
 		// Handle single value.
 	} else {
-		errE := tr.processSingleValue(fieldValue, fieldType, propertyID, typeTag, precisionTag, confidence, idPath, fieldPath, claims)
+		errE := tr.processSingleValue(fieldValue, fieldType, propertyID, typeTag, precisionTag, locationTag, confidence, idPath, fieldPath, claims)
 
 		if errors.Is(errE, errClaimNotMade) { //nolint:revive
 			// Do nothing.
@@ -659,12 +671,13 @@ func (tr *transformer) processSingleValue(
 	propertyID identifier.Identifier,
 	typeTag string,
 	precisionTag string,
+	locationTag string,
 	confidence document.Confidence,
 	idPath []string,
 	fieldPath []string,
 	claims map[identifier.Identifier]int,
 ) errors.E {
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, "", precisionTag, confidence, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, "", precisionTag, locationTag, confidence, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return errE
 	} else if errE != nil {
@@ -676,6 +689,12 @@ func (tr *transformer) processSingleValue(
 	if claim == nil && fieldValue.Kind() == reflect.Struct {
 		if precisionTag != "" {
 			errE := errors.New("precision tag is not supported for struct field types")
+			errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+			return errE
+		}
+
+		if locationTag != "" {
+			errE := errors.New("location tag is not supported for struct field types")
 			errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 			return errE
 		}
@@ -832,8 +851,9 @@ func extractValueClaim(
 			typeTag := field.Tag.Get("type")
 			defaultTag := field.Tag.Get("default")
 			precisionTag := field.Tag.Get("precision")
+			locationTag := field.Tag.Get("location")
 
-			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, idPath, newFieldPath, claims)
+			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, locationTag, confidence, idPath, newFieldPath, claims)
 			if errE != nil {
 				return nil, errE
 			}
@@ -890,6 +910,7 @@ func processValueClaimField(
 	typeTag string,
 	defaultTag string,
 	precisionTag string,
+	locationTag string,
 	confidence document.Confidence,
 	idPath []string,
 	fieldPath []string,
@@ -907,7 +928,7 @@ func processValueClaimField(
 		fieldType = fieldValue.Type()
 	}
 
-	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, confidence, idPath, claims)
+	claim, errE := makeClaim(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, locationTag, confidence, idPath, claims)
 	if errors.Is(errE, errClaimNotMade) {
 		return nil, errE
 	} else if errE != nil {
@@ -937,6 +958,7 @@ func makeClaim(
 	typeTag string,
 	defaultTag string,
 	precisionTag string,
+	locationTag string,
 	confidence document.Confidence,
 	idPath []string,
 	claims map[identifier.Identifier]int,
@@ -945,6 +967,10 @@ func makeClaim(
 	if t == coreRef {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Ref fields")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.Ref fields")
 		}
 
 		ref := fieldValue.Interface().(core.Ref) //nolint:errcheck,forcetypeassert
@@ -979,6 +1005,11 @@ func makeClaim(
 			return nil, errE
 		}
 
+		loc, errE := parseLocation(locationTag)
+		if errE != nil {
+			return nil, errE
+		}
+
 		goTime := fieldValue.Interface().(time.Time) //nolint:errcheck,forcetypeassert
 		if goTime.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -993,7 +1024,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Timestamp: document.NewTimestamp(goTime, precision, nil),
+			Timestamp: document.NewTimestamp(goTime, precision, loc),
 			Precision: precision,
 		}, nil
 	}
@@ -1002,6 +1033,11 @@ func makeClaim(
 	if t == coreTime {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Time fields; precision is part of core.Time")
+		}
+
+		loc, errE := parseLocation(locationTag)
+		if errE != nil {
+			return nil, errE
 		}
 
 		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
@@ -1018,7 +1054,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Timestamp: document.NewTimestamp(coreTime.Timestamp, coreTime.Precision, nil),
+			Timestamp: document.NewTimestamp(coreTime.Timestamp, coreTime.Precision, loc),
 			Precision: coreTime.Precision,
 		}, nil
 	}
@@ -1027,6 +1063,11 @@ func makeClaim(
 	if t == coreTimeInterval {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Interval[core.Time] fields; precision is part of core.Time")
+		}
+
+		loc, errE := parseLocation(locationTag)
+		if errE != nil {
+			return nil, errE
 		}
 
 		interval := fieldValue.Interface().(core.Interval[core.Time]) //nolint:errcheck,forcetypeassert
@@ -1051,7 +1092,7 @@ func makeClaim(
 		// Map From bound.
 		if interval.From != nil {
 			fromPrecision := interval.From.Precision
-			fromTimestamp := document.NewTimestamp(interval.From.Timestamp, fromPrecision, nil)
+			fromTimestamp := document.NewTimestamp(interval.From.Timestamp, fromPrecision, loc)
 			claim.From = &fromTimestamp
 			claim.FromPrecision = &fromPrecision
 			claim.FromIsOpen = interval.FromIsOpen
@@ -1066,7 +1107,7 @@ func makeClaim(
 		// Map To bound.
 		if interval.To != nil {
 			toPrecision := interval.To.Precision
-			toTimestamp := document.NewTimestamp(interval.To.Timestamp, toPrecision, nil)
+			toTimestamp := document.NewTimestamp(interval.To.Timestamp, toPrecision, loc)
 			claim.To = &toTimestamp
 			claim.ToPrecision = &toPrecision
 			claim.ToIsClosed = interval.ToIsClosed
@@ -1085,6 +1126,10 @@ func makeClaim(
 	if coreAmountIntervalTypes[t] { //nolint:nestif
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Interval[core.Amount[T]] fields; precision is part of core.Amount")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.Interval[core.Amount[T]] fields")
 		}
 
 		// Interval struct field indices: 0=From, 1=FromIsOpen, 2=FromIsUnknown, 3=FromIsNone, 4=To, 5=ToIsClosed, 6=ToIsUnknown, 7=ToIsNone.
@@ -1183,6 +1228,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.Amount[T] fields; precision is part of core.Amount")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.Amount[T] fields")
+		}
+
 		amount, ok := getNumericValue(fieldValue.Field(0))
 		if !ok {
 			errE := errors.New("unexpected amount kind")
@@ -1226,6 +1275,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.Identifier fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.Identifier fields")
+		}
+
 		identifier := fieldValue.Interface().(core.Identifier) //nolint:errcheck,forcetypeassert
 		if identifier == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1255,6 +1308,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.IRI fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.IRI fields")
+		}
+
 		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
 		if iri == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1281,6 +1338,10 @@ func makeClaim(
 	if t == coreHTML {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.HTML fields")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.HTML fields")
 		}
 
 		h := fieldValue.Interface().(core.HTML) //nolint:errcheck,forcetypeassert
@@ -1312,6 +1373,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.RawHTML fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.RawHTML fields")
+		}
+
 		rawHTML := fieldValue.Interface().(core.RawHTML) //nolint:errcheck,forcetypeassert
 		if rawHTML == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1341,6 +1406,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.None fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.None fields")
+		}
+
 		none := fieldValue.Interface().(core.None) //nolint:errcheck,forcetypeassert
 		if !bool(none) {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1368,6 +1437,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for core.Unknown fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.Unknown fields")
+		}
+
 		unknown := fieldValue.Interface().(core.Unknown) //nolint:errcheck,forcetypeassert
 		if !bool(unknown) {
 			return nil, errors.WithStack(&claimNotMadeError{
@@ -1393,6 +1466,10 @@ func makeClaim(
 	if fieldValue.Kind() == reflect.String {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for string fields")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for string fields")
 		}
 
 		str := fieldValue.String()
@@ -1466,6 +1543,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is not supported for bool fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for bool fields")
+		}
+
 		if !fieldValue.Bool() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1509,6 +1590,10 @@ func makeClaim(
 			return nil, errors.New("precision tag is required for numeric fields")
 		}
 
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for numeric fields")
+		}
+
 		precision, err := strconv.ParseFloat(precisionTag, 64)
 		if err != nil {
 			errE := errors.New("invalid precision tag value for numeric field")
@@ -1539,6 +1624,21 @@ func makeClaim(
 	}
 
 	return nil, nil //nolint:nilnil
+}
+
+// parseLocation parses a location tag string using time.LoadLocation.
+// Returns nil if the tag is empty (defaults to UTC in document.NewTimestamp).
+func parseLocation(locationTag string) (*time.Location, errors.E) {
+	if locationTag == "" {
+		return nil, nil //nolint:nilnil
+	}
+	loc, err := time.LoadLocation(locationTag)
+	if err != nil {
+		errE := errors.Wrap(err, "invalid location")
+		errors.Details(errE)["location"] = locationTag
+		return nil, errE
+	}
+	return loc, nil
 }
 
 // newClaimID returns a new claim ID based on property and existing claims.
