@@ -1082,7 +1082,7 @@ func makeClaim(
 	}
 
 	// Handle core.Interval[core.Amount[T]].
-	if coreAmountIntervalTypes[t] {
+	if coreAmountIntervalTypes[t] { //nolint:nestif
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Interval[core.Amount[T]] fields; precision is part of core.Amount")
 		}
