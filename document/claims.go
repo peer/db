@@ -3,6 +3,7 @@ package document
 
 import (
 	"fmt"
+	"iter"
 	"math"
 
 	"gitlab.com/tozd/go/errors"
@@ -25,7 +26,7 @@ type Claims interface {
 	RemoveByID(id identifier.Identifier) Claim
 	Add(claim Claim) errors.E
 	Size() int
-	AllClaims() []Claim
+	AllClaims() iter.Seq[Claim]
 	Validate() errors.E
 }
 
@@ -186,22 +187,16 @@ func (c *ClaimTypes) Size() int {
 	return s
 }
 
-// AllClaims returns all claims as a flat slice.
-func (c *ClaimTypes) AllClaims() []Claim {
-	if c == nil {
-		return nil
+// AllClaims returns an iterator over all claims.
+func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
+	return func(yield func(Claim) bool) {
+		_ = c.Visit(&AllClaimsVisitor{Yield: yield})
 	}
-
-	v := AllClaimsVisitor{
-		Result: []Claim{},
-	}
-	_ = c.Visit(&v)
-	return v.Result
 }
 
 // Validate checks that all claims are valid.
 func (c *ClaimTypes) Validate() errors.E {
-	for _, claim := range c.AllClaims() {
+	for claim := range c.AllClaims() {
 		errE := claim.Validate()
 		if errE != nil {
 			return errE
@@ -345,8 +340,8 @@ func (cc *CoreClaim) Size() int {
 	return cc.Meta.Size()
 }
 
-// AllClaims returns all metadata claims as a flat slice.
-func (cc *CoreClaim) AllClaims() []Claim {
+// AllClaims returns an iterator over all metadata claims.
+func (cc *CoreClaim) AllClaims() iter.Seq[Claim] {
 	return cc.Meta.AllClaims()
 }
 

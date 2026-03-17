@@ -1,6 +1,8 @@
 package document
 
 import (
+	"iter"
+
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
@@ -107,13 +109,11 @@ func (d *D) Size() int {
 	return d.Claims.Size()
 }
 
-// AllClaims returns all claims in the document as a flat slice.
-func (d *D) AllClaims() []Claim {
-	v := AllClaimsVisitor{
-		Result: []Claim{},
+// AllClaims returns an iterator over all claims in the document.
+func (d *D) AllClaims() iter.Seq[Claim] {
+	return func(yield func(Claim) bool) {
+		_ = d.Visit(&AllClaimsVisitor{Yield: yield})
 	}
-	_ = d.Visit(&v)
-	return v.Result
 }
 
 // Validate checks that the document has a valid identifier and that all claims are valid.
@@ -134,7 +134,7 @@ func (d *D) MergeFrom(other ...*D) errors.E {
 	//       Skip them? What is an equal claim, what if just metadata is different?
 
 	for _, o := range other {
-		for _, claim := range o.AllClaims() {
+		for claim := range o.AllClaims() {
 			// Add makes sure that there are no duplicate claim IDs.
 			err := d.Add(claim)
 			if err != nil {

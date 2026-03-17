@@ -2,6 +2,7 @@ package document_test
 
 import (
 	"math"
+	"slices"
 	"testing"
 	"time"
 
@@ -169,7 +170,7 @@ func TestCoreClaimGetConfidence(t *testing.T) {
 	assert.Equal(t, document.MediumConfidence, cc.GetConfidence()) //nolint:testifylint
 }
 
-// TestCoreClaimMethods tests CoreClaim.Get, CoreClaim.Remove, CoreClaim.Size, CoreClaim.AllClaims.
+// TestCoreClaimMethods tests CoreClaim.Get, CoreClaim.Remove, CoreClaim.Size, and CoreClaim.AllClaims.
 func TestCoreClaimMethods(t *testing.T) {
 	t.Parallel()
 
@@ -188,7 +189,7 @@ func TestCoreClaimMethods(t *testing.T) {
 
 	// Initially empty.
 	assert.Equal(t, 0, claim.Size())
-	assert.Empty(t, claim.AllClaims())
+	assert.Empty(t, slices.Collect(claim.AllClaims()))
 	assert.Empty(t, claim.Get(prop))
 
 	metaClaim1 := &document.StringClaim{
@@ -215,7 +216,7 @@ func TestCoreClaimMethods(t *testing.T) {
 	assert.Equal(t, 2, claim.Size())
 
 	// AllClaims returns all meta claims.
-	all := claim.AllClaims()
+	all := slices.Collect(claim.AllClaims())
 	assert.Len(t, all, 2)
 
 	// Get returns only claims matching prop.
@@ -301,7 +302,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	assert.Equal(t, 12, doc.Size())
 
 	// AllClaims covers AllClaimsVisitor.VisitX for all 12 types.
-	all := doc.AllClaims()
+	all := slices.Collect(doc.AllClaims())
 	assert.Len(t, all, 12)
 
 	// Get with matching prop covers GetByPropIDVisitor.VisitX for all 12 types.
@@ -389,7 +390,7 @@ func TestDocumentSizeAllClaims(t *testing.T) {
 	doc := &document.D{}
 
 	assert.Equal(t, 0, doc.Size())
-	assert.Empty(t, doc.AllClaims())
+	assert.Empty(t, slices.Collect(doc.AllClaims()))
 
 	errE := doc.Add(&document.StringClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
@@ -405,7 +406,7 @@ func TestDocumentSizeAllClaims(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, 2, doc.Size())
-	assert.Len(t, doc.AllClaims(), 2)
+	assert.Len(t, slices.Collect(doc.AllClaims()), 2)
 }
 
 // TestDocumentMergeFrom tests D.MergeFrom merging claims from multiple documents.

@@ -654,81 +654,76 @@ func (v *GetByPropIDVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, err
 
 var _ Visitor = (*AllClaimsVisitor)(nil)
 
-// AllClaimsVisitor returns all claims.
+// AllClaimsVisitor is a Visitor that drives the AllClaims iterator.
 //
 // AllClaimsVisitor does not recurse into meta claims.
 type AllClaimsVisitor struct {
-	Result []Claim
+	Yield func(Claim) bool
 }
 
-// VisitIdentifier visits an identifier claim and adds it to the collection.
+func (v *AllClaimsVisitor) visit(claim Claim) (VisitResult, errors.E) {
+	if v.Yield(claim) {
+		return Keep, nil
+	}
+	return KeepAndStop, nil
+}
+
+// VisitIdentifier calls yield with the identifier claim.
 func (v *AllClaimsVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitString visits a string claim and adds it to the collection.
+// VisitString calls yield with the string claim.
 func (v *AllClaimsVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitHTML visits an HTML claim and adds it to the collection.
+// VisitHTML calls yield with the HTML claim.
 func (v *AllClaimsVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitAmount visits an amount claim and adds it to the collection.
+// VisitAmount calls yield with the amount claim.
 func (v *AllClaimsVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitAmountInterval visits an amount interval claim and adds it to the collection.
+// VisitAmountInterval calls yield with the amount interval claim.
 func (v *AllClaimsVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitTime visits a time claim and adds it to the collection.
+// VisitTime calls yield with the time claim.
 func (v *AllClaimsVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitTimeInterval visits a time interval claim and adds it to the collection.
+// VisitTimeInterval calls yield with the time interval claim.
 func (v *AllClaimsVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitReference visits a reference claim and adds it to the collection.
+// VisitReference calls yield with the reference claim.
 func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitRelation visits a relation claim and adds it to the collection.
+// VisitRelation calls yield with the relation claim.
 func (v *AllClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitHas visits a has claim and adds it to the collection.
+// VisitHas calls yield with the has claim.
 func (v *AllClaimsVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitNone visits a none claim and adds it to the collection.
+// VisitNone calls yield with the none claim.
 func (v *AllClaimsVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }
 
-// VisitUnknown visits an unknown claim and adds it to the collection.
+// VisitUnknown calls yield with the unknown claim.
 func (v *AllClaimsVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
-	v.Result = append(v.Result, claim)
-	return Keep, nil
+	return v.visit(claim)
 }

@@ -779,7 +779,7 @@ func (tr *transformer) processSingleValue(
 		}
 
 		// We copy all claims to the value claim as its meta claims.
-		for _, c := range metaTr.Claims.AllClaims() {
+		for c := range metaTr.Claims.AllClaims() {
 			errE = claim.Add(c)
 			if errE != nil {
 				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
