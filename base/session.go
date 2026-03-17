@@ -102,6 +102,17 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
+	base := slices.Clone(doc.Base)
+	// TODO: We should create a new changeset at the beginning of the session and use that new changeset ID here for base.
+	//       Session IDs are per document, but potentially multiple documents are edited in the same changeset, each in their own session.
+	//       Because doc.Base already includes per-document base, we should just add changeset ID to the base for this set of changes.
+	base = append(base, beginMetadata.ID.String())
+
+	errE = changes.Validate(base)
+	if errE != nil {
+		return nil, errE
+	}
+
 	errE = changes.Apply(&doc)
 	if errE != nil {
 		return nil, errE

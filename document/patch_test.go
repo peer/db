@@ -29,7 +29,8 @@ func TestPatchJSON(t *testing.T) {
 
 	changes := document.Changes{
 		document.AddClaimChange{
-			ID:    id1,
+			ID:    id1Claim,
+			Base:  id1,
 			Under: nil,
 			Patch: document.AmountClaimPatch{
 				Confidence: &confidence,
@@ -39,7 +40,8 @@ func TestPatchJSON(t *testing.T) {
 			},
 		},
 		document.AddClaimChange{
-			ID:    id2,
+			ID:    id2Claim,
+			Base:  id2,
 			Under: &id1Claim,
 			Patch: document.IdentifierClaimPatch{
 				Confidence: &confidence,
@@ -51,7 +53,7 @@ func TestPatchJSON(t *testing.T) {
 
 	out, errE := x.MarshalWithoutEscapeHTML(changes)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `[{"id":["TqtRsbk7rTKviW3TJapTim","0"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"precision":0.1,"type":"amount"},"type":"add"},{"under":"BJwRdnJCE7ioDSoU2SfsSp","id":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
+	assert.Equal(t, `[{"id":"BJwRdnJCE7ioDSoU2SfsSp","base":["TqtRsbk7rTKviW3TJapTim","0"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"precision":0.1,"type":"amount"},"type":"add"},{"under":"BJwRdnJCE7ioDSoU2SfsSp","id":"Cm2mEEMZHh6KB7CBvZLocZ","base":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
 
 	var changes2 document.Changes
 	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
@@ -61,16 +63,18 @@ func TestPatchJSON(t *testing.T) {
 	docID := identifier.From(base...)
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{
-			ID: docID,
+			ID:   docID,
+			Base: base,
 		},
 	}
-	errE = changes.Validate(t.Context(), base)
+	errE = changes.Validate(base)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, &document.D{
 		CoreDocument: document.CoreDocument{
-			ID: docID,
+			ID:   docID,
+			Base: base,
 		},
 		Claims: &document.ClaimTypes{
 			Amount: []document.AmountClaim{
@@ -123,7 +127,7 @@ func TestAmountIntervalClaimPatch(t *testing.T) {
 		ToPrecision:   &toPrecision,
 	}
 
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.AmountIntervalClaim)
@@ -168,7 +172,7 @@ func TestTimeIntervalClaimPatch(t *testing.T) {
 		ToPrecision:   &toPrecision,
 	}
 
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.TimeIntervalClaim)

@@ -422,7 +422,8 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 
 	result := document.D{
 		CoreDocument: document.CoreDocument{
-			ID: identifier.From(docID...),
+			ID:   identifier.From(docID...),
+			Base: docID,
 		},
 		Claims: &document.ClaimTypes{},
 	}
@@ -439,7 +440,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 		return document.D{}, errE
 	}
 
-	return result, nil
+	return result, result.Validate()
 }
 
 // processStructFields processes all fields of a struct.

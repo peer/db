@@ -16,15 +16,9 @@ type D struct {
 
 // ClaimsContainer defines the interface for types that can hold and manipulate claims.
 type ClaimsContainer interface {
+	Claims
+
 	GetID() identifier.Identifier
-	Visit(visitor Visitor) errors.E
-	Get(propID identifier.Identifier) []Claim
-	Remove(propID identifier.Identifier) []Claim
-	GetByID(id identifier.Identifier) Claim
-	RemoveByID(id identifier.Identifier) Claim
-	Add(claim Claim) errors.E
-	Size() int
-	AllClaims() []Claim
 }
 
 var _ ClaimsContainer = (*D)(nil)
@@ -120,6 +114,18 @@ func (d *D) AllClaims() []Claim {
 	}
 	_ = d.Visit(&v)
 	return v.Result
+}
+
+// Validate checks that the document has a valid identifier and that all claims are valid.
+func (d *D) Validate() errors.E {
+	errE := d.CoreDocument.Validate()
+	if errE != nil {
+		return errE
+	}
+	if d.Claims != nil {
+		return d.Claims.Validate()
+	}
+	return nil
 }
 
 // MergeFrom merges claims from one or more other documents into this document.

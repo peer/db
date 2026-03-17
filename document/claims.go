@@ -16,6 +16,19 @@ type Claim interface {
 	GetConfidence() Confidence
 }
 
+// Claims is the interface for types that hold and manipulate a collection of claims.
+type Claims interface {
+	Visit(visitor Visitor) errors.E
+	Get(propID identifier.Identifier) []Claim
+	Remove(propID identifier.Identifier) []Claim
+	GetByID(id identifier.Identifier) Claim
+	RemoveByID(id identifier.Identifier) Claim
+	Add(claim Claim) errors.E
+	Size() int
+	AllClaims() []Claim
+	Validate() errors.E
+}
+
 var (
 	_ Claim = (*IdentifierClaim)(nil)
 	_ Claim = (*StringClaim)(nil)
@@ -33,12 +46,25 @@ var (
 
 // CoreDocument contains the core fields present in all PeerDB documents.
 type CoreDocument struct {
-	ID identifier.Identifier `json:"id"`
+	ID   identifier.Identifier `json:"id"`
+	Base []string              `json:"base"`
 }
 
 // GetID returns the document's identifier.
 func (d CoreDocument) GetID() identifier.Identifier {
 	return d.ID
+}
+
+// Validate checks that the document has a valid identifier.
+func (d CoreDocument) Validate() errors.E {
+	expectedID := identifier.From(d.Base...)
+	if d.ID != expectedID {
+		errE := errors.New("invalid ID")
+		errors.Details(errE)["id"] = d.ID.String()
+		errors.Details(errE)["expected"] = expectedID.String()
+		return errE
+	}
+	return nil
 }
 
 // ClaimTypes organizes claims by their type.
@@ -56,6 +82,8 @@ type ClaimTypes struct {
 	None           NoneClaims           `exhaustruct:"optional" json:"none,omitempty"`
 	Unknown        UnknownClaims        `exhaustruct:"optional" json:"unknown,omitempty"`
 }
+
+var _ Claims = (*ClaimTypes)(nil)
 
 // Add adds a claim to the appropriate typed slice based on the claim's type.
 func (c *ClaimTypes) Add(claim Claim) errors.E {
@@ -90,6 +118,50 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 		return errE
 	}
 	return nil
+}
+
+// Get returns all claims with the given property ID.
+func (c *ClaimTypes) Get(propID identifier.Identifier) []Claim {
+	v := GetByPropIDVisitor{
+		ID:     propID,
+		Action: Keep,
+		Result: []Claim{},
+	}
+	_ = c.Visit(&v)
+	return v.Result
+}
+
+// GetByID returns the claim with the given ID.
+func (c *ClaimTypes) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
+	v := GetByIDVisitor{
+		ID:     id,
+		Action: KeepAndStop,
+		Result: nil,
+	}
+	_ = c.Visit(&v)
+	return v.Result
+}
+
+// Remove removes and returns all claims with the given property ID.
+func (c *ClaimTypes) Remove(propID identifier.Identifier) []Claim {
+	v := GetByPropIDVisitor{
+		ID:     propID,
+		Action: Drop,
+		Result: []Claim{},
+	}
+	_ = c.Visit(&v)
+	return v.Result
+}
+
+// RemoveByID removes and returns the claim with the given ID.
+func (c *ClaimTypes) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
+	v := GetByIDVisitor{
+		ID:     id,
+		Action: DropAndStop,
+		Result: nil,
+	}
+	_ = c.Visit(&v)
+	return v.Result
 }
 
 // Size returns the total number of claims across all types.
@@ -127,6 +199,18 @@ func (c *ClaimTypes) AllClaims() []Claim {
 	return v.Result
 }
 
+// Validate checks that all claims are valid.
+func (c *ClaimTypes) Validate() errors.E {
+	for _, claim := range c.AllClaims() {
+		errE := claim.Validate()
+		if errE != nil {
+			return errE
+		}
+	}
+	// TODO: Check that all claim IDs are unique.
+	return nil
+}
+
 type (
 	// IdentifierClaims is a slice of IdentifierClaim.
 	IdentifierClaims = []IdentifierClaim
@@ -155,8 +239,6 @@ type (
 )
 
 // CoreClaim contains fields common to all claim types.
-//
-//nolint:recvcheck
 type CoreClaim struct {
 	ID         identifier.Identifier `                       json:"id"`
 	Confidence Confidence            `                       json:"confidence"`
@@ -164,20 +246,25 @@ type CoreClaim struct {
 }
 
 // GetID returns the claim's identifier.
-func (cc CoreClaim) GetID() identifier.Identifier {
+func (cc *CoreClaim) GetID() identifier.Identifier {
 	return cc.ID
 }
 
 // GetConfidence returns the claim's confidence score.
-func (cc CoreClaim) GetConfidence() Confidence {
+func (cc *CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
 }
 
-// validateConfidence checks that confidence is in [-1, 1] and is not NaN or infinite.
-func (cc CoreClaim) validateConfidence() errors.E {
+// Validate checks that the claim has valid confidence and that meta claims are valid.
+func (cc *CoreClaim) Validate() errors.E {
 	if math.IsInf(float64(cc.Confidence), 0) || math.IsNaN(float64(cc.Confidence)) || cc.Confidence < -1 || cc.Confidence > 1 {
 		return errors.New("confidence out of range [-1, 1]")
 	}
+
+	if cc.Meta != nil {
+		return cc.Meta.Validate()
+	}
+
 	return nil
 }
 
@@ -285,7 +372,7 @@ type IdentifierClaim struct {
 
 // Validate checks that the identifier claim has a non-empty value and valid confidence.
 func (c *IdentifierClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -308,7 +395,7 @@ type StringClaim struct {
 
 // Validate checks that the string claim has a non-empty string and valid confidence.
 func (c *StringClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -331,7 +418,7 @@ type HTMLClaim struct {
 
 // Validate checks that the HTML claim has non-empty HTML and valid confidence.
 func (c *HTMLClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -361,7 +448,7 @@ type AmountClaim struct {
 
 // Validate checks that the amount claim has finite values and valid confidence.
 func (c *AmountClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -410,7 +497,7 @@ type AmountIntervalClaim struct {
 
 // Validate checks that the amount interval claim has valid bounds and valid confidence.
 func (c *AmountIntervalClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -487,7 +574,7 @@ type TimeClaim struct {
 
 // Validate checks that the time claim has a valid precision, timestamp, and valid confidence.
 func (t *TimeClaim) Validate() errors.E {
-	errE := t.validateConfidence()
+	errE := t.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -519,7 +606,7 @@ type TimeIntervalClaim struct {
 
 // Validate checks that the time interval claim has valid bounds and valid confidence.
 func (c *TimeIntervalClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -601,7 +688,7 @@ type ReferenceClaim struct {
 
 // Validate checks that the reference claim has a non-empty IRI and valid confidence.
 func (c *ReferenceClaim) Validate() errors.E {
-	errE := c.validateConfidence()
+	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
@@ -620,11 +707,6 @@ type RelationClaim struct {
 	To   Reference `json:"to"`
 }
 
-// Validate checks that the relation claim has valid confidence.
-func (c *RelationClaim) Validate() errors.E {
-	return c.validateConfidence()
-}
-
 // HasClaim represents a claim with just a property.
 //
 // It can also be used for nested claims.
@@ -634,11 +716,6 @@ type HasClaim struct {
 	Prop Reference `json:"prop"`
 }
 
-// Validate checks that the has claim has valid confidence.
-func (c *HasClaim) Validate() errors.E {
-	return c.validateConfidence()
-}
-
 // NoneClaim represents a claim that explicitly states no value exists for a property.
 type NoneClaim struct {
 	CoreClaim
@@ -646,19 +723,9 @@ type NoneClaim struct {
 	Prop Reference `json:"prop"`
 }
 
-// Validate checks that the none claim has valid confidence.
-func (c *NoneClaim) Validate() errors.E {
-	return c.validateConfidence()
-}
-
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
 type UnknownClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
-}
-
-// Validate checks that the unknown claim has valid confidence.
-func (c *UnknownClaim) Validate() errors.E {
-	return c.validateConfidence()
 }

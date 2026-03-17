@@ -1,7 +1,6 @@
 package document_test
 
 import (
-	"context"
 	"math"
 	"testing"
 	"time"
@@ -18,22 +17,145 @@ import (
 // customChange is a custom Change type for testing unsupported type errors.
 type customChange struct{}
 
-func (c customChange) Apply(_ *document.D) errors.E                             { return nil }
-func (c customChange) Validate(_ context.Context, _ []string, _ int64) errors.E { return nil }
+func (c customChange) Apply(_ *document.D) errors.E          { return nil }
+func (c customChange) Validate(_ []string, _ int64) errors.E { return nil }
 
 // customPatch is a custom ClaimPatch type for testing unsupported type errors.
 type customPatch struct{}
 
-func (p customPatch) New(_ []string) (document.Claim, errors.E) { return nil, nil } //nolint:ireturn,nilnil
-func (p customPatch) Apply(_ document.Claim) errors.E           { return nil }
+func (p customPatch) New(_ identifier.Identifier) (document.Claim, errors.E) { return nil, nil } //nolint:ireturn,nilnil
+func (p customPatch) Apply(_ document.Claim) errors.E                        { return nil }
 
 // TestCoreDocumentGetID tests CoreDocument.GetID.
 func TestCoreDocumentGetID(t *testing.T) {
 	t.Parallel()
 
-	id := identifier.New()
-	cd := document.CoreDocument{ID: id}
+	base := []string{"testdoc"}
+	id := identifier.From(base...)
+	cd := document.CoreDocument{ID: id, Base: base}
 	assert.Equal(t, id, cd.GetID())
+}
+
+// TestCoreDocumentValidate tests CoreDocument.Validate.
+func TestCoreDocumentValidate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		cd := document.CoreDocument{
+			ID:   identifier.From(base...),
+			Base: base,
+		}
+		errE := cd.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("valid_multi_segment", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim", "0"}
+		cd := document.CoreDocument{
+			ID:   identifier.From(base...),
+			Base: base,
+		}
+		errE := cd.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("invalid_id", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		cd := document.CoreDocument{
+			ID:   identifier.New(),
+			Base: base,
+		}
+		errE := cd.Validate()
+		assert.EqualError(t, errE, "invalid ID")
+	})
+}
+
+// TestDocumentValidate tests D.Validate.
+func TestDocumentValidate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid_no_claims", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		doc := document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   identifier.From(base...),
+				Base: base,
+			},
+		}
+		errE := doc.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("valid_with_claims", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		prop := identifier.New()
+		doc := document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   identifier.From(base...),
+				Base: base,
+			},
+			Claims: &document.ClaimTypes{
+				String: document.StringClaims{
+					{
+						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+						Prop:      document.Reference{ID: prop},
+						String:    "hello",
+					},
+				},
+			},
+		}
+		errE := doc.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("invalid_core_document", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		doc := document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   identifier.New(),
+				Base: base,
+			},
+		}
+		errE := doc.Validate()
+		assert.EqualError(t, errE, "invalid ID")
+	})
+
+	t.Run("invalid_claim", func(t *testing.T) {
+		t.Parallel()
+
+		base := []string{"TqtRsbk7rTKviW3TJapTim"}
+		prop := identifier.New()
+		doc := document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   identifier.From(base...),
+				Base: base,
+			},
+			Claims: &document.ClaimTypes{
+				String: document.StringClaims{
+					{
+						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+						Prop:      document.Reference{ID: prop},
+						String:    "",
+					},
+				},
+			},
+		}
+		errE := doc.Validate()
+		assert.EqualError(t, errE, "empty string")
+	})
 }
 
 // TestCoreClaimGetConfidence tests CoreClaim.GetConfidence.
@@ -223,9 +345,10 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 func TestDocumentReference(t *testing.T) {
 	t.Parallel()
 
-	id := identifier.New()
+	base := []string{"testdoc"}
+	id := identifier.From(base...)
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: id},
+		CoreDocument: document.CoreDocument{ID: id, Base: base},
 	}
 	ref := doc.Reference()
 	assert.Equal(t, document.Reference{ID: id}, ref)
@@ -656,7 +779,7 @@ func TestStringClaimPatch(t *testing.T) {
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.StringClaim)
@@ -697,7 +820,7 @@ func TestHTMLClaimPatch(t *testing.T) { //nolint:dupl
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.HTMLClaim)
@@ -739,7 +862,7 @@ func TestTimeClaimPatch(t *testing.T) {
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.TimeClaim)
@@ -780,7 +903,7 @@ func TestReferenceClaimPatch(t *testing.T) { //nolint:dupl
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.ReferenceClaim)
@@ -820,7 +943,7 @@ func TestRelationClaimPatch(t *testing.T) {
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.RelationClaim)
@@ -858,7 +981,7 @@ func TestHasClaimPatch(t *testing.T) { //nolint:dupl
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.HasClaim)
@@ -896,7 +1019,7 @@ func TestNoneClaimPatch(t *testing.T) {
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.NoneClaim)
@@ -934,7 +1057,7 @@ func TestUnknownClaimPatch(t *testing.T) { //nolint:dupl
 	}
 
 	// Test New.
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.UnknownClaim)
@@ -972,12 +1095,13 @@ func TestSetClaimChange(t *testing.T) {
 	str := "original"
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: docID},
+		CoreDocument: document.CoreDocument{ID: docID, Base: base},
 	}
 
 	// Add initial claim via AddClaimChange.
 	addChange := document.AddClaimChange{ //nolint:exhaustruct
-		ID: id1,
+		ID:   claimID,
+		Base: id1,
 		Patch: document.StringClaimPatch{
 			Confidence: &confidence,
 			Prop:       &prop,
@@ -997,7 +1121,7 @@ func TestSetClaimChange(t *testing.T) {
 	}
 
 	// Test Validate (always returns nil).
-	errE = setChange.Validate(t.Context(), base, 0)
+	errE = setChange.Validate(base, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Test JSON roundtrip.
@@ -1042,12 +1166,13 @@ func TestRemoveClaimChange(t *testing.T) {
 	confidence := document.Confidence(1.0)
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: docID},
+		CoreDocument: document.CoreDocument{ID: docID, Base: base},
 	}
 
 	// Add a claim first.
 	addChange := document.AddClaimChange{ //nolint:exhaustruct
-		ID: id1,
+		ID:   claimID,
+		Base: id1,
 		Patch: document.NoneClaimPatch{
 			Confidence: &confidence,
 			Prop:       &prop,
@@ -1063,7 +1188,7 @@ func TestRemoveClaimChange(t *testing.T) {
 	}
 
 	// Test Validate (always returns nil).
-	errE = removeChange.Validate(t.Context(), base, 0)
+	errE = removeChange.Validate(base, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Test JSON roundtrip.
@@ -1124,7 +1249,8 @@ func TestChangeMarshalJSON(t *testing.T) {
 
 	changes := []document.Change{
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: []string{"base", "0"},
+			ID:   identifier.From("base", "0"),
+			Base: []string{"base", "0"},
 			Patch: document.HasClaimPatch{
 				Confidence: &conf,
 				Prop:       &prop,
@@ -1239,31 +1365,38 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 	toTS := document.Timestamp("2021-01-01")
 	toTSPrec := document.TimePrecisionDay
 
-	makeID := func(i int) []string {
+	makeBase := func(i int) []string {
 		return append(append([]string{}, base...), string(rune('0'+i)))
+	}
+	makeID := func(i int) identifier.Identifier {
+		return identifier.From(makeBase(i)...)
 	}
 
 	changes := document.Changes{
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(0),
+			ID:   makeID(0),
+			Base: makeBase(0),
 			Patch: document.StringClaimPatch{
 				Confidence: &conf, Prop: &prop, String: "hello",
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(1),
+			ID:   makeID(1),
+			Base: makeBase(1),
 			Patch: document.HTMLClaimPatch{
 				Confidence: &conf, Prop: &prop, HTML: "<p>hi</p>",
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(2),
+			ID:   makeID(2),
+			Base: makeBase(2),
 			Patch: document.AmountClaimPatch{
 				Confidence: &conf, Prop: &prop, Amount: &amount, Precision: &precision,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(3),
+			ID:   makeID(3),
+			Base: makeBase(3),
 			Patch: document.AmountIntervalClaimPatch{
 				Confidence: &conf, Prop: &prop,
 				From: &from, FromPrecision: &fromP,
@@ -1271,13 +1404,15 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(4),
+			ID:   makeID(4),
+			Base: makeBase(4),
 			Patch: document.TimeClaimPatch{
 				Confidence: &conf, Prop: &prop, Timestamp: &ts, Precision: &tsPrec,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(5),
+			ID:   makeID(5),
+			Base: makeBase(5),
 			Patch: document.TimeIntervalClaimPatch{
 				Confidence: &conf, Prop: &prop,
 				From: &fromTS, FromPrecision: &fromTSPrec,
@@ -1285,31 +1420,36 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(6),
+			ID:   makeID(6),
+			Base: makeBase(6),
 			Patch: document.ReferenceClaimPatch{
 				Confidence: &conf, Prop: &prop, IRI: "https://example.com",
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(7),
+			ID:   makeID(7),
+			Base: makeBase(7),
 			Patch: document.RelationClaimPatch{
 				Confidence: &conf, Prop: &prop, To: &target,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(8),
+			ID:   makeID(8),
+			Base: makeBase(8),
 			Patch: document.HasClaimPatch{
 				Confidence: &conf, Prop: &prop,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(9),
+			ID:   makeID(9),
+			Base: makeBase(9),
 			Patch: document.NoneClaimPatch{
 				Confidence: &conf, Prop: &prop,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: makeID(10),
+			ID:   makeID(10),
+			Base: makeBase(10),
 			Patch: document.UnknownClaimPatch{
 				Confidence: &conf, Prop: &prop,
 			},
@@ -1328,7 +1468,7 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 	// Apply to document.
 	docID := identifier.From(base...)
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: docID},
+		CoreDocument: document.CoreDocument{ID: docID, Base: base},
 	}
 	errE = changes.Apply(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1351,49 +1491,49 @@ func TestPatchNewIncomplete(t *testing.T) {
 	t.Run("StringClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.StringClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("HTMLClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.HTMLClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("TimeClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.TimeClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("ReferenceClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.ReferenceClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("RelationClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.RelationClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("HasClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.HasClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("NoneClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.NoneClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 	t.Run("UnknownClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		p := document.UnknownClaimPatch{}
-		_, errE := p.New([]string{"base", "0"})
+		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
 }
@@ -1471,7 +1611,7 @@ func TestIdentifierClaimPatchApply(t *testing.T) {
 		Value:      value,
 	}
 
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.IdentifierClaim)
@@ -1516,7 +1656,7 @@ func TestAmountClaimPatchApply(t *testing.T) {
 		Precision:  &precision,
 	}
 
-	claim, errE := p.New([]string{"test", "0"})
+	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c, ok := claim.(*document.AmountClaim)
@@ -1658,11 +1798,12 @@ func TestChangesApplyError(t *testing.T) {
 	conf := document.Confidence(1.0)
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: docID},
+		CoreDocument: document.CoreDocument{ID: docID, Base: base},
 	}
 
 	addChange := document.AddClaimChange{ //nolint:exhaustruct
-		ID: id1,
+		ID:   identifier.From(id1...),
+		Base: id1,
 		Patch: document.HasClaimPatch{
 			Confidence: &conf,
 			Prop:       &prop,
@@ -1688,17 +1829,18 @@ func TestChangesValidateError(t *testing.T) {
 	prop := identifier.New()
 	conf := document.Confidence(1.0)
 
-	// An AddClaimChange with wrong ID format should fail validation.
+	// An AddClaimChange with wrong ID should fail validation.
 	changes := document.Changes{
 		document.AddClaimChange{ //nolint:exhaustruct
-			ID: []string{"wrong", "format"},
+			ID:   identifier.New(),
+			Base: []string{"TqtRsbk7rTKviW3TJapTim", "0"},
 			Patch: document.HasClaimPatch{
 				Confidence: &conf,
 				Prop:       &prop,
 			},
 		},
 	}
-	errE := changes.Validate(t.Context(), base)
+	errE := changes.Validate(base)
 	assert.EqualError(t, errE, "invalid ID")
 }
 
@@ -1714,7 +1856,8 @@ func TestAddClaimChangeApplyUnderNotFound(t *testing.T) {
 
 	change := document.AddClaimChange{
 		Under: &nonExistentID,
-		ID:    []string{"base", "0"},
+		ID:    identifier.From("base", "0"),
+		Base:  []string{"base", "0"},
 		Patch: document.HasClaimPatch{
 			Confidence: &conf,
 			Prop:       &prop,
@@ -1901,7 +2044,7 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 			To:            &to,
 			ToPrecision:   &toP,
 		}
-		claim, errE := p.New([]string{"test", "0"})
+		claim, errE := p.New(identifier.From("test", "0"))
 		require.NoError(t, errE, "% -+#.1v", errE)
 		c, ok := claim.(*document.AmountIntervalClaim)
 		require.True(t, ok)
@@ -2030,7 +2173,7 @@ func TestTimeIntervalClaimPatchApplyBranches(t *testing.T) {
 			To:            &to,
 			ToPrecision:   &toP,
 		}
-		claim, errE := p.New([]string{"test", "0"})
+		claim, errE := p.New(identifier.From("test", "0"))
 		require.NoError(t, errE, "% -+#.1v", errE)
 		c, ok := claim.(*document.TimeIntervalClaim)
 		require.True(t, ok)
@@ -2275,7 +2418,7 @@ func TestReferenceClaimPatchApplyConfidenceOnly(t *testing.T) {
 		Prop:       &prop,
 		IRI:        "https://example.com",
 	}
-	claim, errE := fullPatch.New([]string{"test", "0"})
+	claim, errE := fullPatch.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	newConfidence := document.LowConfidence
@@ -2295,8 +2438,9 @@ func TestRemoveByIDMetaClaim(t *testing.T) {
 	topID := identifier.New()
 	metaID := identifier.New()
 
+	docBase := []string{"testdoc"}
 	doc := document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()},
+		CoreDocument: document.CoreDocument{ID: identifier.From(docBase...), Base: docBase},
 	}
 
 	errE := doc.Add(&document.NoneClaim{

@@ -2,7 +2,6 @@ package document
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -66,9 +65,9 @@ func (c Changes) Apply(doc *D) errors.E {
 }
 
 // Validate validates all changes in the slice.
-func (c Changes) Validate(ctx context.Context, base []string) errors.E {
+func (c Changes) Validate(base []string) errors.E {
 	for i, change := range c {
-		errE := change.Validate(ctx, base, int64(i))
+		errE := change.Validate(base, int64(i))
 		if errE != nil {
 			errors.Details(errE)["change"] = i
 			return errE
@@ -189,7 +188,7 @@ func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 // Change represents a modification operation that can be applied to a document.
 type Change interface {
 	Apply(doc *D) errors.E
-	Validate(ctx context.Context, base []string, operation int64) errors.E
+	Validate(base []string, operation int64) errors.E
 }
 
 var (
@@ -200,7 +199,7 @@ var (
 
 // ClaimPatch represents a modification that can be applied to create or update a claim.
 type ClaimPatch interface {
-	New(id []string) (Claim, errors.E)
+	New(id identifier.Identifier) (Claim, errors.E)
 	Apply(claim Claim) errors.E
 }
 
@@ -224,7 +223,8 @@ var (
 //nolint:recvcheck
 type AddClaimChange struct {
 	Under *identifier.Identifier `json:"under,omitempty"`
-	ID    []string               `json:"id"`
+	ID    identifier.Identifier  `json:"id"`
+	Base  []string               `json:"base"`
 	Patch ClaimPatch             `json:"patch"`
 }
 
@@ -249,13 +249,20 @@ func (c AddClaimChange) Apply(doc *D) errors.E {
 }
 
 // Validate validates the add claim change.
-func (c AddClaimChange) Validate(_ context.Context, base []string, operation int64) errors.E {
-	expectedID := slices.Clone(base)
-	expectedID = append(expectedID, strconv.FormatInt(operation, 10))
-	if !slices.Equal(c.ID, expectedID) {
+func (c AddClaimChange) Validate(base []string, operation int64) errors.E {
+	expectedBase := slices.Clone(base)
+	expectedBase = append(expectedBase, strconv.FormatInt(operation, 10))
+	if !slices.Equal(c.Base, expectedBase) {
+		errE := errors.New("invalid base")
+		errors.Details(errE)["base"] = c.Base
+		errors.Details(errE)["expected"] = expectedBase
+		return errE
+	}
+	expectedID := identifier.From(c.Base...)
+	if c.ID != expectedID {
 		errE := errors.New("invalid ID")
-		errors.Details(errE)["id"] = c.ID
-		errors.Details(errE)["expected"] = expectedID
+		errors.Details(errE)["id"] = c.ID.String()
+		errors.Details(errE)["expected"] = expectedID.String()
 		return errE
 	}
 	return nil
@@ -285,6 +292,7 @@ func (c *AddClaimChange) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	c.ID = t.ID
+	c.Base = t.Base
 	c.Under = t.Under
 	c.Patch = patch
 	return nil
@@ -326,7 +334,7 @@ func (c SetClaimChange) Apply(doc *D) errors.E {
 }
 
 // Validate validates the set claim change.
-func (c SetClaimChange) Validate(_ context.Context, _ []string, _ int64) errors.E {
+func (c SetClaimChange) Validate(_ []string, _ int64) errors.E {
 	return nil
 }
 
@@ -393,7 +401,7 @@ func (c RemoveClaimChange) Apply(doc *D) errors.E {
 }
 
 // Validate validates the remove claim change.
-func (c RemoveClaimChange) Validate(_ context.Context, _ []string, _ int64) errors.E {
+func (c RemoveClaimChange) Validate(_ []string, _ int64) errors.E {
 	return nil
 }
 
@@ -445,14 +453,14 @@ type IdentifierClaimPatch struct {
 }
 
 // New creates a new identifier claim from the patch.
-func (p IdentifierClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.Value) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &IdentifierClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -536,14 +544,14 @@ type StringClaimPatch struct {
 }
 
 // New creates a new string claim from the patch.
-func (p StringClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.String) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &StringClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -627,14 +635,14 @@ type HTMLClaimPatch struct {
 }
 
 // New creates a new HTML claim from the patch.
-func (p HTMLClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p HTMLClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.HTML) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &HTMLClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -719,14 +727,14 @@ type AmountClaimPatch struct {
 }
 
 // New creates a new amount claim from the patch.
-func (p AmountClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Amount == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &AmountClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -825,14 +833,14 @@ type AmountIntervalClaimPatch struct {
 }
 
 // New creates a new amount interval claim from the patch.
-func (p AmountIntervalClaimPatch) New(id []string) (Claim, errors.E) { //nolint:dupl,ireturn
+func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:dupl,ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &AmountIntervalClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -971,14 +979,14 @@ type TimeClaimPatch struct {
 }
 
 // New creates a new time claim from the patch.
-func (p TimeClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.Timestamp == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &TimeClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1077,14 +1085,14 @@ type TimeIntervalClaimPatch struct {
 }
 
 // New creates a new time interval claim from the patch.
-func (p TimeIntervalClaimPatch) New(id []string) (Claim, errors.E) { //nolint:dupl,ireturn
+func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:dupl,ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &TimeIntervalClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1222,14 +1230,14 @@ type ReferenceClaimPatch struct {
 }
 
 // New creates a new reference claim from the patch.
-func (p ReferenceClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.IRI) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &ReferenceClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1313,14 +1321,14 @@ type RelationClaimPatch struct {
 }
 
 // New creates a new relation claim from the patch.
-func (p RelationClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || p.To == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &RelationClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1405,14 +1413,14 @@ type HasClaimPatch struct {
 }
 
 // New creates a new has claim from the patch.
-func (p HasClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p HasClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &HasClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1491,14 +1499,14 @@ type NoneClaimPatch struct {
 }
 
 // New creates a new none claim from the patch.
-func (p NoneClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p NoneClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &NoneClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{
@@ -1577,14 +1585,14 @@ type UnknownClaimPatch struct {
 }
 
 // New creates a new unknown claim from the patch.
-func (p UnknownClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
+func (p UnknownClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
 	c := &UnknownClaim{
 		CoreClaim: CoreClaim{
-			ID:         identifier.From(id...),
+			ID:         id,
 			Confidence: *p.Confidence,
 		},
 		Prop: Reference{

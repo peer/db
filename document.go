@@ -165,10 +165,13 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	id := identifier.New()
+	// TODO: Support configuring base and not just use the domain.
+	base := []string{site.Domain, identifier.New().String()}
+	id := identifier.From(base...)
 	doc := document.D{
 		CoreDocument: document.CoreDocument{
-			ID: id,
+			ID:   id,
+			Base: base,
 		},
 	}
 	dataJSON, errE := x.MarshalWithoutEscapeHTML(doc)
