@@ -79,29 +79,30 @@ func TestTimestampValidation(t *testing.T) {
 	invalidCases := []struct {
 		timestamp string
 		precision document.TimePrecision
+		errMsg    string
 	}{
-		{"2025-03-15", document.TimePrecisionYear},                       // Month+day not allowed.
-		{"2025", document.TimePrecisionMonth},                            // Month required.
-		{"2025-03-00", document.TimePrecisionDay},                        // Non-zero day required.
-		{"2025-03-15", document.TimePrecisionHour},                       // Hours+minutes required.
-		{"2025-03-15 10:30", document.TimePrecisionHour},                 // Minutes must be zero for hour precision.
-		{"2025-03-15 10:30", document.TimePrecisionSecond},               // Seconds required.
-		{"2025-03-15 10:30:45", document.TimePrecisionMillisecond},       // Subseconds required.
-		{"2025-03-15 10:30:45.123", document.TimePrecisionMicrosecond},   // Six digits required.
-		{"2025-03-15 10:30:45.123456", document.TimePrecisionNanosecond}, // Nine digits required.
-		{"2025-13-01", document.TimePrecisionDay},                        // Month out of range.
-		{"2025-03-32", document.TimePrecisionDay},                        // Day out of range.
-		{"2025-03-15 25:00", document.TimePrecisionHour},                 // Hour out of range.
-		{"2025-03-15 10:60", document.TimePrecisionMinute},               // Minute out of range.
-		{"2025-03-15 10:30:60", document.TimePrecisionSecond},            // Second out of range.
-		{"not-a-timestamp", document.TimePrecisionYear},                  // Invalid format.
+		{"2025-03-15", document.TimePrecisionYear, "month not allowed for precision"},
+		{"2025", document.TimePrecisionMonth, "month required for precision"},
+		{"2025-03-00", document.TimePrecisionDay, "day required for precision"},
+		{"2025-03-15", document.TimePrecisionHour, "hours and minutes required for precision"},
+		{"2025-03-15 10:30", document.TimePrecisionHour, "minutes must be zero for hour precision"},
+		{"2025-03-15 10:30", document.TimePrecisionSecond, "seconds required for precision"},
+		{"2025-03-15 10:30:45", document.TimePrecisionMillisecond, "subseconds required for precision"},
+		{"2025-03-15 10:30:45.123", document.TimePrecisionMicrosecond, "subseconds length does not match precision"},
+		{"2025-03-15 10:30:45.123456", document.TimePrecisionNanosecond, "subseconds length does not match precision"},
+		{"2025-13-01", document.TimePrecisionDay, "month out of range"},
+		{"2025-03-32", document.TimePrecisionDay, "day out of range"},
+		{"2025-03-15 25:00", document.TimePrecisionHour, "hours out of range"},
+		{"2025-03-15 10:60", document.TimePrecisionMinute, "minutes out of range"},
+		{"2025-03-15 10:30:60", document.TimePrecisionSecond, "seconds out of range"},
+		{"not-a-timestamp", document.TimePrecisionYear, "unable to parse timestamp"},
 	}
 	for _, tc := range invalidCases {
 		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
 			t.Parallel()
 
 			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
-			assert.Error(t, errE)
+			assert.EqualError(t, errE, tc.errMsg)
 		})
 	}
 }

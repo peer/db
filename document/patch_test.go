@@ -215,7 +215,7 @@ func TestAmountClaimValidate(t *testing.T) {
 	}
 
 	nan := document.AmountClaim{CoreClaim: core, Prop: ref, Amount: math.NaN(), Precision: 1}
-	assert.Error(t, nan.Validate())
+	assert.EqualError(t, nan.Validate(), "Amount must be a finite number")
 }
 
 func TestAmountIntervalClaimValidate(t *testing.T) {
@@ -246,7 +246,7 @@ func TestAmountIntervalClaimValidate(t *testing.T) {
 		To:          &to,
 		ToPrecision: &toP,
 	}
-	assert.Error(t, invalid.Validate())
+	assert.EqualError(t, invalid.Validate(), "one of From, FromIsUnknown, or FromIsNone must be set")
 
 	// From set with FromIsNone.
 	conflicting := &document.AmountIntervalClaim{ //nolint:exhaustruct
@@ -258,5 +258,5 @@ func TestAmountIntervalClaimValidate(t *testing.T) {
 		To:            &to,
 		ToPrecision:   &toP,
 	}
-	assert.Error(t, conflicting.Validate())
+	assert.EqualError(t, conflicting.Validate(), "From must not be set when FromIsUnknown or FromIsNone is true")
 }
