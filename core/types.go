@@ -95,7 +95,7 @@ type IntervalBound interface {
 
 // Interval represents an interval between two values.
 //
-// If From or To is nil, it is zero value value, unless *IsUnknown or *IsNone is true, respectively.
+// If From or To is nil, it is zero value, unless *IsUnknown or *IsNone is true, respectively.
 //
 // Only one of FromIs* fields can be set at a time. If FromIsUnknown or FromIsNone is true, From must be nil.
 // Only one of ToIs* fields can be set at a time. If ToIsUnknown or ToIsNone is true, To must be nil.
