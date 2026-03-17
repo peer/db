@@ -811,5 +811,153 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 		},
 	})
 
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "setting",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "nastavitev",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SETTING",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "SETTING"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "section",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "razdelek",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "SECTION",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "SECTION"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "field",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "polje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "FIELD",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "field values",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "vrednosti polja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "FIELD_VALUES",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_VALUES"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "cardinality",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "kardinalnost",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "CARDINALITY",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "CARDINALITY"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
 	return documents, nil
 }
