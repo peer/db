@@ -202,7 +202,7 @@
 //
 // # Empty Values
 //
-// Empty values (zero values) do not produce claims unless:
+// Empty values (non-numeric zero values) do not produce claims unless:
 //   - field has cardinality with min > 0 and default:"none" tag: creates none-value claim(s),
 //   - field has cardinality with min > 0 and default:"unknown" tag: creates unknown-value claim(s),
 //   - field has cardinality with min > 0 without default tag: returns error,
@@ -664,7 +664,7 @@ func (tr *transformer) processField(
 // It supports simple types of values and non-core structs, but not slices and pointers
 // (for the latter, processSingleValue should be called on their elements).
 //
-// It returns an errClaimNotMade error if no claim has been made (e.g., the value vas empty).
+// It returns an errClaimNotMade error if no claim has been made (e.g., the value was empty).
 func (tr *transformer) processSingleValue(
 	fieldValue reflect.Value,
 	fieldType reflect.Type,
@@ -965,6 +965,10 @@ func makeClaim(
 ) (document.Claim, errors.E) {
 	// Handle core.Ref.
 	if t == coreRef {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for core.Ref fields")
+		}
+
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Ref fields")
 		}
@@ -994,6 +998,10 @@ func makeClaim(
 
 	// Handle time.Time.
 	if t == timeTime {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for time.Time fields")
+		}
+
 		if precisionTag == "" {
 			return nil, errors.New("precision tag is required for time.Time fields")
 		}
@@ -1031,6 +1039,10 @@ func makeClaim(
 
 	// Handle core.Time.
 	if t == coreTime {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for core.Time fields")
+		}
+
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Time fields; precision is part of core.Time")
 		}
@@ -1061,6 +1073,10 @@ func makeClaim(
 
 	// Handle core.Interval[core.Time].
 	if t == coreTimeInterval {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for core.Interval[core.Time] fields")
+		}
+
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Interval[core.Time] fields; precision is part of core.Time")
 		}
@@ -1124,6 +1140,10 @@ func makeClaim(
 
 	// Handle core.Interval[core.Amount[T]].
 	if coreAmountIntervalTypes[t] { //nolint:nestif
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for core.Interval[core.Amount[T]] fields")
+		}
+
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Interval[core.Amount[T]] fields; precision is part of core.Amount")
 		}
@@ -1224,6 +1244,10 @@ func makeClaim(
 
 	// Handle core.Amount[T].
 	if coreAmountTypes[t] {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for core.Amount[T] fields")
+		}
+
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Amount[T] fields; precision is part of core.Amount")
 		}
@@ -1527,6 +1551,10 @@ func makeClaim(
 			}, nil
 		}
 
+		if typeTag != "" {
+			return nil, errors.New("string field used with unsupported type tag")
+		}
+
 		return &document.StringClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
@@ -1573,6 +1601,10 @@ func makeClaim(
 				},
 				Prop: document.Reference{ID: propertyID},
 			}, nil
+		}
+
+		if typeTag != "" {
+			return nil, errors.New("bool field used with unsupported type tag")
 		}
 
 		return &document.HasClaim{
@@ -1682,8 +1714,8 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 
 	isPointer := fieldValue.Kind() == reflect.Ptr
 	isSlice := fieldValue.Kind() == reflect.Slice
+	// isSingleValue is true for all non-pointer, non-slice fields, including bool.
 	isSingleValue := !isPointer && !isSlice
-	isBooleanField := fieldValue.Kind() == reflect.Bool
 
 	if cardinality != "" { //nolint:nestif
 		if strings.Contains(cardinality, "..") {
@@ -1750,7 +1782,7 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 		}
 	}
 
-	if (isPointer || isSingleValue || isBooleanField) && maxCardinality == -1 && cardinality == "" {
+	if (isPointer || isSingleValue) && maxCardinality == -1 && cardinality == "" {
 		maxCardinality = 1
 	}
 
@@ -1761,16 +1793,9 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 		return 0, 0, errE
 	}
 
-	// Single value fields: max must be <= 1 (can be 0 or 1).
+	// Single value fields (including bool): max must be <= 1 (can be 0 or 1).
 	if isSingleValue && (maxCardinality > 1 || maxCardinality == -1) {
 		errE := errors.New("single value field cannot have max cardinality greater than 1")
-		errors.Details(errE)["cardinality"] = cardinality
-		return 0, 0, errE
-	}
-
-	// Boolean fields: max must be <= 1 (can be 0 or 1).
-	if isBooleanField && (maxCardinality > 1 || maxCardinality == -1) {
-		errE := errors.New("boolean field cannot have max cardinality greater than 1")
 		errors.Details(errE)["cardinality"] = cardinality
 		return 0, 0, errE
 	}
