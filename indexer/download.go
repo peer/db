@@ -127,7 +127,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 			return 0, errors.WithStack(err)
 		}
 
-		resp, err := httpClient.Do(req) //nolint:bodyclose
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			r.WriteFile.Close() //nolint:errcheck,gosec
 			r.ReadFile.Close()  //nolint:errcheck,gosec
