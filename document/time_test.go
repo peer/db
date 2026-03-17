@@ -54,7 +54,7 @@ func TestTimestampValidation(t *testing.T) {
 		timestamp string
 		precision document.TimePrecision
 	}{
-		{"2025", document.TimePrecisionGigaYears},
+		{"1000000000", document.TimePrecisionGigaYears},
 		{"2025", document.TimePrecisionYear},
 		{"2025-03-00", document.TimePrecisionMonth},
 		{"2025-03-15", document.TimePrecisionDay},
@@ -182,11 +182,12 @@ func TestNewTimestamp(t *testing.T) {
 			expected:  "2025",
 		},
 		{
+			// year 2025 truncated to nearest billion (toward zero) = year 0.
 			name:      "giga-years precision",
 			input:     time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
 			precision: document.TimePrecisionGigaYears,
 			location:  time.UTC,
-			expected:  "2025",
+			expected:  "0000",
 		},
 		{
 			name:      "month precision",
@@ -324,6 +325,138 @@ func TestNewTimestamp(t *testing.T) {
 
 			ts := document.NewTimestamp(tc.input, tc.precision, tc.location)
 			assert.Equal(t, document.Timestamp(tc.expected), ts)
+		})
+	}
+}
+
+func TestYearPrecisionValidation(t *testing.T) {
+	t.Parallel()
+
+	validCases := []struct {
+		timestamp string
+		precision document.TimePrecision
+	}{
+		// Each precision requires the year to be divisible by the appropriate multiple.
+		{"0000", document.TimePrecisionGigaYears},
+		{"1000000000", document.TimePrecisionGigaYears},
+		{"-1000000000", document.TimePrecisionGigaYears},
+		{"0000", document.TimePrecisionHundredMegaYears},
+		{"100000000", document.TimePrecisionHundredMegaYears},
+		{"-100000000", document.TimePrecisionHundredMegaYears},
+		{"0000", document.TimePrecisionTenMegaYears},
+		{"10000000", document.TimePrecisionTenMegaYears},
+		{"0000", document.TimePrecisionMegaYears},
+		{"1000000", document.TimePrecisionMegaYears},
+		{"-1000000", document.TimePrecisionMegaYears},
+		{"0000", document.TimePrecisionHundredKiloYears},
+		{"100000", document.TimePrecisionHundredKiloYears},
+		{"0000", document.TimePrecisionTenKiloYears},
+		{"10000", document.TimePrecisionTenKiloYears},
+		{"0000", document.TimePrecisionKiloYears},
+		{"1000", document.TimePrecisionKiloYears},
+		{"-1000", document.TimePrecisionKiloYears},
+		{"0000", document.TimePrecisionHundredYears},
+		{"1900", document.TimePrecisionHundredYears},
+		{"-1900", document.TimePrecisionHundredYears},
+		{"0000", document.TimePrecisionTenYears},
+		{"1920", document.TimePrecisionTenYears},
+		{"1910", document.TimePrecisionTenYears},
+		{"-1920", document.TimePrecisionTenYears},
+		// Year precision accepts any year.
+		{"2025", document.TimePrecisionYear},
+		{"1925", document.TimePrecisionYear},
+		{"-1925", document.TimePrecisionYear},
+	}
+	for _, tc := range validCases {
+		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+			t.Parallel()
+
+			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+		})
+	}
+
+	invalidCases := []struct {
+		timestamp string
+		precision document.TimePrecision
+		errMsg    string
+	}{
+		// Years that are not divisible by the required multiple.
+		{"2025", document.TimePrecisionGigaYears, "year not rounded to precision"},
+		{"100000001", document.TimePrecisionHundredMegaYears, "year not rounded to precision"},
+		{"10000001", document.TimePrecisionTenMegaYears, "year not rounded to precision"},
+		{"1000001", document.TimePrecisionMegaYears, "year not rounded to precision"},
+		{"100001", document.TimePrecisionHundredKiloYears, "year not rounded to precision"},
+		{"10001", document.TimePrecisionTenKiloYears, "year not rounded to precision"},
+		{"1001", document.TimePrecisionKiloYears, "year not rounded to precision"},
+		{"1925", document.TimePrecisionHundredYears, "year not rounded to precision"},
+		{"1925", document.TimePrecisionTenYears, "year not rounded to precision"},
+		{"-1925", document.TimePrecisionTenYears, "year not rounded to precision"},
+		{"1921", document.TimePrecisionTenYears, "year not rounded to precision"},
+		{"1919", document.TimePrecisionTenYears, "year not rounded to precision"},
+	}
+	for _, tc := range invalidCases {
+		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+			t.Parallel()
+
+			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			assert.EqualError(t, errE, tc.errMsg)
+		})
+	}
+}
+
+func TestNewTimestampYearTruncation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		inputYear int
+		precision document.TimePrecision
+		expected  string
+	}{
+		// Decade precision: truncate toward zero.
+		{"decade 1925→1920", 1925, document.TimePrecisionTenYears, "1920"},
+		{"decade 1920→1920", 1920, document.TimePrecisionTenYears, "1920"},
+		{"decade 1929→1920", 1929, document.TimePrecisionTenYears, "1920"},
+		{"decade 1930→1930", 1930, document.TimePrecisionTenYears, "1930"},
+		{"decade -1925→-1920", -1925, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1920→-1920", -1920, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1929→-1920", -1929, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1930→-1930", -1930, document.TimePrecisionTenYears, "-1930"},
+		{"decade 5→0", 5, document.TimePrecisionTenYears, "0000"},
+		{"decade -5→0", -5, document.TimePrecisionTenYears, "0000"},
+		// Century precision.
+		{"century 1925→1900", 1925, document.TimePrecisionHundredYears, "1900"},
+		{"century 1900→1900", 1900, document.TimePrecisionHundredYears, "1900"},
+		{"century 1999→1900", 1999, document.TimePrecisionHundredYears, "1900"},
+		{"century -1925→-1900", -1925, document.TimePrecisionHundredYears, "-1900"},
+		// Kilo-year precision.
+		{"kilo 1500→1000", 1500, document.TimePrecisionKiloYears, "1000"},
+		{"kilo 2025→2000", 2025, document.TimePrecisionKiloYears, "2000"},
+		{"kilo -1500→-1000", -1500, document.TimePrecisionKiloYears, "-1000"},
+		// Mega-year precision.
+		{"mega 2025→0", 2025, document.TimePrecisionMegaYears, "0000"},
+		{"mega 1500000→1000000", 1500000, document.TimePrecisionMegaYears, "1000000"},
+		// Giga-year precision.
+		{"giga 2025→0", 2025, document.TimePrecisionGigaYears, "0000"},
+		{"giga 1500000000→1000000000", 1500000000, document.TimePrecisionGigaYears, "1000000000"},
+		{"giga -1500000000→-1000000000", -1500000000, document.TimePrecisionGigaYears, "-1000000000"},
+		// Year precision: no truncation.
+		{"year 1925→1925", 1925, document.TimePrecisionYear, "1925"},
+		{"year -1925→-1925", -1925, document.TimePrecisionYear, "-1925"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			input := time.Date(tc.inputYear, 6, 15, 12, 30, 0, 0, time.UTC)
+			ts := document.NewTimestamp(input, tc.precision, time.UTC)
+			assert.Equal(t, document.Timestamp(tc.expected), ts)
+
+			// Validate that the produced timestamp passes validation for its precision.
+			errE := ts.Validate(tc.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 }

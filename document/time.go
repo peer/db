@@ -188,7 +188,9 @@ func (t Timestamp) Time(precision TimePrecision, location *time.Location) (time.
 
 		// Validate that present/absent parts match precision.
 		var errE errors.E
-		if (month != -1) != needsMonth {
+		if mult := yearPrecisionMultiple(precision); year%mult != 0 {
+			errE = errors.New("year not rounded to precision")
+		} else if (month != -1) != needsMonth {
 			if needsMonth {
 				errE = errors.New("month required for precision")
 			} else {
@@ -478,6 +480,33 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 	return p.UnmarshalText([]byte(s))
 }
 
+// yearPrecisionMultiple returns the factor by which the year must be divisible
+// for precisions coarser than a single year. Returns 1 for TimePrecisionYear and finer.
+func yearPrecisionMultiple(precision TimePrecision) int64 {
+	switch precision { //nolint:exhaustive
+	case TimePrecisionGigaYears:
+		return 1_000_000_000 //nolint:mnd
+	case TimePrecisionHundredMegaYears:
+		return 100_000_000 //nolint:mnd
+	case TimePrecisionTenMegaYears:
+		return 10_000_000 //nolint:mnd
+	case TimePrecisionMegaYears:
+		return 1_000_000 //nolint:mnd
+	case TimePrecisionHundredKiloYears:
+		return 100_000 //nolint:mnd
+	case TimePrecisionTenKiloYears:
+		return 10_000 //nolint:mnd
+	case TimePrecisionKiloYears:
+		return 1_000 //nolint:mnd
+	case TimePrecisionHundredYears:
+		return 100 //nolint:mnd
+	case TimePrecisionTenYears:
+		return 10 //nolint:mnd
+	default:
+		return 1
+	}
+}
+
 // NewTimestamp formats a time.Time into a Timestamp string
 // with only the parts required by the given precision.
 //
@@ -491,6 +520,12 @@ func NewTimestamp(t time.Time, precision TimePrecision, location *time.Location)
 	t = t.In(location)
 	w := 4
 	year, month, day := t.Date()
+	// Truncate year to the required precision multiple (e.g. decade → nearest 10).
+	// Go's integer division truncates toward zero, which is consistent with the
+	// year%multiple==0 divisibility check used in Time().
+	if mult := int(yearPrecisionMultiple(precision)); mult != 1 {
+		year = (year / mult) * mult
+	}
 	if year < 0 {
 		// An extra character for the minus sign.
 		w = 5
