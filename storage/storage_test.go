@@ -193,5 +193,5 @@ func TestErrors(t *testing.T) {
 	assert.ErrorContains(t, errE, "chunk larger than file")
 
 	errE = s.DiscardUpload(ctx, session)
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 }

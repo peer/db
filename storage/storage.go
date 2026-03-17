@@ -163,7 +163,9 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		})
 	}
 	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
-	// result is that if there are multiple chunks at the same start, newer will be will be used first.
+	// result is that if there are multiple chunks at the same start, newer will be used first.
+	// For chunks with different starts that partially overlap, the chunk with the larger start
+	// is processed last and overwrites the overlapping region, regardless of upload order.
 	slices.SortStableFunc(chunks, func(a, b chunk) int {
 		return cmp.Compare(a.Metadata.Start, b.Metadata.Start)
 	})
@@ -282,7 +284,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 	return errE
 }
 
-// ListChunks returns a list of chunk IDs for an upload session.
+// ListChunks returns a list of chunk IDs for an upload session, ordered from newest to oldest.
 func (s *Storage) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
 	// TODO: Support more than 5000 chunks.
 	return s.coordinator.List(ctx, session, nil)
@@ -339,7 +341,9 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 		})
 	}
 	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
-	// result is that if there are multiple chunks at the same start, newer will be will be used first.
+	// result is that if there are multiple chunks at the same start, newer will be used first.
+	// For chunks with different starts that partially overlap, the chunk with the larger start
+	// is processed last and overwrites the overlapping region, regardless of upload order.
 	slices.SortStableFunc(chunks, func(a, b chunkPos) int {
 		return cmp.Compare(a.start, b.start)
 	})
