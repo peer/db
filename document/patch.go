@@ -1318,7 +1318,7 @@ func (p RelationClaimPatch) New(id []string) (Claim, errors.E) { //nolint:iretur
 		return nil, errors.New("incomplete patch")
 	}
 
-	return &RelationClaim{
+	c := &RelationClaim{
 		CoreClaim: CoreClaim{
 			ID:         identifier.From(id...),
 			Confidence: *p.Confidence,
@@ -1329,7 +1329,9 @@ func (p RelationClaimPatch) New(id []string) (Claim, errors.E) { //nolint:iretur
 		To: Reference{
 			ID: *p.To,
 		},
-	}, nil
+	}
+
+	return c, c.Validate()
 }
 
 // Apply applies the patch to an existing relation claim.
@@ -1353,7 +1355,7 @@ func (p RelationClaimPatch) Apply(claim Claim) errors.E {
 		c.To.ID = *p.To
 	}
 
-	return nil
+	return c.Validate()
 }
 
 // UnmarshalJSON unmarshals a relation claim patch from JSON.
@@ -1408,7 +1410,7 @@ func (p HasClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		return nil, errors.New("incomplete patch")
 	}
 
-	return &HasClaim{
+	c := &HasClaim{
 		CoreClaim: CoreClaim{
 			ID:         identifier.From(id...),
 			Confidence: *p.Confidence,
@@ -1416,7 +1418,9 @@ func (p HasClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		Prop: Reference{
 			ID: *p.Prop,
 		},
-	}, nil
+	}
+
+	return c, c.Validate()
 }
 
 // Apply applies the patch to an existing has claim.
@@ -1437,7 +1441,7 @@ func (p HasClaimPatch) Apply(claim Claim) errors.E {
 		c.Prop.ID = *p.Prop
 	}
 
-	return nil
+	return c.Validate()
 }
 
 // UnmarshalJSON unmarshals a has claim patch from JSON.
@@ -1492,7 +1496,7 @@ func (p NoneClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		return nil, errors.New("incomplete patch")
 	}
 
-	return &NoneClaim{
+	c := &NoneClaim{
 		CoreClaim: CoreClaim{
 			ID:         identifier.From(id...),
 			Confidence: *p.Confidence,
@@ -1500,7 +1504,9 @@ func (p NoneClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		Prop: Reference{
 			ID: *p.Prop,
 		},
-	}, nil
+	}
+
+	return c, c.Validate()
 }
 
 // Apply applies the patch to an existing none claim.
@@ -1521,7 +1527,7 @@ func (p NoneClaimPatch) Apply(claim Claim) errors.E {
 		c.Prop.ID = *p.Prop
 	}
 
-	return nil
+	return c.Validate()
 }
 
 // UnmarshalJSON unmarshals a none claim patch from JSON.
@@ -1576,7 +1582,7 @@ func (p UnknownClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		return nil, errors.New("incomplete patch")
 	}
 
-	return &UnknownClaim{
+	c := &UnknownClaim{
 		CoreClaim: CoreClaim{
 			ID:         identifier.From(id...),
 			Confidence: *p.Confidence,
@@ -1584,7 +1590,9 @@ func (p UnknownClaimPatch) New(id []string) (Claim, errors.E) { //nolint:ireturn
 		Prop: Reference{
 			ID: *p.Prop,
 		},
-	}, nil
+	}
+
+	return c, c.Validate()
 }
 
 // Apply applies the patch to an existing unknown claim.
@@ -1605,7 +1613,7 @@ func (p UnknownClaimPatch) Apply(claim Claim) errors.E {
 		c.Prop.ID = *p.Prop
 	}
 
-	return nil
+	return c.Validate()
 }
 
 // UnmarshalJSON unmarshals an unknown claim patch from JSON.

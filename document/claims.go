@@ -173,6 +173,14 @@ func (cc CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
 }
 
+// validateConfidence checks that confidence is in [-1, 1] and is not NaN or infinite.
+func (cc CoreClaim) validateConfidence() errors.E {
+	if math.IsInf(float64(cc.Confidence), 0) || math.IsNaN(float64(cc.Confidence)) || cc.Confidence < -1 || cc.Confidence > 1 {
+		return errors.New("confidence out of range [-1, 1]")
+	}
+	return nil
+}
+
 // Visit applies a visitor to the claim's metadata claims.
 func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
 	if cc.Meta != nil {
@@ -275,8 +283,12 @@ type IdentifierClaim struct {
 	Value string    `json:"value"`
 }
 
-// Validate checks that the identifier claim has a non-empty value.
+// Validate checks that the identifier claim has a non-empty value and valid confidence.
 func (c *IdentifierClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if c.Value == "" {
 		return errors.New("empty value")
 	}
@@ -294,8 +306,12 @@ type StringClaim struct {
 	String string    `json:"string"`
 }
 
-// Validate checks that the string claim has a non-empty string.
+// Validate checks that the string claim has a non-empty string and valid confidence.
 func (c *StringClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if c.String == "" {
 		return errors.New("empty string")
 	}
@@ -313,8 +329,12 @@ type HTMLClaim struct {
 	HTML string    `json:"html"`
 }
 
-// Validate checks that the HTML claim has non-empty HTML.
+// Validate checks that the HTML claim has non-empty HTML and valid confidence.
 func (c *HTMLClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if c.HTML == "" {
 		return errors.New("empty HTML")
 	}
@@ -339,8 +359,12 @@ type AmountClaim struct {
 	Precision float64   `json:"precision"`
 }
 
-// Validate checks that the amount claim has finite values.
+// Validate checks that the amount claim has finite values and valid confidence.
 func (c *AmountClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if math.IsInf(c.Amount, 0) || math.IsNaN(c.Amount) {
 		return errors.New("Amount must be a finite number")
 	}
@@ -384,8 +408,13 @@ type AmountIntervalClaim struct {
 	ToIsNone    bool     `json:"toIsNone,omitempty"`
 }
 
-// Validate checks that the amount interval claim has valid bounds.
+// Validate checks that the amount interval claim has valid bounds and valid confidence.
 func (c *AmountIntervalClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
+
 	fromIsCount := 0
 	if c.FromIsOpen {
 		fromIsCount++
@@ -456,8 +485,12 @@ type TimeClaim struct {
 	Precision TimePrecision `json:"precision"`
 }
 
-// Validate checks that the time claim has a valid precision and timestamp.
+// Validate checks that the time claim has a valid precision, timestamp, and valid confidence.
 func (t *TimeClaim) Validate() errors.E {
+	errE := t.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if t.Precision < TimePrecisionGigaYears || t.Precision > TimePrecisionNanosecond {
 		return errors.New("unknown Precision")
 	}
@@ -484,8 +517,13 @@ type TimeIntervalClaim struct {
 	ToIsNone    bool           `json:"toIsNone,omitempty"`
 }
 
-// Validate checks that the time interval claim has valid bounds.
+// Validate checks that the time interval claim has valid bounds and valid confidence.
 func (c *TimeIntervalClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
+
 	fromIsCount := 0
 	if c.FromIsOpen {
 		fromIsCount++
@@ -561,8 +599,12 @@ type ReferenceClaim struct {
 	IRI  string    `json:"iri"`
 }
 
-// Validate checks that the reference claim has a non-empty IRI.
+// Validate checks that the reference claim has a non-empty IRI and valid confidence.
 func (c *ReferenceClaim) Validate() errors.E {
+	errE := c.validateConfidence()
+	if errE != nil {
+		return errE
+	}
 	if c.IRI == "" {
 		return errors.New("empty IRI")
 	}
@@ -578,6 +620,11 @@ type RelationClaim struct {
 	To   Reference `json:"to"`
 }
 
+// Validate checks that the relation claim has valid confidence.
+func (c *RelationClaim) Validate() errors.E {
+	return c.validateConfidence()
+}
+
 // HasClaim represents a claim with just a property.
 //
 // It can also be used for nested claims.
@@ -587,6 +634,11 @@ type HasClaim struct {
 	Prop Reference `json:"prop"`
 }
 
+// Validate checks that the has claim has valid confidence.
+func (c *HasClaim) Validate() errors.E {
+	return c.validateConfidence()
+}
+
 // NoneClaim represents a claim that explicitly states no value exists for a property.
 type NoneClaim struct {
 	CoreClaim
@@ -594,9 +646,19 @@ type NoneClaim struct {
 	Prop Reference `json:"prop"`
 }
 
+// Validate checks that the none claim has valid confidence.
+func (c *NoneClaim) Validate() errors.E {
+	return c.validateConfidence()
+}
+
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
 type UnknownClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
+}
+
+// Validate checks that the unknown claim has valid confidence.
+func (c *UnknownClaim) Validate() errors.E {
+	return c.validateConfidence()
 }
