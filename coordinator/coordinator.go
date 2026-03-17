@@ -193,23 +193,23 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// completed and all operations for the session are deleted.
 	CompleteSessionTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, data CompleteData) (CompleteMetadata, errors.E)
 
-	// AppendedSize is the size of the channel to which operations are send when they are appended.
+	// AppendedSize is the size of the channel to which operations are sent when they are appended.
 	//
 	// Set to a negative value to disable creating the channel.
 	AppendedSize int `exhaustruct:"optional"`
 
-	// A channel to which operations are send when they are appended.
+	// A channel to which operations are sent when they are appended.
 	// Operations are sent in the order in which they were appended to the database.
 	//
 	// Channel is created by the listener when started and recreated on reconnection.
 	Appended x.RecreatableChannel[OperationAppended] `exhaustruct:"optional"`
 
-	// EndedSize is the size of the channel to which session state changes are send.
+	// ChangedSize is the size of the channel to which session state changes are sent.
 	//
 	// Set to a negative value to disable creating the channel.
 	ChangedSize int `exhaustruct:"optional"`
 
-	// A channel to which session state changes are send.
+	// A channel to which session state changes are sent.
 	// State changes are sent in the order in which they were serialized by the database.
 	//
 	// Channel is created by the listener when started and recreated on reconnection.
@@ -227,7 +227,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 // It creates and configures the PostgreSQL tables, indices, and
 // stored procedures if they do not already exist.
 //
-// A non-nil listener is required when the Appended or Ended channel is set.
+// A non-nil listener is required when the Appended or Changed channel is set.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Init(
 	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,

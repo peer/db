@@ -456,9 +456,9 @@ func TestListPagination(t *testing.T) {
 	session, errE := c.Begin(ctx, store.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	for range 6000 {
+	for i := range 6000 {
 		o, errE := c.Append(ctx, session, store.DummyData, store.DummyData, nil)
-		require.NoError(t, errE, "%d % -+#.1v", errE)
+		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		operations = append(operations, o)
 	}
@@ -572,7 +572,7 @@ func TestNotifyRecovery(t *testing.T) {
 	oldAppendedCh, errE := c.Appended.Get(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	err = c.HandleBacklog(ctx, c.Prefix+"OperationAppended", nil)
-	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Appended channel must be closed.
 	select {
@@ -603,7 +603,7 @@ func TestNotifyRecovery(t *testing.T) {
 	oldChangedCh, errE := c.Changed.Get(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	err = c.HandleBacklog(ctx, c.Prefix+"SessionStateChanged", nil)
-	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Changed channel must be closed.
 	select {
