@@ -66,14 +66,16 @@ type (
 // IdentifierClaim represents a claim with a string identifier value.
 type IdentifierClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 	Value       string                `json:"value"`
 }
 
 // StringClaim represents a claim with a plain string value for a given language.
 type StringClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 
 	// Map contains exactly one value.
 	String map[string]string `json:"string"`
@@ -82,7 +84,8 @@ type StringClaim struct {
 // HTMLClaim represents a claim with HTML text content for a given language.
 type HTMLClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 
 	// Map contains exactly one value.
 	HTML map[string]string `json:"html"`
@@ -129,7 +132,8 @@ func (r RangeFloat) Validate() errors.E {
 // For search, we index amounts as both ranges and boundaries.
 type AmountClaim struct {
 	Prop        identifier.Identifier  `json:"prop"`
-	PropDisplay map[string][]string    `json:"propDisplay"`
+	PropDisplay map[string]string      `json:"propDisplay"`
+	PropNaming  map[string][]string    `json:"propNaming"`
 	Unit        *identifier.Identifier `json:"unit"`
 	Range       RangeFloat             `json:"range"`
 	From        *float64               `json:"from,omitempty"`
@@ -179,7 +183,8 @@ func (r RangeInt) Validate() errors.E {
 // For search, we index timestamps as both ranges and boundaries.
 type TimeClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 	Range       RangeInt              `json:"range"`
 	From        *int64                `json:"from,omitempty"`
 	FromDisplay string                `json:"fromDisplay,omitempty"`
@@ -190,7 +195,8 @@ type TimeClaim struct {
 // ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
 type ReferenceClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 	IRI         string                `json:"iri"`
 }
 
@@ -199,9 +205,11 @@ type ReferenceClaim struct {
 // In addition, it supports a limited set of nested claims.
 type RelationClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 	To          identifier.Identifier `json:"to"`
-	ToDisplay   map[string][]string   `json:"toDisplay"`
+	ToDisplay   map[string]string     `json:"toDisplay"`
+	ToNaming    map[string][]string   `json:"toNaming"`
 
 	// Nested claims.
 	Relation RelationClaims `json:"rel,omitempty"`
@@ -212,7 +220,8 @@ type RelationClaim struct {
 // In addition, it supports a limited set of nested claims.
 type HasClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 
 	// Nested claims.
 	Relation RelationClaims `json:"rel,omitempty"`
@@ -221,11 +230,13 @@ type HasClaim struct {
 // NoneClaim represents a claim that explicitly states no value exists for a property.
 type NoneClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 }
 
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
 type UnknownClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string][]string   `json:"propDisplay"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 }

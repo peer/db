@@ -52,8 +52,10 @@ const nestedRel = `{
 	"properties": {
 		"prop": ` + relationID + `,
 		"propDisplay": ` + multiLanguageString + `,
+		"propNaming": ` + multiLanguageString + `,
 		"to": ` + relationID + `,
-		"toDisplay": ` + multiLanguageString + `
+		"toDisplay": ` + multiLanguageString + `,
+		"toNaming": ` + multiLanguageString + `
 	}
 }`
 
@@ -68,6 +70,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
+				multiLanguageString,
+			},
+			{
+				"propNaming",
 				multiLanguageString,
 			},
 			{
@@ -93,6 +99,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
 				"string",
 				multiLanguageString,
 			},
@@ -107,6 +117,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
+				multiLanguageString,
+			},
+			{
+				"propNaming",
 				multiLanguageString,
 			},
 			{
@@ -143,6 +157,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
+				multiLanguageString,
+			},
+			{
+				"propNaming",
 				multiLanguageString,
 			},
 			{
@@ -199,6 +217,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
 				"range",
 				`{
 					"type": "long_range"
@@ -244,6 +266,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
 				"iri",
 				`{
 					"type": "keyword",
@@ -266,11 +292,19 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
 				"to",
 				relationID,
 			},
 			{
 				"toDisplay",
+				multiLanguageString,
+			},
+			{
+				"toNaming",
 				multiLanguageString,
 			},
 			{
@@ -291,6 +325,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
 				"rel",
 				nestedRel,
 			},
@@ -307,6 +345,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"propDisplay",
 				multiLanguageString,
 			},
+			{
+				"propNaming",
+				multiLanguageString,
+			},
 		},
 	},
 	{
@@ -318,6 +360,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
+				multiLanguageString,
+			},
+			{
+				"propNaming",
 				multiLanguageString,
 			},
 		},

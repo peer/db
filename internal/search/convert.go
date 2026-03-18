@@ -32,6 +32,11 @@ var (
 	languageClassID     = identifier.From("core.peerdb.org", "LANGUAGE")
 )
 
+type displayStrings struct {
+	Display map[string]string
+	Naming  map[string][]string
+}
+
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
@@ -49,7 +54,7 @@ type Converter struct {
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// displayCache caches computed display strings per language per document ID.
-	displayCache map[identifier.Identifier]map[string][]string
+	displayCache map[identifier.Identifier]displayStrings
 }
 
 // NewConverter creates a Converter that preprocesses property and class hierarchies.
@@ -69,7 +74,7 @@ func NewConverter(
 		languageCodes:       nil,
 		mnemonics:           mnemonics,
 		getDocument:         getDocument,
-		displayCache:        make(map[identifier.Identifier]map[string][]string),
+		displayCache:        make(map[identifier.Identifier]displayStrings),
 	}
 	c.buildPropertyHierarchy(properties)
 	c.buildClassHierarchy(classes)
@@ -224,25 +229,38 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 
 // getDisplayStrings returns the display strings for a document, making and
 // caching them on first access.
-func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identifier) (map[string][]string, errors.E) {
+func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identifier) (displayStrings, errors.E) {
 	if display, ok := c.displayCache[id]; ok {
 		return display, nil
 	}
 	doc, errE := c.getDocument(ctx, id)
 	if errE != nil {
-		return nil, errE
+		return displayStrings{}, errE
 	}
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	if errE != nil {
-		return nil, errE
+		return displayStrings{}, errE
 	}
 	c.displayCache[id] = display
 	return display, nil
 }
 
 // makeDisplayStrings returns the display strings for a document.
-func (c *Converter) makeDisplayStrings(_ context.Context, doc *document.D) (map[string][]string, errors.E) { //nolint:unparam
-	return c.namingStrings(doc), nil
+func (c *Converter) makeDisplayStrings(_ context.Context, doc *document.D) (displayStrings, errors.E) { //nolint:unparam
+	namingStrings := c.namingStrings(doc)
+
+	display := displayStrings{
+		Display: make(map[string]string, len(namingStrings)),
+		Naming:  make(map[string][]string, len(namingStrings)),
+	}
+
+	for lang, strs := range namingStrings {
+		// There should always be at least one.
+		display.Display[lang] = strs[0]
+		display.Naming[lang] = strs[1:]
+	}
+
+	return display, nil
 }
 
 // namingStrings returns all naming display strings per language for a document.
@@ -468,7 +486,8 @@ func (c *Converter) convertIdentifier(ctx context.Context, claim *document.Ident
 		}
 		result = append(result, IdentifierClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Value:       claim.Value,
 		})
 	}
@@ -490,7 +509,8 @@ func (c *Converter) convertString(ctx context.Context, claim *document.StringCla
 		}
 		result = append(result, StringClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			String:      str,
 		})
 	}
@@ -512,7 +532,8 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) 
 		}
 		result = append(result, HTMLClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			HTML:        html,
 		})
 	}
@@ -547,7 +568,8 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 		}
 		result = append(result, AmountClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Unit:        unit,
 			Range:       rangeFloat,
 			From:        &from,
@@ -693,7 +715,8 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		}
 		result = append(result, AmountClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Unit:        unit,
 			Range:       rangeFloat,
 			From:        from,
@@ -731,7 +754,8 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 		}
 		result = append(result, TimeClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Range:       rangeInt,
 			From:        &from,
 			FromDisplay: display,
@@ -876,7 +900,8 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		}
 		result = append(result, TimeClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Range:       rangeInt,
 			From:        from,
 			FromDisplay: fromDisplay,
@@ -897,7 +922,8 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 		}
 		result = append(result, ReferenceClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			IRI:         claim.IRI,
 		})
 	}
@@ -918,9 +944,11 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 		}
 		nested = append(nested, RelationClaim{
 			Prop:        mr.Prop.ID,
-			PropDisplay: mrPropDisplay,
+			PropDisplay: mrPropDisplay.Display,
+			PropNaming:  mrPropDisplay.Naming,
 			To:          mr.To.ID,
-			ToDisplay:   mrToDisplay,
+			ToDisplay:   mrToDisplay.Display,
+			ToNaming:    mrToDisplay.Naming,
 			Relation:    nil,
 		})
 	}
@@ -943,9 +971,11 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			}
 			result = append(result, RelationClaim{
 				Prop:        pid,
-				PropDisplay: propDisplay,
+				PropDisplay: propDisplay.Display,
+				PropNaming:  propDisplay.Naming,
 				To:          tid,
-				ToDisplay:   toDisplay,
+				ToDisplay:   toDisplay.Display,
+				ToNaming:    toDisplay.Naming,
 				Relation:    nested,
 			})
 		}
@@ -967,9 +997,11 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 		}
 		nested = append(nested, RelationClaim{
 			Prop:        mr.Prop.ID,
-			PropDisplay: mrPropDisplay,
+			PropDisplay: mrPropDisplay.Display,
+			PropNaming:  mrPropDisplay.Naming,
 			To:          mr.To.ID,
-			ToDisplay:   mrToDisplay,
+			ToDisplay:   mrToDisplay.Display,
+			ToNaming:    mrToDisplay.Naming,
 			Relation:    nil,
 		})
 	}
@@ -983,7 +1015,8 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 		}
 		result = append(result, HasClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 			Relation:    nested,
 		})
 	}
@@ -1000,7 +1033,8 @@ func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) 
 		}
 		result = append(result, NoneClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 		})
 	}
 	return result, nil
@@ -1016,7 +1050,8 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 		}
 		result = append(result, UnknownClaim{
 			Prop:        pid,
-			PropDisplay: propDisplay,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
 		})
 	}
 	return result, nil
