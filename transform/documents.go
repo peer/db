@@ -1199,7 +1199,8 @@ func makeClaim(
 				errors.Details(errE)["value"] = fromAmount
 				return nil, errE
 			}
-			claim.From = &fromAmount
+			fromAmt := document.NewAmount(fromAmount, fromPrecision)
+			claim.From = &fromAmt
 			claim.FromPrecision = &fromPrecision
 			claim.FromIsOpen = fromIsOpen
 		} else if fromIsUnknown {
@@ -1229,7 +1230,8 @@ func makeClaim(
 				errors.Details(errE)["value"] = toAmount
 				return nil, errE
 			}
-			claim.To = &toAmount
+			toAmt := document.NewAmount(toAmount, toPrecision)
+			claim.To = &toAmt
 			claim.ToPrecision = &toPrecision
 			claim.ToIsClosed = toIsClosed
 		} else if toIsUnknown {
@@ -1270,15 +1272,15 @@ func makeClaim(
 			panic(errE)
 		}
 
-		if math.IsInf(amount, 0) || math.IsNaN(amount) {
-			errE := errors.New("value is infinity or not a number")
-			errors.Details(errE)["value"] = amount
+		if math.IsInf(precision, 0) || math.IsNaN(precision) || precision <= 0 {
+			errE := errors.New("precision must be finite positive number")
+			errors.Details(errE)["precision"] = precision
 			return nil, errE
 		}
 
-		if math.IsInf(precision, 0) || math.IsNaN(precision) {
-			errE := errors.New("precision is infinity or not a number")
-			errors.Details(errE)["value"] = precision
+		if math.IsInf(amount, 0) || math.IsNaN(amount) {
+			errE := errors.New("value is infinity or not a number")
+			errors.Details(errE)["value"] = amount
 			return nil, errE
 		}
 
@@ -1289,7 +1291,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Amount:    amount,
+			Amount:    document.NewAmount(amount, precision),
 			Precision: precision,
 		}, nil
 	}
@@ -1655,17 +1657,15 @@ func makeClaim(
 
 		precision, err := strconv.ParseFloat(precisionTag, 64)
 		if err != nil {
-			errE := errors.New("invalid precision tag value for numeric field")
+			errE := errors.New("invalid precision value for numeric field")
 			errors.Details(errE)["precision"] = precisionTag
 			return nil, errE
 		}
 
-		if math.IsInf(precision, 0) || math.IsNaN(precision) {
-			return nil, errors.New("precision tag value is infinity or not a number")
-		}
-
-		if precision <= 0 {
-			return nil, errors.New("precision tag value must be positive")
+		if math.IsInf(precision, 0) || math.IsNaN(precision) || precision <= 0 {
+			errE := errors.New("precision must be finite positive number")
+			errors.Details(errE)["precision"] = precision
+			return nil, errE
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
@@ -1681,7 +1681,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Amount:    amount,
+			Amount:    document.NewAmount(amount, precision),
 			Precision: precision,
 		}, nil
 	}

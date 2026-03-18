@@ -522,9 +522,15 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
 	unit := c.extractInUnit(claim.Meta)
-	from := claim.Amount - claim.Precision/2 //nolint:mnd
-	to := claim.Amount + claim.Precision/2   //nolint:mnd
-	display := formatAmount(claim.Amount, claim.Precision)
+	amount, errE := claim.Amount.Float64(claim.Precision)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+
+	from := amount - claim.Precision/2 //nolint:mnd
+	to := amount + claim.Precision/2   //nolint:mnd
+	display := claim.Amount.String()
 
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
 		GreaterThanOrEqual: &from,
@@ -568,13 +574,18 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		from = claim.From
-		// TODO: How to integrate precision besides display?
-		fromDisplay = formatAmount(*claim.From, *claim.FromPrecision)
+		// TODO: How to integrate precision besides validation?
+		fromValue, errE := claim.From.Float64(*claim.FromPrecision)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, nil, errE
+		}
+		from = &fromValue
+		fromDisplay = claim.From.String()
 		if claim.FromIsOpen {
-			rangeFloat.GreaterThan = claim.From
+			rangeFloat.GreaterThan = &fromValue
 		} else {
-			rangeFloat.GreaterThanOrEqual = claim.From
+			rangeFloat.GreaterThanOrEqual = &fromValue
 		}
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
@@ -617,13 +628,18 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		to = claim.To
 		// TODO: How to integrate precision besides display?
-		toDisplay = formatAmount(*claim.To, *claim.ToPrecision)
+		toValue, errE := claim.To.Float64(*claim.ToPrecision)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, nil, errE
+		}
+		to = &toValue
+		toDisplay = claim.To.String()
 		if claim.ToIsClosed {
-			rangeFloat.LessThanOrEqual = claim.To
+			rangeFloat.LessThanOrEqual = &toValue
 		} else {
-			rangeFloat.LessThan = claim.To
+			rangeFloat.LessThan = &toValue
 		}
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
@@ -698,7 +714,7 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 
 	from := t.Unix()
 	to := addPrecision(t, claim.Precision).Unix()
-	display := string(claim.Timestamp)
+	display := claim.Timestamp.String()
 
 	rangeInt := RangeInt{ //nolint:exhaustruct
 		GreaterThanOrEqual: &from,
@@ -749,7 +765,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		}
 		f := tm.Unix()
 		from = &f
-		fromDisplay = string(*claim.From)
+		fromDisplay = claim.From.String()
 		if claim.FromIsOpen {
 			rangeInt.GreaterThan = &f
 		} else {
@@ -804,7 +820,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		}
 		t := tm.Unix()
 		to = &t
-		toDisplay = string(*claim.To)
+		toDisplay = claim.To.String()
 		if claim.ToIsClosed {
 			rangeInt.LessThanOrEqual = &t
 		} else {
@@ -1043,9 +1059,4 @@ func addPrecision(t time.Time, precision document.TimePrecision) time.Time {
 		// so the range is always at least one second.
 		return t.Add(time.Second)
 	}
-}
-
-// formatAmount formats a float64 amount for display.
-func formatAmount(value, precision float64) string {
-	return string(document.NewAmount(value, precision))
 }

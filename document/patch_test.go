@@ -1,7 +1,6 @@
 package document_test
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +22,7 @@ func TestPatchJSON(t *testing.T) {
 	prop1 := identifier.String("XkbTJqwFCFkfoxMBXow4HU")
 	prop2 := identifier.String("3EL2nZdWVbw85XG1zTH2o5")
 	confidence := document.Confidence(1.0)
-	amount := 42.1
+	amount := document.Amount("42.1")
 	precision := 0.1
 	value := "foobar"
 
@@ -53,7 +52,7 @@ func TestPatchJSON(t *testing.T) {
 
 	out, errE := x.MarshalWithoutEscapeHTML(changes)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `[{"id":"BJwRdnJCE7ioDSoU2SfsSp","base":["TqtRsbk7rTKviW3TJapTim","0"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":42.1,"precision":0.1,"type":"amount"},"type":"add"},{"under":"BJwRdnJCE7ioDSoU2SfsSp","id":"Cm2mEEMZHh6KB7CBvZLocZ","base":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
+	assert.Equal(t, `[{"id":"BJwRdnJCE7ioDSoU2SfsSp","base":["TqtRsbk7rTKviW3TJapTim","0"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":"42.1","precision":0.1,"type":"amount"},"type":"add"},{"under":"BJwRdnJCE7ioDSoU2SfsSp","id":"Cm2mEEMZHh6KB7CBvZLocZ","base":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
 
 	var changes2 document.Changes
 	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
@@ -113,9 +112,9 @@ func TestAmountIntervalClaimPatch(t *testing.T) {
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
-	from := 1.5
+	from := document.Amount("1.5")
 	fromPrecision := 0.1
-	to := 9.5
+	to := document.Amount("9.5")
 	toPrecision := 0.1
 
 	p := document.AmountIntervalClaimPatch{
@@ -133,11 +132,11 @@ func TestAmountIntervalClaimPatch(t *testing.T) {
 	c, ok := claim.(*document.AmountIntervalClaim)
 	require.True(t, ok)
 	require.NotNil(t, c.From)
-	assert.Equal(t, from, *c.From) //nolint:testifylint
+	assert.Equal(t, from, *c.From)
 	require.NotNil(t, c.FromPrecision)
 	assert.Equal(t, fromPrecision, *c.FromPrecision) //nolint:testifylint
 	require.NotNil(t, c.To)
-	assert.Equal(t, to, *c.To) //nolint:testifylint
+	assert.Equal(t, to, *c.To)
 	require.NotNil(t, c.ToPrecision)
 	assert.Equal(t, toPrecision, *c.ToPrecision) //nolint:testifylint
 
@@ -210,16 +209,16 @@ func TestAmountClaimValidate(t *testing.T) {
 	ref := document.Reference{ID: prop}
 
 	valid := []document.AmountClaim{
-		{CoreClaim: core, Prop: ref, Amount: 0, Precision: 1},
-		{CoreClaim: core, Prop: ref, Amount: -1.5, Precision: 0.5},
+		{CoreClaim: core, Prop: ref, Amount: document.Amount("0"), Precision: 1},
+		{CoreClaim: core, Prop: ref, Amount: document.Amount("-1.5"), Precision: 0.5},
 	}
 	for _, c := range valid {
 		errE := c.Validate()
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	nan := document.AmountClaim{CoreClaim: core, Prop: ref, Amount: math.NaN(), Precision: 1}
-	assert.EqualError(t, nan.Validate(), "Amount must be a finite number")
+	nan := document.AmountClaim{CoreClaim: core, Prop: ref, Amount: document.Amount("abc"), Precision: 1}
+	assert.EqualError(t, nan.Validate(), "unable to parse amount")
 }
 
 func TestAmountIntervalClaimValidate(t *testing.T) {
@@ -227,9 +226,9 @@ func TestAmountIntervalClaimValidate(t *testing.T) {
 
 	prop := identifier.New()
 	id := identifier.New()
-	from := 1.0
+	from := document.Amount("1.0")
 	fromP := 0.1
-	to := 9.0
+	to := document.Amount("9.0")
 	toP := 0.1
 
 	valid := &document.AmountIntervalClaim{ //nolint:exhaustruct

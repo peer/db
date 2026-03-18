@@ -241,9 +241,9 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	prop := identifier.New()
 	ref := document.Reference{ID: prop}
 	conf := document.HighConfidence
-	from := 1.0
+	from := document.Amount("1.0")
 	fromP := 0.1
-	to := 9.0
+	to := document.Amount("9.0")
 	toP := 0.1
 	fromTS := document.Timestamp("2020-01-01")
 	fromPrec := document.TimePrecisionDay
@@ -260,7 +260,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	idClaim := &document.IdentifierClaim{CoreClaim: newCore(), Prop: ref, Value: "ext-id"}
 	strClaim := &document.StringClaim{CoreClaim: newCore(), Prop: ref, String: "text"}
 	htmlClaim := &document.HTMLClaim{CoreClaim: newCore(), Prop: ref, HTML: "<b>html</b>"}
-	amtClaim := &document.AmountClaim{CoreClaim: newCore(), Prop: ref, Amount: 42.0, Precision: 1.0}
+	amtClaim := &document.AmountClaim{CoreClaim: newCore(), Prop: ref, Amount: document.Amount("42"), Precision: 1.0}
 	amtIntervalClaim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     newCore(),
 		Prop:          ref,
@@ -827,9 +827,9 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 	prop := identifier.New()
 	ref := document.Reference{ID: prop}
 	core := document.CoreClaim{ID: identifier.New(), Confidence: 1.0}
-	from := 1.0
+	from := document.Amount("1.0")
 	fromP := 0.1
-	to := 9.0
+	to := document.Amount("9.0")
 	toP := 0.1
 
 	t.Run("multiple_from_flags", func(t *testing.T) {
@@ -1495,11 +1495,11 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 	prop := identifier.New()
 	target := identifier.New()
 	conf := document.Confidence(1.0)
-	amount := 5.0
+	amount := document.Amount("5.0")
 	precision := 0.1
-	from := 1.0
+	from := document.Amount("1.0")
 	fromP := 0.1
-	to := 9.0
+	to := document.Amount("9.0")
 	toP := 0.1
 	ts := document.Timestamp("2025-01-01")
 	tsPrec := document.TimePrecisionDay
@@ -1789,7 +1789,7 @@ func TestAmountClaimPatchApply(t *testing.T) {
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
-	amount := 42.0
+	amount := document.Amount("42")
 	precision := 1.0
 
 	p := document.AmountClaimPatch{
@@ -1804,14 +1804,14 @@ func TestAmountClaimPatchApply(t *testing.T) {
 
 	c, ok := claim.(*document.AmountClaim)
 	require.True(t, ok)
-	assert.Equal(t, amount, c.Amount) //nolint:testifylint
+	assert.Equal(t, amount, c.Amount)
 
 	// Test Apply updates the amount.
-	newAmount := 99.0
+	newAmount := document.Amount("99")
 	applyPatch := document.AmountClaimPatch{Amount: &newAmount}
 	errE = applyPatch.Apply(claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newAmount, c.Amount) //nolint:testifylint
+	assert.Equal(t, newAmount, c.Amount)
 
 	// Test Apply with empty patch returns error.
 	emptyPatch := document.AmountClaimPatch{}
@@ -2042,10 +2042,10 @@ func TestAmountClaimValidateInfPrecision(t *testing.T) {
 	c := &document.AmountClaim{
 		CoreClaim: core,
 		Prop:      ref,
-		Amount:    1.0,
+		Amount:    document.Amount("1"),
 		Precision: math.Inf(1),
 	}
-	assert.EqualError(t, c.Validate(), "Precision must be a finite number")
+	assert.EqualError(t, c.Validate(), "Precision must be a finite positive number")
 }
 
 // TestAmountClaimValidateNegativePrecision tests AmountClaim.Validate with negative precision.
@@ -2059,10 +2059,10 @@ func TestAmountClaimValidateNegativePrecision(t *testing.T) {
 	c := &document.AmountClaim{
 		CoreClaim: core,
 		Prop:      ref,
-		Amount:    1.0,
+		Amount:    document.Amount("1"),
 		Precision: -0.1,
 	}
-	assert.EqualError(t, c.Validate(), "Precision must be positive")
+	assert.EqualError(t, c.Validate(), "Precision must be a finite positive number")
 }
 
 // TestAmountIntervalClaimValidateNegativePrecision tests AmountIntervalClaim.Validate with negative precision.
@@ -2073,8 +2073,8 @@ func TestAmountIntervalClaimValidateNegativePrecision(t *testing.T) {
 	ref := document.Reference{ID: prop}
 	core := document.CoreClaim{ID: identifier.New(), Confidence: 1.0}
 
-	from := 1.0
-	to := 10.0
+	from := document.Amount("1.0")
+	to := document.Amount("10.0")
 	negP := -0.1
 	posP := 0.1
 
@@ -2087,7 +2087,7 @@ func TestAmountIntervalClaimValidateNegativePrecision(t *testing.T) {
 		To:            &to,
 		ToPrecision:   &posP,
 	}
-	assert.EqualError(t, c.Validate(), "FromPrecision must be positive")
+	assert.EqualError(t, c.Validate(), "FromPrecision must be finite positive number")
 
 	// Invalid: negative ToPrecision.
 	c = &document.AmountIntervalClaim{ //nolint:exhaustruct
@@ -2098,7 +2098,7 @@ func TestAmountIntervalClaimValidateNegativePrecision(t *testing.T) {
 		To:            &to,
 		ToPrecision:   &negP,
 	}
-	assert.EqualError(t, c.Validate(), "ToPrecision must be positive")
+	assert.EqualError(t, c.Validate(), "ToPrecision must be finite positive number")
 }
 
 // TestDocumentGetByIDInMeta tests that GetByID searches inside claim metadata.
@@ -2227,9 +2227,9 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 	newClaim := func(t *testing.T) *document.AmountIntervalClaim {
 		t.Helper()
 		prop := identifier.New()
-		from := 1.0
+		from := document.Amount("1.0")
 		fromP := 0.1
-		to := 9.0
+		to := document.Amount("9.0")
 		toP := 0.1
 		conf := document.Confidence(1.0)
 		p := document.AmountIntervalClaimPatch{
@@ -2250,7 +2250,7 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 	t.Run("set_from_and_precision", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		newFrom := 2.0
+		newFrom := document.Amount("2.0")
 		newFromP := 0.2
 		patch := document.AmountIntervalClaimPatch{
 			From:          &newFrom,
@@ -2259,7 +2259,7 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 		errE := patch.Apply(claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.NotNil(t, claim.From)
-		assert.Equal(t, newFrom, *claim.From) //nolint:testifylint
+		assert.Equal(t, newFrom, *claim.From)
 	})
 
 	t.Run("set_from_is_open", func(t *testing.T) {
@@ -2287,7 +2287,7 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 	t.Run("set_to_and_precision", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		newTo := 15.0
+		newTo := document.Amount("15.0")
 		newToP := 0.5
 		patch := document.AmountIntervalClaimPatch{
 			To:          &newTo,
@@ -2296,7 +2296,7 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 		errE := patch.Apply(claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.NotNil(t, claim.To)
-		assert.Equal(t, newTo, *claim.To) //nolint:testifylint
+		assert.Equal(t, newTo, *claim.To)
 	})
 
 	t.Run("set_to_is_closed", func(t *testing.T) {

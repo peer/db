@@ -722,7 +722,7 @@ func (p HTMLClaimPatch) MarshalJSON() ([]byte, error) {
 type AmountClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Amount     *float64               `exhaustruct:"optional" json:"amount,omitempty"`
+	Amount     *Amount                `exhaustruct:"optional" json:"amount,omitempty"`
 	Precision  *float64               `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
@@ -819,13 +819,13 @@ type AmountIntervalClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 
-	From          *float64 `exhaustruct:"optional" json:"from,omitempty"`
+	From          *Amount  `exhaustruct:"optional" json:"from,omitempty"`
 	FromPrecision *float64 `exhaustruct:"optional" json:"fromPrecision,omitempty"`
 	FromIsOpen    *bool    `exhaustruct:"optional" json:"fromIsOpen,omitempty"`
 	FromIsUnknown *bool    `exhaustruct:"optional" json:"fromIsUnknown,omitempty"`
 	FromIsNone    *bool    `exhaustruct:"optional" json:"fromIsNone,omitempty"`
 
-	To          *float64 `exhaustruct:"optional" json:"to,omitempty"`
+	To          *Amount  `exhaustruct:"optional" json:"to,omitempty"`
 	ToPrecision *float64 `exhaustruct:"optional" json:"toPrecision,omitempty"`
 	ToIsClosed  *bool    `exhaustruct:"optional" json:"toIsClosed,omitempty"`
 	ToIsUnknown *bool    `exhaustruct:"optional" json:"toIsUnknown,omitempty"`

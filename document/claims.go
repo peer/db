@@ -534,7 +534,7 @@ func (c *HTMLClaim) Validate() errors.E {
 
 // AmountClaim represents a claim for numeric amount and precision.
 //
-// Precision is represented as number so that value % precision == 0.
+// Precision is represented as number so that round(amount / precision) * precision == amount.
 // For example, 100 represents two digits precision, 60 represents
 // minute precision for seconds.
 //
@@ -545,27 +545,21 @@ type AmountClaim struct {
 	CoreClaim
 
 	Prop      Reference `json:"prop"`
-	Amount    float64   `json:"amount"`
+	Amount    Amount    `json:"amount"`
 	Precision float64   `json:"precision"`
 }
 
-// Validate checks that the amount claim has finite non-zero precision values and valid confidence.
+// Validate checks that the amount claim has valid amount, precision, and confidence.
 func (c *AmountClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
-	if math.IsInf(c.Amount, 0) || math.IsNaN(c.Amount) {
-		return errors.New("Amount must be a finite number")
-	}
-	if math.IsInf(c.Precision, 0) || math.IsNaN(c.Precision) {
-		return errors.New("Precision must be a finite number")
-	}
-	if c.Precision <= 0 {
-		return errors.New("Precision must be positive")
+	if math.IsInf(c.Precision, 0) || math.IsNaN(c.Precision) || c.Precision <= 0 {
+		return errors.New("Precision must be a finite positive number")
 	}
 
-	return nil
+	return c.Amount.Validate(c.Precision)
 }
 
 // AmountIntervalClaim represents a claim for numeric amount interval.
@@ -588,13 +582,13 @@ type AmountIntervalClaim struct {
 
 	Prop Reference `json:"prop"`
 
-	From          *float64 `json:"from,omitempty"`
+	From          *Amount  `json:"from,omitempty"`
 	FromPrecision *float64 `json:"fromPrecision,omitempty"`
 	FromIsOpen    bool     `json:"fromIsOpen,omitempty"`
 	FromIsUnknown bool     `json:"fromIsUnknown,omitempty"`
 	FromIsNone    bool     `json:"fromIsNone,omitempty"`
 
-	To          *float64 `json:"to,omitempty"`
+	To          *Amount  `json:"to,omitempty"`
 	ToPrecision *float64 `json:"toPrecision,omitempty"`
 	ToIsClosed  bool     `json:"toIsClosed,omitempty"`
 	ToIsUnknown bool     `json:"toIsUnknown,omitempty"`
@@ -630,14 +624,14 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	if c.From != nil && (c.FromIsUnknown || c.FromIsNone) {
 		return errors.New("From must not be set when FromIsUnknown or FromIsNone is true")
 	}
-	if c.From != nil && (math.IsInf(*c.From, 0) || math.IsNaN(*c.From)) {
-		return errors.New("From must be a finite number")
-	}
-	if c.FromPrecision != nil && (math.IsInf(*c.FromPrecision, 0) || math.IsNaN(*c.FromPrecision)) {
-		return errors.New("FromPrecision must be a finite number")
-	}
-	if c.FromPrecision != nil && *c.FromPrecision <= 0 {
-		return errors.New("FromPrecision must be positive")
+	if c.FromPrecision != nil {
+		if math.IsInf(*c.FromPrecision, 0) || math.IsNaN(*c.FromPrecision) || *c.FromPrecision <= 0 {
+			return errors.New("FromPrecision must be finite positive number")
+		}
+		errE := c.From.Validate(*c.FromPrecision)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	toIsCount := 0
@@ -662,14 +656,14 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	if c.To != nil && (c.ToIsUnknown || c.ToIsNone) {
 		return errors.New("To must not be set when ToIsUnknown or ToIsNone is true")
 	}
-	if c.To != nil && (math.IsInf(*c.To, 0) || math.IsNaN(*c.To)) {
-		return errors.New("To must be a finite number")
-	}
-	if c.ToPrecision != nil && (math.IsInf(*c.ToPrecision, 0) || math.IsNaN(*c.ToPrecision)) {
-		return errors.New("ToPrecision must be a finite number")
-	}
-	if c.ToPrecision != nil && *c.ToPrecision <= 0 {
-		return errors.New("ToPrecision must be positive")
+	if c.ToPrecision != nil {
+		if math.IsInf(*c.ToPrecision, 0) || math.IsNaN(*c.ToPrecision) || *c.ToPrecision <= 0 {
+			return errors.New("ToPrecision must be finite positive number")
+		}
+		errE := c.To.Validate(*c.ToPrecision)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	return nil

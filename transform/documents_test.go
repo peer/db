@@ -635,7 +635,7 @@ func TestDocuments_AmountIntervalWithUnknownBounds(t *testing.T) {
 	assert.True(t, claim.FromIsUnknown)
 	assert.Nil(t, claim.From)
 	require.NotNil(t, claim.To)
-	assert.Equal(t, 10.0, *claim.To) //nolint:testifylint
+	assert.Equal(t, document.Amount("10"), *claim.To)
 }
 
 func TestDocuments_AmountIntervalWithNoneBounds(t *testing.T) {
@@ -664,7 +664,7 @@ func TestDocuments_AmountIntervalWithNoneBounds(t *testing.T) {
 	require.Len(t, doc.Claims.AmountInterval, 1)
 	claim := doc.Claims.AmountInterval[0]
 	require.NotNil(t, claim.From)
-	assert.Equal(t, 1.0, *claim.From) //nolint:testifylint
+	assert.Equal(t, document.Amount("1"), *claim.From)
 	assert.Nil(t, claim.To)
 	assert.True(t, claim.ToIsNone)
 }
@@ -746,15 +746,15 @@ func TestDocuments_AmountClaim(t *testing.T) {
 	require.Len(t, doc.Claims.Amount, 3)
 
 	// Check Width (float).
-	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount) //nolint:testifylint
+	assert.Equal(t, document.Amount("1.50"), doc.Claims.Amount[0].Amount)
 	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
 
 	// Check Height (int).
-	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount) //nolint:testifylint
+	assert.Equal(t, document.Amount("200"), doc.Claims.Amount[1].Amount)
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
 
 	// Check Count (uint).
-	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount) //nolint:testifylint
+	assert.Equal(t, document.Amount("42"), doc.Claims.Amount[2].Amount)
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
 }
 
@@ -786,17 +786,17 @@ func TestDocuments_CoreAmountClaim(t *testing.T) {
 	require.Len(t, doc.Claims.Amount, 3)
 
 	// Check Width (float64).
-	assert.Equal(t, 1.5, doc.Claims.Amount[0].Amount)    //nolint:testifylint
+	assert.Equal(t, document.Amount("1.5"), doc.Claims.Amount[0].Amount)
 	assert.Equal(t, 0.1, doc.Claims.Amount[0].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
 
 	// Check Height (int).
-	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount)  //nolint:testifylint
+	assert.Equal(t, document.Amount("200"), doc.Claims.Amount[1].Amount)
 	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
 
 	// Check Count (uint).
-	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount)   //nolint:testifylint
+	assert.Equal(t, document.Amount("42"), doc.Claims.Amount[2].Amount)
 	assert.Equal(t, 1.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
 }
@@ -818,7 +818,7 @@ func TestDocuments_CoreAmountPrecisionInfinity(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "precision is infinity or not a number")
+	assert.EqualError(t, errE, "precision must be finite positive number")
 }
 
 func TestDocuments_AmountRangeClaim(t *testing.T) {
@@ -849,9 +849,9 @@ func TestDocuments_AmountRangeClaim(t *testing.T) {
 
 	claim := doc.Claims.AmountInterval[0]
 	require.NotNil(t, claim.From)
-	assert.Equal(t, 1.0, *claim.From) //nolint:testifylint
+	assert.Equal(t, document.Amount("1"), *claim.From)
 	require.NotNil(t, claim.To)
-	assert.Equal(t, 10.0, *claim.To) //nolint:testifylint
+	assert.Equal(t, document.Amount("10"), *claim.To)
 	assert.Equal(t, identifier.From("test", "doc1", "PERIOD", "0"), claim.ID)
 }
 
@@ -1161,9 +1161,9 @@ func TestDocuments_ZeroValues(t *testing.T) {
 	require.Len(t, doc.Claims.Amount, 3)
 
 	// Verify all amounts are zero.
-	for i, claim := range doc.Claims.Amount {
-		assert.Equal(t, 0.0, claim.Amount, "claim %d", i) //nolint:testifylint
-	}
+	assert.Equal(t, document.Amount("0.00"), doc.Claims.Amount[0].Amount)
+	assert.Equal(t, document.Amount("0"), doc.Claims.Amount[1].Amount)
+	assert.Equal(t, document.Amount("0"), doc.Claims.Amount[2].Amount)
 
 	assert.Equal(t, identifier.From("test", "doc1", "WIDTH", "0"), doc.Claims.Amount[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
@@ -2473,7 +2473,7 @@ func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 	// Should have 1 amount claim.
 	require.Len(t, doc.Claims.Amount, 1)
 
-	assert.Equal(t, 1.75, doc.Claims.Amount[0].Amount) //nolint:testifylint
+	assert.Equal(t, document.Amount("1.75"), doc.Claims.Amount[0].Amount)
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[0].ID)
 
 	// Should have meta claim.
@@ -6122,13 +6122,13 @@ func TestDocuments_NumericPrecision(t *testing.T) {
 	doc := results[0]
 	require.Len(t, doc.Claims.Amount, 4)
 
-	assert.Equal(t, 1.75, doc.Claims.Amount[0].Amount)    //nolint:testifylint
+	assert.Equal(t, document.Amount("1.75"), doc.Claims.Amount[0].Amount)
 	assert.Equal(t, 0.01, doc.Claims.Amount[0].Precision) //nolint:testifylint
-	assert.Equal(t, 200.0, doc.Claims.Amount[1].Amount)   //nolint:testifylint
-	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision)  //nolint:testifylint
-	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount)    //nolint:testifylint
+	assert.Equal(t, document.Amount("200"), doc.Claims.Amount[1].Amount)
+	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision) //nolint:testifylint
+	assert.Equal(t, document.Amount("40"), doc.Claims.Amount[2].Amount)
 	assert.Equal(t, 10.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
-	assert.InDelta(t, 3.14, doc.Claims.Amount[3].Amount, 1e-5)
+	assert.Equal(t, document.Amount("3.0"), doc.Claims.Amount[3].Amount)
 	assert.Equal(t, 0.5, doc.Claims.Amount[3].Precision) //nolint:testifylint
 }
 
@@ -6171,7 +6171,7 @@ func TestDocuments_NumericInvalidPrecision(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "invalid precision tag value for numeric field")
+	assert.EqualError(t, errE, "invalid precision value for numeric field")
 }
 
 func TestDocuments_NumericPrecisionZero(t *testing.T) {
@@ -6192,7 +6192,7 @@ func TestDocuments_NumericPrecisionZero(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "precision tag value must be positive")
+	assert.EqualError(t, errE, "precision must be finite positive number")
 }
 
 func TestDocuments_NumericPrecisionNegative(t *testing.T) {
@@ -6213,7 +6213,7 @@ func TestDocuments_NumericPrecisionNegative(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "precision tag value must be positive")
+	assert.EqualError(t, errE, "precision must be finite positive number")
 }
 
 func TestDocuments_NumericPrecisionOnCoreAmountErrors(t *testing.T) {
