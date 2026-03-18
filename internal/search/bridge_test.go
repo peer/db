@@ -293,7 +293,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	// The bridge's run loop detects the channel close, exits with errCommittedChannelClosed,
 	// and restarts — re-running the catch-up phase to recover any missed commits.
 	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
-	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
+	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Insert more documents after the simulated reconnection. These may be missed by the
 	// real-time channel but must be recovered via the catch-up phase on bridge restart.
