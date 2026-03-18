@@ -58,6 +58,7 @@ type AmountType interface {
 //
 // Infinite or NaN values are not supported for Amount[float32] and Amount[float64].
 type Amount[T AmountType] struct {
+	// We do not use document.Amount here for easier interoperability with other systems.
 	Amount    T `json:"amount"`
 	Precision T `json:"precision"`
 }
