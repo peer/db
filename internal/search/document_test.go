@@ -87,7 +87,7 @@ func TestRangeFloatValidate(t *testing.T) {
 
 	t.Run("empty range", func(t *testing.T) {
 		t.Parallel()
-		r := search.RangeFloat{} //nolint:exhaustruct
+		r := search.RangeFloat{}
 		errE := r.Validate()
 		assert.Error(t, errE)
 	})
@@ -172,7 +172,7 @@ func TestRangeIntValidate(t *testing.T) {
 
 	t.Run("empty range", func(t *testing.T) {
 		t.Parallel()
-		r := search.RangeInt{} //nolint:exhaustruct
+		r := search.RangeInt{}
 		errE := r.Validate()
 		assert.Error(t, errE)
 	})

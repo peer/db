@@ -88,7 +88,7 @@ func TestMappingIsIndented(t *testing.T) {
 
 	str := string(data)
 	// Should end with a newline.
-	assert.True(t, str[len(str)-1] == '\n')
+	assert.Equal(t, str[len(str)-1], '\n')
 	// Should contain indentation.
 	assert.Contains(t, str, "  ")
 }

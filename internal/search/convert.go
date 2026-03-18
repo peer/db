@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -56,6 +57,8 @@ type Converter struct {
 	mnemonics map[string]identifier.Identifier
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
+	// displayCacheMu protects displayCache for concurrent access.
+	displayCacheMu sync.RWMutex
 	// displayCache caches computed display strings per language per document ID.
 	displayCache map[identifier.Identifier]displayStrings
 }
@@ -240,11 +243,15 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 }
 
 // getDisplayStrings returns the display strings for a document, making and
-// caching them on first access.
+// caching them on first access. It is safe for concurrent use.
 func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identifier) (displayStrings, errors.E) {
+	c.displayCacheMu.RLock()
 	if display, ok := c.displayCache[id]; ok {
+		c.displayCacheMu.RUnlock()
 		return display, nil
 	}
+	c.displayCacheMu.RUnlock()
+
 	doc, errE := c.getDocument(ctx, id)
 	if errE != nil {
 		return displayStrings{}, errE
@@ -253,7 +260,11 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 	if errE != nil {
 		return displayStrings{}, errE
 	}
+
+	c.displayCacheMu.Lock()
 	c.displayCache[id] = display
+	c.displayCacheMu.Unlock()
+
 	return display, nil
 }
 
@@ -261,7 +272,7 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 // If the document has a DISPLAY_LABEL_TEMPLATE claim, it renders the template
 // for the display label and moves all naming strings to the Naming field.
 // Otherwise, the first naming string becomes Display and the rest become Naming.
-func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (displayStrings, errors.E) { //nolint:unparam
+func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (displayStrings, errors.E) {
 	namingStrings := c.namingStrings(doc)
 	templatesByLang := c.displayLabelTemplates(doc)
 
@@ -808,7 +819,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		}
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
-		// so we lave from and fromDisplay empty.
+		// so we leave from and fromDisplay empty.
 		// But we want to find it always when we search by range.
 		f := -math.MaxFloat64
 		rangeFloat.GreaterThanOrEqual = &f
@@ -862,7 +873,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		}
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
-		// so we lave to and toDisplay empty.
+		// so we leave to and toDisplay empty.
 		// But we want to find it always when we search by range.
 		t := math.MaxFloat64
 		rangeFloat.LessThanOrEqual = &t
@@ -994,7 +1005,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		}
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
-		// so we lave from and fromDisplay empty.
+		// so we leave from and fromDisplay empty.
 		// But we want to find it always when we search by range.
 		f := int64(math.MinInt64)
 		rangeInt.GreaterThanOrEqual = &f
@@ -1049,7 +1060,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		}
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
-		// so we lave to and toDisplay empty.
+		// so we leave to and toDisplay empty.
 		// But we want to find it always when we search by range.
 		t := int64(math.MaxInt64)
 		rangeInt.LessThanOrEqual = &t
@@ -1115,6 +1126,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		result = append(result, ReferenceClaim{
@@ -1133,10 +1145,12 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		nested = append(nested, RelationClaim{
@@ -1159,11 +1173,13 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 	for _, pid := range propIDs {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		for _, tid := range targetIDs {
 			toDisplay, errE := c.getDisplayStrings(ctx, tid)
 			if errE != nil {
+				errors.Details(errE)["claim"] = claim
 				return nil, errE
 			}
 			result = append(result, RelationClaim{
@@ -1186,10 +1202,12 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		nested = append(nested, RelationClaim{
@@ -1208,6 +1226,7 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		result = append(result, HasClaim{
@@ -1226,6 +1245,7 @@ func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) 
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		result = append(result, NoneClaim{
@@ -1243,6 +1263,7 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
+			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		result = append(result, UnknownClaim{

@@ -7405,7 +7405,7 @@ func TestDocuments_AmountIntervalEmptySkipped(t *testing.T) {
 	docs := []any{
 		&Doc{
 			ID:    []string{"test", "doc1"},
-			Range: core.Interval[core.Amount[int]]{}, //nolint:exhaustruct
+			Range: core.Interval[core.Amount[int]]{},
 		},
 	}
 
@@ -7590,7 +7590,7 @@ func TestDocuments_TypeTagOnCoreAmountErrors(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID    []string          `documentid:""`
+		ID    []string         `documentid:""`
 		Width core.Amount[int] `              property:"WIDTH" type:"id"`
 	}
 
@@ -7611,7 +7611,7 @@ func TestDocuments_LocationOnCoreAmountErrors(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID    []string          `documentid:""`
+		ID    []string         `documentid:""`
 		Width core.Amount[int] `              location:"UTC" property:"WIDTH"`
 	}
 
@@ -7632,7 +7632,7 @@ func TestDocuments_CoreAmountInfinityErrors(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID    []string              `documentid:""`
+		ID    []string             `documentid:""`
 		Width core.Amount[float64] `              property:"WIDTH"`
 	}
 

@@ -40,7 +40,7 @@ func makeCoreClaim(confidence document.Confidence, meta *document.ClaimTypes) do
 
 // makePropertyDoc creates a property document (instance of PROPERTY class) with optional SUBPROPERTY_OF relation.
 func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identifier) *document.D {
-	claims := &document.ClaimTypes{} //nolint:exhaustruct
+	claims := &document.ClaimTypes{}
 	// INSTANCE_OF -> PROPERTY.
 	claims.Relation = append(claims.Relation, document.RelationClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -64,7 +64,7 @@ func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identif
 
 // makeClassDoc creates a class document (instance of CLASS class) with optional SUBCLASS_OF relation.
 func makeClassDoc(id identifier.Identifier, subclassOf *identifier.Identifier) *document.D {
-	claims := &document.ClaimTypes{} //nolint:exhaustruct
+	claims := &document.ClaimTypes{}
 	claims.Relation = append(claims.Relation, document.RelationClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
@@ -87,7 +87,7 @@ func makeClassDoc(id identifier.Identifier, subclassOf *identifier.Identifier) *
 
 // makeLanguageDoc creates a language document (instance of LANGUAGE class) with a CODE identifier.
 func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
-	claims := &document.ClaimTypes{} //nolint:exhaustruct
+	claims := &document.ClaimTypes{}
 	claims.Relation = append(claims.Relation, document.RelationClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
@@ -108,7 +108,7 @@ func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
 
 // makeNamingDoc creates a document with a naming string claim.
 func makeNamingDoc(id identifier.Identifier, name string) *document.D {
-	claims := &document.ClaimTypes{} //nolint:exhaustruct
+	claims := &document.ClaimTypes{}
 	claims.String = append(claims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: namingPropID},
@@ -206,7 +206,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 	// Document that is NOT an instance of PROPERTY.
 	notProp := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -267,7 +267,7 @@ func TestBuildClassHierarchySkipsNonClass(t *testing.T) {
 
 	notClass := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -459,7 +459,7 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 	// Not an instance of LANGUAGE.
 	notLang := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -488,7 +488,7 @@ func TestExtractInLanguages(t *testing.T) {
 	}
 
 	// Meta with IN_LANGUAGE relation to a known language.
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -506,7 +506,7 @@ func TestExtractInLanguages(t *testing.T) {
 
 	// Meta with unknown language.
 	unknownLangID := identifier.New()
-	metaUnknown := &document.ClaimTypes{ //nolint:exhaustruct
+	metaUnknown := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -530,7 +530,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 		},
 	}
 
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -555,7 +555,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 		},
 	}
 
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -578,10 +578,10 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 func TestExtractInUnit(t *testing.T) {
 	t.Parallel()
 
-	c := &Converter{} //nolint:exhaustruct
+	c := &Converter{}
 
 	// Meta with IN_UNIT relation.
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -599,7 +599,7 @@ func TestExtractInUnit(t *testing.T) {
 	assert.Nil(t, unit)
 
 	// Empty meta.
-	unit = c.extractInUnit(&document.ClaimTypes{}) //nolint:exhaustruct
+	unit = c.extractInUnit(&document.ClaimTypes{})
 	assert.Nil(t, unit)
 }
 
@@ -670,7 +670,7 @@ func TestNamingStringsSorted(t *testing.T) {
 	// Two naming strings with different confidences.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.MediumConfidence, nil),
@@ -705,7 +705,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 	// Two naming strings: first becomes Display, rest become Naming.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -874,7 +874,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -930,7 +930,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -988,7 +988,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1905,7 +1905,7 @@ func TestConvertRelationWithMetaRelations(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1963,7 +1963,7 @@ func TestConvertHasWithMetaRelations(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2034,7 +2034,7 @@ func TestFromDocument(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2098,7 +2098,7 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2259,7 +2259,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2282,7 +2282,7 @@ func TestFromDocumentStringError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2305,7 +2305,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			HTML: []document.HTMLClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2328,7 +2328,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Amount: []document.AmountClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2356,7 +2356,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 	toPrec := 1.0
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			AmountInterval: []document.AmountIntervalClaim{
 				{
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
@@ -2382,7 +2382,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Time: []document.TimeClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2410,7 +2410,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 	toPrec := document.TimePrecisionDay
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			TimeInterval: []document.TimeIntervalClaim{
 				{
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
@@ -2436,7 +2436,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2459,7 +2459,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2482,7 +2482,7 @@ func TestFromDocumentHasError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Has: []document.HasClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2504,7 +2504,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			None: []document.NoneClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2526,7 +2526,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 	ctx := t.Context()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Unknown: []document.UnknownClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2864,7 +2864,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2892,7 +2892,7 @@ func TestConvertRelationMetaToError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2937,7 +2937,7 @@ func TestConvertHasMetaPropError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -2964,7 +2964,7 @@ func TestConvertHasMetaToError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3184,7 +3184,7 @@ func TestDisplayNameTemplates(t *testing.T) {
 	// Document with a DISPLAY_LABEL_TEMPLATE claim.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3208,7 +3208,7 @@ func TestDisplayNameTemplatesWithLanguage(t *testing.T) {
 		},
 	}
 
-	meta := &document.ClaimTypes{ //nolint:exhaustruct
+	meta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3219,7 +3219,7 @@ func TestDisplayNameTemplatesWithLanguage(t *testing.T) {
 	}
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, meta),
@@ -3269,7 +3269,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 	// Document with a DISPLAY_LABEL_TEMPLATE and naming + short name claims.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3313,7 +3313,7 @@ func TestMakeDisplayStringsWithTemplateFallback(t *testing.T) {
 	// Template with invalid syntax should return an error.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3355,7 +3355,7 @@ func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
 		},
 	}
 
-	enMeta := &document.ClaimTypes{ //nolint:exhaustruct
+	enMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3364,7 +3364,7 @@ func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
 			},
 		},
 	}
-	slMeta := &document.ClaimTypes{ //nolint:exhaustruct
+	slMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3376,7 +3376,7 @@ func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					// Template only for English.
@@ -3432,7 +3432,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 
 	parentDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: parentDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			Amount: []document.AmountClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3461,7 +3461,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3514,7 +3514,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 	// Document with template but no naming strings.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3557,7 +3557,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 
 	// Document with a NAME claim in "und" and a template for "en".
 	// bestString should fall back to "und" when "en" is not found.
-	enMeta := &document.ClaimTypes{ //nolint:exhaustruct
+	enMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3569,7 +3569,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
@@ -3615,7 +3615,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3665,7 +3665,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	// bestRelationDoc returns nil, bestAmountString handles nil doc gracefully.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3705,7 +3705,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3741,7 +3741,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	otherDocID := identifier.New()
 	otherDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: otherDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3767,7 +3767,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID},
-		Claims: &document.ClaimTypes{ //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
