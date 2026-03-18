@@ -119,7 +119,7 @@ func TestAmountValidateInt(t *testing.T) {
 
 	// Integer amounts are always valid.
 	errE := core.Amount[int]{Amount: 42, Precision: 1}.Validate()
-	assert.NoError(t, errE, "% -+#.1v", errE)
+	assert.NoError(t, errE, "% -+#.1v", errE) //nolint:testifylint
 
 	// Invalid: negative precision.
 	errE = core.Amount[int]{Amount: 42, Precision: -1}.Validate()
