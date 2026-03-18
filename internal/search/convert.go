@@ -129,6 +129,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 			}
 		}
 		walk(prop.ID)
+		// Exclude the property itself to avoid duplicates when consuming code
+		// prepends the property (e.g., propagateProp).
+		delete(visited, prop.ID)
 		if len(visited) > 0 {
 			result := make([]identifier.Identifier, 0, len(visited))
 			for d := range visited {
@@ -152,6 +155,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 			}
 		}
 		walk(prop.ID)
+		// Exclude the property itself to avoid duplicates when consuming code
+		// prepends the property (e.g., propagateProp).
+		delete(visited, prop.ID)
 		if len(visited) > 0 {
 			result := make([]identifier.Identifier, 0, len(visited))
 			for a := range visited {
@@ -192,6 +198,9 @@ func (c *Converter) buildClassHierarchy(classes []*document.D) {
 			}
 		}
 		walk(cls.ID)
+		// Exclude the class itself to avoid duplicates when consuming code
+		// prepends the target (e.g., convertRelation).
+		delete(visited, cls.ID)
 		if len(visited) > 0 {
 			result := make([]identifier.Identifier, 0, len(visited))
 			for a := range visited {

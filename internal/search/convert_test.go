@@ -297,9 +297,9 @@ func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
 	}
 	c.buildPropertyHierarchy([]*document.D{selfRef})
 
-	// Self-reference should appear as both descendant and ancestor.
-	assert.Contains(t, c.propertyDescendants[testPropID], testPropID)
-	assert.Contains(t, c.propertyAncestors[testPropID], testPropID)
+	// Self-reference is excluded to avoid duplicates in consuming code.
+	assert.Empty(t, c.propertyDescendants[testPropID])
+	assert.Empty(t, c.propertyAncestors[testPropID])
 }
 
 func TestBuildPropertyHierarchyMutualCycle(t *testing.T) {
@@ -339,21 +339,15 @@ func TestBuildPropertyHierarchyLongerCycle(t *testing.T) {
 	}
 	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc, cDoc})
 
-	// Every node should have the other two as ancestors.
-	assert.Contains(t, c.propertyAncestors[a], b)
-	assert.Contains(t, c.propertyAncestors[a], cc)
-	assert.Contains(t, c.propertyAncestors[b], a)
-	assert.Contains(t, c.propertyAncestors[b], cc)
-	assert.Contains(t, c.propertyAncestors[cc], a)
-	assert.Contains(t, c.propertyAncestors[cc], b)
+	// Every node should have the other two (but not itself) as ancestors.
+	assert.ElementsMatch(t, c.propertyAncestors[a], []identifier.Identifier{b, cc})
+	assert.ElementsMatch(t, c.propertyAncestors[b], []identifier.Identifier{a, cc})
+	assert.ElementsMatch(t, c.propertyAncestors[cc], []identifier.Identifier{a, b})
 
-	// Every node should have the other two as descendants.
-	assert.Contains(t, c.propertyDescendants[a], b)
-	assert.Contains(t, c.propertyDescendants[a], cc)
-	assert.Contains(t, c.propertyDescendants[b], a)
-	assert.Contains(t, c.propertyDescendants[b], cc)
-	assert.Contains(t, c.propertyDescendants[cc], a)
-	assert.Contains(t, c.propertyDescendants[cc], b)
+	// Every node should have the other two (but not itself) as descendants.
+	assert.ElementsMatch(t, c.propertyDescendants[a], []identifier.Identifier{b, cc})
+	assert.ElementsMatch(t, c.propertyDescendants[b], []identifier.Identifier{a, cc})
+	assert.ElementsMatch(t, c.propertyDescendants[cc], []identifier.Identifier{a, b})
 }
 
 func TestBuildClassHierarchySelfCycle(t *testing.T) {
@@ -367,7 +361,8 @@ func TestBuildClassHierarchySelfCycle(t *testing.T) {
 	}
 	c.buildClassHierarchy([]*document.D{selfRef})
 
-	assert.Contains(t, c.classAncestors[testClassID], testClassID)
+	// Self-reference is excluded to avoid duplicates in consuming code.
+	assert.Empty(t, c.classAncestors[testClassID])
 }
 
 func TestBuildClassHierarchyMutualCycle(t *testing.T) {
@@ -404,13 +399,10 @@ func TestBuildClassHierarchyLongerCycle(t *testing.T) {
 	}
 	c.buildClassHierarchy([]*document.D{aDoc, bDoc, cDoc})
 
-	// Every node should have the other two as ancestors.
-	assert.Contains(t, c.classAncestors[a], b)
-	assert.Contains(t, c.classAncestors[a], cc)
-	assert.Contains(t, c.classAncestors[b], a)
-	assert.Contains(t, c.classAncestors[b], cc)
-	assert.Contains(t, c.classAncestors[cc], a)
-	assert.Contains(t, c.classAncestors[cc], b)
+	// Every node should have the other two (but not itself) as ancestors.
+	assert.ElementsMatch(t, c.classAncestors[a], []identifier.Identifier{b, cc})
+	assert.ElementsMatch(t, c.classAncestors[b], []identifier.Identifier{a, cc})
+	assert.ElementsMatch(t, c.classAncestors[cc], []identifier.Identifier{a, b})
 }
 
 func TestBuildNamingProperties(t *testing.T) {
@@ -1774,7 +1766,6 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	c.buildClassHierarchy([]*document.D{classADoc, classBDoc})
 
 	ctx := t.Context()
-	// Relation pointing to classA: ancestors include classB (and classA itself due to cycle).
 	claim := &document.RelationClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
@@ -1782,8 +1773,8 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	}
 	result, errE := c.convertRelation(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// Target + ancestors (classB and classA again from cycle).
-	// classA appears twice: once as the target, once as ancestor of itself.
+	// Target classA + ancestor classB, no duplicates.
+	require.Len(t, result, 2)
 	toIDs := make([]identifier.Identifier, len(result))
 	for i, r := range result {
 		toIDs[i] = r.To
@@ -1816,14 +1807,10 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 	}
 	result, errE := c.convertRelation(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// propA appears both as the direct property and as its own ancestor.
-	propIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		propIDs[i] = r.Prop
-	}
-	assert.Contains(t, propIDs, propA)
-	// Should have at least 1 result and not infinite loop.
-	assert.GreaterOrEqual(t, len(result), 1)
+	// Self-cycle excluded: only one claim with propA, no duplicate.
+	require.Len(t, result, 1)
+	assert.Equal(t, propA, result[0].Prop)
+	assert.Equal(t, testTargetDocID, result[0].To)
 }
 
 func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
@@ -1854,11 +1841,12 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	}
 	result, errE := c.convertRelation(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	// propA (direct) + propB (ancestor), no duplicates.
+	require.Len(t, result, 2)
 	propIDs := make([]identifier.Identifier, len(result))
 	for i, r := range result {
 		propIDs[i] = r.Prop
 	}
-	// Both propA (direct) and propB (ancestor) should appear.
 	assert.Contains(t, propIDs, propA)
 	assert.Contains(t, propIDs, propB)
 }
@@ -1889,6 +1877,8 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 	}
 	result, errE := c.convertString(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	// propA (direct) + propB (ancestor), no duplicates.
+	require.Len(t, result, 2)
 	propIDs := make([]identifier.Identifier, len(result))
 	for i, r := range result {
 		propIDs[i] = r.Prop
