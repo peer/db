@@ -7096,3 +7096,981 @@ func TestDocuments_ConfidenceOnValueTagForbidden(t *testing.T) {
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "confidence tag cannot be used with value tag")
 }
+
+func TestDocuments_TypeTagOnRefErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string `documentid:""`
+		Parent core.Ref `              property:"PARENT" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:     []string{"test", "doc1"},
+			Parent: core.Ref{ID: []string{"parent", "id"}},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for core.Ref fields")
+}
+
+func TestDocuments_TypeTagOnGoTimeErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID      []string  `documentid:""`
+		Created time.Time `              precision:"s" property:"CREATED" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:      []string{"test", "doc1"},
+			Created: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for time.Time fields")
+}
+
+func TestDocuments_TypeTagOnCoreTimeErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID      []string  `documentid:""`
+		Created core.Time `              property:"CREATED" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Created: core.Time{
+				Timestamp: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				Precision: document.TimePrecisionDay,
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for core.Time fields")
+}
+
+func TestDocuments_PrecisionOnCoreTimeErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID      []string  `documentid:""`
+		Created core.Time `              precision:"s" property:"CREATED"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Created: core.Time{
+				Timestamp: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				Precision: document.TimePrecisionDay,
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Time fields; precision is part of core.Time")
+}
+
+func TestDocuments_TypeTagOnTimeIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              property:"PERIOD" type:"id"`
+	}
+
+	now := time.Now()
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for core.Interval[core.Time] fields")
+}
+
+func TestDocuments_PrecisionOnTimeIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              precision:"s" property:"PERIOD"`
+	}
+
+	now := time.Now()
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Interval[core.Time] fields; precision is part of core.Time")
+}
+
+func TestDocuments_LocationOnTimeIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              location:"Invalid/Zone" property:"PERIOD"`
+	}
+
+	now := time.Now()
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.ErrorContains(t, errE, "invalid location")
+}
+
+func TestDocuments_TimeIntervalFromIsNone(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              property:"PERIOD"`
+	}
+
+	now := time.Now()
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				FromIsNone: true,
+				To:         &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+			},
+		},
+	}
+
+	result, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+
+	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	require.Len(t, periodClaims, 1)
+	timeRange, ok := periodClaims[0].(*document.TimeIntervalClaim)
+	require.True(t, ok)
+	assert.True(t, timeRange.FromIsNone)
+	assert.Nil(t, timeRange.From)
+}
+
+func TestDocuments_TimeIntervalToMissing(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string                 `documentid:""`
+		Period core.Interval[core.Time] `              property:"PERIOD"`
+	}
+
+	now := time.Now()
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Period: core.Interval[core.Time]{ //nolint:exhaustruct
+				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				// To is nil with no flags.
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "to" bound is not set`)
+}
+
+func TestDocuments_TypeTagOnAmountIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1, Precision: 1},
+				To:   &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for core.Interval[core.Amount[T]] fields")
+}
+
+func TestDocuments_PrecisionOnAmountIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              precision:"1" property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1, Precision: 1},
+				To:   &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Interval[core.Amount[T]] fields; precision is part of core.Amount")
+}
+
+func TestDocuments_LocationOnAmountIntervalErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              location:"UTC" property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From: &core.Amount[int]{Amount: 1, Precision: 1},
+				To:   &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Interval[core.Amount[T]] fields")
+}
+
+func TestDocuments_AmountIntervalEmptySkipped(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{}, //nolint:exhaustruct
+		},
+	}
+
+	result, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+	// Empty interval should be skipped.
+	assert.Empty(t, result[0].Get(mnemonics["PERIOD"]))
+}
+
+func TestDocuments_AmountIntervalFromMissing(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				// From is nil with no flags.
+				To: &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "from" bound is not set`)
+}
+
+func TestDocuments_AmountIntervalFromIsNone(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				FromIsNone: true,
+				To:         &core.Amount[int]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	result, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+
+	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	require.Len(t, periodClaims, 1)
+	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
+	require.True(t, ok)
+	assert.True(t, amountRange.FromIsNone)
+	assert.Nil(t, amountRange.From)
+}
+
+func TestDocuments_AmountIntervalToIsNone(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From:     &core.Amount[int]{Amount: 1, Precision: 1},
+				ToIsNone: true,
+			},
+		},
+	}
+
+	result, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+
+	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	require.Len(t, periodClaims, 1)
+	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
+	require.True(t, ok)
+	assert.True(t, amountRange.ToIsNone)
+	assert.Nil(t, amountRange.To)
+}
+
+func TestDocuments_AmountIntervalToIsUnknown(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                        `documentid:""`
+		Range core.Interval[core.Amount[int]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
+				From:        &core.Amount[int]{Amount: 1, Precision: 1},
+				ToIsUnknown: true,
+			},
+		},
+	}
+
+	result, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+
+	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	require.Len(t, periodClaims, 1)
+	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
+	require.True(t, ok)
+	assert.True(t, amountRange.ToIsUnknown)
+	assert.Nil(t, amountRange.To)
+}
+
+func TestDocuments_AmountIntervalInfinityFromErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                            `documentid:""`
+		Range core.Interval[core.Amount[float64]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[float64]]{ //nolint:exhaustruct
+				From: &core.Amount[float64]{Amount: math.Inf(1), Precision: 1},
+				To:   &core.Amount[float64]{Amount: 10, Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "from" is infinity or not a number`)
+}
+
+func TestDocuments_AmountIntervalInfinityToErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string                            `documentid:""`
+		Range core.Interval[core.Amount[float64]] `              property:"PERIOD"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+			Range: core.Interval[core.Amount[float64]]{ //nolint:exhaustruct
+				From: &core.Amount[float64]{Amount: 1, Precision: 1},
+				To:   &core.Amount[float64]{Amount: math.Inf(-1), Precision: 1},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "to" is infinity or not a number`)
+}
+
+func TestDocuments_TypeTagOnCoreAmountErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string          `documentid:""`
+		Width core.Amount[int] `              property:"WIDTH" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Width: core.Amount[int]{Amount: 10, Precision: 1},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for core.Amount[T] fields")
+}
+
+func TestDocuments_LocationOnCoreAmountErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string          `documentid:""`
+		Width core.Amount[int] `              location:"UTC" property:"WIDTH"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Width: core.Amount[int]{Amount: 10, Precision: 1},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Amount[T] fields")
+}
+
+func TestDocuments_CoreAmountInfinityErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string              `documentid:""`
+		Width core.Amount[float64] `              property:"WIDTH"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Width: core.Amount[float64]{Amount: math.Inf(1), Precision: 1},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "value is infinity or not a number")
+}
+
+func TestDocuments_PrecisionOnIdentifierErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string        `documentid:""`
+		Code core.Identifier `              precision:"1" property:"CODE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Code: core.Identifier("ABC"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Identifier fields")
+}
+
+func TestDocuments_LocationOnIdentifierErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string        `documentid:""`
+		Code core.Identifier `              location:"UTC" property:"CODE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Code: core.Identifier("ABC"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Identifier fields")
+}
+
+func TestDocuments_PrecisionOnIRIErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID  []string `documentid:""`
+		URL core.IRI `              precision:"1" property:"HOMEPAGE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:  []string{"test", "doc1"},
+			URL: core.IRI("https://example.com"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.IRI fields")
+}
+
+func TestDocuments_LocationOnIRIErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID  []string `documentid:""`
+		URL core.IRI `              location:"UTC" property:"HOMEPAGE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:  []string{"test", "doc1"},
+			URL: core.IRI("https://example.com"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.IRI fields")
+}
+
+func TestDocuments_PrecisionOnHTMLErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string  `documentid:""`
+		Text core.HTML `              precision:"1" property:"HTML"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Text: core.HTML("<p>hello</p>"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.HTML fields")
+}
+
+func TestDocuments_LocationOnHTMLErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string  `documentid:""`
+		Text core.HTML `              location:"UTC" property:"HTML"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Text: core.HTML("<p>hello</p>"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.HTML fields")
+}
+
+func TestDocuments_PrecisionOnRawHTMLErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string     `documentid:""`
+		Text core.RawHTML `              precision:"1" property:"RAW_HTML"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Text: core.RawHTML("<p>hello</p>"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.RawHTML fields")
+}
+
+func TestDocuments_LocationOnRawHTMLErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string     `documentid:""`
+		Text core.RawHTML `              location:"UTC" property:"RAW_HTML"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Text: core.RawHTML("<p>hello</p>"),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.RawHTML fields")
+}
+
+func TestDocuments_PrecisionOnNoneErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID       []string  `documentid:""`
+		IsActive core.None `              precision:"1" property:"HIDDEN"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:       []string{"test", "doc1"},
+			IsActive: core.None(true),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.None fields")
+}
+
+func TestDocuments_LocationOnNoneErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID       []string  `documentid:""`
+		IsActive core.None `              location:"UTC" property:"HIDDEN"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:       []string{"test", "doc1"},
+			IsActive: core.None(true),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.None fields")
+}
+
+func TestDocuments_PrecisionOnUnknownErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID  []string     `documentid:""`
+		Age core.Unknown `              precision:"1" property:"AGE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:  []string{"test", "doc1"},
+			Age: core.Unknown(true),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for core.Unknown fields")
+}
+
+func TestDocuments_LocationOnUnknownErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID  []string     `documentid:""`
+		Age core.Unknown `              location:"UTC" property:"AGE"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:  []string{"test", "doc1"},
+			Age: core.Unknown(true),
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Unknown fields")
+}
+
+func TestDocuments_StringUnsupportedTypeTag(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Name string   `              property:"NAME" type:"unsupported"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Name: "test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "string field used with unsupported type tag")
+}
+
+func TestDocuments_BoolUnsupportedTypeTag(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string `documentid:""`
+		Active bool     `              property:"HIDDEN" type:"unsupported"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:     []string{"test", "doc1"},
+			Active: true,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "bool field used with unsupported type tag")
+}
+
+func TestDocuments_LocationOnStringFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Name string   `              location:"UTC" property:"NAME"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Name: "test",
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for string fields")
+}
+
+func TestDocuments_LocationOnBoolErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string `documentid:""`
+		Active bool     `              location:"UTC" property:"HIDDEN"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:     []string{"test", "doc1"},
+			Active: true,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for bool fields")
+}
+
+func TestDocuments_LocationOnNumericErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string `documentid:""`
+		Width float64  `              location:"UTC" precision:"0.01" property:"WIDTH"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Width: 1.5,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for numeric fields")
+}
+
+func TestDocuments_PrecisionOnStructErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Inner struct {
+		Value string `value:""`
+	}
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Data Inner    `              precision:"1" property:"NAME"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Data: Inner{Value: "hello"},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag is not supported for struct field types")
+}
+
+func TestDocuments_LocationOnStructErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Inner struct {
+		Value string `value:""`
+	}
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Data Inner    `              location:"UTC" property:"NAME"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Data: Inner{Value: "hello"},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for struct field types")
+}
+
+func TestDocuments_LocationOnRefFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID     []string `documentid:""`
+		Parent core.Ref `              location:"UTC" property:"PARENT"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:     []string{"test", "doc1"},
+			Parent: core.Ref{ID: []string{"parent", "id"}},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "location tag is not supported for core.Ref fields")
+}
