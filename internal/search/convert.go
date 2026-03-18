@@ -1,11 +1,13 @@
 package search
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"math"
 	"slices"
 	"strings"
+	"text/template"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
@@ -20,16 +22,17 @@ const undeterminedLanguage = "und"
 //
 //nolint:gochecknoglobals
 var (
-	subpropertyOfPropID = identifier.From("core.peerdb.org", "SUBPROPERTY_OF")
-	subclassOfPropID    = identifier.From("core.peerdb.org", "SUBCLASS_OF")
-	namingPropID        = identifier.From("core.peerdb.org", "NAMING")
-	inLanguagePropID    = identifier.From("core.peerdb.org", "IN_LANGUAGE")
-	inUnitPropID        = identifier.From("core.peerdb.org", "IN_UNIT")
-	codePropID          = identifier.From("core.peerdb.org", "CODE")
-	instanceOfPropID    = identifier.From("core.peerdb.org", "INSTANCE_OF")
-	propertyClassID     = identifier.From("core.peerdb.org", "PROPERTY")
-	classClassID        = identifier.From("core.peerdb.org", "CLASS")
-	languageClassID     = identifier.From("core.peerdb.org", "LANGUAGE")
+	subpropertyOfPropID        = identifier.From("core.peerdb.org", "SUBPROPERTY_OF")
+	subclassOfPropID           = identifier.From("core.peerdb.org", "SUBCLASS_OF")
+	namingPropID               = identifier.From("core.peerdb.org", "NAMING")
+	inLanguagePropID           = identifier.From("core.peerdb.org", "IN_LANGUAGE")
+	inUnitPropID               = identifier.From("core.peerdb.org", "IN_UNIT")
+	codePropID                 = identifier.From("core.peerdb.org", "CODE")
+	instanceOfPropID           = identifier.From("core.peerdb.org", "INSTANCE_OF")
+	propertyClassID            = identifier.From("core.peerdb.org", "PROPERTY")
+	classClassID               = identifier.From("core.peerdb.org", "CLASS")
+	languageClassID            = identifier.From("core.peerdb.org", "LANGUAGE")
+	displayLabelTemplatePropID = identifier.From("core.peerdb.org", "DISPLAY_LABEL_TEMPLATE")
 )
 
 type displayStrings struct {
@@ -246,21 +249,206 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 }
 
 // makeDisplayStrings returns the display strings for a document.
-func (c *Converter) makeDisplayStrings(_ context.Context, doc *document.D) (displayStrings, errors.E) { //nolint:unparam
+// If the document has a DISPLAY_LABEL_TEMPLATE claim, it renders the template
+// for the display label and moves all naming strings to the Naming field.
+// Otherwise, the first naming string becomes Display and the rest become Naming.
+func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (displayStrings, errors.E) { //nolint:unparam
 	namingStrings := c.namingStrings(doc)
+	templatesByLang := c.displayLabelTemplates(doc)
 
 	display := displayStrings{
-		Display: make(map[string]string, len(namingStrings)),
+		Display: make(map[string]string, len(namingStrings)+len(templatesByLang)),
 		Naming:  make(map[string][]string, len(namingStrings)),
 	}
 
 	for lang, strs := range namingStrings {
+		if tmplStr, ok := templatesByLang[lang]; ok {
+			// Render the template for this language.
+			rendered, errE := c.renderDisplayTemplate(ctx, doc, lang, tmplStr)
+			if errE != nil {
+				return displayStrings{}, errE
+			}
+			rendered = strings.TrimSpace(rendered)
+			if rendered != "" {
+				display.Display[lang] = rendered
+				// All naming strings become Naming entries.
+				display.Naming[lang] = strs
+				continue
+			}
+		}
+		// No template or empty result: use existing logic.
 		// There should always be at least one.
 		display.Display[lang] = strs[0]
 		display.Naming[lang] = strs[1:]
 	}
 
+	// Handle languages that have templates but no naming strings.
+	for lang, tmplStr := range templatesByLang {
+		if _, ok := display.Display[lang]; ok {
+			continue
+		}
+		rendered, errE := c.renderDisplayTemplate(ctx, doc, lang, tmplStr)
+		if errE != nil {
+			return displayStrings{}, errE
+		}
+		rendered = strings.TrimSpace(rendered)
+		if rendered != "" {
+			display.Display[lang] = rendered
+		}
+	}
+
 	return display, nil
+}
+
+// displayLabelTemplates returns a map from language code to the best
+// DISPLAY_LABEL_TEMPLATE string for that language.
+func (c *Converter) displayLabelTemplates(doc *document.D) map[string]string {
+	result := make(map[string]string)
+	for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, displayLabelTemplatePropID, document.LowConfidence) {
+		for _, lang := range c.extractInLanguages(sc.Meta) {
+			if _, ok := result[lang]; !ok {
+				// First claim per language wins (highest confidence due to sort order).
+				result[lang] = sc.String
+			}
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// renderDisplayTemplate parses and executes a display label template string.
+func (c *Converter) renderDisplayTemplate(ctx context.Context, doc *document.D, lang, tmplStr string) (string, errors.E) {
+	tmpl, err := template.New("display").Funcs(c.templateFuncs(ctx, lang)).Parse(tmplStr)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["template"] = tmplStr
+		return "", errE
+	}
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, doc)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["template"] = tmplStr
+		return "", errE
+	}
+	return buf.String(), nil
+}
+
+// templateFuncs returns template functions for rendering display label templates.
+// Functions accept mnemonic as the first argument and *document.D as the last,
+// making them composable with Go template pipelines.
+func (c *Converter) templateFuncs(ctx context.Context, lang string) template.FuncMap {
+	return template.FuncMap{
+		// bestString returns the best string claim value for a mnemonic in the current language.
+		// Falls back to "und" if the requested language is not found.
+		"bestString": func(mnemonic string, doc *document.D) (string, error) {
+			if doc == nil {
+				return "", nil
+			}
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return "", errE
+			}
+			claims := document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, propID, document.LowConfidence)
+			// First pass: look for the requested language.
+			for _, sc := range claims {
+				if slices.Contains(c.extractInLanguages(sc.Meta), lang) {
+					return sc.String, nil
+				}
+			}
+			// Second pass: fall back to "und".
+			if lang != undeterminedLanguage {
+				for _, sc := range claims {
+					if slices.Contains(c.extractInLanguages(sc.Meta), undeterminedLanguage) {
+						return sc.String, nil
+					}
+				}
+			}
+			return "", nil
+		},
+		// bestAmountString returns the display string of the best amount claim for a mnemonic.
+		"bestAmountString": func(mnemonic string, doc *document.D) (string, error) {
+			if doc == nil {
+				return "", nil
+			}
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return "", errE
+			}
+			ac := document.GetBestClaimOfType[*document.AmountClaim](doc, propID)
+			if ac == nil {
+				return "", nil
+			}
+			return ac.Amount.String(), nil
+		},
+		// bestRelationDoc follows the best relation claim for a mnemonic and returns the target document.
+		"bestRelationDoc": func(mnemonic string, doc *document.D) (*document.D, error) {
+			if doc == nil {
+				return nil, nil
+			}
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return nil, errE
+			}
+			rc := document.GetBestClaimOfType[*document.RelationClaim](doc, propID)
+			if rc == nil {
+				return nil, nil
+			}
+			return c.getDocument(ctx, rc.To.ID)
+		},
+		// getDocumentByMnemonic looks up the document ID from the mnemonics map and returns the document.
+		"getDocumentByMnemonic": func(mnemonic string) (*document.D, error) {
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return nil, errE
+			}
+			return c.getDocument(ctx, propID)
+		},
+		// bestIdentifier returns the best identifier claim value for a mnemonic.
+		"bestIdentifier": func(mnemonic string, doc *document.D) (string, error) {
+			if doc == nil {
+				return "", nil
+			}
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return "", errE
+			}
+			ic := document.GetBestClaimOfType[*document.IdentifierClaim](doc, propID)
+			if ic == nil {
+				return "", nil
+			}
+			return ic.Value, nil
+		},
+		// bestTimeString returns the display string of the best time claim for a mnemonic.
+		"bestTimeString": func(mnemonic string, doc *document.D) (string, error) {
+			if doc == nil {
+				return "", nil
+			}
+			propID, ok := c.mnemonics[mnemonic]
+			if !ok {
+				errE := errors.New("mnemonic not found")
+				errors.Details(errE)["mnemonic"] = mnemonic
+				return "", errE
+			}
+			tc := document.GetBestClaimOfType[*document.TimeClaim](doc, propID)
+			if tc == nil {
+				return "", nil
+			}
+			return tc.Timestamp.String(), nil
+		},
+	}
 }
 
 // namingStrings returns all naming display strings per language for a document.
