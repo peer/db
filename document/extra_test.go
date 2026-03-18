@@ -2626,6 +2626,533 @@ func TestReferenceClaimPatchApplyConfidenceOnly(t *testing.T) {
 	assert.Equal(t, document.LowConfidence, claim.GetConfidence()) //nolint:testifylint
 }
 
+// TestClaimTypesGet tests ClaimTypes.Get directly.
+func TestClaimTypesGet(t *testing.T) {
+	t.Parallel()
+
+	prop1 := identifier.New()
+	prop2 := identifier.New()
+	id1 := identifier.New()
+	id2 := identifier.New()
+	id3 := identifier.New()
+
+	ct := &document.ClaimTypes{
+		Identifier: document.IdentifierClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id1, Confidence: 0.5},
+				Prop:      document.Reference{ID: prop1},
+				Value:     "v1",
+			},
+		},
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id2, Confidence: 1.0},
+				Prop:      document.Reference{ID: prop1},
+				String:    "s1",
+			},
+		},
+		None: document.NoneClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id3, Confidence: 0.75},
+				Prop:      document.Reference{ID: prop2},
+			},
+		},
+	}
+
+	// Get by prop1 should return two claims sorted by decreasing confidence.
+	result := ct.Get(prop1)
+	require.Len(t, result, 2)
+	assert.Equal(t, document.Confidence(1.0), result[0].GetConfidence())
+	assert.Equal(t, document.Confidence(0.5), result[1].GetConfidence())
+
+	// Get by prop2.
+	result = ct.Get(prop2)
+	require.Len(t, result, 1)
+	assert.Equal(t, id3, result[0].GetID())
+
+	// Get by unknown prop.
+	result = ct.Get(identifier.New())
+	assert.Empty(t, result)
+}
+
+// TestClaimTypesGetByID tests ClaimTypes.GetByID directly.
+func TestClaimTypesGetByID(t *testing.T) {
+	t.Parallel()
+
+	id1 := identifier.New()
+	id2 := identifier.New()
+
+	ct := &document.ClaimTypes{
+		Identifier: document.IdentifierClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id1, Confidence: 1.0},
+				Prop:      document.Reference{ID: identifier.New()},
+				Value:     "val",
+			},
+		},
+		HTML: document.HTMLClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id2, Confidence: 0.5},
+				Prop:      document.Reference{ID: identifier.New()},
+				HTML:      "<p>hi</p>",
+			},
+		},
+	}
+
+	// Find existing claim.
+	claim := ct.GetByID(id2)
+	require.NotNil(t, claim)
+	assert.Equal(t, id2, claim.GetID())
+
+	// Not found.
+	claim = ct.GetByID(identifier.New())
+	assert.Nil(t, claim)
+}
+
+// TestClaimTypesRemove tests ClaimTypes.Remove directly.
+func TestClaimTypesRemove(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	id1 := identifier.New()
+	id2 := identifier.New()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id1, Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				String:    "s1",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: id2, Confidence: 0.5},
+				Prop:      document.Reference{ID: prop},
+				String:    "s2",
+			},
+		},
+	}
+
+	removed := ct.Remove(prop)
+	assert.Len(t, removed, 2)
+	assert.Equal(t, 0, ct.Size())
+}
+
+// TestClaimTypesRemoveByID tests ClaimTypes.RemoveByID directly.
+func TestClaimTypesRemoveByID(t *testing.T) {
+	t.Parallel()
+
+	id1 := identifier.New()
+	id2 := identifier.New()
+
+	ct := &document.ClaimTypes{
+		Amount: document.AmountClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id1, Confidence: 1.0},
+				Prop:      document.Reference{ID: identifier.New()},
+				Amount:    "42",
+				Precision: 1,
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: id2, Confidence: 0.5},
+				Prop:      document.Reference{ID: identifier.New()},
+				Amount:    "100",
+				Precision: 1,
+			},
+		},
+	}
+
+	removed := ct.RemoveByID(id1)
+	require.NotNil(t, removed)
+	assert.Equal(t, 1, ct.Size())
+
+	// Remove non-existent.
+	removed = ct.RemoveByID(identifier.New())
+	assert.Nil(t, removed)
+}
+
+// TestGetClaimsOfType tests the generic GetClaimsOfType function.
+func TestGetClaimsOfType(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	id1 := identifier.New()
+	id2 := identifier.New()
+	id3 := identifier.New()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id1, Confidence: 0.5},
+				Prop:      document.Reference{ID: prop},
+				String:    "s1",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: id2, Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				String:    "s2",
+			},
+		},
+		None: document.NoneClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: id3, Confidence: 0.75},
+				Prop:      document.Reference{ID: prop},
+			},
+		},
+	}
+
+	// Get only StringClaims for prop.
+	strings := document.GetClaimsOfType[*document.StringClaim](ct, prop)
+	require.Len(t, strings, 2)
+	assert.Equal(t, "s2", strings[0].String) // Higher confidence first.
+	assert.Equal(t, "s1", strings[1].String)
+
+	// Get NoneClaims for prop.
+	nones := document.GetClaimsOfType[*document.NoneClaim](ct, prop)
+	require.Len(t, nones, 1)
+
+	// No AmountClaims for prop.
+	amounts := document.GetClaimsOfType[*document.AmountClaim](ct, prop)
+	assert.Empty(t, amounts)
+}
+
+// TestGetBestClaimOfType tests the generic GetBestClaimOfType function.
+func TestGetBestClaimOfType(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.5},
+				Prop:      document.Reference{ID: prop},
+				String:    "low",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				String:    "high",
+			},
+		},
+	}
+
+	best := document.GetBestClaimOfType[*document.StringClaim](ct, prop)
+	require.NotNil(t, best)
+	assert.Equal(t, "high", best.String)
+
+	// No match returns zero value.
+	bestAmount := document.GetBestClaimOfType[*document.AmountClaim](ct, prop)
+	assert.Nil(t, bestAmount)
+}
+
+// TestGetClaimsOfTypeWithConfidence tests the generic GetClaimsOfTypeWithConfidence function.
+func TestGetClaimsOfTypeWithConfidence(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.3},
+				Prop:      document.Reference{ID: prop},
+				String:    "low",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.8},
+				Prop:      document.Reference{ID: prop},
+				String:    "high",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				String:    "top",
+			},
+		},
+	}
+
+	// With explicit confidence threshold.
+	result := document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 0.75)
+	require.Len(t, result, 2)
+	assert.Equal(t, "top", result[0].String)
+	assert.Equal(t, "high", result[1].String)
+
+	// With 0 confidence (defaults to LowConfidence = 0.5).
+	result = document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 0)
+	require.Len(t, result, 2)
+	assert.Equal(t, "top", result[0].String)
+	assert.Equal(t, "high", result[1].String)
+
+	// High threshold excludes all but top.
+	result = document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 1.0)
+	require.Len(t, result, 1)
+	assert.Equal(t, "top", result[0].String)
+}
+
+// TestCoreClaimValidateInvalidConfidence tests CoreClaim.Validate with invalid confidence values.
+func TestCoreClaimValidateInvalidConfidence(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		confidence document.Confidence
+	}{
+		{"NaN", document.Confidence(math.NaN())},
+		{"positive_infinity", document.Confidence(math.Inf(1))},
+		{"negative_infinity", document.Confidence(math.Inf(-1))},
+		{"too_high", document.Confidence(1.5)},
+		{"too_low", document.Confidence(-1.5)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cc := document.CoreClaim{
+				ID:         identifier.New(),
+				Confidence: tt.confidence,
+			}
+			claim := &document.NoneClaim{
+				CoreClaim: cc,
+				Prop:      document.Reference{ID: identifier.New()},
+			}
+			errE := claim.Validate()
+			assert.Error(t, errE)
+			assert.ErrorContains(t, errE, "confidence out of range")
+		})
+	}
+}
+
+// TestCoreClaimAddDuplicateID tests CoreClaim.Add with duplicate ID.
+func TestCoreClaimAddDuplicateID(t *testing.T) {
+	t.Parallel()
+
+	metaID := identifier.New()
+	claim := &document.NoneClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         identifier.New(),
+			Confidence: 1.0,
+		},
+		Prop: document.Reference{ID: identifier.New()},
+	}
+
+	errE := claim.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		Prop:      document.Reference{ID: identifier.New()},
+		String:    "first",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Adding with same ID should fail.
+	errE = claim.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		Prop:      document.Reference{ID: identifier.New()},
+		String:    "duplicate",
+	})
+	assert.Error(t, errE)
+	assert.ErrorContains(t, errE, "claim with ID already exists")
+}
+
+// TestCoreClaimValidateWithInvalidMeta tests CoreClaim.Validate with invalid meta claims.
+func TestCoreClaimValidateWithInvalidMeta(t *testing.T) {
+	t.Parallel()
+
+	claim := &document.NoneClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         identifier.New(),
+			Confidence: 1.0,
+			Meta: &document.ClaimTypes{
+				String: document.StringClaims{
+					{
+						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+						Prop:      document.Reference{ID: identifier.New()},
+						String:    "", // Invalid: empty string.
+					},
+				},
+			},
+		},
+		Prop: document.Reference{ID: identifier.New()},
+	}
+
+	errE := claim.Validate()
+	assert.Error(t, errE)
+	assert.ErrorContains(t, errE, "empty string")
+}
+
+// TestClaimTypesGetWithAllTypes tests ClaimTypes.Get across all claim types.
+func TestClaimTypesGetWithAllTypes(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ts := document.NewTimestamp(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), document.TimePrecisionYear, nil)
+
+	ct := &document.ClaimTypes{
+		Amount: document.AmountClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				Amount:    "42",
+				Precision: 1,
+			},
+		},
+		AmountInterval: document.AmountIntervalClaims{
+			{
+				CoreClaim:   document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:        document.Reference{ID: prop},
+				FromIsNone:  true,
+				ToIsUnknown: true,
+			},
+		},
+		Time: document.TimeClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				Timestamp: ts,
+				Precision: document.TimePrecisionYear,
+			},
+		},
+		TimeInterval: document.TimeIntervalClaims{
+			{
+				CoreClaim:   document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:        document.Reference{ID: prop},
+				FromIsNone:  true,
+				ToIsUnknown: true,
+			},
+		},
+		Reference: document.ReferenceClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				IRI:       "https://example.com",
+			},
+		},
+		Relation: document.RelationClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				To:        document.Reference{ID: identifier.New()},
+			},
+		},
+		Has: document.HasClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+			},
+		},
+		Unknown: document.UnknownClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+			},
+		},
+	}
+
+	result := ct.Get(prop)
+	assert.Len(t, result, 8)
+}
+
+// TestVisitorStopBehavior tests that visitor stopping works across all claim types.
+func TestVisitorStopBehavior(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	idStr := identifier.New()
+	idHTML := identifier.New()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: idStr, Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				String:    "s1",
+			},
+		},
+		HTML: document.HTMLClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: idHTML, Confidence: 1.0},
+				Prop:      document.Reference{ID: prop},
+				HTML:      "<p>h1</p>",
+			},
+		},
+	}
+
+	// GetByID finds the string claim and stops before visiting HTML claims.
+	found := ct.GetByID(idStr)
+	require.NotNil(t, found)
+	assert.Equal(t, idStr, found.GetID())
+
+	// RemoveByID removes HTML claim.
+	removed := ct.RemoveByID(idHTML)
+	require.NotNil(t, removed)
+	assert.Equal(t, idHTML, removed.GetID())
+	assert.Equal(t, 1, ct.Size())
+}
+
+// TestCoreClaimGetRemove tests CoreClaim.Get and CoreClaim.Remove.
+func TestCoreClaimGetRemove(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	metaProp := identifier.New()
+	metaID := identifier.New()
+
+	claim := &document.NoneClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         identifier.New(),
+			Confidence: 1.0,
+			Meta: &document.ClaimTypes{
+				String: document.StringClaims{
+					{
+						CoreClaim: document.CoreClaim{ID: metaID, Confidence: 0.8},
+						Prop:      document.Reference{ID: metaProp},
+						String:    "meta",
+					},
+				},
+			},
+		},
+		Prop: document.Reference{ID: prop},
+	}
+
+	// Get meta claims by prop.
+	got := claim.Get(metaProp)
+	require.Len(t, got, 1)
+	assert.Equal(t, metaID, got[0].GetID())
+
+	// Get with non-matching prop.
+	got = claim.Get(identifier.New())
+	assert.Empty(t, got)
+
+	// Remove meta claims by prop.
+	removed := claim.Remove(metaProp)
+	require.Len(t, removed, 1)
+	assert.Equal(t, 0, claim.Size())
+}
+
+// TestCoreClaimGetRemoveNoMeta tests CoreClaim.Get and CoreClaim.Remove with no meta.
+func TestCoreClaimGetRemoveNoMeta(t *testing.T) {
+	t.Parallel()
+
+	claim := &document.NoneClaim{
+		CoreClaim: document.CoreClaim{
+			ID:         identifier.New(),
+			Confidence: 1.0,
+		},
+		Prop: document.Reference{ID: identifier.New()},
+	}
+
+	got := claim.Get(identifier.New())
+	assert.Empty(t, got)
+
+	removed := claim.Remove(identifier.New())
+	assert.Empty(t, removed)
+
+	found := claim.GetByID(identifier.New())
+	assert.Nil(t, found)
+
+	removedByID := claim.RemoveByID(identifier.New())
+	assert.Nil(t, removedByID)
+}
+
 // TestRemoveByIDMetaClaim tests that RemoveByID removes a meta claim without removing its parent.
 func TestRemoveByIDMetaClaim(t *testing.T) {
 	t.Parallel()
