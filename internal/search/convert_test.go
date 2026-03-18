@@ -286,6 +286,133 @@ func TestBuildClassHierarchySkipsNonClass(t *testing.T) {
 	assert.Empty(t, c.classAncestors)
 }
 
+func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
+	t.Parallel()
+
+	// Property that is a subproperty of itself.
+	selfRef := makePropertyDoc(testPropID, &testPropID)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildPropertyHierarchy([]*document.D{selfRef})
+
+	// Self-reference should appear as both descendant and ancestor.
+	assert.Contains(t, c.propertyDescendants[testPropID], testPropID)
+	assert.Contains(t, c.propertyAncestors[testPropID], testPropID)
+}
+
+func TestBuildPropertyHierarchyMutualCycle(t *testing.T) {
+	t.Parallel()
+
+	// A is subproperty of B, B is subproperty of A.
+	a := identifier.New()
+	b := identifier.New()
+	aDoc := makePropertyDoc(a, &b)
+	bDoc := makePropertyDoc(b, &a)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc})
+
+	// Both should appear as descendants and ancestors of each other.
+	assert.Contains(t, c.propertyDescendants[a], b)
+	assert.Contains(t, c.propertyDescendants[b], a)
+	assert.Contains(t, c.propertyAncestors[a], b)
+	assert.Contains(t, c.propertyAncestors[b], a)
+}
+
+func TestBuildPropertyHierarchyLongerCycle(t *testing.T) {
+	t.Parallel()
+
+	// A -> B -> C -> A (cycle of length 3).
+	a := identifier.New()
+	b := identifier.New()
+	cc := identifier.New()
+	aDoc := makePropertyDoc(a, &b)
+	bDoc := makePropertyDoc(b, &cc)
+	cDoc := makePropertyDoc(cc, &a)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc, cDoc})
+
+	// Every node should have the other two as ancestors.
+	assert.Contains(t, c.propertyAncestors[a], b)
+	assert.Contains(t, c.propertyAncestors[a], cc)
+	assert.Contains(t, c.propertyAncestors[b], a)
+	assert.Contains(t, c.propertyAncestors[b], cc)
+	assert.Contains(t, c.propertyAncestors[cc], a)
+	assert.Contains(t, c.propertyAncestors[cc], b)
+
+	// Every node should have the other two as descendants.
+	assert.Contains(t, c.propertyDescendants[a], b)
+	assert.Contains(t, c.propertyDescendants[a], cc)
+	assert.Contains(t, c.propertyDescendants[b], a)
+	assert.Contains(t, c.propertyDescendants[b], cc)
+	assert.Contains(t, c.propertyDescendants[cc], a)
+	assert.Contains(t, c.propertyDescendants[cc], b)
+}
+
+func TestBuildClassHierarchySelfCycle(t *testing.T) {
+	t.Parallel()
+
+	// Class that is a subclass of itself.
+	selfRef := makeClassDoc(testClassID, &testClassID)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildClassHierarchy([]*document.D{selfRef})
+
+	assert.Contains(t, c.classAncestors[testClassID], testClassID)
+}
+
+func TestBuildClassHierarchyMutualCycle(t *testing.T) {
+	t.Parallel()
+
+	// A is subclass of B, B is subclass of A.
+	a := identifier.New()
+	b := identifier.New()
+	aDoc := makeClassDoc(a, &b)
+	bDoc := makeClassDoc(b, &a)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildClassHierarchy([]*document.D{aDoc, bDoc})
+
+	assert.Contains(t, c.classAncestors[a], b)
+	assert.Contains(t, c.classAncestors[b], a)
+}
+
+func TestBuildClassHierarchyLongerCycle(t *testing.T) {
+	t.Parallel()
+
+	// A -> B -> C -> A (cycle of length 3).
+	a := identifier.New()
+	b := identifier.New()
+	cc := identifier.New()
+	aDoc := makeClassDoc(a, &b)
+	bDoc := makeClassDoc(b, &cc)
+	cDoc := makeClassDoc(cc, &a)
+
+	c := &Converter{ //nolint:exhaustruct
+		displayCache: make(map[identifier.Identifier]displayStrings),
+	}
+	c.buildClassHierarchy([]*document.D{aDoc, bDoc, cDoc})
+
+	// Every node should have the other two as ancestors.
+	assert.Contains(t, c.classAncestors[a], b)
+	assert.Contains(t, c.classAncestors[a], cc)
+	assert.Contains(t, c.classAncestors[b], a)
+	assert.Contains(t, c.classAncestors[b], cc)
+	assert.Contains(t, c.classAncestors[cc], a)
+	assert.Contains(t, c.classAncestors[cc], b)
+}
+
 func TestBuildNamingProperties(t *testing.T) {
 	t.Parallel()
 
