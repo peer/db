@@ -1380,6 +1380,14 @@ func makeClaim(
 			return nil, errors.New("HTML field used with conflicting tag")
 		}
 
+		// We still sanitize HTML, so that our user HTML is consistent.
+		sanitized := sanitizeHTML(escapeHTML(string(h)))
+		if sanitized == "" {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
 		claimID := newClaimID(idPath, propertyID, claims)
 		return &document.HTMLClaim{
 			CoreClaim: document.CoreClaim{
@@ -1387,8 +1395,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			// We still sanitize HTML, so that our user HTML is consistent.
-			HTML: sanitizeHTML(escapeHTML(string(h))),
+			HTML: sanitized,
 		}, nil
 	}
 
@@ -1413,6 +1420,14 @@ func makeClaim(
 			return nil, errors.New("raw HTML field used with conflicting tag")
 		}
 
+		// No escaping for raw HTML, but we do sanitize it.
+		sanitized := sanitizeHTML(string(rawHTML))
+		if sanitized == "" {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
 		claimID := newClaimID(idPath, propertyID, claims)
 		return &document.HTMLClaim{
 			CoreClaim: document.CoreClaim{
@@ -1420,8 +1435,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			// No escaping for raw HTML, but we do sanitize it.
-			HTML: sanitizeHTML(string(rawHTML)),
+			HTML: sanitized,
 		}, nil
 	}
 
@@ -1518,26 +1532,38 @@ func makeClaim(
 		}
 
 		if typeTag == typeHTML {
+			// We still sanitize HTML, so that our user HTML is consistent.
+			sanitized := sanitizeHTML(escapeHTML(str))
+			if sanitized == "" {
+				return nil, errors.WithStack(&claimNotMadeError{
+					Default: defaultTag,
+				})
+			}
 			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
 					Confidence: confidence,
 				},
 				Prop: document.Reference{ID: propertyID},
-				// We still sanitize HTML, so that our user HTML is consistent.
-				HTML: sanitizeHTML(escapeHTML(str)),
+				HTML: sanitized,
 			}, nil
 		}
 
 		if typeTag == typeRawHTML {
+			// No escaping for raw HTML, but we do sanitize it.
+			sanitized := sanitizeHTML(str)
+			if sanitized == "" {
+				return nil, errors.WithStack(&claimNotMadeError{
+					Default: defaultTag,
+				})
+			}
 			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
 					Confidence: confidence,
 				},
 				Prop: document.Reference{ID: propertyID},
-				// No escaping for raw HTML, but we do sanitize it.
-				HTML: sanitizeHTML(str),
+				HTML: sanitized,
 			}, nil
 		}
 

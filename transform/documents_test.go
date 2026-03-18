@@ -304,14 +304,48 @@ func TestDocuments_RawHTMLTextClaim(t *testing.T) {
 
 	doc := results[0]
 
+	// Check RawTextClaims: RawDescription + 2 RawNotes = 3 (RawHTMLText is skipped because sanitization strips all content).
+	require.Len(t, doc.Claims.HTML, 3)
+
+	// Check HTML is NOT escaped for rawhtml type.
+	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, "<b>Note 1</b>", doc.Claims.HTML[1].HTML)
+	assert.Equal(t, "<i>Note 2</i>", doc.Claims.HTML[2].HTML)
+
+	// Verify claim IDs.
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "0"), doc.Claims.HTML[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "RAW_NOTES", "1"), doc.Claims.HTML[2].ID)
+}
+
+func TestDocuments_RawHTMLTextClaimWithSurroundingText(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocWithRawHTMLComplex{
+			ID:             []string{"test", "doc1"},
+			RawDescription: "<p>Test</p>",
+			RawNotes:       []string{"<b>Note 1</b>", "<i>Note 2</i>"},
+			RawHTMLText:    "hello <script>alert('xss')</script> world",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
 	// Check RawTextClaims (RawDescription + 2 RawNotes + RawHTMLText = 4).
+	// RawHTMLText has surrounding text so sanitization leaves a non-empty result.
 	require.Len(t, doc.Claims.HTML, 4)
 
 	// Check HTML is NOT escaped for rawhtml type.
 	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
 	assert.Equal(t, "<b>Note 1</b>", doc.Claims.HTML[1].HTML)
 	assert.Equal(t, "<i>Note 2</i>", doc.Claims.HTML[2].HTML)
-	assert.Empty(t, doc.Claims.HTML[3].HTML)
+	// Script tag and its content are stripped, but surrounding text remains.
+	assert.Equal(t, "hello  world", doc.Claims.HTML[3].HTML)
 
 	// Verify claim IDs.
 	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
@@ -1656,16 +1690,67 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 
 	doc := results[0]
 
-	require.Len(t, doc.Claims.HTML, 4)
+	// UNESCAPED and CORE_RAW claims are skipped because sanitization strips all content from <script> tags.
+	require.Len(t, doc.Claims.HTML, 2)
 
 	// Verify HTML is escaped.
 	escapedExpected := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
+	assert.Equal(t, escapedExpected, doc.Claims.HTML[1].HTML, "core.HTML should escape")
+
+	// Verify claim IDs.
+	assert.Equal(t, identifier.From("test", "doc1", "ESCAPED", "0"), doc.Claims.HTML[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "CORE_HTML", "0"), doc.Claims.HTML[1].ID)
+}
+
+func TestDocuments_HTMLvsRawHTMLEscapingWithSurroundingText(t *testing.T) {
+	t.Parallel()
+
+	// Test that HTML is escaped but RawHTML is not, with text surrounding the script tag
+	// so that sanitization leaves a non-empty result.
+	type DocComparison struct {
+		ID            []string     `documentid:""`
+		EscapedHTML   string       `              property:"ESCAPED"   type:"html"`
+		UnescapedHTML string       `              property:"UNESCAPED" type:"rawhtml"`
+		CoreHTML      core.HTML    `              property:"CORE_HTML"`
+		CoreRawHTML   core.RawHTML `              property:"CORE_RAW"`
+	}
+
+	mnemonics := createMnemonics()
+	mnemonics["ESCAPED"] = identifier.From("test", "ESCAPED")
+	mnemonics["UNESCAPED"] = identifier.From("test", "UNESCAPED")
+	mnemonics["CORE_HTML"] = identifier.From("test", "CORE_HTML")
+	mnemonics["CORE_RAW"] = identifier.From("test", "CORE_RAW")
+
+	testHTML := "hello <script>alert('xss')</script> world"
+	docs := []any{
+		&DocComparison{
+			ID:            []string{"test", "doc1"},
+			EscapedHTML:   testHTML,
+			UnescapedHTML: testHTML,
+			CoreHTML:      core.HTML(testHTML),
+			CoreRawHTML:   core.RawHTML(testHTML),
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// All 4 claims are created because sanitization leaves non-empty content.
+	require.Len(t, doc.Claims.HTML, 4)
+
+	// Verify HTML is escaped (type:html and core.HTML escape special characters first,
+	// so the script tag becomes text and survives sanitization unchanged).
+	escapedExpected := "hello &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; world"
+	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[2].HTML, "core.HTML should escape")
 
-	// Verify RawHTML is sanitized.
-	assert.Empty(t, doc.Claims.HTML[1].HTML, "type:rawhtml should sanitize")
-	assert.Empty(t, doc.Claims.HTML[3].HTML, "core.RawHTML should sanitize")
+	// Verify RawHTML is sanitized (script tag and its content are stripped, surrounding text remains).
+	sanitizedExpected := "hello  world"
+	assert.Equal(t, sanitizedExpected, doc.Claims.HTML[1].HTML, "type:rawhtml should sanitize")
+	assert.Equal(t, sanitizedExpected, doc.Claims.HTML[3].HTML, "core.RawHTML should sanitize")
 
 	// Verify claim IDs.
 	assert.Equal(t, identifier.From("test", "doc1", "ESCAPED", "0"), doc.Claims.HTML[0].ID)
