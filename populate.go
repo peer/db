@@ -210,7 +210,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		count.Increment()
 
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-		errE := site.Base.InsertOrReplaceDocument(ctx, &doc)
+		errE := site.Base.InsertOrReplaceDocument(ctx, doc)
 		if errE != nil {
 			return errE
 		}

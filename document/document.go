@@ -47,7 +47,7 @@ func (d *D) Visit(visitor Visitor) errors.E {
 	return nil
 }
 
-// Get returns all claims with the given property ID.
+// Get returns all claims with the given property ID, sorted by decreasing confidence.
 func (d *D) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -55,6 +55,7 @@ func (d *D) Get(propID identifier.Identifier) []Claim {
 		Result: []Claim{},
 	}
 	_ = d.Visit(&v)
+	sortByConfidence(v.Result)
 	return v.Result
 }
 

@@ -774,7 +774,7 @@ func TestDocuments_CoreAmountClaim(t *testing.T) {
 			ID:     []string{"test", "doc1"},
 			Width:  core.Amount[float64]{Amount: 1.5, Precision: 0.1},
 			Height: core.Amount[int]{Amount: 200, Precision: 1},
-			Count:  core.Amount[uint]{Amount: 42, Precision: 0},
+			Count:  core.Amount[uint]{Amount: 42, Precision: 1},
 		},
 	}
 
@@ -795,9 +795,9 @@ func TestDocuments_CoreAmountClaim(t *testing.T) {
 	assert.Equal(t, 1.0, doc.Claims.Amount[1].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[1].ID)
 
-	// Check Count (uint, zero precision).
+	// Check Count (uint).
 	assert.Equal(t, 42.0, doc.Claims.Amount[2].Amount)   //nolint:testifylint
-	assert.Equal(t, 0.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
+	assert.Equal(t, 1.0, doc.Claims.Amount[2].Precision) //nolint:testifylint
 	assert.Equal(t, identifier.From("test", "doc1", "COUNT", "0"), doc.Claims.Amount[2].ID)
 }
 
@@ -834,8 +834,8 @@ func TestDocuments_AmountRangeClaim(t *testing.T) {
 		&DocWithAmountInterval{
 			ID: []string{"test", "doc1"},
 			Cardinality: core.Interval[core.Amount[int]]{ //nolint:exhaustruct
-				From: &core.Amount[int]{Amount: 1, Precision: 0},
-				To:   &core.Amount[int]{Amount: 10, Precision: 0},
+				From: &core.Amount[int]{Amount: 1, Precision: 1},
+				To:   &core.Amount[int]{Amount: 10, Precision: 1},
 			},
 		},
 	}
@@ -6177,7 +6177,7 @@ func TestDocuments_NumericInvalidPrecision(t *testing.T) {
 func TestDocuments_NumericPrecisionZero(t *testing.T) {
 	t.Parallel()
 
-	// Test that precision tag of "0" is valid and sets exact measurement.
+	// Test that precision tag of "0" is invalid.
 	type DocZeroPrecision struct {
 		ID    []string `documentid:""`
 		Count int      `              precision:"0" property:"COUNT"`
@@ -6191,13 +6191,29 @@ func TestDocuments_NumericPrecisionZero(t *testing.T) {
 		},
 	}
 
-	results, errE := transform.Documents(t.Context(), mnemonics, docs)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag value must be positive")
+}
 
-	doc := results[0]
-	require.Len(t, doc.Claims.Amount, 1)
-	assert.Equal(t, 7.0, doc.Claims.Amount[0].Amount)    //nolint:testifylint
-	assert.Equal(t, 0.0, doc.Claims.Amount[0].Precision) //nolint:testifylint
+func TestDocuments_NumericPrecisionNegative(t *testing.T) {
+	t.Parallel()
+
+	// Test that negative precision tag is invalid.
+	type DocNegativePrecision struct {
+		ID    []string `documentid:""`
+		Count int      `              precision:"-1" property:"COUNT"`
+	}
+
+	mnemonics := createMnemonics()
+	docs := []any{
+		&DocNegativePrecision{
+			ID:    []string{"test", "doc1"},
+			Count: 7,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "precision tag value must be positive")
 }
 
 func TestDocuments_NumericPrecisionOnCoreAmountErrors(t *testing.T) {

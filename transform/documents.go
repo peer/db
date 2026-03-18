@@ -373,8 +373,8 @@ const (
 // It takes a map between property mnemonics and identifiers, and a slice of documents
 // which can be various struct types. It uses reflection to inspect structs and their
 // struct tags to determine how to map struct fields to document claims.
-func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, documents []any) ([]document.D, errors.E) {
-	result := []document.D{}
+func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, documents []any) ([]*document.D, errors.E) {
+	result := []*document.D{}
 
 	for _, doc := range documents {
 		if ctx.Err() != nil {
@@ -399,7 +399,7 @@ type transformer struct {
 }
 
 // transformDocument transforms a struct to a document.
-func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (document.D, errors.E) {
+func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (*document.D, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
 	if v.Kind() == reflect.Ptr {
@@ -409,7 +409,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 	if v.Kind() != reflect.Struct {
 		errE := errors.New("expected struct")
 		errors.Details(errE)["got"] = v.Kind().String()
-		return document.D{}, errE
+		return nil, errE
 	}
 
 	t := v.Type()
@@ -417,10 +417,10 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 	// Extract document ID.
 	docID, errE := extractDocumentID(v, t, []string{})
 	if errE != nil {
-		return document.D{}, errE
+		return nil, errE
 	}
 
-	result := document.D{
+	result := &document.D{
 		CoreDocument: document.CoreDocument{
 			ID:   identifier.From(docID...),
 			Base: docID,
@@ -437,7 +437,7 @@ func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (doc
 	// Process all fields. Start with document ID as the base for claim ID paths.
 	errE = tr.processStructFields(v, t, docID, []string{}, map[identifier.Identifier]int{})
 	if errE != nil {
-		return document.D{}, errE
+		return nil, errE
 	}
 
 	return result, result.Validate()
@@ -1662,6 +1662,10 @@ func makeClaim(
 
 		if math.IsInf(precision, 0) || math.IsNaN(precision) {
 			return nil, errors.New("precision tag value is infinity or not a number")
+		}
+
+		if precision <= 0 {
+			return nil, errors.New("precision tag value must be positive")
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {

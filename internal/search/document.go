@@ -1,6 +1,9 @@
 package search
 
-import "gitlab.com/tozd/identifier"
+import (
+	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
+)
 
 // SupportedLanguages is a set of supported languages in ElasticSearch mapping.
 var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
@@ -34,6 +37,9 @@ type ClaimTypes struct {
 	Unknown    UnknownClaims    `json:"unknown,omitempty"`
 }
 
+// There are no AmountInterval and TimeInterval claims because they are mapped
+// to Amount and Time claims here, respectively.
+
 type (
 	// IdentifierClaims is a slice of IdentifierClaim.
 	IdentifierClaims = []IdentifierClaim
@@ -51,9 +57,9 @@ type (
 	RelationClaims = []RelationClaim
 	// HasClaims is a slice of HasClaim.
 	HasClaims = []HasClaim
-	// NoneClaims is a slice of NoValueClaim.
+	// NoneClaims is a slice of NoneClaim.
 	NoneClaims = []NoneClaim
-	// UnknownClaims is a slice of UnknownValueClaim.
+	// UnknownClaims is a slice of UnknownClaim.
 	UnknownClaims = []UnknownClaim
 )
 
@@ -61,21 +67,25 @@ type (
 type IdentifierClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string][]string   `json:"propDisplay"`
-	ID          string                `json:"id"`
+	Value       string                `json:"value"`
 }
 
 // StringClaim represents a claim with a plain string value for a given language.
 type StringClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string][]string   `json:"propDisplay"`
-	String      map[string]string     `json:"string"`
+
+	// Map contains exactly one value.
+	String map[string]string `json:"string"`
 }
 
 // HTMLClaim represents a claim with HTML text content for a given language.
 type HTMLClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string][]string   `json:"propDisplay"`
-	HTML        map[string]string     `json:"html"`
+
+	// Map contains exactly one value.
+	HTML map[string]string `json:"html"`
 }
 
 // RangeFloat represents a numeric range.
@@ -89,18 +99,43 @@ type RangeFloat struct {
 	LessThanOrEqual    *float64 `json:"lte,omitempty"`
 }
 
+// Validate checks that the range is valid.
+func (r RangeFloat) Validate() errors.E {
+	if r.GreaterThan != nil && r.GreaterThanOrEqual != nil {
+		errE := errors.New("both greater than and greater than or equal are set")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.LessThan != nil && r.LessThanOrEqual != nil {
+		errE := errors.New("both less than and less than or equal are set")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.GreaterThan == nil && r.GreaterThanOrEqual == nil {
+		errE := errors.New("greater than bound is required")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.LessThan == nil && r.LessThanOrEqual == nil {
+		errE := errors.New("less than bound is required")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	return nil
+}
+
 // AmountClaim represents a claim for numeric amount and unit.
 //
 // For search, we index amounts as both ranges and boundaries.
 type AmountClaim struct {
-	Prop         identifier.Identifier `json:"prop"`
-	PropDisplay  map[string][]string   `json:"propDisplay"`
-	Unit         identifier.Identifier `json:"unit"`
-	Range        RangeFloat            `json:"range"`
-	Lower        *float64              `json:"lower,omitempty"`
-	LowerDisplay string                `json:"lowerDisplay,omitempty"`
-	Upper        *float64              `json:"upper,omitempty"`
-	UpperDisplay string                `json:"upperDisplay,omitempty"`
+	Prop        identifier.Identifier  `json:"prop"`
+	PropDisplay map[string][]string    `json:"propDisplay"`
+	Unit        *identifier.Identifier `json:"unit"`
+	Range       RangeFloat             `json:"range"`
+	From        *float64               `json:"from,omitempty"`
+	FromDisplay string                 `json:"fromDisplay,omitempty"`
+	To          *float64               `json:"to,omitempty"`
+	ToDisplay   string                 `json:"toDisplay,omitempty"`
 }
 
 // RangeInt represents a numeric range.
@@ -114,17 +149,42 @@ type RangeInt struct {
 	LessThanOrEqual    *int64 `json:"lte,omitempty"`
 }
 
+// Validate checks that the range is valid.
+func (r RangeInt) Validate() errors.E {
+	if r.GreaterThan != nil && r.GreaterThanOrEqual != nil {
+		errE := errors.New("both greater than and greater than or equal are set")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.LessThan != nil && r.LessThanOrEqual != nil {
+		errE := errors.New("both less than and less than or equal are set")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.GreaterThan == nil && r.GreaterThanOrEqual == nil {
+		errE := errors.New("greater than bound is required")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	if r.LessThan == nil && r.LessThanOrEqual == nil {
+		errE := errors.New("less than bound is required")
+		errors.Details(errE)["range"] = r
+		return errE
+	}
+	return nil
+}
+
 // TimeClaim represents a claim for timestamp.
 //
 // For search, we index timestamps as both ranges and boundaries.
 type TimeClaim struct {
-	Prop         identifier.Identifier `json:"prop"`
-	PropDisplay  map[string][]string   `json:"propDisplay"`
-	Range        RangeInt              `json:"range"`
-	Lower        *int64                `json:"lower,omitempty"`
-	LowerDisplay string                `json:"lowerDisplay,omitempty"`
-	Upper        *int64                `json:"upper,omitempty"`
-	UpperDisplay string                `json:"upperDisplay,omitempty"`
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string][]string   `json:"propDisplay"`
+	Range       RangeInt              `json:"range"`
+	From        *int64                `json:"from,omitempty"`
+	FromDisplay string                `json:"fromDisplay,omitempty"`
+	To          *int64                `json:"to,omitempty"`
+	ToDisplay   string                `json:"toDisplay,omitempty"`
 }
 
 // ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.

@@ -64,7 +64,7 @@ type Amount[T AmountType] struct {
 
 func (Amount[T]) intervalBound() {}
 
-// Validate checks that the amount values are finite numbers.
+// Validate checks that the amount values are finite numbers and precision is positive.
 func (a Amount[T]) Validate() errors.E {
 	switch v := any(a).(type) {
 	case Amount[float32]:
@@ -81,6 +81,9 @@ func (a Amount[T]) Validate() errors.E {
 		if math.IsInf(v.Precision, 0) || math.IsNaN(v.Precision) {
 			return errors.New("Precision must be a finite number")
 		}
+	}
+	if a.Precision <= 0 {
+		return errors.New("Precision must be positive")
 	}
 	return nil
 }

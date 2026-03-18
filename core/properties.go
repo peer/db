@@ -419,7 +419,9 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Mnemonic:        "MNEMONIC",
 			Description:     nil,
 			Instruction:     nil,
-			SubpropertyOf:   nil,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "NAMING"},
+			}},
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "MNEMONIC"},

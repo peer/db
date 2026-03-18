@@ -2,13 +2,23 @@
 package document
 
 import (
+	"cmp"
 	"fmt"
 	"iter"
 	"math"
+	"slices"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
+
+// sortByConfidence sorts claims in decreasing confidence order.
+func sortByConfidence(claims []Claim) {
+	slices.SortFunc(claims, func(a, b Claim) int {
+		// Reverse order: higher confidence first.
+		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
+	})
+}
 
 // Claim is the interface for all claim types in PeerDB documents.
 type Claim interface {
@@ -44,6 +54,102 @@ var (
 	_ Claim = (*NoneClaim)(nil)
 	_ Claim = (*UnknownClaim)(nil)
 )
+
+// GetClaimsOfType returns all claims of the concrete type T matching the given property ID,
+// sorted by decreasing confidence.
+//
+// It operates like Claims.Get but returns the concrete claim type instead of the Claim interface.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
+	// Get already returns claims sorted by decreasing confidence.
+	all := claims.Get(propID)
+	result := make([]T, 0, len(all))
+	for _, c := range all {
+		if typed, ok := c.(T); ok {
+			result = append(result, typed)
+		}
+	}
+	return result
+}
+
+// GetBestClaimOfType returns the best (one with highest confidence) claim of the concrete type
+// T matching the given property ID, or the zero value of T if no matching claim is found.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetBestClaimOfType[T Claim](claims Claims, propID identifier.Identifier) T { //nolint:ireturn
+	// The best claim is really the first one because GetClaimsOfType returns claims in decreasing confidence.
+	for _, c := range GetClaimsOfType[T](claims, propID) {
+		return c
+	}
+	return *new(T)
+}
+
+// GetAllClaimsOfType returns all claims of the concrete type T,
+// sorted by decreasing confidence.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetAllClaimsOfType[T Claim](claims Claims) []T {
+	var result []T
+	for c := range claims.AllClaims() {
+		if typed, ok := c.(T); ok {
+			result = append(result, typed)
+		}
+	}
+	slices.SortFunc(result, func(a, b T) int {
+		// Reverse order: higher confidence first.
+		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
+	})
+	return result
+}
+
+// GetAllClaimsOfTypeWithConfidence returns all claims of the concrete type T,
+// sorted by decreasing confidence, that have confidence equal to or higher than
+// the specified minimum confidence.
+//
+// If confidence is 0, it defaults to LowConfidence.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confidence) []T {
+	if confidence == 0 {
+		confidence = LowConfidence
+	}
+	all := GetAllClaimsOfType[T](claims)
+	result := make([]T, 0, len(all))
+	for _, c := range all {
+		if Claim(c).GetConfidence() >= confidence {
+			result = append(result, c)
+		} else {
+			// Because GetAllClaimsOfType returns claims sorted by decreasing confidence, we can break here.
+			break
+		}
+	}
+	return result
+}
+
+// GetClaimsOfTypeWithConfidence returns all claims of the concrete type T matching the given
+// property ID, sorted by decreasing confidence, that have confidence equal to or higher than
+// the specified minimum confidence.
+//
+// If confidence is 0, it defaults to LowConfidence.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Identifier, confidence Confidence) []T {
+	if confidence == 0 {
+		confidence = LowConfidence
+	}
+	all := GetClaimsOfType[T](claims, propID)
+	result := make([]T, 0, len(all))
+	for _, c := range all {
+		if Claim(c).GetConfidence() >= confidence {
+			result = append(result, c)
+		} else {
+			// Because GetClaimsOfType returns claims sorted by decreasing confidence, we can break here.
+			break
+		}
+	}
+	return result
+}
 
 // CoreDocument contains the core fields present in all PeerDB documents.
 type CoreDocument struct {
@@ -121,7 +227,7 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 	return nil
 }
 
-// Get returns all claims with the given property ID.
+// Get returns all claims with the given property ID, sorted by decreasing confidence.
 func (c *ClaimTypes) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -129,6 +235,7 @@ func (c *ClaimTypes) Get(propID identifier.Identifier) []Claim {
 		Result: []Claim{},
 	}
 	_ = c.Visit(&v)
+	sortByConfidence(v.Result)
 	return v.Result
 }
 
@@ -278,7 +385,7 @@ func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
 	return nil
 }
 
-// Get returns all metadata claims with the given property ID.
+// Get returns all metadata claims with the given property ID, sorted by decreasing confidence.
 func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -286,6 +393,7 @@ func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 		Result: []Claim{},
 	}
 	_ = cc.Visit(&v)
+	sortByConfidence(v.Result)
 	return v.Result
 }
 
@@ -441,7 +549,7 @@ type AmountClaim struct {
 	Precision float64   `json:"precision"`
 }
 
-// Validate checks that the amount claim has finite values and valid confidence.
+// Validate checks that the amount claim has finite non-zero precision values and valid confidence.
 func (c *AmountClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
@@ -452,6 +560,9 @@ func (c *AmountClaim) Validate() errors.E {
 	}
 	if math.IsInf(c.Precision, 0) || math.IsNaN(c.Precision) {
 		return errors.New("Precision must be a finite number")
+	}
+	if c.Precision <= 0 {
+		return errors.New("Precision must be positive")
 	}
 
 	return nil
@@ -525,6 +636,9 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	if c.FromPrecision != nil && (math.IsInf(*c.FromPrecision, 0) || math.IsNaN(*c.FromPrecision)) {
 		return errors.New("FromPrecision must be a finite number")
 	}
+	if c.FromPrecision != nil && *c.FromPrecision <= 0 {
+		return errors.New("FromPrecision must be positive")
+	}
 
 	toIsCount := 0
 	if c.ToIsClosed {
@@ -553,6 +667,9 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	}
 	if c.ToPrecision != nil && (math.IsInf(*c.ToPrecision, 0) || math.IsNaN(*c.ToPrecision)) {
 		return errors.New("ToPrecision must be a finite number")
+	}
+	if c.ToPrecision != nil && *c.ToPrecision <= 0 {
+		return errors.New("ToPrecision must be positive")
 	}
 
 	return nil

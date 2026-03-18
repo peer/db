@@ -71,7 +71,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
-				"id",
+				"value",
 				`{
 					"type": "keyword",
 					"doc_values": false,
@@ -156,13 +156,13 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				}`,
 			},
 			{
-				"lower",
+				"from",
 				`{
 					"type": "double"
 				}`,
 			},
 			{
-				"lowerDisplay",
+				"fromDisplay",
 				// We do not use keyword normalizer here because display is just a number.
 				`{
 					"type": "keyword",
@@ -171,13 +171,13 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				}`,
 			},
 			{
-				"upper",
+				"to",
 				`{
 					"type": "double"
 				}`,
 			},
 			{
-				"upperDisplay",
+				"toDisplay",
 				// We do not use keyword normalizer here because display is just a number.
 				`{
 					"type": "keyword",
@@ -205,26 +205,26 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				}`,
 			},
 			{
-				"lower",
+				"from",
 				`{
 					"type": "long"
 				}`,
 			},
 			{
-				"lowerDisplay",
+				"fromDisplay",
 				`{
 					"type": "text",
 					"analyzer": "standard_string"
 				}`,
 			},
 			{
-				"upper",
+				"to",
 				`{
 					"type": "long"
 				}`,
 			},
 			{
-				"upperDisplay",
+				"toDisplay",
 				`{
 					"type": "text",
 					"analyzer": "standard_string"

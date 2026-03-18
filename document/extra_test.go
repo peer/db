@@ -409,6 +409,148 @@ func TestDocumentSizeAllClaims(t *testing.T) {
 	assert.Len(t, slices.Collect(doc.AllClaims()), 2)
 }
 
+// TestGetAllClaimsOfType tests GetAllClaimsOfType returns claims of the requested type sorted by decreasing confidence.
+func TestGetAllClaimsOfType(t *testing.T) {
+	t.Parallel()
+
+	prop1 := identifier.New()
+	prop2 := identifier.New()
+
+	doc := &document.D{}
+
+	// Empty document returns nil.
+	assert.Nil(t, document.GetAllClaimsOfType[*document.StringClaim](doc))
+
+	// Add string claims on different properties with varying confidence.
+	errE := doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.5},
+		Prop:      document.Reference{ID: prop1},
+		String:    "low",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop2},
+		String:    "high",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.75},
+		Prop:      document.Reference{ID: prop1},
+		String:    "medium",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Add a different claim type to verify type filtering.
+	errE = doc.Add(&document.HTMLClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop1},
+		HTML:      "<p>html</p>",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// GetAllClaimsOfType returns only string claims, across all properties.
+	strings := document.GetAllClaimsOfType[*document.StringClaim](doc)
+	assert.Len(t, strings, 3)
+
+	// Sorted by decreasing confidence.
+	assert.Equal(t, "high", strings[0].String)
+	assert.Equal(t, "medium", strings[1].String)
+	assert.Equal(t, "low", strings[2].String)
+
+	// GetAllClaimsOfType for HTML returns only the HTML claim.
+	htmls := document.GetAllClaimsOfType[*document.HTMLClaim](doc)
+	assert.Len(t, htmls, 1)
+	assert.Equal(t, "<p>html</p>", htmls[0].HTML)
+
+	// A type with no claims returns nil.
+	assert.Nil(t, document.GetAllClaimsOfType[*document.RelationClaim](doc))
+}
+
+// TestGetAllClaimsOfTypeNilClaims tests GetAllClaimsOfType on a nil ClaimTypes.
+func TestGetAllClaimsOfTypeNilClaims(t *testing.T) {
+	t.Parallel()
+
+	var claims *document.ClaimTypes
+	assert.Nil(t, document.GetAllClaimsOfType[*document.StringClaim](claims))
+}
+
+// TestGetAllClaimsOfTypeWithConfidence tests GetAllClaimsOfTypeWithConfidence filters by confidence threshold.
+func TestGetAllClaimsOfTypeWithConfidence(t *testing.T) {
+	t.Parallel()
+
+	prop1 := identifier.New()
+	prop2 := identifier.New()
+
+	doc := &document.D{}
+
+	// Empty document returns empty.
+	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.LowConfidence))
+
+	errE := doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.3},
+		Prop:      document.Reference{ID: prop1},
+		String:    "below-low",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.5},
+		Prop:      document.Reference{ID: prop2},
+		String:    "at-low",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.75},
+		Prop:      document.Reference{ID: prop1},
+		String:    "at-medium",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(&document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop2},
+		String:    "at-high",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Add a different type to verify filtering.
+	errE = doc.Add(&document.HTMLClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop1},
+		HTML:      "<p>html</p>",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// LowConfidence (0.5) filters out below-low (0.3).
+	low := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.LowConfidence)
+	assert.Len(t, low, 3)
+	assert.Equal(t, "at-high", low[0].String)
+	assert.Equal(t, "at-medium", low[1].String)
+	assert.Equal(t, "at-low", low[2].String)
+
+	// MediumConfidence (0.75) filters out at-low and below-low.
+	medium := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.MediumConfidence)
+	assert.Len(t, medium, 2)
+	assert.Equal(t, "at-high", medium[0].String)
+	assert.Equal(t, "at-medium", medium[1].String)
+
+	// HighConfidence (1.0) keeps only at-high.
+	high := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.HighConfidence)
+	assert.Len(t, high, 1)
+	assert.Equal(t, "at-high", high[0].String)
+
+	// Zero confidence defaults to LowConfidence.
+	zero := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, 0)
+	assert.Equal(t, low, zero)
+}
+
+// TestGetAllClaimsOfTypeWithConfidenceNilClaims tests GetAllClaimsOfTypeWithConfidence on a nil ClaimTypes.
+func TestGetAllClaimsOfTypeWithConfidenceNilClaims(t *testing.T) {
+	t.Parallel()
+
+	var claims *document.ClaimTypes
+	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claims, document.LowConfidence))
+}
+
 // TestDocumentMergeFrom tests D.MergeFrom merging claims from multiple documents.
 func TestDocumentMergeFrom(t *testing.T) {
 	t.Parallel()
@@ -1904,6 +2046,59 @@ func TestAmountClaimValidateInfPrecision(t *testing.T) {
 		Precision: math.Inf(1),
 	}
 	assert.EqualError(t, c.Validate(), "Precision must be a finite number")
+}
+
+// TestAmountClaimValidateNegativePrecision tests AmountClaim.Validate with negative precision.
+func TestAmountClaimValidateNegativePrecision(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ref := document.Reference{ID: prop}
+	core := document.CoreClaim{ID: identifier.New(), Confidence: 1.0}
+
+	c := &document.AmountClaim{
+		CoreClaim: core,
+		Prop:      ref,
+		Amount:    1.0,
+		Precision: -0.1,
+	}
+	assert.EqualError(t, c.Validate(), "Precision must be positive")
+}
+
+// TestAmountIntervalClaimValidateNegativePrecision tests AmountIntervalClaim.Validate with negative precision.
+func TestAmountIntervalClaimValidateNegativePrecision(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ref := document.Reference{ID: prop}
+	core := document.CoreClaim{ID: identifier.New(), Confidence: 1.0}
+
+	from := 1.0
+	to := 10.0
+	negP := -0.1
+	posP := 0.1
+
+	// Invalid: negative FromPrecision.
+	c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     core,
+		Prop:          ref,
+		From:          &from,
+		FromPrecision: &negP,
+		To:            &to,
+		ToPrecision:   &posP,
+	}
+	assert.EqualError(t, c.Validate(), "FromPrecision must be positive")
+
+	// Invalid: negative ToPrecision.
+	c = &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     core,
+		Prop:          ref,
+		From:          &from,
+		FromPrecision: &posP,
+		To:            &to,
+		ToPrecision:   &negP,
+	}
+	assert.EqualError(t, c.Validate(), "ToPrecision must be positive")
 }
 
 // TestDocumentGetByIDInMeta tests that GetByID searches inside claim metadata.
