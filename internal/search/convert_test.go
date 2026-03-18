@@ -1722,6 +1722,181 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	assert.Equal(t, testParentClass, result[1].To)
 }
 
+func TestConvertRelationWithClassSelfCycle(t *testing.T) {
+	t.Parallel()
+
+	// Target class is a subclass of itself.
+	targetClass := identifier.New()
+	targetClassDoc := makeClassDoc(targetClass, &targetClass)
+
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      propDoc,
+		testTargetDocID: targetDoc,
+	}
+	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	// Build hierarchy from cyclic class docs.
+	c.buildClassHierarchy([]*document.D{targetClassDoc})
+
+	ctx := t.Context()
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	// classAncestors has targetClass -> [targetClass], but testTargetDocID
+	// has no ancestors, so only one result claim should be produced.
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+	assert.Equal(t, testTargetDocID, result[0].To)
+}
+
+func TestConvertRelationWithClassMutualCycle(t *testing.T) {
+	t.Parallel()
+
+	// Two classes in a mutual cycle: A subclass of B, B subclass of A.
+	classA := identifier.New()
+	classB := identifier.New()
+	classADoc := makeClassDoc(classA, &classB)
+	classBDoc := makeClassDoc(classB, &classA)
+
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	targetDoc := makeNamingDoc(classA, "Class A")
+	classBNaming := makeNamingDoc(classB, "Class B")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+		classA:     targetDoc,
+		classB:     classBNaming,
+	}
+	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c.buildClassHierarchy([]*document.D{classADoc, classBDoc})
+
+	ctx := t.Context()
+	// Relation pointing to classA: ancestors include classB (and classA itself due to cycle).
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: classA},
+	}
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Target + ancestors (classB and classA again from cycle).
+	// classA appears twice: once as the target, once as ancestor of itself.
+	toIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		toIDs[i] = r.To
+	}
+	assert.Contains(t, toIDs, classA)
+	assert.Contains(t, toIDs, classB)
+}
+
+func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
+	t.Parallel()
+
+	// Property that is a subproperty of itself.
+	propA := identifier.New()
+	propADoc := makePropertyDoc(propA, &propA)
+
+	propNaming := makeNamingDoc(propA, "Prop A")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	extraDocs := map[identifier.Identifier]*document.D{
+		propA:           propNaming,
+		testTargetDocID: targetDoc,
+	}
+	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c.buildPropertyHierarchy([]*document.D{propADoc})
+
+	ctx := t.Context()
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: propA},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// propA appears both as the direct property and as its own ancestor.
+	propIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		propIDs[i] = r.Prop
+	}
+	assert.Contains(t, propIDs, propA)
+	// Should have at least 1 result and not infinite loop.
+	assert.GreaterOrEqual(t, len(result), 1)
+}
+
+func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
+	t.Parallel()
+
+	// Two properties in a mutual cycle.
+	propA := identifier.New()
+	propB := identifier.New()
+	propADoc := makePropertyDoc(propA, &propB)
+	propBDoc := makePropertyDoc(propB, &propA)
+
+	propANaming := makeNamingDoc(propA, "Prop A")
+	propBNaming := makeNamingDoc(propB, "Prop B")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	extraDocs := map[identifier.Identifier]*document.D{
+		propA:           propANaming,
+		propB:           propBNaming,
+		testTargetDocID: targetDoc,
+	}
+	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
+
+	ctx := t.Context()
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: propA},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	propIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		propIDs[i] = r.Prop
+	}
+	// Both propA (direct) and propB (ancestor) should appear.
+	assert.Contains(t, propIDs, propA)
+	assert.Contains(t, propIDs, propB)
+}
+
+func TestConvertStringWithPropertyCycle(t *testing.T) {
+	t.Parallel()
+
+	// Two properties in a mutual cycle, used with string claim conversion.
+	propA := identifier.New()
+	propB := identifier.New()
+	propADoc := makePropertyDoc(propA, &propB)
+	propBDoc := makePropertyDoc(propB, &propA)
+
+	propANaming := makeNamingDoc(propA, "Prop A")
+	propBNaming := makeNamingDoc(propB, "Prop B")
+	extraDocs := map[identifier.Identifier]*document.D{
+		propA: propANaming,
+		propB: propBNaming,
+	}
+	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
+
+	ctx := t.Context()
+	claim := &document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: propA},
+		String:    "hello",
+	}
+	result, errE := c.convertString(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	propIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		propIDs[i] = r.Prop
+	}
+	assert.Contains(t, propIDs, propA)
+	assert.Contains(t, propIDs, propB)
+}
+
 func TestConvertRelationWithMetaRelations(t *testing.T) {
 	t.Parallel()
 
