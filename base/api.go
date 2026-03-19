@@ -27,7 +27,8 @@ func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (js
 // InsertDocument inserts a new document with the given ID.
 func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, documentJSON json.RawMessage) errors.E {
 	_, errE := b.documents.Insert(ctx, id, documentJSON, &DocumentMetadata{
-		At: internal.Time(time.Now().UTC()),
+		At:               internal.Time(time.Now().UTC()),
+		InverseRelations: nil,
 	}, &internal.NoMetadata{})
 	return errE
 }

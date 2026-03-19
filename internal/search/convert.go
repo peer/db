@@ -1452,8 +1452,9 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 
 func (c *Converter) convertRelation(ctx context.Context, claim *document.RelationClaim) ([]RelationClaim, errors.E) {
 	// Convert meta relation claims to nested search relation claims.
-	var nested []NestedRelationClaim
-	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
+	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence)
+	nested := make([]NestedRelationClaim, 0, len(metaRelations))
+	for _, mr := range metaRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1533,8 +1534,9 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
 	// Convert meta relation claims to nested search relation claims.
-	var nested []NestedRelationClaim
-	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
+	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence)
+	nested := make([]NestedRelationClaim, 0, len(metaRelations))
+	for _, mr := range metaRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim

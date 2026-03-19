@@ -8110,7 +8110,8 @@ func TestDocuments_InvalidDefaultTagErrors(t *testing.T) {
 
 	docs := []any{
 		&Doc{
-			ID: []string{"test", "doc1"},
+			ID:   []string{"test", "doc1"},
+			Name: nil,
 		},
 	}
 

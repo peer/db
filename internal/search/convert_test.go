@@ -3665,7 +3665,7 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 
 // makeClassDocWithTemplate creates a class document with an INSTANCE_OF PROPERTY
 // and a DISPLAY_LABEL_TEMPLATE claim.
-func makeClassDocWithTemplate(id identifier.Identifier, tmpl string, tmplConfidence document.Confidence) *document.D {
+func makeClassDocWithTemplate(id identifier.Identifier, tmpl string) *document.D {
 	claims := &document.ClaimTypes{}
 	claims.Relation = append(claims.Relation, document.RelationClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3673,7 +3673,7 @@ func makeClassDocWithTemplate(id identifier.Identifier, tmpl string, tmplConfide
 		To:        document.Reference{ID: propertyClassID},
 	})
 	claims.String = append(claims.String, document.StringClaim{
-		CoreClaim: makeCoreClaim(tmplConfidence, nil),
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: displayLabelTemplatePropID},
 		String:    tmpl,
 	})
@@ -3699,7 +3699,7 @@ func TestDisplayLabelTemplate(t *testing.T) {
 	t.Parallel()
 
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -3739,8 +3739,8 @@ func TestDisplayLabelTemplateConfidenceSelection(t *testing.T) {
 	// Two classes, each with a template. The one with higher effective confidence wins.
 	classA := identifier.New()
 	classB := identifier.New()
-	classADoc := makeClassDocWithTemplate(classA, `Template A`, document.HighConfidence)
-	classBDoc := makeClassDocWithTemplate(classB, `Template B`, document.HighConfidence)
+	classADoc := makeClassDocWithTemplate(classA, `Template A`)
+	classBDoc := makeClassDocWithTemplate(classB, `Template B`)
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -3767,7 +3767,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -3813,7 +3813,7 @@ func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 	t.Parallel()
 
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{invalid syntax`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{invalid syntax`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -3851,7 +3851,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	slLangID := identifier.New()
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
 
 	languages := []*document.D{
 		makeLanguageDoc(enLangID, "en"),
@@ -3947,7 +3947,6 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	}
 	classDoc := makeClassDocWithTemplate(classID,
 		`{{bestString "SHORT_NAME" .}} ({{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}})`,
-		document.HighConfidence,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4004,7 +4003,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4045,7 +4044,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	enLangID := identifier.New()
 	namePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`)
 
 	languages := []*document.D{
 		makeLanguageDoc(enLangID, "en"),
@@ -4105,7 +4104,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 
 	codeProp := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `ID: {{bestIdentifier "CODE" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `ID: {{bestIdentifier "CODE" .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4153,7 +4152,6 @@ func TestTemplateNilDoc(t *testing.T) {
 	classID := identifier.New()
 	classDoc := makeClassDocWithTemplate(classID,
 		`Year: {{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}}`,
-		document.HighConfidence,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4197,7 +4195,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 
 	datePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `Date: {{bestTimeString "DATE" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `Date: {{bestTimeString "DATE" .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4257,7 +4255,6 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	}
 	classDoc := makeClassDocWithTemplate(classID,
 		`{{getDocumentByMnemonic "OTHER" | bestString "NAMING"}}`,
-		document.HighConfidence,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4675,7 +4672,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 	ptLangID := identifier.New()
 	namePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`, document.HighConfidence)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`)
 
 	enMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
@@ -4885,7 +4882,7 @@ func TestFromDocumentOutgoingInverseRelations(t *testing.T) {
 	assert.Equal(t, claimID, ir.Claim)
 	assert.Equal(t, testDocID, ir.Document)
 	assert.Equal(t, testPropID, ir.Prop)
-	assert.Equal(t, document.HighConfidence, ir.Confidence)
+	assert.InDelta(t, float64(document.HighConfidence), float64(ir.Confidence), 0)
 }
 
 func TestFromDocumentIncomingInverseRelation(t *testing.T) {
