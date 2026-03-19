@@ -514,7 +514,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "VARIANT",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A variant has an unique ID. All values of a variant share this ID.",
+				Value: "A variant has a unique ID. All values of a variant share this ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
@@ -608,7 +608,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "LIST",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A list has an unique ID, even a list with just one element. All elements of a list share this ID.",
+				Value: "A list has a unique ID, even a list with just one element. All elements of a list share this ID.",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},

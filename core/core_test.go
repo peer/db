@@ -83,7 +83,7 @@ func TestAmountValidateFloat32(t *testing.T) {
 
 	// Invalid: negative precision.
 	errE = core.Amount[float32]{Amount: 1.0, Precision: -0.1}.Validate()
-	assert.EqualError(t, errE, "Precision must be positive")
+	assert.EqualError(t, errE, "precision must be positive")
 }
 
 func TestAmountValidateFloat64(t *testing.T) {
@@ -111,7 +111,7 @@ func TestAmountValidateFloat64(t *testing.T) {
 
 	// Invalid: negative precision.
 	errE = core.Amount[float64]{Amount: 1.0, Precision: -0.1}.Validate()
-	assert.EqualError(t, errE, "Precision must be positive")
+	assert.EqualError(t, errE, "precision must be positive")
 }
 
 func TestAmountValidateInt(t *testing.T) {
@@ -123,7 +123,7 @@ func TestAmountValidateInt(t *testing.T) {
 
 	// Invalid: negative precision.
 	errE = core.Amount[int]{Amount: 42, Precision: -1}.Validate()
-	assert.EqualError(t, errE, "Precision must be positive")
+	assert.EqualError(t, errE, "precision must be positive")
 }
 
 func TestIntervalValidate(t *testing.T) {

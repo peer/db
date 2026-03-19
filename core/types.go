@@ -44,7 +44,7 @@ func (Time) intervalBound() {}
 // Validate checks that Precision is a defined TimePrecision value.
 func (t Time) Validate() errors.E {
 	if t.Precision < document.TimePrecisionGigaYears || t.Precision > document.TimePrecisionNanosecond {
-		return errors.New("unknown Precision")
+		return errors.New("unknown precision")
 	}
 	return nil
 }
@@ -70,21 +70,21 @@ func (a Amount[T]) Validate() errors.E {
 	switch v := any(a).(type) {
 	case Amount[float32]:
 		if math.IsInf(float64(v.Amount), 0) || math.IsNaN(float64(v.Amount)) {
-			return errors.New("Amount must be a finite number")
+			return errors.New("amount must be a finite number")
 		}
 		if math.IsInf(float64(v.Precision), 0) || math.IsNaN(float64(v.Precision)) {
-			return errors.New("Precision must be a finite number")
+			return errors.New("precision must be a finite number")
 		}
 	case Amount[float64]:
 		if math.IsInf(v.Amount, 0) || math.IsNaN(v.Amount) {
-			return errors.New("Amount must be a finite number")
+			return errors.New("amount must be a finite number")
 		}
 		if math.IsInf(v.Precision, 0) || math.IsNaN(v.Precision) {
-			return errors.New("Precision must be a finite number")
+			return errors.New("precision must be a finite number")
 		}
 	}
 	if a.Precision <= 0 {
-		return errors.New("Precision must be positive")
+		return errors.New("precision must be positive")
 	}
 	return nil
 }

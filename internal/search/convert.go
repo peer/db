@@ -370,9 +370,9 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
 			// Recursively get parent info to collect transitive ancestors and paths.
-			parentInfo, parentErr := c.computeDocumentInfo(ctx, parentID, computing)
-			if parentErr != nil {
-				continue
+			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, computing)
+			if errE != nil {
+				return documentInfo{}, errE
 			}
 			for _, grandparent := range parentInfo.Ancestors[hierProp] {
 				if !seen[grandparent] {
@@ -435,7 +435,7 @@ func (c *Converter) extendDisplayPaths(
 	display displayStrings,
 ) {
 	for lang := range SupportedLanguages {
-		// If lang does not exist in Display, this just means it is an empty string and we have not store
+		// If lang does not exist in Display, this just means it is an empty string and we have not stored
 		// it in the map. So reading a zero value from the map makes the right thing and we get an empty string back.
 		thisDisplay := display.Display[lang]
 		paths := parentInfo.DisplayPaths[hierProp][lang]
