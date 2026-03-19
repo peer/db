@@ -8104,8 +8104,8 @@ func TestDocuments_InvalidDefaultTagErrors(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID   []string `documentid:""`
-		Name []string `              cardinality:"1.." default:"foo" property:"NAME"`
+		ID   []string `                                documentid:""`
+		Name []string `cardinality:"1.." default:"foo"               property:"NAME"`
 	}
 
 	docs := []any{

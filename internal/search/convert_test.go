@@ -4768,7 +4768,7 @@ func TestBuildInverseProperties(t *testing.T) {
 	propADoc := makePropertyDocFull(propA, nil, &propB)
 	propBDoc := makePropertyDocFull(propB, nil, nil)
 
-	c := &Converter{} //nolint:exhaustruct
+	c := &Converter{}
 	c.buildInverseProperties([]*document.D{propADoc, propBDoc})
 
 	// A has inversePropertyOf B, so both directions should be recorded.
@@ -4786,7 +4786,7 @@ func TestBuildInversePropertiesNoDuplicates(t *testing.T) {
 	propADoc := makePropertyDocFull(propA, nil, &propB)
 	propBDoc := makePropertyDocFull(propB, nil, &propA)
 
-	c := &Converter{} //nolint:exhaustruct
+	c := &Converter{}
 	c.buildInverseProperties([]*document.D{propADoc, propBDoc})
 
 	// Each should appear exactly once, not duplicated.
@@ -4808,7 +4808,7 @@ func TestBuildInversePropertiesMultiple(t *testing.T) {
 	propBDoc := makePropertyDocFull(propB, nil, nil)
 	propCDoc := makePropertyDocFull(propC, nil, &propB)
 
-	c := &Converter{} //nolint:exhaustruct
+	c := &Converter{}
 	c.buildInverseProperties([]*document.D{propADoc, propBDoc, propCDoc})
 
 	// B should map to both A and C.
@@ -4840,7 +4840,7 @@ func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
 		Claims:       claims,
 	}
 
-	c := &Converter{} //nolint:exhaustruct
+	c := &Converter{}
 	c.buildInverseProperties([]*document.D{notAProp})
 
 	assert.Empty(t, c.inverseProperties)
