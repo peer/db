@@ -4,6 +4,9 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 // RFC3339Milli is the time format string for RFC3339 with millisecond precision.
@@ -34,6 +37,20 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	tt, err := time.Parse(RFC3339Milli, string(data))
 	*t = Time(tt)
 	return errors.WithStack(err)
+}
+
+// InverseRelation contains data about a relation claim from another document.
+// When document A has a relation claim with property X pointing to document B,
+// then document B's metadata will contain an InverseRelation entry.
+type InverseRelation struct {
+	// Claim is the ID of the relation claim in the source document (A).
+	Claim identifier.Identifier `json:"claim"`
+	// Document is the ID of the source document (A) that has the forward relation claim.
+	Document identifier.Identifier `json:"document"`
+	// Prop is the property ID of the forward relation claim in the source document (X).
+	Prop identifier.Identifier `json:"prop"`
+	// Confidence is the confidence of the forward relation claim.
+	Confidence document.Confidence `json:"confidence"`
 }
 
 // NoMetadata represents an empty metadata structure.

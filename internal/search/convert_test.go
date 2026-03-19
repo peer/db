@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // Well-known IDs used only in tests.
@@ -44,6 +45,11 @@ func makeCoreClaim(confidence document.Confidence, meta *document.ClaimTypes) do
 
 // makePropertyDoc creates a property document (instance of PROPERTY class) with optional SUBPROPERTY_OF relation.
 func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identifier) *document.D {
+	return makePropertyDocFull(id, subpropertyOf, nil)
+}
+
+// makePropertyDocFull creates a property document with optional SUBPROPERTY_OF and INVERSE_PROPERTY_OF relations.
+func makePropertyDocFull(id identifier.Identifier, subpropertyOf, inversePropertyOf *identifier.Identifier) *document.D {
 	claims := &document.ClaimTypes{}
 	// INSTANCE_OF -> PROPERTY.
 	claims.Relation = append(claims.Relation, document.RelationClaim{
@@ -56,6 +62,13 @@ func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identif
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subpropertyOfPropID},
 			To:        document.Reference{ID: *subpropertyOf},
+		})
+	}
+	if inversePropertyOf != nil {
+		claims.Relation = append(claims.Relation, document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: inversePropertyOfPropID},
+			To:        document.Reference{ID: *inversePropertyOf},
 		})
 	}
 	return &document.D{
@@ -2528,7 +2541,7 @@ func TestFromDocument(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc)
+	result, _, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Len(t, result.Claims.Identifier, 1)
@@ -2545,7 +2558,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc)
+	result, _, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Empty(t, result.Claims.Identifier)
@@ -2667,7 +2680,7 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc)
+	result, _, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Len(t, result.Claims.Identifier, 1)
@@ -2746,7 +2759,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2769,7 +2782,7 @@ func TestFromDocumentStringError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2792,7 +2805,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2816,7 +2829,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2846,7 +2859,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2870,7 +2883,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2900,7 +2913,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2923,7 +2936,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2946,7 +2959,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2968,7 +2981,7 @@ func TestFromDocumentHasError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2990,7 +3003,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -3012,7 +3025,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc)
+	_, _, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -4744,4 +4757,307 @@ func TestBestStringLanguagePriority(t *testing.T) {
 	// Template bestString for "pt" falls back sl -> und.
 	// "sl" has a NAME claim, so it should find "Slovenian Value".
 	assert.Equal(t, "Slovenian Value", display.Display["pt"])
+}
+
+func TestBuildInverseProperties(t *testing.T) {
+	t.Parallel()
+
+	propA := identifier.New()
+	propB := identifier.New()
+
+	propADoc := makePropertyDocFull(propA, nil, &propB)
+	propBDoc := makePropertyDocFull(propB, nil, nil)
+
+	c := &Converter{} //nolint:exhaustruct
+	c.buildInverseProperties([]*document.D{propADoc, propBDoc})
+
+	// A has inversePropertyOf B, so both directions should be recorded.
+	assert.Contains(t, c.inverseProperties[propA], propB)
+	assert.Contains(t, c.inverseProperties[propB], propA)
+}
+
+func TestBuildInversePropertiesNoDuplicates(t *testing.T) {
+	t.Parallel()
+
+	// Both A and B declare inversePropertyOf each other.
+	propA := identifier.New()
+	propB := identifier.New()
+
+	propADoc := makePropertyDocFull(propA, nil, &propB)
+	propBDoc := makePropertyDocFull(propB, nil, &propA)
+
+	c := &Converter{} //nolint:exhaustruct
+	c.buildInverseProperties([]*document.D{propADoc, propBDoc})
+
+	// Each should appear exactly once, not duplicated.
+	assert.Len(t, c.inverseProperties[propA], 1)
+	assert.Len(t, c.inverseProperties[propB], 1)
+	assert.Contains(t, c.inverseProperties[propA], propB)
+	assert.Contains(t, c.inverseProperties[propB], propA)
+}
+
+func TestBuildInversePropertiesMultiple(t *testing.T) {
+	t.Parallel()
+
+	// Both A and C have inversePropertyOf B.
+	propA := identifier.New()
+	propB := identifier.New()
+	propC := identifier.New()
+
+	propADoc := makePropertyDocFull(propA, nil, &propB)
+	propBDoc := makePropertyDocFull(propB, nil, nil)
+	propCDoc := makePropertyDocFull(propC, nil, &propB)
+
+	c := &Converter{} //nolint:exhaustruct
+	c.buildInverseProperties([]*document.D{propADoc, propBDoc, propCDoc})
+
+	// B should map to both A and C.
+	assert.Contains(t, c.inverseProperties[propB], propA)
+	assert.Contains(t, c.inverseProperties[propB], propC)
+	// A maps to B.
+	assert.Contains(t, c.inverseProperties[propA], propB)
+	assert.Len(t, c.inverseProperties[propA], 1)
+	// C maps to B.
+	assert.Contains(t, c.inverseProperties[propC], propB)
+	assert.Len(t, c.inverseProperties[propC], 1)
+}
+
+func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
+	t.Parallel()
+
+	propA := identifier.New()
+	propB := identifier.New()
+
+	// A document that is NOT a property (no INSTANCE_OF -> PROPERTY) but has inversePropertyOf.
+	claims := &document.ClaimTypes{}
+	claims.Relation = append(claims.Relation, document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: inversePropertyOfPropID},
+		To:        document.Reference{ID: propB},
+	})
+	notAProp := &document.D{
+		CoreDocument: document.CoreDocument{ID: propA}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+
+	c := &Converter{} //nolint:exhaustruct
+	c.buildInverseProperties([]*document.D{notAProp})
+
+	assert.Empty(t, c.inverseProperties)
+}
+
+func TestFromDocumentOutgoingInverseRelations(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "My Prop")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      propDoc,
+		testTargetDocID: targetDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	claimID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Relation: []document.RelationClaim{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         claimID,
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.Reference{ID: testPropID},
+					To:   document.Reference{ID: testTargetDocID},
+				},
+			},
+		},
+	}
+
+	_, outgoing, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Should have an entry for the target document.
+	require.Contains(t, outgoing, testTargetDocID)
+	require.Len(t, outgoing[testTargetDocID], 1)
+	ir := outgoing[testTargetDocID][0]
+	assert.Equal(t, claimID, ir.Claim)
+	assert.Equal(t, testDocID, ir.Document)
+	assert.Equal(t, testPropID, ir.Prop)
+	assert.Equal(t, document.HighConfidence, ir.Confidence)
+}
+
+func TestFromDocumentIncomingInverseRelation(t *testing.T) {
+	t.Parallel()
+
+	// Property X has inversePropertyOf Y.
+	propX := identifier.New()
+	propY := identifier.New()
+	propXDoc := makePropertyDocFull(propX, nil, &propY)
+	propYDoc := makePropertyDocFull(propY, nil, nil)
+
+	sourceDocID := identifier.New()
+	sourceDoc := makeNamingDoc(sourceDocID, "Source")
+	propXNamingDoc := makeNamingDoc(propX, "Prop X")
+	propYNamingDoc := makeNamingDoc(propY, "Prop Y")
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		sourceDocID: sourceDoc,
+		propX:       propXNamingDoc,
+		propY:       propYNamingDoc,
+	}
+	c := newTestConverter(t, []*document.D{propXDoc, propYDoc}, nil, extraDocs)
+
+	ctx := t.Context()
+	claimID := identifier.New()
+
+	// Document B has no claims of its own, but has an incoming inverse relation
+	// from source document A via property X.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	inverseRelations := []internal.InverseRelation{
+		{
+			Claim:      claimID,
+			Document:   sourceDocID,
+			Prop:       propX,
+			Confidence: document.HighConfidence,
+		},
+	}
+
+	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Should have a reverse relation claim with property Y pointing to source document.
+	require.Len(t, result.Claims.Relation, 1)
+	rel := result.Claims.Relation[0]
+	assert.Equal(t, propY, rel.Prop)
+	assert.Equal(t, sourceDocID, rel.To)
+}
+
+func TestFromDocumentIncomingInverseRelationNoInverse(t *testing.T) {
+	t.Parallel()
+
+	// Property X has no inverse.
+	propX := identifier.New()
+	propXDoc := makePropertyDocFull(propX, nil, nil)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		propX: makeNamingDoc(propX, "Prop X"),
+	}
+	c := newTestConverter(t, []*document.D{propXDoc}, nil, extraDocs)
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	inverseRelations := []internal.InverseRelation{
+		{
+			Claim:      identifier.New(),
+			Document:   identifier.New(),
+			Prop:       propX,
+			Confidence: document.HighConfidence,
+		},
+	}
+
+	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// No inverse property, so no relation claims should be added.
+	assert.Empty(t, result.Claims.Relation)
+}
+
+func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
+	t.Parallel()
+
+	// Both A and C have inversePropertyOf B.
+	// An incoming relation with property B should produce reverse claims for both A and C.
+	propA := identifier.New()
+	propB := identifier.New()
+	propC := identifier.New()
+
+	propADoc := makePropertyDocFull(propA, nil, &propB)
+	propBDoc := makePropertyDocFull(propB, nil, nil)
+	propCDoc := makePropertyDocFull(propC, nil, &propB)
+
+	sourceDocID := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		sourceDocID: makeNamingDoc(sourceDocID, "Source"),
+		propA:       makeNamingDoc(propA, "Prop A"),
+		propB:       makeNamingDoc(propB, "Prop B"),
+		propC:       makeNamingDoc(propC, "Prop C"),
+	}
+	c := newTestConverter(t, []*document.D{propADoc, propBDoc, propCDoc}, nil, extraDocs)
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	inverseRelations := []internal.InverseRelation{
+		{
+			Claim:      identifier.New(),
+			Document:   sourceDocID,
+			Prop:       propB,
+			Confidence: document.HighConfidence,
+		},
+	}
+
+	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Should have two reverse relation claims: one for A and one for C.
+	require.Len(t, result.Claims.Relation, 2)
+	relProps := map[identifier.Identifier]bool{
+		result.Claims.Relation[0].Prop: true,
+		result.Claims.Relation[1].Prop: true,
+	}
+	assert.True(t, relProps[propA], "expected reverse claim with property A")
+	assert.True(t, relProps[propC], "expected reverse claim with property C")
+	// Both should point to the source document.
+	assert.Equal(t, sourceDocID, result.Claims.Relation[0].To)
+	assert.Equal(t, sourceDocID, result.Claims.Relation[1].To)
+}
+
+func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
+	t.Parallel()
+
+	// A has inversePropertyOf B. An incoming relation with property A should
+	// produce a reverse claim with property B.
+	propA := identifier.New()
+	propB := identifier.New()
+
+	propADoc := makePropertyDocFull(propA, nil, &propB)
+	propBDoc := makePropertyDocFull(propB, nil, nil)
+
+	sourceDocID := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		sourceDocID: makeNamingDoc(sourceDocID, "Source"),
+		propA:       makeNamingDoc(propA, "Prop A"),
+		propB:       makeNamingDoc(propB, "Prop B"),
+	}
+	c := newTestConverter(t, []*document.D{propADoc, propBDoc}, nil, extraDocs)
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	// Incoming relation with property A (the one that declared inversePropertyOf B).
+	inverseRelations := []internal.InverseRelation{
+		{
+			Claim:      identifier.New(),
+			Document:   sourceDocID,
+			Prop:       propA,
+			Confidence: document.HighConfidence,
+		},
+	}
+
+	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Should produce a reverse claim with property B.
+	require.Len(t, result.Claims.Relation, 1)
+	assert.Equal(t, propB, result.Claims.Relation[0].Prop)
+	assert.Equal(t, sourceDocID, result.Claims.Relation[0].To)
 }

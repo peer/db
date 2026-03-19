@@ -36,6 +36,10 @@ const (
 // DocumentMetadata contains metadata about a document including its timestamp.
 type DocumentMetadata struct {
 	At internal.Time `json:"at"`
+
+	// InverseRelations contains inverse relation data for relation claims from other
+	// documents that point to this document.
+	InverseRelations []internal.InverseRelation `json:"inverseRelations,omitempty"`
 }
 
 // B is a base for data and files.

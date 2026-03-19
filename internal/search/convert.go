@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // LanguagePriority maps a language to its ordered fallback languages for display label resolution.
@@ -38,6 +39,7 @@ var (
 	propertyClassID            = identifier.From("core.peerdb.org", "PROPERTY")
 	languageClassID            = identifier.From("core.peerdb.org", "LANGUAGE")
 	displayLabelTemplatePropID = identifier.From("core.peerdb.org", "DISPLAY_LABEL_TEMPLATE")
+	inversePropertyOfPropID    = identifier.From("core.peerdb.org", "INVERSE_PROPERTY_OF")
 )
 
 type displayStrings struct {
@@ -100,6 +102,11 @@ type Converter struct {
 	namingProperties map[identifier.Identifier]bool
 	// languageCodes maps language document ID to primary language subtag (e.g., "en").
 	languageCodes map[identifier.Identifier]string
+	// inverseProperties maps a property ID to all its inverse property IDs.
+	// Both directions are stored: if X has INVERSE_PROPERTY_OF -> Y, then
+	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
+	// Multiple properties can be inverses of the same property.
+	inverseProperties map[identifier.Identifier][]identifier.Identifier
 	// mnemonics maps mnemonic to property ID.
 	mnemonics map[string]identifier.Identifier
 	// languagePriority defines per-language fallback order for display label resolution.
@@ -133,6 +140,7 @@ func NewConverter(
 		propertyAncestors:        nil,
 		valueHierarchyProperties: nil,
 		namingProperties:         nil,
+		inverseProperties:        nil,
 		languageCodes:            nil,
 		mnemonics:                mnemonics,
 		languagePriority:         languagePriority,
@@ -144,6 +152,7 @@ func NewConverter(
 	c.discoverValueHierarchyProperties()
 	c.buildNamingProperties()
 	c.buildLanguageCodes(languages)
+	c.buildInverseProperties(properties)
 	return c, nil
 }
 
@@ -310,6 +319,27 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 		if len(ids) > 0 {
 			code, _, _ := strings.Cut(ids[0].Value, "-")
 			c.languageCodes[doc.ID] = code
+		}
+	}
+}
+
+// buildInverseProperties computes the bidirectional inverse property mapping.
+// If property X has INVERSE_PROPERTY_OF -> Y, then Y is added to inverseProperties[X]
+// and X is added to inverseProperties[Y]. Multiple properties can be inverses of
+// the same property (e.g., both X and Z can have INVERSE_PROPERTY_OF -> Y).
+func (c *Converter) buildInverseProperties(properties []*document.D) {
+	c.inverseProperties = make(map[identifier.Identifier][]identifier.Identifier)
+	for _, prop := range properties {
+		if !isInstanceOf(prop, propertyClassID) {
+			continue
+		}
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](prop, inversePropertyOfPropID, document.LowConfidence) {
+			if !slices.Contains(c.inverseProperties[prop.ID], rel.To.ID) {
+				c.inverseProperties[prop.ID] = append(c.inverseProperties[prop.ID], rel.To.ID)
+			}
+			if !slices.Contains(c.inverseProperties[rel.To.ID], prop.ID) {
+				c.inverseProperties[rel.To.ID] = append(c.inverseProperties[rel.To.ID], prop.ID)
+			}
 		}
 	}
 }
@@ -768,6 +798,12 @@ type convertVisitor struct {
 	ctx       context.Context //nolint:containedctx
 	converter *Converter
 	result    *Document
+	// docID is the ID of the document being converted.
+	docID identifier.Identifier
+	// outgoingInverseRelations collects inverse relation data for target documents.
+	// The key is the target document ID; the value is the list of inverse relations
+	// that should be stored in that target document's metadata.
+	outgoingInverseRelations map[identifier.Identifier][]internal.InverseRelation
 }
 
 var _ document.Visitor = (*convertVisitor)(nil)
@@ -854,13 +890,23 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 	return document.Keep, nil
 }
 
-// VisitRelation converts a relation claim to search relation claims.
+// VisitRelation converts a relation claim to search relation claims and
+// records the inverse relation for the target document's metadata.
 func (v *convertVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
 	claims, errE := v.converter.convertRelation(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
+
+	// Record this relation for the target document's metadata.
+	v.outgoingInverseRelations[claim.To.ID] = append(v.outgoingInverseRelations[claim.To.ID], internal.InverseRelation{
+		Claim:      claim.ID,
+		Document:   v.docID,
+		Prop:       claim.Prop.ID,
+		Confidence: claim.GetConfidence(),
+	})
+
 	return document.Keep, nil
 }
 
@@ -895,7 +941,16 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 }
 
 // FromDocument converts a document.D to a search Document.
-func (c *Converter) FromDocument(ctx context.Context, doc *document.D) (*Document, errors.E) {
+//
+// inverseRelations contains relation claims from other documents that point to this document.
+// For those whose property has an inverse property, a reverse relation claim is added to
+// the search document.
+//
+// The returned map contains, for each target document referenced by this document's relation
+// claims, the inverse relation data that should be stored in that target document's metadata.
+func (c *Converter) FromDocument(
+	ctx context.Context, doc *document.D, inverseRelations []internal.InverseRelation,
+) (*Document, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
 	v := &convertVisitor{
 		ctx:       ctx,
 		converter: c,
@@ -903,12 +958,40 @@ func (c *Converter) FromDocument(ctx context.Context, doc *document.D) (*Documen
 			ID:     doc.ID,
 			Claims: ClaimTypes{},
 		},
+		docID:                    doc.ID,
+		outgoingInverseRelations: make(map[identifier.Identifier][]internal.InverseRelation),
 	}
 	errE := doc.Visit(v)
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
-	return v.result, nil
+
+	// Process incoming inverse relations from metadata.
+	for _, ir := range inverseRelations {
+		inversePropIDs, ok := c.inverseProperties[ir.Prop]
+		if !ok {
+			// Property has no inverse, skip.
+			continue
+		}
+		// Create a synthetic relation claim for each inverse property pointing back
+		// to the source document.
+		for _, inversePropID := range inversePropIDs {
+			claims, errE := c.convertRelation(ctx, &document.RelationClaim{
+				CoreClaim: document.CoreClaim{
+					ID:         ir.Claim,
+					Confidence: ir.Confidence,
+				},
+				Prop: document.Reference{ID: inversePropID},
+				To:   document.Reference{ID: ir.Document},
+			})
+			if errE != nil {
+				return nil, nil, errE
+			}
+			v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
+		}
+	}
+
+	return v.result, v.outgoingInverseRelations, nil
 }
 
 func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {
