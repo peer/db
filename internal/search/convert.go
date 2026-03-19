@@ -23,15 +23,14 @@ const undeterminedLanguage = "und"
 //
 //nolint:gochecknoglobals
 var (
+	subentityOfPropID          = identifier.From("core.peerdb.org", "SUBENTITY_OF")
 	subpropertyOfPropID        = identifier.From("core.peerdb.org", "SUBPROPERTY_OF")
-	subclassOfPropID           = identifier.From("core.peerdb.org", "SUBCLASS_OF")
 	namingPropID               = identifier.From("core.peerdb.org", "NAMING")
 	inLanguagePropID           = identifier.From("core.peerdb.org", "IN_LANGUAGE")
 	inUnitPropID               = identifier.From("core.peerdb.org", "IN_UNIT")
 	codePropID                 = identifier.From("core.peerdb.org", "CODE")
 	instanceOfPropID           = identifier.From("core.peerdb.org", "INSTANCE_OF")
 	propertyClassID            = identifier.From("core.peerdb.org", "PROPERTY")
-	classClassID               = identifier.From("core.peerdb.org", "CLASS")
 	languageClassID            = identifier.From("core.peerdb.org", "LANGUAGE")
 	displayLabelTemplatePropID = identifier.From("core.peerdb.org", "DISPLAY_LABEL_TEMPLATE")
 )
@@ -41,14 +40,23 @@ type displayStrings struct {
 	Naming  map[string][]string
 }
 
+// documentInfo holds cached information about a document: display strings
+// and transitive ancestors for each value hierarchy type.
+type documentInfo struct {
+	Display displayStrings
+	// Ancestors maps a hierarchy property ID (e.g., SUBCLASS_OF) to transitive ancestor IDs.
+	Ancestors map[identifier.Identifier][]identifier.Identifier
+}
+
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
 	propertyDescendants map[identifier.Identifier][]identifier.Identifier
 	// propertyAncestors maps a property ID to all its transitive super-property IDs.
 	propertyAncestors map[identifier.Identifier][]identifier.Identifier
-	// classAncestors maps a class ID to all its transitive super-class IDs.
-	classAncestors map[identifier.Identifier][]identifier.Identifier
+	// valueHierarchyProperties lists hierarchy-defining property IDs for value expansion
+	// (sub-properties of SUBENTITY_OF, excluding INSTANCE_OF and SUBPROPERTY_OF).
+	valueHierarchyProperties []identifier.Identifier
 	// namingProperties is the set of property IDs that are NAMING or sub-properties of NAMING.
 	namingProperties map[identifier.Identifier]bool
 	// languageCodes maps language document ID to primary language subtag (e.g., "en").
@@ -57,36 +65,37 @@ type Converter struct {
 	mnemonics map[string]identifier.Identifier
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
-	// displayCacheMu protects displayCache for concurrent access.
-	displayCacheMu sync.RWMutex
-	// displayCache caches computed display strings per language per document ID.
-	displayCache map[identifier.Identifier]displayStrings
+	// documentInfoMu protects documentInfoCache for concurrent access.
+	documentInfoMu sync.RWMutex
+	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per document ID.
+	documentInfoCache map[identifier.Identifier]documentInfo
 }
 
-// NewConverter creates a Converter that preprocesses property and class hierarchies.
-// properties contains all property documents, classes contains all class documents,
-// vocabularies contains vocabulary documents (including language documents) needed
-// for language code extraction, and getDocument is a callback to fetch documents by ID.
+// NewConverter creates a Converter that preprocesses property hierarchies and discovers
+// value hierarchy types. properties contains all property documents (used for SUBPROPERTY_OF
+// hierarchy and discovering other hierarchy types), languages contains language documents
+// needed for language code extraction, and getDocument is a callback to fetch documents by ID.
+// Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.
 func NewConverter(
-	properties, classes, vocabularies []*document.D,
+	properties, languages []*document.D,
 	mnemonics map[string]identifier.Identifier,
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
 ) *Converter {
 	c := &Converter{
-		propertyDescendants: nil,
-		propertyAncestors:   nil,
-		classAncestors:      nil,
-		namingProperties:    nil,
-		languageCodes:       nil,
-		mnemonics:           mnemonics,
-		getDocument:         getDocument,
-		displayCache:        make(map[identifier.Identifier]displayStrings),
-		displayCacheMu:      sync.RWMutex{},
+		propertyDescendants:      nil,
+		propertyAncestors:        nil,
+		valueHierarchyProperties: nil,
+		namingProperties:         nil,
+		languageCodes:            nil,
+		mnemonics:                mnemonics,
+		getDocument:              getDocument,
+		documentInfoCache:        make(map[identifier.Identifier]documentInfo),
+		documentInfoMu:           sync.RWMutex{},
 	}
 	c.buildPropertyHierarchy(properties)
-	c.buildClassHierarchy(classes)
+	c.discoverValueHierarchyProperties()
 	c.buildNamingProperties()
-	c.buildLanguageCodes(vocabularies)
+	c.buildLanguageCodes(languages)
 	return c
 }
 
@@ -172,46 +181,17 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	}
 }
 
-// buildClassHierarchy computes transitive ancestors for each class
-// based on SUBCLASS_OF relation claims. Only documents that are instances of CLASS
-// are considered.
-func (c *Converter) buildClassHierarchy(classes []*document.D) {
-	// Build child -> parents map. A class X with SUBCLASS_OF -> Y
-	// means Y is a parent (super-class) of X.
-	childParents := make(map[identifier.Identifier][]identifier.Identifier)
-	for _, cls := range classes {
-		if !isInstanceOf(cls, classClassID) {
+// discoverValueHierarchyProperties finds all sub-properties of SUBENTITY_OF
+// that define value hierarchies. INSTANCE_OF and SUBPROPERTY_OF are excluded:
+// INSTANCE_OF because there is no sub-instance-of concept, and SUBPROPERTY_OF
+// because it is used for property propagation, not value expansion.
+func (c *Converter) discoverValueHierarchyProperties() {
+	c.valueHierarchyProperties = nil
+	for _, desc := range c.propertyDescendants[subentityOfPropID] {
+		if desc == instanceOfPropID || desc == subpropertyOfPropID {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](cls, subclassOfPropID, document.LowConfidence) {
-			childParents[cls.ID] = append(childParents[cls.ID], rel.To.ID)
-		}
-	}
-
-	// Compute transitive ancestors for each class.
-	c.classAncestors = make(map[identifier.Identifier][]identifier.Identifier)
-	for _, cls := range classes {
-		visited := make(map[identifier.Identifier]bool)
-		var walk func(identifier.Identifier)
-		walk = func(classID identifier.Identifier) {
-			for _, parent := range childParents[classID] {
-				if !visited[parent] {
-					visited[parent] = true
-					walk(parent)
-				}
-			}
-		}
-		walk(cls.ID)
-		// Exclude the class itself to avoid duplicates when consuming code
-		// prepends the target (e.g., convertRelation).
-		delete(visited, cls.ID)
-		if len(visited) > 0 {
-			result := make([]identifier.Identifier, 0, len(visited))
-			for a := range visited {
-				result = append(result, a)
-			}
-			c.classAncestors[cls.ID] = result
-		}
+		c.valueHierarchyProperties = append(c.valueHierarchyProperties, desc)
 	}
 }
 
@@ -225,9 +205,9 @@ func (c *Converter) buildNamingProperties() {
 	}
 }
 
-// buildLanguageCodes extracts language codes from language vocabulary documents.
-// It identifies language documents by their INSTANCE_OF -> LANGUAGE class relation
-// and extracts the CODE identifier claim value.
+// buildLanguageCodes extracts language codes from language documents.
+// Only language documents (those with INSTANCE_OF -> LANGUAGE) need to be passed,
+// but the method still filters by INSTANCE_OF for safety.
 func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 	c.languageCodes = make(map[identifier.Identifier]string)
 	for _, doc := range allDocuments {
@@ -243,30 +223,83 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 	}
 }
 
-// getDisplayStrings returns the display strings for a document, making and
-// caching them on first access. It is safe for concurrent use.
-func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identifier) (displayStrings, errors.E) {
-	c.displayCacheMu.RLock()
-	if display, ok := c.displayCache[id]; ok {
-		c.displayCacheMu.RUnlock()
-		return display, nil
+// getDocumentInfo returns the document info for a document, computing and
+// caching it on first access. It computes display strings and lazily walks
+// value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
+func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
+	return c.computeDocumentInfo(ctx, id, make(map[identifier.Identifier]bool))
+}
+
+// computeDocumentInfo fetches a document, computes its display strings, and lazily
+// walks value hierarchy ancestors. The computing set prevents infinite recursion
+// when cycles exist in hierarchy data. Results are cached for reuse.
+func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Identifier, computing map[identifier.Identifier]bool) (documentInfo, errors.E) {
+	// Check cache.
+	c.documentInfoMu.RLock()
+	if info, ok := c.documentInfoCache[id]; ok {
+		c.documentInfoMu.RUnlock()
+		return info, nil
 	}
-	c.displayCacheMu.RUnlock()
+	c.documentInfoMu.RUnlock()
+
+	// Cycle protection.
+	if computing[id] {
+		return documentInfo{}, nil
+	}
+	computing[id] = true
 
 	doc, errE := c.getDocument(ctx, id)
 	if errE != nil {
-		return displayStrings{}, errE
+		return documentInfo{}, errE
 	}
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	if errE != nil {
-		return displayStrings{}, errE
+		return documentInfo{}, errE
 	}
 
-	c.displayCacheMu.Lock()
-	c.displayCache[id] = display
-	c.displayCacheMu.Unlock()
+	// Compute ancestors for each value hierarchy property.
+	var ancestors map[identifier.Identifier][]identifier.Identifier
+	for _, hierProp := range c.valueHierarchyProperties {
+		rels := document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, hierProp, document.LowConfidence)
+		if len(rels) == 0 {
+			continue
+		}
+		seen := map[identifier.Identifier]bool{id: true} // Exclude self to avoid duplicates.
+		var hierAncestors []identifier.Identifier
+		for _, rel := range rels {
+			parentID := rel.To.ID
+			if seen[parentID] {
+				continue
+			}
+			seen[parentID] = true
+			hierAncestors = append(hierAncestors, parentID)
+			// Recursively get parent info to collect transitive ancestors.
+			parentInfo, parentErr := c.computeDocumentInfo(ctx, parentID, computing)
+			if parentErr != nil {
+				continue
+			}
+			for _, grandparent := range parentInfo.Ancestors[hierProp] {
+				if !seen[grandparent] {
+					seen[grandparent] = true
+					hierAncestors = append(hierAncestors, grandparent)
+				}
+			}
+		}
+		if len(hierAncestors) > 0 {
+			if ancestors == nil {
+				ancestors = make(map[identifier.Identifier][]identifier.Identifier)
+			}
+			ancestors[hierProp] = hierAncestors
+		}
+	}
 
-	return display, nil
+	info := documentInfo{Display: display, Ancestors: ancestors}
+
+	c.documentInfoMu.Lock()
+	c.documentInfoCache[id] = info
+	c.documentInfoMu.Unlock()
+
+	return info, nil
 }
 
 // makeDisplayStrings returns the display strings for a document.
@@ -319,6 +352,16 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 	}
 
 	return display, nil
+}
+
+// getDisplayStrings is a convenience wrapper around getDocumentInfo that
+// returns only the display strings.
+func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identifier) (displayStrings, errors.E) {
+	info, errE := c.getDocumentInfo(ctx, id)
+	if errE != nil {
+		return displayStrings{}, errE
+	}
+	return info.Display, nil
 }
 
 // displayLabelTemplates returns a map from language code to the best
@@ -1165,10 +1208,25 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 		})
 	}
 
-	// Cross product of propagated properties x (target + ancestor classes).
+	// Cross product of propagated properties x (target + value hierarchy ancestors).
 	propIDs := c.propagateProp(claim.Prop.ID)
+
+	// Compute target IDs: the target itself plus ancestors from all value hierarchies.
+	targetInfo, errE := c.getDocumentInfo(ctx, claim.To.ID)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
 	targetIDs := []identifier.Identifier{claim.To.ID}
-	targetIDs = append(targetIDs, c.classAncestors[claim.To.ID]...)
+	seen := map[identifier.Identifier]bool{claim.To.ID: true}
+	for _, ancestors := range targetInfo.Ancestors {
+		for _, aid := range ancestors {
+			if !seen[aid] {
+				seen[aid] = true
+				targetIDs = append(targetIDs, aid)
+			}
+		}
+	}
 
 	result := make([]RelationClaim, 0, len(propIDs)*len(targetIDs))
 	for _, pid := range propIDs {
@@ -1178,10 +1236,16 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			return nil, errE
 		}
 		for _, tid := range targetIDs {
-			toDisplay, errE := c.getDisplayStrings(ctx, tid)
-			if errE != nil {
-				errors.Details(errE)["claim"] = claim
-				return nil, errE
+			var toDisplay displayStrings
+			if tid == claim.To.ID {
+				toDisplay = targetInfo.Display
+			} else {
+				// Ancestors were already computed during the hierarchy walk, so this hits cache.
+				toDisplay, errE = c.getDisplayStrings(ctx, tid)
+				if errE != nil {
+					errors.Details(errE)["claim"] = claim
+					return nil, errE
+				}
 			}
 			result = append(result, RelationClaim{
 				Prop:        pid,

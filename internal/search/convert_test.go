@@ -14,6 +14,11 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
+// Well-known IDs used only in tests.
+//
+//nolint:gochecknoglobals
+var subclassOfPropID = identifier.From("core.peerdb.org", "SUBCLASS_OF")
+
 // Helper IDs for tests.
 //
 //nolint:gochecknoglobals
@@ -21,7 +26,6 @@ var (
 	testPropID      = identifier.New()
 	testPropID2     = identifier.New()
 	testParentProp  = identifier.New()
-	testClassID     = identifier.New()
 	testParentClass = identifier.New()
 	testDocID       = identifier.New()
 	testLangDocID   = identifier.New()
@@ -62,19 +66,19 @@ func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identif
 	}
 }
 
-// makeClassDoc creates a class document (instance of CLASS class) with optional SUBCLASS_OF relation.
-func makeClassDoc(id identifier.Identifier, subclassOf *identifier.Identifier) *document.D {
+// makeHierarchyDoc creates a document with a naming string and an optional hierarchy relation.
+func makeHierarchyDoc(id identifier.Identifier, name string, hierProp identifier.Identifier, parentID *identifier.Identifier) *document.D {
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.String = append(claims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: instanceOfPropID},
-		To:        document.Reference{ID: classClassID},
+		Prop:      document.Reference{ID: namingPropID},
+		String:    name,
 	})
-	if subclassOf != nil {
+	if parentID != nil {
 		claims.Relation = append(claims.Relation, document.RelationClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
-			To:        document.Reference{ID: *subclassOf},
+			Prop:      document.Reference{ID: hierProp},
+			To:        document.Reference{ID: *parentID},
 		})
 	}
 	return &document.D{
@@ -122,10 +126,10 @@ func makeNamingDoc(id identifier.Identifier, name string) *document.D {
 	}
 }
 
-// newTestConverter creates a Converter for testing with the given properties, classes, and vocabularies.
+// newTestConverter creates a Converter for testing with the given properties, languages, and extra documents.
 func newTestConverter(
 	t *testing.T,
-	properties, classes, vocabularies []*document.D,
+	properties, languages []*document.D,
 	extraDocs map[identifier.Identifier]*document.D,
 ) *Converter {
 	t.Helper()
@@ -135,7 +139,7 @@ func newTestConverter(
 		}
 		return nil, errors.New("document not found")
 	}
-	return NewConverter(properties, classes, vocabularies, nil, getDocument)
+	return NewConverter(properties, languages, nil, getDocument)
 }
 
 func TestIsInstanceOf(t *testing.T) {
@@ -143,7 +147,7 @@ func TestIsInstanceOf(t *testing.T) {
 
 	doc := makePropertyDoc(testPropID, nil)
 	assert.True(t, isInstanceOf(doc, propertyClassID))
-	assert.False(t, isInstanceOf(doc, classClassID))
+	assert.False(t, isInstanceOf(doc, languageClassID))
 
 	// Document with no claims.
 	emptyDoc := &document.D{
@@ -161,7 +165,7 @@ func TestBuildPropertyHierarchy(t *testing.T) {
 
 	properties := []*document.D{parent, child}
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy(properties)
 
@@ -188,7 +192,7 @@ func TestBuildPropertyHierarchyTransitive(t *testing.T) {
 
 	properties := []*document.D{gpDoc, pDoc, cDoc}
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy(properties)
 
@@ -218,7 +222,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 	}
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy([]*document.D{notProp})
 
@@ -226,64 +230,79 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 	assert.Empty(t, c.propertyAncestors)
 }
 
-func TestBuildClassHierarchy(t *testing.T) {
+func TestGetDocumentInfoBasic(t *testing.T) {
 	t.Parallel()
 
-	child := makeClassDoc(testClassID, &testParentClass)
-	parent := makeClassDoc(testParentClass, nil)
-
-	classes := []*document.D{parent, child}
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+	// Document with no hierarchy claims.
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testDocID: doc,
 	}
-	c.buildClassHierarchy(classes)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
-	assert.Contains(t, c.classAncestors[testClassID], testParentClass)
-	assert.Empty(t, c.classAncestors[testParentClass])
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Test Doc", info.Display.Display["und"])
+	assert.Empty(t, info.Ancestors)
 }
 
-func TestBuildClassHierarchyTransitive(t *testing.T) {
+func TestGetDocumentInfoWithClassAncestors(t *testing.T) {
 	t.Parallel()
+
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	grandparent := identifier.New()
 	parent := identifier.New()
 	child := identifier.New()
 
-	gpDoc := makeClassDoc(grandparent, nil)
-	pDoc := makeClassDoc(parent, &grandparent)
-	cDoc := makeClassDoc(child, &parent)
+	gpDoc := makeHierarchyDoc(grandparent, "Grandparent", subclassOfPropID, nil)
+	pDoc := makeHierarchyDoc(parent, "Parent", subclassOfPropID, &grandparent)
+	cDoc := makeHierarchyDoc(child, "Child", subclassOfPropID, &parent)
 
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: gpDoc,
+		parent:      pDoc,
+		child:       cDoc,
 	}
-	c.buildClassHierarchy([]*document.D{gpDoc, pDoc, cDoc})
+	c := newTestConverter(t, properties, nil, extraDocs)
 
-	assert.Contains(t, c.classAncestors[child], parent)
-	assert.Contains(t, c.classAncestors[child], grandparent)
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Child should have parent and grandparent as ancestors via SUBCLASS_OF.
+	assert.Contains(t, info.Ancestors[subclassOfPropID], parent)
+	assert.Contains(t, info.Ancestors[subclassOfPropID], grandparent)
 }
 
-func TestBuildClassHierarchySkipsNonClass(t *testing.T) {
+func TestGetDocumentInfoCaching(t *testing.T) {
 	t.Parallel()
 
-	notClass := &document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
-		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: subclassOfPropID},
-					To:        document.Reference{ID: testParentClass},
-				},
-			},
-		},
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	callCount := 0
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			callCount++
+			return doc, nil
+		}
+		return nil, errors.New("document not found")
 	}
+	c := NewConverter(nil, nil, nil, getDocument)
 
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
-	}
-	c.buildClassHierarchy([]*document.D{notClass})
+	ctx := t.Context()
+	info1, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	info2, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Empty(t, c.classAncestors)
+	assert.Equal(t, info1.Display.Display["und"], info2.Display.Display["und"])
+	// getDocument should only have been called once.
+	assert.Equal(t, 1, callCount)
 }
 
 func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
@@ -293,7 +312,7 @@ func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
 	selfRef := makePropertyDoc(testPropID, &testPropID)
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy([]*document.D{selfRef})
 
@@ -312,7 +331,7 @@ func TestBuildPropertyHierarchyMutualCycle(t *testing.T) {
 	bDoc := makePropertyDoc(b, &a)
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc})
 
@@ -335,7 +354,7 @@ func TestBuildPropertyHierarchyLongerCycle(t *testing.T) {
 	cDoc := makePropertyDoc(cc, &a)
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc, cDoc})
 
@@ -350,59 +369,169 @@ func TestBuildPropertyHierarchyLongerCycle(t *testing.T) {
 	assert.ElementsMatch(t, c.propertyDescendants[cc], []identifier.Identifier{a, b})
 }
 
-func TestBuildClassHierarchySelfCycle(t *testing.T) {
+func TestGetDocumentInfoSelfCycle(t *testing.T) {
 	t.Parallel()
 
-	// Class that is a subclass of itself.
-	selfRef := makeClassDoc(testClassID, &testClassID)
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+	// Document with SUBCLASS_OF pointing to itself.
+	selfID := identifier.New()
+	selfDoc := makeHierarchyDoc(selfID, "Self", subclassOfPropID, &selfID)
+	extraDocs := map[identifier.Identifier]*document.D{
+		selfID: selfDoc,
 	}
-	c.buildClassHierarchy([]*document.D{selfRef})
+	c := newTestConverter(t, properties, nil, extraDocs)
 
-	// Self-reference is excluded to avoid duplicates in consuming code.
-	assert.Empty(t, c.classAncestors[testClassID])
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, selfID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Self-reference is excluded to avoid duplicates.
+	assert.Empty(t, info.Ancestors[subclassOfPropID])
 }
 
-func TestBuildClassHierarchyMutualCycle(t *testing.T) {
+func TestGetDocumentInfoMutualCycle(t *testing.T) {
 	t.Parallel()
 
-	// A is subclass of B, B is subclass of A.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
 	a := identifier.New()
 	b := identifier.New()
-	aDoc := makeClassDoc(a, &b)
-	bDoc := makeClassDoc(b, &a)
-
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+	aDoc := makeHierarchyDoc(a, "A", subclassOfPropID, &b)
+	bDoc := makeHierarchyDoc(b, "B", subclassOfPropID, &a)
+	extraDocs := map[identifier.Identifier]*document.D{
+		a: aDoc,
+		b: bDoc,
 	}
-	c.buildClassHierarchy([]*document.D{aDoc, bDoc})
+	c := newTestConverter(t, properties, nil, extraDocs)
 
-	assert.Contains(t, c.classAncestors[a], b)
-	assert.Contains(t, c.classAncestors[b], a)
+	ctx := t.Context()
+	infoA, errE := c.getDocumentInfo(ctx, a)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// A should have B as ancestor (cycle handled without infinite loop).
+	assert.Contains(t, infoA.Ancestors[subclassOfPropID], b)
 }
 
-func TestBuildClassHierarchyLongerCycle(t *testing.T) {
+func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
 	t.Parallel()
 
-	// A -> B -> C -> A (cycle of length 3).
-	a := identifier.New()
-	b := identifier.New()
-	cc := identifier.New()
-	aDoc := makeClassDoc(a, &b)
-	bDoc := makeClassDoc(b, &cc)
-	cDoc := makeClassDoc(cc, &a)
+	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
+	partOfPropID := identifier.New()
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
 
-	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+	classParent := identifier.New()
+	partParent := identifier.New()
+	child := identifier.New()
+
+	// Child has SUBCLASS_OF -> classParent and PART_OF -> partParent.
+	childClaims := &document.ClaimTypes{}
+	childClaims.String = append(childClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: namingPropID},
+		String:    "Child",
+	})
+	childClaims.Relation = append(childClaims.Relation,
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: classParent},
+		},
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: partOfPropID},
+			To:        document.Reference{ID: partParent},
+		},
+	)
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: child}, //nolint:exhaustruct
+		Claims:       childClaims,
 	}
-	c.buildClassHierarchy([]*document.D{aDoc, bDoc, cDoc})
+	classParentDoc := makeNamingDoc(classParent, "ClassParent")
+	partParentDoc := makeNamingDoc(partParent, "PartParent")
 
-	// Every node should have the other two (but not itself) as ancestors.
-	assert.ElementsMatch(t, c.classAncestors[a], []identifier.Identifier{b, cc})
-	assert.ElementsMatch(t, c.classAncestors[b], []identifier.Identifier{a, cc})
-	assert.ElementsMatch(t, c.classAncestors[cc], []identifier.Identifier{a, b})
+	extraDocs := map[identifier.Identifier]*document.D{
+		child:       childDoc,
+		classParent: classParentDoc,
+		partParent:  partParentDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Ancestors should be computed separately for each hierarchy.
+	assert.Contains(t, info.Ancestors[subclassOfPropID], classParent)
+	assert.Contains(t, info.Ancestors[partOfPropID], partParent)
+	// Each hierarchy should only contain its own ancestors.
+	assert.NotContains(t, info.Ancestors[subclassOfPropID], partParent)
+	assert.NotContains(t, info.Ancestors[partOfPropID], classParent)
+}
+
+func TestGetDocumentInfoOverlappingHierarchies(t *testing.T) {
+	t.Parallel()
+
+	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
+	partOfPropID := identifier.New()
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
+
+	// Same parent reachable via both SUBCLASS_OF and PART_OF.
+	sharedParent := identifier.New()
+	child := identifier.New()
+
+	childClaims := &document.ClaimTypes{}
+	childClaims.String = append(childClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: namingPropID},
+		String:    "Child",
+	})
+	childClaims.Relation = append(childClaims.Relation,
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: sharedParent},
+		},
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: partOfPropID},
+			To:        document.Reference{ID: sharedParent},
+		},
+	)
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: child}, //nolint:exhaustruct
+		Claims:       childClaims,
+	}
+	sharedParentDoc := makeNamingDoc(sharedParent, "SharedParent")
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		child:        childDoc,
+		sharedParent: sharedParentDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Shared parent appears in both hierarchies.
+	assert.Contains(t, info.Ancestors[subclassOfPropID], sharedParent)
+	assert.Contains(t, info.Ancestors[partOfPropID], sharedParent)
 }
 
 func TestBuildNamingProperties(t *testing.T) {
@@ -413,7 +542,7 @@ func TestBuildNamingProperties(t *testing.T) {
 	subNaming := makePropertyDoc(testPropID, &namingPropID)
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildPropertyHierarchy([]*document.D{namingDoc, subNaming})
 	c.buildNamingProperties()
@@ -421,6 +550,192 @@ func TestBuildNamingProperties(t *testing.T) {
 	assert.True(t, c.namingProperties[namingPropID])
 	assert.True(t, c.namingProperties[testPropID])
 	assert.False(t, c.namingProperties[testPropID2])
+}
+
+func TestDiscoverValueHierarchyProperties(t *testing.T) {
+	t.Parallel()
+
+	// Standard properties: SUBENTITY_OF with INSTANCE_OF, SUBCLASS_OF, SUBPROPERTY_OF as children.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	c := &Converter{ //nolint:exhaustruct
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+	}
+	c.buildPropertyHierarchy(properties)
+	c.discoverValueHierarchyProperties()
+
+	// Only SUBCLASS_OF should be a value hierarchy property.
+	// INSTANCE_OF and SUBPROPERTY_OF are excluded.
+	assert.Contains(t, c.valueHierarchyProperties, subclassOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, instanceOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, subpropertyOfPropID)
+	assert.Len(t, c.valueHierarchyProperties, 1)
+}
+
+func TestDiscoverValueHierarchyPropertiesCustom(t *testing.T) {
+	t.Parallel()
+
+	// Add a custom PART_OF property as a sub-property of SUBENTITY_OF.
+	partOfPropID := identifier.New()
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc, partOfDoc}
+
+	c := &Converter{ //nolint:exhaustruct
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+	}
+	c.buildPropertyHierarchy(properties)
+	c.discoverValueHierarchyProperties()
+
+	// Both SUBCLASS_OF and PART_OF should be value hierarchy properties.
+	assert.Contains(t, c.valueHierarchyProperties, subclassOfPropID)
+	assert.Contains(t, c.valueHierarchyProperties, partOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, instanceOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, subpropertyOfPropID)
+	assert.Len(t, c.valueHierarchyProperties, 2)
+}
+
+func TestConvertRelationMultipleHierarchies(t *testing.T) {
+	t.Parallel()
+
+	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
+	partOfPropID := identifier.New()
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
+
+	classParent := identifier.New()
+	partParent := identifier.New()
+	target := identifier.New()
+
+	// Target has SUBCLASS_OF -> classParent and PART_OF -> partParent.
+	targetClaims := &document.ClaimTypes{}
+	targetClaims.String = append(targetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: namingPropID},
+		String:    "Target",
+	})
+	targetClaims.Relation = append(targetClaims.Relation,
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: classParent},
+		},
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: partOfPropID},
+			To:        document.Reference{ID: partParent},
+		},
+	)
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: target}, //nolint:exhaustruct
+		Claims:       targetClaims,
+	}
+
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	classParentDoc := makeNamingDoc(classParent, "ClassParent")
+	partParentDoc := makeNamingDoc(partParent, "PartParent")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  propDoc,
+		target:      targetDoc,
+		classParent: classParentDoc,
+		partParent:  partParentDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Target + classParent + partParent = 3 claims.
+	require.Len(t, result, 3)
+	toIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		toIDs[i] = r.To
+	}
+	assert.Contains(t, toIDs, target)
+	assert.Contains(t, toIDs, classParent)
+	assert.Contains(t, toIDs, partParent)
+}
+
+func TestConvertRelationOverlappingAncestors(t *testing.T) {
+	t.Parallel()
+
+	// Custom hierarchy property PART_OF.
+	partOfPropID := identifier.New()
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
+
+	// Same ancestor reachable via both SUBCLASS_OF and PART_OF.
+	sharedAncestor := identifier.New()
+	target := identifier.New()
+
+	targetClaims := &document.ClaimTypes{}
+	targetClaims.String = append(targetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: namingPropID},
+		String:    "Target",
+	})
+	targetClaims.Relation = append(targetClaims.Relation,
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: sharedAncestor},
+		},
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: partOfPropID},
+			To:        document.Reference{ID: sharedAncestor},
+		},
+	)
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: target}, //nolint:exhaustruct
+		Claims:       targetClaims,
+	}
+
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	sharedDoc := makeNamingDoc(sharedAncestor, "Shared")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:     propDoc,
+		target:         targetDoc,
+		sharedAncestor: sharedDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	result, errE := c.convertRelation(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Target + sharedAncestor (deduplicated) = 2 claims.
+	require.Len(t, result, 2)
+	toIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		toIDs[i] = r.To
+	}
+	assert.Contains(t, toIDs, target)
+	assert.Contains(t, toIDs, sharedAncestor)
 }
 
 func TestBuildLanguageCodes(t *testing.T) {
@@ -431,7 +746,7 @@ func TestBuildLanguageCodes(t *testing.T) {
 	slDoc := makeLanguageDoc(slID, "sl")
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
 
@@ -446,7 +761,7 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	langDoc := makeLanguageDoc(testLangDocID, "en-US")
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
 
@@ -471,7 +786,7 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 	}
 
 	c := &Converter{ //nolint:exhaustruct
-		displayCache: make(map[identifier.Identifier]displayStrings),
+		documentInfoCache: make(map[identifier.Identifier]documentInfo),
 	}
 	c.buildLanguageCodes([]*document.D{notLang})
 
@@ -736,7 +1051,7 @@ func TestGetDisplayStringsCache(t *testing.T) {
 		testPropID: propDoc,
 	}
 
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	ds1, errE := c.getDisplayStrings(ctx, testPropID)
@@ -749,7 +1064,7 @@ func TestGetDisplayStringsCache(t *testing.T) {
 func TestGetDisplayStringsNotFound(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	_, errE := c.getDisplayStrings(ctx, identifier.New())
@@ -761,16 +1076,15 @@ func TestNewConverter(t *testing.T) {
 
 	namingDoc := makePropertyDoc(namingPropID, nil)
 	subProp := makePropertyDoc(testPropID, &namingPropID)
-	classDoc := makeClassDoc(testClassID, nil)
 	langDoc := makeLanguageDoc(testLangDocID, "en")
 
 	extraDocs := map[identifier.Identifier]*document.D{}
-	c := newTestConverter(t, []*document.D{namingDoc, subProp}, []*document.D{classDoc}, []*document.D{langDoc}, extraDocs)
+	c := newTestConverter(t, []*document.D{namingDoc, subProp}, []*document.D{langDoc}, extraDocs)
 
 	assert.True(t, c.namingProperties[namingPropID])
 	assert.True(t, c.namingProperties[testPropID])
 	assert.Equal(t, "en", c.languageCodes[testLangDocID])
-	assert.NotNil(t, c.displayCache)
+	assert.NotNil(t, c.documentInfoCache)
 }
 
 func TestConvertIdentifier(t *testing.T) {
@@ -780,7 +1094,7 @@ func TestConvertIdentifier(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.IdentifierClaim{
@@ -806,7 +1120,7 @@ func TestConvertIdentifierWithPropagation(t *testing.T) {
 		testParentProp: parentPropDoc,
 	}
 
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {testParentProp},
 	}
@@ -827,7 +1141,7 @@ func TestConvertIdentifierWithPropagation(t *testing.T) {
 func TestConvertIdentifierGetDocumentError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	claim := &document.IdentifierClaim{
@@ -846,7 +1160,7 @@ func TestConvertString(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.StringClaim{
@@ -868,7 +1182,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.languageCodes = map[identifier.Identifier]string{
 		testLangDocID: "en",
 	}
@@ -903,7 +1217,7 @@ func TestConvertHTML(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.HTMLClaim{
@@ -924,7 +1238,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.languageCodes = map[identifier.Identifier]string{
 		testLangDocID: "sl",
 	}
@@ -957,7 +1271,7 @@ func TestConvertAmount(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.AmountClaim{
@@ -985,7 +1299,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -1017,7 +1331,7 @@ func TestConvertAmountInterval(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1047,7 +1361,7 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1081,7 +1395,7 @@ func TestConvertAmountIntervalFromNone(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	toAmount := document.Amount("20")
@@ -1109,7 +1423,7 @@ func TestConvertAmountIntervalToNone(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1136,7 +1450,7 @@ func TestConvertAmountIntervalFromUnknownWithTo(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	toAmount := document.Amount("20")
@@ -1164,7 +1478,7 @@ func TestConvertAmountIntervalToUnknownWithFrom(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1190,7 +1504,7 @@ func TestConvertAmountIntervalBothUnknown(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
@@ -1213,7 +1527,7 @@ func TestConvertAmountIntervalFromNoneToUnknown(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
@@ -1232,7 +1546,7 @@ func TestConvertAmountIntervalFromNoneToUnknown(t *testing.T) {
 func TestConvertAmountIntervalMissingFromPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1257,7 +1571,7 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1278,7 +1592,7 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	toAmount := document.Amount("20")
@@ -1296,7 +1610,7 @@ func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -1318,7 +1632,7 @@ func TestConvertTime(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.TimeClaim{
@@ -1349,7 +1663,7 @@ func TestConvertTimeInterval(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1379,7 +1693,7 @@ func TestConvertTimeIntervalOpen(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1413,7 +1727,7 @@ func TestConvertTimeIntervalFromNone(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	toTS := document.Timestamp("2024-12-31")
@@ -1440,7 +1754,7 @@ func TestConvertTimeIntervalToNone(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1467,7 +1781,7 @@ func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	toTS := document.Timestamp("2024-06-15")
@@ -1492,7 +1806,7 @@ func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-06-15")
@@ -1517,7 +1831,7 @@ func TestConvertTimeIntervalBothUnknown(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
@@ -1539,7 +1853,7 @@ func TestConvertTimeIntervalFromNoneToUnknown(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
@@ -1559,7 +1873,7 @@ func TestConvertTimeIntervalFromNoneToUnknown(t *testing.T) {
 func TestConvertTimeIntervalMissingFromPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1584,7 +1898,7 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1605,7 +1919,7 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	toTS := document.Timestamp("2024-12-31")
@@ -1623,7 +1937,7 @@ func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -1645,7 +1959,7 @@ func TestConvertReference(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.ReferenceClaim{
@@ -1668,7 +1982,7 @@ func TestConvertRelation(t *testing.T) {
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.RelationClaim{
@@ -1687,18 +2001,23 @@ func TestConvertRelation(t *testing.T) {
 func TestConvertRelationWithClassAncestors(t *testing.T) {
 	t.Parallel()
 
+	// Set up hierarchy properties so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	// Target has SUBCLASS_OF -> parent.
+	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", subclassOfPropID, &testParentClass)
 	parentDoc := makeNamingDoc(testParentClass, "Parent Class")
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
 		testParentClass: parentDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
-	c.classAncestors = map[identifier.Identifier][]identifier.Identifier{
-		testTargetDocID: {testParentClass},
-	}
+	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.RelationClaim{
@@ -1710,26 +2029,31 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should produce claims for both target and parent class.
 	require.Len(t, result, 2)
-	assert.Equal(t, testTargetDocID, result[0].To)
-	assert.Equal(t, testParentClass, result[1].To)
+	toIDs := make([]identifier.Identifier, len(result))
+	for i, r := range result {
+		toIDs[i] = r.To
+	}
+	assert.Contains(t, toIDs, testTargetDocID)
+	assert.Contains(t, toIDs, testParentClass)
 }
 
 func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	t.Parallel()
 
-	// Target class is a subclass of itself.
-	targetClass := identifier.New()
-	targetClassDoc := makeClassDoc(targetClass, &targetClass)
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	// Target has SUBCLASS_OF pointing to itself.
+	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", subclassOfPropID, &testTargetDocID)
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
-	// Build hierarchy from cyclic class docs.
-	c.buildClassHierarchy([]*document.D{targetClassDoc})
+	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.RelationClaim{
@@ -1737,8 +2061,7 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	// classAncestors has targetClass -> [targetClass], but testTargetDocID
-	// has no ancestors, so only one result claim should be produced.
+	// Self-reference excluded, so only one result claim.
 	result, errE := c.convertRelation(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1749,22 +2072,25 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	t.Parallel()
 
-	// Two classes in a mutual cycle: A subclass of B, B subclass of A.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
 	classA := identifier.New()
 	classB := identifier.New()
-	classADoc := makeClassDoc(classA, &classB)
-	classBDoc := makeClassDoc(classB, &classA)
+	// A has SUBCLASS_OF -> B, B has SUBCLASS_OF -> A.
+	aDoc := makeHierarchyDoc(classA, "Class A", subclassOfPropID, &classB)
+	bDoc := makeHierarchyDoc(classB, "Class B", subclassOfPropID, &classA)
 
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(classA, "Class A")
-	classBNaming := makeNamingDoc(classB, "Class B")
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
-		classA:     targetDoc,
-		classB:     classBNaming,
+		classA:     aDoc,
+		classB:     bDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
-	c.buildClassHierarchy([]*document.D{classADoc, classBDoc})
+	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.RelationClaim{
@@ -1797,7 +2123,7 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 		propA:           propNaming,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.buildPropertyHierarchy([]*document.D{propADoc})
 
 	ctx := t.Context()
@@ -1832,7 +2158,7 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 		propB:           propBNaming,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
 
 	ctx := t.Context()
@@ -1868,7 +2194,7 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 		propA: propANaming,
 		propB: propBNaming,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
 
 	ctx := t.Context()
@@ -1904,7 +2230,7 @@ func TestConvertRelationWithMetaRelations(t *testing.T) {
 		metaPropID:      metaPropDoc,
 		metaTargetID:    metaTargetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -1936,7 +2262,7 @@ func TestConvertHas(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.HasClaim{
@@ -1962,7 +2288,7 @@ func TestConvertHasWithMetaRelations(t *testing.T) {
 		metaPropID:   metaPropDoc,
 		metaTargetID: metaTargetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -1991,7 +2317,7 @@ func TestConvertNone(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.NoneClaim{
@@ -2011,7 +2337,7 @@ func TestConvertUnknown(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.UnknownClaim{
@@ -2031,7 +2357,7 @@ func TestFromDocument(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2064,7 +2390,7 @@ func TestFromDocument(t *testing.T) {
 func TestFromDocumentNilClaims(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2086,7 +2412,7 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("5")
@@ -2256,7 +2582,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 
 	// getDocument will fail, causing convertIdentifier to fail,
 	// which will cause VisitIdentifier to return an error.
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2279,7 +2605,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 func TestFromDocumentStringError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2302,7 +2628,7 @@ func TestFromDocumentStringError(t *testing.T) {
 func TestFromDocumentHTMLError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2325,7 +2651,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 func TestFromDocumentAmountError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2349,7 +2675,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 func TestFromDocumentAmountIntervalError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromAmount := document.Amount("5")
@@ -2379,7 +2705,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 func TestFromDocumentTimeError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2403,7 +2729,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 func TestFromDocumentTimeIntervalError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -2433,7 +2759,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 func TestFromDocumentReferenceError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2456,7 +2782,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 func TestFromDocumentRelationError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2479,7 +2805,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 func TestFromDocumentHasError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2501,7 +2827,7 @@ func TestFromDocumentHasError(t *testing.T) {
 func TestFromDocumentNoneError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2523,7 +2849,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 func TestFromDocumentUnknownError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -2554,7 +2880,7 @@ func TestGetDisplayStringsMakeDisplayError(t *testing.T) {
 		docID: emptyDoc,
 	}
 
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	ds, errE := c.getDisplayStrings(ctx, docID)
@@ -2572,7 +2898,7 @@ func TestConvertStringPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2595,7 +2921,7 @@ func TestConvertHTMLPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2618,7 +2944,7 @@ func TestConvertAmountInvalidAmount(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.AmountClaim{
@@ -2638,7 +2964,7 @@ func TestConvertAmountPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2662,7 +2988,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2688,7 +3014,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromAmount := document.Amount("invalid")
@@ -2714,7 +3040,7 @@ func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -2740,7 +3066,7 @@ func TestConvertTimePropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2764,7 +3090,7 @@ func TestConvertTimeInvalidTimestamp(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.TimeClaim{
@@ -2784,7 +3110,7 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -2810,7 +3136,7 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 func TestConvertTimeIntervalInvalidFromTimestamp(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("not-a-time")
@@ -2836,7 +3162,7 @@ func TestConvertTimeIntervalInvalidToTimestamp(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-01-01")
@@ -2863,7 +3189,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -2891,7 +3217,7 @@ func TestConvertRelationMetaToError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID2: metaPropDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -2920,7 +3246,7 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 		testPropID: propDoc,
 		// testTargetDocID is NOT in extraDocs, so getDisplayStrings for it will fail.
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	claim := &document.RelationClaim{
@@ -2936,7 +3262,7 @@ func TestConvertHasMetaPropError(t *testing.T) {
 	t.Parallel()
 
 	extraDocs := map[identifier.Identifier]*document.D{}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -2963,7 +3289,7 @@ func TestConvertHasMetaToError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID2: metaPropDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
@@ -2990,7 +3316,7 @@ func TestConvertHasPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -3014,7 +3340,7 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -3037,7 +3363,7 @@ func TestConvertReferencePropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -3060,7 +3386,7 @@ func TestConvertNonePropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -3082,7 +3408,7 @@ func TestConvertUnknownPropagationError(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID: propDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -3102,7 +3428,7 @@ func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
 
 	// FromIsUnknown with To: delegates to convertAmount, which needs prop display.
 	// But prop is not found, so it errors.
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	toAmount := document.Amount("20")
@@ -3122,7 +3448,7 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 	t.Parallel()
 
 	// ToIsUnknown with From: delegates to convertAmount with From, which errors.
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
@@ -3141,7 +3467,7 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	toTS := document.Timestamp("2024-06-15")
@@ -3160,7 +3486,7 @@ func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 	fromTS := document.Timestamp("2024-06-15")
@@ -3450,7 +3776,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 		parentDocID: parentDoc,
 	}
 
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
 	}
@@ -3653,7 +3979,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	yearPropID := identifier.New()
 
 	// getDocument returns not found for any ID.
-	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
 	}
@@ -3757,7 +4083,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{
 		otherDocID: otherDoc,
 	}
-	c := newTestConverter(t, nil, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
 	}
