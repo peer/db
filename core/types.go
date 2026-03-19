@@ -236,7 +236,8 @@ type PropertyFields struct {
 	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
 	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
 	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"INSTRUCTION"`
-	SubpropertyOf   []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"   property:"SUBPROPERTY_OF"`
+	SubpropertyOf     []Ref                `cardinality:"0.."  json:"subpropertyOf,omitempty"      property:"SUBPROPERTY_OF"`
+	InversePropertyOf *Ref                 `cardinality:"0..1" json:"inversePropertyOf,omitempty" property:"INVERSE_PROPERTY_OF"`
 }
 
 // Property represents a property document.

@@ -29,7 +29,8 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Mnemonic:        "SUBENTITY_OF",
 			Description:     nil,
 			Instruction:     nil,
-			SubpropertyOf:   nil,
+			SubpropertyOf:     nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SUBENTITY_OF"},
@@ -100,6 +101,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "INSTANCE_OF"},
@@ -130,6 +132,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SUBCLASS_OF"},
@@ -160,9 +163,39 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SUBPROPERTY_OF"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "inverse property of",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "inverzna lastnost od",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "INVERSE_PROPERTY_OF",
+			Description:     nil,
+			Instruction:     nil,
+			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "INVERSE_PROPERTY_OF"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
@@ -188,6 +221,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DISTINCT_FROM"},
@@ -216,6 +250,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "NAMING"},
@@ -246,6 +281,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "NAME"},
@@ -276,6 +312,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SHORT_NAME"},
@@ -306,6 +343,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "ALTERNATIVE_NAME"},
@@ -336,6 +374,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "TITLE"},
@@ -364,6 +403,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DESCRIPTION"},
@@ -392,6 +432,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "INSTRUCTION"},
@@ -422,6 +463,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "MNEMONIC"},
@@ -450,6 +492,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "IN_LANGUAGE"},
@@ -488,6 +531,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:   nil,
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "IN_LOCATION"},
@@ -526,6 +570,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			}},
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VARIANT"},
@@ -554,6 +599,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DEFAULT_VARIANT"},
@@ -582,6 +628,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SELECTED_VARIANT"},
@@ -620,6 +667,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			}},
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LIST"},
@@ -658,6 +706,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			}},
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "ORDER_IN_LIST"},
@@ -688,6 +737,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CODE"},
@@ -751,6 +801,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:   nil,
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "MEDIA_TYPE"},
@@ -814,6 +865,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			}},
 			Instruction:   nil,
 			SubpropertyOf: nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "IN_UNIT"},
@@ -842,6 +894,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			Description:     nil,
 			Instruction:     nil,
 			SubpropertyOf:   nil,
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SETTING"},
@@ -872,6 +925,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SECTION"},
@@ -902,6 +956,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "FIELD"},
@@ -932,6 +987,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "FIELD_VALUES"},
@@ -972,6 +1028,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DISPLAY_LABEL_TEMPLATE"},
@@ -1002,6 +1059,7 @@ func Properties(_ zerolog.Logger) ([]any, errors.E) {
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
+			InversePropertyOf: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CARDINALITY"},
