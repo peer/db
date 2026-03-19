@@ -1369,7 +1369,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 
 func (c *Converter) convertRelation(ctx context.Context, claim *document.RelationClaim) ([]RelationClaim, errors.E) {
 	// Convert meta relation claims to nested search relation claims.
-	var nested RelationClaims
+	var nested []NestedRelationClaim
 	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
@@ -1381,14 +1381,13 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		nested = append(nested, RelationClaim{
+		nested = append(nested, NestedRelationClaim{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
 			To:          mr.To.ID,
 			ToDisplay:   mrToDisplay.Display,
 			ToNaming:    mrToDisplay.Naming,
-			Relation:    nil,
 		})
 	}
 
@@ -1451,7 +1450,7 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
 	// Convert meta relation claims to nested search relation claims.
-	var nested RelationClaims
+	var nested []NestedRelationClaim
 	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence) {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
@@ -1463,14 +1462,13 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		nested = append(nested, RelationClaim{
+		nested = append(nested, NestedRelationClaim{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
 			To:          mr.To.ID,
 			ToDisplay:   mrToDisplay.Display,
 			ToNaming:    mrToDisplay.Naming,
-			Relation:    nil,
 		})
 	}
 

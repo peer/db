@@ -31,6 +31,8 @@ type claimType struct {
 	Fields []field
 }
 
+// We do not use any normalizer here because we store only identifiers here.
+// We do not need to trim it nor we want to lowercase it. We also do not worry about value length.
 const relationID = `{
 	"type": "keyword"
 }`
@@ -56,6 +58,8 @@ const multiLanguageString = `{
 	}
 }`
 
+// We use display paths so that we can sort documents based on display labels shown to users which represent hierarchies they are in.
+// It works together with idPath, idPath groups results and then we sort by displayPath.
 const displayPath = `{
 	"properties": {
 		"en": {
@@ -77,19 +81,77 @@ const displayPath = `{
 	}
 }`
 
+// We use ID path to be able to group documents based on their ID paths which represent hierarchies they are in.
+// It works together with displayPath, idPath groups results and then we sort by displayPath.
 const idPath = `{
 	"type": "keyword",
 	"normalizer": "id_path_normalizer"
 }`
 
+// TODO: Maybe we can in the future track which languages were used to construct a display label and then put it into a suitable language-specific field.
+//       For example, we could track in which language each template fragment is and then see if result is from fragments of only one language.
+//       Also if display label comes directly from naming strings, then we also know the language of the display label.
+
+// We use display labels for two purposes: to search over them and to sort by them.
+// But they might contain text from different languages (they might be rendered from a template which
+// pulled data from different languages), even if they are stored under a particular target language.
+// So we use standard_string analyzer for all languages here and not language-specific analyzers.
+// We use a multi-field to define also a keyword field which is better for sorting.
+const propDisplay = `{
+	"properties": {
+		"en": {
+			"type": "text",
+			"analyzer": "standard_string",
+			"fields": {
+				"keyword": {
+					"type": "keyword",
+					"normalizer": "display_label_normalizer"
+				}
+			}
+		},
+		"sl": {
+			"type": "text",
+			"analyzer": "standard_string",
+			"fields": {
+				"keyword": {
+					"type": "keyword",
+					"normalizer": "display_label_normalizer"
+				}
+			}
+		},
+		"pt": {
+			"type": "text",
+			"analyzer": "standard_string",
+			"fields": {
+				"keyword": {
+					"type": "keyword",
+					"normalizer": "display_label_normalizer"
+				}
+			}
+		},
+		"und": {
+			"type": "text",
+			"analyzer": "standard_string",
+			"fields": {
+				"keyword": {
+					"type": "keyword",
+					"normalizer": "display_label_normalizer"
+				}
+			}
+		}
+	}
+}`
+
+// We currently have display and naming fields which enable us to search and sort by them if we need that.
+// We currently do not plan to group by them, so we do not have "toPath" or "toDisplayPath" fields.
 const nestedRel = `{
 	"type": "nested",
 	"properties": {
 		"prop": ` + relationID + `,
-		"propDisplay": ` + multiLanguageString + `,
+		"propDisplay": ` + propDisplay + `,
 		"propNaming": ` + multiLanguageString + `,
 		"to": ` + relationID + `,
-		"toDisplay": ` + multiLanguageString + `,
+		"toDisplay": ` + propDisplay + `,
 		"toNaming": ` + multiLanguageString + `
 	}
 }`
@@ -105,7 +167,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -131,7 +193,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -152,7 +214,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -192,7 +254,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -216,11 +278,11 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"fromDisplay",
-				// We do not use keyword normalizer here because display is just a number.
+				// We do not use "propDisplay" here. We do not need a multi-field here because we only search
+				// over display here and we do not sort by it. There are no languages either.
 				`{
-					"type": "keyword",
-					"doc_values": false,
-					"split_queries_on_whitespace": true
+					"type": "text",
+					"analyzer": "standard_string"
 				}`,
 			},
 			{
@@ -231,11 +293,11 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"toDisplay",
-				// We do not use keyword normalizer here because display is just a number.
+				// We do not use "propDisplay" here. We do not need a multi-field here because we only search
+				// over display here and we do not sort by it. There are no languages either.
 				`{
-					"type": "keyword",
-					"doc_values": false,
-					"split_queries_on_whitespace": true
+					"type": "text",
+					"analyzer": "standard_string"
 				}`,
 			},
 		},
@@ -249,7 +311,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -269,6 +331,8 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"fromDisplay",
+				// We do not use "propDisplay" here. We do not need a multi-field here because we only search
+				// over display here and we do not sort by it. There are no languages either.
 				`{
 					"type": "text",
 					"analyzer": "standard_string"
@@ -282,6 +346,8 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"toDisplay",
+				// We do not use "propDisplay" here. We do not need a multi-field here because we only search
+				// over display here and we do not sort by it. There are no languages either.
 				`{
 					"type": "text",
 					"analyzer": "standard_string"
@@ -298,7 +364,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -310,7 +376,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 					"type": "keyword",
 					"doc_values": false,
 					"split_queries_on_whitespace": true,
-					"normalizer": "keyword_normalizer"
+					"normalizer": "iri_normalizer"
 				}`,
 			},
 		},
@@ -324,7 +390,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -336,7 +402,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"toDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"toNaming",
@@ -365,7 +431,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -386,7 +452,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
@@ -403,7 +469,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propDisplay",
-				multiLanguageString,
+				propDisplay,
 			},
 			{
 				"propNaming",
