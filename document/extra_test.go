@@ -2662,8 +2662,8 @@ func TestClaimTypesGet(t *testing.T) {
 	// Get by prop1 should return two claims sorted by decreasing confidence.
 	result := ct.Get(prop1)
 	require.Len(t, result, 2)
-	assert.Equal(t, document.Confidence(1.0), result[0].GetConfidence())
-	assert.Equal(t, document.Confidence(0.5), result[1].GetConfidence())
+	assert.Equal(t, document.Confidence(1.0), result[0].GetConfidence()) //nolint:testifylint
+	assert.Equal(t, document.Confidence(0.5), result[1].GetConfidence()) //nolint:testifylint
 
 	// Get by prop2.
 	result = ct.Get(prop2)
@@ -2996,7 +2996,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 			},
 		},
 		AmountInterval: document.AmountIntervalClaims{
-			{
+			{ //nolint:exhaustruct
 				CoreClaim:   document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:        document.Reference{ID: prop},
 				FromIsNone:  true,
@@ -3012,7 +3012,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 			},
 		},
 		TimeInterval: document.TimeIntervalClaims{
-			{
+			{ //nolint:exhaustruct
 				CoreClaim:   document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:        document.Reference{ID: prop},
 				FromIsNone:  true,

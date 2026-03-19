@@ -7472,6 +7472,7 @@ func TestDocuments_AmountIntervalFromIsNone(t *testing.T) {
 	assert.Nil(t, amountRange.From)
 }
 
+//nolint:dupl
 func TestDocuments_AmountIntervalToIsNone(t *testing.T) {
 	t.Parallel()
 
@@ -7504,6 +7505,7 @@ func TestDocuments_AmountIntervalToIsNone(t *testing.T) {
 	assert.Nil(t, amountRange.To)
 }
 
+//nolint:dupl
 func TestDocuments_AmountIntervalToIsUnknown(t *testing.T) {
 	t.Parallel()
 

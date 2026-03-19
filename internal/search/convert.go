@@ -81,6 +81,7 @@ func NewConverter(
 		mnemonics:           mnemonics,
 		getDocument:         getDocument,
 		displayCache:        make(map[identifier.Identifier]displayStrings),
+		displayCacheMu:      sync.RWMutex{},
 	}
 	c.buildPropertyHierarchy(properties)
 	c.buildClassHierarchy(classes)

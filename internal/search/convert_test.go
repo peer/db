@@ -1,4 +1,4 @@
-package search
+package search //nolint:testpackage
 
 import (
 	"context"
@@ -55,7 +55,7 @@ func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identif
 		})
 	}
 	return &document.D{
-		CoreDocument: document.CoreDocument{
+		CoreDocument: document.CoreDocument{ //nolint:exhaustruct
 			ID: id,
 		},
 		Claims: claims,
@@ -78,7 +78,7 @@ func makeClassDoc(id identifier.Identifier, subclassOf *identifier.Identifier) *
 		})
 	}
 	return &document.D{
-		CoreDocument: document.CoreDocument{
+		CoreDocument: document.CoreDocument{ //nolint:exhaustruct
 			ID: id,
 		},
 		Claims: claims,
@@ -99,7 +99,7 @@ func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
 		Value:     code,
 	})
 	return &document.D{
-		CoreDocument: document.CoreDocument{
+		CoreDocument: document.CoreDocument{ //nolint:exhaustruct
 			ID: id,
 		},
 		Claims: claims,
@@ -115,7 +115,7 @@ func makeNamingDoc(id identifier.Identifier, name string) *document.D {
 		String:    name,
 	})
 	return &document.D{
-		CoreDocument: document.CoreDocument{
+		CoreDocument: document.CoreDocument{ //nolint:exhaustruct
 			ID: id,
 		},
 		Claims: claims,
@@ -147,7 +147,7 @@ func TestIsInstanceOf(t *testing.T) {
 
 	// Document with no claims.
 	emptyDoc := &document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()},
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 	}
 	assert.False(t, isInstanceOf(emptyDoc, propertyClassID))
 }
@@ -205,7 +205,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 
 	// Document that is NOT an instance of PROPERTY.
 	notProp := &document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()},
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
@@ -266,7 +266,7 @@ func TestBuildClassHierarchySkipsNonClass(t *testing.T) {
 	t.Parallel()
 
 	notClass := &document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()},
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
@@ -458,7 +458,7 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 
 	// Not an instance of LANGUAGE.
 	notLang := &document.D{
-		CoreDocument: document.CoreDocument{ID: identifier.New()},
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
@@ -651,7 +651,7 @@ func TestNamingStringsEmpty(t *testing.T) {
 
 	// Document with no naming strings.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 	result := c.namingStrings(doc)
 	assert.Nil(t, result)
@@ -669,7 +669,7 @@ func TestNamingStringsSorted(t *testing.T) {
 
 	// Two naming strings with different confidences.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -704,7 +704,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 
 	// Two naming strings: first becomes Display, rest become Naming.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -1024,7 +1024,7 @@ func TestConvertAmountInterval(t *testing.T) {
 	toAmount := document.Amount("20")
 	fromPrec := 1.0
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -1054,7 +1054,7 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 	toAmount := document.Amount("20")
 	fromPrec := 1.0
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -1086,7 +1086,7 @@ func TestConvertAmountIntervalFromNone(t *testing.T) {
 	ctx := t.Context()
 	toAmount := document.Amount("20")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		FromIsNone:  true,
@@ -1099,7 +1099,7 @@ func TestConvertAmountIntervalFromNone(t *testing.T) {
 	assert.Empty(t, unknownClaims)
 	// From should be nil since it's None.
 	assert.Nil(t, amountClaims[0].From)
-	assert.Equal(t, -math.MaxFloat64, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, -math.MaxFloat64, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
 }
 
 func TestConvertAmountIntervalToNone(t *testing.T) {
@@ -1114,7 +1114,7 @@ func TestConvertAmountIntervalToNone(t *testing.T) {
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
 	fromPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -1126,7 +1126,7 @@ func TestConvertAmountIntervalToNone(t *testing.T) {
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
 	assert.Nil(t, amountClaims[0].To)
-	assert.Equal(t, math.MaxFloat64, *amountClaims[0].Range.LessThanOrEqual)
+	assert.Equal(t, math.MaxFloat64, *amountClaims[0].Range.LessThanOrEqual) //nolint:testifylint
 }
 
 func TestConvertAmountIntervalFromUnknownWithTo(t *testing.T) {
@@ -1141,7 +1141,7 @@ func TestConvertAmountIntervalFromUnknownWithTo(t *testing.T) {
 	ctx := t.Context()
 	toAmount := document.Amount("20")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
@@ -1169,7 +1169,7 @@ func TestConvertAmountIntervalToUnknownWithFrom(t *testing.T) {
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
 	fromPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -1193,7 +1193,7 @@ func TestConvertAmountIntervalBothUnknown(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
@@ -1216,7 +1216,7 @@ func TestConvertAmountIntervalFromNoneToUnknown(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		FromIsNone:  true,
@@ -1238,7 +1238,7 @@ func TestConvertAmountIntervalMissingFromPrecision(t *testing.T) {
 	fromAmount := document.Amount("10")
 	toAmount := document.Amount("20")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		From:        &fromAmount,
@@ -1263,7 +1263,7 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 	fromAmount := document.Amount("10")
 	fromPrec := 1.0
 	toAmount := document.Amount("20")
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -1282,7 +1282,7 @@ func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 
 	ctx := t.Context()
 	toAmount := document.Amount("20")
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
@@ -1300,7 +1300,7 @@ func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
 
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		From:        &fromAmount,
@@ -1352,16 +1352,16 @@ func TestConvertTimeInterval(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
 	fromPrec := document.TimePrecisionDay
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
@@ -1382,17 +1382,17 @@ func TestConvertTimeIntervalOpen(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
 	fromPrec := document.TimePrecisionDay
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
 		FromIsOpen:    true,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 		ToIsClosed:    true,
 	}
@@ -1416,13 +1416,13 @@ func TestConvertTimeIntervalFromNone(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	toTs := document.Timestamp("2024-12-31")
+	toTS := document.Timestamp("2024-12-31")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		FromIsNone:  true,
-		To:          &toTs,
+		To:          &toTS,
 		ToPrecision: &toPrec,
 	}
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
@@ -1443,12 +1443,12 @@ func TestConvertTimeIntervalToNone(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
+	fromTS := document.Timestamp("2024-01-01")
 	fromPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
 		ToIsNone:      true,
 	}
@@ -1470,13 +1470,13 @@ func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	toTs := document.Timestamp("2024-06-15")
+	toTS := document.Timestamp("2024-06-15")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
@@ -1495,12 +1495,12 @@ func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-06-15")
+	fromTS := document.Timestamp("2024-06-15")
 	fromPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
@@ -1520,7 +1520,7 @@ func TestConvertTimeIntervalBothUnknown(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
@@ -1542,7 +1542,7 @@ func TestConvertTimeIntervalFromNoneToUnknown(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
 		FromIsNone:  true,
@@ -1562,14 +1562,14 @@ func TestConvertTimeIntervalMissingFromPrecision(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
-		From:        &fromTs,
-		To:          &toTs,
+		From:        &fromTS,
+		To:          &toTS,
 		ToPrecision: &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -1587,15 +1587,15 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
+	fromTS := document.Timestamp("2024-01-01")
 	fromPrec := document.TimePrecisionDay
-	toTs := document.Timestamp("2024-12-31")
-	claim := &document.TimeIntervalClaim{
+	toTS := document.Timestamp("2024-12-31")
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
-		To:            &toTs,
+		To:            &toTS,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.Error(t, errE)
@@ -1608,12 +1608,12 @@ func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	toTs := document.Timestamp("2024-12-31")
-	claim := &document.TimeIntervalClaim{
+	toTS := document.Timestamp("2024-12-31")
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		FromIsUnknown: true,
-		To:            &toTs,
+		To:            &toTS,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.Error(t, errE)
@@ -1626,11 +1626,11 @@ func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	claim := &document.TimeIntervalClaim{
+	fromTS := document.Timestamp("2024-01-01")
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
 		Prop:        document.Reference{ID: testPropID},
-		From:        &fromTs,
+		From:        &fromTS,
 		ToIsUnknown: true,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -1745,6 +1745,7 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	assert.Equal(t, testTargetDocID, result[0].To)
 }
 
+//nolint:dupl
 func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	t.Parallel()
 
@@ -1813,6 +1814,7 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 	assert.Equal(t, testTargetDocID, result[0].To)
 }
 
+//nolint:dupl
 func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	t.Parallel()
 
@@ -2033,7 +2035,7 @@ func TestFromDocument(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
@@ -2066,7 +2068,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
 	result, errE := c.FromDocument(ctx, doc)
@@ -2091,13 +2093,13 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 	toAmount := document.Amount("10")
 	fromPrec := 1.0
 	toPrec := 1.0
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
-	fromTsPrec := document.TimePrecisionDay
-	toTsPrec := document.TimePrecisionDay
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
+	fromTSPrec := document.TimePrecisionDay
+	toTSPrec := document.TimePrecisionDay
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
@@ -2129,7 +2131,7 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 				},
 			},
 			AmountInterval: []document.AmountIntervalClaim{
-				{
+				{ //nolint:exhaustruct
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 					Prop:          document.Reference{ID: testPropID},
 					From:          &fromAmount,
@@ -2147,13 +2149,13 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 				},
 			},
 			TimeInterval: []document.TimeIntervalClaim{
-				{
+				{ //nolint:exhaustruct
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 					Prop:          document.Reference{ID: testPropID},
-					From:          &fromTs,
-					FromPrecision: &fromTsPrec,
-					To:            &toTs,
-					ToPrecision:   &toTsPrec,
+					From:          &fromTS,
+					FromPrecision: &fromTSPrec,
+					To:            &toTS,
+					ToPrecision:   &toTSPrec,
 				},
 			},
 			Reference: []document.ReferenceClaim{
@@ -2258,7 +2260,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Identifier: []document.IdentifierClaim{
 				{
@@ -2281,7 +2283,7 @@ func TestFromDocumentStringError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -2304,7 +2306,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			HTML: []document.HTMLClaim{
 				{
@@ -2327,7 +2329,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Amount: []document.AmountClaim{
 				{
@@ -2355,10 +2357,10 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 	fromPrec := 1.0
 	toPrec := 1.0
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			AmountInterval: []document.AmountIntervalClaim{
-				{
+				{ //nolint:exhaustruct
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 					Prop:          document.Reference{ID: identifier.New()},
 					From:          &fromAmount,
@@ -2381,7 +2383,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Time: []document.TimeClaim{
 				{
@@ -2404,20 +2406,20 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
 	fromPrec := document.TimePrecisionDay
 	toPrec := document.TimePrecisionDay
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			TimeInterval: []document.TimeIntervalClaim{
-				{
+				{ //nolint:exhaustruct
 					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 					Prop:          document.Reference{ID: identifier.New()},
-					From:          &fromTs,
+					From:          &fromTS,
 					FromPrecision: &fromPrec,
-					To:            &toTs,
+					To:            &toTS,
 					ToPrecision:   &toPrec,
 				},
 			},
@@ -2435,7 +2437,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Reference: []document.ReferenceClaim{
 				{
@@ -2458,7 +2460,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Relation: []document.RelationClaim{
 				{
@@ -2481,7 +2483,7 @@ func TestFromDocumentHasError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Has: []document.HasClaim{
 				{
@@ -2503,7 +2505,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			None: []document.NoneClaim{
 				{
@@ -2525,7 +2527,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 
 	ctx := t.Context()
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Unknown: []document.UnknownClaim{
 				{
@@ -2546,7 +2548,7 @@ func TestGetDisplayStringsMakeDisplayError(t *testing.T) {
 	// Document with no naming strings at all.
 	docID := identifier.New()
 	emptyDoc := &document.D{
-		CoreDocument: document.CoreDocument{ID: docID},
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
 	}
 	extraDocs := map[identifier.Identifier]*document.D{
 		docID: emptyDoc,
@@ -2671,7 +2673,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 	toAmount := document.Amount("20")
 	fromPrec := 1.0
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -2693,7 +2695,7 @@ func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
 	fromPrec := 1.0
 	toAmount := document.Amount("20")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -2719,7 +2721,7 @@ func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
 	fromPrec := 1.0
 	toAmount := document.Amount("invalid")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
 		From:          &fromAmount,
@@ -2789,16 +2791,16 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
-	toTs := document.Timestamp("2024-12-31")
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
 	fromPrec := document.TimePrecisionDay
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -2811,16 +2813,16 @@ func TestConvertTimeIntervalInvalidFromTimestamp(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("not-a-time")
+	fromTS := document.Timestamp("not-a-time")
 	fromPrec := document.TimePrecisionDay
-	toTs := document.Timestamp("2024-12-31")
+	toTS := document.Timestamp("2024-12-31")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -2837,16 +2839,16 @@ func TestConvertTimeIntervalInvalidToTimestamp(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-01-01")
+	fromTS := document.Timestamp("2024-01-01")
 	fromPrec := document.TimePrecisionDay
-	toTs := document.Timestamp("not-a-time")
+	toTS := document.Timestamp("not-a-time")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: testPropID},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -3105,7 +3107,7 @@ func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
 	ctx := t.Context()
 	toAmount := document.Amount("20")
 	toPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: identifier.New()},
 		FromIsUnknown: true,
@@ -3125,7 +3127,7 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 	ctx := t.Context()
 	fromAmount := document.Amount("10")
 	fromPrec := 1.0
-	claim := &document.AmountIntervalClaim{
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: identifier.New()},
 		From:          &fromAmount,
@@ -3142,13 +3144,13 @@ func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	toTs := document.Timestamp("2024-06-15")
+	toTS := document.Timestamp("2024-06-15")
 	toPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: identifier.New()},
 		FromIsUnknown: true,
-		To:            &toTs,
+		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
@@ -3161,12 +3163,12 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
-	fromTs := document.Timestamp("2024-06-15")
+	fromTS := document.Timestamp("2024-06-15")
 	fromPrec := document.TimePrecisionDay
-	claim := &document.TimeIntervalClaim{
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
 		Prop:          document.Reference{ID: identifier.New()},
-		From:          &fromTs,
+		From:          &fromTS,
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
@@ -3183,7 +3185,7 @@ func TestDisplayNameTemplates(t *testing.T) {
 
 	// Document with a DISPLAY_LABEL_TEMPLATE claim.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3218,7 +3220,7 @@ func TestDisplayNameTemplatesWithLanguage(t *testing.T) {
 		},
 	}
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3245,7 +3247,7 @@ func TestDisplayNameTemplatesEmpty(t *testing.T) {
 
 	// Document without DISPLAY_LABEL_TEMPLATE.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 	result := c.displayLabelTemplates(doc)
 	assert.Nil(t, result)
@@ -3268,7 +3270,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 
 	// Document with a DISPLAY_LABEL_TEMPLATE and naming + short name claims.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3312,7 +3314,7 @@ func TestMakeDisplayStringsWithTemplateFallback(t *testing.T) {
 
 	// Template with invalid syntax should return an error.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3375,7 +3377,7 @@ func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3431,7 +3433,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	parentDocID := identifier.New()
 
 	parentDoc := &document.D{
-		CoreDocument: document.CoreDocument{ID: parentDocID},
+		CoreDocument: document.CoreDocument{ID: parentDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			Amount: []document.AmountClaim{
 				{
@@ -3460,7 +3462,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3513,7 +3515,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 
 	// Document with template but no naming strings.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3568,7 +3570,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3614,7 +3616,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3664,7 +3666,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	// Template that tries to follow a non-existent relation.
 	// bestRelationDoc returns nil, bestAmountString handles nil doc gracefully.
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3704,7 +3706,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3740,7 +3742,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 
 	otherDocID := identifier.New()
 	otherDoc := &document.D{
-		CoreDocument: document.CoreDocument{ID: otherDocID},
+		CoreDocument: document.CoreDocument{ID: otherDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
@@ -3766,7 +3768,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	}
 
 	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID},
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{

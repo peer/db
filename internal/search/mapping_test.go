@@ -103,10 +103,14 @@ func TestMappingNestedRelation(t *testing.T) {
 	err := json.Unmarshal(data, &parsed)
 	require.NoError(t, err)
 
-	mappings := parsed["mappings"].(map[string]any)
-	properties := mappings["properties"].(map[string]any)
-	claims := properties["claims"].(map[string]any)
-	claimProps := claims["properties"].(map[string]any)
+	mappings, ok := parsed["mappings"].(map[string]any)
+	require.True(t, ok)
+	properties, ok := mappings["properties"].(map[string]any)
+	require.True(t, ok)
+	claims, ok := properties["claims"].(map[string]any)
+	require.True(t, ok)
+	claimProps, ok := claims["properties"].(map[string]any)
+	require.True(t, ok)
 
 	// Check that rel claim type has nested rel field.
 	relClaim, ok := claimProps["rel"].(map[string]any)
@@ -128,7 +132,8 @@ func TestMappingDynamicDisabled(t *testing.T) {
 	err := json.Unmarshal(data, &parsed)
 	require.NoError(t, err)
 
-	mappings := parsed["mappings"].(map[string]any)
+	mappings, ok := parsed["mappings"].(map[string]any)
+	require.True(t, ok)
 	assert.Equal(t, false, mappings["dynamic"])
 }
 
@@ -142,7 +147,8 @@ func TestMappingSourceDisabled(t *testing.T) {
 	err := json.Unmarshal(data, &parsed)
 	require.NoError(t, err)
 
-	mappings := parsed["mappings"].(map[string]any)
+	mappings, ok := parsed["mappings"].(map[string]any)
+	require.True(t, ok)
 	source, ok := mappings["_source"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, false, source["enabled"])

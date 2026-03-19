@@ -15,7 +15,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		t.Parallel()
 		gte := 1.0
 		lt := 2.0
-		r := search.RangeFloat{
+		r := search.RangeFloat{ //nolint:exhaustruct
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 		}
@@ -26,7 +26,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		t.Parallel()
 		gt := 1.0
 		lte := 2.0
-		r := search.RangeFloat{
+		r := search.RangeFloat{ //nolint:exhaustruct
 			GreaterThan:     &gt,
 			LessThanOrEqual: &lte,
 		}
@@ -38,7 +38,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		gt := 1.0
 		gte := 1.0
 		lt := 2.0
-		r := search.RangeFloat{
+		r := search.RangeFloat{ //nolint:exhaustruct
 			GreaterThan:        &gt,
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
@@ -53,7 +53,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		gte := 1.0
 		lt := 2.0
 		lte := 2.0
-		r := search.RangeFloat{
+		r := search.RangeFloat{ //nolint:exhaustruct
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 			LessThanOrEqual:    &lte,
@@ -100,7 +100,7 @@ func TestRangeIntValidate(t *testing.T) {
 		t.Parallel()
 		gte := int64(1)
 		lt := int64(2)
-		r := search.RangeInt{
+		r := search.RangeInt{ //nolint:exhaustruct
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 		}
@@ -111,7 +111,7 @@ func TestRangeIntValidate(t *testing.T) {
 		t.Parallel()
 		gt := int64(1)
 		lte := int64(2)
-		r := search.RangeInt{
+		r := search.RangeInt{ //nolint:exhaustruct
 			GreaterThan:     &gt,
 			LessThanOrEqual: &lte,
 		}
@@ -123,7 +123,7 @@ func TestRangeIntValidate(t *testing.T) {
 		gt := int64(1)
 		gte := int64(1)
 		lt := int64(2)
-		r := search.RangeInt{
+		r := search.RangeInt{ //nolint:exhaustruct
 			GreaterThan:        &gt,
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
@@ -138,7 +138,7 @@ func TestRangeIntValidate(t *testing.T) {
 		gte := int64(1)
 		lt := int64(2)
 		lte := int64(2)
-		r := search.RangeInt{
+		r := search.RangeInt{ //nolint:exhaustruct
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 			LessThanOrEqual:    &lte,
