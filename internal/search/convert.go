@@ -17,6 +17,11 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
+// LanguagePriority maps a language to its ordered fallback languages for display label resolution.
+// If a language is not a key, fallback is only the undetermined language.
+// If a language has an empty slice, no fallback is attempted at all.
+type LanguagePriority map[string][]string
+
 const undeterminedLanguage = "und"
 
 // Well-known property and class IDs computed from the core namespace.
@@ -97,6 +102,8 @@ type Converter struct {
 	languageCodes map[identifier.Identifier]string
 	// mnemonics maps mnemonic to property ID.
 	mnemonics map[string]identifier.Identifier
+	// languagePriority defines per-language fallback order for display label resolution.
+	languagePriority LanguagePriority
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
@@ -108,13 +115,19 @@ type Converter struct {
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
 // value hierarchy types. properties contains all property documents (used for SUBPROPERTY_OF
 // hierarchy and discovering other hierarchy types), languages contains language documents
-// needed for language code extraction, and getDocument is a callback to fetch documents by ID.
+// needed for language code extraction, languagePriority defines per-language fallback order
+// for display label resolution, and getDocument is a callback to fetch documents by ID.
 // Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.
 func NewConverter(
 	properties, languages []*document.D,
 	mnemonics map[string]identifier.Identifier,
+	languagePriority LanguagePriority,
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
-) *Converter {
+) (*Converter, errors.E) {
+	errE := validateLanguagePriority(languagePriority)
+	if errE != nil {
+		return nil, errE
+	}
 	c := &Converter{
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
@@ -122,6 +135,7 @@ func NewConverter(
 		namingProperties:         nil,
 		languageCodes:            nil,
 		mnemonics:                mnemonics,
+		languagePriority:         languagePriority,
 		getDocument:              getDocument,
 		documentInfoCache:        make(map[identifier.Identifier]documentInfo),
 		documentInfoMu:           sync.RWMutex{},
@@ -130,7 +144,50 @@ func NewConverter(
 	c.discoverValueHierarchyProperties()
 	c.buildNamingProperties()
 	c.buildLanguageCodes(languages)
-	return c
+	return c, nil
+}
+
+// validateLanguagePriority checks that all languages in priority are supported.
+func validateLanguagePriority(priority LanguagePriority) errors.E {
+	for lang, fallbacks := range priority {
+		if !SupportedLanguages[lang] {
+			errE := errors.New("unsupported language in priority key")
+			errors.Details(errE)["language"] = lang
+			return errE
+		}
+		for _, fb := range fallbacks {
+			if fb == lang {
+				errE := errors.New("language cannot be its own fallback")
+				errors.Details(errE)["language"] = lang
+				return errE
+			}
+			if !SupportedLanguages[fb] {
+				errE := errors.New("unsupported language in priority fallback")
+				errors.Details(errE)["language"] = lang
+				errors.Details(errE)["fallback"] = fb
+				return errE
+			}
+		}
+	}
+	return nil
+}
+
+// getFallbackLanguages returns the fallback language chain for a given language.
+// If the language has an entry in languagePriority, that entry is used.
+// If the language has no entry, the fallback is just the undetermined language
+// (unless the language is itself undetermined).
+func (c *Converter) getFallbackLanguages(lang string) []string {
+	if c.languagePriority != nil {
+		fallbacks, ok := c.languagePriority[lang]
+		if ok {
+			return fallbacks
+		}
+	}
+	// Default: try undetermined language, unless lang is already undetermined.
+	if lang != undeterminedLanguage {
+		return []string{undeterminedLanguage}
+	}
+	return nil
 }
 
 // isInstanceOf returns true if the document has an INSTANCE_OF relation claim
@@ -370,119 +427,98 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 }
 
 // extendDisplayPaths extends hierDisplayPaths by appending this document's display to
-// each of the parent's display paths. For each language present in either the parent's
-// paths or this document's display, a path is created using the available display string
-// with fallback to "und" (undetermined language).
+// each of the parent's display paths for all supported languages. Every level adds a
+// separator, even when display labels are empty strings.
 func (c *Converter) extendDisplayPaths(
 	hierDisplayPaths map[string][]string,
 	parentInfo documentInfo, hierProp identifier.Identifier,
 	display displayStrings,
 ) {
-	// Collect all languages from parent paths and this document's display.
-	langs := make(map[string]bool)
-	for lang := range display.Display {
-		langs[lang] = true
-	}
-	if parentDP := parentInfo.DisplayPaths[hierProp]; parentDP != nil {
-		for lang := range parentDP {
-			langs[lang] = true
-		}
-	}
-
-	for lang := range langs {
-		// Get this document's display for this language, falling back to "und".
+	for lang := range SupportedLanguages {
+		// If lang does not exist in Display, this just means it is an empty string and we have not store
+		// it in the map. So reading a zero value from the map makes the right thing and we get an empty string back.
 		thisDisplay := display.Display[lang]
-		if thisDisplay == "" {
-			thisDisplay = display.Display[undeterminedLanguage]
-		}
-		if thisDisplay == "" {
-			continue
-		}
-
-		// Get parent's display paths for this language, falling back to "und".
-		parentPaths := parentInfo.DisplayPaths[hierProp]
-		var paths []string
-		if parentPaths != nil {
-			paths = parentPaths[lang]
-			if len(paths) == 0 {
-				paths = parentPaths[undeterminedLanguage]
-			}
-		}
+		paths := parentInfo.DisplayPaths[hierProp][lang]
 
 		if len(paths) > 0 {
 			for _, pp := range paths {
 				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], pp+hierarchyPathSeparator+thisDisplay)
 			}
 		} else {
-			// Parent has no display paths, create a two-level path.
+			// Parent is a root (no paths yet), create a two-level path.
+			// Parent display might be an empty string and this is OK.
 			parentDisplay := parentInfo.Display.Display[lang]
-			if parentDisplay == "" {
-				parentDisplay = parentInfo.Display.Display[undeterminedLanguage]
-			}
-			if parentDisplay != "" {
-				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], parentDisplay+hierarchyPathSeparator+thisDisplay)
-			}
+			hierDisplayPaths[lang] = append(hierDisplayPaths[lang], parentDisplay+hierarchyPathSeparator+thisDisplay)
 		}
 	}
 }
 
-// makeDisplayStrings returns the display strings for a document.
-// If the document has a DISPLAY_LABEL_TEMPLATE claim, it renders the template
-// for the display label and moves all naming strings to the Naming field.
-// Otherwise, the first naming string becomes Display and the rest become Naming.
+// makeDisplayStrings returns the display strings for a document for every supported language.
+//
+// For every supported language this should match what is shown in the UI to users when they
+// configure UI to show them data in that language.
+//
+// For each supported language (with its fallback chain):
+//  1. If the document's class defines a display label template, render it with
+//     the target language (template functions use that language's fallback chain
+//     internally). The result is the display label, even if empty.
+//  2. If no template exists, search naming strings through the fallback chain.
+//     The first (highest confidence) naming string from the first language in the
+//     chain that has naming strings becomes the display label.
+//
+// Naming contains all naming strings per language as extracted from claims, without
+// modifications. It is independent of Display.
 func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (displayStrings, errors.E) {
-	namingStrings := c.namingStrings(doc)
-	templatesByLang := c.displayLabelTemplates(doc)
-
-	display := displayStrings{
-		Display: make(map[string]string, len(namingStrings)+len(templatesByLang)),
-		Naming:  make(map[string][]string, len(namingStrings)),
+	tmplStr, errE := c.displayLabelTemplate(ctx, doc)
+	if errE != nil {
+		return displayStrings{}, errE
 	}
 
-	for lang, strs := range namingStrings {
-		if tmplStr, ok := templatesByLang[lang]; ok {
-			// Render the template for this language.
+	result := displayStrings{
+		Display: make(map[string]string),
+		Naming:  c.namingStrings(doc),
+	}
+
+	for lang := range SupportedLanguages {
+		if tmplStr != "" {
+			// Template exists: render it with the target language so that template
+			// functions (e.g., bestString) use that language's fallback chain.
 			rendered, errE := c.renderDisplayTemplate(ctx, doc, lang, tmplStr)
 			if errE != nil {
 				return displayStrings{}, errE
 			}
 			rendered = sanitizeDisplayString(strings.TrimSpace(rendered))
 			if rendered != "" {
-				display.Display[lang] = rendered
-				// All naming strings become Naming entries.
-				display.Naming[lang] = strs
+				// We do not store an empty string into the map. But we still read it out as
+				// an empty string when needed (reading a zero value from the map).
+				result.Display[lang] = rendered
+			}
+			// Even if rendered is an empty string, we are done for this language.
+			// This is also what happens in UI.
+			continue
+		}
+
+		// No template. Search naming strings in the fallback chain.
+		chain := append([]string{lang}, c.getFallbackLanguages(lang)...)
+		for _, tryLang := range chain {
+			strs := result.Naming[tryLang]
+			if len(strs) == 0 {
 				continue
 			}
-		}
-		// No template or empty result: use naming strings.
-		for i, str := range strs {
-			str = sanitizeDisplayString(str)
+			str := sanitizeDisplayString(strs[0])
 			if str != "" {
-				display.Display[lang] = str
-				if i+1 < len(strs) {
-					display.Naming[lang] = strs[i+1:]
-				}
+				// We do not store an empty string into the map. But we still read it out as
+				// an empty string when needed (reading a zero value from the map).
+				result.Display[lang] = str
+				// Here we are done only if we found a non-empty string.
+				// There should be no empty strings in Naming, and none with null bytes either.
+				// So if we got an empty string here, we ignore it and continue searching.
 				break
 			}
 		}
 	}
 
-	// Handle languages that have templates but no naming strings.
-	for lang, tmplStr := range templatesByLang {
-		if _, ok := display.Display[lang]; ok {
-			continue
-		}
-		rendered, errE := c.renderDisplayTemplate(ctx, doc, lang, tmplStr)
-		if errE != nil {
-			return displayStrings{}, errE
-		}
-		rendered = sanitizeDisplayString(strings.TrimSpace(rendered))
-		if rendered != "" {
-			display.Display[lang] = rendered
-		}
-	}
-
-	return display, nil
+	return result, nil
 }
 
 // sanitizeDisplayString removes the hierarchy path separator from a display string to
@@ -501,22 +537,33 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 	return info.Display, nil
 }
 
-// displayLabelTemplates returns a map from language code to the best
-// DISPLAY_LABEL_TEMPLATE string for that language.
-func (c *Converter) displayLabelTemplates(doc *document.D) map[string]string {
-	result := make(map[string]string)
-	for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, displayLabelTemplatePropID, document.LowConfidence) {
-		for _, lang := range c.extractInLanguages(sc.Meta) {
-			if _, ok := result[lang]; !ok {
-				// First claim per language wins (highest confidence due to sort order).
-				result[lang] = sc.String
+// displayLabelTemplate returns the best display label template for a document
+// by looking at the document's INSTANCE_OF class documents. The template is
+// not per-language, language fallback happens inside template functions.
+//
+// If multiple class documents define templates, the one with the highest
+// effective confidence wins. Effective confidence is the product of the
+// INSTANCE_OF claim's confidence and the template claim's confidence.
+func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (string, errors.E) {
+	var bestTemplate string
+	var bestConfidence document.Confidence
+
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, instanceOfPropID, document.LowConfidence) {
+		classDoc, errE := c.getDocument(ctx, rel.To.ID)
+		if errE != nil {
+			return "", errE
+		}
+		instanceConfidence := rel.GetConfidence()
+		for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](classDoc, displayLabelTemplatePropID, document.LowConfidence) {
+			effective := instanceConfidence * sc.GetConfidence()
+			if effective > bestConfidence {
+				bestConfidence = effective
+				bestTemplate = sc.String
 			}
 		}
 	}
-	if len(result) == 0 {
-		return nil
-	}
-	return result
+
+	return bestTemplate, nil
 }
 
 // renderDisplayTemplate parses and executes a display label template string.
@@ -543,7 +590,7 @@ func (c *Converter) renderDisplayTemplate(ctx context.Context, doc *document.D, 
 func (c *Converter) templateFuncs(ctx context.Context, lang string) template.FuncMap {
 	return template.FuncMap{
 		// bestString returns the best string claim value for a mnemonic in the current language.
-		// Falls back to "und" if the requested language is not found.
+		// Falls back using the language priority chain.
 		"bestString": func(mnemonic string, doc *document.D) (string, error) {
 			if doc == nil {
 				return "", nil
@@ -561,10 +608,10 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 					return sc.String, nil
 				}
 			}
-			// Second pass: fall back to "und".
-			if lang != undeterminedLanguage {
+			// Fallback passes using language priority chain.
+			for _, fb := range c.getFallbackLanguages(lang) {
 				for _, sc := range claims {
-					if slices.Contains(c.extractInLanguages(sc.Meta), undeterminedLanguage) {
+					if slices.Contains(c.extractInLanguages(sc.Meta), fb) {
 						return sc.String, nil
 					}
 				}

@@ -133,13 +133,26 @@ func newTestConverter(
 	extraDocs map[identifier.Identifier]*document.D,
 ) *Converter {
 	t.Helper()
+	return newTestConverterWithPriority(t, properties, languages, extraDocs, nil)
+}
+
+// newTestConverterWithPriority creates a Converter with custom language priority.
+func newTestConverterWithPriority(
+	t *testing.T,
+	properties, languages []*document.D,
+	extraDocs map[identifier.Identifier]*document.D,
+	priority LanguagePriority,
+) *Converter {
+	t.Helper()
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
 			return doc, nil
 		}
 		return nil, errors.New("document not found")
 	}
-	return NewConverter(properties, languages, nil, getDocument)
+	c, errE := NewConverter(properties, languages, nil, priority, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return c
 }
 
 func TestIsInstanceOf(t *testing.T) {
@@ -380,7 +393,8 @@ func TestGetDocumentInfoCaching(t *testing.T) {
 		}
 		return nil, errors.New("document not found")
 	}
-	c := NewConverter(nil, nil, nil, getDocument)
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ctx := t.Context()
 	info1, errE := c.getDocumentInfo(ctx, testDocID)
@@ -1105,7 +1119,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 		languageCodes: map[identifier.Identifier]string{},
 	}
 
-	// Two naming strings: first becomes Display, rest become Naming.
+	// Two naming strings: first becomes Display, Naming contains all strings.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -1128,7 +1142,8 @@ func TestMakeDisplayStrings(t *testing.T) {
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "Primary", display.Display["und"])
-	assert.Equal(t, []string{"Secondary"}, display.Naming["und"])
+	// Naming contains all naming strings, independent of Display.
+	assert.Equal(t, []string{"Primary", "Secondary"}, display.Naming["und"])
 }
 
 func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
@@ -2203,7 +2218,6 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	assert.Equal(t, testTargetDocID, result[0].To)
 }
 
-//nolint:dupl
 func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	t.Parallel()
 
@@ -2275,7 +2289,6 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 	assert.Equal(t, testTargetDocID, result[0].To)
 }
 
-//nolint:dupl
 func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	t.Parallel()
 
@@ -3637,108 +3650,128 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 	assert.Error(t, errE)
 }
 
-func TestDisplayNameTemplates(t *testing.T) {
-	t.Parallel()
-
-	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{},
+// makeClassDocWithTemplate creates a class document with an INSTANCE_OF PROPERTY
+// and a DISPLAY_LABEL_TEMPLATE claim.
+func makeClassDocWithTemplate(id identifier.Identifier, tmpl string, tmplConfidence document.Confidence) *document.D {
+	claims := &document.ClaimTypes{}
+	claims.Relation = append(claims.Relation, document.RelationClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: instanceOfPropID},
+		To:        document.Reference{ID: propertyClassID},
+	})
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(tmplConfidence, nil),
+		Prop:      document.Reference{ID: displayLabelTemplatePropID},
+		String:    tmpl,
+	})
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
 	}
-
-	// Document with a DISPLAY_LABEL_TEMPLATE claim.
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-		Claims: &document.ClaimTypes{
-			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "SHORT_NAME" .}}`,
-				},
-			},
-		},
-	}
-	result := c.displayLabelTemplates(doc)
-	require.NotNil(t, result)
-	assert.Equal(t, `{{bestString "SHORT_NAME" .}}`, result["und"])
 }
 
-func TestDisplayNameTemplatesWithLanguage(t *testing.T) {
-	t.Parallel()
-
-	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{
-			testLangDocID: "en",
-		},
+// addInstanceOf adds an INSTANCE_OF relation claim to a document.
+func addInstanceOf(doc *document.D, classID identifier.Identifier, confidence document.Confidence) {
+	if doc.Claims == nil {
+		doc.Claims = &document.ClaimTypes{}
 	}
-
-	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
-			{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
-				To:        document.Reference{ID: testLangDocID},
-			},
-		},
-	}
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-		Claims: &document.ClaimTypes{
-			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, meta),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "NAME" .}}`,
-				},
-			},
-		},
-	}
-	result := c.displayLabelTemplates(doc)
-	require.NotNil(t, result)
-	assert.Equal(t, `{{bestString "NAME" .}}`, result["en"])
-	_, hasUnd := result["und"]
-	assert.False(t, hasUnd)
+	doc.Claims.Relation = append(doc.Claims.Relation, document.RelationClaim{
+		CoreClaim: makeCoreClaim(confidence, nil),
+		Prop:      document.Reference{ID: instanceOfPropID},
+		To:        document.Reference{ID: classID},
+	})
 }
 
-func TestDisplayNameTemplatesEmpty(t *testing.T) {
+func TestDisplayLabelTemplate(t *testing.T) {
 	t.Parallel()
 
-	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{},
-	}
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
 
-	// Document without DISPLAY_LABEL_TEMPLATE.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
-	result := c.displayLabelTemplates(doc)
-	assert.Nil(t, result)
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, `{{bestString "SHORT_NAME" .}}`, result)
+}
+
+func TestDisplayLabelTemplateEmpty(t *testing.T) {
+	t.Parallel()
+
+	// Document without INSTANCE_OF.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, result)
+}
+
+func TestDisplayLabelTemplateConfidenceSelection(t *testing.T) {
+	t.Parallel()
+
+	// Two classes, each with a template. The one with higher effective confidence wins.
+	classA := identifier.New()
+	classB := identifier.New()
+	classADoc := makeClassDocWithTemplate(classA, `Template A`, document.HighConfidence)
+	classBDoc := makeClassDocWithTemplate(classB, `Template B`, document.HighConfidence)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	// INSTANCE_OF classA with medium confidence: effective = 0.75 * 1.0 = 0.75.
+	addInstanceOf(doc, classA, document.MediumConfidence)
+	// INSTANCE_OF classB with high confidence: effective = 1.0 * 1.0 = 1.0.
+	addInstanceOf(doc, classB, document.HighConfidence)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		classA: classADoc,
+		classB: classBDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Template B", result)
 }
 
 func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 	t.Parallel()
 
 	shortNamePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
-		mnemonics: map[string]identifier.Identifier{
-			"SHORT_NAME": shortNamePropID,
-		},
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"SHORT_NAME": shortNamePropID,
 	}
 
-	// Document with a DISPLAY_LABEL_TEMPLATE and naming + short name claims.
+	// Document with INSTANCE_OF class and naming + short name claims.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "SHORT_NAME" .}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
@@ -3752,25 +3785,29 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Template renders the short name as display.
 	assert.Equal(t, "FN", display.Display["und"])
-	// All naming strings become Naming.
+	// All naming strings in Naming.
 	assert.Equal(t, []string{"Full Name"}, display.Naming["und"])
 }
 
-func TestMakeDisplayStringsWithTemplateFallback(t *testing.T) {
+func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 	t.Parallel()
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
-		mnemonics:     map[string]identifier.Identifier{},
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{invalid syntax`, document.HighConfidence)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
 	}
 
 	// Template with invalid syntax should return an error.
@@ -3780,17 +3817,13 @@ func TestMakeDisplayStringsWithTemplateFallback(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{invalid syntax`,
-				},
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Fallback Name",
 				},
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	_, errE := c.makeDisplayStrings(ctx, doc)
@@ -3798,24 +3831,28 @@ func TestMakeDisplayStringsWithTemplateFallback(t *testing.T) {
 	assert.Contains(t, errE.Error(), "function \"invalid\" not defined")
 }
 
-func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
+func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	t.Parallel()
 
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 	shortNamePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{
-			enLangID: "en",
-			slLangID: "sl",
-		},
-		mnemonics: map[string]identifier.Identifier{
-			"SHORT_NAME": shortNamePropID,
-		},
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"SHORT_NAME": shortNamePropID,
 	}
 
 	enMeta := &document.ClaimTypes{
@@ -3842,47 +3879,35 @@ func TestMakeDisplayStringsTemplatePerLanguage(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					// Template only for English.
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "SHORT_NAME" .}}`,
-				},
-				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "English Name",
 				},
 				{
-					// SHORT_NAME is not a naming property, just used by the template.
+					// SHORT_NAME only in English, used by the template.
 					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
 					Prop:      document.Reference{ID: shortNamePropID},
 					String:    "EN",
 				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
-					Prop:      document.Reference{ID: namingPropID},
-					String:    "Slovensko Ime",
-				},
-				{
-					CoreClaim: makeCoreClaim(document.MediumConfidence, slMeta),
-					Prop:      document.Reference{ID: namingPropID},
-					String:    "Alternativno Ime",
+					Prop:      document.Reference{ID: shortNamePropID},
+					String:    "SL",
 				},
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// English uses template.
+	// Template is not per-language; all languages render it.
+	// English renders bestString for "en": finds "EN".
 	assert.Equal(t, "EN", display.Display["en"])
-	assert.Equal(t, []string{"English Name"}, display.Naming["en"])
-
-	// Slovenian has no template, uses existing logic.
-	assert.Equal(t, "Slovensko Ime", display.Display["sl"])
-	assert.Equal(t, []string{"Alternativno Ime"}, display.Naming["sl"])
+	// Slovenian renders bestString for "sl": finds "SL".
+	assert.Equal(t, "SL", display.Display["sl"])
 }
 
 func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
@@ -3892,6 +3917,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	parentRelPropID := identifier.New()
 	yearPropID := identifier.New()
 	parentDocID := identifier.New()
+	classID := identifier.New()
 
 	parentDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: parentDocID}, //nolint:exhaustruct
@@ -3906,9 +3932,14 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 			},
 		},
 	}
+	classDoc := makeClassDocWithTemplate(classID,
+		`{{bestString "SHORT_NAME" .}} ({{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}})`,
+		document.HighConfidence,
+	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		parentDocID: parentDoc,
+		classID:     classDoc,
 	}
 
 	c := newTestConverter(t, nil, nil, extraDocs)
@@ -3926,11 +3957,6 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "SHORT_NAME" .}} ({{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}})`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
@@ -3951,6 +3977,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -3963,27 +3990,25 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 	t.Parallel()
 
 	shortNamePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
-		mnemonics: map[string]identifier.Identifier{
-			"SHORT_NAME": shortNamePropID,
-		},
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"SHORT_NAME": shortNamePropID,
 	}
 
-	// Document with template but no naming strings.
+	// Document with template (via class) but no naming strings.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "SHORT_NAME" .}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: shortNamePropID},
@@ -3992,6 +4017,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -4005,21 +4031,23 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 
 	enLangID := identifier.New()
 	namePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{
-			enLangID: "en",
-		},
-		mnemonics: map[string]identifier.Identifier{
-			"NAME": namePropID,
-		},
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"NAME": namePropID,
 	}
 
-	// Document with a NAME claim in "und" and a template for "en".
-	// bestString should fall back to "und" when "en" is not found.
 	enMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
 			{
@@ -4030,15 +4058,12 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 		},
 	}
 
+	// Document with NAME claim only in "und". Template's bestString for "en"
+	// should fall back to "und" when "en" is not found.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{bestString "NAME" .}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
 					Prop:      document.Reference{ID: namingPropID},
@@ -4053,11 +4078,12 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// Template for "en" should fall back to "und" NAME claim.
+	// Template bestString for "en" falls back to "und" NAME claim.
 	assert.Equal(t, "Universal Name", display.Display["en"])
 }
 
@@ -4065,26 +4091,24 @@ func TestTemplateBestIdentifier(t *testing.T) {
 	t.Parallel()
 
 	codeProp := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `ID: {{bestIdentifier "CODE" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
-		mnemonics: map[string]identifier.Identifier{
-			"CODE": codeProp,
-		},
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"CODE": codeProp,
 	}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `ID: {{bestIdentifier "CODE" .}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
@@ -4100,6 +4124,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -4112,9 +4137,16 @@ func TestTemplateNilDoc(t *testing.T) {
 
 	parentRelPropID := identifier.New()
 	yearPropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID,
+		`Year: {{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}}`,
+		document.HighConfidence,
+	)
 
-	// getDocument returns not found for any ID.
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
 	}
@@ -4124,17 +4156,12 @@ func TestTemplateNilDoc(t *testing.T) {
 		"YEAR":       yearPropID,
 	}
 
-	// Template that tries to follow a non-existent relation.
+	// Template tries to follow a non-existent relation.
 	// bestRelationDoc returns nil, bestAmountString handles nil doc gracefully.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `Year: {{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
@@ -4143,6 +4170,7 @@ func TestTemplateNilDoc(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -4155,26 +4183,24 @@ func TestTemplateBestTimeString(t *testing.T) {
 	t.Parallel()
 
 	datePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `Date: {{bestTimeString "DATE" .}}`, document.HighConfidence)
 
-	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
-		mnemonics: map[string]identifier.Identifier{
-			"DATE": datePropID,
-		},
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"DATE": datePropID,
 	}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `Date: {{bestTimeString "DATE" .}}`,
-				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
@@ -4191,6 +4217,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -4202,6 +4229,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	t.Parallel()
 
 	otherDocID := identifier.New()
+	classID := identifier.New()
 	otherDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: otherDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -4214,9 +4242,14 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 			},
 		},
 	}
+	classDoc := makeClassDocWithTemplate(classID,
+		`{{getDocumentByMnemonic "OTHER" | bestString "NAMING"}}`,
+		document.HighConfidence,
+	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		otherDocID: otherDoc,
+		classID:    classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
@@ -4234,20 +4267,481 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: displayLabelTemplatePropID},
-					String:    `{{getDocumentByMnemonic "OTHER" | bestString "NAMING"}}`,
-				},
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "My Doc",
 				},
 			},
 		},
 	}
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	ctx := t.Context()
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "Other Document", display.Display["und"])
+}
+
+func TestValidateLanguagePriority(t *testing.T) {
+	t.Parallel()
+
+	// Valid priority.
+	errE := validateLanguagePriority(LanguagePriority{
+		"en": {"sl", "und"},
+		"sl": {"en"},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Nil priority is valid.
+	errE = validateLanguagePriority(nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Empty priority is valid.
+	errE = validateLanguagePriority(LanguagePriority{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Empty fallback list is valid (means no fallback at all).
+	errE = validateLanguagePriority(LanguagePriority{
+		"en": {},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// "und" as key is valid.
+	errE = validateLanguagePriority(LanguagePriority{
+		"und": {"en"},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Unsupported language in key.
+	errE = validateLanguagePriority(LanguagePriority{
+		"xx": {"en"},
+	})
+	assert.Error(t, errE)
+	assert.Contains(t, errE.Error(), "unsupported language in priority key")
+
+	// Unsupported language in fallback.
+	errE = validateLanguagePriority(LanguagePriority{
+		"en": {"xx"},
+	})
+	assert.Error(t, errE)
+	assert.Contains(t, errE.Error(), "unsupported language in priority fallback")
+
+	// Language as its own fallback.
+	errE = validateLanguagePriority(LanguagePriority{
+		"en": {"sl", "en"},
+	})
+	assert.Error(t, errE)
+	assert.Contains(t, errE.Error(), "language cannot be its own fallback")
+}
+
+func TestNewConverterValidation(t *testing.T) {
+	t.Parallel()
+
+	getDocument := func(_ context.Context, _ identifier.Identifier) (*document.D, errors.E) {
+		return nil, errors.New("not found")
+	}
+
+	// Valid priority.
+	c, errE := NewConverter(nil, nil, nil, LanguagePriority{"en": {"sl"}}, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotNil(t, c)
+
+	// Invalid priority.
+	c, errE = NewConverter(nil, nil, nil, LanguagePriority{"xx": {"en"}}, getDocument)
+	assert.Error(t, errE)
+	assert.Nil(t, c)
+}
+
+func TestGetFallbackLanguages(t *testing.T) {
+	t.Parallel()
+
+	// With priority set.
+	c := &Converter{ //nolint:exhaustruct
+		languagePriority: LanguagePriority{
+			"en": {"sl", "und"},
+			"sl": {"en"},
+			"pt": {},
+		},
+	}
+
+	// Language with explicit fallbacks.
+	assert.Equal(t, []string{"sl", "und"}, c.getFallbackLanguages("en"))
+	assert.Equal(t, []string{"en"}, c.getFallbackLanguages("sl"))
+
+	// Language with empty fallback list: no fallback at all.
+	assert.Empty(t, c.getFallbackLanguages("pt"))
+
+	// Language not in priority: fallback to "und".
+	// (Using a hypothetical supported language not in priority.)
+	assert.Equal(t, []string{"und"}, c.getFallbackLanguages("fr"))
+
+	// "und" not in priority: no fallback (it's already undetermined).
+	assert.Nil(t, c.getFallbackLanguages("und"))
+
+	// With nil priority.
+	c2 := &Converter{ //nolint:exhaustruct
+		languagePriority: nil,
+	}
+	assert.Equal(t, []string{"und"}, c2.getFallbackLanguages("en"))
+	assert.Nil(t, c2.getFallbackLanguages("und"))
+}
+
+func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+
+	enMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	slMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: slLangID},
+			},
+		},
+	}
+
+	docID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "English Name",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Slovensko Ime",
+				},
+			},
+		},
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		docID: doc,
+	}
+
+	// Priority: en falls back to sl, pt has no fallback.
+	priority := LanguagePriority{
+		"en": {"sl", "und"},
+		"pt": {},
+	}
+	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// "en" resolved directly.
+	assert.Equal(t, "English Name", info.Display.Display["en"])
+	// "sl" resolved directly.
+	assert.Equal(t, "Slovensko Ime", info.Display.Display["sl"])
+	// "pt" has empty fallback: no display.
+	assert.Empty(t, info.Display.Display["pt"])
+	// "und" not in priority: no fallback for "und" itself (no "und" naming exists).
+	assert.Empty(t, info.Display.Display["und"])
+}
+
+func TestDisplayPathsNoFallback(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+
+	enMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	slMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: slLangID},
+			},
+		},
+	}
+
+	// Set up hierarchy.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	parentID := identifier.New()
+	childID := identifier.New()
+
+	// Parent has only English name.
+	parentDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: parentID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Parent EN",
+				},
+			},
+		},
+	}
+
+	// Child has English and Slovenian names, and SUBCLASS_OF parent.
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: childID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Child EN",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Child SL",
+				},
+			},
+			Relation: []document.RelationClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: subclassOfPropID},
+					To:        document.Reference{ID: parentID},
+				},
+			},
+		},
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		parentID: parentDoc,
+		childID:  childDoc,
+	}
+
+	// Priority: sl falls back to en. No fallback for pt.
+	priority := LanguagePriority{
+		"sl": {"en"},
+		"pt": {},
+	}
+	c := newTestConverterWithPriority(t, properties, languages, extraDocs, priority)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, childID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// English path exists: parent has EN, child has EN.
+	require.Contains(t, info.DisplayPaths[subclassOfPropID], "en")
+	assert.Equal(t, []string{"Parent EN\x00Child EN"}, info.DisplayPaths[subclassOfPropID]["en"])
+
+	// Slovenian path: parent resolved to "Parent EN" via sl->en fallback, child has "Child SL".
+	require.Contains(t, info.DisplayPaths[subclassOfPropID], "sl")
+	assert.Equal(t, []string{"Parent EN\x00Child SL"}, info.DisplayPaths[subclassOfPropID]["sl"])
+
+	// Portuguese: pt has no fallback, both parent and child have empty pt display.
+	// Path is still created with empty strings.
+	require.Contains(t, info.DisplayPaths[subclassOfPropID], "pt")
+	assert.Equal(t, []string{"\x00"}, info.DisplayPaths[subclassOfPropID]["pt"])
+}
+
+func TestDisplayPathsEmptyAppend(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+
+	enMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+
+	// Set up hierarchy.
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	parentID := identifier.New()
+	childID := identifier.New()
+
+	// Parent has English name.
+	parentDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: parentID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Parent EN",
+				},
+			},
+		},
+	}
+
+	// Child has NO English name, only undetermined.
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: childID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Child UND",
+				},
+			},
+			Relation: []document.RelationClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: subclassOfPropID},
+					To:        document.Reference{ID: parentID},
+				},
+			},
+		},
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		parentID: parentDoc,
+		childID:  childDoc,
+	}
+
+	// en has empty fallback: no fallback, not even "und".
+	priority := LanguagePriority{
+		"en": {},
+	}
+	c := newTestConverterWithPriority(t, properties, languages, extraDocs, priority)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, childID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Parent has "en" display. Child has no "en" display (empty fallback means no resolution).
+	// Path should still be created with empty child display appended.
+	require.Contains(t, info.DisplayPaths[subclassOfPropID], "en")
+	assert.Equal(t, []string{"Parent EN\x00"}, info.DisplayPaths[subclassOfPropID]["en"])
+}
+
+func TestBestStringLanguagePriority(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	ptLangID := identifier.New()
+	namePropID := identifier.New()
+	classID := identifier.New()
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`, document.HighConfidence)
+
+	enMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	slMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: slLangID},
+			},
+		},
+	}
+	ptMeta := &document.ClaimTypes{
+		Relation: []document.RelationClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: inLanguagePropID},
+				To:        document.Reference{ID: ptLangID},
+			},
+		},
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+		makeLanguageDoc(ptLangID, "pt"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	// pt falls back to sl then und.
+	priority := LanguagePriority{
+		"pt": {"sl", "und"},
+	}
+	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
+	c.namingProperties = map[identifier.Identifier]bool{
+		namingPropID: true,
+	}
+	c.mnemonics = map[string]identifier.Identifier{
+		"NAME": namePropID,
+	}
+
+	// Document with template (via class). NAME only exists in "sl".
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, ptMeta),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Nome PT",
+				},
+				{
+					// NAME claim only in Slovenian.
+					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					Prop:      document.Reference{ID: namePropID},
+					String:    "Slovenian Value",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					Prop:      document.Reference{ID: namePropID},
+					String:    "English Value",
+				},
+			},
+		},
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	display, errE := c.makeDisplayStrings(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Template bestString for "pt" falls back sl -> und.
+	// "sl" has a NAME claim, so it should find "Slovenian Value".
+	assert.Equal(t, "Slovenian Value", display.Display["pt"])
 }

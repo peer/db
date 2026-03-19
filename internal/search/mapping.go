@@ -9,6 +9,15 @@ import (
 	"gitlab.com/tozd/go/errors"
 )
 
+// SupportedLanguages is a set of supported languages in ElasticSearch mapping.
+// Includes the undetermined language ("und") for content without a specific language.
+var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
+	"en":  true,
+	"sl":  true,
+	"pt":  true,
+	"und": true,
+}
+
 //go:embed mapping.tmpl
 var mappingTemplate string
 

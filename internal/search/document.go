@@ -5,13 +5,6 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
-// SupportedLanguages is a set of supported languages in ElasticSearch mapping.
-var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
-	"en": true,
-	"sl": true,
-	"pt": true,
-}
-
 // Document represents data indexed by ElasticSearch.
 //
 // It should match generated mapping.
