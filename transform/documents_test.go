@@ -5318,8 +5318,8 @@ func TestDocuments_DefaultTagValidation_BothDefaults(t *testing.T) {
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	require.Error(t, errE)
-	// Should fail minimum cardinality since invalid default tag is ignored.
-	assert.EqualError(t, errE, "field value does not satisfy minimum cardinality")
+	// Should fail upfront validation of the default tag value.
+	assert.EqualError(t, errE, `default tag must be "none" or "unknown"`)
 }
 
 func TestDocuments_SliceWithDefaultNone(t *testing.T) {
@@ -8075,4 +8075,70 @@ func TestDocuments_LocationOnRefFieldErrors(t *testing.T) {
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 	assert.EqualError(t, errE, "location tag is not supported for core.Ref fields")
+}
+
+func TestDocuments_TypeOnNumericErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID    []string `documentid:""`
+		Width int      `              precision:"1" property:"WIDTH" type:"id"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:    []string{"test", "doc1"},
+			Width: 10,
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, "type tag is not supported for numeric fields")
+}
+
+func TestDocuments_InvalidDefaultTagErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Name []string `              cardinality:"1.." default:"foo" property:"NAME"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID: []string{"test", "doc1"},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `default tag must be "none" or "unknown"`)
+}
+
+func TestDocuments_InvalidDefaultTagOnValueFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+
+	type Inner struct {
+		Value string `default:"foo" value:""`
+	}
+
+	type Doc struct {
+		ID   []string `documentid:""`
+		Name Inner    `              property:"NAME"`
+	}
+
+	docs := []any{
+		&Doc{
+			ID:   []string{"test", "doc1"},
+			Name: Inner{Value: "hello"},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `default tag must be "none" or "unknown"`)
 }

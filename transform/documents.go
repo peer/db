@@ -27,7 +27,7 @@
 //		},
 //	}
 //
-//	documents, err := transform.Documents(mnemonics, docs)
+//	documents, err := transform.Documents(ctx, mnemonics, docs)
 //
 // # Supported Struct Tags
 //
@@ -125,7 +125,7 @@
 //   - single value fields: max must be ≤ 1 (can be 0 or 1),
 //   - max cardinality cannot be 0.
 //
-// Default: Fields without cardinality are optional (min=0, max=unbounded).
+// Default: min=0, max=unbounded for slices; min=0, max=1 for pointer and single value fields.
 //
 //	Required []string `property:"NAME" cardinality:"1.."` // At least one required.
 //	Optional *int     `property:"AGE" cardinality:"0..1"` // Zero or one.
@@ -509,6 +509,13 @@ func (tr *transformer) processStructFields(
 
 		hasDefaultTag := defaultTag != ""
 
+		if defaultTag != "" && defaultTag != defaultNone && defaultTag != defaultUnknown {
+			errE := errors.New("default tag must be \"none\" or \"unknown\"")
+			errors.Details(errE)["default"] = defaultTag
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return errE
+		}
+
 		minCardinality, maxCardinality, errE := parseCardinality(cardinality, fieldValue, hasDefaultTag)
 		if errE != nil {
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
@@ -584,7 +591,8 @@ func (tr *transformer) processField(
 		if errors.Is(err, errClaimNotMade) { //nolint:revive
 			// Do nothing.
 		} else if err != nil {
-			// errors.WithStack will not really add a stack trace here because err is in fact already errors.E.
+			// errors.WithStack will not really add a stack trace here because at this point
+			// err comes from processSingleValue which returns errors.E.
 			return errors.WithStack(err)
 		} else {
 			count++
@@ -853,6 +861,13 @@ func extractValueClaim(
 			defaultTag := field.Tag.Get("default")
 			precisionTag := field.Tag.Get("precision")
 			locationTag := field.Tag.Get("location")
+
+			if defaultTag != "" && defaultTag != defaultNone && defaultTag != defaultUnknown {
+				errE := errors.New("default tag must be \"none\" or \"unknown\"")
+				errors.Details(errE)["default"] = defaultTag
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
 
 			claim, errE := processValueClaimField(fieldValue, fieldType, propertyID, typeTag, defaultTag, precisionTag, locationTag, confidence, idPath, newFieldPath, claims)
 			if errE != nil {
@@ -1647,6 +1662,10 @@ func makeClaim(
 
 	// Handle numeric types.
 	if amount, ok := getNumericValue(fieldValue); ok {
+		if typeTag != "" {
+			return nil, errors.New("type tag is not supported for numeric fields")
+		}
+
 		if precisionTag == "" {
 			return nil, errors.New("precision tag is required for numeric fields")
 		}
