@@ -160,6 +160,21 @@
             "trim",
             "lowercase"
           ]
+        },
+        "display_label_normalizer": {
+          "type": "custom",
+          "char_filter": [
+            "truncate_token_filter"
+          ],
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "id_path_normalizer": {
+          "type": "custom",
+          "char_filter": [
+            "truncate_token_filter"
+          ]
         }
       },
       "char_filter": {
@@ -170,7 +185,7 @@
         },
         "truncate_token_filter": {
           "type": "pattern_replace",
-          "pattern": "^(.{0,1024}).*$",
+          "pattern": "^(.{0,2048}).*$",
           "replacement": "$1"
         }
       }

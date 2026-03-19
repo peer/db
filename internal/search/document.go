@@ -210,6 +210,16 @@ type RelationClaim struct {
 	To          identifier.Identifier `json:"to"`
 	ToDisplay   map[string]string     `json:"toDisplay"`
 	ToNaming    map[string][]string   `json:"toNaming"`
+	// ToPath contains ID-based hierarchy paths from root to the target document.
+	// Each path is prefixed with the hierarchy property ID and ":" separator
+	// (e.g., "<property_ID>:<root_ID>/<parent_ID>/<this_ID>"), followed by
+	// ancestor IDs joined by "/". Multiple paths exist when the target has
+	// multiple parents in a hierarchy or participates in multiple hierarchies.
+	ToPath []string `json:"toPath,omitempty"`
+	// ToDisplayPath contains per-language display hierarchy paths from root to the
+	// target document. Each path is a string of display labels joined by null bytes,
+	// which ensures correct hierarchical sort order.
+	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
 
 	// Nested claims.
 	Relation RelationClaims `json:"rel,omitempty"`

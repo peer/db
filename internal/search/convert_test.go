@@ -278,6 +278,94 @@ func TestGetDocumentInfoWithClassAncestors(t *testing.T) {
 	// Child should have parent and grandparent as ancestors via SUBCLASS_OF.
 	assert.Contains(t, info.Ancestors[subclassOfPropID], parent)
 	assert.Contains(t, info.Ancestors[subclassOfPropID], grandparent)
+
+	// Child should have a hierarchy path: grandparent/parent/child.
+	require.Len(t, info.IDPaths[subclassOfPropID], 1)
+	expectedIDPath := grandparent.String() + "/" + parent.String() + "/" + child.String()
+	assert.Equal(t, expectedIDPath, info.IDPaths[subclassOfPropID][0])
+
+	// Display path should use null-byte separated display names.
+	require.Contains(t, info.DisplayPaths[subclassOfPropID], "und")
+	require.Len(t, info.DisplayPaths[subclassOfPropID]["und"], 1)
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[subclassOfPropID]["und"][0])
+
+	// Parent should have a single-level path: grandparent/parent.
+	parentInfo, errE := c.getDocumentInfo(ctx, parent)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, parentInfo.IDPaths[subclassOfPropID], 1)
+	assert.Equal(t, grandparent.String()+"/"+parent.String(), parentInfo.IDPaths[subclassOfPropID][0])
+
+	// Grandparent has no hierarchy paths (it's a root).
+	gpInfo, errE := c.getDocumentInfo(ctx, grandparent)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, gpInfo.IDPaths[subclassOfPropID])
+}
+
+func TestGetDocumentInfoMultiplePaths(t *testing.T) {
+	t.Parallel()
+
+	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
+	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
+	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	// Diamond hierarchy: child has two parents, both share a grandparent.
+	grandparent := identifier.New()
+	parentA := identifier.New()
+	parentB := identifier.New()
+	child := identifier.New()
+
+	gpDoc := makeNamingDoc(grandparent, "Root")
+	paDoc := makeHierarchyDoc(parentA, "ParentA", subclassOfPropID, &grandparent)
+	pbDoc := makeHierarchyDoc(parentB, "ParentB", subclassOfPropID, &grandparent)
+
+	// Child with two parents.
+	childClaims := &document.ClaimTypes{}
+	childClaims.String = append(childClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: namingPropID},
+		String:    "Leaf",
+	})
+	childClaims.Relation = append(childClaims.Relation,
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: parentA},
+		},
+		document.RelationClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: subclassOfPropID},
+			To:        document.Reference{ID: parentB},
+		},
+	)
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: child}, //nolint:exhaustruct
+		Claims:       childClaims,
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: gpDoc,
+		parentA:     paDoc,
+		parentB:     pbDoc,
+		child:       childDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Child should have two ID paths (one through each parent).
+	require.Len(t, info.IDPaths[subclassOfPropID], 2)
+	pathA := grandparent.String() + "/" + parentA.String() + "/" + child.String()
+	pathB := grandparent.String() + "/" + parentB.String() + "/" + child.String()
+	assert.ElementsMatch(t, info.IDPaths[subclassOfPropID], []string{pathA, pathB})
+	// Two display paths.
+	require.Len(t, info.DisplayPaths[subclassOfPropID]["und"], 2)
+	assert.ElementsMatch(t, info.DisplayPaths[subclassOfPropID]["und"], []string{
+		"Root\x00ParentA\x00Leaf",
+		"Root\x00ParentB\x00Leaf",
+	})
 }
 
 func TestGetDocumentInfoCaching(t *testing.T) {
@@ -1041,6 +1129,37 @@ func TestMakeDisplayStrings(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "Primary", display.Display["und"])
 	assert.Equal(t, []string{"Secondary"}, display.Naming["und"])
+}
+
+func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
+	t.Parallel()
+
+	c := &Converter{ //nolint:exhaustruct
+		namingProperties: map[identifier.Identifier]bool{
+			namingPropID: true,
+		},
+		languageCodes: map[identifier.Identifier]string{},
+	}
+
+	// Naming string with null byte should have it stripped.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: namingPropID},
+					String:    "Before\x00After",
+				},
+			},
+		},
+	}
+
+	ctx := t.Context()
+	display, errE := c.makeDisplayStrings(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Null byte should be removed from display string.
+	assert.Equal(t, "BeforeAfter", display.Display["und"])
 }
 
 func TestGetDisplayStringsCache(t *testing.T) {
@@ -2029,12 +2148,28 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should produce claims for both target and parent class.
 	require.Len(t, result, 2)
-	toIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		toIDs[i] = r.To
+
+	// Find the claim for the target and the claim for the parent.
+	var targetClaim, parentClaim RelationClaim
+	for _, r := range result {
+		if r.To == testTargetDocID {
+			targetClaim = r
+		} else {
+			parentClaim = r
+		}
 	}
-	assert.Contains(t, toIDs, testTargetDocID)
-	assert.Contains(t, toIDs, testParentClass)
+	assert.Equal(t, testTargetDocID, targetClaim.To)
+	assert.Equal(t, testParentClass, parentClaim.To)
+
+	// Target claim should have a hierarchy path: <SUBCLASS_OF>:<parent>/<target>.
+	require.Len(t, targetClaim.ToPath, 1)
+	assert.Equal(t, subclassOfPropID.String()+":"+testParentClass.String()+"/"+testTargetDocID.String(), targetClaim.ToPath[0])
+	require.Len(t, targetClaim.ToDisplayPath["und"], 1)
+	assert.Equal(t, "Parent Class\x00Target", targetClaim.ToDisplayPath["und"][0])
+
+	// Parent class claim has no hierarchy path (it's a root).
+	assert.Empty(t, parentClaim.ToPath)
+	assert.Empty(t, parentClaim.ToDisplayPath)
 }
 
 func TestConvertRelationWithClassSelfCycle(t *testing.T) {

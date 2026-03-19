@@ -40,12 +40,46 @@ type displayStrings struct {
 	Naming  map[string][]string
 }
 
-// documentInfo holds cached information about a document: display strings
-// and transitive ancestors for each value hierarchy type.
+// hierarchyPathSeparator is the null byte used as separator in display hierarchy paths.
+// It sorts before all printable characters, ensuring correct hierarchical ordering.
+const hierarchyPathSeparator = "\x00"
+
+// documentInfo holds information about a document: display strings,
+// transitive ancestors, and hierarchy paths for each value hierarchy type.
 type documentInfo struct {
 	Display displayStrings
 	// Ancestors maps a hierarchy property ID (e.g., SUBCLASS_OF) to transitive ancestor IDs.
 	Ancestors map[identifier.Identifier][]identifier.Identifier
+	// IDPaths maps a hierarchy property ID to ID-based hierarchy paths from root to this document.
+	// Each path is a string of IDs joined by "/".
+	IDPaths map[identifier.Identifier][]string
+	// DisplayPaths maps a hierarchy property ID to per-language display hierarchy paths
+	// from root to this document. Each path is a string of display labels joined by null bytes.
+	DisplayPaths map[identifier.Identifier]map[string][]string
+}
+
+// CollectHierarchyPaths collects all hierarchy paths, combining paths from all
+// value hierarchy types into single slices. ID paths are prefixed with the hierarchy
+// property ID and ":" separator (e.g., "<SUBCLASS_OF_ID>:<root_ID>/<parent_ID>/<this_ID>")
+// to identify which hierarchy each path belongs to.
+func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
+	var toPath []string
+	for hierProp, paths := range d.IDPaths {
+		prefix := hierProp.String() + ":"
+		for _, p := range paths {
+			toPath = append(toPath, prefix+p)
+		}
+	}
+	var toDisplayPath map[string][]string
+	for _, dpaths := range d.DisplayPaths {
+		for lang, paths := range dpaths {
+			if toDisplayPath == nil {
+				toDisplayPath = make(map[string][]string)
+			}
+			toDisplayPath[lang] = append(toDisplayPath[lang], paths...)
+		}
+	}
+	return toPath, toDisplayPath
 }
 
 // Converter holds preprocessed data for converting document.D to search Document.
@@ -257,8 +291,11 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 		return documentInfo{}, errE
 	}
 
-	// Compute ancestors for each value hierarchy property.
+	// Compute ancestors and hierarchy paths for each value hierarchy property.
 	var ancestors map[identifier.Identifier][]identifier.Identifier
+	var idPaths map[identifier.Identifier][]string
+	var displayPaths map[identifier.Identifier]map[string][]string
+	idStr := id.String()
 	for _, hierProp := range c.valueHierarchyProperties {
 		rels := document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, hierProp, document.LowConfidence)
 		if len(rels) == 0 {
@@ -266,6 +303,8 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 		}
 		seen := map[identifier.Identifier]bool{id: true} // Exclude self to avoid duplicates.
 		var hierAncestors []identifier.Identifier
+		var hierIDPaths []string
+		hierDisplayPaths := map[string][]string{}
 		for _, rel := range rels {
 			parentID := rel.To.ID
 			if seen[parentID] {
@@ -273,7 +312,7 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 			}
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
-			// Recursively get parent info to collect transitive ancestors.
+			// Recursively get parent info to collect transitive ancestors and paths.
 			parentInfo, parentErr := c.computeDocumentInfo(ctx, parentID, computing)
 			if parentErr != nil {
 				continue
@@ -284,6 +323,17 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 					hierAncestors = append(hierAncestors, grandparent)
 				}
 			}
+			// Extend parent's hierarchy paths with this document.
+			if parentPaths := parentInfo.IDPaths[hierProp]; len(parentPaths) > 0 {
+				for _, pp := range parentPaths {
+					hierIDPaths = append(hierIDPaths, pp+"/"+idStr)
+				}
+			} else {
+				// Parent has no paths (e.g., root or cycle break), create a two-level path.
+				hierIDPaths = append(hierIDPaths, parentID.String()+"/"+idStr)
+			}
+			// Extend parent's display paths with this document's display.
+			c.extendDisplayPaths(hierDisplayPaths, parentInfo, hierProp, display)
 		}
 		if len(hierAncestors) > 0 {
 			if ancestors == nil {
@@ -291,15 +341,89 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 			}
 			ancestors[hierProp] = hierAncestors
 		}
+		if len(hierIDPaths) > 0 {
+			if idPaths == nil {
+				idPaths = make(map[identifier.Identifier][]string)
+			}
+			idPaths[hierProp] = hierIDPaths
+		}
+		if len(hierDisplayPaths) > 0 {
+			if displayPaths == nil {
+				displayPaths = make(map[identifier.Identifier]map[string][]string)
+			}
+			displayPaths[hierProp] = hierDisplayPaths
+		}
 	}
 
-	info := documentInfo{Display: display, Ancestors: ancestors}
+	info := documentInfo{
+		Display:      display,
+		Ancestors:    ancestors,
+		IDPaths:      idPaths,
+		DisplayPaths: displayPaths,
+	}
 
 	c.documentInfoMu.Lock()
 	c.documentInfoCache[id] = info
 	c.documentInfoMu.Unlock()
 
 	return info, nil
+}
+
+// extendDisplayPaths extends hierDisplayPaths by appending this document's display to
+// each of the parent's display paths. For each language present in either the parent's
+// paths or this document's display, a path is created using the available display string
+// with fallback to "und" (undetermined language).
+func (c *Converter) extendDisplayPaths(
+	hierDisplayPaths map[string][]string,
+	parentInfo documentInfo, hierProp identifier.Identifier,
+	display displayStrings,
+) {
+	// Collect all languages from parent paths and this document's display.
+	langs := make(map[string]bool)
+	for lang := range display.Display {
+		langs[lang] = true
+	}
+	if parentDP := parentInfo.DisplayPaths[hierProp]; parentDP != nil {
+		for lang := range parentDP {
+			langs[lang] = true
+		}
+	}
+
+	for lang := range langs {
+		// Get this document's display for this language, falling back to "und".
+		thisDisplay := display.Display[lang]
+		if thisDisplay == "" {
+			thisDisplay = display.Display[undeterminedLanguage]
+		}
+		if thisDisplay == "" {
+			continue
+		}
+
+		// Get parent's display paths for this language, falling back to "und".
+		parentPaths := parentInfo.DisplayPaths[hierProp]
+		var paths []string
+		if parentPaths != nil {
+			paths = parentPaths[lang]
+			if len(paths) == 0 {
+				paths = parentPaths[undeterminedLanguage]
+			}
+		}
+
+		if len(paths) > 0 {
+			for _, pp := range paths {
+				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], pp+hierarchyPathSeparator+thisDisplay)
+			}
+		} else {
+			// Parent has no display paths, create a two-level path.
+			parentDisplay := parentInfo.Display.Display[lang]
+			if parentDisplay == "" {
+				parentDisplay = parentInfo.Display.Display[undeterminedLanguage]
+			}
+			if parentDisplay != "" {
+				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], parentDisplay+hierarchyPathSeparator+thisDisplay)
+			}
+		}
+	}
 }
 
 // makeDisplayStrings returns the display strings for a document.
@@ -322,7 +446,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 			if errE != nil {
 				return displayStrings{}, errE
 			}
-			rendered = strings.TrimSpace(rendered)
+			rendered = sanitizeDisplayString(strings.TrimSpace(rendered))
 			if rendered != "" {
 				display.Display[lang] = rendered
 				// All naming strings become Naming entries.
@@ -330,10 +454,17 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 				continue
 			}
 		}
-		// No template or empty result: use existing logic.
-		// There should always be at least one.
-		display.Display[lang] = strs[0]
-		display.Naming[lang] = strs[1:]
+		// No template or empty result: use naming strings.
+		for i, str := range strs {
+			str = sanitizeDisplayString(str)
+			if str != "" {
+				display.Display[lang] = str
+				if i+1 < len(strs) {
+					display.Naming[lang] = strs[i+1:]
+				}
+				break
+			}
+		}
 	}
 
 	// Handle languages that have templates but no naming strings.
@@ -345,13 +476,19 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		if errE != nil {
 			return displayStrings{}, errE
 		}
-		rendered = strings.TrimSpace(rendered)
+		rendered = sanitizeDisplayString(strings.TrimSpace(rendered))
 		if rendered != "" {
 			display.Display[lang] = rendered
 		}
 	}
 
 	return display, nil
+}
+
+// sanitizeDisplayString removes the hierarchy path separator from a display string to
+// prevent any issues with potential conflicts between display strings and hierarchy path separators.
+func sanitizeDisplayString(s string) string {
+	return strings.ReplaceAll(s, hierarchyPathSeparator, "")
 }
 
 // getDisplayStrings is a convenience wrapper around getDocumentInfo that
@@ -1236,25 +1373,29 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			return nil, errE
 		}
 		for _, tid := range targetIDs {
-			var toDisplay displayStrings
+			var tidInfo documentInfo
 			if tid == claim.To.ID {
-				toDisplay = targetInfo.Display
+				tidInfo = targetInfo
 			} else {
 				// Ancestors were already computed during the hierarchy walk, so this hits cache.
-				toDisplay, errE = c.getDisplayStrings(ctx, tid)
+				tidInfo, errE = c.getDocumentInfo(ctx, tid)
 				if errE != nil {
 					errors.Details(errE)["claim"] = claim
 					return nil, errE
 				}
 			}
+			// Collect hierarchy paths across all value hierarchy types.
+			toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
 			result = append(result, RelationClaim{
-				Prop:        pid,
-				PropDisplay: propDisplay.Display,
-				PropNaming:  propDisplay.Naming,
-				To:          tid,
-				ToDisplay:   toDisplay.Display,
-				ToNaming:    toDisplay.Naming,
-				Relation:    nested,
+				Prop:          pid,
+				PropDisplay:   propDisplay.Display,
+				PropNaming:    propDisplay.Naming,
+				To:            tid,
+				ToDisplay:     tidInfo.Display.Display,
+				ToNaming:      tidInfo.Display.Naming,
+				ToPath:        toPath,
+				ToDisplayPath: toDisplayPath,
+				Relation:      nested,
 			})
 		}
 	}

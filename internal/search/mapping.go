@@ -47,6 +47,32 @@ const multiLanguageString = `{
 	}
 }`
 
+const displayPath = `{
+	"properties": {
+		"en": {
+			"type": "keyword",
+			"normalizer": "display_label_normalizer"
+		},
+		"sl": {
+			"type": "keyword",
+			"normalizer": "display_label_normalizer"
+		},
+		"pt": {
+			"type": "keyword",
+			"normalizer": "display_label_normalizer"
+		},
+		"und": {
+			"type": "keyword",
+			"normalizer": "display_label_normalizer"
+		}
+	}
+}`
+
+const idPath = `{
+	"type": "keyword",
+	"normalizer": "id_path_normalizer"
+}`
+
 const nestedRel = `{
 	"type": "nested",
 	"properties": {
@@ -306,6 +332,14 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"toNaming",
 				multiLanguageString,
+			},
+			{
+				"toPath",
+				idPath,
+			},
+			{
+				"toDisplayPath",
+				displayPath,
 			},
 			{
 				"rel",
