@@ -99,7 +99,7 @@ func (b *B) Init(
 		ESClient: esClient,
 		Index:    b.Index,
 	}
-	errE = bridge.Init(ctx, dbpool, listener)
+	errE = bridge.Init(ctx, dbpool, listener, b.Schema, riverClient, workers)
 	if errE != nil {
 		return errE
 	}

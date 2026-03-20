@@ -235,6 +235,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
+	c.dbpool = dbpool
+	c.schema = schema
+	c.riverClient = riverClient
 
 	if c.CompleteSessionTx == nil {
 		return errors.New("CompleteSessionTx cannot be nil")
@@ -349,10 +352,6 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			return errE
 		}
 	}
-
-	c.dbpool = dbpool
-	c.schema = schema
-	c.riverClient = riverClient
 
 	errE = c.registerCoordinator(workers)
 	if errE != nil {
