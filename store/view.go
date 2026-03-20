@@ -197,7 +197,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 //
 // A view might not have an explicitly committed version of a given value, but its
 // ancestor views might. In that case the value is searched for in the ancestry order,
-// first the parent view. This means that some further (older) view might have a
+// first the parent view. This means that some later (older) view might have a
 // newer value version, but GetLatest still returns the value version which is
 // explicitly committed to an earlier (younger) view, i.e., the view shadows values
 // and value versions from the parent view for those explicitly committed to the view.
@@ -288,7 +288,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 //
 // Get first searches for the view (including ancestor views) which has the value
 // and then returns the value only for versions available for that view.
-// This means that some further (older) view might have a
+// This means that some later (older) view might have a
 // newer value version, but Get will not return it even if asked for if there is an
 // older version explicitly committed to an earlier (younger) view, i.e., the view
 // shadows values and value versions from the parent view for those explicitly
