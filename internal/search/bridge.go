@@ -211,19 +211,17 @@ func (b *Bridge) Init(
 		`)
 		return internal.WithPgxError(err)
 	})
-	if errE != nil {
-		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
-			switch pgError.Code {
-			case internal.ErrorCodeDuplicateTable:
-				// Nothing.
-			case internal.ErrorCodeDuplicateFunction:
-				// Nothing.
-			default:
-				return errE
-			}
-		} else {
+	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+		switch pgError.Code {
+		case internal.ErrorCodeDuplicateTable:
+			// Nothing.
+		case internal.ErrorCodeDuplicateFunction:
+			// Nothing.
+		default:
 			return errE
 		}
+	} else if errE != nil {
+		return errE
 	}
 
 	errE = b.registerCoordinator(workers)
@@ -670,13 +668,12 @@ func (b *Bridge) indexCommit(
 			}
 			for _, change := range page {
 				data, metadata, _, errE := b.Store.GetLatest(ctx, change.ID)
-				if errE != nil {
-					if errors.Is(errE, store.ErrValueDeleted) {
-						// Document was deleted: remove it from the index.
-						// TODO: We have to also remove all inverse relations from metadata and the index.
-						bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
-						continue
-					}
+				if errors.Is(errE, store.ErrValueDeleted) {
+					// Document was deleted: remove it from the index.
+					// TODO: We have to also remove all inverse relations from metadata and the index.
+					bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
+					continue
+				} else if errE != nil {
 					errors.Details(errE)["seq"] = committed.Seq
 					errors.Details(errE)["view"] = committed.View.Name()
 					errors.Details(errE)["changeset"] = cs.String()
@@ -777,12 +774,19 @@ func (b *Bridge) updateSeq(
 		var updates []preparedUpdate
 		for docID, irs := range inverseRelations {
 			_, metadata, version, errE := b.Store.GetLatest(ctx, docID)
-			if errE != nil {
-				if errors.Is(errE, store.ErrValueNotFound) {
-					// Document does not exist (yet or anymore), skip.
-					// TODO: What do to here?
-					continue
-				}
+			if errors.Is(errE, store.ErrValueNotFound) {
+				// Document does not exist (yet), skip.
+				// TODO: We should handle the "not exist yet" case better.
+				//       We could every time a new document is inserted make a background job which would run an ES query to
+				//       find all relations pointing to it and update metadata new document's metadata and then re-index it.
+				continue
+			} else if errors.Is(errE, store.ErrValueDeleted) {
+				// Document does not exist anymore, skip.
+				// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
+				//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
+				//       show links for those relations in red color in UI or something like that.
+				continue
+			} else if errE != nil {
 				return errE
 			}
 			metadata.Merge(irs)
@@ -894,16 +898,16 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 // document, and indexes it to ElasticSearch.
 func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier) errors.E {
 	data, metadata, _, errE := b.Store.GetLatest(ctx, docID)
-	if errE != nil {
-		if errors.Is(errE, store.ErrValueNotFound) {
-			// Document was deleted, remove from index.
-			// TODO: We have to also remove all inverse relations from metadata and the index.
-			_, err := b.ESClient.Delete().Index(b.Index).Id(docID.String()).Do(ctx)
-			if err != nil && !elastic.IsNotFound(err) {
-				return errors.WithStack(err)
-			}
-			return nil
-		}
+	if errors.Is(errE, store.ErrValueDeleted) {
+		// Document does not exist anymore, skip.
+		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
+		//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
+		//       show links for those relations in red color in UI or something like that.
+		return nil
+	} else if errE != nil {
+		// The ErrValueNotFound error should not be possible at this point because it means that the document
+		// have never existed, but GetLatest did not return ErrValueNotFound in updateSeq for us to be here.
+		// So we do not handle ErrValueNotFound in any special way here.
 		return errE
 	}
 

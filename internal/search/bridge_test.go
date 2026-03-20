@@ -467,13 +467,12 @@ func makeConverterWithInverse(
 
 	c, errE := search.NewConverter(properties, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		data, _, _, errE := s.GetLatest(ctx, id)
-		if errE != nil {
-			if errors.Is(errE, store.ErrValueNotFound) {
-				// Return a minimal document for IDs not in the store (e.g., core property/class IDs).
-				return &document.D{
-					CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
-				}, nil
-			}
+		if errors.Is(errE, store.ErrValueNotFound) {
+			// Return a minimal document for IDs not in the store (e.g., core property/class IDs).
+			return &document.D{
+				CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+			}, nil
+		} else if errE != nil {
 			return nil, errE
 		}
 		var doc document.D

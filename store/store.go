@@ -536,21 +536,19 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 		return nil
 	})
-	if errE != nil {
-		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
-			switch pgError.Code {
-			case store.ErrorCodeUniqueViolation:
-				// Nothing.
-			case store.ErrorCodeDuplicateFunction:
-				// Nothing.
-			case store.ErrorCodeDuplicateTable:
-				// Nothing.
-			default:
-				return errE
-			}
-		} else {
+	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+		switch pgError.Code {
+		case store.ErrorCodeUniqueViolation:
+			// Nothing.
+		case store.ErrorCodeDuplicateFunction:
+			// Nothing.
+		case store.ErrorCodeDuplicateTable:
+			// Nothing.
+		default:
 			return errE
 		}
+	} else if errE != nil {
+		return errE
 	}
 
 	s.dbpool = dbpool

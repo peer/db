@@ -336,21 +336,19 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 		return nil
 	})
-	if errE != nil {
-		if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
-			switch pgError.Code {
-			case internal.ErrorCodeUniqueViolation:
-				// Nothing.
-			case internal.ErrorCodeDuplicateFunction:
-				// Nothing.
-			case internal.ErrorCodeDuplicateTable:
-				// Nothing.
-			default:
-				return errE
-			}
-		} else {
+	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+		switch pgError.Code {
+		case internal.ErrorCodeUniqueViolation:
+			// Nothing.
+		case internal.ErrorCodeDuplicateFunction:
+			// Nothing.
+		case internal.ErrorCodeDuplicateTable:
+			// Nothing.
+		default:
 			return errE
 		}
+	} else if errE != nil {
+		return errE
 	}
 
 	errE = c.registerCoordinator(workers)
