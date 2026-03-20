@@ -88,7 +88,9 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 
 	errE = c.runIndexInverseRelations(ctx, job)
 	if errE != nil {
-		// TODO: Which errors wrap into JobCancel?
+		// We do not wrap any error into JobCancel because for all errors we want the job to be retried.
+		// Job can safely be rerun multiple times because it keeps track of successful work in its table.
+		// So it could partially succeed and then fail and the next time it will continue where it left off.
 		return errE
 	}
 
