@@ -69,6 +69,11 @@ func (jobArgs) InsertOpts() river.InsertOpts {
 				rivertype.JobStateAvailable,
 				rivertype.JobStateRetryable,
 				rivertype.JobStateScheduled,
+				// TODO: We would want that job can be inserted while another job is running, but that it has to wait for it to finish.
+				//       But JobStateRunning is required here. If it was not, we could achieve one job at a time with a single-job queue.
+				//       See: https://github.com/riverqueue/river/issues/1178
+				rivertype.JobStateRunning,
+				rivertype.JobStatePending,
 			},
 			ExcludeKind: false,
 		},
