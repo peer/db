@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -18,7 +19,7 @@ import (
 // Well-known IDs used only in tests.
 //
 //nolint:gochecknoglobals
-var subclassOfPropID = identifier.From("core.peerdb.org", "SUBCLASS_OF")
+var subclassOfPropID = identifier.From(core.Namespace, "SUBCLASS_OF")
 
 // Helper IDs for tests.
 //
@@ -123,6 +124,11 @@ func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
 	}
 }
 
+// idTmpl returns a template expression that resolves an identifier.Identifier from its string representation.
+func idTmpl(id identifier.Identifier) string {
+	return `(identifierString "` + id.String() + `")`
+}
+
 // makeNamingDoc creates a document with a naming string claim.
 func makeNamingDoc(id identifier.Identifier, name string) *document.D {
 	claims := &document.ClaimTypes{}
@@ -154,7 +160,7 @@ func newTestConverterWithPriority(
 	t *testing.T,
 	properties, languages []*document.D,
 	extraDocs map[identifier.Identifier]*document.D,
-	priority LanguagePriority,
+	priority map[string][]string,
 ) *Converter {
 	t.Helper()
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
@@ -163,7 +169,7 @@ func newTestConverterWithPriority(
 		}
 		return nil, errors.New("document not found")
 	}
-	c, errE := NewConverter(properties, languages, nil, priority, getDocument)
+	c, errE := NewConverter(properties, languages, priority, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return c
 }
@@ -406,7 +412,7 @@ func TestGetDocumentInfoCaching(t *testing.T) {
 		}
 		return nil, errors.New("document not found")
 	}
-	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	c, errE := NewConverter(nil, nil, nil, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ctx := t.Context()
@@ -3767,7 +3773,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(shortNamePropID)+` .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -3775,9 +3781,6 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"SHORT_NAME": shortNamePropID,
 	}
 
 	// Document with INSTANCE_OF class and naming + short name claims.
@@ -3851,7 +3854,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	slLangID := identifier.New()
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(shortNamePropID)+` .}}`)
 
 	languages := []*document.D{
 		makeLanguageDoc(enLangID, "en"),
@@ -3863,9 +3866,6 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	c := newTestConverter(t, nil, languages, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"SHORT_NAME": shortNamePropID,
 	}
 
 	enMeta := &document.ClaimTypes{
@@ -3946,7 +3946,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 		},
 	}
 	classDoc := makeClassDocWithTemplate(classID,
-		`{{bestString "SHORT_NAME" .}} ({{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}})`,
+		`{{bestString `+idTmpl(shortNamePropID)+` .}} ({{bestRelationDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}})`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -3959,11 +3959,6 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 		namingPropID: true,
 	}
 	c.languageCodes = map[identifier.Identifier]string{}
-	c.mnemonics = map[string]identifier.Identifier{
-		"SHORT_NAME": shortNamePropID,
-		"PARENT_DOC": parentRelPropID,
-		"YEAR":       yearPropID,
-	}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4003,7 +3998,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 
 	shortNamePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "SHORT_NAME" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(shortNamePropID)+` .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4011,9 +4006,6 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"SHORT_NAME": shortNamePropID,
 	}
 
 	// Document with template (via class) but no naming strings.
@@ -4044,7 +4036,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	enLangID := identifier.New()
 	namePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(namePropID)+` .}}`)
 
 	languages := []*document.D{
 		makeLanguageDoc(enLangID, "en"),
@@ -4055,9 +4047,6 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	c := newTestConverter(t, nil, languages, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"NAME": namePropID,
 	}
 
 	enMeta := &document.ClaimTypes{
@@ -4104,7 +4093,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 
 	codeProp := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `ID: {{bestIdentifier "CODE" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `ID: {{bestIdentifier `+idTmpl(codeProp)+` .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4112,9 +4101,6 @@ func TestTemplateBestIdentifier(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"CODE": codeProp,
 	}
 
 	doc := &document.D{
@@ -4151,7 +4137,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	yearPropID := identifier.New()
 	classID := identifier.New()
 	classDoc := makeClassDocWithTemplate(classID,
-		`Year: {{bestRelationDoc "PARENT_DOC" . | bestAmountString "YEAR"}}`,
+		`Year: {{bestRelationDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}}`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4162,10 +4148,6 @@ func TestTemplateNilDoc(t *testing.T) {
 		namingPropID: true,
 	}
 	c.languageCodes = map[identifier.Identifier]string{}
-	c.mnemonics = map[string]identifier.Identifier{
-		"PARENT_DOC": parentRelPropID,
-		"YEAR":       yearPropID,
-	}
 
 	// Template tries to follow a non-existent relation.
 	// bestRelationDoc returns nil, bestAmountString handles nil doc gracefully.
@@ -4195,7 +4177,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 
 	datePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `Date: {{bestTimeString "DATE" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `Date: {{bestTimeString `+idTmpl(datePropID)+` .}}`)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		classID: classDoc,
@@ -4203,9 +4185,6 @@ func TestTemplateBestTimeString(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"DATE": datePropID,
 	}
 
 	doc := &document.D{
@@ -4254,7 +4233,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 		},
 	}
 	classDoc := makeClassDocWithTemplate(classID,
-		`{{getDocumentByMnemonic "OTHER" | bestString "NAMING"}}`,
+		`{{getDocument `+idTmpl(otherDocID)+` | bestString `+idTmpl(namingPropID)+`}}`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4266,10 +4245,6 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 		namingPropID: true,
 	}
 	c.languageCodes = map[identifier.Identifier]string{}
-	c.mnemonics = map[string]identifier.Identifier{
-		"OTHER":  otherDocID,
-		"NAMING": namingPropID,
-	}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4295,7 +4270,7 @@ func TestValidateLanguagePriority(t *testing.T) {
 	t.Parallel()
 
 	// Valid priority.
-	errE := validateLanguagePriority(LanguagePriority{
+	errE := validateLanguagePriority(map[string][]string{
 		"en": {"sl", "und"},
 		"sl": {"en"},
 	})
@@ -4306,37 +4281,37 @@ func TestValidateLanguagePriority(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Empty priority is valid.
-	errE = validateLanguagePriority(LanguagePriority{})
+	errE = validateLanguagePriority(map[string][]string{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Empty fallback list is valid (means no fallback at all).
-	errE = validateLanguagePriority(LanguagePriority{
+	errE = validateLanguagePriority(map[string][]string{
 		"en": {},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// "und" as key is valid.
-	errE = validateLanguagePriority(LanguagePriority{
+	errE = validateLanguagePriority(map[string][]string{
 		"und": {"en"},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Unsupported language in key.
-	errE = validateLanguagePriority(LanguagePriority{
+	errE = validateLanguagePriority(map[string][]string{
 		"xx": {"en"},
 	})
 	assert.Error(t, errE)
 	assert.Contains(t, errE.Error(), "unsupported language in priority key")
 
 	// Unsupported language in fallback.
-	errE = validateLanguagePriority(LanguagePriority{
+	errE = validateLanguagePriority(map[string][]string{
 		"en": {"xx"},
 	})
 	assert.Error(t, errE)
 	assert.Contains(t, errE.Error(), "unsupported language in priority fallback")
 
 	// Language as its own fallback.
-	errE = validateLanguagePriority(LanguagePriority{
+	errE = validateLanguagePriority(map[string][]string{
 		"en": {"sl", "en"},
 	})
 	assert.Error(t, errE)
@@ -4351,12 +4326,12 @@ func TestNewConverterValidation(t *testing.T) {
 	}
 
 	// Valid priority.
-	c, errE := NewConverter(nil, nil, nil, LanguagePriority{"en": {"sl"}}, getDocument)
+	c, errE := NewConverter(nil, nil, map[string][]string{"en": {"sl"}}, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotNil(t, c)
 
 	// Invalid priority.
-	c, errE = NewConverter(nil, nil, nil, LanguagePriority{"xx": {"en"}}, getDocument)
+	c, errE = NewConverter(nil, nil, map[string][]string{"xx": {"en"}}, getDocument)
 	assert.Error(t, errE)
 	assert.Nil(t, c)
 }
@@ -4366,7 +4341,7 @@ func TestGetFallbackLanguages(t *testing.T) {
 
 	// With priority set.
 	c := &Converter{ //nolint:exhaustruct
-		languagePriority: LanguagePriority{
+		languagePriority: map[string][]string{
 			"en": {"sl", "und"},
 			"sl": {"en"},
 			"pt": {},
@@ -4449,7 +4424,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 	}
 
 	// Priority: en falls back to sl, pt has no fallback.
-	priority := LanguagePriority{
+	priority := map[string][]string{
 		"en": {"sl", "und"},
 		"pt": {},
 	}
@@ -4555,7 +4530,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	}
 
 	// Priority: sl falls back to en. No fallback for pt.
-	priority := LanguagePriority{
+	priority := map[string][]string{
 		"sl": {"en"},
 		"pt": {},
 	}
@@ -4649,7 +4624,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 	}
 
 	// en has empty fallback: no fallback, not even "und".
-	priority := LanguagePriority{
+	priority := map[string][]string{
 		"en": {},
 	}
 	c := newTestConverterWithPriority(t, properties, languages, extraDocs, priority)
@@ -4672,7 +4647,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 	ptLangID := identifier.New()
 	namePropID := identifier.New()
 	classID := identifier.New()
-	classDoc := makeClassDocWithTemplate(classID, `{{bestString "NAME" .}}`)
+	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(namePropID)+` .}}`)
 
 	enMeta := &document.ClaimTypes{
 		Relation: []document.RelationClaim{
@@ -4711,15 +4686,12 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		classID: classDoc,
 	}
 	// pt falls back to sl then und.
-	priority := LanguagePriority{
+	priority := map[string][]string{
 		"pt": {"sl", "und"},
 	}
 	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
 	c.namingProperties = map[identifier.Identifier]bool{
 		namingPropID: true,
-	}
-	c.mnemonics = map[string]identifier.Identifier{
-		"NAME": namePropID,
 	}
 
 	// Document with template (via class). NAME only exists in "sl".

@@ -12,7 +12,10 @@ import (
 
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb/core"
 )
 
 // Service is the main HTTP service for PeerDB.
@@ -43,16 +46,17 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				CertFile: "",
 				KeyFile:  "",
 			},
-			Build:           nil,
-			Index:           globals.Elastic.Index,
-			Schema:          globals.Postgres.Schema,
-			Title:           c.Title,
-			Base:            nil,
-			DBPool:          nil,
-			ESClient:        nil,
-			RiverClient:     nil,
-			initialized:     false,
-			propertiesTotal: 0,
+			Build:            nil,
+			Index:            globals.Elastic.Index,
+			Schema:           globals.Postgres.Schema,
+			Title:            c.Title,
+			LanguagePriority: nil,
+			Base:             nil,
+			DBPool:           nil,
+			ESClient:         nil,
+			RiverClient:      nil,
+			initialized:      false,
+			propertiesTotal:  0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
 	}
@@ -149,12 +153,21 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		return nil, errE
 	}
 
-	errE = service.UpdatePropertiesTotal(ctx)
-	if errE != nil {
-		return nil, errE
-	}
-
 	for _, site := range service.Sites {
+		properties, errE := site.fetchDocuments(ctx, identifier.From(core.Namespace, "PROPERTY"))
+		if errE != nil {
+			return nil, errE
+		}
+		languages, errE := site.fetchDocuments(ctx, identifier.From(core.Namespace, "LANGUAGE"))
+		if errE != nil {
+			return nil, errE
+		}
+
+		errE = site.Start(ctx, properties, languages)
+		if errE != nil {
+			return nil, errE
+		}
+
 		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
 	}
 

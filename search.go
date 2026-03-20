@@ -1,7 +1,6 @@
 package peerdb
 
 import (
-	"context"
 	"io"
 	"net/http"
 
@@ -14,27 +13,6 @@ import (
 	"gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 )
-
-// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
-
-// UpdatePropertiesTotal updates internal count of number of all properties for each site.
-func (s *Service) UpdatePropertiesTotal(ctx context.Context) errors.E {
-	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop.id", "CAfaL1ZZs6L4uyFdrJZ2wN"), // TYPE.
-		elastic.NewTermQuery("claims.rel.to.id", "HohteEmv2o7gPRnJ5wukVe"),   // PROPERTY.
-	)
-	query := elastic.NewNestedQuery("claims.rel", boolQuery)
-
-	for _, site := range s.Sites {
-		total, err := site.ESClient.Count(site.Index).Query(query).Do(ctx)
-		if err != nil {
-			return errors.WithDetails(err, "index", site.Index)
-		}
-		site.propertiesTotal = total
-	}
-
-	return nil
-}
 
 func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64) {
 	ctx := req.Context()

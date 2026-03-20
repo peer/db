@@ -53,5 +53,46 @@ type InverseRelation struct {
 	Confidence document.Confidence `json:"confidence"`
 }
 
+// DocumentMetadata contains metadata about a document including its timestamp.
+type DocumentMetadata struct {
+	At Time `json:"at"`
+
+	// InverseRelations contains inverse relation data for relation claims from other
+	// documents that point to this document.
+	InverseRelations []InverseRelation `json:"inverseRelations,omitempty"`
+}
+
+// Merge merges inverse relations from source documents into this metadata.
+// For each source document represented in relations, all existing inverse
+// relations from that source document are replaced with the new ones.
+// This means that if a relation from a source document previously existed
+// but is absent from relations, it is considered removed.
+// Inverse relations from source documents not represented in relations
+// are left unchanged.
+func (m *DocumentMetadata) Merge(relations []InverseRelation) {
+	// Collect which source documents are being updated.
+	updatedSources := make(map[identifier.Identifier]bool)
+	for i := range relations {
+		updatedSources[relations[i].Document] = true
+	}
+
+	// Keep existing inverse relations from source documents that are not being updated.
+	kept := make([]InverseRelation, 0, len(m.InverseRelations))
+	for i := range m.InverseRelations {
+		if !updatedSources[m.InverseRelations[i].Document] {
+			kept = append(kept, m.InverseRelations[i])
+		}
+	}
+
+	// Append the new relations.
+	kept = append(kept, relations...)
+
+	if len(kept) == 0 {
+		m.InverseRelations = nil
+	} else {
+		m.InverseRelations = kept
+	}
+}
+
 // NoMetadata represents an empty metadata structure.
 type NoMetadata struct{}

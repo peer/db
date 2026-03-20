@@ -6,27 +6,43 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 // GetDocument returns the document at the given version.
-func (b *B) GetDocument(ctx context.Context, id identifier.Identifier, version store.Version) (json.RawMessage, *DocumentMetadata, errors.E) {
+func (b *B) GetDocument(ctx context.Context, id identifier.Identifier, version store.Version) (json.RawMessage, *internal.DocumentMetadata, errors.E) {
 	return b.documents.Get(ctx, id, version)
 }
 
 // GetDocumentLatest returns the latest version of the document.
-func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *DocumentMetadata, store.Version, errors.E) {
+func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internal.DocumentMetadata, store.Version, errors.E) {
 	return b.documents.GetLatest(ctx, id)
+}
+
+// GetDocumentLatestDoc returns the latest version of the document as document.D.
+func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internal.DocumentMetadata, store.Version, errors.E) {
+	data, metadata, version, errE := b.documents.GetLatest(ctx, id)
+	var doc *document.D
+	if data != nil {
+		doc = new(document.D)
+		errE2 := x.UnmarshalWithoutUnknownFields(data, doc)
+		if errE2 != nil {
+			return nil, nil, store.Version{}, errors.Join(errE, errE2)
+		}
+	}
+	return doc, metadata, version, errE
 }
 
 // InsertDocument inserts a new document with the given ID.
 func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, documentJSON json.RawMessage) errors.E {
-	_, errE := b.documents.Insert(ctx, id, documentJSON, &DocumentMetadata{
+	_, errE := b.documents.Insert(ctx, id, documentJSON, &internal.DocumentMetadata{
 		At:               internal.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}, &internal.NoMetadata{})

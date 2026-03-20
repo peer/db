@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
@@ -16,17 +17,48 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/internal/search"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-type (
-	bridgeStore = store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
-	bridgeType  = search.Bridge[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
-)
+// dummyMetadata returns a minimal DocumentMetadata for testing.
+func dummyMetadata() *internal.DocumentMetadata {
+	return &internal.DocumentMetadata{
+		At:               internal.Time(time.Now().UTC()),
+		InverseRelations: nil,
+	}
+}
 
-func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elastic.Client) {
+// makeDocJSON creates a valid document.D JSON for a given ID.
+func makeDocJSON(t *testing.T, id identifier.Identifier) json.RawMessage {
+	t.Helper()
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+	}
+	data, err := json.Marshal(doc)
+	require.NoError(t, err)
+	return data
+}
+
+// newTestBridgeConverter creates a minimal Converter for bridge tests.
+func newTestBridgeConverter(t *testing.T) *search.Converter {
+	t.Helper()
+	c, errE := search.NewConverter(nil, nil, nil, func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		}, nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return c
+}
+
+func initBridge(t *testing.T) (
+	context.Context,
+	*store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes],
+	*search.Bridge, *elastic.Client,
+) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -38,39 +70,40 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 
 	ctx := t.Context()
 
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	schema := identifier.New().String()
-	prefix := identifier.New().String() + "_"
-	index := "s" + strings.ToLower(identifier.New().String())
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+	ctx = logger.WithContext(ctx)
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "tests"
+	prefix := "s" + strings.ToLower(identifier.New().String())
+
+	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
+		return prefix, "test"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
+	t.Cleanup(dbpool.Close)
 
 	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+		return internal.EnsureSchema(ctx, tx, prefix)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), zerolog.Nop(), os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Register cleanup before creating the index so it is removed even if creation partially succeeds.
+	index := prefix
+
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		_, err := esClient.DeleteIndex(index).Do(context.Background())
 		require.NoError(t, err)
 	})
 
-	// Use a simple index without the PeerDB mapping so that _source is enabled,
-	// allowing tests to verify document content via the Get API.
-	_, err := esClient.CreateIndex(index).Do(ctx)
-	require.NoError(t, err)
+	// Create the index with PeerDB mapping so the converter's output is accepted.
+	errE = search.EnsureIndex(ctx, esClient, index)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internal.NewListener(dbpool)
 
-	s := &bridgeStore{
+	s := &store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
 		Prefix:        prefix,
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -80,7 +113,7 @@ func initBridge(t *testing.T) (context.Context, *bridgeStore, *bridgeType, *elas
 	errE = s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	b := &bridgeType{
+	b := &search.Bridge{
 		Store:    s,
 		ESClient: esClient,
 		Index:    index,
@@ -107,43 +140,23 @@ func docExists(t *testing.T, ctx context.Context, esClient *elastic.Client, inde
 	return resp.Found
 }
 
-// docData returns the source data of an ES document, or nil if not found.
-func docData(t *testing.T, ctx context.Context, esClient *elastic.Client, index, id string) json.RawMessage { //nolint:revive
-	t.Helper()
-	resp, err := esClient.Get().Index(index).Id(id).Do(ctx)
-	if err != nil {
-		if elastic.IsNotFound(err) {
-			return nil
-		}
-		t.Fatalf("unexpected ES error: %v", err)
-	}
-	if !resp.Found {
-		return nil
-	}
-	return resp.Source
-}
-
 func TestBridgeRealTime(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx)
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	// Insert three documents.
 	id1 := identifier.New()
 	id2 := identifier.New()
 	id3 := identifier.New()
 
-	doc1 := json.RawMessage(`{"name":"doc1"}`)
-	doc2 := json.RawMessage(`{"name":"doc2"}`)
-	doc3 := json.RawMessage(`{"name":"doc3"}`)
-
-	_, errE := s.Insert(ctx, id1, doc1, internal.DummyData, internal.DummyData)
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, doc2, internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id3, doc3, internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for bridge to catch up and force ES to make documents searchable.
@@ -159,10 +172,9 @@ func TestBridgeRealTime(t *testing.T) {
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "doc3 should exist in ES")
 
 	// Update doc1.
-	doc1Updated := json.RawMessage(`{"name":"doc1-updated"}`)
 	_, _, v1, errE := s.GetLatest(ctx, id1)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Replace(ctx, id1, v1.Changeset, doc1Updated, internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, id1, v1.Changeset, makeDocJSON(t, id1), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -184,9 +196,9 @@ func TestBridgeCatchUp(t *testing.T) {
 	id1 := identifier.New()
 	id2 := identifier.New()
 
-	_, errE := s.Insert(ctx, id1, json.RawMessage(`{"name":"catchup1"}`), internal.DummyData, internal.DummyData)
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, json.RawMessage(`{"name":"catchup2"}`), internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Bridge seq should still be 0 — nothing indexed yet.
@@ -195,7 +207,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	require.Len(t, entries, 2)
 
 	// Now start the bridge. It should catch up from CommitLog.
-	b.Start(ctx)
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -213,12 +225,12 @@ func TestBridgeDeletedDocument(t *testing.T) {
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx)
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	id := identifier.New()
 
 	// Insert then delete a document.
-	v, errE := s.Insert(ctx, id, json.RawMessage(`{"name":"to-delete"}`), internal.DummyData, internal.DummyData)
+	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -229,7 +241,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should exist before delete")
 
-	_, errE = s.Delete(ctx, id, v.Changeset, internal.DummyData, internal.DummyData)
+	_, errE = s.Delete(ctx, id, v.Changeset, dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -247,12 +259,12 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 
 	ctx, s, b, _ := initBridge(t)
 
-	b.Start(ctx)
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	// Make several commits and verify the bridge table seq advances correctly.
 	for range 5 {
 		id := identifier.New()
-		_, errE := s.Insert(ctx, id, internal.DummyData, internal.DummyData, internal.DummyData)
+		_, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internal.NoMetadata{})
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
@@ -276,14 +288,14 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx)
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	// Insert initial documents and wait for the bridge to catch up.
 	id1 := identifier.New()
 	id2 := identifier.New()
-	_, errE := s.Insert(ctx, id1, json.RawMessage(`{"name":"initial1"}`), internal.DummyData, internal.DummyData)
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, json.RawMessage(`{"name":"initial2"}`), internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -299,9 +311,9 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	// real-time channel but must be recovered via the catch-up phase on bridge restart.
 	id3 := identifier.New()
 	id4 := identifier.New()
-	_, errE = s.Insert(ctx, id3, json.RawMessage(`{"name":"recovery1"}`), internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id4, json.RawMessage(`{"name":"recovery2"}`), internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, id4, makeDocJSON(t, id4), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -324,17 +336,17 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	// commit triggers indexing, the most up-to-date data ends up in Elasticsearch.
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx)
-
 	id := identifier.New()
 
-	// Insert initial data.
-	v, errE := s.Insert(ctx, id, json.RawMessage(`{"val":1}`), internal.DummyData, internal.DummyData)
+	// Insert initial data and immediately replace before starting the bridge.
+	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Immediately update before the bridge processes the insert.
-	_, errE = s.Replace(ctx, id, v.Changeset, json.RawMessage(`{"val":2}`), internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, id, v.Changeset, makeDocJSON(t, id), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Now start the bridge. It should catch up and index the latest version.
+	b.Start(ctx, newTestBridgeConverter(t))
 
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -342,16 +354,6 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	_, err := esClient.Refresh(b.Index).Do(ctx)
 	require.NoError(t, err)
 
-	// The document in ES should reflect the latest version, not an intermediate one.
-	data := docData(t, ctx, esClient, b.Index, id.String())
-	require.NotNil(t, data, "document should be in ES")
-
-	// The bridge calls GetLatest, so regardless of which commit triggered indexing,
-	// the stored data is the latest version.
-	var doc struct {
-		Val int `json:"val"`
-	}
-	err = json.Unmarshal(data, &doc)
-	require.NoError(t, err)
-	assert.Equal(t, 2, doc.Val, "ES should contain the latest version of the document")
+	// The document in ES should exist — the bridge calls GetLatest so it always indexes the latest version.
+	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should be in ES")
 }

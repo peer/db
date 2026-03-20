@@ -14,14 +14,10 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 )
-
-// LanguagePriority maps a language to its ordered fallback languages for display label resolution.
-// If a language is not a key, fallback is only the undetermined language.
-// If a language has an empty slice, no fallback is attempted at all.
-type LanguagePriority map[string][]string
 
 const undeterminedLanguage = "und"
 
@@ -29,17 +25,17 @@ const undeterminedLanguage = "und"
 //
 //nolint:gochecknoglobals
 var (
-	subentityOfPropID          = identifier.From("core.peerdb.org", "SUBENTITY_OF")
-	subpropertyOfPropID        = identifier.From("core.peerdb.org", "SUBPROPERTY_OF")
-	namingPropID               = identifier.From("core.peerdb.org", "NAMING")
-	inLanguagePropID           = identifier.From("core.peerdb.org", "IN_LANGUAGE")
-	inUnitPropID               = identifier.From("core.peerdb.org", "IN_UNIT")
-	codePropID                 = identifier.From("core.peerdb.org", "CODE")
-	instanceOfPropID           = identifier.From("core.peerdb.org", "INSTANCE_OF")
-	propertyClassID            = identifier.From("core.peerdb.org", "PROPERTY")
-	languageClassID            = identifier.From("core.peerdb.org", "LANGUAGE")
-	displayLabelTemplatePropID = identifier.From("core.peerdb.org", "DISPLAY_LABEL_TEMPLATE")
-	inversePropertyOfPropID    = identifier.From("core.peerdb.org", "INVERSE_PROPERTY_OF")
+	subentityOfPropID          = identifier.From(core.Namespace, "SUBENTITY_OF")
+	subpropertyOfPropID        = identifier.From(core.Namespace, "SUBPROPERTY_OF")
+	namingPropID               = identifier.From(core.Namespace, "NAMING")
+	inLanguagePropID           = identifier.From(core.Namespace, "IN_LANGUAGE")
+	inUnitPropID               = identifier.From(core.Namespace, "IN_UNIT")
+	codePropID                 = identifier.From(core.Namespace, "CODE")
+	instanceOfPropID           = identifier.From(core.Namespace, "INSTANCE_OF")
+	propertyClassID            = identifier.From(core.Namespace, "PROPERTY")
+	languageClassID            = identifier.From(core.Namespace, "LANGUAGE")
+	displayLabelTemplatePropID = identifier.From(core.Namespace, "DISPLAY_LABEL_TEMPLATE")
+	inversePropertyOfPropID    = identifier.From(core.Namespace, "INVERSE_PROPERTY_OF")
 )
 
 type displayStrings struct {
@@ -107,10 +103,11 @@ type Converter struct {
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
 	// Multiple properties can be inverses of the same property.
 	inverseProperties map[identifier.Identifier][]identifier.Identifier
-	// mnemonics maps mnemonic to property ID.
-	mnemonics map[string]identifier.Identifier
 	// languagePriority defines per-language fallback order for display label resolution.
-	languagePriority LanguagePriority
+	// It maps a language to its ordered fallback languages for display label resolution.
+	// If a language is not a key, fallback is only the undetermined language.
+	// If a language has an empty slice, no fallback is attempted at all.
+	languagePriority map[string][]string
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
@@ -127,8 +124,7 @@ type Converter struct {
 // Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.
 func NewConverter(
 	properties, languages []*document.D,
-	mnemonics map[string]identifier.Identifier,
-	languagePriority LanguagePriority,
+	languagePriority map[string][]string,
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
 ) (*Converter, errors.E) {
 	errE := validateLanguagePriority(languagePriority)
@@ -142,7 +138,6 @@ func NewConverter(
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		languageCodes:            nil,
-		mnemonics:                mnemonics,
 		languagePriority:         languagePriority,
 		getDocument:              getDocument,
 		documentInfoCache:        make(map[identifier.Identifier]documentInfo),
@@ -157,7 +152,7 @@ func NewConverter(
 }
 
 // validateLanguagePriority checks that all languages in priority are supported.
-func validateLanguagePriority(priority LanguagePriority) errors.E {
+func validateLanguagePriority(priority map[string][]string) errors.E {
 	for lang, fallbacks := range priority {
 		if !SupportedLanguages[lang] {
 			errE := errors.New("unsupported language in priority key")
@@ -619,17 +614,17 @@ func (c *Converter) renderDisplayTemplate(ctx context.Context, doc *document.D, 
 // making them composable with Go template pipelines.
 func (c *Converter) templateFuncs(ctx context.Context, lang string) template.FuncMap {
 	return template.FuncMap{
-		// bestString returns the best string claim value for a mnemonic in the current language.
+		// identifier returns an identifier.Identifier from the string version of the identifier.
+		"identifierString": func(s string) (identifier.Identifier, error) {
+			return identifier.MaybeString(s)
+		},
+		// identifier returns an identifier.Identifier from the given values.
+		"identifier": identifier.From,
+		// bestString returns the best string claim value for a property ID in the current language.
 		// Falls back using the language priority chain.
-		"bestString": func(mnemonic string, doc *document.D) (string, error) {
+		"bestString": func(propID identifier.Identifier, doc *document.D) (string, error) {
 			if doc == nil {
 				return "", nil
-			}
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return "", errE
 			}
 			claims := document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, propID, document.LowConfidence)
 			// First pass: look for the requested language.
@@ -648,16 +643,10 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			}
 			return "", nil
 		},
-		// bestAmountString returns the display string of the best amount claim for a mnemonic.
-		"bestAmountString": func(mnemonic string, doc *document.D) (string, error) {
+		// bestAmountString returns the string of the best amount claim for a property ID.
+		"bestAmountString": func(propID identifier.Identifier, doc *document.D) (string, error) {
 			if doc == nil {
 				return "", nil
-			}
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return "", errE
 			}
 			ac := document.GetBestClaimOfType[*document.AmountClaim](doc, propID)
 			if ac == nil {
@@ -665,16 +654,10 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			}
 			return ac.Amount.String(), nil
 		},
-		// bestRelationDoc follows the best relation claim for a mnemonic and returns the target document.
-		"bestRelationDoc": func(mnemonic string, doc *document.D) (*document.D, error) {
+		// bestRelationDoc follows the best relation claim for a property ID and returns the target document.
+		"bestRelationDoc": func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
 			if doc == nil {
 				return nil, nil
-			}
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return nil, errE
 			}
 			rc := document.GetBestClaimOfType[*document.RelationClaim](doc, propID)
 			if rc == nil {
@@ -682,26 +665,14 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			}
 			return c.getDocument(ctx, rc.To.ID)
 		},
-		// getDocumentByMnemonic looks up the document ID from the mnemonics map and returns the document.
-		"getDocumentByMnemonic": func(mnemonic string) (*document.D, error) {
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return nil, errE
-			}
-			return c.getDocument(ctx, propID)
+		// getDocument returns the document for a document ID.
+		"getDocument": func(docID identifier.Identifier) (*document.D, error) {
+			return c.getDocument(ctx, docID)
 		},
-		// bestIdentifier returns the best identifier claim value for a mnemonic.
-		"bestIdentifier": func(mnemonic string, doc *document.D) (string, error) {
+		// bestIdentifier returns the best identifier claim value for a property ID.
+		"bestIdentifier": func(propID identifier.Identifier, doc *document.D) (string, error) {
 			if doc == nil {
 				return "", nil
-			}
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return "", errE
 			}
 			ic := document.GetBestClaimOfType[*document.IdentifierClaim](doc, propID)
 			if ic == nil {
@@ -709,16 +680,10 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			}
 			return ic.Value, nil
 		},
-		// bestTimeString returns the display string of the best time claim for a mnemonic.
-		"bestTimeString": func(mnemonic string, doc *document.D) (string, error) {
+		// bestTimeString returns the display string of the best time claim for a property ID.
+		"bestTimeString": func(propID identifier.Identifier, doc *document.D) (string, error) {
 			if doc == nil {
 				return "", nil
-			}
-			propID, ok := c.mnemonics[mnemonic]
-			if !ok {
-				errE := errors.New("mnemonic not found")
-				errors.Details(errE)["mnemonic"] = mnemonic
-				return "", errE
 			}
 			tc := document.GetBestClaimOfType[*document.TimeClaim](doc, propID)
 			if tc == nil {

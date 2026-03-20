@@ -12,4 +12,5 @@ var (
 	ErrParentNotCommitted = errors.Base("parent changeset not committed")
 	ErrParentInvalid      = errors.Base("invalid parent changeset")
 	ErrConflict           = errors.Base("conflict")
+	ErrRevisionMismatch   = errors.Base("revision mismatch")
 )

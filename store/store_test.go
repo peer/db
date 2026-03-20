@@ -1844,3 +1844,90 @@ func TestNotifyRecovery(t *testing.T) {
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 }
+
+func TestUpdateExistingMetadata(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	insertData := json.RawMessage(`{"data": "original"}`)
+	insertMetadata := json.RawMessage(`{"meta": "v1"}`)
+
+	insertVersion, errE := s.Insert(ctx, id, insertData, insertMetadata, insertMetadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), insertVersion.Revision)
+
+	// Update metadata only.
+	newMetadata := json.RawMessage(`{"meta": "v2"}`)
+	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, newMetadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(2), newVersion.Revision)
+	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
+
+	// GetLatest should return updated metadata but same data.
+	data, metadata, version, errE := s.GetLatest(ctx, id)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, newVersion, version)
+	assert.JSONEq(t, `{"data": "original"}`, string(data))
+	assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+
+	// Old version should still have original metadata.
+	data, metadata, errE = s.Get(ctx, id, insertVersion)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.JSONEq(t, `{"data": "original"}`, string(data))
+	assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+}
+
+func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Update to create revision 2.
+	v2, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "v2"}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(2), v2.Revision)
+
+	// Try to update using the old revision — should fail with revision mismatch.
+	_, errE = s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "v3"}`))
+	assert.ErrorIs(t, errE, store.ErrRevisionMismatch)
+}
+
+func TestUpdateExistingMetadataChangesetNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Try to update a non-existent changeset.
+	fakeVersion := store.Version{
+		Changeset: identifier.New(),
+		Revision:  1,
+	}
+	_, errE := s.UpdateExistingMetadata(ctx, identifier.New(), fakeVersion, json.RawMessage(`{}`))
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
+}
+
+func TestUpdateExistingMetadataNonExistentRevision(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Use the correct changeset but a revision that doesn't exist in the Changes table.
+	// The outer SELECT's WHERE clause matches 0 rows, so the stored function is never called.
+	// Without the RowsAffected check this would silently succeed.
+	nonExistentVersion := store.Version{
+		Changeset: insertVersion.Changeset,
+		Revision:  99,
+	}
+	_, errE = s.UpdateExistingMetadata(ctx, id, nonExistentVersion, json.RawMessage(`{"meta": "new"}`))
+	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
+}

@@ -10,7 +10,9 @@ import (
 	"gitlab.com/tozd/waf"
 )
 
-const maxRetries = 10
+// MaxRetries is the maximum number of retries for serializable transactions
+// and other database retry loops.
+const MaxRetries = 10
 
 var ErrMaxRetriesReached = errors.Base("max retries reached")
 
@@ -55,8 +57,8 @@ func RetryTransaction(
 	counter := metrics.Counter(MetricDatabaseRetries)
 
 	// We make i match the counter. That means that when loop
-	// reaches maxRetries, counter equals maxRetries, too.
-	for i := 0; i < maxRetries; i, _ = i+1, counter.Inc() {
+	// reaches MaxRetries, counter equals MaxRetries, too.
+	for i := 0; i < MaxRetries; i, _ = i+1, counter.Inc() {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}

@@ -18,6 +18,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
@@ -33,15 +34,6 @@ const (
 	bridgeBufferSize = 100
 )
 
-// DocumentMetadata contains metadata about a document including its timestamp.
-type DocumentMetadata struct {
-	At internal.Time `json:"at"`
-
-	// InverseRelations contains inverse relation data for relation claims from other
-	// documents that point to this document.
-	InverseRelations []internal.InverseRelation `json:"inverseRelations,omitempty"`
-}
-
 // B is a base for data and files.
 //
 //nolint:lll
@@ -50,10 +42,10 @@ type B struct {
 	Index  string
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	documents   *store.Store[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
+	documents   *store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
 	files       *storage.Storage
-	bridge      *search.Bridge[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
+	bridge      *search.Bridge
 }
 
 // Init initializes the base.
@@ -67,7 +59,7 @@ func (b *B) Init(
 		return errors.New("already initialized")
 	}
 
-	documents := &store.Store[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
+	documents := &store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -102,7 +94,7 @@ func (b *B) Init(
 		return errE
 	}
 
-	bridge := &search.Bridge[json.RawMessage, *DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
+	bridge := &search.Bridge{
 		Store:    documents,
 		ESClient: esClient,
 		Index:    b.Index,
@@ -121,7 +113,25 @@ func (b *B) Init(
 }
 
 // Start starts the base.
-func (b *B) Start(ctx context.Context) errors.E {
-	b.bridge.Start(ctx)
+func (b *B) Start(
+	ctx context.Context,
+	properties, languages []*document.D,
+	languagePriority map[string][]string,
+) errors.E {
+	converter, errE := search.NewConverter(
+		properties, languages, languagePriority,
+		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+			doc, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
+			if errE != nil {
+				return nil, errE
+			}
+			return doc, nil
+		},
+	)
+	if errE != nil {
+		return errE
+	}
+
+	b.bridge.Start(ctx, converter)
 	return nil
 }

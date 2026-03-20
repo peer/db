@@ -3,6 +3,7 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"sync"
 	"time"
@@ -13,8 +14,10 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internal "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -31,9 +34,9 @@ type bulkError struct {
 // Bridge synchronizes changes from the store to ElasticSearch.
 //
 // It saves progress in a PostgreSQL table so it resumes from where it left off on restart.
-type Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+type Bridge struct {
 	// Store is the store to read documents from.
-	Store *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	Store *store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
 
 	// ESClient is the ElasticSearch client.
 	ESClient *elastic.Client
@@ -41,15 +44,16 @@ type Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetad
 	// Index is the ElasticSearch index name.
 	Index string
 
-	dbpool  *pgxpool.Pool
-	mu      sync.RWMutex
-	seqCond *sync.Cond
-	lastSeq int64
+	dbpool    *pgxpool.Pool
+	converter *Converter
+	mu        sync.RWMutex
+	seqCond   *sync.Cond
+	lastSeq   int64
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Init(
+func (b *Bridge) Init(
 	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener,
 ) errors.E {
 	if b.dbpool != nil {
@@ -100,7 +104,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 }
 
 // HandleNotification implements pgxlisten.Handler interface.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleNotification(
+func (b *Bridge) HandleNotification(
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
@@ -116,7 +120,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 // HandleBacklog implements pgxlisten.BacklogHandler interface.
 //
 // It fetches the last seq from the Bridge table to get the current state if anything was missed.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleBacklog(
+func (b *Bridge) HandleBacklog(
 	ctx context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
@@ -133,7 +137,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 }
 
 // HandlingReady implements internal.Handler interface.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandlingReady(ctx context.Context, channel string) errors.E {
+func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case b.Store.Prefix + "BridgeSeq":
 		return b.waitForFixBridgeSeq(ctx)
@@ -146,7 +150,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 
 // handleBridgeSeq handles BridgeSeq notifications from the Bridge table trigger and
 // broadcasts to any goroutines waiting in WaitUntilCaughtUp.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) handleBridgeSeq(
+func (b *Bridge) handleBridgeSeq(
 	_ context.Context, notification *pgconn.Notification, _ *pgx.Conn,
 ) errors.E {
 	seq, err := strconv.ParseInt(notification.Payload, 10, 64)
@@ -166,7 +170,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 
 // fixBridgeSeq fetches the last seq from the Bridge table and broadcasts to any goroutines
 // waiting in WaitUntilCaughtUp.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) fixBridgeSeq(
+func (b *Bridge) fixBridgeSeq(
 	ctx context.Context,
 ) errors.E {
 	seq, errE := b.getSeq(ctx)
@@ -184,7 +188,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 
 // waitForFixBridgeSeq is similar to WaitUntilCaughtUp but it does not wait for b.lastSeq to catch up with
 // committed commits, but just that it catches up with the current last-indexed seq from the bridge table.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) waitForFixBridgeSeq(
+func (b *Bridge) waitForFixBridgeSeq(
 	ctx context.Context,
 ) errors.E {
 	seq, errE := b.getSeq(ctx)
@@ -221,7 +225,11 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 // The store listener should be listening to notifications from PostgreSQL and sending them to
 // the Committed channel before calling Start to assure that there is no gap between catch-up and
 // real-time processing of new commits.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Start(ctx context.Context) {
+//
+// Converter is used to convert documents for indexing and to track inverse relations.
+func (b *Bridge) Start(ctx context.Context, converter *Converter) {
+	b.converter = converter
+
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
 		//       The goal is that if this is happening too often, we should terminate the whole process and let the
@@ -254,7 +262,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 // WaitUntilCaughtUp blocks until the bridge has indexed all currently committed commits.
 //
 // It is useful for waiting after a bulk import before querying ElasticSearch.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WaitUntilCaughtUp(ctx context.Context) errors.E {
+func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
 	// Find the current maximum seq in CommitLog.
 	var maxSeq int64
 	errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -291,7 +299,7 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	return nil
 }
 
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) run(ctx context.Context) errors.E {
+func (b *Bridge) run(ctx context.Context) errors.E {
 	// Determine where we left off.
 	lastSeq, errE := b.getSeq(ctx)
 	if errE != nil {
@@ -308,12 +316,11 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 			return errE
 		}
 		for _, commit := range commits {
-			var errE errors.E
-			errE = b.indexCommit(ctx, commit)
+			inverseRelations, errE := b.indexCommit(ctx, commit)
 			if errE != nil {
 				return errE
 			}
-			errE = b.updateSeq(ctx, commit.Seq)
+			errE = b.updateSeq(ctx, commit.Seq, inverseRelations)
 			if errE != nil {
 				return errE
 			}
@@ -344,13 +351,12 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 			if c.Seq <= lastSeq {
 				continue
 			}
-			var errE errors.E
-			errE = b.indexCommit(ctx, c)
+			inverseRelations, errE := b.indexCommit(ctx, c)
 			if errE != nil {
 				return errE
 			}
 			// The bridge table is only advanced after indexing returned no error.
-			errE = b.updateSeq(ctx, c.Seq)
+			errE = b.updateSeq(ctx, c.Seq, inverseRelations)
 			if errE != nil {
 				return errE
 			}
@@ -365,20 +371,27 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 //       passed since the batch was started (so that we index with at most 1 second delay).
 
 // indexCommit collects all document changes from the commit, fetches the latest version
-// of each document, and index them to ElasticSearch as a single bulk request.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) indexCommit(
+// of each document, and indexes them to ElasticSearch as a single bulk request.
+//
+// Documents are converted for indexing and inverse relations are collected.
+// The returned map contains, for each target document ID, the inverse relations that
+// should be stored in that document's metadata.
+func (b *Bridge) indexCommit(
 	ctx context.Context,
-	committed store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
-) errors.E {
+	committed store.CommittedChangesets[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes],
+) (map[identifier.Identifier][]internal.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
-		return errE
+		return nil, errE
 	}
 
 	bulkService := b.ESClient.Bulk()
+
+	// Collect inverse relations from all processed documents.
+	allInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
@@ -388,13 +401,14 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 				errors.Details(errE)["seq"] = committed.Seq
 				errors.Details(errE)["view"] = committed.View.Name()
 				errors.Details(errE)["changeset"] = cs.String()
-				return errE
+				return nil, errE
 			}
 			for _, change := range page {
-				data, _, _, errE := b.Store.GetLatest(ctx, change.ID)
+				data, metadata, _, errE := b.Store.GetLatest(ctx, change.ID)
 				if errE != nil {
 					if errors.Is(errE, store.ErrValueDeleted) {
 						// Document was deleted: remove it from the index.
+						// TODO: We have to also remove all inverse relations from metadata and the index.
 						bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
 						continue
 					}
@@ -403,11 +417,22 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 					errors.Details(errE)["changeset"] = cs.String()
 					// We do not add "revision" (change.Version.Revision) because it might be unrelated to latest revision.
 					errors.Details(errE)["change"] = change.ID.String()
-					return errE
+					return nil, errE
 				}
-				// TODO: Convert data into searchable document for the general case.
+
 				// TODO: Use also information about the view so that documents are searchable by view as well.
-				bulkService.Add(elastic.NewBulkIndexRequest().Index(b.Index).Id(change.ID.String()).Doc(data))
+				searchDoc, outgoing, errE := b.convertDocument(ctx, data, metadata)
+				if errE != nil {
+					errors.Details(errE)["seq"] = committed.Seq
+					errors.Details(errE)["view"] = committed.View.Name()
+					errors.Details(errE)["changeset"] = cs.String()
+					errors.Details(errE)["change"] = change.ID.String()
+					return nil, errE
+				}
+				bulkService.Add(elastic.NewBulkIndexRequest().Index(b.Index).Id(change.ID.String()).Doc(searchDoc))
+				for targetID, irs := range outgoing {
+					allInverseRelations[targetID] = append(allInverseRelations[targetID], irs...)
+				}
 			}
 			if len(page) < store.MaxPageLength {
 				break
@@ -417,12 +442,12 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	}
 
 	if bulkService.NumberOfActions() == 0 {
-		return nil
+		return allInverseRelations, nil
 	}
 
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	if response.Errors {
@@ -437,14 +462,29 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
 		errors.Details(errE)["esErrors"] = bulkErrors
-		return errE
+		return nil, errE
 	}
 
-	return nil
+	return allInverseRelations, nil
+}
+
+// convertDocument unmarshals data into a document.D, calls the converter's FromDocument
+// with inverse relations from metadata, and returns the search document and outgoing
+// inverse relations.
+func (b *Bridge) convertDocument(
+	ctx context.Context, data json.RawMessage, metadata *internal.DocumentMetadata,
+) (*Document, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+	var doc document.D
+	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) getSeq(ctx context.Context) (int64, errors.E) {
+func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 	var seq int64
 	errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `SELECT "seq" FROM "`+b.Store.Prefix+`Bridge"`).Scan(&seq)
@@ -453,11 +493,56 @@ func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitM
 	return seq, errE
 }
 
-// updateSeq advances the bridge table to seq.
-func (b *Bridge[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) updateSeq(ctx context.Context, seq int64) errors.E {
-	// It updates the seq only if seq is greater than what is stored.
-	return internal.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
-		return internal.WithPgxError(err)
-	})
+// updateSeq advances the bridge table to seq and updates document metadata with
+// inverse relations, all in a single transaction.
+func (b *Bridge) updateSeq(
+	ctx context.Context, seq int64, inverseRelations map[identifier.Identifier][]internal.InverseRelation,
+) errors.E {
+	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
+	for range internal.MaxRetries {
+		// Fetch latest metadata and merge inverse relations for all affected documents.
+		type preparedUpdate struct {
+			id       identifier.Identifier
+			version  store.Version
+			metadata *internal.DocumentMetadata
+		}
+		var updates []preparedUpdate
+		for docID, irs := range inverseRelations {
+			_, metadata, version, errE := b.Store.GetLatest(ctx, docID)
+			if errE != nil {
+				if errors.Is(errE, store.ErrValueNotFound) {
+					// Document does not exist (yet or anymore), skip.
+					// TODO: What do to here?
+					continue
+				}
+				return errE
+			}
+			metadata.Merge(irs)
+			updates = append(updates, preparedUpdate{id: docID, version: version, metadata: metadata})
+		}
+
+		// In a single transaction, advance the bridge seq and update all metadata.
+		errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
+			if err != nil {
+				return internal.WithPgxError(err)
+			}
+
+			for _, u := range updates {
+				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)
+				if errE != nil {
+					return errE
+				}
+			}
+
+			return nil
+		})
+		if errors.Is(errE, store.ErrRevisionMismatch) {
+			// Concurrent update changed a revision, refetch and retry.
+			continue
+		}
+		return errE
+	}
+
+	return errors.WithStack(internal.ErrMaxRetriesReached)
 }

@@ -85,12 +85,6 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 		return onShutdown, errE
 	}
 
-	// And after the listener we can start the base.
-	errE = b.Start(ctx)
-	if errE != nil {
-		return onShutdown, errE
-	}
-
 	s.Base = b
 	s.DBPool = dbpool
 	s.ESClient = esClient
@@ -106,6 +100,9 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 //
 // It can be called multiple times. In that case it will initialize only
 // sites which have not been initialized yet.
+//
+// You have to run site.Start for each site after this call to start the
+// base for each site.
 func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	var dbpool *pgxpool.Pool
 	var esClient *elastic.Client

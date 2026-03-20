@@ -220,7 +220,13 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		return errors.WithStack(ctx.Err())
 	}
 
-	// We wait for the base to index all committed documents into ElasticSearch.
+	// We stored all documents into the store, now we can start the site which starts the base which starts the bridge.
+	errE = site.Start(ctx, transformed, transformed)
+	if errE != nil {
+		return errE
+	}
+
+	// We wait for the base/bridge to index all committed documents into ElasticSearch.
 	errE = site.Base.WaitUntilCaughtUp(ctx)
 	if errE != nil {
 		return errE
@@ -253,16 +259,17 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 				CertFile: "",
 				KeyFile:  "",
 			},
-			Build:           nil,
-			Index:           globals.Elastic.Index,
-			Schema:          globals.Postgres.Schema,
-			Title:           "",
-			Base:            nil,
-			DBPool:          nil,
-			ESClient:        nil,
-			RiverClient:     nil,
-			initialized:     false,
-			propertiesTotal: 0,
+			Build:            nil,
+			Index:            globals.Elastic.Index,
+			Schema:           globals.Postgres.Schema,
+			Title:            "",
+			LanguagePriority: nil,
+			Base:             nil,
+			DBPool:           nil,
+			ESClient:         nil,
+			RiverClient:      nil,
+			initialized:      false,
+			propertiesTotal:  0,
 		}}
 	}
 

@@ -744,3 +744,57 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	}
 	return errE
 }
+
+// UpdateExistingMetadata updates the metadata for an existing changeset revision
+// by inserting a new revision that copies data and patches from the current revision
+// but uses the provided metadata. The version must refer to the current (latest) revision.
+func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) UpdateExistingMetadata(
+	ctx context.Context, id identifier.Identifier, version Version, metadata Metadata,
+) (Version, errors.E) {
+	var newVersion Version
+	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		newVersion = Version{}
+
+		patchesColumn := ""
+		if v.store.patchesEnabled {
+			patchesColumn = `, "patches"`
+		}
+		res, err := tx.Exec(ctx, `
+			SELECT "`+v.store.Prefix+`ChangesetUpdateExisting"($1, $2, $3, "data", $4`+patchesColumn+`)
+				FROM "`+v.store.Prefix+`Changes"
+				WHERE "changeset"=$1 AND "id"=$2 AND "revision"=$3
+		`, version.Changeset.String(), id.String(), version.Revision, metadata)
+		if err != nil {
+			errE := store.WithPgxError(err)
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+				switch pgError.Code {
+				case errorCodeChangesetNotFound:
+					return errors.WrapWith(errE, ErrChangesetNotFound)
+				case errorCodeRevisionMismatch:
+					return errors.WrapWith(errE, ErrRevisionMismatch)
+				}
+			}
+			return errE
+		}
+		if res.RowsAffected() == 0 {
+			// If changeset or revision does not exist, the outer SELECT does not match anything and
+			// it does not even call ChangesetUpdateExisting. We detect this case here.
+			return errors.WithStack(ErrChangesetNotFound)
+		}
+
+		newVersion = Version{
+			Changeset: version.Changeset,
+			Revision:  version.Revision + 1,
+		}
+
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["id"] = id.String()
+		details["changeset"] = version.Changeset.String()
+		details["revision"] = version.Revision
+	}
+	return newVersion, errE
+}

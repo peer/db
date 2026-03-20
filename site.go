@@ -1,6 +1,7 @@
 package peerdb
 
 import (
+	"context"
 	"io"
 	"strings"
 
@@ -10,10 +11,13 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/base"
+	"gitlab.com/peerdb/peerdb/core"
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 // Build contains version and build metadata.
@@ -32,6 +36,8 @@ type Site struct {
 	Index  string `json:"index,omitempty"  yaml:"index,omitempty"`
 	Schema string `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
+
+	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 
 	Base        *base.B               `json:"-" yaml:"-"`
 	DBPool      *pgxpool.Pool         `json:"-" yaml:"-"`
@@ -67,4 +73,96 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 		return errors.WithStack(err)
 	}
 	return nil
+}
+
+const fetchDocumentIDsPageSize = 5000
+
+//nolint:gochecknoglobals
+var (
+	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF").String()
+)
+
+func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	boolQuery := elastic.NewBoolQuery().Must(
+		elastic.NewTermQuery("claims.rel.prop", instanceOfPropID),
+		elastic.NewTermQuery("claims.rel.to", classID),
+	)
+	query := elastic.NewNestedQuery("claims.rel", boolQuery)
+
+	pit, err := s.ESClient.OpenPointInTime(s.Index).KeepAlive("1m").Do(ctx)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	pitID := pit.Id
+
+	defer func() {
+		_, _ = s.ESClient.ClosePointInTime(pitID).Do(ctx)
+	}()
+
+	var allIDs []identifier.Identifier
+	var searchAfter []interface{}
+
+	for {
+		searchService := s.ESClient.Search().FetchSource(false).AllowPartialSearchResults(false).
+			Query(query).
+			Size(fetchDocumentIDsPageSize).
+			PointInTime(elastic.NewPointInTimeWithKeepAlive(pitID, "1m")).
+			Sort("_shard_doc", true)
+
+		if searchAfter != nil {
+			searchService = searchService.SearchAfter(searchAfter...)
+		}
+
+		res, err := searchService.Do(ctx)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		hits := res.Hits.Hits
+
+		for _, hit := range hits {
+			id, errE := identifier.MaybeString(hit.Id)
+			if errE != nil {
+				return nil, errE
+			}
+			allIDs = append(allIDs, id)
+		}
+
+		if len(hits) < fetchDocumentIDsPageSize {
+			break
+		}
+
+		lastHit := hits[len(hits)-1]
+		searchAfter = lastHit.Sort
+	}
+
+	return allIDs, nil
+}
+
+func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier) ([]*document.D, errors.E) {
+	allIDs, errE := s.fetchDocumentIDs(ctx, classID)
+	if errE != nil {
+		return nil, errE
+	}
+
+	documents := make([]*document.D, 0, len(allIDs))
+	for _, id := range allIDs {
+		doc, _, _, errE := s.Base.GetDocumentLatestDoc(ctx, id)
+		if errE != nil {
+			return nil, errE
+		}
+		documents = append(documents, doc)
+	}
+
+	return documents, nil
+}
+
+// Start starts the base for the site.
+//
+// You have to call this for each site after Init.
+func (s *Site) Start(ctx context.Context, properties, languages []*document.D) errors.E {
+	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
+	s.propertiesTotal = int64(len(properties))
+
+	return s.Base.Start(ctx, properties, languages, s.LanguagePriority)
 }

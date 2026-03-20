@@ -25,7 +25,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		return errE
 	}
 	// TODO: Implement "or replace" part. Currently we just insert.
-	_, errE = b.documents.Insert(ctx, doc.ID, data, &DocumentMetadata{
+	_, errE = b.documents.Insert(ctx, doc.ID, data, &internal.DocumentMetadata{
 		At:               internal.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}, &internal.NoMetadata{})
