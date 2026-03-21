@@ -1,11 +1,11 @@
 package search_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/internal/search"
 )
@@ -19,8 +19,8 @@ func TestMapping(t *testing.T) {
 
 	// Should be valid JSON.
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have settings and mappings top-level keys.
 	assert.Contains(t, parsed, "settings")
@@ -34,8 +34,8 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mappings, ok := parsed["mappings"].(map[string]any)
 	require.True(t, ok)
@@ -59,8 +59,8 @@ func TestMappingContainsAnalyzers(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	settings, ok := parsed["settings"].(map[string]any)
 	require.True(t, ok)
@@ -100,8 +100,8 @@ func TestMappingNestedRelation(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mappings, ok := parsed["mappings"].(map[string]any)
 	require.True(t, ok)
@@ -129,8 +129,8 @@ func TestMappingDynamicDisabled(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mappings, ok := parsed["mappings"].(map[string]any)
 	require.True(t, ok)
@@ -144,8 +144,8 @@ func TestMappingSourceDisabled(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
-	err := json.Unmarshal(data, &parsed)
-	require.NoError(t, err)
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mappings, ok := parsed["mappings"].(map[string]any)
 	require.True(t, ok)

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/core"
@@ -38,8 +39,8 @@ func makeDocJSON(t *testing.T, id identifier.Identifier) json.RawMessage {
 	doc := document.D{
 		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
 	}
-	data, err := json.Marshal(doc)
-	require.NoError(t, err)
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return data
 }
 
@@ -400,8 +401,8 @@ func makePropertyDocJSON(t *testing.T, id identifier.Identifier, inverseOf *iden
 		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
 		Claims:       claims,
 	}
-	data, err := json.Marshal(doc)
-	require.NoError(t, err)
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return data
 }
 
@@ -420,8 +421,8 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 			},
 		},
 	}
-	data, err := json.Marshal(doc)
-	require.NoError(t, err)
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return data
 }
 
@@ -476,9 +477,9 @@ func makeConverterWithInverse(
 			return nil, errE
 		}
 		var doc document.D
-		err := json.Unmarshal(data, &doc)
-		if err != nil {
-			return nil, errors.WithStack(err)
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return nil, errE
 		}
 		return &doc, nil
 	})
