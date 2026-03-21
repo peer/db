@@ -103,6 +103,12 @@ func NewRiver(
 				FetchCooldown:     0,
 				FetchPollInterval: 0,
 			},
+			// We use a single worker for the bridge queue so that its jobs are run sequentially.
+			"bridge": {
+				MaxWorkers:        1,
+				FetchCooldown:     0,
+				FetchPollInterval: 0,
+			},
 		},
 		ErrorHandler: riverErrorHandler{
 			Logger: logger,

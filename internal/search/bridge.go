@@ -14,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
-	"github.com/riverqueue/river/rivertype"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -58,25 +57,22 @@ func (jobArgs) Kind() string {
 // InsertOpts implements river.JobArgsWithInsertOpts interface.
 func (jobArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{ //nolint:exhaustruct
-		// We want only one job running at a time, but we also want that another job can be scheduled
-		// why another job is running. So we limit only by few job states and args (with args we allow
-		// each schema/prefix to have their own jobs).
-		UniqueOpts: river.UniqueOpts{
-			ByArgs:   true,
-			ByPeriod: 0,
-			ByQueue:  false,
-			ByState: []rivertype.JobState{
-				rivertype.JobStateAvailable,
-				rivertype.JobStateRetryable,
-				rivertype.JobStateScheduled,
-				// TODO: We would want that job can be inserted while another job is running, but that it has to wait for it to finish.
-				//       But JobStateRunning is required here. If it was not, we could achieve one job at a time with a single-job queue.
-				//       See: https://github.com/riverqueue/river/issues/1178
-				rivertype.JobStateRunning,
-				rivertype.JobStatePending,
-			},
-			ExcludeKind: false,
-		},
+		// We use a single worker queue for the bridge so that its jobs are run sequentially.
+		// There is no need to run them
+		//
+		// We do not use UniqueOpts because River requires JobStateRunning in ByState,
+		// which causes inserts to be silently deduplicated while a job is running.
+		// This creates a race where new BridgeInverseRelations entries added during
+		// job execution are never processed. Instead we currently allow multiple jobs
+		// for correctness even if if it means that some jobs will not do anything.
+		// See: https://github.com/riverqueue/river/issues/1178
+		//
+		// TODO: Should we instead of our work queue table BridgeInverseRelations submit one job for each set of updates in updateSeq?
+		//       So instead of having our own table we would maintain what has to be done in job arguments.
+		//       We could still use single worker queue to work on those jobs one at a time.
+		//       In Bridge table we would then maintain two rows, how far committed changesets have been
+		//       processed (a seq number) and how far inverse relations have been processed (also a seq number).
+		Queue: "bridge",
 	}
 }
 
