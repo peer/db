@@ -54,9 +54,14 @@ func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, docume
 // BeginDocumentEdit begins an edit session for the document at the given version.
 func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier, version store.Version) (identifier.Identifier, errors.E) {
 	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
-		At:      internal.Time(time.Now().UTC()),
-		ID:      id,
-		Version: version,
+		At: internal.Time(time.Now().UTC()),
+		ID: id,
+		Version: store.Version{
+			Changeset: version.Changeset,
+			// We set revision to 0 so that system metadata updates (e.g., inverse relations)
+			// that bump the revision do not invalidate the session.
+			Revision: 0,
+		},
 	})
 }
 

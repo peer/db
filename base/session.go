@@ -36,6 +36,12 @@ type documentCompleteData struct {
 	EndMetadata   *documentEndMetadata
 	Changes       document.Changes
 	Doc           json.RawMessage
+	// ParentVersion is the resolved version (with actual revision) of the parent document
+	// at which metadata was fetched and changes were validated.
+	ParentVersion store.Version
+	// Metadata is the new metadata for the updated document, with system-managed
+	// fields carried over from the parent version.
+	Metadata *internal.DocumentMetadata
 }
 
 // documentCompleteMetadata contains metadata captured when document edit session completes.
@@ -63,6 +69,8 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			EndMetadata:   endMetadata,
 			Changes:       nil,
 			Doc:           nil,
+			ParentVersion: store.Version{},
+			Metadata:      nil,
 		}, nil
 	}
 
@@ -90,8 +98,9 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		changes = append(changes, change)
 	}
 
-	// TODO: Get latest revision at the same changeset?
-	docJSON, _, _, _, errE := b.documents.Get(ctx, beginMetadata.ID, beginMetadata.Version) //nolint:dogsled
+	// Version has Revision 0, so Get returns the latest revision for the changeset,
+	// picking up any metadata updates made by the system (e.g., bridge) since the session began.
+	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.ID, beginMetadata.Version)
 	if errE != nil {
 		return nil, errE
 	}
@@ -123,11 +132,20 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
+	// Compute new metadata, carrying over system-managed fields from the parent version.
+	newMetadata := &internal.DocumentMetadata{
+		At:               endMetadata.At,
+		InverseRelations: nil,
+	}
+	newMetadata.CarryOver(oldMetadata)
+
 	return &documentCompleteData{
 		BeginMetadata: beginMetadata,
 		EndMetadata:   endMetadata,
 		Changes:       changes,
 		Doc:           docJSON,
+		ParentVersion: resolvedVersion,
+		Metadata:      newMetadata,
 	}, nil
 }
 
@@ -144,20 +162,10 @@ func (b *B) completeDocumentSessionTx(
 		}, nil
 	}
 
-	// Fetch metadata at the parent version to carry over system-managed fields (e.g., inverse relations).
-	_, oldMetadata, _, _, errE := b.documents.Get(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version) //nolint:dogsled
-	if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
-		return nil, errE
-	}
-
-	newMetadata := &internal.DocumentMetadata{
-		At:               data.EndMetadata.At,
-		InverseRelations: nil,
-	}
-	newMetadata.CarryOver(oldMetadata)
-
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
-	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, newMetadata, &internal.NoMetadata{})
+	// We use the parent version's changeset so the update is based on the same version (with actual revision)
+	// at which metadata was fetched and changes were validated in completeDocumentSession.
+	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.ParentVersion.Changeset, data.Doc, data.Changes, data.Metadata, &internal.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}

@@ -136,7 +136,7 @@ func TestInsertOrReplaceDocument(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify it exists.
-	_, _, version1, _, errE := b.GetDocumentLatest(ctx, docID)
+	_, _, version1, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Replace with modified document.
@@ -154,7 +154,7 @@ func TestInsertOrReplaceDocument(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify the document was replaced (new version).
-	_, _, version2, _, errE := b.GetDocumentLatest(ctx, docID)
+	_, _, version2, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEqual(t, version1, version2)
 }
@@ -227,7 +227,7 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify inverse relations were carried over after replace.
-	_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB)
+	_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, metadata.InverseRelations, "docB should still have inverse relations after replace")
 }
