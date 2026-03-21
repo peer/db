@@ -2570,7 +2570,115 @@ func TestFromDocumentNilClaims(t *testing.T) {
 	assert.Empty(t, result.Claims.Identifier)
 }
 
-func TestFromDocumentAllClaimTypes(t *testing.T) {
+func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *document.D {
+	t.Helper()
+
+	fromAmount := document.Amount("5")
+	toAmount := document.Amount("10")
+	fromPrec := 1.0
+	toPrec := 1.0
+	fromTS := document.Timestamp("2024-01-01")
+	toTS := document.Timestamp("2024-12-31")
+	fromTSPrec := document.TimePrecisionDay
+	toTSPrec := document.TimePrecisionDay
+
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					Value:     "ID1",
+				},
+			},
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "str",
+				},
+			},
+			HTML: []document.HTMLClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					HTML:      "<p>html</p>",
+				},
+			},
+			Amount: []document.AmountClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					Amount:    document.Amount("42"),
+					Precision: 1,
+				},
+			},
+			AmountInterval: []document.AmountIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(confidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromAmount,
+					FromPrecision: &fromPrec,
+					To:            &toAmount,
+					ToPrecision:   &toPrec,
+				},
+			},
+			Time: []document.TimeClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					Timestamp: document.Timestamp("2024-06-15"),
+					Precision: document.TimePrecisionDay,
+				},
+			},
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(confidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromTSPrec,
+					To:            &toTS,
+					ToPrecision:   &toTSPrec,
+				},
+			},
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					IRI:       "https://example.com",
+				},
+			},
+			Relation: []document.RelationClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					To:        document.Reference{ID: testTargetDocID},
+				},
+			},
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+			None: []document.NoneClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+			Unknown: []document.UnknownClaim{
+				{
+					CoreClaim: makeCoreClaim(confidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
+	}
+}
+
+func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 	t.Parallel()
 
 	propDoc := makeNamingDoc(testPropID, "My Prop")
@@ -2581,126 +2689,40 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
-	ctx := t.Context()
-	fromAmount := document.Amount("5")
-	toAmount := document.Amount("10")
-	fromPrec := 1.0
-	toPrec := 1.0
-	fromTS := document.Timestamp("2024-01-01")
-	toTS := document.Timestamp("2024-12-31")
-	fromTSPrec := document.TimePrecisionDay
-	toTSPrec := document.TimePrecisionDay
-
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-		Claims: &document.ClaimTypes{
-			Identifier: []document.IdentifierClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					Value:     "ID1",
-				},
-			},
-			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					String:    "str",
-				},
-			},
-			HTML: []document.HTMLClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					HTML:      "<p>html</p>",
-				},
-			},
-			Amount: []document.AmountClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					Amount:    document.Amount("42"),
-					Precision: 1,
-				},
-			},
-			AmountInterval: []document.AmountIntervalClaim{
-				{ //nolint:exhaustruct
-					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
-					Prop:          document.Reference{ID: testPropID},
-					From:          &fromAmount,
-					FromPrecision: &fromPrec,
-					To:            &toAmount,
-					ToPrecision:   &toPrec,
-				},
-			},
-			Time: []document.TimeClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					Timestamp: document.Timestamp("2024-06-15"),
-					Precision: document.TimePrecisionDay,
-				},
-			},
-			TimeInterval: []document.TimeIntervalClaim{
-				{ //nolint:exhaustruct
-					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
-					Prop:          document.Reference{ID: testPropID},
-					From:          &fromTS,
-					FromPrecision: &fromTSPrec,
-					To:            &toTS,
-					ToPrecision:   &toTSPrec,
-				},
-			},
-			Reference: []document.ReferenceClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					IRI:       "https://example.com",
-				},
-			},
-			Relation: []document.RelationClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					To:        document.Reference{ID: testTargetDocID},
-				},
-			},
-			Has: []document.HasClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-				},
-			},
-			None: []document.NoneClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-				},
-			},
-			Unknown: []document.UnknownClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-				},
-			},
-		},
+	tests := []struct {
+		name       string
+		confidence document.Confidence
+		expected   int
+	}{
+		{"high confidence", document.HighConfidence, 1},
+		{"low confidence included", document.LowConfidence, 1},
+		{"below low confidence skipped", document.Confidence(0.3), 0},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, testDocID, result.ID)
-	assert.Len(t, result.Claims.Identifier, 1)
-	assert.Len(t, result.Claims.String, 1)
-	assert.Len(t, result.Claims.HTML, 1)
-	// Amount + AmountInterval.
-	assert.Len(t, result.Claims.Amount, 2)
-	// Time + TimeInterval.
-	assert.Len(t, result.Claims.Time, 2)
-	assert.Len(t, result.Claims.Reference, 1)
-	assert.Len(t, result.Claims.Relation, 1)
-	assert.Len(t, result.Claims.Has, 1)
-	assert.Len(t, result.Claims.None, 1)
-	assert.Len(t, result.Claims.Unknown, 1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			doc := makeDocWithAllClaimTypes(t, tt.confidence)
+
+			result, errE := c.FromDocument(ctx, doc, nil)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, testDocID, result.ID)
+			assert.Len(t, result.Claims.Identifier, tt.expected)
+			assert.Len(t, result.Claims.String, tt.expected)
+			assert.Len(t, result.Claims.HTML, tt.expected)
+			// Amount + AmountInterval each contribute one claim.
+			assert.Len(t, result.Claims.Amount, 2*tt.expected)
+			// Time + TimeInterval each contribute one claim.
+			assert.Len(t, result.Claims.Time, 2*tt.expected)
+			assert.Len(t, result.Claims.Reference, tt.expected)
+			assert.Len(t, result.Claims.Relation, tt.expected)
+			assert.Len(t, result.Claims.Has, tt.expected)
+			assert.Len(t, result.Claims.None, tt.expected)
+			assert.Len(t, result.Claims.Unknown, tt.expected)
+		})
+	}
 }
 
 func TestAddPrecision(t *testing.T) {

@@ -771,6 +771,9 @@ var _ document.Visitor = (*convertVisitor)(nil)
 
 // VisitIdentifier converts an identifier claim to search identifier claims.
 func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -781,6 +784,9 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 
 // VisitString converts a string claim to search string claims.
 func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertString(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -791,6 +797,9 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 
 // VisitHTML converts an HTML claim to search HTML claims.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertHTML(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -801,6 +810,9 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 
 // VisitAmount converts an amount claim to search amount claims.
 func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertAmount(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -811,6 +823,9 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 
 // VisitAmountInterval converts an amount interval claim to search amount claims.
 func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	amountClaims, unknownClaims, errE := v.converter.convertAmountInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -822,6 +837,9 @@ func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim
 
 // VisitTime converts a time claim to search time claims.
 func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertTime(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -832,6 +850,9 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 
 // VisitTimeInterval converts a time interval claim to search time claims.
 func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	timeClaims, unknownClaims, errE := v.converter.convertTimeInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -843,6 +864,9 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 
 // VisitReference converts a reference claim to search reference claims.
 func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertReference(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -853,6 +877,9 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 
 // VisitRelation converts a relation claim to search relation claims.
 func (v *convertVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertRelation(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -864,6 +891,9 @@ func (v *convertVisitor) VisitRelation(claim *document.RelationClaim) (document.
 
 // VisitHas converts a has claim to search has claims.
 func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertHas(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -874,6 +904,9 @@ func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResul
 
 // VisitNone converts a none claim to search none claims.
 func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertNone(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -884,6 +917,9 @@ func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitRes
 
 // VisitUnknown converts an unknown claim to search unknown claims.
 func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
 	claims, errE := v.converter.convertUnknown(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -955,11 +991,7 @@ func inverseRelationClaimID(target, source, claim identifier.Identifier) identif
 // by the target document ID.
 func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internal.InverseRelation {
 	result := make(map[identifier.Identifier][]internal.InverseRelation)
-	if doc.Claims == nil {
-		return result
-	}
-	for i := range doc.Claims.Relation {
-		claim := &doc.Claims.Relation[i]
+	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](doc, document.LowConfidence) {
 		result[claim.To.ID] = append(result[claim.To.ID], internal.InverseRelation{
 			Claim:      claim.ID,
 			Source:     doc.ID,
