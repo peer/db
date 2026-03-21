@@ -2547,7 +2547,7 @@ func TestFromDocument(t *testing.T) {
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Len(t, result.Claims.Identifier, 1)
@@ -2564,7 +2564,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Empty(t, result.Claims.Identifier)
@@ -2686,7 +2686,7 @@ func TestFromDocumentAllClaimTypes(t *testing.T) {
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Len(t, result.Claims.Identifier, 1)
@@ -2765,7 +2765,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2788,7 +2788,7 @@ func TestFromDocumentStringError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2811,7 +2811,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2835,7 +2835,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2865,7 +2865,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2889,7 +2889,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2919,7 +2919,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2942,7 +2942,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2965,7 +2965,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -2987,7 +2987,7 @@ func TestFromDocumentHasError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -3009,7 +3009,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -3031,7 +3031,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 		},
 	}
 
-	_, _, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil)
 	assert.Error(t, errE)
 }
 
@@ -4815,18 +4815,9 @@ func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
 	assert.Empty(t, c.inverseProperties)
 }
 
-func TestFromDocumentOutgoingInverseRelations(t *testing.T) {
+func TestOutgoingInverseRelations(t *testing.T) {
 	t.Parallel()
 
-	propDoc := makeNamingDoc(testPropID, "My Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-
-	ctx := t.Context()
 	claimID := identifier.New()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4844,17 +4835,54 @@ func TestFromDocumentOutgoingInverseRelations(t *testing.T) {
 		},
 	}
 
-	_, outgoing, errE := c.FromDocument(ctx, doc, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	outgoing := OutgoingInverseRelations(doc)
 
 	// Should have an entry for the target document.
 	require.Contains(t, outgoing, testTargetDocID)
 	require.Len(t, outgoing[testTargetDocID], 1)
 	ir := outgoing[testTargetDocID][0]
 	assert.Equal(t, claimID, ir.Claim)
-	assert.Equal(t, testDocID, ir.Document)
+	assert.Equal(t, testDocID, ir.Source)
 	assert.Equal(t, testPropID, ir.Prop)
 	assert.InDelta(t, float64(document.HighConfidence), float64(ir.Confidence), 0)
+}
+
+func TestInverseRelationClaimIDDeterministic(t *testing.T) {
+	t.Parallel()
+
+	target := identifier.New()
+	source := identifier.New()
+	claim := identifier.New()
+
+	id1 := inverseRelationClaimID(target, source, claim)
+	id2 := inverseRelationClaimID(target, source, claim)
+
+	assert.Equal(t, id1, id2)
+}
+
+func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
+	t.Parallel()
+
+	target := identifier.New()
+	sourceA := identifier.New()
+	sourceB := identifier.New()
+	claim := identifier.New()
+
+	idA := inverseRelationClaimID(target, sourceA, claim)
+	idB := inverseRelationClaimID(target, sourceB, claim)
+
+	assert.NotEqual(t, idA, idB)
+}
+
+func TestOutgoingInverseRelationsEmpty(t *testing.T) {
+	t.Parallel()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	outgoing := OutgoingInverseRelations(doc)
+	assert.Empty(t, outgoing)
 }
 
 func TestFromDocumentIncomingInverseRelation(t *testing.T) {
@@ -4889,13 +4917,14 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 	inverseRelations := []internal.InverseRelation{
 		{
 			Claim:      claimID,
-			Document:   sourceDocID,
+			Source:     sourceDocID,
 			Prop:       propX,
+			Target:     identifier.Identifier{},
 			Confidence: document.HighConfidence,
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -4924,13 +4953,14 @@ func TestFromDocumentIncomingInverseRelationNoInverse(t *testing.T) {
 	inverseRelations := []internal.InverseRelation{
 		{
 			Claim:      identifier.New(),
-			Document:   identifier.New(),
+			Source:     identifier.New(),
 			Prop:       propX,
+			Target:     identifier.Identifier{},
 			Confidence: document.HighConfidence,
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No inverse property, so no relation claims should be added.
@@ -4966,13 +4996,14 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	inverseRelations := []internal.InverseRelation{
 		{
 			Claim:      identifier.New(),
-			Document:   sourceDocID,
+			Source:     sourceDocID,
 			Prop:       propB,
+			Target:     identifier.Identifier{},
 			Confidence: document.HighConfidence,
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -5016,17 +5047,231 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	inverseRelations := []internal.InverseRelation{
 		{
 			Claim:      identifier.New(),
-			Document:   sourceDocID,
+			Source:     sourceDocID,
 			Prop:       propA,
+			Target:     identifier.Identifier{},
 			Confidence: document.HighConfidence,
 		},
 	}
 
-	result, _, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
 	require.Len(t, result.Claims.Relation, 1)
 	assert.Equal(t, propB, result.Claims.Relation[0].Prop)
 	assert.Equal(t, sourceDocID, result.Claims.Relation[0].To)
+}
+
+func TestDiffOutgoingInverseRelationsBothEmpty(t *testing.T) {
+	t.Parallel()
+
+	current := map[identifier.Identifier][]internal.InverseRelation{}
+	parent := map[identifier.Identifier][]internal.InverseRelation{}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+	assert.Empty(t, added)
+	assert.Empty(t, removed)
+}
+
+func TestDiffOutgoingInverseRelationsNewClaim(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+	parent := map[identifier.Identifier][]internal.InverseRelation{}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	require.Len(t, added[targetB], 1)
+	assert.Equal(t, claim1, added[targetB][0].Claim)
+	assert.Empty(t, removed)
+}
+
+func TestDiffOutgoingInverseRelationsRemovedClaim(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+
+	current := map[identifier.Identifier][]internal.InverseRelation{}
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	assert.Empty(t, added)
+	require.Len(t, removed[targetB], 1)
+	assert.Equal(t, claim1, removed[targetB][0].Claim)
+}
+
+func TestDiffOutgoingInverseRelationsUnchanged(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+
+	ir := internal.InverseRelation{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}
+	current := map[identifier.Identifier][]internal.InverseRelation{targetB: {ir}}
+	parent := map[identifier.Identifier][]internal.InverseRelation{targetB: {ir}}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	assert.Empty(t, added)
+	assert.Empty(t, removed)
+}
+
+func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	targetC := identifier.New()
+	claimOld := identifier.New()
+	claimNew := identifier.New()
+	prop1 := identifier.New()
+
+	// Parent had A -> B, current has A -> C (different claim IDs because the claim was replaced).
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claimOld, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetC: {{Claim: claimNew, Source: docA, Prop: prop1, Target: targetC, Confidence: document.HighConfidence}},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	require.Len(t, added[targetC], 1)
+	assert.Equal(t, claimNew, added[targetC][0].Claim)
+	assert.Empty(t, added[targetB])
+
+	require.Len(t, removed[targetB], 1)
+	assert.Equal(t, claimOld, removed[targetB][0].Claim)
+	assert.Empty(t, removed[targetC])
+}
+
+func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	claim2 := identifier.New()
+	claimNew := identifier.New()
+	prop1 := identifier.New()
+
+	// Two parents contributed claims, current keeps claim1 and adds claimNew but drops claim2.
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {
+			{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+			{Claim: claim2, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+		},
+	}
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {
+			{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+			{Claim: claimNew, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+		},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	require.Len(t, added[targetB], 1)
+	assert.Equal(t, claimNew, added[targetB][0].Claim)
+
+	require.Len(t, removed[targetB], 1)
+	assert.Equal(t, claim2, removed[targetB][0].Claim)
+}
+
+func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	targetC := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+
+	// Same claim ID, but target changed from B to C.
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetC: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetC, Confidence: document.HighConfidence}},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	// Should detect the move: removed from B, added to C.
+	require.Len(t, added[targetC], 1)
+	assert.Equal(t, claim1, added[targetC][0].Claim)
+	assert.Empty(t, added[targetB])
+
+	require.Len(t, removed[targetB], 1)
+	assert.Equal(t, claim1, removed[targetB][0].Claim)
+	assert.Empty(t, removed[targetC])
+}
+
+func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+	prop2 := identifier.New()
+
+	// Same claim ID and target, but property changed.
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop2, Target: targetB, Confidence: document.HighConfidence}},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	// Should detect the property change as removal + addition.
+	require.Len(t, added[targetB], 1)
+	assert.Equal(t, prop2, added[targetB][0].Prop)
+
+	require.Len(t, removed[targetB], 1)
+	assert.Equal(t, prop1, removed[targetB][0].Prop)
+}
+
+func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
+	t.Parallel()
+
+	docA := identifier.New()
+	targetB := identifier.New()
+	claim1 := identifier.New()
+	prop1 := identifier.New()
+
+	// Same claim ID, target, and prop, but confidence changed.
+	parent := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+	}
+	current := map[identifier.Identifier][]internal.InverseRelation{
+		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.LowConfidence}},
+	}
+
+	added, removed := diffOutgoingInverseRelations(current, parent)
+
+	// Should detect the confidence change as removal + addition.
+	require.Len(t, added[targetB], 1)
+	assert.InDelta(t, float64(document.LowConfidence), float64(added[targetB][0].Confidence), 0)
+
+	require.Len(t, removed[targetB], 1)
+	assert.InDelta(t, float64(document.HighConfidence), float64(removed[targetB][0].Confidence), 0)
 }

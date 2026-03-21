@@ -17,27 +17,29 @@ import (
 )
 
 // GetDocument returns the document at the given version.
-func (b *B) GetDocument(ctx context.Context, id identifier.Identifier, version store.Version) (json.RawMessage, *internal.DocumentMetadata, errors.E) {
+func (b *B) GetDocument(
+	ctx context.Context, id identifier.Identifier, version store.Version,
+) (json.RawMessage, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.documents.Get(ctx, id, version)
 }
 
 // GetDocumentLatest returns the latest version of the document.
-func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internal.DocumentMetadata, store.Version, errors.E) {
+func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.documents.GetLatest(ctx, id)
 }
 
 // GetDocumentLatestDoc returns the latest version of the document as document.D.
-func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internal.DocumentMetadata, store.Version, errors.E) {
-	data, metadata, version, errE := b.documents.GetLatest(ctx, id)
+func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
+	data, metadata, version, parentChangesets, errE := b.documents.GetLatest(ctx, id)
 	var doc *document.D
 	if data != nil {
 		doc = new(document.D)
 		errE2 := x.UnmarshalWithoutUnknownFields(data, doc)
 		if errE2 != nil {
-			return nil, nil, store.Version{}, errors.Join(errE, errE2)
+			return nil, nil, store.Version{}, nil, errors.Join(errE, errE2)
 		}
 	}
-	return doc, metadata, version, errE
+	return doc, metadata, version, parentChangesets, errE
 }
 
 // InsertDocument inserts a new document with the given ID.
@@ -127,6 +129,6 @@ func (b *B) DiscardUpload(ctx context.Context, session identifier.Identifier) er
 
 // GetFile returns the data and metadata for a stored file.
 func (b *B) GetFile(ctx context.Context, id identifier.Identifier) ([]byte, *storage.FileMetadata, errors.E) {
-	data, metadata, _, errE := b.files.Store().GetLatest(ctx, id)
+	data, metadata, _, _, errE := b.files.Store().GetLatest(ctx, id)
 	return data, metadata, errE
 }

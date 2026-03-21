@@ -155,7 +155,7 @@ func TestHappyPath(t *testing.T) {
 		}
 	}
 
-	data, metadata, _, errE := s.Store().GetLatest(ctx, session)
+	data, metadata, _, _, errE := s.Store().GetLatest(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []byte("bafooqrxzy"), data)
 

@@ -765,10 +765,6 @@ type convertVisitor struct {
 	result    *Document
 	// docID is the ID of the document being converted.
 	docID identifier.Identifier
-	// outgoingInverseRelations collects inverse relation data for target documents.
-	// The key is the target document ID; the value is the list of inverse relations
-	// that should be stored in that target document's metadata.
-	outgoingInverseRelations map[identifier.Identifier][]internal.InverseRelation
 }
 
 var _ document.Visitor = (*convertVisitor)(nil)
@@ -855,22 +851,13 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 	return document.Keep, nil
 }
 
-// VisitRelation converts a relation claim to search relation claims and
-// records the inverse relation for the target document's metadata.
+// VisitRelation converts a relation claim to search relation claims.
 func (v *convertVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
 	claims, errE := v.converter.convertRelation(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
-
-	// Record this relation for the target document's metadata.
-	v.outgoingInverseRelations[claim.To.ID] = append(v.outgoingInverseRelations[claim.To.ID], internal.InverseRelation{
-		Claim:      claim.ID,
-		Document:   v.docID,
-		Prop:       claim.Prop.ID,
-		Confidence: claim.GetConfidence(),
-	})
 
 	return document.Keep, nil
 }
@@ -910,12 +897,9 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 // inverseRelations contains relation claims from other documents that point to this document.
 // For those whose property has an inverse property, a reverse relation claim is added to
 // the search document.
-//
-// The returned map contains, for each target document referenced by this document's relation
-// claims, the inverse relation data that should be stored in that target document's metadata.
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, inverseRelations []internal.InverseRelation,
-) (*Document, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+) (*Document, errors.E) {
 	v := &convertVisitor{
 		ctx:       ctx,
 		converter: c,
@@ -923,12 +907,11 @@ func (c *Converter) FromDocument(
 			ID:     doc.ID,
 			Claims: ClaimTypes{},
 		},
-		docID:                    doc.ID,
-		outgoingInverseRelations: make(map[identifier.Identifier][]internal.InverseRelation),
+		docID: doc.ID,
 	}
 	errE := doc.Visit(v)
 	if errE != nil {
-		return nil, nil, errE
+		return nil, errE
 	}
 
 	// Process incoming inverse relations from metadata.
@@ -938,25 +921,54 @@ func (c *Converter) FromDocument(
 			// Property has no inverse, skip.
 			continue
 		}
-		// Create a synthetic relation claim for each inverse property pointing back
-		// to the source document.
+		// Create a synthetic relation claim for each inverse property pointing back to the source document.
 		for _, inversePropID := range inversePropIDs {
 			claims, errE := c.convertRelation(ctx, &document.RelationClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         ir.Claim,
+					ID:         inverseRelationClaimID(doc.ID, ir.Source, ir.Claim),
 					Confidence: ir.Confidence,
 				},
 				Prop: document.Reference{ID: inversePropID},
-				To:   document.Reference{ID: ir.Document},
+				To:   document.Reference{ID: ir.Source},
 			})
 			if errE != nil {
-				return nil, nil, errE
+				return nil, errE
 			}
 			v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
 		}
 	}
 
-	return v.result, v.outgoingInverseRelations, nil
+	return v.result, nil
+}
+
+// inverseRelationClaimID computes an unique claim ID for a synthetic inverse relation claim.
+//
+// It uses source document ID and source claim ID to avoid collisions between claims from
+// different source documents that might share the same claim ID.
+func inverseRelationClaimID(target, source, claim identifier.Identifier) identifier.Identifier {
+	return identifier.From(target.String(), "INVERSE_RELATION", source.String(), claim.String())
+}
+
+// OutgoingInverseRelations extracts the outgoing inverse relations from a document.
+//
+// For each relation claim in the document, it records an InverseRelation entry keyed
+// by the target document ID.
+func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internal.InverseRelation {
+	result := make(map[identifier.Identifier][]internal.InverseRelation)
+	if doc.Claims == nil {
+		return result
+	}
+	for i := range doc.Claims.Relation {
+		claim := &doc.Claims.Relation[i]
+		result[claim.To.ID] = append(result[claim.To.ID], internal.InverseRelation{
+			Claim:      claim.ID,
+			Source:     doc.ID,
+			Prop:       claim.Prop.ID,
+			Target:     claim.To.ID,
+			Confidence: claim.GetConfidence(),
+		})
+	}
+	return result
 }
 
 func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {

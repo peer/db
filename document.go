@@ -73,9 +73,9 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	if reqVersion != nil {
-		_, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
+		_, _, _, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
-		_, _, _, errE = site.Base.GetDocumentLatest(ctx, id)
+		_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -123,9 +123,9 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	m := metrics.Duration(internal.MetricDatabase).Start()
 	if reqVersion != nil {
 		version = *reqVersion
-		dataJSON, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
+		dataJSON, _, _, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
-		dataJSON, _, version, errE = site.Base.GetDocumentLatest(ctx, id)
+		dataJSON, _, version, _, errE = site.Base.GetDocumentLatest(ctx, id)
 	}
 	m.Stop()
 
@@ -216,7 +216,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	_, _, version, errE := site.Base.GetDocumentLatest(ctx, id)
+	_, _, version, _, errE := site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

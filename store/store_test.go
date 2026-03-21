@@ -173,7 +173,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	ctx, s, channelContents := initDatabase[Data, Metadata, Metadata, Metadata, Metadata, Patch](t, dataType)
 
-	_, _, _, errE := s.GetLatest(ctx, identifier.New()) //nolint:dogsled
+	_, _, _, _, errE := s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	expectedID := identifier.New()
@@ -183,17 +183,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), insertVersion.Revision)
 	}
 
-	data, metadata, errE := s.Get(ctx, expectedID, insertVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, expectedID, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, version, errE := s.GetLatest(ctx, expectedID)
+	data, metadata, version, parentChangesets, errE := s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
 		assert.Equal(t, insertVersion, version)
+		assert.Empty(t, parentChangesets)
 	}
 
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
@@ -224,23 +227,28 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), updateVersion.Revision)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, insertVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, updateVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, updateVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
+		assert.Equal(t, updateVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: insertVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
 		assert.Equal(t, updateVersion, version)
+		assert.Equal(t, []store.Version{{Changeset: insertVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
@@ -272,29 +280,36 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), replaceVersion.Revision)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, insertVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, updateVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, updateVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
+		assert.Equal(t, updateVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: insertVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, replaceVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, replaceVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.ReplaceData, data)
 		assert.Equal(t, d.ReplaceMetadata, metadata)
+		assert.Equal(t, replaceVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: updateVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, expectedID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.ReplaceData, data)
 		assert.Equal(t, d.ReplaceMetadata, metadata)
 		assert.Equal(t, replaceVersion, version)
+		assert.Equal(t, []store.Version{{Changeset: updateVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
@@ -327,36 +342,65 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), deleteVersion.Revision)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, insertVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, updateVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, updateVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.UpdateData, data)
 		assert.Equal(t, d.UpdateMetadata, metadata)
+		assert.Equal(t, updateVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: insertVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, replaceVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, replaceVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.ReplaceData, data)
 		assert.Equal(t, d.ReplaceMetadata, metadata)
+		assert.Equal(t, replaceVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: updateVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	data, metadata, errE = s.Get(ctx, expectedID, deleteVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, expectedID, deleteVersion)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
+	assert.Equal(t, deleteVersion, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: replaceVersion.Changeset, Revision: 0}}, parentChangesets)
 
-	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
+	// Use returned parentChangesets to fetch the version before deletion.
+	if assert.Len(t, parentChangesets, 1) {
+		data, metadata, resolvedVersion, _, errE = s.Get(ctx, expectedID, parentChangesets[0])
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			assert.Equal(t, d.ReplaceData, data)
+			assert.Equal(t, d.ReplaceMetadata, metadata)
+			assert.Equal(t, replaceVersion, resolvedVersion)
+		}
+	}
+
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
+	assert.Equal(t, []store.Version{{Changeset: replaceVersion.Changeset, Revision: 0}}, parentChangesets)
+
+	// Use returned parentChangesets from GetLatest to fetch the version before deletion.
+	if assert.Len(t, parentChangesets, 1) {
+		data, metadata, resolvedVersion, _, errE = s.Get(ctx, expectedID, parentChangesets[0])
+		if assert.NoError(t, errE, "% -+#.1v", errE) {
+			assert.Equal(t, d.ReplaceData, data)
+			assert.Equal(t, d.ReplaceMetadata, metadata)
+			assert.Equal(t, replaceVersion, resolvedVersion)
+		}
+	}
 
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
 		deleteVersion.Changeset,
@@ -396,19 +440,21 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
+	assert.Equal(t, []store.Version{{Changeset: replaceVersion.Changeset, Revision: 0}}, parentChangesets)
 
-	data, metadata, version, errE = s.GetLatest(ctx, newID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, newID)
 	assert.NotErrorIs(t, errE, store.ErrValueDeleted) //nolint:testifylint
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Nil(t, data)
 	assert.Nil(t, metadata)
 	assert.Empty(t, version)
+	assert.Empty(t, parentChangesets)
 
 	time.Sleep(100 * time.Millisecond)
 	c = channelContents.Prune()
@@ -420,37 +466,43 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, changeset, changesets[0])
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, expectedID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, expectedID)
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 	assert.Equal(t, d.DeleteData, data)
 	assert.Equal(t, d.DeleteMetadata, metadata)
 	assert.Equal(t, deleteVersion, version)
+	assert.Equal(t, []store.Version{{Changeset: replaceVersion.Changeset, Revision: 0}}, parentChangesets)
 
-	data, metadata, errE = s.Get(ctx, newID, newVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, newVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, newID)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, newID)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
 		assert.Equal(t, newVersion, version)
+		assert.Empty(t, parentChangesets)
 	}
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		newVersion.Changeset,
 	})
 
-	data, metadata, errE = s.Get(ctx, newID, store.Version{
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, store.Version{
 		Changeset: changeset.ID(),
 		Revision:  1,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
 	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
@@ -493,17 +545,20 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Equal(t, changeset, changesets[0])
 	}
 
-	data, metadata, errE = s.Get(ctx, newID2, newVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID2, newVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
 	}
 
-	data, metadata, version, errE = s.GetLatest(ctx, newID2)
+	data, metadata, version, parentChangesets, errE = s.GetLatest(ctx, newID2)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, d.InsertData, data)
 		assert.Equal(t, d.InsertMetadata, metadata)
 		assert.Equal(t, newVersion, version)
+		assert.Empty(t, parentChangesets)
 	}
 
 	testChanges(t, ctx, s, newID2, []identifier.Identifier{
@@ -844,10 +899,10 @@ func TestGetCurrent(t *testing.T) {
 	v, errE := s.View(ctx, "notexist")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, _, _, errE = v.GetLatest(ctx, newID) //nolint:dogsled
+	_, _, _, _, errE = v.GetLatest(ctx, newID) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, _, _, errE = s.GetLatest(ctx, identifier.New()) //nolint:dogsled
+	_, _, _, _, errE = s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
@@ -865,15 +920,15 @@ func TestGet(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// View does not really exist.
-	_, _, errE = v.Get(ctx, newID, version)
+	_, _, _, _, errE = v.Get(ctx, newID, version) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	// Value at existing changeset does not exist for arbitrary ID.
-	_, _, errE = s.Get(ctx, identifier.New(), version)
+	_, _, _, _, errE = s.Get(ctx, identifier.New(), version) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// Value at arbitrary changeset does not exist for existing ID.
-	_, _, errE = s.Get(ctx, newID, store.Version{
+	_, _, _, _, errE = s.Get(ctx, newID, store.Version{ //nolint:dogsled
 		Changeset: identifier.New(),
 		Revision:  1,
 	})
@@ -902,22 +957,28 @@ func TestMultipleViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
-	_, _, latest, errE := s.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE := s.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version, latest)
-	_, _, errE = s.Get(ctx, newID, version)
+	assert.Empty(t, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE := s.Get(ctx, newID, version)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, version, resolvedVersion)
+	assert.Empty(t, parentChangesets)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		version.Changeset,
 	})
 
 	// The version in the second (child) view should be the new updated version.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
-	_, _, errE = v.Get(ctx, newID, updated)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated.Changeset,
@@ -925,7 +986,7 @@ func TestMultipleViews(t *testing.T) {
 	})
 
 	// It should not be possible to get the new updated value in the main view.
-	_, _, errE = s.Get(ctx, newID, updated)
+	_, _, _, _, errE = s.Get(ctx, newID, updated) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We update the value in the main view.
@@ -933,11 +994,14 @@ func TestMultipleViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
-	_, _, latest, errE = s.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = s.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated2, latest)
-	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, updated2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		updated2.Changeset,
@@ -945,11 +1009,14 @@ func TestMultipleViews(t *testing.T) {
 	})
 
 	// The version in the second (child) view should be what was there before.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
-	_, _, errE = v.Get(ctx, newID, updated)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated.Changeset,
@@ -957,7 +1024,7 @@ func TestMultipleViews(t *testing.T) {
 	})
 
 	// It should not be possible to get the new updated value in the second (child) view.
-	_, _, errE = v.Get(ctx, newID, updated2)
+	_, _, _, _, errE = v.Get(ctx, newID, updated2) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// Committing from the main view into the second (child) view should not be possible
@@ -987,11 +1054,14 @@ func TestMultipleViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be merged.
-	_, _, latest, errE = s.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = s.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, merged, latest)
-	_, _, errE = s.Get(ctx, newID, merged)
+	assert.Equal(t, []store.Version{{Changeset: updated2.Changeset, Revision: 0}, {Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, merged)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, merged, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: updated2.Changeset, Revision: 0}, {Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		merged.Changeset,
@@ -1001,11 +1071,14 @@ func TestMultipleViews(t *testing.T) {
 	})
 
 	// The version in the second (child) view should be what was there before.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
-	_, _, errE = v.Get(ctx, newID, updated)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated.Changeset,
@@ -1019,11 +1092,14 @@ func TestMultipleViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the second (child) view should now be merged.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, merged, latest)
-	_, _, errE = v.Get(ctx, newID, merged)
+	assert.Equal(t, []store.Version{{Changeset: updated2.Changeset, Revision: 0}, {Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, merged)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, merged, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: updated2.Changeset, Revision: 0}, {Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		merged.Changeset,
@@ -1055,22 +1131,28 @@ func TestChangeAcrossViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
-	_, _, latest, errE := s.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE := s.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version, latest)
-	_, _, errE = s.Get(ctx, newID, version)
+	assert.Empty(t, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE := s.Get(ctx, newID, version)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, version, resolvedVersion)
+	assert.Empty(t, parentChangesets)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		version.Changeset,
 	})
 
 	// The version in the second (child) view should be the new updated version.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
-	_, _, errE = v.Get(ctx, newID, updated)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated.Changeset,
@@ -1078,7 +1160,7 @@ func TestChangeAcrossViews(t *testing.T) {
 	})
 
 	// It should not be possible to get the new updated value in the main view.
-	_, _, errE = s.Get(ctx, newID, updated)
+	_, _, _, _, errE = s.Get(ctx, newID, updated) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We update the value in the main view by using the change from the second (child) view.
@@ -1087,11 +1169,14 @@ func TestChangeAcrossViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
-	_, _, latest, errE = s.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = s.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated2, latest)
-	_, _, errE = s.Get(ctx, newID, updated2)
+	assert.Equal(t, []store.Version{{Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, updated2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
 
 	testChanges(t, ctx, s, newID, []identifier.Identifier{
 		updated2.Changeset,
@@ -1100,15 +1185,20 @@ func TestChangeAcrossViews(t *testing.T) {
 	})
 
 	// It should now be possible to get the previously updated version as well in the main view.
-	_, _, errE = s.Get(ctx, newID, updated)
+	_, _, resolvedVersion, parentChangesets, errE = s.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	// The version in the second (child) view should stay the previously updated version.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated, latest)
-	_, _, errE = v.Get(ctx, newID, updated)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated.Changeset,
@@ -1116,7 +1206,7 @@ func TestChangeAcrossViews(t *testing.T) {
 	})
 
 	// It should not be possible to get the new updated value in the second (child) view.
-	_, _, errE = v.Get(ctx, newID, updated2)
+	_, _, _, _, errE = v.Get(ctx, newID, updated2) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We can explicitly update the second (child) view with the new changeset from the main view.
@@ -1126,11 +1216,14 @@ func TestChangeAcrossViews(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the second (child) view should now be updated.
-	_, _, latest, errE = v.GetLatest(ctx, newID)
+	_, _, latest, parentChangesets, errE = v.GetLatest(ctx, newID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, updated2, latest)
-	_, _, errE = v.Get(ctx, newID, updated2)
+	assert.Equal(t, []store.Version{{Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, newID, updated2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, updated2, resolvedVersion)
+	assert.Equal(t, []store.Version{{Changeset: updated.Changeset, Revision: 0}}, parentChangesets)
 
 	testChangesView(t, ctx, v, newID, []identifier.Identifier{
 		updated2.Changeset,
@@ -1866,17 +1959,188 @@ func TestUpdateExistingMetadata(t *testing.T) {
 	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
 
 	// GetLatest should return updated metadata but same data.
-	data, metadata, version, errE := s.GetLatest(ctx, id)
+	data, metadata, version, parentChangesets, errE := s.GetLatest(ctx, id)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, newVersion, version)
 	assert.JSONEq(t, `{"data": "original"}`, string(data))
 	assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+	assert.Empty(t, parentChangesets)
 
 	// Old version should still have original metadata.
-	data, metadata, errE = s.Get(ctx, id, insertVersion)
+	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, insertVersion)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.JSONEq(t, `{"data": "original"}`, string(data))
 	assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+	assert.Equal(t, insertVersion, resolvedVersion)
+	assert.Empty(t, parentChangesets)
+}
+
+func TestGetRevisionZero(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	insertData := json.RawMessage(`{"data": "original"}`)
+	insertMetadata := json.RawMessage(`{"meta": "v1"}`)
+
+	insertVersion, errE := s.Insert(ctx, id, insertData, insertMetadata, insertMetadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), insertVersion.Revision)
+
+	// Get with Revision 0 should return the latest (and only) revision.
+	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, store.Version{
+		Changeset: insertVersion.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "original"}`, string(data))
+		assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Update metadata to create revision 2 on the same changeset.
+	newMetadata := json.RawMessage(`{"meta": "v2"}`)
+	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, newMetadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(2), newVersion.Revision)
+	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
+
+	// Get with Revision 0 should now return revision 2 (the latest for this changeset).
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
+		Changeset: insertVersion.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "original"}`, string(data))
+		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Get with explicit Revision 1 should still return the old metadata.
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, insertVersion)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "original"}`, string(data))
+		assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+		assert.Equal(t, insertVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Get with explicit Revision 2 should return the new metadata.
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, newVersion)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "original"}`, string(data))
+		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Update the value (creates a new changeset).
+	updateData := json.RawMessage(`{"data": "updated"}`)
+	updateMetadata := json.RawMessage(`{"meta": "u1"}`)
+	updateVersion, errE := s.Update(ctx, id, newVersion.Changeset, updateData, json.RawMessage(`{}`), updateMetadata, updateMetadata)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), updateVersion.Revision)
+
+	// Get with Revision 0 on the new changeset should return it.
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
+		Changeset: updateVersion.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "updated"}`, string(data))
+		assert.JSONEq(t, `{"meta": "u1"}`, string(metadata))
+		assert.Equal(t, updateVersion, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: newVersion.Changeset, Revision: 0}}, parentChangesets)
+	}
+
+	// Get with Revision 0 on the old changeset should still return the latest revision of that changeset.
+	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
+		Changeset: insertVersion.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.JSONEq(t, `{"data": "original"}`, string(data))
+		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Get with Revision 0 on a non-existent changeset should return ErrValueNotFound.
+	_, _, _, _, errE = s.Get(ctx, id, store.Version{ //nolint:dogsled
+		Changeset: identifier.New(),
+		Revision:  0,
+	})
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+}
+
+func TestGetRevisionZeroView(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+
+	version, errE := s.Insert(ctx, id, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// We create another (child) view.
+	v, errE := mainView.Create(ctx, "second", internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// We update the value in the second (child view).
+	updated, errE := v.Update(ctx, id, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Get with Revision 0 on the child view should return the updated version.
+	_, _, resolvedVersion, parentChangesets, errE := v.Get(ctx, id, store.Version{
+		Changeset: updated.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, updated, resolvedVersion)
+		assert.Equal(t, []store.Version{{Changeset: version.Changeset, Revision: 0}}, parentChangesets)
+	}
+
+	// Get with Revision 0 on the main view should not find the child's changeset.
+	_, _, _, _, errE = s.Get(ctx, id, store.Version{ //nolint:dogsled
+		Changeset: updated.Changeset,
+		Revision:  0,
+	})
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// Get with Revision 0 on the original changeset should work on both views.
+	_, _, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
+		Changeset: version.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, version, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	_, _, resolvedVersion, parentChangesets, errE = v.Get(ctx, id, store.Version{
+		Changeset: version.Changeset,
+		Revision:  0,
+	})
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, version, resolvedVersion)
+		assert.Empty(t, parentChangesets)
+	}
+
+	// Get with Revision 0 on a non-existent view should return ErrViewNotFound.
+	notExist, errE := s.View(ctx, "notexist")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, _, _, errE = notExist.Get(ctx, id, store.Version{ //nolint:dogsled
+		Changeset: version.Changeset,
+		Revision:  0,
+	})
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 }
 
 func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {

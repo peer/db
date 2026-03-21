@@ -121,7 +121,7 @@ func (b *B) Start(
 	converter, errE := search.NewConverter(
 		properties, languages, languagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-			doc, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
+			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
 			if errE != nil {
 				return nil, errE
 			}

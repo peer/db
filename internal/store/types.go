@@ -41,14 +41,17 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 
 // InverseRelation contains data about a relation claim from another document.
 // When document A has a relation claim with property X pointing to document B,
-// then document B's metadata will contain an InverseRelation entry.
+// then document B's metadata will contain an InverseRelation entry with
+// Source=A and Target=B.
 type InverseRelation struct {
 	// Claim is the ID of the relation claim in the source document (A).
 	Claim identifier.Identifier `json:"claim"`
-	// Document is the ID of the source document (A) that has the forward relation claim.
-	Document identifier.Identifier `json:"document"`
+	// Source is the ID of the source document (A) that has the forward relation claim.
+	Source identifier.Identifier `json:"source"`
 	// Prop is the property ID of the forward relation claim in the source document (X).
 	Prop identifier.Identifier `json:"prop"`
+	// Target is the ID of the target document (B) that the relation points to.
+	Target identifier.Identifier `json:"-"`
 	// Confidence is the confidence of the forward relation claim.
 	Confidence document.Confidence `json:"confidence"`
 }
@@ -62,30 +65,50 @@ type DocumentMetadata struct {
 	InverseRelations []InverseRelation `json:"inverseRelations,omitempty"`
 }
 
-// Merge merges inverse relations from source documents into this metadata.
-// For each source document represented in relations, all existing inverse
-// relations from that source document are replaced with the new ones.
-// This means that if a relation from a source document previously existed
-// but is absent from relations, it is considered removed.
-// Inverse relations from source documents not represented in relations
-// are left unchanged.
-func (m *DocumentMetadata) Merge(relations []InverseRelation) {
-	// Collect which source documents are being updated.
-	updatedSources := make(map[identifier.Identifier]bool)
-	for i := range relations {
-		updatedSources[relations[i].Document] = true
+// inverseRelationKey identifies an inverse relation by its source document and claim ID.
+// We validate that claim IDs are unique per source document but we do not validate that
+// they are unique globally, so both fields are needed to cover all cases.
+type inverseRelationKey struct {
+	Source identifier.Identifier
+	Claim  identifier.Identifier
+}
+
+// AddInverseRelations adds inverse relations to this metadata,
+// if they do not already exist (comparison is done by (Source, Claim) pair).
+func (m *DocumentMetadata) AddInverseRelations(relations []InverseRelation) {
+	existing := make(map[inverseRelationKey]bool, len(m.InverseRelations))
+	for _, ir := range m.InverseRelations {
+		existing[inverseRelationKey{Source: ir.Source, Claim: ir.Claim}] = true
+	}
+	for _, ir := range relations {
+		key := inverseRelationKey{Source: ir.Source, Claim: ir.Claim}
+		if !existing[key] {
+			m.InverseRelations = append(m.InverseRelations, ir)
+			existing[key] = true
+		}
+	}
+}
+
+// RemoveInverseRelations removes specific inverse relations identified by their claim IDs.
+// Only relations whose Claim field matches one of the provided relations'
+// Claim fields are removed.
+func (m *DocumentMetadata) RemoveInverseRelations(relations []InverseRelation) {
+	if len(relations) == 0 || len(m.InverseRelations) == 0 {
+		return
 	}
 
-	// Keep existing inverse relations from source documents that are not being updated.
+	// Build a set of claim IDs to remove.
+	toRemove := make(map[identifier.Identifier]bool, len(relations))
+	for i := range relations {
+		toRemove[relations[i].Claim] = true
+	}
+
 	kept := make([]InverseRelation, 0, len(m.InverseRelations))
 	for i := range m.InverseRelations {
-		if !updatedSources[m.InverseRelations[i].Document] {
+		if !toRemove[m.InverseRelations[i].Claim] {
 			kept = append(kept, m.InverseRelations[i])
 		}
 	}
-
-	// Append the new relations.
-	kept = append(kept, relations...)
 
 	if len(kept) == 0 {
 		m.InverseRelations = nil

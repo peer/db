@@ -584,11 +584,11 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 			return errE
 		}
 		for _, commit := range commits {
-			inverseRelations, errE := b.indexCommit(ctx, commit)
+			addedInverseRelations, removedInverseRelations, errE := b.indexCommit(ctx, commit)
 			if errE != nil {
 				return errE
 			}
-			errE = b.updateSeq(ctx, commit.Seq, inverseRelations)
+			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations)
 			if errE != nil {
 				return errE
 			}
@@ -619,12 +619,12 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 			if c.Seq <= lastSeq {
 				continue
 			}
-			inverseRelations, errE := b.indexCommit(ctx, c)
+			addedInverseRelations, removedInverseRelations, errE := b.indexCommit(ctx, c)
 			if errE != nil {
 				return errE
 			}
 			// The bridge table is only advanced after indexing returned no error.
-			errE = b.updateSeq(ctx, c.Seq, inverseRelations)
+			errE = b.updateSeq(ctx, c.Seq, addedInverseRelations, removedInverseRelations)
 			if errE != nil {
 				return errE
 			}
@@ -642,24 +642,26 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 // of each document, and indexes them to ElasticSearch as a single bulk request.
 //
 // Documents are converted for indexing and inverse relations are collected.
-// The returned map contains, for each target document ID, the inverse relations that
-// should be stored in that document's metadata.
+// The first returned map contains, for each target document ID, the inverse relations that
+// should be stored in that document's metadata. The second returned map contains
+// inverse relations that should be removed from the document's metadata.
 func (b *Bridge) indexCommit(
 	ctx context.Context,
 	committed store.CommittedChangesets[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes],
-) (map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+) (map[identifier.Identifier][]internal.InverseRelation, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
-		return nil, errE
+		return nil, nil, errE
 	}
 
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
-	allInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
+	addedInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
+	removedInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
@@ -669,39 +671,82 @@ func (b *Bridge) indexCommit(
 				errors.Details(errE)["seq"] = committed.Seq
 				errors.Details(errE)["view"] = committed.View.Name()
 				errors.Details(errE)["changeset"] = cs.String()
-				return nil, errE
+				return nil, nil, errE
 			}
 			for _, change := range page {
-				data, metadata, _, errE := b.Store.GetLatest(ctx, change.ID)
+				// Fetch document at the change version.
+				deleted := false
+				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
+				var currentOutgoing map[identifier.Identifier][]internal.InverseRelation
 				if errors.Is(errE, store.ErrValueDeleted) {
-					// Document was deleted: remove it from the index.
-					// TODO: We have to also remove all inverse relations from metadata and the index.
-					bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
-					continue
+					// Deleted at this version: no outgoing relations.
+					deleted = true
+					currentOutgoing = map[identifier.Identifier][]internal.InverseRelation{}
 				} else if errE != nil {
 					errors.Details(errE)["seq"] = committed.Seq
 					errors.Details(errE)["view"] = committed.View.Name()
 					errors.Details(errE)["changeset"] = cs.String()
-					// We do not add "revision" (change.Version.Revision) because change.Version.Revision might
-					// be unrelated to latest revision.
-					errors.Details(errE)["change"] = change.ID.String()
-					return nil, errE
+					errors.Details(errE)["doc"] = change.ID.String()
+					return nil, nil, errE
+				} else {
+					currentOutgoing, errE = b.outgoingInverseRelations(data)
+					if errE != nil {
+						errors.Details(errE)["seq"] = committed.Seq
+						errors.Details(errE)["view"] = committed.View.Name()
+						errors.Details(errE)["changeset"] = cs.String()
+						errors.Details(errE)["doc"] = change.ID.String()
+						return nil, nil, errE
+					}
 				}
 
-				// TODO: Use also information about the view so that documents are searchable by view as well.
-				searchDoc, outgoing, errE := b.convertDocument(ctx, data, metadata)
-				if errE != nil {
-					errors.Details(errE)["seq"] = committed.Seq
-					errors.Details(errE)["view"] = committed.View.Name()
-					errors.Details(errE)["changeset"] = cs.String()
-					// We do not add "revision" (change.Version.Revision) because change.Version.Revision might
-					// be unrelated to latest revision.
-					errors.Details(errE)["change"] = change.ID.String()
-					return nil, errE
+				// Fetch document at parent change versions.
+				parentOutgoing := map[identifier.Identifier][]internal.InverseRelation{}
+				for _, pv := range parentChangesets {
+					parentData, _, _, _, errE := b.Store.Get(ctx, change.ID, pv)
+					if errors.Is(errE, store.ErrValueDeleted) {
+						// Parent document was deleted, so there were no outgoing relations in it.
+						continue
+					} else if errE != nil {
+						errors.Details(errE)["seq"] = committed.Seq
+						errors.Details(errE)["view"] = committed.View.Name()
+						errors.Details(errE)["changeset"] = cs.String()
+						errors.Details(errE)["doc"] = change.ID.String()
+						return nil, nil, errE
+					}
+					po, errE := b.outgoingInverseRelations(parentData)
+					if errE != nil {
+						errors.Details(errE)["seq"] = committed.Seq
+						errors.Details(errE)["view"] = committed.View.Name()
+						errors.Details(errE)["changeset"] = cs.String()
+						errors.Details(errE)["doc"] = change.ID.String()
+						return nil, nil, errE
+					}
+					for targetID, irs := range po {
+						parentOutgoing[targetID] = append(parentOutgoing[targetID], irs...)
+					}
 				}
-				bulkService.Add(elastic.NewBulkIndexRequest().Index(b.Index).Id(change.ID.String()).Doc(searchDoc))
-				for targetID, irs := range outgoing {
-					allInverseRelations[targetID] = append(allInverseRelations[targetID], irs...)
+
+				added, removed := diffOutgoingInverseRelations(currentOutgoing, parentOutgoing)
+				for targetID, irs := range added {
+					addedInverseRelations[targetID] = append(addedInverseRelations[targetID], irs...)
+				}
+				for targetID, irs := range removed {
+					removedInverseRelations[targetID] = append(removedInverseRelations[targetID], irs...)
+				}
+
+				if deleted {
+					bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
+				} else {
+					// TODO: Use also information about the view so that documents are searchable by view as well.
+					searchDoc, errE := b.convertDocument(ctx, data, metadata)
+					if errE != nil {
+						errors.Details(errE)["seq"] = committed.Seq
+						errors.Details(errE)["view"] = committed.View.Name()
+						errors.Details(errE)["changeset"] = cs.String()
+						errors.Details(errE)["doc"] = change.ID.String()
+						return nil, nil, errE
+					}
+					bulkService.Add(elastic.NewBulkIndexRequest().Index(b.Index).Id(change.ID.String()).Doc(searchDoc))
 				}
 			}
 			if len(page) < store.MaxPageLength {
@@ -712,45 +757,105 @@ func (b *Bridge) indexCommit(
 	}
 
 	if bulkService.NumberOfActions() == 0 {
-		return allInverseRelations, nil
+		return nil, nil, nil
 	}
 
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
 
-	if response.Errors {
-		errE := errors.New("bulk indexing had failures")
-		bulkErrors := []bulkError{}
-		for _, item := range response.Failed() {
+	bulkErrors := []bulkError{}
+	for _, item := range response.Items {
+		for action, result := range item {
+			if result.Status >= 200 && result.Status <= 299 {
+				continue
+			}
+			// Deleting a document that does not exist in ES is not an error.
+			// This can happen when indexCommit is retried after the bulk request
+			// succeeded but updateSeq failed.
+			if action == "delete" && result.Status == 404 {
+				continue
+			}
 			bulkErrors = append(bulkErrors, bulkError{
-				ID:    item.Id,
-				Error: item.Error,
+				ID:    result.Id,
+				Error: result.Error,
 			})
 		}
+	}
+	if len(bulkErrors) > 0 {
+		errE := errors.New("bulk indexing had failures")
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
 		errors.Details(errE)["esErrors"] = bulkErrors
-		return nil, errE
-	}
-
-	return allInverseRelations, nil
-}
-
-// convertDocument unmarshals data into a document.D, calls the converter's FromDocument
-// with inverse relations from metadata, and returns the search document and outgoing
-// inverse relations.
-func (b *Bridge) convertDocument(
-	ctx context.Context, data json.RawMessage, metadata *internal.DocumentMetadata,
-) (*Document, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
-	var doc document.D
-	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
-	if errE != nil {
 		return nil, nil, errE
 	}
 
+	return addedInverseRelations, removedInverseRelations, nil
+}
+
+// diffOutgoingInverseRelations compares current and parent outgoing inverse relations,
+// returning added and removed maps. A relation is considered changed (and thus both
+// removed and added) if any of its fields (target, property, confidence) differ,
+// even if the claim ID stays the same.
+func diffOutgoingInverseRelations(
+	current, parent map[identifier.Identifier][]internal.InverseRelation,
+) (map[identifier.Identifier][]internal.InverseRelation, map[identifier.Identifier][]internal.InverseRelation) {
+	currentSet := make(map[internal.InverseRelation]bool)
+	for _, irs := range current {
+		for _, ir := range irs {
+			currentSet[ir] = true
+		}
+	}
+
+	parentSet := make(map[internal.InverseRelation]bool)
+	for _, irs := range parent {
+		for _, ir := range irs {
+			parentSet[ir] = true
+		}
+	}
+
+	added := map[identifier.Identifier][]internal.InverseRelation{}
+	for targetID, irs := range current {
+		for _, ir := range irs {
+			if !parentSet[ir] {
+				added[targetID] = append(added[targetID], ir)
+			}
+		}
+	}
+
+	removed := map[identifier.Identifier][]internal.InverseRelation{}
+	for targetID, irs := range parent {
+		for _, ir := range irs {
+			if !currentSet[ir] {
+				removed[targetID] = append(removed[targetID], ir)
+			}
+		}
+	}
+
+	return added, removed
+}
+
+// convertDocument unmarshals data into a document.D and calls the converter's
+// FromDocument with inverse relations from metadata.
+func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, metadata *internal.DocumentMetadata) (*Document, errors.E) {
+	var doc document.D
+	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
+	if errE != nil {
+		return nil, errE
+	}
+
 	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
+}
+
+func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+	var doc document.D
+	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
+	if errE != nil {
+		return nil, errE
+	}
+
+	return OutgoingInverseRelations(&doc), nil
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
@@ -763,22 +868,37 @@ func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 	return seq, errE
 }
 
+// Fetch latest metadata and merge inverse relations for all affected documents.
+type preparedUpdate struct {
+	id       identifier.Identifier
+	version  store.Version
+	metadata *internal.DocumentMetadata
+}
+
 // updateSeq advances the bridge table to seq and updates document metadata with
 // inverse relations, all in a single transaction.
 func (b *Bridge) updateSeq(
-	ctx context.Context, seq int64, inverseRelations map[identifier.Identifier][]internal.InverseRelation,
+	ctx context.Context, seq int64,
+	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]internal.InverseRelation,
 ) errors.E {
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
 	for range internal.MaxRetries {
-		// Fetch latest metadata and merge inverse relations for all affected documents.
-		type preparedUpdate struct {
-			id       identifier.Identifier
-			version  store.Version
-			metadata *internal.DocumentMetadata
+		// Collect all affected document IDs from both added and removed maps.
+		affectedDocs := make(map[identifier.Identifier]bool)
+		for docID, irs := range addedInverseRelations {
+			if len(irs) > 0 {
+				affectedDocs[docID] = true
+			}
 		}
+		for docID, irs := range removedInverseRelations {
+			if len(irs) > 0 {
+				affectedDocs[docID] = true
+			}
+		}
+
 		var updates []preparedUpdate
-		for docID, irs := range inverseRelations {
-			_, metadata, version, errE := b.Store.GetLatest(ctx, docID)
+		for docID := range affectedDocs {
+			_, metadata, version, _, errE := b.Store.GetLatest(ctx, docID)
 			if errors.Is(errE, store.ErrValueNotFound) {
 				// Document does not exist (yet), skip.
 				// TODO: We should handle the "not exist yet" case better.
@@ -794,7 +914,8 @@ func (b *Bridge) updateSeq(
 			} else if errE != nil {
 				return errE
 			}
-			metadata.Merge(irs)
+			metadata.RemoveInverseRelations(removedInverseRelations[docID])
+			metadata.AddInverseRelations(addedInverseRelations[docID])
 			updates = append(updates, preparedUpdate{id: docID, version: version, metadata: metadata})
 		}
 
@@ -906,7 +1027,7 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 // indexDocument fetches the latest version of a document, converts it to a search
 // document, and indexes it to ElasticSearch.
 func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier) errors.E {
-	data, metadata, _, errE := b.Store.GetLatest(ctx, docID)
+	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// Document does not exist anymore, skip.
 		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
@@ -921,7 +1042,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	}
 
 	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, _, errE := b.convertDocument(ctx, data, metadata)
+	searchDoc, errE := b.convertDocument(ctx, data, metadata)
 	if errE != nil {
 		return errE
 	}

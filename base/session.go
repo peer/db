@@ -91,7 +91,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	}
 
 	// TODO: Get latest revision at the same changeset?
-	docJSON, _, errE := b.documents.Get(ctx, beginMetadata.ID, beginMetadata.Version)
+	docJSON, _, _, _, errE := b.documents.Get(ctx, beginMetadata.ID, beginMetadata.Version) //nolint:dogsled
 	if errE != nil {
 		return nil, errE
 	}

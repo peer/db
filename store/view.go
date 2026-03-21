@@ -206,22 +206,25 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 // values are valid as well.
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) GetLatest( //nolint:ireturn
 	ctx context.Context, id identifier.Identifier,
-) (Data, Metadata, Version, errors.E) {
+) (Data, Metadata, Version, []Version, errors.E) {
 	arguments := []any{
 		v.name, id.String(),
 	}
 	var data Data
 	var metadata Metadata
 	var version Version
+	var parentChangesets []Version
 	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
 		version = Version{}
+		parentChangesets = nil
 
 		var changeset string
 		var revision int64
 		var dataIsNull bool
+		var parentChangesetsString []string
 
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
@@ -239,7 +242,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					-- We want only the first view with the value.
 					LIMIT 1
 			)
-			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata"
+			SELECT "changeset", "revision", "data", "data" IS NULL, "metadata", "parentChangesets"
 				FROM
 					-- This gives us changesets for the value's view.
 					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
@@ -251,7 +254,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					-- We want the latest explicitly committed version of the value.
 					-- We know there can be at most one row because we have a CONSTRAINT to ensure that.
 					AND "depth"=0
-		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata)
+		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata, &parentChangesetsString)
 		if err != nil {
 			errE := store.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -269,6 +272,9 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		}
 		version.Changeset = identifier.String(changeset)
 		version.Revision = revision
+		for _, s := range parentChangesetsString {
+			parentChangesets = append(parentChangesets, Version{Changeset: identifier.String(s), Revision: 0})
+		}
 		if dataIsNull {
 			// We return an error because this method is asking for the current version of the value
 			// but the value does not exist anymore. Other returned values are valid though.
@@ -281,7 +287,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		details["view"] = v.name
 		details["id"] = id.String()
 	}
-	return data, metadata, version, errE
+	return data, metadata, version, parentChangesets, errE
 }
 
 // Get returns the value at a given version for the view.
@@ -294,24 +300,39 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 // shadows values and value versions from the parent view for those explicitly
 // committed to the view.
 //
+// If version has Revision set to 0, the latest revision for the given changeset is returned.
+//
 // If value has been deleted at a given version, ErrValueDeleted error is returned,
 // but other returned values are valid as well.
 //
 //nolint:ireturn
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get(
 	ctx context.Context, id identifier.Identifier, version Version,
-) (Data, Metadata, errors.E) {
+) (Data, Metadata, Version, []Version, errors.E) {
 	arguments := []any{
-		v.name, id.String(), version.Changeset.String(), version.Revision,
+		v.name, id.String(), version.Changeset.String(),
+	}
+	revisionCondition := ""
+	if version.Revision > 0 {
+		arguments = append(arguments, version.Revision)
+		revisionCondition = `	AND "revision"=$4`
+	} else {
+		revisionCondition = `ORDER BY "revision" DESC LIMIT 1`
 	}
 	var data Data
 	var metadata Metadata
+	var resolved Version
+	var parentChangesets []Version
 	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
+		resolved = Version{}
+		parentChangesets = nil
 
 		var dataIsNull bool
+		var revision int64
+		var parentChangesetsString []string
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
 				-- We care about order of views so we annotate views in the path with view's index.
@@ -328,7 +349,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					-- We want only the first view with the value.
 					LIMIT 1
 			)
-			SELECT "data", "data" IS NULL, "metadata"
+			SELECT "revision", "data", "data" IS NULL, "metadata", "parentChangesets"
 				FROM
 					-- This gives us changesets for the value's view.
 					"valueView" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
@@ -336,8 +357,8 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					JOIN "`+v.store.Prefix+`Changes" USING ("changeset", "id")
 				WHERE "id"=$2
 					AND "changeset"=$3
-					AND "revision"=$4
-		`, arguments...).Scan(&data, &dataIsNull, &metadata)
+				`+revisionCondition,
+			arguments...).Scan(&revision, &data, &dataIsNull, &metadata, &parentChangesetsString)
 		if err != nil {
 			errE := store.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -353,6 +374,11 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			}
 			return errE
 		}
+		resolved.Changeset = version.Changeset
+		resolved.Revision = revision
+		for _, s := range parentChangesetsString {
+			parentChangesets = append(parentChangesets, Version{Changeset: identifier.String(s), Revision: 0})
+		}
 		if dataIsNull {
 			// We return an error because this method is asking for a particular version of the value
 			// but the value does not exist anymore at this version. Other returned values are valid though.
@@ -367,7 +393,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		details["changeset"] = version.Changeset.String()
 		details["revision"] = version.Revision
 	}
-	return data, metadata, errE
+	return data, metadata, resolved, parentChangesets, errE
 }
 
 // List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID, to support keyset pagination.

@@ -147,7 +147,7 @@ func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier
 
 	documents := make([]*document.D, 0, len(allIDs))
 	for _, id := range allIDs {
-		doc, _, _, errE := s.Base.GetDocumentLatestDoc(ctx, id)
+		doc, _, _, _, errE := s.Base.GetDocumentLatestDoc(ctx, id)
 		if errE != nil {
 			return nil, errE
 		}

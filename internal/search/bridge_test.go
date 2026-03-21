@@ -185,7 +185,7 @@ func TestBridgeRealTime(t *testing.T) {
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "doc3 should exist in ES")
 
 	// Update doc1.
-	_, _, v1, errE := s.GetLatest(ctx, id1)
+	_, _, v1, _, errE := s.GetLatest(ctx, id1) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Replace(ctx, id1, v1.Changeset, makeDocJSON(t, id1), dummyMetadata(), &internal.NoMetadata{})
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -466,7 +466,7 @@ func makeConverterWithInverse(
 	properties := []*document.D{propXDoc, propYDoc}
 
 	c, errE := search.NewConverter(properties, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-		data, _, _, errE := s.GetLatest(ctx, id)
+		data, _, _, _, errE := s.GetLatest(ctx, id)
 		if errors.Is(errE, store.ErrValueNotFound) {
 			// Return a minimal document for IDs not in the store (e.g., core property/class IDs).
 			return &document.D{
@@ -538,7 +538,7 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 
 	// Verify that docB's metadata was updated with inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, errE := s.GetLatest(ctx, docB)
+		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
@@ -655,5 +655,158 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 			"docB should have inverse B --Y--> A")
 		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docC),
 			"docB should have inverse B --Y--> C")
+	}, 10*time.Second, 100*time.Millisecond)
+}
+
+func TestBridgeInverseRelationRemoval(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, b, esClient := initBridge(t)
+
+	// Property X has inversePropertyOf Y.
+	// A --X--> B means B gets inverse B --Y--> A.
+	// When we replace A to remove the relation, B should lose the inverse.
+	propX := identifier.New()
+	propY := identifier.New()
+
+	converter := makeConverterWithInverse(t, propX, propY, s)
+	b.Start(ctx, converter)
+
+	// Insert property documents.
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Insert document B (empty) and document A with relation A --X--> B.
+	docA := identifier.New()
+	docB := identifier.New()
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for docB to have the inverse relation.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Refresh(b.Index).Do(ctx)
+		if !assert.NoError(c, err) {
+			return
+		}
+		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+			"docB should have inverse B --Y--> A")
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Now replace A with a document that has no relations.
+	_, _, latestA, _, errE := s.GetLatest(ctx, docA) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocJSON(t, docA), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for docB to lose the inverse relation.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.Empty(c, metadata.InverseRelations, "docB metadata should have no inverse relations after removal")
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Verify in ES that docB no longer has the inverse relation.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Refresh(b.Index).Do(ctx)
+		if !assert.NoError(c, err) {
+			return
+		}
+		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+			"docB should no longer have inverse B --Y--> A")
+	}, 10*time.Second, 100*time.Millisecond)
+}
+
+func TestBridgeInverseRelationChange(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, b, esClient := initBridge(t)
+
+	// Property X has inversePropertyOf Y.
+	// A --X--> B means B gets inverse B --Y--> A.
+	// When we change A to point to C instead, B should lose the inverse and C should gain it.
+	propX := identifier.New()
+	propY := identifier.New()
+
+	converter := makeConverterWithInverse(t, propX, propY, s)
+	b.Start(ctx, converter)
+
+	// Insert property documents.
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Insert documents B and C (empty), then A with relation A --X--> B.
+	docA := identifier.New()
+	docB := identifier.New()
+	docC := identifier.New()
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docC, makeDocJSON(t, docC), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for docB to have the inverse relation.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Refresh(b.Index).Do(ctx)
+		if !assert.NoError(c, err) {
+			return
+		}
+		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+			"docB should have inverse B --Y--> A")
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Replace A to point to C instead of B.
+	_, _, latestA, _, errE := s.GetLatest(ctx, docA) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocWithRelationJSON(t, docA, propX, docC), dummyMetadata(), &internal.NoMetadata{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for docC to gain and docB to lose the inverse relation.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Refresh(b.Index).Do(ctx)
+		if !assert.NoError(c, err) {
+			return
+		}
+		// C should have the inverse relation.
+		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docC, propY, docA),
+			"docC should have inverse C --Y--> A")
+		// B should no longer have the inverse relation.
+		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+			"docB should no longer have inverse B --Y--> A")
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Verify metadata as well.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, metadataB, _, _, errE := s.GetLatest(ctx, docB)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.Empty(c, metadataB.InverseRelations, "docB metadata should have no inverse relations")
+
+		_, metadataC, _, _, errE := s.GetLatest(ctx, docC)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.NotEmpty(c, metadataC.InverseRelations, "docC metadata should have inverse relations")
 	}, 10*time.Second, 100*time.Millisecond)
 }

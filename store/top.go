@@ -138,10 +138,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 // GetLatest returns the latest committed version of the value for the MainView.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) GetLatest( //nolint:ireturn
 	ctx context.Context, id identifier.Identifier,
-) (Data, Metadata, Version, errors.E) {
+) (Data, Metadata, Version, []Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return *new(Data), *new(Metadata), Version{}, errE
+		return *new(Data), *new(Metadata), Version{}, nil, errE
 	}
 	return view.GetLatest(ctx, id)
 }
@@ -149,10 +149,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 // Get returns the value at a given version for the MainView.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get( //nolint:ireturn
 	ctx context.Context, id identifier.Identifier, version Version,
-) (Data, Metadata, errors.E) {
+) (Data, Metadata, Version, []Version, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
-		return *new(Data), *new(Metadata), errE
+		return *new(Data), *new(Metadata), Version{}, nil, errE
 	}
 	return view.Get(ctx, id, version)
 }
