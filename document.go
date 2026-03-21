@@ -168,19 +168,14 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 	// TODO: Support configuring base and not just use the domain.
 	base := []string{site.Domain, identifier.New().String()}
 	id := identifier.From(base...)
-	doc := document.D{
+	doc := &document.D{
 		CoreDocument: document.CoreDocument{
 			ID:   id,
 			Base: base,
 		},
 	}
-	dataJSON, errE := x.MarshalWithoutEscapeHTML(doc)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
 
-	errE = site.Base.InsertDocument(ctx, id, dataJSON)
+	errE = site.Base.InsertDocument(ctx, id, doc)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -216,16 +211,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	_, _, version, _, errE := site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
-	if errors.Is(errE, store.ErrValueNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	session, errE := site.Base.BeginDocumentEdit(ctx, id, version)
+	session, version, errE := site.Base.BeginDocumentEdit(ctx, id)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -275,16 +261,9 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	// TODO: Validate the change.
-	_, errE = document.ChangeUnmarshalJSON(buffer)
-	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
-		return
-	}
-
 	site := waf.MustGetSite[*Site](ctx)
 
-	_, errE = site.Base.AppendDocumentChange(ctx, session, buffer, &change)
+	_, errE = site.Base.AppendDocumentChange(ctx, session, buffer, change)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -442,7 +421,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	if beginMetadata.ID != id {
+	if beginMetadata.Document != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
 		return
@@ -481,7 +460,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	if beginMetadata.ID != id {
+	if beginMetadata.Document != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
 		return

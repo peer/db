@@ -43,8 +43,18 @@ func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) 
 }
 
 // InsertDocument inserts a new document with the given ID.
-func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, documentJSON json.RawMessage) errors.E {
-	_, errE := b.documents.Insert(ctx, id, documentJSON, &internal.DocumentMetadata{
+func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, doc *document.D) errors.E {
+	errE := doc.Validate()
+	if errE != nil {
+		return errE
+	}
+
+	documentJSON, errE := x.MarshalWithoutEscapeHTML(doc)
+	if errE != nil {
+		return errE
+	}
+
+	_, errE = b.documents.Insert(ctx, id, documentJSON, &internal.DocumentMetadata{
 		At:               internal.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}, &internal.NoMetadata{})
@@ -52,10 +62,16 @@ func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, docume
 }
 
 // BeginDocumentEdit begins an edit session for the document at the given version.
-func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier, version store.Version) (identifier.Identifier, errors.E) {
-	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
-		At: internal.Time(time.Now().UTC()),
-		ID: id,
+func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier) (identifier.Identifier, store.Version, errors.E) {
+	_, _, version, _, errE := b.GetDocumentLatest(ctx, id) //nolint:dogsled
+	if errE != nil {
+		// TODO: ErrValueNotFound error should make the caller return NotFoundWithError.
+		return identifier.Identifier{}, store.Version{}, errE
+	}
+
+	session, errE := b.coordinator.Begin(ctx, &DocumentBeginMetadata{
+		At:       internal.Time(time.Now().UTC()),
+		Document: id,
 		Version: store.Version{
 			Changeset: version.Changeset,
 			// We set revision to 0 so that system metadata updates (e.g., inverse relations)
@@ -63,13 +79,33 @@ func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier, ver
 			Revision: 0,
 		},
 	})
+	return session, version, errE
 }
 
 // AppendDocumentChange appends a change to an edit session at the given sequence number.
-func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identifier, data json.RawMessage, seqNo *int64) (int64, errors.E) {
+func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identifier, data json.RawMessage, seqNo int64) (int64, errors.E) {
+	change, errE := document.ChangeUnmarshalJSON(data)
+	if errE != nil {
+		// TODO: This should make the caller return BadRequestWithError.
+		return 0, errE
+	}
+
+	beginMetadata, _, _, errE := b.coordinator.Get(ctx, session)
+	if errE != nil {
+		return 0, errE
+	}
+
+	base := []string{beginMetadata.Document.String(), "SESSION", session.String()}
+
+	errE = change.Validate(base, seqNo)
+	if errE != nil {
+		// TODO: This should make the caller return BadRequestWithError.
+		return 0, errE
+	}
+
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
 		At: internal.Time(time.Now().UTC()),
-	}, seqNo)
+	}, &seqNo)
 }
 
 // ListDocumentChanges returns the sequence numbers of all changes in an edit session.

@@ -18,9 +18,9 @@ import (
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
-	At      internal.Time         `json:"at"`
-	ID      identifier.Identifier `json:"id"`
-	Version store.Version         `json:"version"`
+	At       internal.Time         `json:"at"`
+	Document identifier.Identifier `json:"document"`
+	Version  store.Version         `json:"version"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
@@ -100,7 +100,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 
 	// Version has Revision 0, so Get returns the latest revision for the changeset,
 	// picking up any metadata updates made by the system (e.g., bridge) since the session began.
-	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.ID, beginMetadata.Version)
+	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.Document, beginMetadata.Version)
 	if errE != nil {
 		return nil, errE
 	}
@@ -111,11 +111,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
-	base := slices.Clone(doc.Base)
-	// TODO: We should create a new changeset at the beginning of the session and use that new changeset ID here for base.
-	//       Session IDs are per document, but potentially multiple documents are edited in the same changeset, each in their own session.
-	//       Because doc.Base already includes per-document base, we should just add changeset ID to the base for this set of changes.
-	base = append(base, beginMetadata.ID.String())
+	base := []string{doc.ID.String(), "SESSION", session.String()}
 
 	errE = changes.Validate(base)
 	if errE != nil {
@@ -165,7 +161,7 @@ func (b *B) completeDocumentSessionTx(
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	// We use the parent version's changeset so the update is based on the same version (with actual revision)
 	// at which metadata was fetched and changes were validated in completeDocumentSession.
-	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.ParentVersion.Changeset, data.Doc, data.Changes, data.Metadata, &internal.NoMetadata{})
+	version, errE := b.documents.Update(ctx, data.BeginMetadata.Document, data.ParentVersion.Changeset, data.Doc, data.Changes, data.Metadata, &internal.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}

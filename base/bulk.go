@@ -21,6 +21,11 @@ import (
 //
 // It is useful for bulk importing data where you do not care about metadata and history tracking.
 func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors.E {
+	errE := doc.Validate()
+	if errE != nil {
+		return errE
+	}
+
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		return errE

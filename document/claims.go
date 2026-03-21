@@ -194,6 +194,13 @@ var _ Claims = (*ClaimTypes)(nil)
 
 // Add adds a claim to the appropriate typed slice based on the claim's type.
 func (c *ClaimTypes) Add(claim Claim) errors.E {
+	claimID := claim.GetID()
+	if c.GetByID(claimID) != nil {
+		errE := errors.New("claim with ID already exists")
+		errors.Details(errE)["id"] = claimID
+		return errE
+	}
+
 	switch cl := claim.(type) {
 	case *IdentifierClaim:
 		c.Identifier = append(c.Identifier, *cl)
@@ -224,6 +231,7 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", claim)
 		return errE
 	}
+
 	return nil
 }
 
@@ -301,15 +309,29 @@ func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
 	}
 }
 
+// AllClaimsWithMeta returns an iterator over all claims, including meta claims.
+func (c *ClaimTypes) AllClaimsWithMeta() iter.Seq[Claim] {
+	return func(yield func(Claim) bool) {
+		_ = c.Visit(&AllClaimsWithMetaVisitor{Yield: yield})
+	}
+}
+
 // Validate checks that all claims are valid.
 func (c *ClaimTypes) Validate() errors.E {
-	for claim := range c.AllClaims() {
+	claims := map[identifier.Identifier]bool{}
+	for claim := range c.AllClaimsWithMeta() {
 		errE := claim.Validate()
 		if errE != nil {
 			return errE
 		}
+		claimID := claim.GetID()
+		if claims[claimID] {
+			errE := errors.New("duplicate claim ID")
+			errors.Details(errE)["id"] = claimID
+			return errE
+		}
+		claims[claimID] = true
 	}
-	// TODO: Check that all claim IDs are unique.
 	return nil
 }
 
@@ -432,7 +454,8 @@ func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:iretu
 
 // Add adds a metadata claim to the claim.
 func (cc *CoreClaim) Add(claim Claim) errors.E {
-	if claimID := claim.GetID(); cc.GetByID(claimID) != nil {
+	claimID := claim.GetID()
+	if cc.ID == claimID || cc.GetByID(claimID) != nil {
 		errE := errors.New("claim with ID already exists")
 		errors.Details(errE)["id"] = claimID
 		return errE
