@@ -24,7 +24,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, "populate", site.Schema)
+	ctx = WithFallbackDBContext(ctx, site.Schema, "populate")
 
 	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	if errE != nil {

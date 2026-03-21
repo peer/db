@@ -77,22 +77,16 @@ func initBridge(t *testing.T) (
 
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
+	index := schema
 
 	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
-		return schema, "test"
+		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(dbpool.Close)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
-	})
+	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	esClient, errE := search.GetClient(cleanhttp.DefaultPooledClient(), zerolog.Nop(), os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	index := schema
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
@@ -100,8 +94,12 @@ func initBridge(t *testing.T) (
 		require.NoError(t, err)
 	})
 
-	// Create the index with PeerDB mapping so the converter's output is accepted.
 	errE = search.EnsureIndex(ctx, esClient, index)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internal.EnsureSchema(ctx, tx, schema)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internal.NewListener(dbpool)

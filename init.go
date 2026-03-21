@@ -4,23 +4,22 @@ import (
 	"context"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/peerdb/base"
+	"gitlab.com/peerdb/peerdb/internal/base"
 	"gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
-// to set application name and schema on PostgreSQL connections when it is not part
+// to set schema and application name on PostgreSQL connections when it is not part
 // of the request.
-func WithFallbackDBContext(ctx context.Context, name, schema string) context.Context {
-	ctx = context.WithValue(ctx, requestIDContextKey, name)
+func WithFallbackDBContext(ctx context.Context, schema, name string) context.Context {
 	ctx = context.WithValue(ctx, schemaContextKey, schema)
+	ctx = context.WithValue(ctx, requestIDContextKey, name)
 	return ctx
 }
 
@@ -28,60 +27,16 @@ func WithFallbackDBContext(ctx context.Context, name, schema string) context.Con
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) ([]func(), errors.E) {
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) (func(), errors.E) {
 	if s.initialized {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	s.initialized = true
 
-	ctx = WithFallbackDBContext(ctx, "init", s.Schema)
+	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
 
-	errE := search.EnsureIndex(ctx, esClient, s.Index)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return store.EnsureSchema(ctx, tx, s.Schema)
-	})
-	if errE != nil {
-		return nil, errE
-	}
-
-	listener := store.NewListener(dbpool)
-
-	riverClient, workers, errE := store.NewRiver(ctx, logger, dbpool, s.Schema)
-	if errE != nil {
-		return nil, errE
-	}
-
-	b := &base.B{
-		Schema:           s.Schema,
-		Index:            s.Index,
-		LanguagePriority: s.LanguagePriority,
-	}
-	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
-	if errE != nil {
-		return nil, errE
-	}
-
-	// Now that everything is initialized, we can start the river client.
-	// It will be stopped when ctx is cancelled.
-	err := riverClient.Start(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	onShutdown := []func(){
-		func() {
-			// Wait for the client to stop.
-			<-riverClient.Stopped()
-		},
-	}
-
-	// After that, we can start the listener.
-	errE = listener.Start(ctx)
+	b, riverClient, onShutdown, errE := base.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, s.LanguagePriority)
 	if errE != nil {
 		return onShutdown, errE
 	}
@@ -123,25 +78,29 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		}
 	}
 
-	dbCtx, dbCancel := context.WithCancel(context.WithoutCancel(ctx))
-
 	onShutdown := []func(){}
 	onShutdownF := func() {
 		for _, f := range onShutdown {
 			f()
 		}
-		// We cancel the context for the database connection pool only after everything else shuts down.
-		// When dbpool != nil then dbCtx is unused and calling dbCancel is unnecessary, but it is simpler to just always call it.
-		dbCancel()
 	}
 
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
-		dbpool, errE = store.InitPostgres(dbCtx, string(globals.Postgres.URL), globals.Logger, getRequestWithFallback(globals.Logger))
+		// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+		// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+		dbpool, errE = store.InitPostgres(
+			context.WithoutCancel(ctx),
+			string(globals.Postgres.URL),
+			globals.Logger,
+			getRequestWithFallback(globals.Logger),
+		)
 		if errE != nil {
 			return nil, errE
 		}
+		// We want dbpool.Close to be last.
+		onShutdown = append(onShutdown, dbpool.Close)
 	}
 
 	// Initialize for the first time.
@@ -157,7 +116,8 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		site := &globals.Sites[i]
 
 		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient)
-		onShutdown = append(onShutdown, onS...)
+		// We want existing onShutdown functions (e.g., dbpool.Close) to be last.
+		onShutdown = append([]func(){onS}, onShutdown...)
 		if errE != nil {
 			return onShutdownF, errE
 		}

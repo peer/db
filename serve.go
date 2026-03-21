@@ -154,7 +154,7 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 	}
 
 	for _, site := range service.Sites {
-		siteCtx := WithFallbackDBContext(ctx, "prepare", site.Schema)
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
 
 		documents, errE := site.fetchDocuments(siteCtx, identifier.From(core.Namespace, "PROPERTY"))
 		if errE != nil {
