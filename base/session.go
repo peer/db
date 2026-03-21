@@ -144,11 +144,20 @@ func (b *B) completeDocumentSessionTx(
 		}, nil
 	}
 
-	// We do not have to use the "tx" parameter because we access the transaction through ctx.
-	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, &internal.DocumentMetadata{
+	// Fetch metadata at the parent version to carry over system-managed fields (e.g., inverse relations).
+	_, oldMetadata, _, _, errE := b.documents.Get(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version) //nolint:dogsled
+	if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
+		return nil, errE
+	}
+
+	newMetadata := &internal.DocumentMetadata{
 		At:               data.EndMetadata.At,
 		InverseRelations: nil,
-	}, &internal.NoMetadata{})
+	}
+	newMetadata.CarryOver(oldMetadata)
+
+	// We do not have to use the "tx" parameter because we access the transaction through ctx.
+	version, errE := b.documents.Update(ctx, data.BeginMetadata.ID, data.BeginMetadata.Version.Changeset, data.Doc, data.Changes, newMetadata, &internal.NoMetadata{})
 	if errE != nil {
 		return nil, errE
 	}

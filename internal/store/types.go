@@ -117,5 +117,16 @@ func (m *DocumentMetadata) RemoveInverseRelations(relations []InverseRelation) {
 	}
 }
 
+// CarryOver sets system-managed fields in this metadata based on old metadata.
+//
+// This should be called on new metadata before committing a new version of a
+// document to maintain fields managed by background processes (e.g., the bridge).
+func (m *DocumentMetadata) CarryOver(old *DocumentMetadata) {
+	if old == nil {
+		return
+	}
+	m.InverseRelations = old.InverseRelations
+}
+
 // NoMetadata represents an empty metadata structure.
 type NoMetadata struct{}
