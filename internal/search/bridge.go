@@ -58,14 +58,18 @@ func (jobArgs) Kind() string {
 func (jobArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{ //nolint:exhaustruct
 		// We use a single worker queue for the bridge so that its jobs are run sequentially.
-		// There is no need to run them
+		// This prevents duplicate work where multiple parallel jobs would pick the same document
+		// ID to work on.
 		//
 		// We do not use UniqueOpts because River requires JobStateRunning in ByState,
 		// which causes inserts to be silently deduplicated while a job is running.
 		// This creates a race where new BridgeInverseRelations entries added during
 		// job execution are never processed. Instead we currently allow multiple jobs
-		// for correctness even if if it means that some jobs will not do anything.
+		// for correctness even if it means that some jobs will not do anything.
 		// See: https://github.com/riverqueue/river/issues/1178
+		//
+		// Downside of this approach is that if there are multiple bridges (with different schema/prefix
+		// combinations) their own jobs are not run in parallel but still only one at a time.
 		//
 		// TODO: Should we instead of our work queue table BridgeInverseRelations submit one job for each set of updates in updateSeq?
 		//       So instead of having our own table we would maintain what has to be done in job arguments.
@@ -855,6 +859,10 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 		var docIDStr string
 		var maxSeq int64
 		errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+			// TODO: Maybe make the query pick ID randomly (order by random)?
+			//       So if we allow for multiple jobs to run in parallel (currently we have single worker queue for these jobs),
+			//       they would not all work on the same document ID. On the other hand, maybe we should pick document IDs based on
+			//       their minimal seq (or minimal MAX(seq)) so that they are processed in approximate order of how their commits were done.
 			return internal.WithPgxError(tx.QueryRow(ctx, `
 				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"
 					GROUP BY "id" LIMIT 1
