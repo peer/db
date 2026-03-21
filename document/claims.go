@@ -312,7 +312,7 @@ func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
 // AllClaimsWithMeta returns an iterator over all claims, including meta claims.
 func (c *ClaimTypes) AllClaimsWithMeta() iter.Seq[Claim] {
 	return func(yield func(Claim) bool) {
-		_ = c.Visit(&AllClaimsWithMetaVisitor{Yield: yield})
+		_ = c.Visit(&AllClaimsWithMetaVisitor{Yield: yield, stopped: false})
 	}
 }
 
