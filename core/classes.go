@@ -2,12 +2,11 @@
 package core
 
 import (
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 )
 
 // Classes returns core classes.
-func Classes(_ zerolog.Logger) ([]any, errors.E) {
+func Classes() ([]any, errors.E) {
 	documents := []any{}
 
 	documents = append(documents, &Class{

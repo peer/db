@@ -1,12 +1,11 @@
 package peerdb
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"syscall"
 
 	"github.com/rs/zerolog"
@@ -15,50 +14,22 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/core"
+	"gitlab.com/peerdb/peerdb/base"
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E { //nolint:maintidx
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = WithFallbackDBContext(ctx, "populate", site.Schema)
 
-	documents := []any{}
-
-	docs, errE := core.Classes(logger)
+	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	if errE != nil {
 		return errE
 	}
-	documents = append(documents, docs...)
-
-	logger.Info().Msg("core classes generated successfully")
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Properties(logger)
-	if errE != nil {
-		return errE
-	}
-	documents = append(documents, docs...)
-
-	logger.Info().Msg("core properties generated successfully")
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Vocabularies(logger)
-	if errE != nil {
-		return errE
-	}
-	documents = append(documents, docs...)
-
-	logger.Info().Msg("core vocabularies generated successfully")
 
 	logger.Info().Int("count", len(documents)).Msg("generated all documents")
 
@@ -69,126 +40,51 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	if c.SaveDir != "" {
 		logger.Info().Str("path", c.SaveDir).Msg("saving structs as files into a directory")
 
-		err := os.MkdirAll(c.SaveDir, 0o755) //nolint:gosec,mnd
-		if err != nil {
-			return errors.WithDetails(err, "path", c.SaveDir)
-		}
-
-		for _, doc := range documents {
-			if ctx.Err() != nil {
-				return errors.WithStack(ctx.Err())
-			}
-
+		errE := x.SaveJSONToDir(ctx, c.SaveDir, documents, func(doc any) (string, errors.E) {
 			id, errE := transform.ExtractDocumentID(doc)
 			if errE != nil {
-				errors.Details(errE)["id"] = id
-				return errE
+				return "", errE
 			}
 
-			output, errE := x.MarshalWithoutEscapeHTML(doc)
-			if errE != nil {
-				return errE
-			}
-
-			var res bytes.Buffer
-			err = json.Indent(&res, output, "", "  ")
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			res.WriteString("\n")
-
-			p := []string{c.SaveDir}
+			p := slices.Clone(id)
 			for i := range len(id) - 1 {
 				p = append(p, x.SafeFilename(id[i]))
 			}
-			path := filepath.Join(p...)
+			p = append(p, x.SafeFilename(id[len(id)-1])+".json")
 
-			filename := x.SafeFilename(id[len(id)-1] + ".json")
-
-			err := os.MkdirAll(path, 0o755) //nolint:gosec,mnd
-			if err != nil {
-				return errors.WithDetails(err, "path", path)
-			}
-
-			path = filepath.Join(path, filename)
-
-			err = os.WriteFile(path, res.Bytes(), 0o644) //nolint:gosec,mnd
-			if err != nil {
-				return errors.WithDetails(err, "path", path)
-			}
+			return filepath.Join(p...), nil
+		})
+		if errE != nil {
+			return errE
 		}
 
 		logger.Info().Int("count", len(documents)).Msg("saved all structs")
-	}
 
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
-	}
-
-	mnemonics, errE := transform.Mnemonics(ctx, documents)
-	if errE != nil {
-		return errE
-	}
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
-	}
-
-	transformed, errE := transform.Documents(ctx, mnemonics, documents)
-	if errE != nil {
-		return errE
-	}
-
-	logger.Info().Int("count", len(transformed)).Msg("transformed all documents")
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
+		if ctx.Err() != nil {
+			return errors.WithStack(ctx.Err())
+		}
 	}
 
 	if c.OutputDir != "" {
 		logger.Info().Str("path", c.OutputDir).Msg("saving documents as files into a directory")
 
-		err := os.MkdirAll(c.OutputDir, 0o755) //nolint:gosec,mnd
-		if err != nil {
-			return errors.WithDetails(err, "path", c.OutputDir)
-		}
-
-		for _, doc := range transformed {
-			if ctx.Err() != nil {
-				return errors.WithStack(ctx.Err())
-			}
-
-			output, errE := x.MarshalWithoutEscapeHTML(doc)
-			if errE != nil {
-				errors.Details(errE)["id"] = doc.ID.String()
-				return errE
-			}
-
-			var res bytes.Buffer
-			err = json.Indent(&res, output, "", "  ")
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			res.WriteString("\n")
-
-			path := filepath.Join(c.OutputDir, doc.ID.String()+".json")
-
-			err := os.WriteFile(path, res.Bytes(), 0o644) //nolint:gosec,mnd
-			if err != nil {
-				return errors.WithDetails(err, "path", path)
-			}
+		errE := x.SaveJSONToDir(ctx, c.OutputDir, transformed, func(doc *document.D) (string, errors.E) {
+			return doc.ID.String(), nil
+		})
+		if errE != nil {
+			return errE
 		}
 
 		logger.Info().Int("count", len(transformed)).Msg("saved all documents")
+
+		if ctx.Err() != nil {
+			return errors.WithStack(ctx.Err())
+		}
 	}
 
 	if c.DryRun {
 		logger.Info().Msg("dry run, not inserting documents into the database")
 		return nil
-	}
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
 	}
 
 	count := x.NewCounter(0)
@@ -202,39 +98,12 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		}
 	}()
 
-	for _, doc := range transformed {
-		if ctx.Err() != nil {
-			break
-		}
-
+	errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
-
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-		errE := site.Base.InsertOrReplaceDocument(ctx, doc)
-		if errE != nil {
-			return errE
-		}
-	}
-
-	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
-	}
-
-	// We stored all documents into the store, now we can start the site which starts the base which starts the bridge.
-	errE = site.Start(ctx, transformed, transformed)
+	})
 	if errE != nil {
 		return errE
-	}
-
-	// We wait for the base/bridge to index all committed documents into ElasticSearch.
-	errE = site.Base.WaitUntilCaughtUp(ctx)
-	if errE != nil {
-		return errE
-	}
-
-	_, err := site.ESClient.Refresh(site.Index).Do(ctx)
-	if err != nil {
-		return errors.WithStack(err)
 	}
 
 	logger.Info().

@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +15,7 @@ import (
 func TestClasses(t *testing.T) {
 	t.Parallel()
 
-	docs, errE := core.Classes(zerolog.Nop())
+	docs, errE := core.Classes()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, docs)
 }
@@ -24,7 +23,7 @@ func TestClasses(t *testing.T) {
 func TestProperties(t *testing.T) {
 	t.Parallel()
 
-	docs, errE := core.Properties(zerolog.Nop())
+	docs, errE := core.Properties()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, docs)
 }
@@ -32,7 +31,7 @@ func TestProperties(t *testing.T) {
 func TestVocabularies(t *testing.T) {
 	t.Parallel()
 
-	docs, errE := core.Vocabularies(zerolog.Nop())
+	docs, errE := core.Vocabularies()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, docs)
 }

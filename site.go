@@ -157,12 +157,34 @@ func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier
 	return documents, nil
 }
 
+func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E {
+	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
+	// TODO: Limit really only to properties.
+	s.propertiesTotal = int64(len(documents))
+	return nil
+}
+
 // Start starts the base for the site.
 //
-// You have to call this for each site after Init.
-func (s *Site) Start(ctx context.Context, properties, languages []*document.D) errors.E {
-	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
-	s.propertiesTotal = int64(len(properties))
+// You have to call this or PopulateAndStart for each site after Init.
+func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
+	errE := s.updatePropertiesTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
 
-	return s.Base.Start(ctx, properties, languages, s.LanguagePriority)
+	return s.Base.Start(ctx, documents)
+}
+
+// PopulateAndStart for the site: inserts the given documents into the store, starts the base,
+// waits for Elasticsearch to catch up, and then refreshes ElasticSearch index.
+//
+// You have to call this or Start for each site after Init.
+func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D)) errors.E {
+	errE := s.updatePropertiesTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	return s.Base.PopulateAndStart(ctx, documents, progress)
 }

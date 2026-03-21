@@ -57,8 +57,9 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 
 	b := &base.B{
-		Schema: s.Schema,
-		Index:  s.Index,
+		Schema:           s.Schema,
+		Index:            s.Index,
+		LanguagePriority: s.LanguagePriority,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
 	if errE != nil {

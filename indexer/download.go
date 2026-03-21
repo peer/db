@@ -247,8 +247,7 @@ func getPathAndURL(cacheDir, url string) (string, string) {
 	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd,gosec
 	_, err := os.Stat(url)
 	if errors.Is(err, fs.ErrNotExist) {
-		// TODO: Do something better and more secure for the filename (escape path from the URL, use query string, etc.).
-		return filepath.Join(cacheDir, path.Base(url)), url
+		return filepath.Join(cacheDir, x.SafeFilename(path.Base(url))), url
 	}
 	return url, url
 }

@@ -1,12 +1,11 @@
 package core
 
 import (
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 )
 
 // Vocabularies returns core vocabularies.
-func Vocabularies(_ zerolog.Logger) ([]any, errors.E) { //nolint:maintidx
+func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 	documents := []any{}
 
 	documents = append(documents, &Language{

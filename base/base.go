@@ -41,6 +41,8 @@ type B struct {
 	Schema string
 	Index  string
 
+	LanguagePriority map[string][]string
+
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	documents   *store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
@@ -113,13 +115,14 @@ func (b *B) Init(
 }
 
 // Start starts the base.
-func (b *B) Start(
-	ctx context.Context,
-	properties, languages []*document.D,
-	languagePriority map[string][]string,
-) errors.E {
+//
+// Documents are documents with properties and vocabularies which are used
+// to index documents for search.
+//
+// You have to call this or PopulateAndStart for each base after Init.
+func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 	converter, errE := search.NewConverter(
-		properties, languages, languagePriority,
+		documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
 			if errE != nil {

@@ -1,14 +1,13 @@
 package core
 
 import (
-	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 )
 
 // Properties returns core properties.
 //
 //nolint:maintidx
-func Properties(_ zerolog.Logger) ([]any, errors.E) {
+func Properties() ([]any, errors.E) {
 	documents := []any{}
 
 	documents = append(documents, &Property{
