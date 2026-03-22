@@ -15,8 +15,8 @@ func TestPatchJSON(t *testing.T) {
 	t.Parallel()
 
 	base := []string{"TqtRsbk7rTKviW3TJapTim"}
-	id1 := []string{"TqtRsbk7rTKviW3TJapTim", "0"}
-	id2 := []string{"TqtRsbk7rTKviW3TJapTim", "1"}
+	id1 := []string{"TqtRsbk7rTKviW3TJapTim", "1"}
+	id2 := []string{"TqtRsbk7rTKviW3TJapTim", "2"}
 	id1Claim := identifier.From(id1...)
 	id2Claim := identifier.From(id2...)
 	prop1 := identifier.String("XkbTJqwFCFkfoxMBXow4HU")
@@ -52,7 +52,7 @@ func TestPatchJSON(t *testing.T) {
 
 	out, errE := x.MarshalWithoutEscapeHTML(changes)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `[{"id":"BJwRdnJCE7ioDSoU2SfsSp","base":["TqtRsbk7rTKviW3TJapTim","0"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":"42.1","precision":0.1,"type":"amount"},"type":"add"},{"under":"BJwRdnJCE7ioDSoU2SfsSp","id":"Cm2mEEMZHh6KB7CBvZLocZ","base":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
+	assert.Equal(t, `[{"id":"Cm2mEEMZHh6KB7CBvZLocZ","base":["TqtRsbk7rTKviW3TJapTim","1"],"patch":{"confidence":1,"prop":"XkbTJqwFCFkfoxMBXow4HU","amount":"42.1","precision":0.1,"type":"amount"},"type":"add"},{"under":"Cm2mEEMZHh6KB7CBvZLocZ","id":"Ah1k9c65Hhpuv9chpVZEeJ","base":["TqtRsbk7rTKviW3TJapTim","2"],"patch":{"confidence":1,"prop":"3EL2nZdWVbw85XG1zTH2o5","value":"foobar","type":"id"},"type":"add"}]`, string(out)) //nolint:lll,testifylint
 
 	var changes2 document.Changes
 	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
