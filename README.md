@@ -155,19 +155,17 @@ When using Let's Encrypt you accept its Terms of Service.
 
 ## Populating with data
 
-Power of PeerDB Search comes from having data in ElasticSearch index organized into documents in PeerDB schema.
+Power of PeerDB comes from having data organized into documents in PeerDB schema.
 The schema is designed to allow describing almost any data. Moreover, data and properties to describe data can be changed
-at runtime without having to reconfigure PeerDB Search, e.g., it adapts filters automatically.
+at runtime without having to reconfigure PeerDB, e.g., it adapts search filters automatically.
 The schema also allows multiple data sources to be used and merged together.
 
-PeerDB schema of documents is fully described in
-[JSON Schema](https://json-schema.org/) and is available [in this file](./schema/doc.json).
-But at a high-level look like:
+At a high-level PeerDB documents look like:
 
 ```json
 {
   "id": "22 character ID",
-  "score": 0.5,
+  "base": ["example.com", "base for computing ID"],
   "claims": {
     "id": [
       {
@@ -176,21 +174,26 @@ But at a high-level look like:
         "prop": {
           "id": "22 character property ID"
         },
-        "id": "external ID value"
+        "value": "external ID value"
       }
     ],
-    "ref": [...],
-    "text": [...],
+    "string": [...],
+    "html": [...],
     "amount": [...],
+    "amountInterval": [...],
+    "time": [...],
+    "timeInterval": [...],
+    "ref": [...],
     "rel": [...],
-    "file": [...],
-    "time": [...]
+    "has": [...],
+    "none": [...],
+    "unknown": [...]
   }
 }
 ```
 
-Besides core metadata (`id` and `score`) all other data is organized
-in claims (seen under `claims` claims above) which are then organized based on claim
+Besides core metadata (`id` and `base`) all other data is organized
+in claims (seen under `claims` above) which are then organized based on claim
 (data) type. For example, there are `id` claims which are used to store external
 ID values. `prop` is a reference to a property document which describes the ID value.
 
@@ -224,36 +227,33 @@ have a blog post like:
 To convert the blog post:
 
 - You could create two documents, one for `title` property and another for `body` property.
-  But you could also decide to map `title` to existing `NAME` core property, and `body` to
-  existing `DESCRIPTION` (for shorter HTML contents shown in search results as well)
-  or `ARTICLE` (for longer HTML contents) core property (and its label `HAS_ARTICLE`).
+  But you could also decide to map `title` to existing `TITLE` core property, and `body` to
+  existing `DESCRIPTION` core property.
 - Maybe you also want to record the original blog post ID and author `username`,
   so create property documents for them as well.
 - Author's `displayName` can be mapped to `NAME` core property.
 - Another property document is needed for the `author` property.
 - Documents should also have additional claims to describe relations between them.
-  Properties should be marked as properties and which claim type they are meant to be
-  used for. It is useful to create properties for user documents and blog post documents,
-  which can in turn be more general (core) items.
+  Properties should be marked as instances of the `PROPERTY` class.
+  It is useful to create classes for user documents, in this case blog posts,
+  which can in turn be subclasses of the `DOCUMENT` core class.
 
 Assuming that the author does not yet have its document, you could convert the above blog
 post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "LcrxeiU9XjxosmX8kiPCx6",
-  "score": 0.5,
+  "id": "XCunBDJGYmhiC7roqLu5dU",
+  "base": ["example.com", "1"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "YWYAgufBtjegbQc512GFci",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "Foo Bar"
-        }
+        "string": "Foo Bar"
       }
     ],
     "id": [
@@ -261,9 +261,9 @@ post into the following two PeerDB documents:
         "id": "9TfczNe5aa4LrKqWQWfnFF",
         "confidence": 1.0,
         "prop": {
-          "id": "Hx5zknvxsmPRiLFbGMPeiZ" // author username
+          "id": "KLE8hEjuUpxS1ZMtM44cUo" // author username
         },
-        "id": "foobar"
+        "value": "foobar"
       }
     ],
     "rel": [
@@ -271,10 +271,10 @@ post into the following two PeerDB documents:
         "id": "sgpzxwxPyn51j5VfH992ZQ",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "6asppjBfRGSTt5Df7Zvomb" // user
+          "id": "Xx51U4FnVQ7E63fJKnRgrG" // user
         }
       }
     ]
@@ -284,29 +284,27 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "MpGZyd7grTBPYhMhETAuHV",
-  "score": 0.5,
+  "id": "HBqKdb2iTgqj6ji7NLy8Y3",
+  "base": ["example.com", "2"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "KjwGqHqihAQEgNabdNQSNc",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "Some title"
-        }
-      },
+        "string": "Some title"
+      }
+    ],
+    "html": [
       {
         "id": "VdX1HZm1ETw8K77nLTV6yt",
         "confidence": 1.0,
         "prop": {
-          "id": "FJJLydayUgDuqFsRK2ZtbR" // ARTICLE
+          "id": "QduJFqUu12297s4F62fyoc" // DESCRIPTION
         },
-        "html": {
-          "en": "Some <b>blog post</b> body HTML"
-        }
+        "html": "Some <b>blog post</b> body HTML"
       }
     ],
     "id": [
@@ -314,9 +312,9 @@ post into the following two PeerDB documents:
         "id": "Ci3A1tLF6MHZ4y5zBibvGg",
         "confidence": 1.0,
         "prop": {
-          "id": "8mu7vrUK7zJ4Me2JwYUG6t" // blog post ID
+          "id": "1DP4FkpdgJ9jLvTfPhDJqr" // blog post ID
         },
-        "id": "123"
+        "value": "123"
       }
     ],
     "rel": [
@@ -324,30 +322,20 @@ post into the following two PeerDB documents:
         "id": "xbufQEChDXvtg3hh4i1PvT",
         "confidence": 1.0,
         "prop": {
-          "id": "fmUeT7JN8qPuFw28Vdredm" // author
+          "id": "72J8Hd39A18GNs4aTqS3mw" // author
         },
         "to": {
-          "id": "LcrxeiU9XjxosmX8kiPCx6" // Foo Bar
+          "id": "XCunBDJGYmhiC7roqLu5dU" // Foo Bar
         }
       },
       {
         "id": "LJNg7QaiMxE1crjMiijpaN",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "3APZXnK3uofpdEJV55Po18" // blog post
-        }
-      },
-      {
-        "id": "UxhYEJY6mpA147eujZ489B",
-        "confidence": 1.0,
-        "prop": {
-          "id": "5SoFeEFk5aWXUYFC1EZFec" // LABEL
-        },
-        "to": {
-          "id": "MQYs7JmAR3tge25eTPS8XT" // HAS_ARTICLE
+          "id": "XQHttenpK8ywz3ZyPU5akH" // blog post
         }
       }
     ]
@@ -360,19 +348,17 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "Hx5zknvxsmPRiLFbGMPeiZ",
-  "score": 0.5,
+  "id": "KLE8hEjuUpxS1ZMtM44cUo",
+  "base": ["example.com", "AUTHOR_USERNAME"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "c4xGoqaYKaFNqy6hD7RgV8",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "author username"
-        }
+        "string": "author username"
       }
     ],
     "rel": [
@@ -380,20 +366,10 @@ post into the following two PeerDB documents:
         "id": "5zZZ6nJFKuA5oNBu9QbsYY",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
-        }
-      },
-      {
-        "id": "jjcWxq9VoVLhKqV2tnqz1A",
-        "confidence": 1.0,
-        "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
-        },
-        "to": {
-          "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
+          "id": "V9ZHft2KVKA6qGAv6g8enE" // PROPERTY
         }
       }
     ]
@@ -403,19 +379,17 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "8mu7vrUK7zJ4Me2JwYUG6t",
-  "score": 0.5,
+  "id": "1DP4FkpdgJ9jLvTfPhDJqr",
+  "base": ["example.com", "BLOG_POST_ID"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "Bj3wKeu49j8ncXYpZ7tuZ5",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "blog post ID"
-        }
+        "string": "blog post ID"
       }
     ],
     "rel": [
@@ -423,20 +397,10 @@ post into the following two PeerDB documents:
         "id": "DWYDFZ2DbasS4Tyehnko2U",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
-        }
-      },
-      {
-        "id": "ivhonZLA2ktDwyMawBLuKV",
-        "confidence": 1.0,
-        "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
-        },
-        "to": {
-          "id": "UJEVrqCGa9f3vAWi2mNWc7" // IDENTIFIER_CLAIM_TYPE
+          "id": "V9ZHft2KVKA6qGAv6g8enE" // PROPERTY
         }
       }
     ]
@@ -446,19 +410,17 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "fmUeT7JN8qPuFw28Vdredm",
-  "score": 0.5,
+  "id": "72J8Hd39A18GNs4aTqS3mw",
+  "base": ["example.com", "AUTHOR"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "1NH97QxtHqJS6JAz1hzCxo",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "author"
-        }
+        "string": "author"
       }
     ],
     "rel": [
@@ -466,20 +428,10 @@ post into the following two PeerDB documents:
         "id": "gK8nXxJ3AXErTmGPoAVF78",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
-        }
-      },
-      {
-        "id": "pDBnb32Vd2VPd2UjPnd1eS",
-        "confidence": 1.0,
-        "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
-        },
-        "to": {
-          "id": "HZ41G8fECg4CjfZN4dmYwf" // RELATION_CLAIM_TYPE
+          "id": "V9ZHft2KVKA6qGAv6g8enE" // PROPERTY
         }
       }
     ]
@@ -489,19 +441,17 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "6asppjBfRGSTt5Df7Zvomb",
-  "score": 0.5,
+  "id": "Xx51U4FnVQ7E63fJKnRgrG",
+  "base": ["example.com", "USER"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "cVvsHG2ru2ojRJhV27Zj3E",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "user"
-        }
+        "string": "user"
       }
     ],
     "rel": [
@@ -509,20 +459,20 @@ post into the following two PeerDB documents:
         "id": "79m7fNMHy7SRinSmB3WARM",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
+          "id": "SdQgTgtcqTm7xHV4PV1oAd" // CLASS
         }
       },
       {
         "id": "EuGC7ZRK7weuHNoZLDC8ah",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "UrBttJgHvm7kbFe7X9WcS1" // SUBCLASS_OF
         },
         "to": {
-          "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM
+          "id": "MneSnmJvyYd9u7RKzhyS5p" // DOCUMENT
         }
       }
     ]
@@ -532,19 +482,17 @@ post into the following two PeerDB documents:
 
 ```json
 {
-  "id": "3APZXnK3uofpdEJV55Po18",
-  "score": 0.5,
+  "id": "XQHttenpK8ywz3ZyPU5akH",
+  "base": ["example.com", "BLOG_POST"],
   "claims": {
-    "text": [
+    "string": [
       {
         "id": "961QCaiVomNHjjwRKtNejK",
         "confidence": 1.0,
         "prop": {
-          "id": "CjZig63YSyvb2KdyCL3XTg" // NAME
+          "id": "K746ZT8FqJeMvm1WfLBNUH" // NAME
         },
-        "html": {
-          "en": "blog post"
-        }
+        "string": "blog post"
       }
     ],
     "rel": [
@@ -552,20 +500,20 @@ post into the following two PeerDB documents:
         "id": "c24VwrPEMwZUhRgECzSn1b",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "NkeB6fpAmk6awysbH77n8H" // INSTANCE_OF
         },
         "to": {
-          "id": "HohteEmv2o7gPRnJ5wukVe" // PROPERTY
+          "id": "SdQgTgtcqTm7xHV4PV1oAd" // CLASS
         }
       },
       {
         "id": "faByPL18Y1ZH2NAhea4FBy",
         "confidence": 1.0,
         "prop": {
-          "id": "CAfaL1ZZs6L4uyFdrJZ2wN" // TYPE
+          "id": "UrBttJgHvm7kbFe7X9WcS1" // SUBCLASS_OF
         },
         "to": {
-          "id": "6HpkLLj1iSK3XBhgHpc6n3" // ITEM
+          "id": "MneSnmJvyYd9u7RKzhyS5p" // DOCUMENT
         }
       }
     ]

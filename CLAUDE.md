@@ -13,7 +13,7 @@ Key features:
 
 - **Versioned document store** with full change history
 - **Real-time collaboration** with conflict detection
-- **Claims-based document schema** supporting 11+ claim types (identifiers, text, relations, amounts, time, files, etc.)
+- **Claims-based document schema** supporting 12 claim types (identifiers, text, relations, amounts, time, etc.)
 - **Adaptive search UI** that automatically adjusts to data and provides relevant filters
 - **Multi-site support** with separate schemas and indices per site
 
@@ -166,33 +166,42 @@ Manages append-only logs for real-time collaboration sessions.
 
 #### 3. **Document Schema** (`document/`)
 
-Claims-based document system supporting 11 claim types:
+Claims-based document system supporting 12 claim types:
 
 - **IdentifierClaim**: External IDs (e.g., Wikidata Q-IDs)
 - **StringClaim**: Plain text strings
 - **HTMLClaim**: Rich text with HTML
-- **AmountClaim/AmountIntervalClaim**: Numeric values with units
-- **TimeClaim/TimeIntervalClaim**: Timestamps and time intervals
+- **AmountClaim**: Numeric values with precision
+- **AmountIntervalClaim**: Numeric intervals with bounds
+- **TimeClaim**: Timestamps with precision
+- **TimeIntervalClaim**: Time intervals with bounds
 - **ReferenceClaim**: URL/IRI references
 - **RelationClaim**: Relationships to other documents
-- **HasClaim**: Has property
-- **NoneClaim/UnknownClaim**: Missing data markers
+- **HasClaim**: Property-only claim (can hold nested claims via meta)
+- **NoneClaim**: Explicitly states no value exists
+- **UnknownClaim**: Value exists but is unknown
 
 **Core structure**:
 
 ```go
 type D struct {
-    CoreDocument  // ID (22-char identifier), Score, Scores
-    Mnemonic      // Human-readable identifier
-    Claims        // ClaimTypes (collections of claims)
+    CoreDocument  // ID (22-char identifier), Base (base for computing ID)
+    Claims        // *ClaimTypes (collections of claims)
+}
+
+type CoreClaim struct {
+    ID         identifier.Identifier
+    Confidence Confidence  // float64 in [-1, 1]
+    Meta       *ClaimTypes // optional metadata claims
 }
 ```
 
 **Important patterns**:
 
 - Use the Visitor pattern to traverse/manipulate claims
-- Claims reference properties (also documents) via `prop.id`
-- Built-in classes and properties defined in `core/` (NAME, etc.)
+- Claims reference properties (also documents) via `Prop`
+- Each claim embeds `CoreClaim` with ID, Confidence, and optional Meta claims
+- Built-in classes and properties defined in `core/` (NAME, DESCRIPTION, etc.)
 
 #### 4. **Search** (`search/search.go`)
 
@@ -211,7 +220,7 @@ Elasticsearch query builder with session-based filtering.
 
 Chunked file upload management with begin/append/end lifecycle.
 
-#### 6. **ES Bridge** (`internal/es/bridge.go`)
+#### 6. **ES Bridge** (`internal/search/bridge.go`)
 
 Listens to Store changesets and synchronizes to Elasticsearch using bulk indexing.
 
@@ -293,6 +302,6 @@ Single PeerDB instance can serve multiple sites:
 
 ### ElasticSearch Index
 
-- Index configuration generated in internal/mapping package
+- Index configuration generated in internal/search package
 - Auto-created on first run if missing
 - Run `./peerdb populate` to initialize with core PeerDB properties
