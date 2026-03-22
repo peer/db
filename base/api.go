@@ -24,7 +24,9 @@ func (b *B) GetDocument(
 }
 
 // GetDocumentLatest returns the latest version of the document.
-func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+func (b *B) GetDocumentLatest(
+	ctx context.Context, id identifier.Identifier,
+) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.documents.GetLatest(ctx, id)
 }
 

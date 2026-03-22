@@ -647,7 +647,9 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 // inverse relations that should be removed from the document's metadata.
 func (b *Bridge) indexCommit(
 	ctx context.Context,
-	committed store.CommittedChangesets[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes],
+	committed store.CommittedChangesets[
+		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes,
+	],
 ) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)

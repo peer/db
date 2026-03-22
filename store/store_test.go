@@ -810,7 +810,9 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{newVersion.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData)
+	_, errE = changeset.Merge(
+		ctx, newID, []identifier.Identifier{newVersion.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData,
+	)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
 	_, errE = changeset.Replace(ctx, newID, newVersion.Changeset, internalStore.DummyData, internalStore.DummyData)
@@ -1523,7 +1525,9 @@ func TestErrors(t *testing.T) {
 	_, errE = changeset.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData)
+	_, errE = changeset.Merge(
+		ctx, newID, []identifier.Identifier{version.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData,
+	)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
 	_, errE = changeset.Replace(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData)
@@ -1974,14 +1978,14 @@ func TestUpdateExistingMetadata(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, newVersion, version)
 	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-	assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
+	assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
 	assert.Empty(t, parentChangesets)
 
 	// Old version should still have original metadata.
 	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, insertVersion)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-	assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
+	assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata)   //nolint:testifylint
 	assert.Equal(t, insertVersion, resolvedVersion)
 	assert.Empty(t, parentChangesets)
 }
@@ -2006,7 +2010,7 @@ func TestGetRevisionZero(t *testing.T) {
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata)   //nolint:testifylint
 		assert.Equal(t, insertVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2025,7 +2029,7 @@ func TestGetRevisionZero(t *testing.T) {
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2034,7 +2038,7 @@ func TestGetRevisionZero(t *testing.T) {
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata)   //nolint:testifylint
 		assert.Equal(t, insertVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2043,7 +2047,7 @@ func TestGetRevisionZero(t *testing.T) {
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, newVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2062,7 +2066,7 @@ func TestGetRevisionZero(t *testing.T) {
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "updated"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "u1"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "u1"}`), metadata)  //nolint:testifylint
 		assert.Equal(t, updateVersion, resolvedVersion)
 		assert.Equal(t, []store.Version{{Changeset: newVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
@@ -2074,7 +2078,7 @@ func TestGetRevisionZero(t *testing.T) {
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}

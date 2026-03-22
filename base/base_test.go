@@ -1313,7 +1313,7 @@ func TestEndDocumentEditEmptyNoDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Get initial version.
-	_, _, version, _, errE := b.GetDocumentLatest(ctx, docID)
+	_, _, version, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	session, _, errE := b.BeginDocumentEdit(ctx, docID)
@@ -1328,7 +1328,7 @@ func TestEndDocumentEditEmptyNoDiscard(t *testing.T) {
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	// Document version should not change (empty changes behave like discard).
-	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID)
+	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version, newVersion, "document version should not change with empty changes")
 }

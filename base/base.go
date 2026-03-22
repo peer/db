@@ -61,7 +61,9 @@ func (b *B) Init(
 		return errors.New("already initialized")
 	}
 
-	documents := &store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]{
+	documents := &store.Store[
+		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes,
+	]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",

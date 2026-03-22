@@ -22,7 +22,9 @@ import (
 func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
-	*internalStore.LockableSlice[store.CommittedChangesets[[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None]],
+	*internalStore.LockableSlice[store.CommittedChangesets[
+		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None,
+	]],
 ) {
 	t.Helper()
 
