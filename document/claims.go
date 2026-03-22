@@ -194,6 +194,12 @@ var _ Claims = (*ClaimTypes)(nil)
 
 // Add adds a claim to the appropriate typed slice based on the claim's type.
 func (c *ClaimTypes) Add(claim Claim) errors.E {
+	if claim == nil {
+		errE := errors.New("claim type not supported")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", claim)
+		return errE
+	}
+
 	claimID := claim.GetID()
 	if c.GetByID(claimID) != nil {
 		errE := errors.New("claim with ID already exists")
