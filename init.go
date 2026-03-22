@@ -117,7 +117,9 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 
 		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient)
 		// We want existing onShutdown functions (e.g., dbpool.Close) to be last.
-		onShutdown = append([]func(){onS}, onShutdown...)
+		if onS != nil {
+			onShutdown = append([]func(){onS}, onShutdown...)
+		}
 		if errE != nil {
 			return onShutdownF, errE
 		}
